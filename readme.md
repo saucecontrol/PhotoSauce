@@ -6,8 +6,7 @@ MagicScaler brings hig-performance, high-quality image scaling to .NET.
 Requirements
 ------------
 
-Windows 7 SP1 or later*
-.NET 4.6 or later
+Windows 7* or later with .NET 4.6 or later
 
 *Windows 7 and Windows Sever 2008 R2 are supported only with the [Platform Update](https://support.microsoft.com/en-us/kb/2670838) installed.
 
@@ -40,6 +39,8 @@ Release History
 ---------------
 
 ####0.6.0.0
+* Fixed invalid color profile error when using hybrid scaling with non-JPEG CMYK images.
+* Enabled sharpening by default.  This can be disabled with the Sharpen property on ProcessImageSettings.
 * Added support for copying metadata from the source image.  See the MetadataNames property on ProcessImageSettings.
 * Added CubicSmoother preconfigured interpolator.
 * Changed Lanczos filter default to 3 lobes.  Removed the preconfigured 2-lobe filter and changed the name of Lanczos3 to Lanczos.

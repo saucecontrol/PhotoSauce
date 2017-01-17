@@ -46,31 +46,31 @@ Default Value: 0
 
 ###Sharpen: bool
 
-Indicates whether an [unsharp mask](https://en.wikipedia.org/wiki/Unsharp_masking) operation should be performed on the image following the resize.  The sharpening settings are controlled by the [UnsharpMask](#UnsharpMask) property.
+Indicates whether an [unsharp mask](https://en.wikipedia.org/wiki/Unsharp_masking) operation should be performed on the image following the resize.  The sharpening settings are controlled by the [UnsharpMask](#unsharpmask-unsharpmasksettings) property.
 
 Default value: false
 
 ###ResizeMode: CropScaleMode
 
-A [CropScaleMode](#CropScaleMode) value indicating whether auto-cropping should be performed or whether the resized image may have a different aspect ratio.  Auto-cropping is performed only if a [Crop](#Crop) value is not explicitly set.
+A [CropScaleMode](#cropscalemode) value indicating whether auto-cropping should be performed or whether the resized image may have a different aspect ratio.  Auto-cropping is performed only if a [Crop](#crop-rectangle) value is not explicitly set.
 
 Default value: Crop
 
 ###Crop: Rectangle
 
-A System.Drawing.Rectangle that specifies which part of the input image should be included.  If the rectangle is empty and the [ResizeMode](#ResizeMode) is set to `Crop`, the image will be cropped automatically.  Points given for this rectangle must be expressed in terms of the input image.
+A System.Drawing.Rectangle that specifies which part of the input image should be included.  If the rectangle is empty and the [ResizeMode](#resizemode-cropscalemode) is set to `Crop`, the image will be cropped automatically.  Points given for this rectangle must be expressed in terms of the input image.
 
 Default value: Rectangle.Empty
 
 ###Anchor: CropAnchor
 
-A [CropAnchor](#CropAnchor) value indicating the position of the auto-crop rectangle.  Values may be combined to specify a vertical and horizontal position.  Ex: `myCrop = CropAnchor.Top | CropAnchor.Left`.
+A [CropAnchor](#cropanchor) value indicating the position of the auto-crop rectangle.  Values may be combined to specify a vertical and horizontal position.  Ex: `myCrop = CropAnchor.Top | CropAnchor.Left`.
 
 Default value: CropAnchor.Center
 
 ###SaveFormat: FileFormat
 
-A [FileFormat](#FileFormat) value indicating the codec used for the output image.  A value of `Auto` will choose the output codec based on the input image type.
+A [FileFormat](#fileformat) value indicating the codec used for the output image.  A value of `Auto` will choose the output codec based on the input image type.
 
 Default value: FileFormat.Auto
 
@@ -82,13 +82,13 @@ Default value: Color.Empty
 
 ###HybridMode: HybridScaleMode
 
-A [HybridScaleMode](#HybridScaleMode) value indicating whether hybrid processing is allowed.  Hybrid processing may use the image decoder or another low-quality scaler to shrink an image to an intermediate size before the selected high-quality algorithm is applied to the final resize.  This can result in dramatic performance improvements but with a reduction in image quality.
+A [HybridScaleMode](#hybridscalemode) value indicating whether hybrid processing is allowed.  Hybrid processing may use the image decoder or another low-quality scaler to shrink an image to an intermediate size before the selected high-quality algorithm is applied to the final resize.  This can result in dramatic performance improvements but with a reduction in image quality.
 
 Default value: HybridScaleMode.FavorQuality
 
 ###BlendingMode: GammaMode
 
-A [GammaMode](#GammaMode) value indicating whether the scaling algorithm is applied in linear or gamma-corrected colorspace.  Linear processing will yield better quality in almost all cases but with a performance cost.
+A [GammaMode](#gammamode) value indicating whether the scaling algorithm is applied in linear or gamma-corrected colorspace.  Linear processing will yield better quality in almost all cases but with a performance cost.
 
 Default value: GammaMode.Linear
 
@@ -106,19 +106,19 @@ Default value: 0
 
 ###JpegSubsampleMode: ChromaSubsampleMode
 
-A [ChromaSubsampleMode](#ChromaSubsampleMode) value indicating how [chroma subsampling](https://en.wikipedia.org/wiki/Chroma_subsampling) is configured in the JPEG encoder for the output image.  If this value is set to `Default`, the chroma subsampling will be set automatically based on the [JpegQuality](#JpegQuality) setting.
+A [ChromaSubsampleMode](#chromasubsamplemode) value indicating how [chroma subsampling](https://en.wikipedia.org/wiki/Chroma_subsampling) is configured in the JPEG encoder for the output image.  If this value is set to `Default`, the chroma subsampling will be set automatically based on the [JpegQuality](#jpegquality-int) setting.
 
 Default value: ChromaSubsampleMode.Default
 
 ###Interpolation: InterpolationSettings
 
-An [InterpolationSettings](#InterpolationSettings) object specifying details of the sampling algorithm to use for image scaling.  If this value is unset, the algorithm will be chosen automatically based on the ratio of input image size to output image size.
+An [InterpolationSettings](#interpolationsettings) object specifying details of the sampling algorithm to use for image scaling.  If this value is unset, the algorithm will be chosen automatically based on the ratio of input image size to output image size.
 
 Default value: unset
 
 ###UnsharpMask: UnsharpMaskSettings
 
-An [UnsharpMaskSettings](#UnsharpMaskSettings) object specifying sharpening settings.  If this value is unset, the settings will be chosen automatically based on the ratio of input image size to output image size.
+An [UnsharpMaskSettings](#unsharpmasksettings) object specifying sharpening settings.  If this value is unset, the settings will be chosen automatically based on the ratio of input image size to output image size.
 
 Default value: unset
 
@@ -153,7 +153,7 @@ Allow the output image Width and Height to change the aspect ratio of the input 
 ###Examples
 
 Suppose you have an input image with dimensions of 640x480 and you set the Width and Height of the output image to 100x100.
-`Crop` will produce an output image of 100x100, preserving the aspect ratio of the input image by cropping from the sides of the image.  By default, this will crop evenly from the left and right.  You can change that behavior by changing the [Anchor](#CropAnchor) value.
+`Crop` will produce an output image of 100x100, preserving the aspect ratio of the input image by cropping from the sides of the image.  By default, this will crop evenly from the left and right.  You can change that behavior by changing the [Anchor](#anchor-cropanchor) value.
 `Max` will produce an output image of 100x75, preserving the aspect ratio of the input image by contstraining the dimensions of the output image.
 `Stretch` will produce an output image of 100x100 that is squished horizontally.
 

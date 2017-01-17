@@ -203,7 +203,6 @@ namespace PhotoSauce.MagicScaler
 			if (!Context.IsCmyk)
 				return;
 
-			// TODO 40bppcmyka unsupported -- WIC bug
 			var trans = AddRef(Wic.CreateColorTransform());
 			trans.Initialize(Source, Context.SourceColorContext, Context.DestColorContext, Context.HasAlpha ? Consts.GUID_WICPixelFormat32bppBGRA : Consts.GUID_WICPixelFormat24bppBGR);
 

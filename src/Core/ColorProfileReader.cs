@@ -20,7 +20,7 @@ namespace PhotoSauce.MagicScaler
 		public string Creator { get; private set; }
 		public bool IsValid { get; private set; }
 
-		public bool IsDisplayRgb => DataColorSpace == "RGB " && DeviceClass == "mntr";
+		public bool IsDisplayRgb => DataColorSpace == "RGB " && (DeviceClass == "mntr" || DeviceClass == "cmra" || DeviceClass == "scnr");
 		public bool IsCmyk => DataColorSpace == "CMYK";
 		public bool IsStandardSrgb => CMM == "Lino" && Manufacturer == "IEC " && Model == "sRGB";
 

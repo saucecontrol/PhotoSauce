@@ -79,7 +79,7 @@ namespace PhotoSauce.MagicScaler
 		public int FrameIndex { get; set; }
 		public int Width { get; set; }
 		public int Height { get; set; }
-		public bool Sharpen { get; set; }
+		public bool Sharpen { get; set; } = true;
 		public CropScaleMode ResizeMode { get; set; }
 		public Rectangle Crop { get; set; }
 		public CropAnchor Anchor { get; set; }
