@@ -1,7 +1,7 @@
 MagicScaler
 ===========
 
-MagicScaler brings hig-performance, high-quality image scaling to .NET.
+MagicScaler brings high-performance, high-quality image scaling to .NET.
 
 Requirements
 ------------
