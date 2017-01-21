@@ -72,7 +72,7 @@ namespace PhotoSauce.MagicScaler
 
 		public WicMetadataReader(WicTransform prev, bool basicOnly = false) : base(prev)
 		{
-			var pfi = AddRef(Wic.CreateComponentInfo(Context.PixelFormat) as IWICPixelFormatInfo2);
+			var pfi = AddRef(Wic.CreateComponentInfo(Context.PixelFormat)) as IWICPixelFormatInfo2;
 			if (pfi.GetNumericRepresentation() == WICPixelFormatNumericRepresentation.WICPixelFormatNumericRepresentationIndexed)
 			{
 				var pal = AddRef(Wic.CreatePalette());

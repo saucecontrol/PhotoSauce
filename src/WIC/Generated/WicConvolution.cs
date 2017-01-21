@@ -65,7 +65,7 @@ namespace PhotoSauce.MagicScaler
 			else
 				throw new NotSupportedException("Unsupported pixel format");
 
-			Stride /= 1;
+			Stride /= sizeof(byte);
 			IntStride = (int)(mapy.SampleCount * Channels);
 
 			LineBuff = new byte[(bufferSource ? mapy.SampleCount : 1) * Stride];
@@ -122,9 +122,9 @@ namespace PhotoSauce.MagicScaler
 				if (tk > 0)
 				{
 					if (BufferSource)
-						Buffer.MemoryCopy(bstart + tc * Stride, bstart, LineBuff.LongLength * 1, tk * Stride * 1);
+						Buffer.MemoryCopy(bstart + tc * Stride, bstart, LineBuff.LongLength * sizeof(byte), tk * Stride * sizeof(byte));
 
-					Buffer.MemoryCopy(tstart + tc * Channels, tstart, IntBuff.LongLength * 4, (IntBuff.LongLength - tc * Channels) * 4);
+					Buffer.MemoryCopy(tstart + tc * Channels, tstart, IntBuff.LongLength * sizeof(int), (IntBuff.LongLength - tc * Channels) * sizeof(int));
 				}
 
 				for (int ty = tk; ty < smapy; ty++)
@@ -133,7 +133,7 @@ namespace PhotoSauce.MagicScaler
 					int* tline = tstart + ty * Channels;
 
 					SourceRect.Y = iy + ty;
-					Source.CopyPixels(SourceRect, Stride * 1, Stride * 1, (IntPtr)bline);
+					Source.CopyPixels(SourceRect, Stride * sizeof(byte), Stride * sizeof(byte), (IntPtr)bline);
 
 					Processor.ConvolveSourceLine(bline, tline, IntStride, IntBuff.Length, mapxstart, mapxastart, XMap.SampleCount);
 				}
@@ -206,7 +206,7 @@ namespace PhotoSauce.MagicScaler
 			else
 				throw new NotSupportedException("Unsupported pixel format");
 
-			Stride /= 2;
+			Stride /= sizeof(ushort);
 			IntStride = (int)(mapy.SampleCount * Channels);
 
 			LineBuff = new ushort[(bufferSource ? mapy.SampleCount : 1) * Stride];
@@ -263,9 +263,9 @@ namespace PhotoSauce.MagicScaler
 				if (tk > 0)
 				{
 					if (BufferSource)
-						Buffer.MemoryCopy(bstart + tc * Stride, bstart, LineBuff.LongLength * 2, tk * Stride * 2);
+						Buffer.MemoryCopy(bstart + tc * Stride, bstart, LineBuff.LongLength * sizeof(ushort), tk * Stride * sizeof(ushort));
 
-					Buffer.MemoryCopy(tstart + tc * Channels, tstart, IntBuff.LongLength * 4, (IntBuff.LongLength - tc * Channels) * 4);
+					Buffer.MemoryCopy(tstart + tc * Channels, tstart, IntBuff.LongLength * sizeof(int), (IntBuff.LongLength - tc * Channels) * sizeof(int));
 				}
 
 				for (int ty = tk; ty < smapy; ty++)
@@ -274,7 +274,7 @@ namespace PhotoSauce.MagicScaler
 					int* tline = tstart + ty * Channels;
 
 					SourceRect.Y = iy + ty;
-					Source.CopyPixels(SourceRect, Stride * 2, Stride * 2, (IntPtr)bline);
+					Source.CopyPixels(SourceRect, Stride * sizeof(ushort), Stride * sizeof(ushort), (IntPtr)bline);
 
 					Processor.ConvolveSourceLine(bline, tline, IntStride, IntBuff.Length, mapxstart, mapxastart, XMap.SampleCount);
 				}

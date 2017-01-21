@@ -32,7 +32,7 @@ namespace PhotoSauce.MagicScaler
 
 			if (Format == Consts.GUID_WICPixelFormat64bppBGRA)
 			{
-				applyMatteLinear(prc, (ushort*)pbBuffer, (int)(cbStride / 2));
+				applyMatteLinear(prc, (ushort*)pbBuffer, (int)(cbStride / sizeof(ushort)));
 			}
 			else
 			{

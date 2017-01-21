@@ -75,7 +75,7 @@ namespace PhotoSauce.MagicScaler
 			buffHeightY = 16u;
 
 			strideC = (uint)(Math.Ceiling(scrop.Width / subsampleRatioX)) * 2u + 3u & ~3u;
-			buffHeightC = (uint)(buffHeightY / subsampleRatioX);
+			buffHeightC = (uint)(buffHeightY / subsampleRatioY);
 
 			sourceY = new WicPlanarSource(this, WicPlane.Luma, descY);
 			sourceC = new WicPlanarSource(this, WicPlane.Chroma, descC);

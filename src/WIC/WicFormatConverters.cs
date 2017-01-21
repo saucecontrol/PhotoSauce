@@ -127,9 +127,9 @@ namespace PhotoSauce.MagicScaler
 
 					byte* op = (byte*)pbBuffer + y * cbStride;
 					if (HasAlpha)
-						mapValuesWithAlpha((ushort*)(void*)bstart, op, gtstart, (uint)prc.Width * Bpp / 2);
+						mapValuesWithAlpha((ushort*)bstart, op, gtstart, (uint)prc.Width * Bpp / sizeof(ushort));
 					else
-						mapValues((ushort*)(void*)bstart, op, gtstart, (uint)prc.Width * Bpp / 2);
+						mapValues((ushort*)bstart, op, gtstart, (uint)prc.Width * Bpp / sizeof(ushort));
 				}
 			}
 		}

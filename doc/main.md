@@ -48,7 +48,7 @@ Default Value: 0
 
 Indicates whether an [unsharp mask](https://en.wikipedia.org/wiki/Unsharp_masking) operation should be performed on the image following the resize.  The sharpening settings are controlled by the [UnsharpMask](#unsharpmask-unsharpmasksettings) property.
 
-Default value: false
+Default value: true
 
 ###ResizeMode: CropScaleMode
 
@@ -288,7 +288,7 @@ A reference to an object implementing IInterpolator, which specifies the samplin
 
 ###Blur: double
 
-A value used to stretch (or compress) the sampling range for the filter.  The default and recommnded value is 1.  You may use a value greater than 1 to blur or smooth the sampling function.  Values less than 1 can cause unpleasant artifacts.
+A value used to stretch (or compress) the sampling range for the filter.  The default and recommended value is 1.  You may use a value greater than 1 to blur or smooth the sampling function.  Values less than 1 can cause unpleasant artifacts.
 
 ##IInterpolator
 
