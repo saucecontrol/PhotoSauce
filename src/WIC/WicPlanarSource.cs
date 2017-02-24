@@ -9,8 +9,6 @@ namespace PhotoSauce.MagicScaler
 		private byte[] lineBuffC = null;
 		private IWICPlanarBitmapSourceTransform sourceTransform;
 		private WICBitmapTransformOptions sourceTransformOptions;
-		private WICBitmapPlaneDescription planeDescriptionY;
-		private WICBitmapPlaneDescription planeDescriptionC;
 		private WICRect scaledCrop;
 		private WicPlanarSource sourceY;
 		private WicPlanarSource sourceC;
@@ -24,9 +22,12 @@ namespace PhotoSauce.MagicScaler
 		private uint buffHeightC;
 		private int startY = -1, posY = 0;
 		private int startC = -1, posC = 0;
+		private bool cacheFull;
 
-		public WicPlanarCacheSource(IWICPlanarBitmapSourceTransform source, WICBitmapPlaneDescription descY, WICBitmapPlaneDescription descC, WICRect crop, WICBitmapTransformOptions transformOptions, uint width, uint height, double ratio)
+		public WicPlanarCacheSource(IWICPlanarBitmapSourceTransform source, WICBitmapPlaneDescription descY, WICBitmapPlaneDescription descC, WICRect crop, WICBitmapTransformOptions transformOptions, uint width, uint height, double ratio, bool cacheFull)
 		{
+			this.cacheFull = cacheFull;
+
 			// TODO fractional ratio support?
 			subsampleRatioX = Math.Ceiling((double)descY.Width / descC.Width);
 			subsampleRatioY = Math.Ceiling((double)descY.Height / descC.Height);
@@ -39,11 +40,13 @@ namespace PhotoSauce.MagicScaler
 
 			if (subsampleRatioX > 1d)
 			{
+				if (scrop.X % subsampleRatioX > 0d)
+					scrop.X = (int)(scrop.X / subsampleRatioX) * (int)subsampleRatioX;
+				if (scrop.Width % subsampleRatioX > 0d)
+					scrop.Width = (int)Math.Min(Math.Ceiling(scrop.Width / subsampleRatioX) * (int)subsampleRatioX, descY.Width);
+
 				descC.Width = Math.Min((uint)Math.Ceiling(scrop.Width / subsampleRatioX), descC.Width);
 				descY.Width = (uint)Math.Min(descC.Width * subsampleRatioX, scrop.Width);
-
-				if (scrop.X % subsampleRatioX > 0)
-					scrop.X = (int)(scrop.X / subsampleRatioX) * (int)subsampleRatioX;
 			}
 			else
 			{
@@ -52,11 +55,13 @@ namespace PhotoSauce.MagicScaler
 
 			if (subsampleRatioY > 1d)
 			{
+				if (scrop.Y % subsampleRatioY > 0d)
+					scrop.Y = (int)(scrop.Y / subsampleRatioY) * (int)subsampleRatioY;
+				if (scrop.Height % subsampleRatioY > 0d)
+					scrop.Height = (int)Math.Min(Math.Ceiling(scrop.Height / subsampleRatioY) * (int)subsampleRatioY, descY.Height);
+
 				descC.Height = Math.Min((uint)Math.Ceiling(scrop.Height / subsampleRatioY), descC.Height);
 				descY.Height = (uint)Math.Min(descC.Height * subsampleRatioY, scrop.Height);
-
-				if (scrop.Y % subsampleRatioY > 0)
-					scrop.Y = (int)(scrop.Y / subsampleRatioY) * (int)subsampleRatioY;
 			}
 			else
 			{
@@ -65,17 +70,15 @@ namespace PhotoSauce.MagicScaler
 
 			sourceTransform = source;
 			sourceTransformOptions = transformOptions;
-			planeDescriptionY = descY;
-			planeDescriptionC = descC;
 			scaledCrop = scrop;
 			scaledWidth = width;
 			scaledHeight = height;
 
 			strideY = (uint)scrop.Width + 3u & ~3u;
-			buffHeightY = 16u;
+			buffHeightY = (uint)Math.Min(scrop.Height, cacheFull ? scrop.Height : 16);
 
 			strideC = (uint)(Math.Ceiling(scrop.Width / subsampleRatioX)) * 2u + 3u & ~3u;
-			buffHeightC = (uint)(buffHeightY / subsampleRatioY);
+			buffHeightC = (uint)Math.Ceiling(buffHeightY / subsampleRatioY);
 
 			sourceY = new WicPlanarSource(this, WicPlane.Luma, descY);
 			sourceC = new WicPlanarSource(this, WicPlane.Chroma, descC);
@@ -93,19 +96,22 @@ namespace PhotoSauce.MagicScaler
 			planes[0].pbBuffer = (IntPtr)pBuffY;
 			planes[1].pbBuffer = (IntPtr)pBuffC;
 
-			sourceTransform.CopyPixels(rect, scaledWidth, scaledHeight, sourceTransformOptions, WICPlanarOptions.WICPlanarOptionsPreserveSubsampling, planes, 2);
+			sourceTransform.CopyPixels(rect, scaledWidth, scaledHeight, sourceTransformOptions, WICPlanarOptions.WICPlanarOptionsDefault, planes, 2);
 		}
 
 		unsafe public void CopyPixels(WicPlane plane, WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
+			if (prc.X < 0 || prc.Y < 0 || prc.X + prc.Width > scaledWidth || prc.Y + prc.Height > scaledHeight)
+				throw new ArgumentOutOfRangeException(nameof(prc), "Requested rectangle does not fall within the image bounds");
+
 			var load = (lineBuffY == null || (plane == WicPlane.Luma && prc.Y + prc.Height > startY + buffHeightY) || (plane == WicPlane.Chroma && prc.Y + prc.Height > startC + buffHeightC));
 
 			if (load && (lineBuffY == null || posY < buffHeightY / 4 || posC < buffHeightC / 4))
 			{
 				if (lineBuffY != null)
 				{
-					buffHeightY *= 2;
-					buffHeightC *= 2;
+					buffHeightY *= 2u;
+					buffHeightC *= 2u;
 				}
 
 				var tbuffY = new byte[strideY * buffHeightY];
@@ -169,7 +175,7 @@ namespace PhotoSauce.MagicScaler
 						posY = posC = 0;
 					}
 
-					var rect = new WICRect { X = scaledCrop.X, Y = scaledCrop.Y + startY + posY, Width = scaledCrop.Width, Height = Math.Min((int)buffHeightY - posY, scaledCrop.Height - prc.Y) };
+					var rect = new WICRect { X = scaledCrop.X, Y = scaledCrop.Y + startY + offsY, Width = scaledCrop.Width, Height = Math.Min((int)buffHeightY - offsY, scaledCrop.Height - prc.Y) };
 					loadBuffer(pBuffY + offsY * strideY, pBuffC + offsC * strideC, rect);
 				}
 

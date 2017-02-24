@@ -1,6 +1,5 @@
 ﻿using System.IO;
 using System.Linq;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 using static System.Math;
@@ -75,13 +74,6 @@ namespace PhotoSauce.MagicScaler
 			const int bY = (ushort)(0.114 * dscale + 0.5);
 
 			return UnscaleToByte(r * rY + g * gY + b * bY);
-		}
-
-		public static double StandardDeviation(this IEnumerable<double> vals)
-		{
-			double mean = vals.Average();
-			double variance = vals.Select(val => (val - mean) * (val - mean)).Sum();
-			return Sqrt(variance / vals.Count());
 		}
 
 		public static uint ReadBigEndianUInt32(this BinaryReader rdr)

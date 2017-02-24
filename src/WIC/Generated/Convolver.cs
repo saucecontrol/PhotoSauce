@@ -823,6 +823,164 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
+	unsafe internal class ConvolverCbCr8bpc : IConvolver8bpc
+	{
+		private const int Channels = 2;
+
+		void IConvolver8bpc.ConvolveSourceLine(byte* istart, int* tstart, int tstride, int tlen, int* mapxstart, int* mapxastart, int smapx)
+		{
+			int* pmapx = mapxstart;
+			int* tp = tstart;
+			int* tpe = tstart + tlen;
+
+			while (tp < tpe)
+			{
+				int a0 = 0, a1 = 0;
+
+				int ix = *pmapx++;
+				byte* ip = istart + ix * Channels + 8 * Channels;
+				byte* ipe = ip + smapx * Channels - 7 * Channels;
+				int* mp = pmapx + 8;
+				pmapx += smapx;
+
+				while (ip < ipe)
+				{
+					int w = mp[-8];
+					a0 += ip[-16] * w;
+					a1 += ip[-15] * w;
+
+					w = mp[-7];
+					a0 += ip[-14] * w;
+					a1 += ip[-13] * w;
+
+					w = mp[-6];
+					a0 += ip[-12] * w;
+					a1 += ip[-11] * w;
+
+					w = mp[-5];
+					a0 += ip[-10] * w;
+					a1 += ip[-9] * w;
+
+					w = mp[-4];
+					a0 += ip[-8] * w;
+					a1 += ip[-7] * w;
+
+					w = mp[-3];
+					a0 += ip[-6] * w;
+					a1 += ip[-5] * w;
+
+					w = mp[-2];
+					a0 += ip[-4] * w;
+					a1 += ip[-3] * w;
+
+					w = mp[-1];
+					a0 += ip[-2] * w;
+					a1 += ip[-1] * w;
+
+					ip += 8 * Channels;
+					mp += 8;
+				}
+
+				ip -= 7 * Channels;
+				mp -= 7;
+				while (ip < ipe)
+				{
+					int w = mp[-1];
+					a0 += ip[-2] * w;
+					a1 += ip[-1] * w;
+
+					ip += Channels;
+					mp++;
+				}
+
+				tp[0] = UnscaleToInt32(a0);
+				tp[1] = UnscaleToInt32(a1);
+				tp += tstride;
+			}
+		}
+
+		void IConvolver8bpc.WriteDestLine(int* tstart, int tstride, byte* ostart, int ox, int ow, int* pmapy, int* pmapya, int smapy)
+		{
+			byte* op = ostart;
+			int xc = ox + ow;
+
+			while (ox < xc)
+			{
+				int a0 = 0, a1 = 0;
+
+				int* tp = tstart + ox * tstride + 4 * Channels;
+				int* tpe = tp + tstride - 3 * Channels;
+				int* mp = pmapy + 4;
+
+				while (tp < tpe)
+				{
+					int w = mp[-4];
+					a0 += tp[-8] * w;
+					a1 += tp[-7] * w;
+
+					w = mp[-3];
+					a0 += tp[-6] * w;
+					a1 += tp[-5] * w;
+
+					w = mp[-2];
+					a0 += tp[-4] * w;
+					a1 += tp[-3] * w;
+
+					w = mp[-1];
+					a0 += tp[-2] * w;
+					a1 += tp[-1] * w;
+
+					tp += 4 * Channels;
+					mp += 4;
+				}
+
+				tp -= 3 * Channels;
+				mp -= 3;
+				while (tp < tpe)
+				{
+					int w = mp[-1];
+					a0 += tp[-2] * w;
+					a1 += tp[-1] * w;
+
+					tp += Channels;
+					mp++;
+				}
+
+				op[0] = UnscaleToByte(a0);
+				op[1] = UnscaleToByte(a1);
+				op += Channels;
+				ox++;
+			}
+		}
+
+		void IConvolver8bpc.SharpenLine(byte* cstart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh)
+		{
+			int iamt = ScaleToInt32(amt / 100d);
+			int threshold = thresh;
+
+			byte* ip = cstart, bp = bstart, op = ostart;
+			int xc = ox + ow;
+
+			for (int x = ox; x < xc; x++, ip += Channels, bp += Channels, op += Channels)
+			{
+				byte c0 = ip[0], c1 = ip[1];
+				int yi = c0;
+				int yb = bp[0];
+				if (threshold == 0 || Math.Abs(yi - yb) > threshold)
+				{
+					int dif = UnscaleToInt32((yi - yb) * iamt);
+					op[0] = ClampToByte(c0 + dif);
+					op[1] = ClampToByte(c1 + dif);
+				}
+				else
+				{
+					op[0] = c0;
+					op[1] = c1;
+				}
+			}
+		}
+	}
+
 	unsafe internal class ConvolverGrey8bpc : IConvolver8bpc
 	{
 		private const int Channels = 1;

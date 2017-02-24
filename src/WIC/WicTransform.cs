@@ -51,7 +51,7 @@ namespace PhotoSauce.MagicScaler
 				uint pw = ctx.Width, ph = ctx.Height;
 				var pdesc = new WICBitmapPlaneDescription[2];
 				var pfmts = new Guid[] { Consts.GUID_WICPixelFormat8bppY, Consts.GUID_WICPixelFormat16bppCbCr };
-				ctx.SupportsPlanar = ptrans.DoesSupportTransform(ref pw, ref ph, WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsPreserveSubsampling, pfmts, pdesc, 2);
+				ctx.SupportsPlanar = ptrans.DoesSupportTransform(ref pw, ref ph, WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault, pfmts, pdesc, 2);
 				ctx.IsSubsampled = pdesc[0].Width != pdesc[1].Width || pdesc[0].Height != pdesc[1].Height;
 			}
 		}
@@ -252,7 +252,7 @@ namespace PhotoSauce.MagicScaler
 
 	internal class WicPaletizer : WicTransform
 	{
-		public WicPaletizer(WicTransform prev, uint colors) : base(prev)
+		public WicPaletizer(WicTransform prev, uint colors = 256u) : base(prev)
 		{
 			var newFormat = Consts.GUID_WICPixelFormat8bppIndexed;
 
@@ -383,7 +383,7 @@ namespace PhotoSauce.MagicScaler
 				return;
 
 			var fmt = Source.GetPixelFormat();
-			var conv = (WicLinearFormatConverter)null;
+			var conv = (WicFormatConverterBase)null;
 
 			if (fmt == Consts.GUID_WICPixelFormat32bppBGRA)
 				conv = new WicLinearFormatConverter(Source, Consts.GUID_WICPixelFormat64bppBGRA);
@@ -405,7 +405,7 @@ namespace PhotoSauce.MagicScaler
 		public WicGammaCompress(WicTransform prev) : base(prev)
 		{
 			var fmt = Source.GetPixelFormat();
-			var conv = (WicGammaFormatConverter)null;
+			var conv = (WicFormatConverterBase)null;
 
 			if (fmt == Consts.GUID_WICPixelFormat64bppBGRA)
 				conv = new WicGammaFormatConverter(Source, Consts.GUID_WICPixelFormat32bppBGRA);

@@ -87,6 +87,7 @@ namespace PhotoSauce.MagicScaler
 		public HybridScaleMode HybridMode { get; set; }
 		public GammaMode BlendingMode { get; set; }
 		public IEnumerable<string> MetadataNames { get; set; }
+		public bool EnablePlanarPipeline { get; set; } = true;
 
 		internal bool Normalized => imageInfo != null;
 
@@ -281,7 +282,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				ResizeMode = CropScaleMode.Crop;
 				Crop = needsCrop ? whole : Crop;
-				Crop.IntersectsWith(whole);
+				Crop.Intersect(whole);
 				Width = Crop.Width;
 				Height = Crop.Height;
 				return;

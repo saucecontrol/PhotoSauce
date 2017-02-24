@@ -31,22 +31,23 @@ namespace PhotoSauce.MagicScaler
 			Context.Width = (uint)Math.Ceiling(Context.Width / rat);
 			Context.Height = (uint)Math.Ceiling(Context.Height / rat);
 
-			var prog = Frame as IWICProgressiveLevelControl;
-			if (prog != null) // TODO needs work
-			{
-				uint levels = prog.GetLevelCount();
-				uint level = (uint)Math.Ceiling(levels / rat) + (Context.Settings.HybridMode == HybridScaleMode.FavorQuality || Context.Settings.HybridMode == HybridScaleMode.Off ? (uint)Math.Ceiling(levels / 8d) : 0u);
-				prog.SetCurrentLevel(Math.Min(level, levels - (Context.Settings.ScaleRatio >= 2d && levels > 7u ? 2u : 1u)));
-			}
+			// Although generally the last scan has the least significant bit(s) of the luma plane and skipping it could be very beneficial performance-wise, there is no guarantee of scan order.  Might be able to do something with more decoder support.
+			//var prog = Frame as IWICProgressiveLevelControl;
+			//if (prog != null)
+			//{
+			//	uint levels = prog.GetLevelCount();
+			//	uint level = (uint)Math.Ceiling(levels / rat) + (Context.Settings.HybridMode == HybridScaleMode.FavorQuality || Context.Settings.HybridMode == HybridScaleMode.Off ? (uint)Math.Ceiling(levels / 8d) : 0u);
+			//	prog.SetCurrentLevel(Math.Min(level, levels - (Context.Settings.ScaleRatio >= 2d && levels > 7u ? 2u : 1u)));
+			//}
 
 			var fmts = new Guid[] { Consts.GUID_WICPixelFormat8bppY, Consts.GUID_WICPixelFormat16bppCbCr };
 			var desc = new WICBitmapPlaneDescription[2];
 
-			if (!trans.DoesSupportTransform(ref Context.Width, ref Context.Height, Context.TransformOptions, WICPlanarOptions.WICPlanarOptionsPreserveSubsampling, fmts, desc, 2))
+			if (!trans.DoesSupportTransform(ref Context.Width, ref Context.Height, Context.TransformOptions, WICPlanarOptions.WICPlanarOptionsDefault, fmts, desc, 2))
 				throw new NotSupportedException("Requested planar transform not supported");
 
 			var crop = new WICRect() { X = Context.Settings.Crop.X, Y = Context.Settings.Crop.Y, Width = Context.Settings.Crop.Width, Height = Context.Settings.Crop.Height };
-			var source = new WicPlanarCacheSource(trans, desc[0], desc[1], crop, Context.TransformOptions, Context.Width, Context.Height, rat);
+			var source = new WicPlanarCacheSource(trans, desc[0], desc[1], crop, Context.TransformOptions, Context.Width, Context.Height, rat, Context.NeedsCache);
 
 			SourceY = source.GetPlane(WicPlane.Luma);
 			SourceCbCr = source.GetPlane(WicPlane.Chroma);
@@ -70,10 +71,9 @@ namespace PhotoSauce.MagicScaler
 		public WicPlanarConverter(WicTransform prevY, WicTransform prevCbCr) : base(prevY)
 		{
 			var cfmt = Consts.GUID_WICPixelFormat24bppBGR;
-			var conv = AddRef(Wic.CreateFormatConverter());
-			var pconv = conv as IWICPlanarFormatConverter;
-			pconv.Initialize(new IWICBitmapSource[] { prevY.Source, prevCbCr.Source }, 2, cfmt, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
-			Source = pconv;
+			var conv = AddRef(Wic.CreateFormatConverter()) as IWICPlanarFormatConverter;
+			conv.Initialize(new IWICBitmapSource[] { prevY.Source, prevCbCr.Source }, 2, cfmt, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
+			Source = conv;
 
 			if (Context.SourceColorContext != null)
 			{

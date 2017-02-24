@@ -35,9 +35,6 @@ namespace PhotoSauce.MagicScaler
 				if (!ctx.Settings.Normalized)
 					ctx.Settings.Fixup((int)ctx.Width, (int)ctx.Height, ctx.IsRotated90);
 
-				ctx.Settings.HybridMode = HybridScaleMode.Turbo;
-				//ctx.NeedsCache = true;
-
 				using (var qsc = new WicNativeScaler(met))
 				using (var rot = new WicExifRotator(qsc))
 				using (var cac = new WicConditionalCache(rot))
@@ -47,7 +44,7 @@ namespace PhotoSauce.MagicScaler
 				using (var res = new WicScaler(cmy))
 				using (var csc = new WicColorspaceConverter(res))
 				using (var mat = new WicMatteTransform(csc))
-				using (var pal = new WicPaletizer(mat, 256))
+				using (var pal = new WicPaletizer(mat))
 				using (var enc = new WicEncoder(ostm.AsIStream(), ctx))
 					enc.WriteSource(pal);
 			}

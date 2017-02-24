@@ -58,6 +58,8 @@ namespace PhotoSauce.MagicScaler
 				Processor = new ConvolverBgra8bpc();
 			else if (Format == Consts.GUID_WICPixelFormat24bppBGR)
 				Processor = new ConvolverBgr8bpc();
+			else if (Format == Consts.GUID_WICPixelFormat16bppCbCr)
+				Processor = new ConvolverCbCr8bpc();
 			else if (Format == Consts.GUID_WICPixelFormat8bppGray)
 				Processor = new ConvolverGrey8bpc();
 			else if (Format == Consts.GUID_WICPixelFormat8bppY)

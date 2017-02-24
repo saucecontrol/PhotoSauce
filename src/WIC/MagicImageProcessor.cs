@@ -50,9 +50,7 @@ namespace PhotoSauce.MagicScaler
 				if (!ctx.Settings.Normalized)
 					ctx.Settings.Fixup((int)ctx.Width, (int)ctx.Height, ctx.IsRotated90);
 
-				bool mod1 = (!ctx.IsSubsampled || ctx.Settings.HybridScaleRatio > 1d || (ctx.Settings.Crop.Width % 2 == 0 && ctx.Settings.Crop.Height % 2 == 0) || (ctx.Settings.Crop.Width == ctx.Width && ctx.Settings.Crop.Height == ctx.Height));
-				bool planar = ctx.SupportsPlanar && mod1;
-				if (planar && ctx.Settings.HybridMode != HybridScaleMode.Off)
+				if (ctx.SupportsPlanar && ctx.Settings.EnablePlanarPipeline)
 				{
 					MagicPlanarImageProcessor.ProcessImage(met, ctx, ostm);
 					return;
@@ -71,7 +69,7 @@ namespace PhotoSauce.MagicScaler
 				using (var ggg = new WicGammaCompress(mat))
 				using (var csc = new WicColorspaceConverter(ggg))
 				using (var sss = new WicUnsharpMask(csc))
-				using (var dit = new WicPaletizer(sss, 256))
+				using (var dit = new WicPaletizer(sss))
 				using (var enc = new WicEncoder(ostm.AsIStream(), ctx))
 					enc.WriteSource(dit);
 			}
