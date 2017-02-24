@@ -261,7 +261,7 @@ namespace PhotoSauce.MagicScaler
 
 			var conv = AddRef(Wic.CreateFormatConverter());
 			if (!conv.CanConvert(Context.PixelFormat, newFormat))
-				throw new ArgumentException("Can't convert to destination pixel format");
+				throw new NotSupportedException("Can't convert to destination pixel format");
 
 			var bmp = AddRef(Wic.CreateBitmapFromSource(Source, WICBitmapCreateCacheOption.WICBitmapCacheOnDemand));
 
@@ -447,7 +447,7 @@ namespace PhotoSauce.MagicScaler
 		public WicUnsharpMask(WicTransform prev) : base(prev)
 		{
 			var ss = Context.Settings.UnsharpMask;
-			if (ss.Radius <= 0 || ss.Amount <= 0)
+			if (ss.Radius <= 0d || ss.Amount <= 0)
 				return;
 
 			var mapx = KernelMap.MakeBlurMap(Context.Width, ss.Radius);

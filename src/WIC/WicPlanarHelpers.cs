@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics.Contracts;
 
 using PhotoSauce.MagicScaler.Interop;
 
@@ -25,7 +24,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		public WicPlanarCache(WicTransform prev) : base(prev)
 		{
-			Contract.Requires<NotSupportedException>(prev.Source is IWICPlanarBitmapSourceTransform, "Transform chain doesn't support planar mode.  Only JPEG Decoder, Rotator, Scaler, and ColorSpaceConverter are allowed");
+			if (!(prev.Source is IWICPlanarBitmapSourceTransform)) throw new NotSupportedException("Transform chain doesn't support planar mode.  Only JPEG Decoder, Rotator, Scaler, and ColorSpaceConverter are allowed");
 			var trans = (IWICPlanarBitmapSourceTransform)prev.Source;
 
 			double rat = Context.Settings.HybridScaleRatio.Clamp(1d, 8d);
@@ -44,7 +43,7 @@ namespace PhotoSauce.MagicScaler
 			var desc = new WICBitmapPlaneDescription[2];
 
 			if (!trans.DoesSupportTransform(ref Context.Width, ref Context.Height, Context.TransformOptions, WICPlanarOptions.WICPlanarOptionsPreserveSubsampling, fmts, desc, 2))
-				throw new NotSupportedException("Planar Transform not supported");
+				throw new NotSupportedException("Requested planar transform not supported");
 
 			var crop = new WICRect() { X = Context.Settings.Crop.X, Y = Context.Settings.Crop.Y, Width = Context.Settings.Crop.Width, Height = Context.Settings.Crop.Height };
 			var source = new WicPlanarCacheSource(trans, desc[0], desc[1], crop, Context.TransformOptions, Context.Width, Context.Height, rat);

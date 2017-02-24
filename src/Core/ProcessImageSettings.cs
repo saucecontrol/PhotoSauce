@@ -5,7 +5,6 @@ using System.Drawing;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 
 using PhotoSauce.MagicScaler.Interpolators;
 
@@ -40,12 +39,12 @@ namespace PhotoSauce.MagicScaler
 		public static readonly InterpolationSettings NearestNeighbor = new InterpolationSettings(new PointInterpolator());
 		public static readonly InterpolationSettings Average = new InterpolationSettings(new BoxInterpolator());
 		public static readonly InterpolationSettings Linear = new InterpolationSettings(new LinearInterpolator());
-		public static readonly InterpolationSettings Hermite = new InterpolationSettings(new CubicInterpolator(0, 0));
+		public static readonly InterpolationSettings Hermite = new InterpolationSettings(new CubicInterpolator(0d, 0d));
 		public static readonly InterpolationSettings Quadratic = new InterpolationSettings(new QuadraticInterpolator());
 		public static readonly InterpolationSettings Mitchell = new InterpolationSettings(new CubicInterpolator(1d/3d, 1d/3d));
 		public static readonly InterpolationSettings CatmullRom = new InterpolationSettings(new CubicInterpolator());
-		public static readonly InterpolationSettings Cubic = new InterpolationSettings(new CubicInterpolator(0, 1));
-		public static readonly InterpolationSettings CubicSmoother = new InterpolationSettings(new CubicInterpolator(0.0, 0.625), 1.15);
+		public static readonly InterpolationSettings Cubic = new InterpolationSettings(new CubicInterpolator(0d, 1d));
+		public static readonly InterpolationSettings CubicSmoother = new InterpolationSettings(new CubicInterpolator(0d, 0.625), 1.15);
 		public static readonly InterpolationSettings Lanczos = new InterpolationSettings(new LanczosInterpolator());
 		public static readonly InterpolationSettings Spline36 = new InterpolationSettings(new Spline36Interpolator());
 
@@ -56,7 +55,7 @@ namespace PhotoSauce.MagicScaler
 
 		public InterpolationSettings(IInterpolator weighting, double blur)
 		{
-			Contract.Requires<ArgumentException>(blur > 0.5 && blur <= 2d, "Blur must be > 0.5 and <= 2");
+			if (blur <= 0.5 || blur > 2d) throw new ArgumentOutOfRangeException(nameof(blur), "Value must be > 0.5 and <= 2");
 
 			WeightingFunction = weighting;
 			Blur = blur;
@@ -127,7 +126,7 @@ namespace PhotoSauce.MagicScaler
 			set
 			{
 				if (value < 0 || value > 100)
-					throw new ArgumentException("JpegQuality must be between 0 and 100");
+					throw new ArgumentOutOfRangeException("JpegQuality must be between 0 and 100");
 
 				jpegQuality = value;
 			}
@@ -212,7 +211,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static ProcessImageSettings FromDictionary(IDictionary<string, string> dic)
 		{
-			Contract.Requires<ArgumentNullException>(dic != null, nameof(dic));
+			if (dic == null) throw new ArgumentNullException(nameof(dic));
 
 			var s = new ProcessImageSettings();
 
@@ -337,9 +336,10 @@ namespace PhotoSauce.MagicScaler
 
 		internal void NormalizeFrom(ImageFileInfo img)
 		{
-			Contract.Requires<InvalidOperationException>(Width >= 0 && Height >= 0, "Width and Height cannot be negative");
-			Contract.Requires<InvalidOperationException>(ResizeMode == CropScaleMode.Crop || (Width > 0 && Height > 0), "Width and Height must be > 0 with Stretch and Max Modes");
-			Contract.Assert(FrameIndex < img.Frames.Length || img.Frames.Length + FrameIndex < 0, "Invalid FrameIndex");
+			if (Width < 0 || Height < 0) throw new InvalidOperationException("Width and Height cannot be negative");
+			if (Width == 0 && Height == 0) throw new InvalidOperationException("Width and Height may not both be 0");
+			if ((Width == 0 || Height == 0) && ResizeMode != CropScaleMode.Crop) throw new InvalidOperationException("Width or Height may only be 0 in Crop mode");
+			if (FrameIndex >= img.Frames.Length || img.Frames.Length + FrameIndex < 0) throw new InvalidOperationException("Invalid FrameIndex");
 
 			if (FrameIndex < 0)
 				FrameIndex = img.Frames.Length + FrameIndex;
@@ -375,10 +375,9 @@ namespace PhotoSauce.MagicScaler
 
 		internal string GetCacheHash()
 		{
-			//Contract.Assert(Normalized, "Hash is only valid for normalized settings.");
+			//Debug.Assert(Normalized, "Hash is only valid for normalized settings.");
 
-			using (var ms = new MemoryStream())
-			using (var bw = new BinaryWriter(ms, Encoding.UTF8))
+			using (var bw = new BinaryWriter(new MemoryStream(), Encoding.UTF8))
 			{
 				bw.Write(imageInfo?.FileSize ?? 0L);
 				bw.Write(imageInfo?.FileDate.Ticks ?? 0L);

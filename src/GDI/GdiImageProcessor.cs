@@ -59,7 +59,7 @@ namespace PhotoSauce.MagicScaler
 					if (img.GetFrameCount(fd) > s.FrameIndex)
 						img.SelectActiveFrame(fd, s.FrameIndex);
 					else
-						throw new ArgumentException("Invalid Frame Index");
+						throw new ArgumentOutOfRangeException("Invalid Frame Index");
 				}
 
 				img.ExifRotate();
@@ -81,6 +81,7 @@ namespace PhotoSauce.MagicScaler
 						gfx.DrawImage(img, Rectangle.FromLTRB(0, 0, intw, inth), crop.X, crop.Y, crop.Width, crop.Height, GraphicsUnit.Pixel);
 					}
 
+					img.Dispose();
 					src = bmp;
 					crop = new Rectangle(0, 0, intw, inth);
 				}

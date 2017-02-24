@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Diagnostics.Contracts;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using STATSTG = System.Runtime.InteropServices.ComTypes.STATSTG;
@@ -98,7 +97,7 @@ namespace PhotoSauce.MagicScaler.Interop
 
 		public static IStream AsIStream(this Stream s)
 		{
-			Contract.Requires<ArgumentNullException>(s != null, nameof(s));
+			if (s == null) throw new ArgumentNullException(nameof(s));
 
 			return new StreamAsIStream(s);
 		}

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Diagnostics.Contracts;
 
 using PhotoSauce.MagicScaler.Interop;
 
@@ -31,11 +30,9 @@ namespace PhotoSauce.MagicScaler
 
 		public ImageFileInfo(string imgPath)
 		{
-			Contract.Requires<ArgumentNullException>(imgPath != null, nameof(imgPath));
-
 			var fi = new FileInfo(imgPath);
 			if (!fi.Exists)
-				throw new ArgumentException("File does not exist");
+				throw new FileNotFoundException("File not found", imgPath);
 
 			using (var ctx = new WicProcessingContext(new ProcessImageSettings()))
 			using (var dec = new WicDecoder(imgPath, ctx))
@@ -47,7 +44,7 @@ namespace PhotoSauce.MagicScaler
 
 		public ImageFileInfo(byte[] imgBuffer, DateTime lastModified)
 		{
-			Contract.Requires<ArgumentNullException>(imgBuffer != null, nameof(imgBuffer));
+			if (imgBuffer == null) throw new ArgumentNullException(nameof(imgBuffer));
 
 			using (var ctx = new WicProcessingContext(new ProcessImageSettings()))
 			using (var dec = new WicDecoder(imgBuffer, ctx))
@@ -59,10 +56,9 @@ namespace PhotoSauce.MagicScaler
 
 		public ImageFileInfo(Stream istm, DateTime lastModified)
 		{
-			Contract.Requires<ArgumentNullException>(istm != null, nameof(istm));
-			Contract.Requires<ArgumentException>(istm.CanSeek && istm.CanRead, "Input Stream must allow Seek and Read");
-			Contract.Assert(istm.Length > 0, "Input Stream cannot be empty");
-			Contract.Assume(istm.Position < istm.Length, "Input Stream Position is at the end.  Did you forget to Seek?");
+			if (istm == null) throw new ArgumentNullException(nameof(istm));
+			if (!istm.CanSeek || !istm.CanRead) throw new ArgumentException("Input Stream must allow Seek and Read", nameof(istm));
+			if (istm.Length <= 0 || istm.Position >= istm.Length) throw new ArgumentException("Input Stream is empty or positioned at its end", nameof(istm));
 
 			using (var ctx = new WicProcessingContext(new ProcessImageSettings()))
 			using (var dec = new WicDecoder(istm, ctx))

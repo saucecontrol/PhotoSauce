@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Text;
-using System.Diagnostics.Contracts;
 
 namespace PhotoSauce.MagicScaler
 {
@@ -71,7 +70,7 @@ namespace PhotoSauce.MagicScaler
 
 		public ColorProfileInfo(byte[] profileData)
 		{
-			Contract.Requires<ArgumentNullException>(profileData != null, nameof(profileData));
+			if (profileData == null) throw new ArgumentNullException(nameof(profileData));
 
 			using (var ms = new MemoryStream(profileData))
 				init(ms);
@@ -79,7 +78,7 @@ namespace PhotoSauce.MagicScaler
 
 		public ColorProfileInfo(Stream profileData)
 		{
-			Contract.Requires<ArgumentNullException>(profileData != null, nameof(profileData));
+			if (profileData == null) throw new ArgumentNullException(nameof(profileData));
 
 			init(profileData);
 		}

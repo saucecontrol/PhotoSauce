@@ -25,7 +25,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				return factory();
 			}
-			catch (COMException ex) when ((uint)ex.HResult == 0x88982F50)
+			catch (COMException ex) when (ex.HResult == (int)WinCodecError.WINCODEC_ERR_COMPONENTNOTFOUND)
 			{
 				throw new FileFormatException("Image format not supported.  Please ensure the input file is an image and that a WIC codec capable of reading the image is installed.", ex);
 			}

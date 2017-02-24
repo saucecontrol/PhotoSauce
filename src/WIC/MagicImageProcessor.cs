@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Diagnostics.Contracts;
 
 using PhotoSauce.MagicScaler.Interop;
 
@@ -10,9 +9,9 @@ namespace PhotoSauce.MagicScaler
 	{
 		public static void ProcessImage(string imgPath, Stream ostm, ProcessImageSettings s)
 		{
-			Contract.Requires<ArgumentNullException>(imgPath != null, nameof(imgPath));
-			Contract.Requires<ArgumentNullException>(ostm != null, nameof(ostm));
-			Contract.Requires<ArgumentException>(ostm.CanSeek && ostm.CanWrite, "Output Stream must allow Seek and Write");
+			if (imgPath == null) throw new ArgumentNullException(nameof(imgPath));
+			if (ostm == null) throw new ArgumentNullException(nameof(ostm));
+			if (!ostm.CanSeek || !ostm.CanWrite) throw new ArgumentException("Output Stream must allow Seek and Write", nameof(ostm));
 
 			using (var ctx = new WicProcessingContext(s))
 			using (var dec = new WicDecoder(imgPath, ctx))
@@ -21,9 +20,9 @@ namespace PhotoSauce.MagicScaler
 
 		public static void ProcessImage(byte[] imgBuffer, Stream ostm, ProcessImageSettings s)
 		{
-			Contract.Requires<ArgumentNullException>(imgBuffer != null, nameof(imgBuffer));
-			Contract.Requires<ArgumentNullException>(ostm != null, nameof(ostm));
-			Contract.Requires<ArgumentException>(ostm.CanSeek && ostm.CanWrite, "Output Stream must allow Seek and Write");
+			if (imgBuffer == null) throw new ArgumentNullException(nameof(imgBuffer));
+			if (ostm == null) throw new ArgumentNullException(nameof(ostm));
+			if (!ostm.CanSeek || !ostm.CanWrite) throw new ArgumentException("Output Stream must allow Seek and Write", nameof(ostm));
 
 			using (var ctx = new WicProcessingContext(s))
 			using (var dec = new WicDecoder(imgBuffer, ctx))
@@ -32,11 +31,11 @@ namespace PhotoSauce.MagicScaler
 
 		public static void ProcessImage(Stream istm, Stream ostm, ProcessImageSettings s)
 		{
-			Contract.Requires<ArgumentNullException>(istm != null, nameof(istm));
-			Contract.Requires<ArgumentNullException>(ostm != null, nameof(ostm));
-			Contract.Requires<ArgumentException>(istm.CanSeek && istm.CanRead, "Input Stream must allow Seek and Read");
-			Contract.Requires<ArgumentException>(ostm.CanSeek && ostm.CanWrite, "Output Stream must allow Seek and Write");
-			Contract.Assume(istm.Position < istm.Length, "Input Stream Position is at the end.  Did you forget to Seek?");
+			if (istm == null) throw new ArgumentNullException(nameof(istm));
+			if (ostm == null) throw new ArgumentNullException(nameof(ostm));
+			if (!istm.CanSeek || !istm.CanRead)  throw new ArgumentException("Input Stream must allow Seek and Read", nameof(istm));
+			if (!ostm.CanSeek || !ostm.CanWrite) throw new ArgumentException("Output Stream must allow Seek and Write", nameof(ostm));
+			if (istm.Length <= 0 || istm.Position >= istm.Length) throw new ArgumentException("Input Stream is empty or positioned at its end", nameof(istm));
 
 			using (var ctx = new WicProcessingContext(s))
 			using (var dec = new WicDecoder(istm, ctx))

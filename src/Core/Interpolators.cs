@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics.Contracts;
 
 using static System.Math;
 
@@ -40,7 +39,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 
 		public GaussianInterpolator(double sigma)
 		{
-			Contract.Requires<ArgumentException>(sigma > 0.0, "Sigma must be greater than 0");
+			if (sigma <= 0.0) throw new ArgumentOutOfRangeException(nameof(sigma), "Value must be greater than 0");
 
 			this.sigma = sigma;
 			gauss = new MathUtil.GaussianFactory(sigma);
@@ -59,7 +58,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 
 		public QuadraticInterpolator(double r = 1.0)
 		{
-			Contract.Requires<ArgumentException>(r >= 0.5 && r <= 1.0, "r must be between 0.5 and 1.0");
+			if (r < 0.5 || r > 1.0) throw new ArgumentOutOfRangeException(nameof(r), "Value must be between 0.5 and 1.0");
 
 			this.r = r;
 		}
@@ -87,7 +86,8 @@ namespace PhotoSauce.MagicScaler.Interpolators
 
 		public CubicInterpolator(double b = 0.0, double c = 0.5)
 		{
-			Contract.Requires<ArgumentException>(b >= 0.0 && c >= 0.0, "B and C values must be greater than or equal to 0");
+			if (b < 0.0) throw new ArgumentOutOfRangeException(nameof(b), "Value must be greater than or equal to 0");
+			if (c < 0.0) throw new ArgumentOutOfRangeException(nameof(c), "Value must be greater than or equal to 0");
 
 			this.b = b; this.c = c;
 			support = b == 0.0 && c == 0.0 ? 1.0 : 2.0;
@@ -123,7 +123,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 
 		public LanczosInterpolator(int lobes = 3)
 		{
-			Contract.Requires<ArgumentException>(lobes > 0, "lobe count must be greater than 0");
+			if (lobes <= 0) throw new ArgumentOutOfRangeException(nameof(lobes), "Value must be greater than 0");
 
 			support = lobes;
 		}

@@ -1,7 +1,6 @@
 ﻿using System;
-using System.Collections;
+using System.Diagnostics;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.Runtime.InteropServices;
 
 using PhotoSauce.MagicScaler.Interop;
@@ -13,11 +12,11 @@ namespace PhotoSauce.MagicScaler
 		private bool disposed = false;
 		protected static readonly IWICImagingFactory Wic = new WICImagingFactory2() as IWICImagingFactory;
 
-		private readonly Stack comHandles = new Stack();
+		private readonly Stack<object> comHandles = new Stack<object>();
 
 		protected T AddRef<T>(T comHandle) where T : class
 		{
-			Contract.Assert(Marshal.IsComObject(comHandle), "Not a COM object");
+			Debug.Assert(Marshal.IsComObject(comHandle), "Not a COM object");
 
 			comHandles.Push(comHandle);
 
@@ -33,7 +32,7 @@ namespace PhotoSauce.MagicScaler
 
 		protected void Release<T>(T comHandle) where T : class
 		{
-			Contract.Assert(ReferenceEquals(comHandles.Peek(), comHandle), "Release() should only be called on the last handle passed to AddRef()");
+			Debug.Assert(ReferenceEquals(comHandles.Peek(), comHandle), "Release() should only be called on the last handle passed to AddRef()");
 
 			PopRelease();
 		}
