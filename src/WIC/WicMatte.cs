@@ -1,4 +1,9 @@
 ﻿using System;
+using System.Drawing;
+
+#if !NET46
+using System.Drawing.Temp;
+#endif
 
 using PhotoSauce.MagicScaler.Interop;
 using static PhotoSauce.MagicScaler.MathUtil;
@@ -10,7 +15,7 @@ namespace PhotoSauce.MagicScaler
 		byte MaskRed, MaskGreen, MaskBlue;
 		ushort MaskRedLinear, MaskGreenLinear, MaskBlueLinear;
 
-		public WicMatte(IWICBitmapSource source, System.Drawing.Color color) : base(source)
+		public WicMatte(IWICBitmapSource source, Color color) : base(source)
 		{
 			if (Format != Consts.GUID_WICPixelFormat32bppBGRA && Format != Consts.GUID_WICPixelFormat64bppBGRA)
 				throw new NotSupportedException("Pixel format not supported.  Must be BGRA");

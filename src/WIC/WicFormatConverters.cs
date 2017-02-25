@@ -10,10 +10,7 @@ namespace PhotoSauce.MagicScaler
 		protected Guid OutFormat;
 		protected bool HasAlpha;
 
-		public override Guid GetPixelFormat()
-		{
-			return OutFormat;
-		}
+		public override Guid GetPixelFormat() => OutFormat;
 
 		public WicFormatConverterBase(IWICBitmapSource source, Guid dstFormat) : base(source)
 		{

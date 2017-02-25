@@ -90,16 +90,14 @@ namespace PhotoSauce.MagicScaler
 				Context.IsCmyk = (chans == 4u && !trans) || (chans == 5u && trans);
 			}
 
-			var metareader = Frame.GetMetadataQueryReaderNoThrow();
-			if (metareader != null)
+#if NET46
+			if (Frame.TryGetMetadataQueryReader(out var metareader))
 			{
 				AddRef(metareader);
 				// Exif orientation
-				if (metareader.HasMetadataName("System.Photo.Orientation"))
+				if (metareader.TryGetMetadataByName("System.Photo.Orientation", out var ovar))
 				{
 					ushort orientation = 1;
-					var ovar = new PropVariant();
-					metareader.GetMetadataByName("System.Photo.Orientation", ovar);
 					if (ovar.UnmanagedType == VarEnum.VT_UI2)
 						orientation = (ushort)ovar.Value;
 
@@ -124,17 +122,13 @@ namespace PhotoSauce.MagicScaler
 				var propdic = new Dictionary<string, PropVariant>();
 				foreach (string prop in Context.Settings.MetadataNames ?? Enumerable.Empty<string>())
 				{
-					if (metareader.HasMetadataName(prop))
-					{
-						var pvar = new PropVariant();
-						metareader.GetMetadataByName(prop, pvar);
-						if (pvar.Value != null)
-							propdic[prop] = pvar;
-					}
+					if (metareader.TryGetMetadataByName(prop, out var pvar) && pvar.Value != null)
+						propdic[prop] = pvar;
 				}
 
 				Context.Metadata = propdic;
 			}
+#endif
 
 			// ICC profiles
 			//http://ninedegreesbelow.com/photography/embedded-color-space-information.html

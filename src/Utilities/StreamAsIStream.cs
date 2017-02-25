@@ -38,61 +38,24 @@ namespace PhotoSauce.MagicScaler.Interop
 					Marshal.WriteInt64(plibNewPosition, pos);
 			}
 
-			void IStream.SetSize(long libNewSize)
-			{
-				stream.SetLength(libNewSize);
-			}
-
-			void IStream.Commit(int grfCommitFlags)
-			{
-				stream.Flush();
-			}
-
 			void IStream.Stat(out STATSTG pstatstg, int grfStatFlag)
 			{
 				pstatstg = new STATSTG { cbSize = stream.Length, type = 2 /*STGTY_STREAM*/ };
 			}
 
-			void IStream.CopyTo(IStream pstm, long cb, IntPtr pcbRead, IntPtr pcbWritten)
-			{
-				const int buffSize = 81920;
-				byte[] buff = new byte[buffSize];
-				int read = 0, totalRead = 0;
+			void IStream.SetSize(long libNewSize) => stream.SetLength(libNewSize);
 
-				do
-				{
-					int toRead = Math.Min((int)cb - totalRead, buffSize);
-					read = stream.Read(buff, 0, toRead);
-					stream.Write(buff, 0, read);
-					totalRead += read;
-				} while (read > 0);
+			void IStream.Commit(int grfCommitFlags) => stream.Flush();
 
-				if (pcbRead != IntPtr.Zero)
-					Marshal.WriteInt64(pcbRead, totalRead);
+			void IStream.CopyTo(IStream pstm, long cb, IntPtr pcbRead, IntPtr pcbWritten) => throw new NotImplementedException();
 
-				if (pcbWritten != IntPtr.Zero)
-					Marshal.WriteInt64(pcbWritten, totalRead);
-			}
+			void IStream.Clone(out IStream ppstm) => throw new NotImplementedException();
 
-			void IStream.Clone(out IStream ppstm)
-			{
-				throw new NotImplementedException();
-			}
+			void IStream.Revert() => throw new NotImplementedException();
 
-			void IStream.Revert()
-			{
-				throw new NotImplementedException();
-			}
+			void IStream.LockRegion(long libOffset, long cb, int dwLockType) => throw new NotImplementedException();
 
-			void IStream.LockRegion(long libOffset, long cb, int dwLockType)
-			{
-				throw new NotImplementedException();
-			}
-
-			void IStream.UnlockRegion(long libOffset, long cb, int dwLockType)
-			{
-				throw new NotImplementedException();
-			}
+			void IStream.UnlockRegion(long libOffset, long cb, int dwLockType) => throw new NotImplementedException();
 		}
 
 		public static IStream AsIStream(this Stream s)

@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Linq;
-using System.Configuration;
 using System.Collections.Generic;
+
+#if NET46
+using System.Configuration;
 using System.Collections.Specialized;
+#endif
 
 namespace PhotoSauce.MagicScaler
 {
@@ -10,10 +13,10 @@ namespace PhotoSauce.MagicScaler
 	{
 		public static TValue GetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dic, TKey key, Func<TValue> valueFactory = null)
 		{
-			TValue value;
-			return dic.TryGetValue(key, out value) ? value : valueFactory == null ? default(TValue) : valueFactory();
+			return dic.TryGetValue(key, out var value) ? value : valueFactory == null ? default(TValue) : valueFactory();
 		}
 
+#if NET46
 		public static IDictionary<string, string> ToDictionary(this NameValueCollection nv)
 		{
 			return nv.AllKeys.Where(k => !string.IsNullOrEmpty(k)).ToDictionary(k => k, k => nv.GetValues(k).LastOrDefault(), StringComparer.OrdinalIgnoreCase);
@@ -23,6 +26,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			return kv.AllKeys.Where(k => !string.IsNullOrEmpty(k)).ToDictionary(k => k, k => kv[k].Value, StringComparer.OrdinalIgnoreCase);
 		}
+#endif
 
 		public static IDictionary<TKey, TValue> Coalesce<TKey, TValue>(this IDictionary<TKey, TValue> dic1, IDictionary<TKey, TValue> dic2)
 		{

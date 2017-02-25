@@ -330,6 +330,9 @@ namespace PhotoSauce.MagicScaler.Interop
 		public static readonly Guid CLSID_WICXMPStructMetadataWriter                   = new Guid(0x22C21F93, 0x7DDB, 0x411C, 0x9B, 0x17, 0xC5, 0xB7, 0xBD, 0x06, 0x4A, 0xBC);
 		public static readonly Guid CLSID_WICDdsDecoder                                = new Guid(0x9053699f, 0xa341, 0x429d, 0x9e, 0x90, 0xee, 0x43, 0x7c, 0xf8, 0x0c, 0x73);
 		public static readonly Guid CLSID_WICDdsEncoder                                = new Guid(0xa61dde94, 0x66ce, 0x4ac1, 0x88, 0x1b, 0x71, 0x68, 0x05, 0x88, 0x89, 0x5e);
+		public static readonly Guid CLSID_WICDdsMetadataReader                         = new Guid(0x276c88ca, 0x7533, 0x4a86, 0xb6, 0x76, 0x66, 0xb3, 0x60, 0x80, 0xd4, 0x84);
+		public static readonly Guid CLSID_WICDdsMetadataWriter                         = new Guid(0xfd688bbd, 0x31ed, 0x4db7, 0xa7, 0x23, 0x93, 0x49, 0x27, 0xd3, 0x83, 0x67);
+		public static readonly Guid CLSID_WICAdngDecoder                               = new Guid(0x981d9411, 0x909e, 0x42a7, 0x8f, 0x5d, 0xa7, 0x47, 0xff, 0x05, 0x2e, 0xdb);
 		public static readonly Guid CLSID_WICJpegQualcommPhoneEncoder                  = new Guid(0x68ed5c62, 0xf534, 0x4979, 0xb2, 0xb3, 0x68, 0x6a, 0x12, 0xb2, 0xb3, 0x4c);
 
 		public static readonly Guid GUID_ContainerFormatBmp                            = new Guid(0x0af1d87e, 0xfcfe, 0x4188, 0xbd, 0xeb, 0xa7, 0x90, 0x64, 0x71, 0xcb, 0xe3);
@@ -340,9 +343,12 @@ namespace PhotoSauce.MagicScaler.Interop
 		public static readonly Guid GUID_ContainerFormatTiff                           = new Guid(0x163bcc30, 0xe2e9, 0x4f0b, 0x96, 0x1d, 0xa3, 0xe9, 0xfd, 0xb7, 0x88, 0xa3);
 		public static readonly Guid GUID_ContainerFormatWmp                            = new Guid(0x57a37caa, 0x367a, 0x4540, 0x91, 0x6b, 0xf1, 0x83, 0xc5, 0x09, 0x3a, 0x4b);
 		public static readonly Guid GUID_ContainerFormatRaw                            = new Guid(0xc1fc85cb, 0xd64f, 0x478b, 0xa4, 0xec, 0x69, 0xad, 0xc9, 0xee, 0x13, 0x92);
+		public static readonly Guid GUID_ContainerFormatDds                            = new Guid(0x9967cb95, 0x2e85, 0x4ac8, 0x8c, 0xa2, 0x83, 0xd7, 0xcc, 0xd4, 0x25, 0xc9);
+		public static readonly Guid GUID_ContainerFormatAdng                           = new Guid(0xf3ff6d0d, 0x38c0, 0x41c4, 0xb1, 0xfe, 0x1f, 0x38, 0x24, 0xf1, 0x7b, 0x84);
 
 		public static readonly Guid GUID_MetadataFormat8BIMIPTC                        = new Guid(0x0010568c, 0x0852, 0x4e6a, 0xb1, 0x91, 0x5c, 0x33, 0xac, 0x5b, 0x04, 0x30);
 		public static readonly Guid GUID_MetadataFormat8BIMResolutionInfo              = new Guid(0x739F305D, 0x81DB, 0x43CB, 0xAC, 0x5E, 0x55, 0x01, 0x3E, 0xF9, 0xF0, 0x03);
+		public static readonly Guid GUID_MetadataFormat8BIMIPTCDigest                  = new Guid(0x1CA32285, 0x9CCD, 0x4786, 0x8B, 0xD8, 0x79, 0x53, 0x9D, 0xB6, 0xA0, 0x06);
 		public static readonly Guid GUID_MetadataFormatAPE                             = new Guid(0x2e043dc2, 0xC967, 0x4E05, 0x87, 0x5E, 0x61, 0x8B, 0xF6, 0x7E, 0x85, 0xC3);
 		public static readonly Guid GUID_MetadataFormatApp0                            = new Guid(0x79007028, 0x268D, 0x45d6, 0xA3, 0xC2, 0x35, 0x4E, 0x6A, 0x50, 0x4B, 0xC9);
 		public static readonly Guid GUID_MetadataFormatApp1                            = new Guid(0x8FD3DFC3, 0xF951, 0x492B, 0x81, 0x7F, 0x69, 0xC2, 0xE6, 0xD9, 0xA5, 0xB0);
@@ -380,6 +386,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		public static readonly Guid GUID_MetadataFormatXMPBag                          = new Guid(0x833CCA5F, 0xDCB7, 0x4516, 0x80, 0x6F, 0x65, 0x96, 0xAB, 0x26, 0xDC, 0xE4);
 		public static readonly Guid GUID_MetadataFormatXMPSeq                          = new Guid(0x63E8DF02, 0xEB6C, 0x456C, 0xA2, 0x24, 0xB2, 0x5E, 0x79, 0x4F, 0xD6, 0x48);
 		public static readonly Guid GUID_MetadataFormatXMPStruct                       = new Guid(0x22383CF1, 0xED17, 0x4E2E, 0xAF, 0x17, 0xD8, 0x5B, 0x8F, 0x6B, 0x30, 0xD0);
+		public static readonly Guid GUID_MetadataFormatDds                             = new Guid(0x4a064603, 0x8c33, 0x4e60, 0x9c, 0x29, 0x13, 0x62, 0x31, 0x70, 0x2d, 0x08);
 
 		public static readonly Guid GUID_VendorMicrosoft                               = new Guid(0xf0e749ca, 0xedef, 0x4589, 0xa7, 0x3a, 0xee, 0xe, 0x62, 0x6a, 0x2a, 0x2b);
 		public static readonly Guid GUID_VendorMicrosoftBuiltIn                        = new Guid(0x257a30fd, 0x06b6, 0x462b, 0xae, 0xa4, 0x63, 0xf7, 0xb, 0x86, 0xe5, 0x33);
@@ -1106,6 +1113,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		);
 	}
 
+#if NET46
 	[ComImport, Guid("DC2BB46D-3F07-481E-8625-220C4AEDBB33"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICEnumMetadataItem
 	{
@@ -1183,6 +1191,10 @@ namespace PhotoSauce.MagicScaler.Interop
 			string wzName
 		);
 	}
+#else
+	internal interface IWICMetadataQueryReader { }
+	internal interface IWICMetadataQueryWriter { }
+#endif
 
 	[ComImport, Guid("00000103-a8f2-4877-ba0a-fd2b6645fb94"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICBitmapEncoder
@@ -2698,5 +2710,47 @@ namespace PhotoSauce.MagicScaler.Interop
 			[In, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)]
 			byte[] pbScanData
 		);
+	}
+
+	internal static class ProxyFunctions
+	{
+		[DllImport("WindowsCodecs", EntryPoint = "IWICBitmapFrameDecode_GetColorContexts_Proxy")]
+		public extern static int GetColorContexts(
+			IWICBitmapFrameDecode THIS_PTR,
+			uint cCount,
+			IntPtr[] ppIColorContexts,
+			out uint pcActualCount
+		);
+
+#if NET46
+		[DllImport("WindowsCodecs", EntryPoint = "IWICBitmapFrameDecode_GetMetadataQueryReader_Proxy")]
+		public extern static int GetMetadataQueryReader(
+			IWICBitmapFrameDecode THIS_PTR,
+			out IWICMetadataQueryReader ppIMetadataQueryReader
+		);
+
+		[DllImport("WindowsCodecs", EntryPoint = "IWICBitmapFrameEncode_GetMetadataQueryWriter_Proxy")]
+		public extern static int GetMetadataQueryWriter(
+			IWICBitmapFrameEncode THIS_PTR,
+			out IWICMetadataQueryWriter ppIMetadataQueryWriter
+		);
+
+		[DllImport("WindowsCodecs", EntryPoint = "IWICMetadataQueryReader_GetMetadataByName_Proxy")]
+		public extern static int GetMetadataByName(
+			IWICMetadataQueryReader THIS_PTR,
+			[MarshalAs(UnmanagedType.LPWStr)]
+			string wzName,
+			IntPtr pvarValue
+		);
+
+		[DllImport("WindowsCodecs", EntryPoint = "IWICMetadataQueryWriter_SetMetadataByName_Proxy")]
+		public extern static int SetMetadataByName(
+			IWICMetadataQueryWriter THIS_PTR,
+			[MarshalAs(UnmanagedType.LPWStr)]
+			string wzName,
+			[In, MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(PropVariant.Marshaler))]
+			PropVariant pvarValue
+		);
+#endif
 	}
 }

@@ -7,7 +7,7 @@ namespace PhotoSauce.MagicScaler
 {
 	internal static class MagicPlanarImageProcessor
 	{
-		public static Stream ProcessImage(WicTransform prev, WicProcessingContext ctx, Stream ostm)
+		public static void ProcessImage(WicTransform prev, WicProcessingContext ctx, Stream ostm)
 		{
 			bool savePlanar = ctx.Settings.SaveFormat == FileFormat.Jpeg && ctx.SourceColorContext == null;
 
@@ -43,8 +43,6 @@ namespace PhotoSauce.MagicScaler
 						enc.WriteSource(pal);
 				}
 			}
-
-			return ostm;
 		}
 	}
 }

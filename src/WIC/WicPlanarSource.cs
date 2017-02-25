@@ -192,10 +192,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		public IWICBitmapSource GetPlane(WicPlane plane)
-		{
-			return plane == WicPlane.Luma ? sourceY : sourceC;
-		}
+		public IWICBitmapSource GetPlane(WicPlane plane) => plane == WicPlane.Luma ? sourceY : sourceC;
 	}
 
 	internal class WicPlanarSource : WicBitmapSourceBase
@@ -213,19 +210,10 @@ namespace PhotoSauce.MagicScaler
 			cachePlane = plane;
 		}
 
-		public override void CopyPixels(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
-		{
-			cacheSource.CopyPixels(cachePlane, prc, cbStride, cbBufferSize, pbBuffer);
-		}
+		public override void CopyPixels(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) => cacheSource.CopyPixels(cachePlane, prc, cbStride, cbBufferSize, pbBuffer);
 
-		public override void GetResolution(out double pDpiX, out double pDpiY)
-		{
-			pDpiX = pDpiY = 96d;
-		}
+		public override void GetResolution(out double pDpiX, out double pDpiY) => pDpiX = pDpiY = 96d;
 
-		public override void CopyPalette(IWICPalette pIPalette)
-		{
-			throw new NotImplementedException();
-		}
+		public override void CopyPalette(IWICPalette pIPalette) => throw new NotImplementedException();
 	}
 }

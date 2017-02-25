@@ -124,9 +124,9 @@ namespace PhotoSauce.MagicScaler
 				if (tk > 0)
 				{
 					if (BufferSource)
-						Buffer.MemoryCopy(bstart + tc * Stride, bstart, LineBuff.LongLength * sizeof(byte), tk * Stride * sizeof(byte));
+						Buffer.MemoryCopy(bstart + tc * Stride, bstart, LineBuff.Length * sizeof(byte), tk * Stride * sizeof(byte));
 
-					Buffer.MemoryCopy(tstart + tc * Channels, tstart, IntBuff.LongLength * sizeof(int), (IntBuff.LongLength - tc * Channels) * sizeof(int));
+					Buffer.MemoryCopy(tstart + tc * Channels, tstart, IntBuff.Length * sizeof(int), (IntBuff.Length - tc * Channels) * sizeof(int));
 				}
 
 				for (int ty = tk; ty < smapy; ty++)
@@ -265,9 +265,9 @@ namespace PhotoSauce.MagicScaler
 				if (tk > 0)
 				{
 					if (BufferSource)
-						Buffer.MemoryCopy(bstart + tc * Stride, bstart, LineBuff.LongLength * sizeof(ushort), tk * Stride * sizeof(ushort));
+						Buffer.MemoryCopy(bstart + tc * Stride, bstart, LineBuff.Length * sizeof(ushort), tk * Stride * sizeof(ushort));
 
-					Buffer.MemoryCopy(tstart + tc * Channels, tstart, IntBuff.LongLength * sizeof(int), (IntBuff.LongLength - tc * Channels) * sizeof(int));
+					Buffer.MemoryCopy(tstart + tc * Channels, tstart, IntBuff.Length * sizeof(int), (IntBuff.Length - tc * Channels) * sizeof(int));
 				}
 
 				for (int ty = tk; ty < smapy; ty++)

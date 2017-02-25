@@ -1,86 +1,56 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{CB811C9F-8676-4207-AD89-13E784FD96DE}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>PhotoSauce.MagicScaler</RootNamespace>
     <AssemblyName>PhotoSauce.MagicScaler</AssemblyName>
-    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
+    <TargetFrameworks>netcoreapp1.0;net46</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <LangVersion>6</LangVersion>
+    <LangVersion>7</LangVersion>
+    <VersionPrefix>0.7.0-beta-1</VersionPrefix>
+    <Authors>Clinton Ingram</Authors>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/saucecontrol/MagicScaler</RepositoryUrl>
+    <PackageReleaseNotes>See https://github.com/saucecontrol/MagicScaler/releases</PackageReleaseNotes>
+    <PackageIconUrl>http://photosauce.net/icon64x64.png</PackageIconUrl>
+    <PackageProjectUrl>http://photosauce.net/</PackageProjectUrl>
+    <PackageLicenseUrl>https://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
+    <RuntimeFrameworkVersion Condition=" '$(TargetFramework)' == 'netcoreapp1.0' ">1.0.3</RuntimeFrameworkVersion>
+    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+    <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
+    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <LangVersion>6</LangVersion>
+    <DebugSymbols>True</DebugSymbols>
   </PropertyGroup>
+
   <ItemGroup>
+    <PackageReference Include="System.ComponentModel.Primitives" Version="4.3.0" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.3.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp1.0' ">
+    <PackageReference Include="System.ComponentModel.TypeConverter" Version="4.3.0" />
+    <PackageReference Include="System.Drawing.Primitives" Version="4.3.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net46' ">
+    <PackageReference Include="System.Numerics.Vectors" Version="4.3.0" />
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
-    <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Core\ColorProfileReader.cs" />
-    <Compile Include="Core\ImageFileInfo.cs" />
-    <Compile Include="Core\Interpolators.cs" />
-    <Compile Include="Core\LookupTables.cs" />
-    <Compile Include="Core\ProcessImageSettings.cs" />
-    <Compile Include="GDI\GdiImageProcessor.cs" />
-    <Compile Include="Interop\PropVariant.cs" />
-    <Compile Include="Interop\WinCodec.cs" />
-    <Compile Include="Interop\WinCodecSdk.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Utilities\CacheHash.cs" />
-    <Compile Include="Utilities\MathUtil.cs" />
-    <Compile Include="Utilities\MiscExtensions.cs" />
-    <Compile Include="Utilities\StreamAsIStream.cs" />
-    <Compile Include="Utilities\WinCodecExtensions.cs" />
-    <Compile Include="WIC\Generated\Convolver.cs" />
-    <Compile Include="WIC\Generated\WicConvolution.cs" />
-    <Compile Include="WIC\KernelMap.cs" />
-    <Compile Include="WIC\MagicImageProcessor.cs" />
-    <Compile Include="WIC\MagicPlanarImageProcessor.cs" />
-    <Compile Include="WIC\WicBase.cs" />
-    <Compile Include="WIC\WicBitmapSource.cs" />
-    <Compile Include="WIC\WicPlanarSource.cs" />
-    <Compile Include="WIC\WicFormatConverters.cs" />
-    <Compile Include="WIC\WicCodec.cs" />
-    <Compile Include="WIC\WicTransform.cs" />
-    <Compile Include="WIC\WicImageProcessor.cs" />
-    <Compile Include="WIC\WicMatte.cs" />
-    <Compile Include="WIC\WicPlanarHelpers.cs" />
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+
 </Project>

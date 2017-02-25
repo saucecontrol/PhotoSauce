@@ -1,0 +1,10 @@
+﻿This folder contains copies of classes from upcoming versions of the following packages:
+	System.Drawing.Primitives
+	System.ComponentModel.TypeConverter
+
+They are copied here temporarily from the corefx repo to allow testing with .NET Core
+but will be removed and replaced with the proper versions when they become available.
+
+See:
+https://github.com/dotnet/corefx/tree/master/src/System.Drawing.Primitives/src/System/Drawing
+https://github.com/dotnet/corefx/tree/master/src/System.ComponentModel.TypeConverter/src/System/Drawing

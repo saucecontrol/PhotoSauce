@@ -72,48 +72,48 @@ namespace PhotoSauce.MagicScaler.Interop
 				Value = typedArray;
 			}
 
-			GetUnmanagedType();
+			getUnmanagedType();
 		}
 
-		private VarEnum GetUnmanagedType()
+		private VarEnum getUnmanagedType()
 		{
 			if (Value == null) return VarEnum.VT_EMPTY;
+			if (Marshal.IsComObject(Value)) return VarEnum.VT_UNKNOWN;
 
 			var type = Value.GetType();
-			     if ((MarshalType == PropVariantMarshalType.Blob ) && type.Equals(typeof(byte  []))) return VarEnum.VT_BLOB;
-			else if ((MarshalType == PropVariantMarshalType.Ascii) && type.Equals(typeof(string  ))) return VarEnum.VT_LPSTR;
-			else if ((MarshalType == PropVariantMarshalType.Ascii) && type.Equals(typeof(string[]))) return VarEnum.VT_LPSTR | VarEnum.VT_VECTOR;
-			else if (type.Equals(typeof(sbyte   ))) return VarEnum.VT_I1;
-			else if (type.Equals(typeof(sbyte []))) return VarEnum.VT_I1     | VarEnum.VT_VECTOR;
-			else if (type.Equals(typeof(byte    ))) return VarEnum.VT_UI1;
-			else if (type.Equals(typeof(byte  []))) return VarEnum.VT_UI1    | VarEnum.VT_VECTOR;
-			else if (type.Equals(typeof(short   ))) return VarEnum.VT_I2;
-			else if (type.Equals(typeof(short []))) return VarEnum.VT_I2     | VarEnum.VT_VECTOR;
-			else if (type.Equals(typeof(ushort  ))) return VarEnum.VT_UI2;
-			else if (type.Equals(typeof(ushort[]))) return VarEnum.VT_UI2    | VarEnum.VT_VECTOR;
-			else if (type.Equals(typeof(int     ))) return VarEnum.VT_I4;
-			else if (type.Equals(typeof(int   []))) return VarEnum.VT_I4     | VarEnum.VT_VECTOR;
-			else if (type.Equals(typeof(uint    ))) return VarEnum.VT_UI4;
-			else if (type.Equals(typeof(uint  []))) return VarEnum.VT_UI4    | VarEnum.VT_VECTOR;
-			else if (type.Equals(typeof(long    ))) return VarEnum.VT_I8;
-			else if (type.Equals(typeof(long  []))) return VarEnum.VT_I8     | VarEnum.VT_VECTOR;
-			else if (type.Equals(typeof(ulong   ))) return VarEnum.VT_UI8;
-			else if (type.Equals(typeof(ulong []))) return VarEnum.VT_UI8    | VarEnum.VT_VECTOR;
-			else if (type.Equals(typeof(float   ))) return VarEnum.VT_R4;
-			else if (type.Equals(typeof(float []))) return VarEnum.VT_R4     | VarEnum.VT_VECTOR;
-			else if (type.Equals(typeof(double  ))) return VarEnum.VT_R8;
-			else if (type.Equals(typeof(double[]))) return VarEnum.VT_R8     | VarEnum.VT_VECTOR;
-			else if (type.Equals(typeof(bool    ))) return VarEnum.VT_BOOL;
-			else if (type.Equals(typeof(bool  []))) return VarEnum.VT_BOOL   | VarEnum.VT_VECTOR;
-			else if (type.Equals(typeof(string  ))) return VarEnum.VT_LPWSTR;
-			else if (type.Equals(typeof(string[]))) return VarEnum.VT_LPWSTR | VarEnum.VT_VECTOR;
-			else if (type.Equals(typeof(DateTime))) return VarEnum.VT_FILETIME;
-			else if (type.IsCOMObject)              return VarEnum.VT_UNKNOWN;
+			if ((MarshalType == PropVariantMarshalType.Blob ) && type.Equals(typeof(byte  []))) return VarEnum.VT_BLOB;
+			if ((MarshalType == PropVariantMarshalType.Ascii) && type.Equals(typeof(string  ))) return VarEnum.VT_LPSTR;
+			if ((MarshalType == PropVariantMarshalType.Ascii) && type.Equals(typeof(string[]))) return VarEnum.VT_LPSTR | VarEnum.VT_VECTOR;
+			if (type.Equals(typeof(sbyte   ))) return VarEnum.VT_I1;
+			if (type.Equals(typeof(sbyte []))) return VarEnum.VT_I1     | VarEnum.VT_VECTOR;
+			if (type.Equals(typeof(byte    ))) return VarEnum.VT_UI1;
+			if (type.Equals(typeof(byte  []))) return VarEnum.VT_UI1    | VarEnum.VT_VECTOR;
+			if (type.Equals(typeof(short   ))) return VarEnum.VT_I2;
+			if (type.Equals(typeof(short []))) return VarEnum.VT_I2     | VarEnum.VT_VECTOR;
+			if (type.Equals(typeof(ushort  ))) return VarEnum.VT_UI2;
+			if (type.Equals(typeof(ushort[]))) return VarEnum.VT_UI2    | VarEnum.VT_VECTOR;
+			if (type.Equals(typeof(int     ))) return VarEnum.VT_I4;
+			if (type.Equals(typeof(int   []))) return VarEnum.VT_I4     | VarEnum.VT_VECTOR;
+			if (type.Equals(typeof(uint    ))) return VarEnum.VT_UI4;
+			if (type.Equals(typeof(uint  []))) return VarEnum.VT_UI4    | VarEnum.VT_VECTOR;
+			if (type.Equals(typeof(long    ))) return VarEnum.VT_I8;
+			if (type.Equals(typeof(long  []))) return VarEnum.VT_I8     | VarEnum.VT_VECTOR;
+			if (type.Equals(typeof(ulong   ))) return VarEnum.VT_UI8;
+			if (type.Equals(typeof(ulong []))) return VarEnum.VT_UI8    | VarEnum.VT_VECTOR;
+			if (type.Equals(typeof(float   ))) return VarEnum.VT_R4;
+			if (type.Equals(typeof(float []))) return VarEnum.VT_R4     | VarEnum.VT_VECTOR;
+			if (type.Equals(typeof(double  ))) return VarEnum.VT_R8;
+			if (type.Equals(typeof(double[]))) return VarEnum.VT_R8     | VarEnum.VT_VECTOR;
+			if (type.Equals(typeof(bool    ))) return VarEnum.VT_BOOL;
+			if (type.Equals(typeof(bool  []))) return VarEnum.VT_BOOL   | VarEnum.VT_VECTOR;
+			if (type.Equals(typeof(string  ))) return VarEnum.VT_LPWSTR;
+			if (type.Equals(typeof(string[]))) return VarEnum.VT_LPWSTR | VarEnum.VT_VECTOR;
+			if (type.Equals(typeof(DateTime))) return VarEnum.VT_FILETIME;
 
 			throw new NotImplementedException();
 		}
 
-		public VarEnum UnmanagedType => GetUnmanagedType();
+		public VarEnum UnmanagedType => getUnmanagedType();
 
 		public bool Equals(PropVariant other)
 		{
@@ -138,19 +138,21 @@ namespace PhotoSauce.MagicScaler.Interop
 
 		internal enum PropVariantMarshalType { Automatic, Ascii, Blob }
 
+#if NET46
 		internal sealed class Marshaler : ICustomMarshaler
 		{
 			[DllImport("kernel32", EntryPoint="RtlZeroMemory", SetLastError=false)]
-			private extern static void ZeroMemory(IntPtr dst, int length);
+			private extern static void zeroMemory(IntPtr dst, int length);
 
-			[DllImport("ole32", PreserveSig = false)]
-			private extern static void PropVariantClear([In, Out] IntPtr pvar);
+			[DllImport("ole32", EntryPoint = "PropVariantClear", PreserveSig = false)]
+			private extern static void propVariantClear([In, Out] IntPtr pvar);
 
-			private static T[] ToArrayOf<T>(IntPtr p, int size) where T : struct
+			private static T[] toArrayOf<T>(UnmanagedPropVariant pv) where T : struct
 			{
+				int size = (int)pv.vectorValue.count;
 				var res = new T[size];
 				for (int i = 0; i < size; i++)
-					res[i] = Marshal.PtrToStructure<T>(new IntPtr(p.ToInt64() + i * Marshal.SizeOf(typeof(T))));
+					res[i] = Marshal.PtrToStructure<T>(pv.vectorValue.ptr + i * Marshal.SizeOf<T>());
 
 				return res;
 			}
@@ -159,11 +161,11 @@ namespace PhotoSauce.MagicScaler.Interop
 
 			private PropVariant pv;
 
-			private IntPtr AllocatePropVariant()
+			private IntPtr allocatePropVariant()
 			{
-				int size = Marshal.SizeOf(typeof(UnmanagedPropVariant));
+				int size = Marshal.SizeOf<UnmanagedPropVariant>();
 				var pNativeData = Marshal.AllocCoTaskMem(size);
-				ZeroMemory(pNativeData, size);
+				zeroMemory(pNativeData, size);
 
 				return pNativeData;
 			}
@@ -172,7 +174,7 @@ namespace PhotoSauce.MagicScaler.Interop
 
 			public void CleanUpNativeData(IntPtr pNativeData)
 			{
-				PropVariantClear(pNativeData);
+				propVariantClear(pNativeData);
 				Marshal.FreeCoTaskMem(pNativeData);
 			}
 
@@ -191,7 +193,7 @@ namespace PhotoSauce.MagicScaler.Interop
 					marshalType = pv.MarshalType;
 				}
 
-				var pNativeData = AllocatePropVariant();
+				var pNativeData = allocatePropVariant();
 				if (o == null)
 					return pNativeData;
 
@@ -317,50 +319,48 @@ namespace PhotoSauce.MagicScaler.Interop
 				else
 				{
 					var elementVt = (VarEnum)(upv.vt & ~(ushort)VarEnum.VT_VECTOR);
-					int count = (int)upv.vectorValue.count;
-
 					switch (elementVt)
 					{
 						case VarEnum.VT_I1:
-							pv.Value = ToArrayOf<sbyte>(upv.vectorValue.ptr, count);
+							pv.Value = toArrayOf<sbyte>(upv);
 							break;
 						case VarEnum.VT_UI1:
-							pv.Value = ToArrayOf<byte>(upv.vectorValue.ptr, count);
+							pv.Value = toArrayOf<byte>(upv);
 							break;
 						case VarEnum.VT_I2:
-							pv.Value = ToArrayOf<short>(upv.vectorValue.ptr, count);
+							pv.Value = toArrayOf<short>(upv);
 							break;
 						case VarEnum.VT_UI2:
-							pv.Value = ToArrayOf<ushort>(upv.vectorValue.ptr, count);
+							pv.Value = toArrayOf<ushort>(upv);
 							break;
 						case VarEnum.VT_I4:
-							pv.Value = ToArrayOf<int>(upv.vectorValue.ptr, count);
+							pv.Value = toArrayOf<int>(upv);
 							break;
 						case VarEnum.VT_UI4:
-							pv.Value = ToArrayOf<uint>(upv.vectorValue.ptr, count);
+							pv.Value = toArrayOf<uint>(upv);
 							break;
 						case VarEnum.VT_I8:
-							pv.Value = ToArrayOf<long>(upv.vectorValue.ptr, count);
+							pv.Value = toArrayOf<long>(upv);
 							break;
 						case VarEnum.VT_UI8:
-							pv.Value = ToArrayOf<ulong>(upv.vectorValue.ptr, count);
+							pv.Value = toArrayOf<ulong>(upv);
 							break;
 						case VarEnum.VT_R4:
-							pv.Value = ToArrayOf<float>(upv.vectorValue.ptr, count);
+							pv.Value = toArrayOf<float>(upv);
 							break;
 						case VarEnum.VT_R8:
-							pv.Value = ToArrayOf<double>(upv.vectorValue.ptr, count);
+							pv.Value = toArrayOf<double>(upv);
 							break;
 						case VarEnum.VT_BLOB:
 							pv.MarshalType = PropVariantMarshalType.Blob;
-							pv.Value = ToArrayOf<byte>(upv.vectorValue.ptr, count); ;
+							pv.Value = toArrayOf<byte>(upv); ;
 							break;
 						case VarEnum.VT_LPSTR:
 							pv.MarshalType = PropVariantMarshalType.Ascii;
-							pv.Value = Array.ConvertAll(ToArrayOf<IntPtr>(upv.vectorValue.ptr, count), Marshal.PtrToStringAnsi);
+							pv.Value = Array.ConvertAll(toArrayOf<IntPtr>(upv), Marshal.PtrToStringAnsi);
 							break;
 						case VarEnum.VT_LPWSTR:
-							pv.Value = Array.ConvertAll(ToArrayOf<IntPtr>(upv.vectorValue.ptr, count), Marshal.PtrToStringUni);
+							pv.Value = Array.ConvertAll(toArrayOf<IntPtr>(upv), Marshal.PtrToStringUni);
 							break;
 						default: throw new NotImplementedException();
 					}
@@ -369,5 +369,6 @@ namespace PhotoSauce.MagicScaler.Interop
 				return null;
 			}
 		}
+#endif
 	}
 }

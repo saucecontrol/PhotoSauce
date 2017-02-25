@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if NET46
+using System;
 using System.IO;
 using System.Linq;
 using System.Drawing;
@@ -164,3 +165,4 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 }
+#endif

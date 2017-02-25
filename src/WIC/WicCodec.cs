@@ -140,16 +140,14 @@ namespace PhotoSauce.MagicScaler
 			if (ctx.Settings.IndexedColor && ctx.PixelFormat == Consts.GUID_WICPixelFormat8bppIndexed)
 				frame.SetPalette(ctx.DestPalette);
 
-			if (ctx.Metadata?.Count > 0)
+#if NET46
+			if (ctx.Metadata?.Count > 0 && frame.TryGetMetadataQueryWriter(out var metawriter))
 			{
-				var metawriter = frame.GetMetadataQueryWriterNoThrow();
-				if (metawriter != null)
-				{
-					AddRef(metawriter);
-					foreach (var nv in ctx.Metadata)
-						metawriter.SetMetadataByNameNoThrow(nv.Key, nv.Value);
-				}
+				AddRef(metawriter);
+				foreach (var nv in ctx.Metadata)
+					metawriter.TrySetMetadataByName(nv.Key, nv.Value);
 			}
+#endif
 
 			// TODO setting
 			//if (ctx.DestColorContext != null)

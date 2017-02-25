@@ -6,6 +6,10 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
 
+#if !NET46
+using System.Drawing.Temp;
+#endif
+
 using PhotoSauce.MagicScaler.Interpolators;
 
 namespace PhotoSauce.MagicScaler
@@ -93,13 +97,7 @@ namespace PhotoSauce.MagicScaler
 
 		public bool IndexedColor => SaveFormat == FileFormat.Png8 || SaveFormat == FileFormat.Gif;
 
-		public double ScaleRatio
-		{
-			get
-			{
-				return Math.Max(Width > 0 ? (double)Crop.Width / Width : 0d, Height > 0 ? (double)Crop.Height / Height : 0d);
-			}
-		}
+		public double ScaleRatio => Math.Max(Width > 0 ? (double)Crop.Width / Width : 0d, Height > 0 ? (double)Crop.Height / Height : 0d);
 
 		public double HybridScaleRatio
 		{
@@ -215,12 +213,15 @@ namespace PhotoSauce.MagicScaler
 			if (dic == null) throw new ArgumentNullException(nameof(dic));
 
 			var s = new ProcessImageSettings();
+			s.FrameIndex = Math.Max(int.TryParse(dic.GetValueOrDefault("frame") ?? dic.GetValueOrDefault("page"), out int f) ? f : 0, 0);
+			s.Width = Math.Max(int.TryParse(dic.GetValueOrDefault("width") ?? dic.GetValueOrDefault("w"), out int w) ? w : 0, 0);
+			s.Height = Math.Max(int.TryParse(dic.GetValueOrDefault("height") ?? dic.GetValueOrDefault("h"), out int h) ? h : 0, 0);
+			s.JpegQuality = Math.Max(int.TryParse(dic.GetValueOrDefault("quality"), out int q) ? q : 0, 0);
+			s.Sharpen = bool.TryParse(dic.GetValueOrDefault("sharpen"), out bool b) ? b : true;
 
-			int x;
-			s.FrameIndex = Math.Max(int.TryParse(dic.GetValueOrDefault("frame") ?? dic.GetValueOrDefault("page"), out x) ? x : 0, 0);
-			s.Width = Math.Max(int.TryParse(dic.GetValueOrDefault("width") ?? dic.GetValueOrDefault("w"), out x) ? x : 0, 0);
-			s.Height = Math.Max(int.TryParse(dic.GetValueOrDefault("height") ?? dic.GetValueOrDefault("h"), out x) ? x : 0, 0);
-			s.JpegQuality = Math.Max(int.TryParse(dic.GetValueOrDefault("quality"), out x) ? x : 0, 0);
+			s.ResizeMode = Enum.TryParse(dic.GetValueOrDefault("mode"), true, out CropScaleMode mode) ? mode : s.ResizeMode;
+			s.BlendingMode = Enum.TryParse(dic.GetValueOrDefault("gamma"), true, out GammaMode bm) ? bm : s.BlendingMode;
+			s.HybridMode = Enum.TryParse(dic.GetValueOrDefault("hybrid"), true, out HybridScaleMode hyb) ? hyb : s.HybridMode;
 
 			if (cropExpression.IsMatch(dic.GetValueOrDefault("crop") ?? string.Empty))
 			{
@@ -230,33 +231,16 @@ namespace PhotoSauce.MagicScaler
 
 			foreach (var group in anchorExpression.Match(dic.GetValueOrDefault("anchor") ?? string.Empty).Groups.Cast<Group>())
 			{
-				CropAnchor anchor;
-				if (Enum.TryParse(group.Value, true, out anchor))
+				if (Enum.TryParse(group.Value, true, out CropAnchor anchor))
 					s.Anchor |= anchor;
 			}
 
-			CropScaleMode mode;
-			s.ResizeMode = Enum.TryParse(dic.GetValueOrDefault("mode"), true, out mode) ? mode : s.ResizeMode;
-
 			string format = dic.GetValueOrDefault("format");
 			if (format != null)
-			{
-				FileFormat fmt;
-				s.SaveFormat = Enum.TryParse(format.ToLower().Replace("jpg", "jpeg"), true, out fmt) ? fmt : s.SaveFormat;
-			}
+				s.SaveFormat = Enum.TryParse(format.ToLower().Replace("jpg", "jpeg"), true, out FileFormat fmt) ? fmt : s.SaveFormat;
 
-			GammaMode bm;
-			s.BlendingMode = Enum.TryParse(dic.GetValueOrDefault("gamma"), true, out bm) ? bm : s.BlendingMode;
-
-			HybridScaleMode hyb;
-			s.HybridMode = Enum.TryParse(dic.GetValueOrDefault("hybrid"), true, out hyb) ? hyb : s.HybridMode;
-
-			ChromaSubsampleMode csub;
 			foreach (var cap in subsampleExpression.Match(dic.GetValueOrDefault("subsample") ?? string.Empty).Captures.Cast<Capture>())
-				s.JpegSubsampleMode = Enum.TryParse(string.Concat("Subsample", cap.Value), true, out csub) ? csub : s.JpegSubsampleMode;
-
-			bool b;
-			s.Sharpen = bool.TryParse(dic.GetValueOrDefault("sharpen"), out b) ? b : true;
+				s.JpegSubsampleMode = Enum.TryParse(string.Concat("Subsample", cap.Value), true, out ChromaSubsampleMode csub) ? csub : s.JpegSubsampleMode;
 
 			string color = dic.GetValueOrDefault("bgcolor") ?? dic.GetValueOrDefault("bg");
 			if (color != null)

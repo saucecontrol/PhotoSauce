@@ -10,8 +10,8 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyCopyright("Copyright © Clinton Ingram 2015-2017")]
 [assembly: AssemblyCulture("")]
 
-[assembly: AssemblyVersion("0.6.1.0")]
-[assembly: AssemblyFileVersion("0.6.1.0")]
+[assembly: AssemblyVersion("0.7.0.0")]
+[assembly: AssemblyFileVersion("0.7.0.1")]
 
 [assembly: ComVisible(false)]
 
