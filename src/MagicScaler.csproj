@@ -5,7 +5,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <RootNamespace>PhotoSauce.MagicScaler</RootNamespace>
     <AssemblyName>PhotoSauce.MagicScaler</AssemblyName>
-    <TargetFrameworks>netcoreapp1.0;net46</TargetFrameworks>
+    <TargetFrameworks>net46;netcoreapp1.0</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>7</LangVersion>
     <VersionPrefix>0.7.0-beta-1</VersionPrefix>
@@ -46,6 +46,7 @@
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net46' ">
+    <PackageReference Include="System.Buffers" Version="4.3.0" />
     <PackageReference Include="System.Numerics.Vectors" Version="4.3.0" />
     <Reference Include="System" />
     <Reference Include="System.Configuration" />

@@ -17,7 +17,7 @@ namespace PhotoSauce.MagicScaler
 		private const float fscale = iscale;
 		private const float ifscale = 1f / fscale;
 
-		public const ushort MaxUint15 = imax;
+		public const ushort MaxUQ15 = imax;
 		public const double DoubleScale = dscale;
 		public const int IntScale = iscale;
 
@@ -28,7 +28,7 @@ namespace PhotoSauce.MagicScaler
 		public static double Clamp(this double x, double min, double max) => Min(Max(min, x), max);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ushort ClampToUInt15(int x) => (ushort)Min(Max(0, x), imax);
+		public static ushort ClampToUQ15(int x) => (ushort)Min(Max(0, x), imax);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte ClampToByte(int x) => (byte)Min(Max(0, x), byte.MaxValue);
@@ -37,7 +37,7 @@ namespace PhotoSauce.MagicScaler
 		public static int ScaleToInt32(double x) => (int)(x * dscale);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ushort ScaleToUInt15(double x) => (ushort)Min(Max(0, (int)(x * dscale)), imax);
+		public static ushort ScaleToUQ15(double x) => (ushort)Min(Max(0, (int)(x * dscale)), imax);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static double UnscaleToDouble(int x) => x * idscale;
@@ -49,7 +49,7 @@ namespace PhotoSauce.MagicScaler
 		public static int UnscaleToInt32(int x) => x + iround >> ishift;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ushort UnscaleToUInt15(int x) => (ushort)Min(Max(0, x + iround >> ishift), imax);
+		public static ushort UnscaleToUQ15(int x) => (ushort)Min(Max(0, x + iround >> ishift), imax);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte UnscaleToByte(int x) => (byte)Min(Max(0, x + iround >> ishift), byte.MaxValue);
@@ -62,7 +62,7 @@ namespace PhotoSauce.MagicScaler
 			const int gY = (ushort)(0.7152 * dscale + 0.5);
 			const int bY = (ushort)(0.0722 * dscale + 0.5);
 
-			return UnscaleToUInt15(r * rY + g * gY + b * bY);
+			return UnscaleToUQ15(r * rY + g * gY + b * bY);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

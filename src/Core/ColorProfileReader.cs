@@ -68,11 +68,11 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		public ColorProfileInfo(byte[] profileData)
+		public ColorProfileInfo(ArraySegment<byte> profileData)
 		{
-			if (profileData == null) throw new ArgumentNullException(nameof(profileData));
+			if (profileData.Array == null) throw new ArgumentNullException(nameof(profileData.Array));
 
-			using (var ms = new MemoryStream(profileData))
+			using (var ms = new MemoryStream(profileData.Array, profileData.Offset, profileData.Count, false))
 				init(ms);
 		}
 

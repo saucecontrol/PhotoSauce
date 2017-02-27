@@ -31,15 +31,15 @@ namespace PhotoSauce.MagicScaler
 					if (subsample == ChromaSubsampleMode.Subsample420 || subsample == ChromaSubsampleMode.Subsample422)
 						ctx.Settings.Width = (int)Math.Ceiling(ctx.Settings.Width / 2d);
 
-					using (var res = new WicScaler(plc))
+					using (var res = new WicHighQualityScaler(plc))
 					using (var pen = new WicPlanarEncoder(enc))
 						pen.WriteSource(sss, res);
 				}
 				else
 				{
-					using (var res = new WicScaler(plc))
+					using (var res = new WicHighQualityScaler(plc))
 					using (var con = new WicPlanarConverter(sss, res))
-					using (var pal = new WicPaletizer(con, 256))
+					using (var pal = new WicPaletizer(con))
 						enc.WriteSource(pal);
 				}
 			}

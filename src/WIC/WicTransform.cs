@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Buffers;
 using System.Drawing;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -18,16 +19,9 @@ namespace PhotoSauce.MagicScaler
 
 		public WicTransform(WicTransform prev)
 		{
+			Context = prev.Context;
 			Frame = prev.Frame;
 			Source = prev.Source;
-			Context = prev.Context;
-		}
-
-		public WicTransform(IWICBitmapFrameDecode frm, IWICBitmapSource src, WicProcessingContext ctx)
-		{
-			Frame = frm;
-			Source = src;
-			Context = ctx;
 		}
 	}
 
@@ -150,11 +144,13 @@ namespace PhotoSauce.MagicScaler
 				if (cct == WICColorContextType.WICColorContextProfile)
 				{
 					uint ccs = cc.GetProfileBytes(0, null);
-					var ccb = new byte[ccs];
+					var ccb = ArrayPool<byte>.Shared.Rent((int)ccs);
 					cc.GetProfileBytes(ccs, ccb);
 
+					var cp = new ColorProfileInfo(new ArraySegment<byte>(ccb, 0, (int)ccs));
+					ArrayPool<byte>.Shared.Return(ccb);
+
 					// match only color profiles that match our intended use. if we have a standard sRGB profile, don't save it; we don't need to convert
-					var cp = new ColorProfileInfo(ccb);
 					if (cp.IsValid && ((cp.IsDisplayRgb && !cp.IsStandardSrgb) || (Context.IsCmyk && cp.IsCmyk) /* || (Context.IsGreyscale && cp.DataColorSpace == "GRAY") */))
 					{
 						profile = cc;
@@ -418,36 +414,60 @@ namespace PhotoSauce.MagicScaler
 
 	internal class WicHighQualityScaler : WicTransform
 	{
+		private KernelMap<int> mapx;
+		private KernelMap<int> mapy;
+		private WicBitmapSourceBase source;
+
 		public WicHighQualityScaler(WicTransform prev) : base(prev)
 		{
 			uint width = (uint)Context.Settings.Width, height = (uint)Context.Settings.Height;
 			var interpolatorx = width == Context.Width ? InterpolationSettings.NearestNeighbor : Context.Settings.Interpolation;
 			var interpolatory = height == Context.Height ? InterpolationSettings.NearestNeighbor : Context.Settings.Interpolation;
 
-			var mapx = KernelMap.MakeScaleMap(Context.Width, width, interpolatorx);
-			var mapy = KernelMap.MakeScaleMap(Context.Height, height, interpolatory);
+			var fmt = Source.GetPixelFormat();
+			mapx = KernelMap<int>.MakeScaleMap(Context.Width, width, 1u, Context.HasAlpha, interpolatorx);
+			mapy = KernelMap<int>.MakeScaleMap(Context.Height, height, 1u, Context.HasAlpha, interpolatory);
 
-			if (Context.Settings.BlendingMode == GammaMode.Linear)
-				Source = new WicConvolution16bpc(Source, mapx, mapy);
+			if (Context.Settings.BlendingMode == GammaMode.Linear && fmt != Consts.GUID_WICPixelFormat16bppCbCr)
+				source = new WicConvolution<ushort, int>(Source, mapx, mapy);
 			else
-				Source = new WicConvolution8bpc(Source, mapx, mapy);
+				source = new WicConvolution<byte, int>(Source, mapx, mapy);
 
+			Source = source;
 			Source.GetSize(out Context.Width, out Context.Height);
+		}
+
+		public override void Dispose()
+		{
+			base.Dispose();
+			mapx?.Dispose();
+			mapy?.Dispose();
+			source?.Dispose();
 		}
 	}
 
 	internal class WicUnsharpMask : WicTransform
 	{
+		private KernelMap<int> mapx;
+		private KernelMap<int> mapy;
+
 		public WicUnsharpMask(WicTransform prev) : base(prev)
 		{
 			var ss = Context.Settings.UnsharpMask;
 			if (ss.Radius <= 0d || ss.Amount <= 0)
 				return;
 
-			var mapx = KernelMap.MakeBlurMap(Context.Width, ss.Radius);
-			var mapy = KernelMap.MakeBlurMap(Context.Height, ss.Radius);
+			mapx = KernelMap<int>.MakeBlurMap(Context.Width, ss.Radius, 1u, Context.HasAlpha);
+			mapy = KernelMap<int>.MakeBlurMap(Context.Height, ss.Radius, 1u, Context.HasAlpha);
 
-			Source = new WicUnsharpMask8bpc(Source, mapx, mapy, ss);
+			Source = new WicUnsharpMask<byte, int>(Source, mapx, mapy, ss);
+		}
+
+		public override void Dispose()
+		{
+			base.Dispose();
+			mapx?.Dispose();
+			mapy?.Dispose();
 		}
 	}
 
@@ -462,5 +482,4 @@ namespace PhotoSauce.MagicScaler
 			Source = mat;
 		}
 	}
-
 }

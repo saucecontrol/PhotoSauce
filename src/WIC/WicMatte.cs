@@ -74,9 +74,9 @@ namespace PhotoSauce.MagicScaler
 						ushort ig = ip[1];
 						ushort ir = ip[2];
 
-						ib = UnscaleToUInt15(ib * ia + mbl * ma);
-						ig = UnscaleToUInt15(ig * ia + mgl * ma);
-						ir = UnscaleToUInt15(ir * ia + mrl * ma);
+						ib = UnscaleToUQ15(ib * ia + mbl * ma);
+						ig = UnscaleToUQ15(ig * ia + mgl * ma);
+						ir = UnscaleToUQ15(ir * ia + mrl * ma);
 
 						ip[0] = ib;
 						ip[1] = ig;
@@ -118,9 +118,9 @@ namespace PhotoSauce.MagicScaler
 						int ig = igt[ip[1]];
 						int ir = igt[ip[2]];
 
-						ib = UnscaleToUInt15(ib * ia + MaskBlueLinear * ma);
-						ig = UnscaleToUInt15(ig * ia + MaskGreenLinear * ma);
-						ir = UnscaleToUInt15(ir * ia + MaskRedLinear * ma);
+						ib = UnscaleToUQ15(ib * ia + MaskBlueLinear * ma);
+						ig = UnscaleToUQ15(ig * ia + MaskGreenLinear * ma);
+						ir = UnscaleToUQ15(ir * ia + MaskRedLinear * ma);
 
 						ip[0] = gt[ib];
 						ip[1] = gt[ig];

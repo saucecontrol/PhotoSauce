@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 
 using PhotoSauce.MagicScaler.Interop;
 
@@ -15,8 +16,16 @@ namespace PhotoSauce.MagicScaler
 		public WicFormatConverterBase(IWICBitmapSource source, Guid dstFormat) : base(source)
 		{
 			OutFormat = dstFormat;
-			LineBuff = new byte[Stride];
+			LineBuff = ArrayPool<byte>.Shared.Rent((int)Stride);
 			HasAlpha = Format == Consts.GUID_WICPixelFormat64bppBGRA || Format == Consts.GUID_WICPixelFormat32bppBGRA;
+		}
+
+		public override void Dispose()
+		{
+			base.Dispose();
+
+			ArrayPool<byte>.Shared.Return(LineBuff ?? Array.Empty<byte>());
+			LineBuff = null;
 		}
 	}
 
@@ -51,7 +60,7 @@ namespace PhotoSauce.MagicScaler
 			byte* ip = ipstart + 8, ipe = ipstart + len;
 			ushort* op = opstart + 8, igt = igtstart;
 
-			while (ip < ipe)
+			while (ip <= ipe)
 			{
 				ushort o0 = igt[ip[-8]];
 				ushort o1 = igt[ip[-7]];
@@ -90,7 +99,7 @@ namespace PhotoSauce.MagicScaler
 			byte* ip = ipstart + 4, ipe = ip + len;
 			ushort* op = opstart + 4, igt = igtstart, at = atstart;
 
-			while (ip < ipe)
+			while (ip <= ipe)
 			{
 				ushort o0 = igt[ip[-4]];
 				ushort o1 = igt[ip[-3]];
@@ -136,7 +145,7 @@ namespace PhotoSauce.MagicScaler
 			ushort* ip = ipstart + 8, ipe = ipstart + len;
 			byte* op = opstart + 8, gt = gtstart;
 
-			while (ip < ipe)
+			while (ip <= ipe)
 			{
 				byte o0 = gt[ip[-8]];
 				byte o1 = gt[ip[-7]];
@@ -175,7 +184,7 @@ namespace PhotoSauce.MagicScaler
 			ushort* ip = ipstart + 4, ipe = ip + len;
 			byte* op = opstart + 4, gt = gtstart;
 
-			while (ip < ipe)
+			while (ip <= ipe)
 			{
 				byte o0 = gt[ip[-4]];
 				byte o1 = gt[ip[-3]];

@@ -22,6 +22,8 @@ namespace PhotoSauce.MagicScaler
 
 	internal class WicPlanarCache : WicPlanarTransform
 	{
+		private WicPlanarCacheSource cacheSource;
+
 		public WicPlanarCache(WicTransform prev) : base(prev)
 		{
 			if (!(prev.Source is IWICPlanarBitmapSourceTransform)) throw new NotSupportedException("Transform chain doesn't support planar mode.  Only JPEG Decoder, Rotator, Scaler, and ColorSpaceConverter are allowed");
@@ -47,10 +49,16 @@ namespace PhotoSauce.MagicScaler
 				throw new NotSupportedException("Requested planar transform not supported");
 
 			var crop = new WICRect() { X = Context.Settings.Crop.X, Y = Context.Settings.Crop.Y, Width = Context.Settings.Crop.Width, Height = Context.Settings.Crop.Height };
-			var source = new WicPlanarCacheSource(trans, desc[0], desc[1], crop, Context.TransformOptions, Context.Width, Context.Height, rat, Context.NeedsCache);
+			cacheSource = new WicPlanarCacheSource(trans, desc[0], desc[1], crop, Context.TransformOptions, Context.Width, Context.Height, rat, Context.NeedsCache);
 
-			SourceY = source.GetPlane(WicPlane.Luma);
-			SourceCbCr = source.GetPlane(WicPlane.Chroma);
+			SourceY = cacheSource.GetPlane(WicPlane.Luma);
+			SourceCbCr = cacheSource.GetPlane(WicPlane.Chroma);
+		}
+
+		public override void Dispose()
+		{
+			base.Dispose();
+			cacheSource?.Dispose();
 		}
 	}
 

@@ -11,14 +11,14 @@ namespace PhotoSauce.MagicScaler
 			const double ascale = 1d / 255d;
 			var at = new ushort[256];
 			for (int i = 0; i < 256; i++)
-				at[i] = ScaleToUInt15(i * ascale);
+				at[i] = ScaleToUQ15(i * ascale);
 
 			return at;
 		});
 
 		//http://www.w3.org/Graphics/Color/srgb
 		private static readonly Lazy<byte[]> gammaTable = new Lazy<byte[]>(() => {
-			var gt = new byte[MaxUint15 + 1];
+			var gt = new byte[MaxUQ15 + 1];
 			for (int i = 0; i < gt.Length; i++)
 			{
 				double d = UnscaleToDouble(i);
@@ -43,7 +43,7 @@ namespace PhotoSauce.MagicScaler
 				else
 					d = Pow(((d + 0.055) / 1.055), 2.4);
 
-				igt[i] = ScaleToUInt15(d);
+				igt[i] = ScaleToUQ15(d);
 			}
 
 			return igt;

@@ -9,7 +9,6 @@ namespace PhotoSauce.MagicScaler
 {
 	internal abstract class WicBase : IDisposable
 	{
-		private bool disposed = false;
 		protected static readonly IWICImagingFactory Wic = new WICImagingFactory2() as IWICImagingFactory;
 
 		private readonly Stack<object> comHandles = new Stack<object>();
@@ -49,20 +48,10 @@ namespace PhotoSauce.MagicScaler
 			return AddRef(newHandle);
 		}
 
-		protected virtual void Dispose(bool disposing)
+		public virtual void Dispose()
 		{
-			if (disposed)
-				return;
-
 			while (comHandles.Count > 0)
 				PopRelease();
-
-			disposed = true;
-		}
-
-		public void Dispose()
-		{
-			Dispose(true);
 		}
 	}
 
@@ -90,9 +79,9 @@ namespace PhotoSauce.MagicScaler
 
 		public bool IsRotated90 => TransformOptions.HasFlag(WICBitmapTransformOptions.WICBitmapTransformRotate90);
 
-		public IWICColorContext SourceColorContext { get { return sourceColorContext; } set { sourceColorContext = AddOwnRef(value); } }
-		public IWICColorContext DestColorContext { get { return destColorContext; } set { destColorContext = AddOwnRef(value); } }
-		public IWICPalette DestPalette { get { return destPalette; } set { destPalette = AddOwnRef(value); } }
+		public IWICColorContext SourceColorContext { get => sourceColorContext; set => sourceColorContext = AddOwnRef(value); }
+		public IWICColorContext DestColorContext { get => destColorContext; set => destColorContext = AddOwnRef(value); }
+		public IWICPalette DestPalette { get => destPalette; set => destPalette = AddOwnRef(value); }
 
 		public WicProcessingContext(ProcessImageSettings settings)
 		{

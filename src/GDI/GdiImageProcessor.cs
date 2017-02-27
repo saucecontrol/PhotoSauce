@@ -64,6 +64,8 @@ namespace PhotoSauce.MagicScaler
 				}
 
 				img.ExifRotate();
+
+				s = s.Clone();
 				s.Fixup(img.Width, img.Height);
 				bool alpha = ((ImageFlags)img.Flags & ImageFlags.HasAlpha) == ImageFlags.HasAlpha;
 
