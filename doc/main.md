@@ -1,128 +1,128 @@
-##MagicImageProcessor
+## MagicImageProcessor
 
 The main MagicScaler image processor.
 
-###ProcessImage(string, Stream, ProcessImageSettings)
+### ProcessImage(string, Stream, ProcessImageSettings)
 
 Accepts a file path for the input image, a stream for the output image, and a ProcessImageSettings object for settings.  The output stream must allow Seek and Write.
 
-###ProcessImage(byte[], Stream, ProcessImageSettings)
+### ProcessImage(byte[], Stream, ProcessImageSettings)
 
 Accepts a byte array for the input image, a stream for the output image, and a ProcessImageSettings object for settings.  The output stream must allow Seek and Write.
 
-###ProcessImage(Stream, Stream, ProcessImageSettings)
+### ProcessImage(Stream, Stream, ProcessImageSettings)
 
 Accepts a stream for the input image, a stream for the output image, and a ProcessImageSettings object for settings.  The output stream must allow Seek and Write.  The input stream must allow Seek and Read.
 
-##GdiImageProcessor
+## GdiImageProcessor
 
 This class is included only for testing/benchmarking purposes.  It will be removed in a future version and should not be used for production code.
 
-##WicImageProcessor
+## WicImageProcessor
 
 This class is included only for testing/benchmarking purposes.  It will be removed in a future version and should not be used for production code.
 
-##ProcessImageSettings
+## ProcessImageSettings
 
 Settings for the ProcessImage operation
 
-###FrameIndex: int
+### FrameIndex: int
 
 The frame number (starting from 0) to read from a multi-frame file, such as a multi-page TIFF or animated GIF.  For single-frame images, 0 is the only valid value.
 
 Default Value: 0
 
-###Width: int
+### Width: int
 
 The output image width in pixels.  If auto-cropping is enabled, a value of 0 will set the width automatically based on the output height.  Width and Height may not both be set to 0.
 
 Default Value: 0
 
-###Height: int
+### Height: int
 
 The output image height in pixels.  If auto-cropping is enabled, a value of 0 will set the height automatically based on the output width.  Width and Height may not both be set to 0.
 
 Default Value: 0
 
-###Sharpen: bool
+### Sharpen: bool
 
 Indicates whether an [unsharp mask](https://en.wikipedia.org/wiki/Unsharp_masking) operation should be performed on the image following the resize.  The sharpening settings are controlled by the [UnsharpMask](#unsharpmask-unsharpmasksettings) property.
 
 Default value: true
 
-###ResizeMode: CropScaleMode
+### ResizeMode: CropScaleMode
 
 A [CropScaleMode](#cropscalemode) value indicating whether auto-cropping should be performed or whether the resized image may have a different aspect ratio.  Auto-cropping is performed only if a [Crop](#crop-rectangle) value is not explicitly set.
 
 Default value: Crop
 
-###Crop: Rectangle
+### Crop: Rectangle
 
 A System.Drawing.Rectangle that specifies which part of the input image should be included.  If the rectangle is empty and the [ResizeMode](#resizemode-cropscalemode) is set to `Crop`, the image will be cropped automatically.  Points given for this rectangle must be expressed in terms of the input image.
 
 Default value: Rectangle.Empty
 
-###Anchor: CropAnchor
+### Anchor: CropAnchor
 
 A [CropAnchor](#cropanchor) value indicating the position of the auto-crop rectangle.  Values may be combined to specify a vertical and horizontal position.  Ex: `myCrop = CropAnchor.Top | CropAnchor.Left`.
 
 Default value: CropAnchor.Center
 
-###SaveFormat: FileFormat
+### SaveFormat: FileFormat
 
 A [FileFormat](#fileformat) value indicating the codec used for the output image.  A value of `Auto` will choose the output codec based on the input image type.
 
 Default value: FileFormat.Auto
 
-###MatteColor: Color
+### MatteColor: Color
 
 A System.Drawing.Color value indicating a background color to be applied when processing an input image with transparency.  When converting to a file format that does not support transparency (e.g. PNG->JPEG), the background color will be Black unless otherwise specified.  When saving as a file format that does support transparency, the transparency will be maintained unless a color is set.
 
 Default value: Color.Empty
 
-###HybridMode: HybridScaleMode
+### HybridMode: HybridScaleMode
 
 A [HybridScaleMode](#hybridscalemode) value indicating whether hybrid processing is allowed.  Hybrid processing may use the image decoder or another low-quality scaler to shrink an image to an intermediate size before the selected high-quality algorithm is applied to the final resize.  This can result in dramatic performance improvements but with a reduction in image quality.
 
 Default value: HybridScaleMode.FavorQuality
 
-###BlendingMode: GammaMode
+### BlendingMode: GammaMode
 
 A [GammaMode](#gammamode) value indicating whether the scaling algorithm is applied in linear or gamma-corrected colorspace.  Linear processing will yield better quality in almost all cases but with a performance cost.
 
 Default value: GammaMode.Linear
 
-###MetadataNames: IEnumerable<string>
+### MetadataNames: IEnumerable<string>
 
 A list of metadata policy names or explicit metadata paths to be copied from the input image to the output image.  This can be useful for preserving author or copyright EXIF tags in the output image.  See the [Windows Photo Metadata Policies](https://msdn.microsoft.com/en-us/library/windows/desktop/ee872003(v=vs.85).aspx) for examples of commonly-used values, or the [Metadata Query Language Overview](https://msdn.microsoft.com/en-us/library/windows/desktop/ee872003(v=vs.85).aspx) for explicit path syntax.
 
 Default value: null
 
-###JpegQuality: int
+### JpegQuality: int
 
 Sets the quality value passed to the JPEG encoder for the output image.  If this value is set to 0, the quality level will be set automatically according to the output image dimensions.  Typically, this value should be 80 or greater if set explicitly.
 
 Default value: 0
 
-###JpegSubsampleMode: ChromaSubsampleMode
+### JpegSubsampleMode: ChromaSubsampleMode
 
 A [ChromaSubsampleMode](#chromasubsamplemode) value indicating how [chroma subsampling](https://en.wikipedia.org/wiki/Chroma_subsampling) is configured in the JPEG encoder for the output image.  If this value is set to `Default`, the chroma subsampling will be set automatically based on the [JpegQuality](#jpegquality-int) setting.
 
 Default value: ChromaSubsampleMode.Default
 
-###Interpolation: InterpolationSettings
+### Interpolation: InterpolationSettings
 
 An [InterpolationSettings](#interpolationsettings) object specifying details of the sampling algorithm to use for image scaling.  If this value is unset, the algorithm will be chosen automatically based on the ratio of input image size to output image size.
 
 Default value: unset
 
-###UnsharpMask: UnsharpMaskSettings
+### UnsharpMask: UnsharpMaskSettings
 
 An [UnsharpMaskSettings](#unsharpmasksettings) object specifying sharpening settings.  If this value is unset, the settings will be chosen automatically based on the ratio of input image size to output image size.
 
 Default value: unset
 
-##CropAnchor 
+## CropAnchor 
 
 A flags enumeration for specifying auto-crop anchor.
 
@@ -134,23 +134,23 @@ By default, auto-cropping will maintain the image center by cropping equally fro
 * Left
 * Right
 
-##CropScaleMode
+## CropScaleMode
 
 An enumeration for specifying auto-crop or auto-size behavior.
 
-###Crop
+### Crop
 
 Auto-crop the input image to fit within the given Width and Height while maintaining the aspect ratio of the input image.
 
-###Max
+### Max
 
 Auto-size the output image to a maximum of the values given for Width and Height while maintaining aspect ratio of the input image.
 
-###Stretch
+### Stretch
 
 Allow the output image Width and Height to change the aspect ratio of the input image.  This may result in stretching or distortion of the image.
 
-###Examples
+### Examples
 
 Suppose you have an input image with dimensions of 640x480 and you set the Width and Height of the output image to 100x100.
 `Crop` will produce an output image of 100x100, preserving the aspect ratio of the input image by cropping from the sides of the image.  By default, this will crop evenly from the left and right.  You can change that behavior by changing the [Anchor](#anchor-cropanchor) value.
@@ -164,23 +164,23 @@ Width=100 with the default values Height=0/Crop=Rectangle.Empty will result in a
 Height=100 with the default values Width=0/Crop=Rectangle.Empty will result in an output image of 133x100 with no cropping.
 Width=100/Crop=Rectangle.FromLTRB(0,0,480,480) with the default value Height=0 will result in an output image of 100x100 with the right portion of the image cropped.  You can achieve the same result with Width=100/Height=100/Anchor=CropAnchor.Left.
 
-##HybridScaleMode
+## HybridScaleMode
 
 An enumeration for specifying the amount of low-quality scaling performed in high-ratio resizing operations.
 
-###FavorQuality
+### FavorQuality
 
 Resize the image to an intermediate size at least 3x the output dimensions with the low-quality scaler.  Perform the final resize with the high-quality scaler.
 
-###FavorSpeed
+### FavorSpeed
 
 Resize the image to an intermediate size at least 2x the output dimensions with the low-quality scaler.  Perform the final resize with the high-quality scaler.
 
-###Turbo
+### Turbo
 
 Resize the image entirely using the low-quality scaler if possible.  If not possible, perform the minimal amount of work possible in the high-quality scaler.
 
-###Off
+### Off
 
 Perform the entire resize with the high-quality scaler.  This will yield the best quality image but at a performance cost.
 
@@ -188,31 +188,31 @@ Perform the entire resize with the high-quality scaler.  This will yield the bes
 
 An enumeration for specifying the light blending mode used for high-quality scaling operations. 
 
-###Linear
+### Linear
 
 Perform the high-quality scaling in [linear light](http://web.archive.org/web/20160826144709/http://www.4p8.com/eric.brasseur/gamma.html) colorspace.  This will give better results in most cases but at a performance cost.
 
-###sRGB
+### sRGB
 
 Perform the high-quality scaling in gamma-corrected sRGB colorspace.  This will yield output more similar to other scaling software but will be less correct in most cases.
 
-##ChromaSubsampleMode
+## ChromaSubsampleMode
 
 An enumeration for specifying the [chroma subsampling](https://en.wikipedia.org/wiki/Chroma_subsampling) mode used by the JPEG encoder. 
 
-###Default
+### Default
 
 Choose the chroma subsampling mode automatically based on the JpegQuality setting
 
-###Subsample420
+### Subsample420
 
 4:2:0 chroma subsampling
 
-###Subsample422
+### Subsample422
 
 4:2:2 chroma subsampling
 
-###Subsample444
+### Subsample444
 
 No chroma subsampling (4:4:4)
 
@@ -220,31 +220,31 @@ No chroma subsampling (4:4:4)
 
 An enumeration for specifying the file format (codec) used for the output image. 
 
-###Auto
+### Auto
 
 Choose the output file format automatically based on the format of the input image
 
-###Jpeg
+### Jpeg
 
 JPEG.  Use JpegQuality and JpegSubsampleMode settings to control output.
 
-###Png
+### Png
 
 24-bit or 32-bit PNG, depending on whether or not the input image contains an alpha channel.
 
-###Png8
+### Png8
 
 8-bit indexed PNG
 
-###Gif
+### Gif
 
 8-bit indexed GIF
 
-###Bmp
+### Bmp
 
 24-bit or 32-bit BMP, depending on whether or not the input image contains an alpha channel.
 
-###Tiff
+### Tiff
 
 Uncompressed 24-bit or 32-bit TIFF, depending on whether or not the input image contains an alpha channel.
 
@@ -252,19 +252,19 @@ Uncompressed 24-bit or 32-bit TIFF, depending on whether or not the input image 
 
 A structure for specifying the settings used for the post-resize [sharpening](https://en.wikipedia.org/wiki/Unsharp_masking) of the output image.  These settings are designed to function similarly to the Unsharp Mask settings in Photoshop.
 
-###Amount: int
+### Amount: int
 
 The amount of sharpening applied.  Technically, this is a percentage applied to the luma difference between the original and blurred images.  Typical values are between 25 and 200.
 
-###Radius: double
+### Radius: double
 
 The radius of the gaussian blur used for the unsharp mask.  More blurring in the mask yields more sharpening in the final image.  Typical values are between 0.3 and 3.0.  Larger radius values can have significant performance cost.
 
-###Threshold
+### Threshold
 
 The minimum difference between the original and blurred images for a pixel to be sharpened.  When using larger `Radius` or `Amount` values, a larger `Threshold` value can ensure lines are sharpened while textures are not. Typical values are between 0 and 10.
 
-##InterpolationSettings
+## InterpolationSettings
 
 A structure for specifying the sampling algorithm used by the high-quality scaler.  There are a number of well-known algoritms preconfigured as static fields, or you can define your own.
 
@@ -282,22 +282,23 @@ Preconfigured values include:
 * [Lanczos](http://www.imagemagick.org/Usage/filter/#lanczos) - A 3-lobed Lanczos Windowed Sinc filter
 * [Spline36](http://www.panotools.org/dersch/interpolator/interpolator.html) - A 3-lobed piece-wise function with a nice balance between smoothness and sharpness
 
-###WeightingFunction: IInterpolator
+### WeightingFunction: IInterpolator
 
 A reference to an object implementing IInterpolator, which specifies the sampling range for the filter and a function to generate the weighting value for a given distance.
 
-###Blur: double
+### Blur: double
 
 A value used to stretch (or compress) the sampling range for the filter.  The default and recommended value is 1.  You may use a value greater than 1 to blur or smooth the sampling function.  Values less than 1 can cause unpleasant artifacts.
 
-##IInterpolator
+## IInterpolator
 
 An interface for defining custom sampling functions.
 
-###Support: double
+### Support: double
 
 The support radius of the sampling function.  The sampling window will be twice this value.
 
-###GetValue(double) returns double
+### GetValue(double) returns double
 
 The weighting function.  This function accepts a distance from the destination sample's center and returns a weight for the sample at that distance.
+
