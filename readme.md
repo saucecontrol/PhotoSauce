@@ -38,10 +38,10 @@ See the [documentation page](doc/main.md) for more details.
 Release History
 ---------------
 
-####0.6.1.0
+#### 0.6.1.0
 * Fixed argument out of range error when using planar scaling with 4:2:2 subsampled JPEG source images.
 
-####0.6.0.0
+#### 0.6.0.0
 * Fixed invalid color profile error when using hybrid scaling with non-JPEG CMYK images.
 * Enabled sharpening by default.  This can be disabled with the Sharpen property on ProcessImageSettings.
 * Added support for copying metadata from the source image.  See the MetadataNames property on ProcessImageSettings.
@@ -50,7 +50,7 @@ Release History
 * Removed Spline16 interpolator.  This was not available as a preconfigured filter but could have been configured manually.
 * Removed some unused internal classes.
 
-####0.5.0.0
+#### 0.5.0.0
 * Initial public release
 
 Contributing
