@@ -15,7 +15,10 @@ namespace PhotoSauce.MagicScaler
 		public IWICBitmapFrameDecode Frame { get; protected set; }
 		public IWICBitmapSource Source { get; protected set; }
 
-		protected WicTransform() { }
+		protected WicTransform(WicProcessingContext ctx)
+		{
+			Context = ctx;
+		}
 
 		public WicTransform(WicTransform prev)
 		{
@@ -27,26 +30,24 @@ namespace PhotoSauce.MagicScaler
 
 	internal class WicFrameReader : WicTransform
 	{
-		public WicFrameReader(WicDecoder dec, WicProcessingContext ctx)
+		public WicFrameReader(WicDecoder dec, WicProcessingContext ctx) : base(ctx)
 		{
 			Frame = AddRef(dec.Decoder.GetFrame((uint)ctx.Settings.FrameIndex));
 			Source = Frame;
-			Context = ctx;
 
-			if (ctx.ContainerFormat == Consts.GUID_ContainerFormatRaw && ctx.Settings.FrameIndex == 0)
-				try { Source = AddRef(dec.Decoder.GetPreview()); } catch { }
+			if (ctx.ContainerFormat == Consts.GUID_ContainerFormatRaw && ctx.Settings.FrameIndex == 0 && dec.Decoder.TryGetPreview(out var preview))
+				Source = AddRef(preview);
 
 			ctx.PixelFormat = Source.GetPixelFormat();
 			Source.GetSize(out ctx.Width, out ctx.Height);
+			Source.GetResolution(out ctx.DpiX, out ctx.DpiY);
 
-			var ptrans = Source as IWICPlanarBitmapSourceTransform;
-			if (ptrans != null)
+			if (Source is IWICPlanarBitmapSourceTransform ptrans)
 			{
 				uint pw = ctx.Width, ph = ctx.Height;
 				var pdesc = new WICBitmapPlaneDescription[2];
 				var pfmts = new Guid[] { Consts.GUID_WICPixelFormat8bppY, Consts.GUID_WICPixelFormat16bppCbCr };
 				ctx.SupportsPlanar = ptrans.DoesSupportTransform(ref pw, ref ph, WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault, pfmts, pdesc, 2);
-				ctx.IsSubsampled = pdesc[0].Width != pdesc[1].Width || pdesc[0].Height != pdesc[1].Height;
 			}
 		}
 	}
@@ -88,6 +89,7 @@ namespace PhotoSauce.MagicScaler
 			if (Frame.TryGetMetadataQueryReader(out var metareader))
 			{
 				AddRef(metareader);
+
 				// Exif orientation
 				if (metareader.TryGetMetadataByName("System.Photo.Orientation", out var ovar))
 				{
@@ -128,7 +130,7 @@ namespace PhotoSauce.MagicScaler
 			//http://ninedegreesbelow.com/photography/embedded-color-space-information.html
 			uint ccc = Frame.GetColorContextCount();
 			var profiles = new IWICColorContext[ccc];
-			var profile = (IWICColorContext)null;
+			var profile = default(IWICColorContext);
 
 			if (ccc > 0)
 			{
@@ -277,9 +279,7 @@ namespace PhotoSauce.MagicScaler
 
 			Source = rotator;
 			Source.GetSize(out Context.Width, out Context.Height);
-
-			if (Context.TransformOptions != WICBitmapTransformOptions.WICBitmapTransformFlipHorizontal)
-				Context.NeedsCache = true;
+			Context.NeedsCache = Context.TransformOptions != WICBitmapTransformOptions.WICBitmapTransformFlipHorizontal;
 		}
 	}
 
@@ -292,7 +292,7 @@ namespace PhotoSauce.MagicScaler
 				return;
 
 			var cropper = AddRef(Wic.CreateBitmapClipper());
-			cropper.Initialize(Source, new WICRect() { X = crop.X, Y = crop.Y, Width = crop.Width, Height = crop.Height });
+			cropper.Initialize(Source, new WICRect { X = crop.X, Y = crop.Y, Width = crop.Width, Height = crop.Height });
 
 			Source = cropper;
 			Source.GetSize(out Context.Width, out Context.Height);
@@ -314,16 +314,20 @@ namespace PhotoSauce.MagicScaler
 			{
 				// null crop to disable IWICBitmapSourceTransform scaling
 				var clip = AddRef(Wic.CreateBitmapClipper());
-				clip.Initialize(Source, new WICRect() { X = 0, Y = 0, Width = (int)Context.Width, Height = (int)Context.Height });
+				clip.Initialize(Source, new WICRect { X = 0, Y = 0, Width = (int)Context.Width, Height = (int)Context.Height });
 
 				Source = clip;
 			}
 
 			uint ow = hybrid ? (uint)Math.Ceiling(Context.Width / rat) : (uint)Context.Settings.Width;
 			uint oh = hybrid ? (uint)Math.Ceiling(Context.Height / rat) : (uint)Context.Settings.Height;
+			var mode = hybrid ? WICBitmapInterpolationMode.WICBitmapInterpolationModeFant :
+			           Context.Settings.Interpolation.WeightingFunction.Support < 0.1 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeNearestNeighbor :
+			           Context.Settings.Interpolation.WeightingFunction.Support > 1.0 ? Context.Settings.ScaleRatio < 1.0 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeCubic : WICBitmapInterpolationMode.WICBitmapInterpolationModeHighQualityCubic :
+			           WICBitmapInterpolationMode.WICBitmapInterpolationModeFant;
 
 			var scaler = AddRef(Wic.CreateBitmapScaler());
-			scaler.Initialize(Source, ow, oh, Context.Settings.ScaleRatio < 1.1 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeCubic : WICBitmapInterpolationMode.WICBitmapInterpolationModeFant);
+			scaler.Initialize(Source, ow, oh, mode);
 
 			Source = scaler;
 			Source.GetSize(out Context.Width, out Context.Height);
@@ -362,124 +366,6 @@ namespace PhotoSauce.MagicScaler
 
 			Source = scaler;
 			Source.GetSize(out Context.Width, out Context.Height);
-		}
-	}
-
-	internal class WicGammaExpand : WicTransform
-	{
-		public WicGammaExpand(WicTransform prev) : base(prev)
-		{
-			if (Context.Settings.BlendingMode != GammaMode.Linear)
-				return;
-
-			var fmt = Source.GetPixelFormat();
-			var conv = (WicFormatConverterBase)null;
-
-			if (fmt == Consts.GUID_WICPixelFormat32bppBGRA)
-				conv = new WicLinearFormatConverter(Source, Consts.GUID_WICPixelFormat64bppBGRA);
-			else if (fmt == Consts.GUID_WICPixelFormat24bppBGR)
-				conv = new WicLinearFormatConverter(Source, Consts.GUID_WICPixelFormat48bppBGR);
-			else if (fmt == Consts.GUID_WICPixelFormat8bppGray || fmt == Consts.GUID_WICPixelFormat8bppY)
-				conv = new WicLinearFormatConverter(Source, Consts.GUID_WICPixelFormat16bppGray);
-
-			if (conv == null)
-				return;
-
-			Source = conv;
-			Context.PixelFormat = Source.GetPixelFormat();
-		}
-	}
-
-	internal class WicGammaCompress : WicTransform
-	{
-		public WicGammaCompress(WicTransform prev) : base(prev)
-		{
-			var fmt = Source.GetPixelFormat();
-			var conv = (WicFormatConverterBase)null;
-
-			if (fmt == Consts.GUID_WICPixelFormat64bppBGRA)
-				conv = new WicGammaFormatConverter(Source, Consts.GUID_WICPixelFormat32bppBGRA);
-			else if (fmt == Consts.GUID_WICPixelFormat48bppBGR)
-				conv = new WicGammaFormatConverter(Source, Consts.GUID_WICPixelFormat24bppBGR);
-			else if (fmt == Consts.GUID_WICPixelFormat16bppGray)
-				conv = new WicGammaFormatConverter(Source, Context.SupportsPlanar ? Consts.GUID_WICPixelFormat8bppY : Consts.GUID_WICPixelFormat8bppGray);
-
-			if (conv == null)
-				return;
-
-			Source = conv;
-			Context.PixelFormat = Source.GetPixelFormat();
-		}
-	}
-
-	internal class WicHighQualityScaler : WicTransform
-	{
-		private KernelMap<int> mapx;
-		private KernelMap<int> mapy;
-		private WicBitmapSourceBase source;
-
-		public WicHighQualityScaler(WicTransform prev) : base(prev)
-		{
-			uint width = (uint)Context.Settings.Width, height = (uint)Context.Settings.Height;
-			var interpolatorx = width == Context.Width ? InterpolationSettings.NearestNeighbor : Context.Settings.Interpolation;
-			var interpolatory = height == Context.Height ? InterpolationSettings.NearestNeighbor : Context.Settings.Interpolation;
-
-			var fmt = Source.GetPixelFormat();
-			mapx = KernelMap<int>.MakeScaleMap(Context.Width, width, 1u, Context.HasAlpha, interpolatorx);
-			mapy = KernelMap<int>.MakeScaleMap(Context.Height, height, 1u, Context.HasAlpha, interpolatory);
-
-			if (Context.Settings.BlendingMode == GammaMode.Linear && fmt != Consts.GUID_WICPixelFormat16bppCbCr)
-				source = new WicConvolution<ushort, int>(Source, mapx, mapy);
-			else
-				source = new WicConvolution<byte, int>(Source, mapx, mapy);
-
-			Source = source;
-			Source.GetSize(out Context.Width, out Context.Height);
-		}
-
-		public override void Dispose()
-		{
-			base.Dispose();
-			mapx?.Dispose();
-			mapy?.Dispose();
-			source?.Dispose();
-		}
-	}
-
-	internal class WicUnsharpMask : WicTransform
-	{
-		private KernelMap<int> mapx;
-		private KernelMap<int> mapy;
-
-		public WicUnsharpMask(WicTransform prev) : base(prev)
-		{
-			var ss = Context.Settings.UnsharpMask;
-			if (ss.Radius <= 0d || ss.Amount <= 0)
-				return;
-
-			mapx = KernelMap<int>.MakeBlurMap(Context.Width, ss.Radius, 1u, Context.HasAlpha);
-			mapy = KernelMap<int>.MakeBlurMap(Context.Height, ss.Radius, 1u, Context.HasAlpha);
-
-			Source = new WicUnsharpMask<byte, int>(Source, mapx, mapy, ss);
-		}
-
-		public override void Dispose()
-		{
-			base.Dispose();
-			mapx?.Dispose();
-			mapy?.Dispose();
-		}
-	}
-
-	internal class WicMatteTransform : WicTransform
-	{
-		public WicMatteTransform(WicTransform prev) : base(prev)
-		{
-			if (Context.Settings.MatteColor.IsEmpty || (Context.PixelFormat != Consts.GUID_WICPixelFormat32bppBGRA && Context.PixelFormat != Consts.GUID_WICPixelFormat64bppBGRA))
-				return;
-
-			var mat = new WicMatte(Source, Context.Settings.MatteColor);
-			Source = mat;
 		}
 	}
 }

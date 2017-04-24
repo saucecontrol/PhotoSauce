@@ -54,7 +54,7 @@ namespace PhotoSauce.MagicScaler
 			BufferSource = bufferSource;
 			OutWidth = (uint)mapx.OutPixels;
 			OutHeight = (uint)mapy.OutPixels;
-			SourceRect = new WICRect() { Width = (int)Width, Height = 1 };
+			SourceRect = new WICRect { Width = (int)Width, Height = 1 };
 			XMap = mapx;
 			YMap = mapy;
 

@@ -48,7 +48,7 @@ namespace PhotoSauce.MagicScaler
 			if (!trans.DoesSupportTransform(ref Context.Width, ref Context.Height, Context.TransformOptions, WICPlanarOptions.WICPlanarOptionsDefault, fmts, desc, 2))
 				throw new NotSupportedException("Requested planar transform not supported");
 
-			var crop = new WICRect() { X = Context.Settings.Crop.X, Y = Context.Settings.Crop.Y, Width = Context.Settings.Crop.Width, Height = Context.Settings.Crop.Height };
+			var crop = new WICRect { X = Context.Settings.Crop.X, Y = Context.Settings.Crop.Y, Width = Context.Settings.Crop.Width, Height = Context.Settings.Crop.Height };
 			cacheSource = new WicPlanarCacheSource(trans, desc[0], desc[1], crop, Context.TransformOptions, Context.Width, Context.Height, rat, Context.NeedsCache);
 
 			SourceY = cacheSource.GetPlane(WicPlane.Luma);
@@ -64,9 +64,8 @@ namespace PhotoSauce.MagicScaler
 
 	internal class WicPlanarSplitter : WicTransform
 	{
-		public WicPlanarSplitter(WicPlanarTransform prev, WicPlane plane)
+		public WicPlanarSplitter(WicPlanarTransform prev, WicPlane plane) : base(prev.Context)
 		{
-			Context = prev.Context;
 			Frame = prev.Frame;
 			Source = plane == WicPlane.Luma ? prev.SourceY : prev.SourceCbCr;
 

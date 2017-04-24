@@ -58,13 +58,13 @@ namespace PhotoSauce.MagicScaler
 
 		public WicEncoder(IStream stm, WicProcessingContext ctx)
 		{
-			var frame = (IWICBitmapFrameEncode)null;
+			var frame = default(IWICBitmapFrameEncode);
 			if (ctx.Settings.SaveFormat == FileFormat.Jpeg)
 			{
 				Encoder = AddRef(Wic.CreateEncoder(Consts.GUID_ContainerFormatJpeg, null));
 				Encoder.Initialize(stm, WICBitmapEncoderCacheOption.WICBitmapEncoderNoCache);
 
-				var bag = (IPropertyBag2)null;
+				var bag = default(IPropertyBag2);
 				Encoder.CreateNewFrame(out frame, ref bag);
 				AddRef(frame);
 				AddRef(bag);
@@ -98,7 +98,7 @@ namespace PhotoSauce.MagicScaler
 				Encoder = AddRef(Wic.CreateEncoder(Consts.GUID_ContainerFormatBmp, null));
 				Encoder.Initialize(stm, WICBitmapEncoderCacheOption.WICBitmapEncoderNoCache);
 
-				var bag = (IPropertyBag2)null;
+				var bag = default(IPropertyBag2);
 				Encoder.CreateNewFrame(out frame, ref bag);
 				AddRef(frame);
 				AddRef(bag);
@@ -113,7 +113,7 @@ namespace PhotoSauce.MagicScaler
 				Encoder = AddRef(Wic.CreateEncoder(Consts.GUID_ContainerFormatTiff, null));
 				Encoder.Initialize(stm, WICBitmapEncoderCacheOption.WICBitmapEncoderNoCache);
 
-				var bag = (IPropertyBag2)null;
+				var bag = default(IPropertyBag2);
 				Encoder.CreateNewFrame(out frame, ref bag);
 				AddRef(frame);
 				AddRef(bag);
@@ -134,7 +134,7 @@ namespace PhotoSauce.MagicScaler
 				frame.Initialize(null);
 			}
 
-			frame.SetResolution(96d, 96d);
+			frame.SetResolution(ctx.Settings.DpiX > 0d ? ctx.Settings.DpiX : ctx.DpiX, ctx.Settings.DpiY > 0d ? ctx.Settings.DpiY : ctx.DpiY);
 			frame.SetSize(ctx.Width, ctx.Height);
 
 			if (ctx.Settings.IndexedColor && ctx.PixelFormat == Consts.GUID_WICPixelFormat8bppIndexed)

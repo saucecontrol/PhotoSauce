@@ -13,6 +13,13 @@ namespace PhotoSauce.MagicScaler
 
 		private readonly Stack<object> comHandles = new Stack<object>();
 
+		private void popRelease()
+		{
+			var h = comHandles.Pop();
+			if (h != null && Marshal.IsComObject(h))
+				Marshal.ReleaseComObject(h);
+		}
+
 		protected T AddRef<T>(T comHandle) where T : class
 		{
 			Debug.Assert(Marshal.IsComObject(comHandle), "Not a COM object");
@@ -20,20 +27,6 @@ namespace PhotoSauce.MagicScaler
 			comHandles.Push(comHandle);
 
 			return comHandle;
-		}
-
-		private void PopRelease()
-		{
-			var h = comHandles.Pop();
-			if (h != null && Marshal.IsComObject(h))
-				Marshal.ReleaseComObject(h);
-		}
-
-		protected void Release<T>(T comHandle) where T : class
-		{
-			Debug.Assert(ReferenceEquals(comHandles.Peek(), comHandle), "Release() should only be called on the last handle passed to AddRef()");
-
-			PopRelease();
 		}
 
 		protected T AddOwnRef<T>(T comHandle) where T : class
@@ -48,10 +41,17 @@ namespace PhotoSauce.MagicScaler
 			return AddRef(newHandle);
 		}
 
+		protected void Release<T>(T comHandle) where T : class
+		{
+			Debug.Assert(ReferenceEquals(comHandles.Peek(), comHandle), "Release() should only be called on the last handle passed to AddRef()");
+
+			popRelease();
+		}
+
 		public virtual void Dispose()
 		{
 			while (comHandles.Count > 0)
-				PopRelease();
+				popRelease();
 		}
 	}
 
@@ -67,11 +67,11 @@ namespace PhotoSauce.MagicScaler
 		public Guid PixelFormat;
 		public uint Width;
 		public uint Height;
+		public double DpiX;
+		public double DpiY;
 		public WICBitmapTransformOptions TransformOptions;
 		public IDictionary<string, PropVariant> Metadata;
-		public uint[] CustomPalette;
 		public bool SupportsPlanar;
-		public bool IsSubsampled;
 		public bool HasAlpha;
 		public bool IsGreyscale;
 		public bool IsCmyk;

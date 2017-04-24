@@ -4,6 +4,12 @@ namespace PhotoSauce.MagicScaler.Interop
 {
 	internal static class WinCodecExtensions
 	{
+		public static bool TryGetPreview(this IWICBitmapDecoder dec, out IWICBitmapSource pvw)
+		{
+			int hr = ProxyFunctions.GetPreview(dec, out pvw);
+			return hr >= 0;
+		}
+
 		public static uint GetColorContextCount(this IWICBitmapFrameDecode frame)
 		{
 			int hr = ProxyFunctions.GetColorContexts(frame, 0, null, out uint ccc);

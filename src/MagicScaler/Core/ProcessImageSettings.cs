@@ -82,6 +82,8 @@ namespace PhotoSauce.MagicScaler
 		public int FrameIndex { get; set; }
 		public int Width { get; set; }
 		public int Height { get; set; }
+		public double DpiX { get; set; } = 96d;
+		public double DpiY { get; set; } = 96d;
 		public bool Sharpen { get; set; } = true;
 		public CropScaleMode ResizeMode { get; set; }
 		public Rectangle Crop { get; set; }
@@ -106,7 +108,7 @@ namespace PhotoSauce.MagicScaler
 				if (HybridMode == HybridScaleMode.Off || ScaleRatio < 2d)
 					return 1d;
 
-				double sr = ScaleRatio / (HybridMode == HybridScaleMode.FavorQuality ? 3 : HybridMode == HybridScaleMode.FavorSpeed ? 2 : 1);
+				double sr = ScaleRatio / (HybridMode == HybridScaleMode.FavorQuality ? 3d : HybridMode == HybridScaleMode.FavorSpeed ? 2d : 1d);
 
 				return Math.Pow(2d, Math.Floor(Math.Log(sr, 2d)));
 			}
@@ -125,7 +127,7 @@ namespace PhotoSauce.MagicScaler
 			set
 			{
 				if (value < 0 || value > 100)
-					throw new ArgumentOutOfRangeException("JpegQuality must be between 0 and 100");
+					throw new ArgumentOutOfRangeException(nameof(JpegQuality), "Value must be between 0 and 100");
 
 				jpegQuality = value;
 			}
@@ -150,7 +152,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			get
 			{
-				if (interpolation.Blur > 0)
+				if (interpolation.Blur > 0d)
 					return interpolation;
 
 				var interpolator = InterpolationSettings.Spline36;
@@ -158,11 +160,7 @@ namespace PhotoSauce.MagicScaler
 
 				if (rat < 0.5)
 					interpolator = InterpolationSettings.Lanczos;
-				//else if (rat > 32.0)
-				//	interpolator = InterpolationSettings.Average;
 				else if (rat > 16.0)
-					interpolator = InterpolationSettings.Linear;
-				else if (rat > 8.0)
 					interpolator = InterpolationSettings.Quadratic;
 				else if (rat > 4.0)
 					interpolator = InterpolationSettings.CatmullRom;
@@ -212,16 +210,18 @@ namespace PhotoSauce.MagicScaler
 		{
 			if (dic == null) throw new ArgumentNullException(nameof(dic));
 
-			var s = new ProcessImageSettings();
-			s.FrameIndex = Math.Max(int.TryParse(dic.GetValueOrDefault("frame") ?? dic.GetValueOrDefault("page"), out int f) ? f : 0, 0);
-			s.Width = Math.Max(int.TryParse(dic.GetValueOrDefault("width") ?? dic.GetValueOrDefault("w"), out int w) ? w : 0, 0);
-			s.Height = Math.Max(int.TryParse(dic.GetValueOrDefault("height") ?? dic.GetValueOrDefault("h"), out int h) ? h : 0, 0);
-			s.JpegQuality = Math.Max(int.TryParse(dic.GetValueOrDefault("quality"), out int q) ? q : 0, 0);
-			s.Sharpen = bool.TryParse(dic.GetValueOrDefault("sharpen"), out bool b) ? b : true;
+			var s = new ProcessImageSettings {
+				FrameIndex = Math.Max(int.TryParse(dic.GetValueOrDefault("frame") ?? dic.GetValueOrDefault("page"), out int f) ? f : 0, 0),
+				Width = Math.Max(int.TryParse(dic.GetValueOrDefault("width") ?? dic.GetValueOrDefault("w"), out int w) ? w : 0, 0),
+				Height = Math.Max(int.TryParse(dic.GetValueOrDefault("height") ?? dic.GetValueOrDefault("h"), out int h) ? h : 0, 0),
+				JpegQuality = Math.Max(int.TryParse(dic.GetValueOrDefault("quality"), out int q) ? q : 0, 0)
+			};
 
+			s.Sharpen = bool.TryParse(dic.GetValueOrDefault("sharpen"), out bool bs) ? bs : s.Sharpen;
 			s.ResizeMode = Enum.TryParse(dic.GetValueOrDefault("mode"), true, out CropScaleMode mode) ? mode : s.ResizeMode;
 			s.BlendingMode = Enum.TryParse(dic.GetValueOrDefault("gamma"), true, out GammaMode bm) ? bm : s.BlendingMode;
 			s.HybridMode = Enum.TryParse(dic.GetValueOrDefault("hybrid"), true, out HybridScaleMode hyb) ? hyb : s.HybridMode;
+			s.SaveFormat = Enum.TryParse(dic.GetValueOrDefault("format")?.ToLower().Replace("jpg", "jpeg"), true, out FileFormat fmt) ? fmt : s.SaveFormat;
 
 			if (cropExpression.IsMatch(dic.GetValueOrDefault("crop") ?? string.Empty))
 			{
@@ -235,10 +235,6 @@ namespace PhotoSauce.MagicScaler
 					s.Anchor |= anchor;
 			}
 
-			string format = dic.GetValueOrDefault("format");
-			if (format != null)
-				s.SaveFormat = Enum.TryParse(format.ToLower().Replace("jpg", "jpeg"), true, out FileFormat fmt) ? fmt : s.SaveFormat;
-
 			foreach (var cap in subsampleExpression.Match(dic.GetValueOrDefault("subsample") ?? string.Empty).Captures.Cast<Capture>())
 				s.JpegSubsampleMode = Enum.TryParse(string.Concat("Subsample", cap.Value), true, out ChromaSubsampleMode csub) ? csub : s.JpegSubsampleMode;
 
@@ -249,6 +245,41 @@ namespace PhotoSauce.MagicScaler
 					color = string.Concat('#', color);
 
 				try { s.MatteColor = (Color)(new ColorConverter()).ConvertFromString(color); } catch { }
+			}
+
+			string filter = dic.GetValueOrDefault("filter")?.ToLower();
+			switch (filter)
+			{
+				case "point":
+				case "nearestneighbor":
+					s.Interpolation = InterpolationSettings.NearestNeighbor;
+					break;
+				case "box":
+				case "average":
+					s.Interpolation = InterpolationSettings.Average;
+					break;
+				case "linear":
+				case "bilinear":
+					s.Interpolation = InterpolationSettings.Linear;
+					break;
+				case "quadratic":
+					s.Interpolation = InterpolationSettings.Quadratic;
+					break;
+				case "catrom":
+				case "catmullrom":
+					s.Interpolation = InterpolationSettings.CatmullRom;
+					break;
+				case "cubic":
+				case "bicubic":
+					s.Interpolation = InterpolationSettings.Cubic;
+					break;
+				case "lanczos":
+				case "lanczos3":
+					s.Interpolation = InterpolationSettings.Lanczos;
+					break;
+				case "spline36":
+					s.Interpolation = InterpolationSettings.Spline36;
+					break;
 			}
 
 			return s;
@@ -321,10 +352,10 @@ namespace PhotoSauce.MagicScaler
 
 		internal void NormalizeFrom(ImageFileInfo img)
 		{
-			if (Width < 0 || Height < 0) throw new InvalidOperationException("Width and Height cannot be negative");
-			if (Width == 0 && Height == 0) throw new InvalidOperationException("Width and Height may not both be 0");
-			if ((Width == 0 || Height == 0) && ResizeMode != CropScaleMode.Crop) throw new InvalidOperationException("Width or Height may only be 0 in Crop mode");
-			if (FrameIndex >= img.Frames.Length || img.Frames.Length + FrameIndex < 0) throw new InvalidOperationException("Invalid FrameIndex");
+			if (Width < 0 || Height < 0) throw new InvalidOperationException($"{nameof(Width)} and {nameof(Height)} cannot be negative");
+			if (Width == 0 && Height == 0) throw new InvalidOperationException($"{nameof(Width)} and {nameof(Height)} may not both be 0");
+			if ((Width == 0 || Height == 0) && ResizeMode != CropScaleMode.Crop) throw new InvalidOperationException($"{nameof(Width)} or {nameof(Height)} may only be 0 in {nameof(CropScaleMode.Crop)} mode");
+			if (FrameIndex >= img.Frames.Length || img.Frames.Length + FrameIndex < 0) throw new InvalidOperationException($"Invalid {nameof(FrameIndex)}");
 
 			if (FrameIndex < 0)
 				FrameIndex = img.Frames.Length + FrameIndex;
@@ -335,7 +366,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				if (img.ContainerType == FileFormat.Gif) // Restrict to animated only?
 					SaveFormat = FileFormat.Gif;
-				else if (img.ContainerType == FileFormat.Png || (frame.HasAlpha && MatteColor.A < 255))
+				else if (img.ContainerType == FileFormat.Png || (frame.HasAlpha && MatteColor.A < byte.MaxValue))
 					SaveFormat = FileFormat.Png;
 				else
 					SaveFormat = FileFormat.Jpeg;

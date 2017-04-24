@@ -101,14 +101,13 @@ namespace PhotoSauce.MagicScaler
 			if (prc.X < 0 || prc.Y < 0 || prc.X + prc.Width > scaledWidth || prc.Y + prc.Height > scaledHeight)
 				throw new ArgumentOutOfRangeException(nameof(prc), "Requested rectangle does not fall within the image bounds");
 
-			var load = (lineBuffY.Array == null || (plane == WicPlane.Luma && prc.Y + prc.Height > startY + buffHeightY) || (plane == WicPlane.Chroma && prc.Y + prc.Height > startC + buffHeightC));
-
+			bool load = (lineBuffY.Array == null || (plane == WicPlane.Luma && prc.Y + prc.Height > startY + buffHeightY) || (plane == WicPlane.Chroma && prc.Y + prc.Height > startC + buffHeightC));
 			if (load && (lineBuffY.Array == null || posY < buffHeightY / 4 || posC < buffHeightC / 4))
 			{
 				if (lineBuffY.Array != null)
 				{
-					buffHeightY *= 2;
-					buffHeightC *= 2;
+					buffHeightY = Math.Min(buffHeightY * 2, (int)scaledHeight);
+					buffHeightC = Math.Min(buffHeightC * 2, (int)Math.Ceiling(buffHeightY / subsampleRatioY));
 				}
 
 				var tbuffY = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(buffHeightY * strideY), 0, buffHeightY * strideY);
@@ -194,6 +193,8 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
+		public void GetResolution(out double pDpiX, out double pDpiY) => ((IWICBitmapSource)sourceTransform).GetResolution(out pDpiX, out pDpiY);
+
 		public IWICBitmapSource GetPlane(WicPlane plane) => plane == WicPlane.Luma ? sourceY : sourceC;
 
 		public void Dispose()
@@ -221,7 +222,7 @@ namespace PhotoSauce.MagicScaler
 
 		public override void CopyPixels(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) => cacheSource.CopyPixels(cachePlane, prc, cbStride, cbBufferSize, pbBuffer);
 
-		public override void GetResolution(out double pDpiX, out double pDpiY) => pDpiX = pDpiY = 96d;
+		public override void GetResolution(out double pDpiX, out double pDpiY) => cacheSource.GetResolution(out pDpiX, out pDpiY);
 
 		public override void CopyPalette(IWICPalette pIPalette) => throw new NotImplementedException();
 	}

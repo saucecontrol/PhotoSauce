@@ -1959,7 +1959,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		IEnumUnknown CreateComponentEnumerator(
 			WICComponentType componentTypes,
 			WICComponentEnumerateOptions options
-			);
+		);
 
 		IWICFastMetadataEncoder CreateFastMetadataEncoderFromDecoder(
 			IWICBitmapDecoder pIDecoder
@@ -2714,6 +2714,12 @@ namespace PhotoSauce.MagicScaler.Interop
 
 	internal static class ProxyFunctions
 	{
+		[DllImport("WindowsCodecs", EntryPoint = "IWICBitmapDecoder_GetPreview_Proxy")]
+		public extern static int GetPreview(
+			IWICBitmapDecoder THIS_PTR,
+			out IWICBitmapSource ppIBitmapSource
+		);
+
 		[DllImport("WindowsCodecs", EntryPoint = "IWICBitmapFrameDecode_GetColorContexts_Proxy")]
 		public extern static int GetColorContexts(
 			IWICBitmapFrameDecode THIS_PTR,
