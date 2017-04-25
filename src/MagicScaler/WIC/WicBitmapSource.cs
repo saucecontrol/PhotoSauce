@@ -7,12 +7,11 @@ namespace PhotoSauce.MagicScaler
 	internal abstract class WicBitmapSourceBase : WicBase, IWICBitmapSource
 	{
 		protected IWICBitmapSource Source;
-		protected Guid Format;
+		protected PixelFormat Format;
 		protected uint Width;
 		protected uint Height;
-		protected uint Channels;
-		protected uint Bpp;
 		protected uint Stride;
+		protected int Bpp;
 
 		protected WicBitmapSourceBase() { }
 
@@ -21,19 +20,14 @@ namespace PhotoSauce.MagicScaler
 			Source = source;
 
 			Source.GetSize(out Width, out Height);
-			Format = Source.GetPixelFormat();
-
-			var pfi = AddRef(Wic.CreateComponentInfo(Format)) as IWICPixelFormatInfo;
-			Channels = pfi.GetChannelCount();
-			Bpp = pfi.GetBitsPerPixel() / 8u;
-			Release(pfi);
-
-			Stride = Width * Bpp + 3u & ~3u;
+			Format = PixelFormat.Cache[Source.GetPixelFormat()];
+			Bpp = Format.BitsPerPixel / 8;
+			Stride = Width * (uint)Bpp + 3u & ~3u;
 		}
 
 		public abstract void CopyPixels(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer);
 
-		public virtual Guid GetPixelFormat() => Format;
+		public virtual Guid GetPixelFormat() => Format.FormatGuid;
 
 		public virtual void GetResolution(out double pDpiX, out double pDpiY) => Source.GetResolution(out pDpiX, out pDpiY);
 

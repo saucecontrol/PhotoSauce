@@ -88,6 +88,8 @@ namespace PhotoSauce.MagicScaler
 				trans.Initialize(Source, Context.SourceColorContext, Context.DestColorContext, cfmt);
 				Source = trans;
 			}
+
+			Context.PixelFormat = PixelFormat.Cache[Source.GetPixelFormat()];
 		}
 	}
 

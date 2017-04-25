@@ -92,26 +92,19 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("00000100-0000-0000-C000-000000000046"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IEnumUnknown
 	{
-		[PreserveSig]
-		int Next(
+		uint Next(
 			uint celt, 
-			[Out, MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.IUnknown)]
-			object[] rgelt, 
-			ref uint celtFetched
+			[Out, MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.IUnknown, SizeParamIndex = 0)]
+			object[] rgelt
 		);
 
-		[PreserveSig]
-		int Skip(
+		void Skip(
 			uint celt
 		);
 
-		[PreserveSig]
-		int Reset();
+		void Reset();
 
-		[PreserveSig]
-		int Clone(
-			out IEnumUnknown enumUnknown
-		);
+		void Clone();
 	}
 
 	internal enum CLIPFORMAT : short

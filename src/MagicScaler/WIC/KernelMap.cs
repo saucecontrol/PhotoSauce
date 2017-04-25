@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Buffers;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler
 {
@@ -13,7 +15,30 @@ namespace PhotoSauce.MagicScaler
 
 		static KernelMap()
 		{
-			if (typeof(T) != typeof(int)) throw new NotSupportedException($"{nameof(T)} must be int");
+			if (typeof(T) != typeof(int) && typeof(T) != typeof(float)) throw new NotSupportedException($"{nameof(T)} must be int or float");
+			if (Unsafe.SizeOf<T>() != sizeof(int)) throw new NotSupportedException($"sizeof({nameof(T)}) and sizeof(int) must be equal");
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		unsafe private static T convertWeight(double d)
+		{
+			T v = default(T);
+			if (typeof(T) == typeof(int))
+				Unsafe.Write(Unsafe.AsPointer(ref v), MathUtil.ScaleToInt32(d));
+			else if (typeof(T) == typeof(float))
+				Unsafe.Write(Unsafe.AsPointer(ref v), (float)d);
+
+			return v;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		unsafe private static void addWeight(ref T a, void* b)
+		{
+			void* ap = Unsafe.AsPointer(ref a);
+			if (typeof(T) == typeof(int))
+				Unsafe.Write(ap, Unsafe.Read<int>(ap) + Unsafe.Read<int>(b));
+			else if (typeof(T) == typeof(float))
+				Unsafe.Write(ap, Unsafe.Read<float>(ap) + Unsafe.Read<float>(b));
 		}
 
 		private KernelMap(int inPixels, int outPixels, int samples, int channels)
@@ -23,7 +48,7 @@ namespace PhotoSauce.MagicScaler
 			Samples = samples;
 			Channels = channels;
 
-			int mapLen = OutPixels * (Samples * Channels + 1) * sizeof(int);
+			int mapLen = OutPixels * (Samples * Channels * Unsafe.SizeOf<T>() + sizeof(int));
 			Map = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(mapLen), 0, mapLen);
 		}
 
@@ -46,14 +71,14 @@ namespace PhotoSauce.MagicScaler
 						int* mpw = mp + 1;
 						for (int k = 0; k < chan; k++)
 						{
-							int a = 0;
+							T a = default(T);
 							for (int j = 0; j <= o; j++)
-								a += mpw[j * chan + k];
+								addWeight(ref a, mpw + j * chan + k);
 
-							mpw[k] = a;
+							Unsafe.Write(mpw + k, a);
 
 							for (int j = 1; j < samp; j++)
-								mpw[j * chan + k] = j < samp - o ? mpw[j * chan + o * chan + k] : 0;
+								Unsafe.Write(mpw + j * chan + k, j < samp - o ? Unsafe.Read<T>(mpw + j * chan + o * chan + k) : default(T));
 						}
 					}
 					else if (start + samp > ipix)
@@ -64,14 +89,14 @@ namespace PhotoSauce.MagicScaler
 						int* mpw = mp + 1;
 						for (int k = 0; k < chan; k++)
 						{
-							int a = 0;
+							T a = default(T);
 							for (int j = 0; j <= o; j++)
-								a += mpw[last * chan - j * chan + k];
+								addWeight(ref a, mpw + last * chan - j * chan + k);
 
-							mpw[last * chan + k] = a;
+							Unsafe.Write(mpw + last * chan + k, a);
 
 							for (int j = last - 1; j >= 0; j--)
-								mpw[j * chan + k] = j >= o ? mpw[j * chan - o * chan + k] : 0;
+								Unsafe.Write(mpw + j * chan + k, j >= o ? Unsafe.Read<T>(mpw + j * chan - o * chan + k) : default(T));
 						}
 					}
 
@@ -82,18 +107,21 @@ namespace PhotoSauce.MagicScaler
 			return this;
 		}
 
-		unsafe public static KernelMap<T> MakeScaleMap(uint isize, uint osize, uint colorChannels, bool alphaChannel, InterpolationSettings interpolator)
+		unsafe public static KernelMap<T> MakeScaleMap(uint isize, uint osize, int colorChannels, bool alphaChannel, bool vectored, InterpolationSettings interpolator)
 		{
 			var ainterpolator = interpolator.WeightingFunction.Support > 1d ? InterpolationSettings.Hermite : interpolator;
 
 			double offs = interpolator.WeightingFunction.Support < 0.1 ? 0.5 : 0.0;
-			double blur = interpolator.WeightingFunction.Support > 0.5 ? interpolator.Blur : 1.0;
-			double ablur = ainterpolator.WeightingFunction.Support > 0.5 ? ainterpolator.Blur : 1.0;
-
 			double wfactor = Math.Min((double)osize / isize, 1d);
-			double wdist = Math.Min(interpolator.WeightingFunction.Support / wfactor * blur, isize / 2d);
+			double wscale = wfactor / interpolator.Blur;
+			double awscale = wfactor / ainterpolator.Blur;
+			double wdist = Math.Min(interpolator.WeightingFunction.Support / wscale, isize / 2d);
+
+			int channels = colorChannels + (alphaChannel ? 1 : 0);
 			int wsize = (int)Math.Ceiling(wdist * 2d);
-			int channels = (int)colorChannels + (alphaChannel ? 1 : 0);
+			if (vectored && wsize * channels % (Vector<T>.Count * channels) >= (Vector<T>.Count * channels) / 2)
+				wsize = (wsize * channels + (Vector<T>.Count * channels - 1) & ~(Vector<T>.Count * channels - 1)) / channels;
+			wsize = Math.Min(wsize, (int)isize);
 
 			var map = new KernelMap<T>((int)isize, (int)osize, wsize, channels);
 			fixed (byte* mapstart = map.Map.Array)
@@ -113,35 +141,36 @@ namespace PhotoSauce.MagicScaler
 					double weightsum = 0d;
 					for (int j = 0; j < wsize; j++)
 					{
-						double weight = interpolator.WeightingFunction.GetValue(Math.Abs(((double)start + j - spoint) * wfactor / blur));
+						double weight = interpolator.WeightingFunction.GetValue(Math.Abs(((double)start + j - spoint) * wscale));
 						weightsum += weight;
 						wp[j] = weight;
 					}
 					weightsum = 1d / weightsum;
 					for (int j = 0; j < wsize; j++)
-						wp[j] = wp[j] * weightsum;
+						wp[j] *= weightsum;
 
 					if (alphaChannel)
 					{
 						double aweightsum = 0d;
 						for (int j = 0; j < wsize; j++)
 						{
-							double weight = ainterpolator.WeightingFunction.GetValue(Math.Abs(((double)start + j - spoint) * wfactor / ablur));
+							double weight = ainterpolator.WeightingFunction.GetValue(Math.Abs(((double)start + j - spoint) * awscale));
 							aweightsum += weight;
 							awp[j] = weight;
 						}
 						aweightsum = 1d / aweightsum;
 						for (int j = 0; j < wsize; j++)
-							awp[j] = awp[j] * aweightsum;
+							awp[j] *= aweightsum;
 					}
 
 					for (int j = 0; j < wsize; j++)
 					{
+						T w = convertWeight(wp[j]);
 						for (int k = 0; k < colorChannels; k++)
-							*mp++ = MathUtil.ScaleToInt32(wp[j]);
+							Unsafe.Write(mp++, w);
 
 						if (alphaChannel)
-							*mp++ = MathUtil.ScaleToInt32(awp[j]);
+							Unsafe.Write(mp++, convertWeight(awp[j]));
 					}
 
 					spoint += inc;
@@ -154,7 +183,7 @@ namespace PhotoSauce.MagicScaler
 		unsafe public static KernelMap<T> MakeBlurMap(uint size, double radius, uint colorChannels, bool alphaChannel)
 		{
 			double[] blurkernel = new MathUtil.GaussianFactory(radius).MakeKernel();
-			int blurdist = blurkernel.Length;
+			int blurdist = Math.Min(blurkernel.Length, (int)size);
 			int channels = (int)colorChannels + (alphaChannel ? 1 : 0);
 
 			var map = new KernelMap<T>((int)size, (int)size, blurdist, channels);
@@ -170,8 +199,11 @@ namespace PhotoSauce.MagicScaler
 					*mp++ = start;
 
 					for (int j = 0; j < blurdist; j++)
-					for (int k = 0; k < channels; k++)
-							*mp++ = MathUtil.ScaleToInt32(kp[j]);
+					{
+						T w = convertWeight(kp[j]);
+						for (int k = 0; k < channels; k++)
+							Unsafe.Write(mp++, w);
+					}
 				}
 			}
 

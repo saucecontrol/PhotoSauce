@@ -64,7 +64,7 @@ namespace PhotoSauce.MagicScaler
 		public ProcessImageSettings Settings;
 		public Guid ContainerFormat;
 		public uint ContainerFrameCount;
-		public Guid PixelFormat;
+		public PixelFormat PixelFormat;
 		public uint Width;
 		public uint Height;
 		public double DpiX;
@@ -74,7 +74,6 @@ namespace PhotoSauce.MagicScaler
 		public bool SupportsPlanar;
 		public bool HasAlpha;
 		public bool IsGreyscale;
-		public bool IsCmyk;
 		public bool NeedsCache;
 
 		public bool IsRotated90 => TransformOptions.HasFlag(WICBitmapTransformOptions.WICBitmapTransformRotate90);

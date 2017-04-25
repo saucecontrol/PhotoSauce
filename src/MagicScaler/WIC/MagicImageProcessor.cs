@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Numerics;
 
 using PhotoSauce.MagicScaler.Interop;
 
@@ -7,6 +8,9 @@ namespace PhotoSauce.MagicScaler
 {
 	public static class MagicImageProcessor
 	{
+		public static bool EnablePlanarPipeline { get; set; } = true;
+		public static bool EnableSimd { get; set; } = Vector.IsHardwareAccelerated;
+
 		public static void ProcessImage(string imgPath, Stream ostm, ProcessImageSettings s)
 		{
 			if (imgPath == null) throw new ArgumentNullException(nameof(imgPath));
@@ -50,7 +54,7 @@ namespace PhotoSauce.MagicScaler
 				if (!ctx.Settings.Normalized)
 					ctx.Settings.Fixup((int)ctx.Width, (int)ctx.Height, ctx.IsRotated90);
 
-				if (ctx.SupportsPlanar && ctx.Settings.EnablePlanarPipeline)
+				if (EnablePlanarPipeline && ctx.SupportsPlanar)
 				{
 					MagicPlanarImageProcessor.ProcessImage(met, ctx, ostm);
 					return;
@@ -63,10 +67,10 @@ namespace PhotoSauce.MagicScaler
 				using (var pix = new WicPixelFormatConverter(crp))
 				using (var cmy = new WicCmykConverter(pix))
 				using (var res = new WicScaler(cmy, true))
-				using (var lll = new WicGammaExpand(res))
+				using (var lll = new WicConvertToCustomPixelFormat(res))
 				using (var mmm = new WicHighQualityScaler(lll))
 				using (var mat = new WicMatteTransform(mmm))
-				using (var ggg = new WicGammaCompress(mat))
+				using (var ggg = new WicConvertFromCustomPixelFormat(mat))
 				using (var csc = new WicColorspaceConverter(ggg))
 				using (var sss = new WicUnsharpMask(csc))
 				using (var dit = new WicPaletizer(sss))

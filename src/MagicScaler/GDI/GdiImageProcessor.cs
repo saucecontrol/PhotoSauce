@@ -6,6 +6,8 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Drawing.Drawing2D;
 
+using GdiPixelFormat = System.Drawing.Imaging.PixelFormat;
+
 namespace PhotoSauce.MagicScaler
 {
 	public static class GdiImageProcessor
@@ -91,7 +93,7 @@ namespace PhotoSauce.MagicScaler
 
 				using (src)
 				using (var iat = new ImageAttributes())
-				using (var bmp = new Bitmap(s.Width, s.Height, alpha ? PixelFormat.Format32bppArgb : PixelFormat.Format24bppRgb))
+				using (var bmp = new Bitmap(s.Width, s.Height, alpha ? GdiPixelFormat.Format32bppArgb : GdiPixelFormat.Format24bppRgb))
 				using (var gfx = Graphics.FromImage(bmp))
 				{
 					iat.SetWrapMode(WrapMode.TileFlipXY);
@@ -146,7 +148,7 @@ namespace PhotoSauce.MagicScaler
 			if (s.Width <= 0)
 				s.Height = s.Width = 100;
 
-			using (var bmp = new Bitmap(s.Width, s.Height, PixelFormat.Format24bppRgb))
+			using (var bmp = new Bitmap(s.Width, s.Height, GdiPixelFormat.Format24bppRgb))
 			using (var gfx = Graphics.FromImage(bmp))
 			using (var pen = new Pen(Brushes.White, 1.75f))
 			using (var ms = new MemoryStream(8192))

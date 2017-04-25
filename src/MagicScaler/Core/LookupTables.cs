@@ -7,18 +7,24 @@ namespace PhotoSauce.MagicScaler
 {
 	internal static class LookupTables
 	{
-		private static readonly Lazy<ushort[]> alphaTable = new Lazy<ushort[]>(() => {
-			const double ascale = 1d / 255d;
-			var at = new ushort[256];
-			for (int i = 0; i < 256; i++)
-				at[i] = ScaleToUQ15(i * ascale);
+		private static readonly Lazy<Tuple<float[], ushort[]>> alphaTable = new Lazy<Tuple<float[], ushort[]>>(() => {
+			const double ascale = 1d / byte.MaxValue;
+			var atf = new float[256];
+			var atq = new ushort[256];
 
-			return at;
+			for (int i = 0; i < atf.Length; i++)
+			{
+				double d = i * ascale;
+				atf[i] = (float)d;
+				atq[i] = ScaleToUQ15(d);
+			}
+
+			return Tuple.Create(atf, atq);
 		});
 
 		//http://www.w3.org/Graphics/Color/srgb
 		private static readonly Lazy<byte[]> gammaTable = new Lazy<byte[]>(() => {
-			var gt = new byte[MaxUQ15 + 1];
+			var gt = new byte[UQ15Max + 1];
 			for (int i = 0; i < gt.Length; i++)
 			{
 				double d = UnscaleToDouble(i);
@@ -27,30 +33,35 @@ namespace PhotoSauce.MagicScaler
 				else
 					d = 1.055 * Pow(d, 1.0 / 2.4) - 0.055;
 
-				gt[i] = ClampToByte((int)(d * 255.0 + 0.5));
+				gt[i] = ScaleToByte(d);
 			}
 
 			return gt;
 		});
 
-		private static readonly Lazy<ushort[]> inverseGammaTable = new Lazy<ushort[]>(() => {
-			var igt = new ushort[256];
-			for (int i = 0; i < igt.Length; i++)
+		private static readonly Lazy<Tuple<float[], ushort[]>> inverseGammaTable = new Lazy<Tuple<float[], ushort[]>>(() => {
+			var igtf = new float[256];
+			var igtq = new ushort[256];
+
+			for (int i = 0; i < igtf.Length; i++)
 			{
-				double d = i / 255d;
+				double d = (double)i / byte.MaxValue;
 				if (d <= 0.04045)
 					d /= 12.92;
 				else
 					d = Pow(((d + 0.055) / 1.055), 2.4);
 
-				igt[i] = ScaleToUQ15(d);
+				igtf[i] = (float)d;
+				igtq[i] = ScaleToUQ15(d);
 			}
 
-			return igt;
+			return Tuple.Create(igtf, igtq);
 		});
 
-		public static ushort[] Alpha => alphaTable.Value;
+		public static float[] AlphaFloat => alphaTable.Value.Item1;
+		public static ushort[] AlphaUQ15 => alphaTable.Value.Item2;
 		public static byte[] Gamma => gammaTable.Value;
-		public static ushort[] InverseGamma => inverseGammaTable.Value;
+		public static float[] InverseGammaFloat => inverseGammaTable.Value.Item1;
+		public static ushort[] InverseGammaUQ15 => inverseGammaTable.Value.Item2;
 	}
 }

@@ -120,7 +120,7 @@ namespace PhotoSauce.MagicScaler
 						Buffer.MemoryCopy(pcbuffY, ptbuffY, tbuffY.Array.Length, lineBuffY.Count);
 						Buffer.MemoryCopy(pcbuffC, ptbuffC, tbuffC.Array.Length, lineBuffC.Count);
 
-						var rect = new WICRect { X = scaledCrop.X, Y = scaledCrop.Y + startY + posY, Width = scaledCrop.Width, Height = Math.Min(buffHeightY - posY, scaledCrop.Height - prc.Y) };
+						var rect = new WICRect { X = scaledCrop.X, Y = scaledCrop.Y + startY + posY, Width = scaledCrop.Width, Height = Math.Min(buffHeightY - posY, scaledCrop.Height - (plane == WicPlane.Luma ? prc.Y : (int)Math.Ceiling(prc.Y * subsampleRatioY))) };
 						loadBuffer(ptbuffY + lineBuffY.Count, ptbuffC + lineBuffC.Count, rect);
 					}
 
@@ -174,7 +174,7 @@ namespace PhotoSauce.MagicScaler
 						posY = posC = 0;
 					}
 
-					var rect = new WICRect { X = scaledCrop.X, Y = scaledCrop.Y + startY + offsY, Width = scaledCrop.Width, Height = Math.Min((int)buffHeightY - offsY, scaledCrop.Height - prc.Y) };
+					var rect = new WICRect { X = scaledCrop.X, Y = scaledCrop.Y + startY + offsY, Width = scaledCrop.Width, Height = Math.Min(buffHeightY - offsY, scaledCrop.Height - (plane == WicPlane.Luma ? prc.Y : (int)Math.Ceiling(prc.Y * subsampleRatioY))) };
 					loadBuffer(pBuffY + offsY * strideY, pBuffC + offsC * strideC, rect);
 				}
 
@@ -214,7 +214,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			Width = planeDesc.Width;
 			Height = planeDesc.Height;
-			Format = planeDesc.Format;
+			Format = PixelFormat.Cache[planeDesc.Format];
 
 			cacheSource = cache;
 			cachePlane = plane;

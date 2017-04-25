@@ -86,7 +86,6 @@ namespace PhotoSauce.MagicScaler
 			{
 				Encoder = AddRef(Wic.CreateEncoder(Consts.GUID_ContainerFormatGif, null));
 				Encoder.Initialize(stm, WICBitmapEncoderCacheOption.WICBitmapEncoderNoCache);
-				Encoder.SetPalette(ctx.DestPalette);
 
 				Encoder.CreateNewFrame(out frame, null);
 				AddRef(frame);
@@ -104,7 +103,7 @@ namespace PhotoSauce.MagicScaler
 				AddRef(bag);
 
 				var props = new PROPBAG2[] { new PROPBAG2 { pstrName = "EnableV5Header32bppBGRA" } };
-				bag.Write(1, props, new object[] { ctx.PixelFormat == Consts.GUID_WICPixelFormat32bppBGRA });
+				bag.Write(1, props, new object[] { ctx.PixelFormat.FormatGuid == Consts.GUID_WICPixelFormat32bppBGRA });
 
 				frame.Initialize(bag);
 			}
@@ -137,7 +136,7 @@ namespace PhotoSauce.MagicScaler
 			frame.SetResolution(ctx.Settings.DpiX > 0d ? ctx.Settings.DpiX : ctx.DpiX, ctx.Settings.DpiY > 0d ? ctx.Settings.DpiY : ctx.DpiY);
 			frame.SetSize(ctx.Width, ctx.Height);
 
-			if (ctx.Settings.IndexedColor && ctx.PixelFormat == Consts.GUID_WICPixelFormat8bppIndexed)
+			if (ctx.Settings.IndexedColor && ctx.PixelFormat.FormatGuid == Consts.GUID_WICPixelFormat8bppIndexed)
 				frame.SetPalette(ctx.DestPalette);
 
 #if NET46
@@ -148,10 +147,6 @@ namespace PhotoSauce.MagicScaler
 					metawriter.TrySetMetadataByName(nv.Key, nv.Value);
 			}
 #endif
-
-			// TODO setting
-			//if (ctx.DestColorContext != null)
-			//	frame.SetColorContexts(1, new IWICColorContext[] { ctx.DestColorContext });
 
 			Frame = frame;
 		}
@@ -166,11 +161,17 @@ namespace PhotoSauce.MagicScaler
 			Frame.SetPixelFormat(ref oformat);
 			if (oformat != iformat)
 			{
-				// TODO grey -> indexed support
-				//var pal = AddRef(Wic.CreatePalette());
-				//pal.InitializePredefined(WICBitmapPaletteType.WICBitmapPaletteTypeFixedGray256, false);
+				var pal = default(IWICPalette);
+				var ptt = WICBitmapPaletteType.WICBitmapPaletteTypeCustom;
+				if (PixelFormat.Cache[oformat].NumericRepresentation == PixelNumericRepresentation.Indexed)
+				{
+					pal = AddRef(Wic.CreatePalette());
+					pal.InitializePredefined(WICBitmapPaletteType.WICBitmapPaletteTypeFixedGray256, false);
+					ptt = WICBitmapPaletteType.WICBitmapPaletteTypeFixedGray256;
+				}
+
 				var conv = AddRef(Wic.CreateFormatConverter());
-				conv.Initialize(src, oformat, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
+				conv.Initialize(src, oformat, WICBitmapDitherType.WICBitmapDitherTypeNone, pal, 0.0, ptt);
 				src = conv;
 			}
 

@@ -2,6 +2,31 @@
 
 The main MagicScaler image processor.
 
+### EnablePlanarPipeline: static bool
+
+Enables MagicImageProcessor's planar format pipeline for images stored in planar ([YCbCr](https://en.wikipedia.org/wiki/YCbCr)) format.  This pipeline offers significant performance advantages over standard RGB processing for image formats such as JPEG.
+
+Most image processing software will convert YCbCr JPEG input to RGB for processing and then convert back to YCbCr for JPEG output.  In addition to saving the processing time spent on this unnecessary conversion, planar processing allows for other work savings.
+
+* [Chroma subsampled](https://en.wikipedia.org/wiki/Chroma_subsampling) images do not need to have their chroma planes upsampled to the luma size, only to have them rescaled again.  MagicScaler can scale the subsampled chroma plane directly to its final size.
+* When saving in a chroma subsampled format, the final chroma scaling is done with a high-quality resampler rather than the Linear resampler used by the encoder.
+* When processing in [linear light](http://web.archive.org/web/20160826144709/http://www.4p8.com/eric.brasseur/gamma.html), gamma correction needs only be performed on the luma plane.
+* When sharpening is applied, it also needs only be performed on the luma plane.
+
+This feature is only available if WIC supports it (Windows 8.1/Windows Server 2012 and above) and the input image format is YCbCr.  The output results will be slightly different than those produced with RGB processing but no less correct or visually appealing.
+
+Default Value: true
+
+### EnableSimd : static bool
+
+Enables [SIMD](https://en.wikipedia.org/wiki/SIMD) versions of MagicScaler's image convolution and matting/compositing algorithms.  For high-quality resampling, SIMD processing yields significant performance improvements.  This is most noteable with linear light processing, which now has no performance penalty compared with sRGB processing.
+
+If processing predominately with low-quality resampling or in sRGB blending mode, there can be a slight performance penalty for SIMD processing.  You can disable this if your use cases do not follow the high-quality MagicScaler defaults. 
+
+Note that the SIMD processing is done in floating point whereas the standard processing is done in fixed point math.  This will result in very slight output differences due to rounding.  Differences will not be visually significant but can be detected with a binary compare.
+
+Default Value: true if the runtime/JIT and hardware support hardware-accelerated System.Numerics.Vectors, otherwise false
+
 ### ProcessImage(string, Stream, ProcessImageSettings)
 
 Accepts a file path for the input image, a stream for the output image, and a ProcessImageSettings object for settings.  The output stream must allow Seek and Write.
@@ -43,6 +68,18 @@ Default Value: 0
 The output image height in pixels.  If auto-cropping is enabled, a value of 0 will set the height automatically based on the output width.  Width and Height may not both be set to 0.
 
 Default Value: 0
+
+### DpiX: double
+
+The output image horizontal DPI.  A value of 0 will preserve the DPI of the input image.  Not all image formats support a DPI setting and most applications will ignore it.
+
+Default Value: 96
+
+### DpiY: double
+
+The output image vertical DPI.  A value of 0 will preserve the DPI of the input image.  Not all output formats support a DPI setting and most applications will ignore it.
+
+Default Value: 96
 
 ### Sharpen: bool
 

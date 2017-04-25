@@ -30,24 +30,32 @@ namespace PhotoSauce.MagicScaler
 
 		public WicConvolution(IWICBitmapSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, bool bufferSource = false) : base(source)
 		{
-			if (Format == Consts.GUID_WICPixelFormat32bppPBGRA)
-				Processor = new ConvolverBgra8bpc();
-			else if (Format == Consts.GUID_WICPixelFormat32bppBGRA)
-				Processor = new ConvolverBgra8bpc();
-			else if (Format == Consts.GUID_WICPixelFormat24bppBGR)
-				Processor = new ConvolverBgr8bpc();
-			else if (Format == Consts.GUID_WICPixelFormat16bppCbCr)
-				Processor = new ConvolverCbCr8bpc();
-			else if (Format == Consts.GUID_WICPixelFormat8bppGray)
-				Processor = new ConvolverGrey8bpc();
-			else if (Format == Consts.GUID_WICPixelFormat8bppY)
-				Processor = new ConvolverGrey8bpc();
-			else if (Format == Consts.GUID_WICPixelFormat64bppBGRA)
-				Processor = new ConvolverBgra16bpc();
-			else if (Format == Consts.GUID_WICPixelFormat48bppBGR)
-				Processor = new ConvolverBgr16bpc();
-			else if (Format == Consts.GUID_WICPixelFormat16bppGray)
-				Processor = new ConvolverGrey16bpc();
+			if (Format.FormatGuid == Consts.GUID_WICPixelFormat32bppPBGRA)
+				Processor = new Convolver4ChanByte();
+			else if (Format.FormatGuid == Consts.GUID_WICPixelFormat32bppBGRA)
+				Processor = new ConvolverBgraByte();
+			else if (Format.FormatGuid == Consts.GUID_WICPixelFormat24bppBGR)
+				Processor = new ConvolverBgrByte();
+			else if (Format.FormatGuid == Consts.GUID_WICPixelFormat16bppCbCr)
+				Processor = new Convolver2ChanByte();
+			else if (Format.FormatGuid == Consts.GUID_WICPixelFormat8bppGray || Format.FormatGuid == Consts.GUID_WICPixelFormat8bppY)
+				Processor = new Convolver1ChanByte();
+			else if (Format == PixelFormat.Pbgra64BppLinearUQ15)
+				Processor = new Convolver4ChanUQ15();
+			else if (Format == PixelFormat.Bgra64BppLinearUQ15)
+				Processor = new ConvolverBgraUQ15();
+			else if (Format == PixelFormat.Bgr48BppLinearUQ15)
+				Processor = new ConvolverBgrUQ15();
+			else if (Format == PixelFormat.Grey16BppLinearUQ15 || Format == PixelFormat.Y16BppLinearUQ15)
+				Processor = new Convolver1ChanUQ15();
+			else if (Format == PixelFormat.Pbgra128BppLinearFloat || Format == PixelFormat.Pbgra128BppFloat)
+				Processor = new Convolver4ChanFloat();
+			else if (Format == PixelFormat.Bgr96BppLinearFloat || Format == PixelFormat.Bgr96BppFloat)
+				Processor = new Convolver3ChanFloat();
+			else if (Format == PixelFormat.CbCr64BppFloat)
+				Processor = new Convolver2ChanFloat();
+			else if (Format == PixelFormat.Grey32BppLinearFloat || Format.FormatGuid == Consts.GUID_WICPixelFormat32bppGrayFloat || Format == PixelFormat.Y32BppLinearFloat || Format == PixelFormat.Y32BppFloat)
+				Processor = new Convolver1ChanFloat();
 			else
 				throw new NotSupportedException("Unsupported pixel format");
 
@@ -58,7 +66,7 @@ namespace PhotoSauce.MagicScaler
 			XMap = mapx;
 			YMap = mapy;
 
-			IntBpp = (int)Bpp / Unsafe.SizeOf<TPixel>() * Unsafe.SizeOf<TWeight>();
+			IntBpp = Bpp / Unsafe.SizeOf<TPixel>() * Unsafe.SizeOf<TWeight>();
 			IntStride = mapy.Samples * IntBpp;
 			IntStartLine = -mapy.Samples;
 

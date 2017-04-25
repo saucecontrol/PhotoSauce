@@ -8,11 +8,11 @@
     <TargetFrameworks>net46;netcoreapp1.0</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>7</LangVersion>
-    <VersionPrefix>0.7.0-beta-1</VersionPrefix>
+    <VersionPrefix>0.7.0</VersionPrefix>
     <Authors>Clinton Ingram</Authors>
     <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/saucecontrol/MagicScaler</RepositoryUrl>
-    <PackageReleaseNotes>See https://github.com/saucecontrol/MagicScaler/releases</PackageReleaseNotes>
+    <RepositoryUrl>https://github.com/saucecontrol/PhotoSauce</RepositoryUrl>
+    <PackageReleaseNotes>See https://github.com/saucecontrol/PhotoSauce/releases</PackageReleaseNotes>
     <PackageIconUrl>http://photosauce.net/icon64x64.png</PackageIconUrl>
     <PackageProjectUrl>http://photosauce.net/</PackageProjectUrl>
     <PackageLicenseUrl>https://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>

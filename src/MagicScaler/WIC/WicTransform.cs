@@ -38,7 +38,7 @@ namespace PhotoSauce.MagicScaler
 			if (ctx.ContainerFormat == Consts.GUID_ContainerFormatRaw && ctx.Settings.FrameIndex == 0 && dec.Decoder.TryGetPreview(out var preview))
 				Source = AddRef(preview);
 
-			ctx.PixelFormat = Source.GetPixelFormat();
+			ctx.PixelFormat = PixelFormat.Cache[Source.GetPixelFormat()];
 			Source.GetSize(out ctx.Width, out ctx.Height);
 			Source.GetResolution(out ctx.DpiX, out ctx.DpiY);
 
@@ -67,8 +67,7 @@ namespace PhotoSauce.MagicScaler
 
 		public WicMetadataReader(WicTransform prev, bool basicOnly = false) : base(prev)
 		{
-			var pfi = AddRef(Wic.CreateComponentInfo(Context.PixelFormat)) as IWICPixelFormatInfo2;
-			if (pfi.GetNumericRepresentation() == WICPixelFormatNumericRepresentation.WICPixelFormatNumericRepresentationIndexed)
+			if (Context.PixelFormat.NumericRepresentation == PixelNumericRepresentation.Indexed)
 			{
 				var pal = AddRef(Wic.CreatePalette());
 				Frame.CopyPalette(pal);
@@ -78,11 +77,8 @@ namespace PhotoSauce.MagicScaler
 			}
 			else
 			{
-				uint chans = pfi.GetChannelCount();
-				bool trans = pfi.SupportsTransparency();
-				Context.HasAlpha = trans;
-				Context.IsGreyscale = chans == 1u;
-				Context.IsCmyk = (chans == 4u && !trans) || (chans == 5u && trans);
+				Context.HasAlpha = Context.PixelFormat.AlphaRepresentation != PixelAlphaRepresentation.None;
+				Context.IsGreyscale = Context.PixelFormat.ColorRepresentation == PixelColorRepresentation.Grey;
 			}
 
 #if NET46
@@ -153,7 +149,7 @@ namespace PhotoSauce.MagicScaler
 					ArrayPool<byte>.Shared.Return(ccb);
 
 					// match only color profiles that match our intended use. if we have a standard sRGB profile, don't save it; we don't need to convert
-					if (cp.IsValid && ((cp.IsDisplayRgb && !cp.IsStandardSrgb) || (Context.IsCmyk && cp.IsCmyk) /* || (Context.IsGreyscale && cp.DataColorSpace == "GRAY") */))
+					if (cp.IsValid && ((cp.IsDisplayRgb && !cp.IsStandardSrgb) || (cp.IsCmyk && Context.PixelFormat.ColorRepresentation == PixelColorRepresentation.Cmyk) /* || (Context.IsGreyscale && cp.DataColorSpace == "GRAY") */))
 					{
 						profile = cc;
 						break;
@@ -166,7 +162,7 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			Context.SourceColorContext = profile ?? (Context.IsCmyk ? cmykProfile.Value : null);
+			Context.SourceColorContext = profile ?? (Context.PixelFormat.ColorRepresentation ==	PixelColorRepresentation.Cmyk ? cmykProfile.Value : null);
 			Context.DestColorContext = srgbProfile.Value;
 		}
 	}
@@ -192,11 +188,11 @@ namespace PhotoSauce.MagicScaler
 	{
 		public WicCmykConverter(WicTransform prev) : base(prev)
 		{
-			if (!Context.IsCmyk)
+			if (Context.PixelFormat.ColorRepresentation != PixelColorRepresentation.Cmyk)
 				return;
 
 			var trans = AddRef(Wic.CreateColorTransform());
-			trans.Initialize(Source, Context.SourceColorContext, Context.DestColorContext, Context.HasAlpha ? Consts.GUID_WICPixelFormat32bppBGRA : Consts.GUID_WICPixelFormat24bppBGR);
+			trans.Initialize(Source, Context.SourceColorContext, Context.DestColorContext, Context.PixelFormat.AlphaRepresentation != PixelAlphaRepresentation.None ? Consts.GUID_WICPixelFormat32bppBGRA : Consts.GUID_WICPixelFormat24bppBGR);
 
 			Source = trans;
 			Context.SourceColorContext = null;
@@ -211,7 +207,7 @@ namespace PhotoSauce.MagicScaler
 				return;
 
 			var trans = AddRef(Wic.CreateColorTransform());
-			trans.Initialize(Source, Context.SourceColorContext, Context.DestColorContext, Context.IsCmyk ? Context.HasAlpha ? Consts.GUID_WICPixelFormat32bppBGRA : Consts.GUID_WICPixelFormat24bppBGR : Context.PixelFormat);
+			trans.Initialize(Source, Context.SourceColorContext, Context.DestColorContext, Context.PixelFormat.FormatGuid);
 
 			Source = trans;
 		}
@@ -223,22 +219,22 @@ namespace PhotoSauce.MagicScaler
 		{
 			var newFormat = Consts.GUID_WICPixelFormat24bppBGR;
 			if (Context.HasAlpha)
-				newFormat = Context.PixelFormat == Consts.GUID_WICPixelFormat32bppPBGRA ? Consts.GUID_WICPixelFormat32bppPBGRA : Consts.GUID_WICPixelFormat32bppBGRA;
+				newFormat = Context.PixelFormat.FormatGuid == Consts.GUID_WICPixelFormat32bppPBGRA ? Consts.GUID_WICPixelFormat32bppPBGRA : Consts.GUID_WICPixelFormat32bppBGRA;
 			else if (Context.IsGreyscale)
 				newFormat = Consts.GUID_WICPixelFormat8bppGray;
-			else if (Context.IsCmyk && Context.SourceColorContext != null)
+			else if (Context.PixelFormat.ColorRepresentation == PixelColorRepresentation.Cmyk)
 				newFormat = Consts.GUID_WICPixelFormat32bppCMYK;
 
-			if (Context.PixelFormat == newFormat)
+			if (Context.PixelFormat.FormatGuid == newFormat)
 				return;
 
 			var conv = AddRef(Wic.CreateFormatConverter());
-			if (!conv.CanConvert(Context.PixelFormat, newFormat))
+			if (!conv.CanConvert(Context.PixelFormat.FormatGuid, newFormat))
 				throw new NotSupportedException("Can't convert to destination pixel format");
 
 			conv.Initialize(Source, newFormat, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
 			Source = conv;
-			Context.PixelFormat = Source.GetPixelFormat();
+			Context.PixelFormat = PixelFormat.Cache[Source.GetPixelFormat()];
 		}
 	}
 
@@ -248,11 +244,11 @@ namespace PhotoSauce.MagicScaler
 		{
 			var newFormat = Consts.GUID_WICPixelFormat8bppIndexed;
 
-			if (!Context.Settings.IndexedColor || Context.PixelFormat == newFormat)
+			if (!Context.Settings.IndexedColor || Context.PixelFormat.FormatGuid == newFormat || Context.IsGreyscale)
 				return;
 
 			var conv = AddRef(Wic.CreateFormatConverter());
-			if (!conv.CanConvert(Context.PixelFormat, newFormat))
+			if (!conv.CanConvert(Context.PixelFormat.FormatGuid, newFormat))
 				throw new NotSupportedException("Can't convert to destination pixel format");
 
 			var bmp = AddRef(Wic.CreateBitmapFromSource(Source, WICBitmapCreateCacheOption.WICBitmapCacheOnDemand));
@@ -261,9 +257,9 @@ namespace PhotoSauce.MagicScaler
 			pal.InitializeFromBitmap(bmp, colors, false);
 			Context.DestPalette = pal;
 
-			conv.Initialize(bmp, newFormat, WICBitmapDitherType.WICBitmapDitherTypeErrorDiffusion, pal, 1.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
+			conv.Initialize(bmp, newFormat, WICBitmapDitherType.WICBitmapDitherTypeErrorDiffusion, pal, 10.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
 			Source = conv;
-			Context.PixelFormat = Source.GetPixelFormat();
+			Context.PixelFormat = PixelFormat.Cache[Source.GetPixelFormat()];
 		}
 	}
 

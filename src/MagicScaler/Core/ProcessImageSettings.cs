@@ -52,17 +52,19 @@ namespace PhotoSauce.MagicScaler
 		public static readonly InterpolationSettings Lanczos = new InterpolationSettings(new LanczosInterpolator());
 		public static readonly InterpolationSettings Spline36 = new InterpolationSettings(new Spline36Interpolator());
 
+		private double blur;
+		public double Blur => WeightingFunction == null ? 0d : WeightingFunction.Support * blur < 0.5 ? 1d : blur;
+
 		public IInterpolator WeightingFunction { get; private set; }
-		public double Blur { get; private set; }
 
 		public InterpolationSettings(IInterpolator weighting) : this(weighting, 1d) { }
 
 		public InterpolationSettings(IInterpolator weighting, double blur)
 		{
-			if (blur <= 0.5 || blur > 2d) throw new ArgumentOutOfRangeException(nameof(blur), "Value must be > 0.5 and <= 2");
+			if (blur < 0.5 || blur > 1.5) throw new ArgumentOutOfRangeException(nameof(blur), "Value must be between 0.5 and 1.5");
 
-			WeightingFunction = weighting;
-			Blur = blur;
+			WeightingFunction = weighting ?? throw new ArgumentNullException(nameof(weighting));
+			this.blur = blur;
 		}
 	}
 
@@ -93,7 +95,6 @@ namespace PhotoSauce.MagicScaler
 		public HybridScaleMode HybridMode { get; set; }
 		public GammaMode BlendingMode { get; set; }
 		public IEnumerable<string> MetadataNames { get; set; }
-		public bool EnablePlanarPipeline { get; set; } = true;
 
 		internal bool Normalized => imageInfo != null;
 
