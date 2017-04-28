@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>PhotoSauce.WebRSize</RootNamespace>
+    <AssemblyName>PhotoSauce.WebRSize</AssemblyName>
+    <AssemblyTitle>WebRSize</AssemblyTitle>
+    <TargetFramework>net46</TargetFramework>
+    <LangVersion>7</LangVersion>
+    <VersionPrefix>0.2.2</VersionPrefix>
+    <Authors>Clinton Ingram</Authors>
+    <Description>Web extensions for the MagicScaler library, inlcluding an HTTP request intercept module for automatic image processing.</Description>
+    <Company>PhotoSauce</Company>
+    <Product>WebRSize</Product>
+    <Copyright>Copyright © 2015-2017 Clinton Ingram</Copyright>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/saucecontrol/PhotoSauce</RepositoryUrl>
+    <PackageReleaseNotes>See https://github.com/saucecontrol/PhotoSauce/releases</PackageReleaseNotes>
+    <PackageIconUrl>http://photosauce.net/icon64x64.png</PackageIconUrl>
+    <PackageProjectUrl>http://photosauce.net/</PackageProjectUrl>
+    <PackageLicenseUrl>https://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>True</DebugSymbols>
+  </PropertyGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net46' ">
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Web" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MagicScaler\MagicScaler.csproj" />
+  </ItemGroup>
+
+</Project>

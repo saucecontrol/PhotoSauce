@@ -1,35 +1,27 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <RootNamespace>PhotoSauce.MagicScaler</RootNamespace>
     <AssemblyName>PhotoSauce.MagicScaler</AssemblyName>
+    <AssemblyTitle>PhotoSauce</AssemblyTitle>
     <TargetFrameworks>net46;netcoreapp1.0</TargetFrameworks>
+    <RuntimeFrameworkVersion Condition=" '$(TargetFramework)' == 'netcoreapp1.0' ">1.0.3</RuntimeFrameworkVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>7</LangVersion>
     <VersionPrefix>0.7.0</VersionPrefix>
     <Authors>Clinton Ingram</Authors>
+    <Company>PhotoSauce</Company>
+    <Product>WebRSize</Product>
+    <Copyright>Copyright © 2015-2017 Clinton Ingram</Copyright>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/saucecontrol/PhotoSauce</RepositoryUrl>
     <PackageReleaseNotes>See https://github.com/saucecontrol/PhotoSauce/releases</PackageReleaseNotes>
     <PackageIconUrl>http://photosauce.net/icon64x64.png</PackageIconUrl>
     <PackageProjectUrl>http://photosauce.net/</PackageProjectUrl>
     <PackageLicenseUrl>https://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
-    <RuntimeFrameworkVersion Condition=" '$(TargetFramework)' == 'netcoreapp1.0' ">1.0.3</RuntimeFrameworkVersion>
-    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
-    <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
-    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
-    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
-    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
-    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
-    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>True</DebugSymbols>
