@@ -354,7 +354,6 @@ namespace PhotoSauce.MagicScaler
 		internal void NormalizeFrom(ImageFileInfo img)
 		{
 			if (Width < 0 || Height < 0) throw new InvalidOperationException($"{nameof(Width)} and {nameof(Height)} cannot be negative");
-			if (Width == 0 && Height == 0) throw new InvalidOperationException($"{nameof(Width)} and {nameof(Height)} may not both be 0");
 			if ((Width == 0 || Height == 0) && ResizeMode != CropScaleMode.Crop) throw new InvalidOperationException($"{nameof(Width)} or {nameof(Height)} may only be 0 in {nameof(CropScaleMode.Crop)} mode");
 			if (FrameIndex >= img.Frames.Length || img.Frames.Length + FrameIndex < 0) throw new InvalidOperationException($"Invalid {nameof(FrameIndex)}");
 

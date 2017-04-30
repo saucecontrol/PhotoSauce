@@ -4,7 +4,7 @@ The main MagicScaler image processor.
 
 ### EnablePlanarPipeline: static bool
 
-Enables MagicImageProcessor's planar format pipeline for images stored in planar ([YCbCr](https://en.wikipedia.org/wiki/YCbCr)) format.  This pipeline offers significant performance advantages over standard RGB processing for image formats such as JPEG.
+Enables MagicImageProcessor's planar format pipeline for images stored in planar ([YCbCr](https://en.wikipedia.org/wiki/YCbCr)) format.  This pipeline offers significant performance advantages over standard RGB processing for JPEG images.
 
 Most image processing software will convert YCbCr JPEG input to RGB for processing and then convert back to YCbCr for JPEG output.  In addition to saving the processing time spent on this unnecessary conversion, planar processing allows for other work savings.
 
@@ -19,7 +19,7 @@ Default Value: true
 
 ### EnableSimd : static bool
 
-Enables [SIMD](https://en.wikipedia.org/wiki/SIMD) versions of MagicScaler's image convolution and matting/compositing algorithms.  For high-quality resampling, SIMD processing yields significant performance improvements.  This is most noteable with linear light processing, which now has no performance penalty compared with sRGB processing.
+Enables [SIMD](https://en.wikipedia.org/wiki/SIMD) versions of MagicScaler's image convolution and matting/compositing algorithms.  For high-quality resampling, SIMD processing yields significant performance improvements.  This is most notable with linear light processing, which now has no performance penalty compared with sRGB processing.
 
 If processing predominately with low-quality resampling or in sRGB blending mode, there can be a slight performance penalty for SIMD processing.  You can disable this if your use cases do not follow the high-quality MagicScaler defaults. 
 
@@ -59,13 +59,13 @@ Default Value: 0
 
 ### Width: int
 
-The output image width in pixels.  If auto-cropping is enabled, a value of 0 will set the width automatically based on the output height.  Width and Height may not both be set to 0.
+The output image width in pixels.  If auto-cropping is enabled, a value of 0 will set the width automatically based on the output height.  If Width and Height are both set to 0, no resizing will be performed but a crop may still be applied.
 
 Default Value: 0
 
 ### Height: int
 
-The output image height in pixels.  If auto-cropping is enabled, a value of 0 will set the height automatically based on the output width.  Width and Height may not both be set to 0.
+The output image height in pixels.  If auto-cropping is enabled, a value of 0 will set the height automatically based on the output width.  If Width and Height are both set to 0, no resizing will be performed but a crop may still be applied.
 
 Default Value: 0
 
@@ -191,10 +191,10 @@ Allow the output image Width and Height to change the aspect ratio of the input 
 
 Suppose you have an input image with dimensions of 640x480 and you set the Width and Height of the output image to 100x100.
 `Crop` will produce an output image of 100x100, preserving the aspect ratio of the input image by cropping from the sides of the image.  By default, this will crop evenly from the left and right.  You can change that behavior by changing the [Anchor](#anchor-cropanchor) value.
-`Max` will produce an output image of 100x75, preserving the aspect ratio of the input image by contstraining the dimensions of the output image.
+`Max` will produce an output image of 100x75, preserving the aspect ratio of the input image by constraining the dimensions of the output image.
 `Stretch` will produce an output image of 100x100 that is squished horizontally.
 
-When using `Crop` mode, you may also choose to specify only one of the Width or Height.  In this case, and the undefined dimension will be set automatically to preserve the source image's aspect ratio after taking the Crop setting into account.
+When using `Crop` mode, you may also choose to specify only one of the Width or Height.  In this case, the undefined dimension will be set automatically to preserve the source image's aspect ratio after taking the Crop setting into account.
 Again, using a 640x480 input image as an example, you can expect the following:
 
 Width=100 with the default values Height=0/Crop=Rectangle.Empty will result in an output image of 100x75 with no cropping.
@@ -221,7 +221,7 @@ Resize the image entirely using the low-quality scaler if possible.  If not poss
 
 Perform the entire resize with the high-quality scaler.  This will yield the best quality image but at a performance cost.
 
-##GammaMode
+## GammaMode
 
 An enumeration for specifying the light blending mode used for high-quality scaling operations. 
 
@@ -253,7 +253,7 @@ Choose the chroma subsampling mode automatically based on the JpegQuality settin
 
 No chroma subsampling (4:4:4)
 
-##FileFormat
+## FileFormat
 
 An enumeration for specifying the file format (codec) used for the output image. 
 
@@ -285,7 +285,7 @@ JPEG.  Use JpegQuality and JpegSubsampleMode settings to control output.
 
 Uncompressed 24-bit or 32-bit TIFF, depending on whether or not the input image contains an alpha channel.
 
-##UnsharpMaskSettings
+## UnsharpMaskSettings
 
 A structure for specifying the settings used for the post-resize [sharpening](https://en.wikipedia.org/wiki/Unsharp_masking) of the output image.  These settings are designed to function similarly to the Unsharp Mask settings in Photoshop.
 
@@ -303,7 +303,7 @@ The minimum difference between the original and blurred images for a pixel to be
 
 ## InterpolationSettings
 
-A structure for specifying the sampling algorithm used by the high-quality scaler.  There are a number of well-known algoritms preconfigured as static fields, or you can define your own.
+A structure for specifying the sampling algorithm used by the high-quality scaler.  There are a number of well-known algorithms preconfigured as static fields, or you can define your own.
 
 Preconfigured values include:
 

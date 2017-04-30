@@ -3,7 +3,7 @@
   <PropertyGroup>
     <RootNamespace>PhotoSauce.MagicScaler</RootNamespace>
     <AssemblyName>PhotoSauce.MagicScaler</AssemblyName>
-    <AssemblyTitle>PhotoSauce</AssemblyTitle>
+    <AssemblyTitle>MagicScaler</AssemblyTitle>
     <TargetFrameworks>net46;netcoreapp1.0</TargetFrameworks>
     <RuntimeFrameworkVersion Condition=" '$(TargetFramework)' == 'netcoreapp1.0' ">1.0.3</RuntimeFrameworkVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -11,7 +11,7 @@
     <VersionPrefix>0.7.0</VersionPrefix>
     <Authors>Clinton Ingram</Authors>
     <Company>PhotoSauce</Company>
-    <Product>WebRSize</Product>
+    <Product>MagicScaler</Product>
     <Copyright>Copyright © 2015-2017 Clinton Ingram</Copyright>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/saucecontrol/PhotoSauce</RepositoryUrl>

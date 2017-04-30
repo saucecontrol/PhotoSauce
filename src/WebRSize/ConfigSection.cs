@@ -13,10 +13,10 @@ namespace PhotoSauce.WebRSize
 {
 	public class WebRSizeSection : ConfigurationSection
 	{
-		[ConfigurationProperty("diskCache", IsRequired = false)]
+		[ConfigurationProperty("diskCache", IsRequired = true)]
 		public DiskCacheElement DiskCache => (DiskCacheElement)base["diskCache"];
 
-		[ConfigurationProperty("imageFolders"), ConfigurationCollection(typeof(NameKeyedConfigurationElemementCollection<ImageFolder>))]
+		[ConfigurationProperty("imageFolders", IsRequired = true), ConfigurationCollection(typeof(NameKeyedConfigurationElemementCollection<ImageFolder>))]
 		public NameKeyedConfigurationElemementCollection<ImageFolder> ImageFolders => (NameKeyedConfigurationElemementCollection<ImageFolder>)base["imageFolders"];
 	}
 
