@@ -61,6 +61,8 @@ See the [documentation page](doc/web.md) for more details.
 
 Release History
 ---------------
+#### MagicScaler 0.7.1.0
+* Allow 0 Width and Height in Crop Mode.  This enables crop-only or transcode-only operations.
 
 #### MagicScaler 0.7.0.0
 * Added .NET Core version. The Core build does not include metadata support (including auto-rotation) due to the absence of CustomMarshaler support in NetStandard <2.
@@ -76,9 +78,9 @@ Release History
 * Fixed argument out of range error when using planar processing with non-planar output at some output sizes.
 
 #### WebRSize 0.2.2.0
-* Added allowEnlarge setting to the imageFolders config. This enables/disables image enlarging by the WebRSizeHandler. This value is set to false by default, meaning you will have to opt in to allow enlarging starting with this version.
+* Added allowEnlarge setting to the imageFolders config.  This enables/disables image enlarging by the WebRSizeHandler. This value is set to false by default, meaning you will have to opt in to allow enlarging starting with this version.
 
-See the [releases page](releases) for previous updates.
+See the [releases page](/releases) for previous updates.
 
 Versioning
 ----------

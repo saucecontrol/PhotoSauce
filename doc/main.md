@@ -43,6 +43,8 @@ Accepts a stream for the input image, a stream for the output image, and a Proce
 
 This class is included only for testing/benchmarking purposes.  It will be removed in a future version and should not be used for production code.
 
+This class is not included in the .NET Core version.
+
 ## WicImageProcessor
 
 This class is included only for testing/benchmarking purposes.  It will be removed in a future version and should not be used for production code.
@@ -96,6 +98,8 @@ Default value: Crop
 ### Crop: Rectangle
 
 A System.Drawing.Rectangle that specifies which part of the input image should be included.  If the rectangle is empty and the [ResizeMode](#resizemode-cropscalemode) is set to `Crop`, the image will be cropped automatically.  Points given for this rectangle must be expressed in terms of the input image.
+
+If the input image has an [Exif Orientation](http://sylvana.net/jpegcrop/exif_orientation.html) tag, rotation and/or flipping will be applied to the image before the crop.  Crop values should be expressed in terms of the image's correct orientation, not the encoded orientation.
 
 Default value: Rectangle.Empty
 
