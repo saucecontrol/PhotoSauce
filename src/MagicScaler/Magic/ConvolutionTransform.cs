@@ -13,7 +13,7 @@ namespace PhotoSauce.MagicScaler
 		void SharpenLine(byte* cstart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh);
 	}
 
-	internal class WicConvolution<TPixel, TWeight> : WicBitmapSourceBase where TPixel : struct where TWeight : struct
+	internal class ConvolutionTransform<TPixel, TWeight> : WicBitmapSourceBase where TPixel : struct where TWeight : struct
 	{
 		protected bool BufferSource;
 		protected int IntBpp;
@@ -28,7 +28,7 @@ namespace PhotoSauce.MagicScaler
 		protected WICRect SourceRect;
 		protected IConvolver Processor;
 
-		public WicConvolution(IWICBitmapSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, bool bufferSource = false) : base(source)
+		public ConvolutionTransform(IWICBitmapSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, bool bufferSource = false) : base(source)
 		{
 			if (Format.FormatGuid == Consts.GUID_WICPixelFormat32bppPBGRA)
 				Processor = new Convolver4ChanByte();
@@ -154,12 +154,12 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	internal class WicUnsharpMask<TPixel, TWeight> : WicConvolution<TPixel, TWeight> where TPixel : struct where TWeight : struct
+	internal class UnsharpMaskTransform<TPixel, TWeight> : ConvolutionTransform<TPixel, TWeight> where TPixel : struct where TWeight : struct
 	{
 		private UnsharpMaskSettings sharpenSettings;
 		private byte[] blurBuff;
 
-		public WicUnsharpMask(IWICBitmapSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, UnsharpMaskSettings ss) : base(source, mapx, mapy, true)
+		public UnsharpMaskTransform(IWICBitmapSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, UnsharpMaskSettings ss) : base(source, mapx, mapy, true)
 		{
 			sharpenSettings = ss;
 			blurBuff = ArrayPool<byte>.Shared.Rent((int)Stride);

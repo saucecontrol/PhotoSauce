@@ -171,7 +171,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		public WicConditionalCache(WicTransform prev) : base(prev)
 		{
-			if (!Context.NeedsCache)
+			if (!Context.TransformOptions.RequiresCache())
 				return;
 
 			var crop = Context.Settings.Crop;
@@ -180,7 +180,6 @@ namespace PhotoSauce.MagicScaler
 			Source = bmp;
 			Source.GetSize(out Context.Width, out Context.Height);
 			Context.Settings.Crop = new Rectangle(0, 0, (int)Context.Width, (int)Context.Height);
-			Context.NeedsCache = false;
 		}
 	}
 
@@ -275,7 +274,6 @@ namespace PhotoSauce.MagicScaler
 
 			Source = rotator;
 			Source.GetSize(out Context.Width, out Context.Height);
-			Context.NeedsCache = Context.TransformOptions != WICBitmapTransformOptions.WICBitmapTransformFlipHorizontal;
 		}
 	}
 
@@ -283,12 +281,11 @@ namespace PhotoSauce.MagicScaler
 	{
 		public WicCropper(WicTransform prev) : base(prev)
 		{
-			var crop = Context.Settings.Crop;
-			if (crop == Rectangle.FromLTRB(0, 0, (int)Context.Width, (int)Context.Height))
+			if (Context.Settings.Crop == new Rectangle(0, 0, (int)Context.Width, (int)Context.Height))
 				return;
 
 			var cropper = AddRef(Wic.CreateBitmapClipper());
-			cropper.Initialize(Source, new WICRect { X = crop.X, Y = crop.Y, Width = crop.Width, Height = crop.Height });
+			cropper.Initialize(Source, Context.Settings.Crop.ToWicRect());
 
 			Source = cropper;
 			Source.GetSize(out Context.Width, out Context.Height);
@@ -299,11 +296,8 @@ namespace PhotoSauce.MagicScaler
 	{
 		public WicScaler(WicTransform prev, bool hybrid = false) : base(prev)
 		{
-			if (Context.Settings.Width == Context.Width && Context.Settings.Height == Context.Height)
-				return;
-
 			double rat = Context.Settings.HybridScaleRatio;
-			if (hybrid && rat == 1d)
+			if ((Context.Settings.Width == Context.Width && Context.Settings.Height == Context.Height) || (hybrid && rat == 1d))
 				return;
 
 			if (Source is IWICBitmapSourceTransform)
@@ -319,8 +313,9 @@ namespace PhotoSauce.MagicScaler
 			uint oh = hybrid ? (uint)Math.Ceiling(Context.Height / rat) : (uint)Context.Settings.Height;
 			var mode = hybrid ? WICBitmapInterpolationMode.WICBitmapInterpolationModeFant :
 			           Context.Settings.Interpolation.WeightingFunction.Support < 0.1 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeNearestNeighbor :
-			           Context.Settings.Interpolation.WeightingFunction.Support > 1.0 ? Context.Settings.ScaleRatio < 1.0 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeCubic : WICBitmapInterpolationMode.WICBitmapInterpolationModeHighQualityCubic :
-			           WICBitmapInterpolationMode.WICBitmapInterpolationModeFant;
+			           Context.Settings.Interpolation.WeightingFunction.Support < 1.0 ? Context.Settings.ScaleRatio > 1.0 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeFant : WICBitmapInterpolationMode.WICBitmapInterpolationModeNearestNeighbor :
+			           Context.Settings.Interpolation.WeightingFunction.Support > 1.0 ? Context.Settings.ScaleRatio > 1.0 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeHighQualityCubic :WICBitmapInterpolationMode.WICBitmapInterpolationModeCubic :
+			           Context.Settings.ScaleRatio > 1.0 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeFant : WICBitmapInterpolationMode.WICBitmapInterpolationModeLinear;
 
 			var scaler = AddRef(Wic.CreateBitmapScaler());
 			scaler.Initialize(Source, ow, oh, mode);
@@ -338,11 +333,7 @@ namespace PhotoSauce.MagicScaler
 		public WicNativeScaler(WicTransform prev) : base(prev)
 		{
 			double rat = Context.Settings.HybridScaleRatio;
-			if (rat == 1d)
-				return;
-
-			var trans = Source as IWICBitmapSourceTransform;
-			if (trans == null)
+			if (rat == 1d || !(Source is IWICBitmapSourceTransform trans))
 				return;
 
 			uint ow = Context.Width, oh = Context.Height;

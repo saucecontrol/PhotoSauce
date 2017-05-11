@@ -58,8 +58,10 @@ namespace PhotoSauce.WebRSize
 				if (!s.Normalized)
 				{
 					using (await enterWorkQueueAsync())
-					using (var oimg = GdiImageProcessor.CreateBrokenImage(s) as MemoryStream)
+					using (var oimg = new MemoryStream(8192))
 					{
+						GdiImageProcessor.CreateBrokenImage(oimg, s);
+
 						saveResult(tcs, oimg, cachePath, DateTime.MinValue);
 						return;
 					}

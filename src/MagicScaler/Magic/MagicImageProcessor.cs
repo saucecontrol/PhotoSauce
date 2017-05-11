@@ -11,39 +11,47 @@ namespace PhotoSauce.MagicScaler
 		public static bool EnablePlanarPipeline { get; set; } = true;
 		public static bool EnableSimd { get; set; } = Vector.IsHardwareAccelerated;
 
-		public static void ProcessImage(string imgPath, Stream ostm, ProcessImageSettings s)
+		private static void checkInStream(Stream imgStream)
+		{
+			if (imgStream == null) throw new ArgumentNullException(nameof(imgStream));
+			if (!imgStream.CanSeek || !imgStream.CanRead) throw new ArgumentException("Input Stream must allow Seek and Read", nameof(imgStream));
+			if (imgStream.Length <= 0 || imgStream.Position >= imgStream.Length) throw new ArgumentException("Input Stream is empty or positioned at its end", nameof(imgStream));
+		}
+
+		private static void checkOutStream(Stream outStream)
+		{
+			if (outStream == null) throw new ArgumentNullException(nameof(outStream));
+			if (!outStream.CanSeek || !outStream.CanWrite) throw new ArgumentException("Output Stream must allow Seek and Write", nameof(outStream));
+		}
+
+		public static void ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
 		{
 			if (imgPath == null) throw new ArgumentNullException(nameof(imgPath));
-			if (ostm == null) throw new ArgumentNullException(nameof(ostm));
-			if (!ostm.CanSeek || !ostm.CanWrite) throw new ArgumentException("Output Stream must allow Seek and Write", nameof(ostm));
+			checkOutStream(outStream);
 
-			using (var ctx = new WicProcessingContext(s))
+			using (var ctx = new WicProcessingContext(settings))
 			using (var dec = new WicDecoder(imgPath, ctx))
-				processImage(dec, ctx, ostm);
+				processImage(dec, ctx, outStream);
 		}
 
-		public static void ProcessImage(byte[] imgBuffer, Stream ostm, ProcessImageSettings s)
+		public static void ProcessImage(ArraySegment<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
 			if (imgBuffer == null) throw new ArgumentNullException(nameof(imgBuffer));
-			if (ostm == null) throw new ArgumentNullException(nameof(ostm));
-			if (!ostm.CanSeek || !ostm.CanWrite) throw new ArgumentException("Output Stream must allow Seek and Write", nameof(ostm));
+			checkOutStream(outStream);
 
-			using (var ctx = new WicProcessingContext(s))
+			using (var ctx = new WicProcessingContext(settings))
 			using (var dec = new WicDecoder(imgBuffer, ctx))
-				processImage(dec, ctx, ostm);
+				processImage(dec, ctx, outStream);
 		}
 
-		public static void ProcessImage(Stream istm, Stream ostm, ProcessImageSettings s)
+		public static void ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings)
 		{
-			if (istm == null) throw new ArgumentNullException(nameof(istm));
-			if (ostm == null) throw new ArgumentNullException(nameof(ostm));
-			if (!istm.CanSeek || !istm.CanRead)  throw new ArgumentException("Input Stream must allow Seek and Read", nameof(istm));
-			if (!ostm.CanSeek || !ostm.CanWrite) throw new ArgumentException("Output Stream must allow Seek and Write", nameof(ostm));
-			if (istm.Length <= 0 || istm.Position >= istm.Length) throw new ArgumentException("Input Stream is empty or positioned at its end", nameof(istm));
+			checkInStream(imgStream);
+			checkOutStream(outStream);
 
-			using (var ctx = new WicProcessingContext(s))
-			using (var dec = new WicDecoder(istm, ctx))
-				processImage(dec, ctx, ostm);
+			using (var ctx = new WicProcessingContext(settings))
+			using (var dec = new WicDecoder(imgStream, ctx))
+				processImage(dec, ctx, outStream);
 		}
 
 		private static void processImage(WicDecoder dec, WicProcessingContext ctx, Stream ostm)

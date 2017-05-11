@@ -74,7 +74,6 @@ namespace PhotoSauce.MagicScaler
 		public bool SupportsPlanar;
 		public bool HasAlpha;
 		public bool IsGreyscale;
-		public bool NeedsCache;
 
 		public bool IsRotated90 => TransformOptions.HasFlag(WICBitmapTransformOptions.WICBitmapTransformRotate90);
 

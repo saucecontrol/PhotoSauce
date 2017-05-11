@@ -7,7 +7,6 @@ namespace PhotoSauce.MagicScaler
 {
 	internal class WicPlanarCacheSource : IDisposable
 	{
-		private bool cacheFull;
 		private double subsampleRatioX, subsampleRatioY;
 		private uint scaledWidth, scaledHeight;
 		private int strideY, strideC;
@@ -20,10 +19,8 @@ namespace PhotoSauce.MagicScaler
 		private WicPlanarSource sourceY, sourceC;
 		private WICRect scaledCrop;
 
-		public WicPlanarCacheSource(IWICPlanarBitmapSourceTransform source, WICBitmapPlaneDescription descY, WICBitmapPlaneDescription descC, WICRect crop, WICBitmapTransformOptions transformOptions, uint width, uint height, double ratio, bool cacheFull)
+		public WicPlanarCacheSource(IWICPlanarBitmapSourceTransform source, WICBitmapPlaneDescription descY, WICBitmapPlaneDescription descC, WICRect crop, WICBitmapTransformOptions transformOptions, uint width, uint height, double ratio)
 		{
-			this.cacheFull = cacheFull;
-
 			// TODO fractional ratio support?
 			subsampleRatioX = Math.Ceiling((double)descY.Width / descC.Width);
 			subsampleRatioY = Math.Ceiling((double)descY.Height / descC.Height);
@@ -72,7 +69,7 @@ namespace PhotoSauce.MagicScaler
 			scaledHeight = height;
 
 			strideY = scrop.Width + 3 & ~3;
-			buffHeightY = Math.Min(scrop.Height, cacheFull ? scrop.Height : 16);
+			buffHeightY = Math.Min(scrop.Height, transformOptions.RequiresCache() ? scrop.Height : 16);
 
 			strideC = (int)Math.Ceiling(scrop.Width / subsampleRatioX) * 2 + 3 & ~3;
 			buffHeightC = (int)Math.Ceiling(buffHeightY / subsampleRatioY);

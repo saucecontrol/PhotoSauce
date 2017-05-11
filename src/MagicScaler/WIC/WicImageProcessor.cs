@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 
 using PhotoSauce.MagicScaler.Interop;
 
@@ -6,25 +7,25 @@ namespace PhotoSauce.MagicScaler
 {
 	public static class WicImageProcessor
 	{
-		public static void ProcessImage(string imgPath, Stream ostm, ProcessImageSettings s)
+		public static void ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
 		{
-			using (var ctx = new WicProcessingContext(s))
+			using (var ctx = new WicProcessingContext(settings))
 			using (var dec = new WicDecoder(imgPath, ctx))
-				processImage(dec, ctx, ostm);
+				processImage(dec, ctx, outStream);
 		}
 
-		public static void ProcessImage(byte[] imgBuffer, Stream ostm, ProcessImageSettings s)
+		public static void ProcessImage(ArraySegment<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
-			using (var ctx = new WicProcessingContext(s))
+			using (var ctx = new WicProcessingContext(settings))
 			using (var dec = new WicDecoder(imgBuffer, ctx))
-				processImage(dec, ctx, ostm);
+				processImage(dec, ctx, outStream);
 		}
 
-		public static void ProcessImage(Stream istm, Stream ostm, ProcessImageSettings s)
+		public static void ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings)
 		{
-			using (var ctx = new WicProcessingContext(s))
-			using (var dec = new WicDecoder(istm, ctx))
-				processImage(dec, ctx, ostm);
+			using (var ctx = new WicProcessingContext(settings))
+			using (var dec = new WicDecoder(imgStream, ctx))
+				processImage(dec, ctx, outStream);
 		}
 
 		private static void processImage(WicDecoder dec, WicProcessingContext ctx, Stream ostm)

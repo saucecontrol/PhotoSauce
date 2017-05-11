@@ -8,7 +8,7 @@ using static PhotoSauce.MagicScaler.MathUtil;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal class WicCustomPixelFormatConverter : WicBitmapSourceBase
+	internal class FormatConversionTransform : WicBitmapSourceBase
 	{
 		protected byte[] LineBuff;
 		protected PixelFormat OutFormat;
@@ -16,7 +16,7 @@ namespace PhotoSauce.MagicScaler
 
 		public override Guid GetPixelFormat() => OutFormat.FormatGuid;
 
-		public WicCustomPixelFormatConverter(IWICBitmapSource source, Guid dstFormat) : base(source)
+		public FormatConversionTransform(IWICBitmapSource source, Guid dstFormat) : base(source)
 		{
 			InFormat = PixelFormat.Cache[source.GetPixelFormat()];
 			OutFormat = PixelFormat.Cache[dstFormat];

@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Drawing;
+using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
@@ -68,13 +69,15 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	public class ProcessImageSettings
+	public sealed class ProcessImageSettings
 	{
 		private static readonly Regex cropExpression = new Regex(@"^(\d+,){3}\d+$", RegexOptions.Compiled);
 		private static readonly Regex anchorExpression = new Regex(@"^(top|middle|bottom)?\-?(left|center|right)?$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 		private static readonly Regex subsampleExpression = new Regex(@"^4(20|22|44)$", RegexOptions.Compiled);
 		private static readonly Regex hexColorExpression = new Regex(@"^[0-9A-Fa-f]{6}$", RegexOptions.Compiled);
 
+		private int width;
+		private int height;
 		private InterpolationSettings interpolation;
 		private UnsharpMaskSettings unsharpMask;
 		private int jpegQuality;
@@ -82,8 +85,6 @@ namespace PhotoSauce.MagicScaler
 		private ImageFileInfo imageInfo;
 
 		public int FrameIndex { get; set; }
-		public int Width { get; set; }
-		public int Height { get; set; }
 		public double DpiX { get; set; } = 96d;
 		public double DpiY { get; set; } = 96d;
 		public bool Sharpen { get; set; } = true;
@@ -97,6 +98,26 @@ namespace PhotoSauce.MagicScaler
 		public IEnumerable<string> MetadataNames { get; set; }
 
 		internal bool Normalized => imageInfo != null;
+
+		public int Width
+		{
+			get => width;
+			set
+			{
+				if (value < 0) throw new ArgumentOutOfRangeException(nameof(Width), "Value must be >= 0");
+				width = value;
+			}
+		}
+
+		public int Height
+		{
+			get => height;
+			set
+			{
+				if (value < 0) throw new ArgumentOutOfRangeException(nameof(Height), "Value must be >= 0");
+				height = value;
+			}
+		}
 
 		public bool IndexedColor => SaveFormat == FileFormat.Png8 || SaveFormat == FileFormat.Gif;
 
@@ -294,9 +315,11 @@ namespace PhotoSauce.MagicScaler
 			var whole = new Rectangle(0, 0, imgWidth, imgHeight);
 			bool needsCrop = Crop.IsEmpty || !Crop.IntersectsWith(whole);
 
+			if (Width == 0 || Height == 0)
+				ResizeMode = CropScaleMode.Crop;
+
 			if (Width == 0 && Height == 0)
 			{
-				ResizeMode = CropScaleMode.Crop;
 				Crop = needsCrop ? whole : Crop;
 				Crop.Intersect(whole);
 				Width = Crop.Width;
@@ -351,10 +374,18 @@ namespace PhotoSauce.MagicScaler
 			Height = Height > 0 ? Height : Math.Max((int)Math.Round(Crop.Height / hrat), 1);
 		}
 
+		internal void SetSaveFormat(FileFormat containerType, bool frameHasAlpha)
+		{
+			if (containerType == FileFormat.Gif) // Restrict to animated only?
+				SaveFormat = FileFormat.Gif;
+			else if (containerType == FileFormat.Png || (frameHasAlpha && MatteColor.A < byte.MaxValue))
+				SaveFormat = FileFormat.Png;
+			else
+				SaveFormat = FileFormat.Jpeg;
+		}
+
 		internal void NormalizeFrom(ImageFileInfo img)
 		{
-			if (Width < 0 || Height < 0) throw new InvalidOperationException($"{nameof(Width)} and {nameof(Height)} cannot be negative");
-			if ((Width == 0 || Height == 0) && ResizeMode != CropScaleMode.Crop) throw new InvalidOperationException($"{nameof(Width)} or {nameof(Height)} may only be 0 in {nameof(CropScaleMode.Crop)} mode");
 			if (FrameIndex >= img.Frames.Length || img.Frames.Length + FrameIndex < 0) throw new InvalidOperationException($"Invalid {nameof(FrameIndex)}");
 
 			if (FrameIndex < 0)
@@ -362,15 +393,10 @@ namespace PhotoSauce.MagicScaler
 
 			var frame = img.Frames[FrameIndex];
 
+			Fixup(frame.Width, frame.Height, frame.Rotated90);
+
 			if (SaveFormat == FileFormat.Auto)
-			{
-				if (img.ContainerType == FileFormat.Gif) // Restrict to animated only?
-					SaveFormat = FileFormat.Gif;
-				else if (img.ContainerType == FileFormat.Png || (frame.HasAlpha && MatteColor.A < byte.MaxValue))
-					SaveFormat = FileFormat.Png;
-				else
-					SaveFormat = FileFormat.Jpeg;
-			}
+				SetSaveFormat(img.ContainerType, frame.HasAlpha);
 
 			if (SaveFormat != FileFormat.Jpeg)
 			{
@@ -384,14 +410,12 @@ namespace PhotoSauce.MagicScaler
 			if (!Sharpen)
 				UnsharpMask = UnsharpMaskSettings.None;
 
-			Fixup(frame.Width, frame.Height, frame.Rotated90);
-
 			imageInfo = img;
 		}
 
 		internal string GetCacheHash()
 		{
-			//Debug.Assert(Normalized, "Hash is only valid for normalized settings.");
+			Debug.Assert(Normalized, "Hash is only valid for normalized settings.");
 
 			using (var bw = new BinaryWriter(new MemoryStream(), Encoding.UTF8))
 			{

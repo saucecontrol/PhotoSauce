@@ -4,10 +4,9 @@ using PhotoSauce.MagicScaler.Interop;
 
 namespace PhotoSauce.MagicScaler
 {
-
 	internal class WicConvertToCustomPixelFormat : WicTransform
 	{
-		private WicCustomPixelFormatConverter conv;
+		private FormatConversionTransform conv;
 
 		public WicConvertToCustomPixelFormat(WicTransform prev) : base(prev)
 		{
@@ -45,7 +44,7 @@ namespace PhotoSauce.MagicScaler
 			if (ofmt == ifmt)
 				return;
 
-			Source = conv = new WicCustomPixelFormatConverter(Source, ofmt);
+			Source = conv = new FormatConversionTransform(Source, ofmt);
 			Context.PixelFormat = PixelFormat.Cache[Source.GetPixelFormat()];
 		}
 
@@ -58,7 +57,7 @@ namespace PhotoSauce.MagicScaler
 
 	internal class WicConvertFromCustomPixelFormat : WicTransform
 	{
-		private WicCustomPixelFormatConverter conv;
+		private FormatConversionTransform conv;
 
 		public WicConvertFromCustomPixelFormat(WicTransform prev) : base(prev)
 		{
@@ -79,7 +78,7 @@ namespace PhotoSauce.MagicScaler
 			if (ofmt == ifmt)
 				return;
 
-			Source = conv = new WicCustomPixelFormatConverter(Source, ofmt);
+			Source = conv = new FormatConversionTransform(Source, ofmt);
 			Context.PixelFormat = PixelFormat.Cache[Source.GetPixelFormat()];
 		}
 
@@ -108,7 +107,7 @@ namespace PhotoSauce.MagicScaler
 				var mx = KernelMap<float>.MakeScaleMap(Context.Width, width, fmt.ColorChannelCount, fmt.AlphaRepresentation != PixelAlphaRepresentation.None, true, interpolatorx);
 				var my = KernelMap<float>.MakeScaleMap(Context.Height, height, fmt.ColorChannelCount, fmt.AlphaRepresentation != PixelAlphaRepresentation.None, true, interpolatory);
 
-				source = new WicConvolution<float, float>(Source, mx, my);
+				source = new ConvolutionTransform<float, float>(Source, mx, my);
 
 				mapx = mx;
 				mapy = my;
@@ -119,9 +118,9 @@ namespace PhotoSauce.MagicScaler
 				var my = KernelMap<int>.MakeScaleMap(Context.Height, height, 1, fmt.AlphaRepresentation == PixelAlphaRepresentation.Unassociated, false, interpolatory);
 
 				if (fmt.NumericRepresentation == PixelNumericRepresentation.Fixed)
-					source = new WicConvolution<ushort, int>(Source, mx, my);
+					source = new ConvolutionTransform<ushort, int>(Source, mx, my);
 				else
-					source = new WicConvolution<byte, int>(Source, mx, my);
+					source = new ConvolutionTransform<byte, int>(Source, mx, my);
 
 				mapx = mx;
 				mapy = my;
@@ -156,7 +155,7 @@ namespace PhotoSauce.MagicScaler
 			mapx = KernelMap<int>.MakeBlurMap(Context.Width, ss.Radius, 1u, fmt.AlphaRepresentation != PixelAlphaRepresentation.None);
 			mapy = KernelMap<int>.MakeBlurMap(Context.Height, ss.Radius, 1u, fmt.AlphaRepresentation != PixelAlphaRepresentation.None);
 
-			Source = source = new WicUnsharpMask<byte, int>(Source, mapx, mapy, ss);
+			Source = source = new UnsharpMaskTransform<byte, int>(Source, mapx, mapy, ss);
 		}
 
 		public override void Dispose()
@@ -170,20 +169,20 @@ namespace PhotoSauce.MagicScaler
 
 	internal class WicMatteTransform : WicTransform
 	{
-		private WicCustomPixelFormatConverter conv;
+		private FormatConversionTransform conv;
 
 		public WicMatteTransform(WicTransform prev) : base(prev)
 		{
 			if (Context.PixelFormat == PixelFormat.Pbgra128BppFloat)
 			{
-				Source = conv = new WicCustomPixelFormatConverter(Source, Consts.GUID_WICPixelFormat32bppBGRA);
+				Source = conv = new FormatConversionTransform(Source, Consts.GUID_WICPixelFormat32bppBGRA);
 				Context.PixelFormat = PixelFormat.Cache[Source.GetPixelFormat()];
 			}
 
 			if (Context.Settings.MatteColor.IsEmpty || Context.PixelFormat.ColorRepresentation != PixelColorRepresentation.Bgr || Context.PixelFormat.AlphaRepresentation == PixelAlphaRepresentation.None)
 				return;
 
-			Source = new Matte(Source, Context.Settings.MatteColor);
+			Source = new MatteTransform(Source, Context.Settings.MatteColor);
 		}
 
 		public override void Dispose()

@@ -40,19 +40,23 @@ namespace PhotoSauce.MagicScaler
 				img.RotateFlip(rot);
 		}
 
-		public static void ProcessImage(string imgPath, Stream ostm, ProcessImageSettings s)
+		public static void ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
 		{
 			using (var fs = new FileStream(imgPath, FileMode.Open, FileAccess.Read, FileShare.Read))
-				ProcessImage(fs, ostm, s);
+				ProcessImage(fs, outStream, settings);
 		}
 
-		public static void ProcessImage(byte[] img, Stream ostm, ProcessImageSettings s)
+		public static void ProcessImage(ArraySegment<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
-			using (var ms = new MemoryStream(img, false))
-				ProcessImage(ms, ostm, s);
+			using (var ms = new MemoryStream(imgBuffer.Array, imgBuffer.Offset, imgBuffer.Count, false))
+				ProcessImage(ms, outStream, settings);
 		}
 
-		public static void ProcessImage(Stream istm, Stream ostm, ProcessImageSettings s)
+		public static void ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings) => processImage(imgStream, outStream, settings);
+
+		public static void CreateBrokenImage(Stream outStream, ProcessImageSettings settings) => createBrokenImage(outStream, settings);
+
+		private static void processImage(Stream istm, Stream ostm, ProcessImageSettings s)
 		{
 			using (var img = Image.FromStream(istm, true, false))
 			{
@@ -69,11 +73,16 @@ namespace PhotoSauce.MagicScaler
 
 				s = s.Clone();
 				s.Fixup(img.Width, img.Height);
-				bool alpha = ((ImageFlags)img.Flags & ImageFlags.HasAlpha) == ImageFlags.HasAlpha;
+
+				bool alpha = ((ImageFlags)img.Flags).HasFlag(ImageFlags.HasAlpha);
+				var mode = s.Interpolation.WeightingFunction.Support < 0.1 ? InterpolationMode.NearestNeighbor :
+				           s.Interpolation.WeightingFunction.Support < 1.0 ? s.ScaleRatio > 1.0 ? InterpolationMode.Bilinear : InterpolationMode.NearestNeighbor :
+				           s.Interpolation.WeightingFunction.Support > 1.0 ? s.ScaleRatio > 1.0 || s.Interpolation.Blur > 1.0 ? InterpolationMode.HighQualityBicubic : InterpolationMode.Bicubic :
+				           s.ScaleRatio > 1.0 ? InterpolationMode.HighQualityBilinear : InterpolationMode.Bilinear;
 
 				var src = img;
 				var crop = s.Crop;
-				if (s.HybridScaleRatio > 1d)
+				if (s.HybridScaleRatio > 1d && (mode == InterpolationMode.HighQualityBicubic || mode == InterpolationMode.HighQualityBilinear))
 				{
 					int intw = (int)Math.Ceiling(img.Width / s.HybridScaleRatio);
 					int inth = (int)Math.Ceiling(img.Height / s.HybridScaleRatio);
@@ -83,7 +92,7 @@ namespace PhotoSauce.MagicScaler
 					{
 						gfx.PixelOffsetMode = PixelOffsetMode.Half;
 						gfx.CompositingMode = CompositingMode.SourceCopy;
-						gfx.DrawImage(img, Rectangle.FromLTRB(0, 0, intw, inth), crop.X, crop.Y, crop.Width, crop.Height, GraphicsUnit.Pixel);
+						gfx.DrawImage(img, new Rectangle(0, 0, intw, inth), crop.X, crop.Y, crop.Width, crop.Height, GraphicsUnit.Pixel);
 					}
 
 					img.Dispose();
@@ -99,7 +108,7 @@ namespace PhotoSauce.MagicScaler
 					iat.SetWrapMode(WrapMode.TileFlipXY);
 					gfx.PixelOffsetMode = PixelOffsetMode.Half;
 					gfx.CompositingMode = CompositingMode.SourceCopy;
-					gfx.InterpolationMode = InterpolationMode.HighQualityBicubic;
+					gfx.InterpolationMode = mode;
 
 					if (alpha && !s.MatteColor.IsEmpty)
 					{
@@ -108,7 +117,7 @@ namespace PhotoSauce.MagicScaler
 						gfx.CompositingQuality = CompositingQuality.GammaCorrected;
 					}
 
-					gfx.DrawImage(src, Rectangle.FromLTRB(0, 0, s.Width, s.Height), crop.X, crop.Y, crop.Width, crop.Height, GraphicsUnit.Pixel, iat);
+					gfx.DrawImage(src, new Rectangle(0, 0, s.Width, s.Height), crop.X, crop.Y, crop.Width, crop.Height, GraphicsUnit.Pixel, iat);
 
 					switch (s.SaveFormat)
 					{
@@ -142,29 +151,26 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		public static Stream CreateBrokenImage(ProcessImageSettings s)
+		private static void createBrokenImage(Stream ostm, ProcessImageSettings s)
 		{
-			s.Fixup(s.Width > 0 ? s.Width : s.Height, s.Height > 0 ? s.Height : s.Width);
-			if (s.Width <= 0)
+			if (s.Width == 0 && s.Height == 0)
 				s.Height = s.Width = 100;
+
+			s.Fixup(s.Width > 0 ? s.Width : s.Height, s.Height > 0 ? s.Height : s.Width);
 
 			using (var bmp = new Bitmap(s.Width, s.Height, GdiPixelFormat.Format24bppRgb))
 			using (var gfx = Graphics.FromImage(bmp))
 			using (var pen = new Pen(Brushes.White, 1.75f))
-			using (var ms = new MemoryStream(8192))
 			{
-				gfx.FillRectangle(Brushes.Gainsboro, Rectangle.FromLTRB(0, 0, s.Width, s.Height));
+				gfx.FillRectangle(Brushes.Gainsboro, new Rectangle(0, 0, s.Width, s.Height));
 				gfx.SmoothingMode = SmoothingMode.AntiAlias;
 				gfx.PixelOffsetMode = PixelOffsetMode.Half;
 				gfx.CompositingQuality = CompositingQuality.GammaCorrected;
 
 				float l = 0.5f, t = 0.5f, r = s.Width - 0.5f, b = s.Height - 0.5f;
-				gfx.DrawLines(pen, new PointF[] { new PointF(l, t), new PointF(r, b), new PointF(l, b), new PointF(r, t) });
-				gfx.DrawLines(pen, new PointF[] { new PointF(l, b), new PointF(l, t), new PointF(r, t), new PointF(r, b) });
-				bmp.Save(ms, ImageFormat.Png);
-
-				ms.Seek(0, SeekOrigin.Begin);
-				return ms;
+				gfx.DrawLines(pen, new[] { new PointF(l, t), new PointF(r, b), new PointF(l, b), new PointF(r, t) });
+				gfx.DrawLines(pen, new[] { new PointF(l, b), new PointF(l, t), new PointF(r, t), new PointF(r, b) });
+				bmp.Save(ostm, ImageFormat.Png);
 			}
 		}
 	}

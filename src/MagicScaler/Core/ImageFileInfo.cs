@@ -42,7 +42,7 @@ namespace PhotoSauce.MagicScaler
 			FileDate = fi.LastWriteTimeUtc;
 		}
 
-		public ImageFileInfo(byte[] imgBuffer, DateTime lastModified)
+		public ImageFileInfo(ArraySegment<byte> imgBuffer, DateTime lastModified)
 		{
 			if (imgBuffer == null) throw new ArgumentNullException(nameof(imgBuffer));
 
@@ -50,7 +50,7 @@ namespace PhotoSauce.MagicScaler
 			using (var dec = new WicDecoder(imgBuffer, ctx))
 				loadInfo(dec, ctx);
 
-			FileSize = imgBuffer.Length;
+			FileSize = imgBuffer.Count;
 			FileDate = lastModified;
 		}
 

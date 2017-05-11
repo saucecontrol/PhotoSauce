@@ -12,11 +12,11 @@ using static PhotoSauce.MagicScaler.MathUtil;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal class WicMatte : WicBitmapSourceBase
+	internal class MatteTransform : WicBitmapSourceBase
 	{
 		private byte maskRed, maskGreen, maskBlue;
 
-		public WicMatte(IWICBitmapSource source, Color color) : base(source)
+		public MatteTransform(IWICBitmapSource source, Color color) : base(source)
 		{
 			if (Format.ColorRepresentation != PixelColorRepresentation.Bgr || Format.AlphaRepresentation == PixelAlphaRepresentation.None)
 				throw new NotSupportedException("Pixel format not supported.  Must be BGRA");

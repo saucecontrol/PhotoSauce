@@ -43,10 +43,10 @@ namespace PhotoSauce.MagicScaler
 			init(checkDecoder(() => Wic.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand)), ctx);
 		}
 
-		public WicDecoder(byte[] inBuffer, WicProcessingContext ctx)
+		public WicDecoder(ArraySegment<byte> inBuffer, WicProcessingContext ctx)
 		{
 			var stm = AddRef(Wic.CreateStream());
-			stm.InitializeFromMemory(inBuffer, (uint)inBuffer.Length);
+			stm.InitializeFromMemory(inBuffer.Array, (uint)inBuffer.Count);
 			init(checkDecoder(() => Wic.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand)), ctx);
 		}
 	}

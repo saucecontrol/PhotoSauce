@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
 using PhotoSauce.MagicScaler.Interop;
+using System.Runtime.InteropServices;
 
 namespace PhotoSauce.MagicScaler
 {
@@ -247,12 +248,17 @@ namespace PhotoSauce.MagicScaler
 						                      PixelAlphaRepresentation.None
 					};
 
+					Marshal.ReleaseComObject(pix);
+
 					if (fmt.ColorRepresentation == PixelColorRepresentation.Grey || fmt.ColorRepresentation == PixelColorRepresentation.Bgr || fmt.ColorRepresentation == PixelColorRepresentation.Rgb)
 						fmt.Colorspace = fmt.NumericRepresentation == PixelNumericRepresentation.Fixed || fmt.NumericRepresentation == PixelNumericRepresentation.Float ? PixelColorspace.scRgb : PixelColorspace.sRgb;
 
 					dic.Add(fmt.FormatGuid, fmt);
 				}
 			} while (fet > 0);
+
+			Marshal.ReleaseComObject(cen);
+			Marshal.ReleaseComObject(wic);
 
 			Cache = new ReadOnlyDictionary<Guid, PixelFormat>(dic);
 		}

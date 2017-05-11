@@ -4,6 +4,8 @@ namespace PhotoSauce.MagicScaler.Interop
 {
 	internal static class WinCodecExtensions
 	{
+		public static bool RequiresCache(this WICBitmapTransformOptions opt) => opt != WICBitmapTransformOptions.WICBitmapTransformRotate0 && opt != WICBitmapTransformOptions.WICBitmapTransformFlipHorizontal;
+
 		public static bool TryGetPreview(this IWICBitmapDecoder dec, out IWICBitmapSource pvw)
 		{
 			int hr = ProxyFunctions.GetPreview(dec, out pvw);

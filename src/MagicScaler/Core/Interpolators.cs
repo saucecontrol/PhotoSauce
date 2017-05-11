@@ -11,28 +11,28 @@ namespace PhotoSauce.MagicScaler.Interpolators
 	}
 
 	//http://www.imagemagick.org/Usage/filter/#point
-	public class PointInterpolator : IInterpolator
+	public sealed class PointInterpolator : IInterpolator
 	{
 		public double Support => 0.000001;
 		public double GetValue(double d) => 1.0;
 	}
 
 	//http://www.imagemagick.org/Usage/filter/#box
-	public class BoxInterpolator : IInterpolator
+	public sealed class BoxInterpolator : IInterpolator
 	{
 		public double Support => 0.5;
 		public double GetValue(double d) => d <= 0.5 ? 1.0 : 0.0;
 	}
 
 	//http://www.imagemagick.org/Usage/filter/#triangle
-	public class LinearInterpolator : IInterpolator
+	public sealed class LinearInterpolator : IInterpolator
 	{
 		public double Support => 1.0;
 		public double GetValue(double d) => d < 1.0 ? 1.0 - d : 0.0;
 	}
 
 	//http://www.imagemagick.org/Usage/filter/#gaussian
-	public class GaussianInterpolator : IInterpolator
+	public sealed class GaussianInterpolator : IInterpolator
 	{
 		private readonly double sigma, support;
 		private readonly MathUtil.GaussianFactory gauss;
@@ -52,7 +52,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 	}
 
 	//http://neildodgson.com/pubs/quad.pdf
-	public class QuadraticInterpolator : IInterpolator
+	public sealed class QuadraticInterpolator : IInterpolator
 	{
 		private readonly double r;
 
@@ -79,7 +79,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 	}
 
 	//http://www.imagemagick.org/Usage/filter/#cubics
-	public class CubicInterpolator : IInterpolator
+	public sealed class CubicInterpolator : IInterpolator
 	{
 		private readonly double support;
 		private readonly double b, c, p0, p2, p3, q0, q1, q2, q3;
@@ -117,7 +117,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 	}
 
 	//http://en.wikipedia.org/wiki/Lanczos_resampling
-	public class LanczosInterpolator : IInterpolator
+	public sealed class LanczosInterpolator : IInterpolator
 	{
 		private readonly double support;
 
@@ -147,7 +147,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 	}
 
 	//http://www.panotools.org/dersch/interpolator/interpolator.html
-	public class Spline36Interpolator : IInterpolator
+	public sealed class Spline36Interpolator : IInterpolator
 	{
 		public double Support => 3.0;
 		public double GetValue(double d)

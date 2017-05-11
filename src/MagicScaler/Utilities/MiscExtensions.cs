@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Drawing;
 using System.Collections.Generic;
 
 #if NET46
@@ -7,10 +8,16 @@ using System.Configuration;
 using System.Collections.Specialized;
 #endif
 
+using PhotoSauce.MagicScaler.Interop;
+
 namespace PhotoSauce.MagicScaler
 {
 	internal static class MiscExtensions
 	{
+		public static WICRect ToWicRect(this Rectangle r) => new WICRect { X = r.X, Y = r.Y, Width = r.Width, Height = r.Height };
+
+		public static Rectangle ToGdiRect(this WICRect r) => new Rectangle(r.X, r.Y, r.Width, r.Height);
+
 		public static TValue GetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dic, TKey key, Func<TValue> valueFactory = null)
 		{
 			return dic.TryGetValue(key, out var value) ? value : valueFactory == null ? default(TValue) : valueFactory();
