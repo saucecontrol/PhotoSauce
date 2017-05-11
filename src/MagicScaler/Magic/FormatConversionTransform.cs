@@ -8,19 +8,16 @@ using static PhotoSauce.MagicScaler.MathUtil;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal class FormatConversionTransform : WicBitmapSourceBase
+	internal class FormatConversionTransform : PixelSource, IDisposable
 	{
 		protected byte[] LineBuff;
-		protected PixelFormat OutFormat;
 		protected PixelFormat InFormat;
 
-		public override Guid GetPixelFormat() => OutFormat.FormatGuid;
-
-		public FormatConversionTransform(IWICBitmapSource source, Guid dstFormat) : base(source)
+		public FormatConversionTransform(PixelSource source, Guid dstFormat) : base(source)
 		{
-			InFormat = PixelFormat.Cache[source.GetPixelFormat()];
-			OutFormat = PixelFormat.Cache[dstFormat];
-			LineBuff = ArrayPool<byte>.Shared.Rent((int)Stride);
+			InFormat = source.Format;
+			Format = PixelFormat.Cache[dstFormat];
+			LineBuff = ArrayPool<byte>.Shared.Rent((int)BufferStride);
 		}
 
 		unsafe public override void CopyPixels(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
@@ -36,19 +33,19 @@ namespace PhotoSauce.MagicScaler
 				for (int y = 0; y < oh; y++)
 				{
 					prc.Y = oy + y;
-					Source.CopyPixels(prc, Stride, Stride, (IntPtr)bstart);
+					Source.CopyPixels(prc, BufferStride, BufferStride, (IntPtr)bstart);
 
 					byte* op = (byte*)pbBuffer + y * cbStride;
-					int cb = prc.Width * Bpp;
+					int cb = prc.Width * InFormat.BitsPerPixel / 8;
 
-					if (InFormat.Colorspace == PixelColorspace.sRgb && OutFormat.Colorspace == PixelColorspace.LinearRgb && OutFormat.NumericRepresentation == PixelNumericRepresentation.Fixed)
+					if (InFormat.Colorspace == PixelColorspace.sRgb && Format.Colorspace == PixelColorspace.LinearRgb && Format.NumericRepresentation == PixelNumericRepresentation.Fixed)
 					{
 						if (InFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
 							mapValuesByteToUQ15LinearWithAlpha(bstart, op, cb);
 						else
 							mapValuesByteToUQ15Linear(bstart, op, cb);
 					}
-					else if (InFormat.Colorspace == PixelColorspace.LinearRgb && OutFormat.Colorspace == PixelColorspace.sRgb && InFormat.NumericRepresentation == PixelNumericRepresentation.Fixed)
+					else if (InFormat.Colorspace == PixelColorspace.LinearRgb && Format.Colorspace == PixelColorspace.sRgb && InFormat.NumericRepresentation == PixelNumericRepresentation.Fixed)
 					{
 						if (InFormat.AlphaRepresentation == PixelAlphaRepresentation.Associated)
 							mapValuesUQ15LinearToByteWithAssociatedAlpha(bstart, op, cb);
@@ -57,7 +54,7 @@ namespace PhotoSauce.MagicScaler
 						else
 							mapValuesUQ15LinearToByte(bstart, op, cb);
 					}
-					else if (InFormat.Colorspace == PixelColorspace.sRgb && OutFormat.Colorspace == PixelColorspace.LinearRgb && OutFormat.NumericRepresentation == PixelNumericRepresentation.Float)
+					else if (InFormat.Colorspace == PixelColorspace.sRgb && Format.Colorspace == PixelColorspace.LinearRgb && Format.NumericRepresentation == PixelNumericRepresentation.Float)
 					{
 						if (InFormat.AlphaRepresentation == PixelAlphaRepresentation.Associated)
 							mapValuesByteToFloatLinearWithAssociatedAlpha(bstart, op, cb);
@@ -66,14 +63,14 @@ namespace PhotoSauce.MagicScaler
 						else
 							mapValuesByteToFloatLinear(bstart, op, cb);
 					}
-					else if (InFormat.Colorspace == PixelColorspace.LinearRgb && OutFormat.Colorspace == PixelColorspace.sRgb && InFormat.NumericRepresentation == PixelNumericRepresentation.Float)
+					else if (InFormat.Colorspace == PixelColorspace.LinearRgb && Format.Colorspace == PixelColorspace.sRgb && InFormat.NumericRepresentation == PixelNumericRepresentation.Float)
 					{
-						if (OutFormat.AlphaRepresentation == PixelAlphaRepresentation.Unassociated)
+						if (Format.AlphaRepresentation == PixelAlphaRepresentation.Unassociated)
 							mapValuesFloatLinearToByteWithAlpha(bstart, op, cb);
 						else
 							mapValuesFloatLinearToByte(bstart, op, cb);
 					}
-					else if (OutFormat.NumericRepresentation == PixelNumericRepresentation.Float)
+					else if (Format.NumericRepresentation == PixelNumericRepresentation.Float)
 					{
 						if (InFormat.AlphaRepresentation == PixelAlphaRepresentation.Unassociated)
 							mapValuesByteToFloatWithAlpha(bstart, op, cb);
@@ -82,7 +79,7 @@ namespace PhotoSauce.MagicScaler
 					}
 					else if (InFormat.NumericRepresentation == PixelNumericRepresentation.Float)
 					{
-						if (OutFormat.AlphaRepresentation == PixelAlphaRepresentation.Unassociated)
+						if (Format.AlphaRepresentation == PixelAlphaRepresentation.Unassociated)
 							mapValuesFloatToByteWithAlpha(bstart, op, cb);
 						else
 							mapValuesFloatToByte(bstart, op, cb);
@@ -559,14 +556,12 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		public override void Dispose()
+		public void Dispose()
 		{
-			base.Dispose();
-
 			ArrayPool<byte>.Shared.Return(LineBuff ?? Array.Empty<byte>());
 			LineBuff = null;
 		}
 
-		public override string ToString() => $"{base.ToString()}: {InFormat.Name}->{OutFormat.Name}";
+		public override string ToString() => $"{base.ToString()}: {InFormat.Name}->{Format.Name}";
 	}
 }

@@ -30,8 +30,11 @@ namespace PhotoSauce.MagicScaler
 			checkOutStream(outStream);
 
 			using (var ctx = new WicProcessingContext(settings))
-			using (var dec = new WicDecoder(imgPath, ctx))
-				processImage(dec, ctx, outStream);
+			{
+				var dec = new WicDecoder(imgPath, ctx);
+				buildPipeline(ctx);
+				processImage(ctx, outStream);
+			}
 		}
 
 		public static void ProcessImage(ArraySegment<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
@@ -40,8 +43,11 @@ namespace PhotoSauce.MagicScaler
 			checkOutStream(outStream);
 
 			using (var ctx = new WicProcessingContext(settings))
-			using (var dec = new WicDecoder(imgBuffer, ctx))
-				processImage(dec, ctx, outStream);
+			{
+				var dec = new WicDecoder(imgBuffer, ctx);
+				buildPipeline(ctx);
+				processImage(ctx, outStream);
+			}
 		}
 
 		public static void ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings)
@@ -50,41 +56,79 @@ namespace PhotoSauce.MagicScaler
 			checkOutStream(outStream);
 
 			using (var ctx = new WicProcessingContext(settings))
-			using (var dec = new WicDecoder(imgStream, ctx))
-				processImage(dec, ctx, outStream);
+			{
+				var dec = new WicDecoder(imgStream, ctx);
+				buildPipeline(ctx);
+				processImage(ctx, outStream);
+			}
 		}
 
-		private static void processImage(WicDecoder dec, WicProcessingContext ctx, Stream ostm)
+		private static void buildPipeline(WicProcessingContext ctx)
 		{
-			using (var frm = new WicFrameReader(dec, ctx))
-			using (var met = new WicMetadataReader(frm))
-			{
-				if (!ctx.Settings.Normalized)
-					ctx.Settings.Fixup((int)ctx.Width, (int)ctx.Height, ctx.IsRotated90);
+			var frm = new WicFrameReader(ctx, EnablePlanarPipeline);
+			WicTransforms.AddMetadataReader(ctx);
 
-				if (EnablePlanarPipeline && ctx.SupportsPlanar)
+			ctx.FinalizeSettings();
+
+			if (ctx.DecoderFrame.SupportsPlanarPipeline)
+			{
+				bool savePlanar = ctx.Settings.SaveFormat == FileFormat.Jpeg && ctx.SourceColorContext == null;
+
+				WicTransforms.AddExifRotator(ctx);
+				WicTransforms.AddPlanarCache(ctx);
+
+				MagicTransforms.AddInternalFormatConverter(ctx);
+				MagicTransforms.AddHighQualityScaler(ctx);
+				MagicTransforms.AddExternalFormatConverter(ctx);
+				MagicTransforms.AddUnsharpMask(ctx);
+
+				ctx.SwitchPlanarSource(WicPlane.Chroma);
+
+				if (savePlanar)
 				{
-					MagicPlanarImageProcessor.ProcessImage(met, ctx, ostm);
-					return;
+					var subsample = ctx.Settings.JpegSubsampleMode;
+					if (subsample == ChromaSubsampleMode.Subsample420)
+						ctx.Settings.Height = (int)Math.Ceiling(ctx.Settings.Height / 2d);
+
+					if (subsample == ChromaSubsampleMode.Subsample420 || subsample == ChromaSubsampleMode.Subsample422)
+						ctx.Settings.Width = (int)Math.Ceiling(ctx.Settings.Width / 2d);
 				}
 
-				using (var qsc = new WicNativeScaler(met))
-				using (var rot = new WicExifRotator(qsc))
-				using (var cac = new WicConditionalCache(rot))
-				using (var crp = new WicCropper(cac))
-				using (var pix = new WicPixelFormatConverter(crp))
-				using (var cmy = new WicCmykConverter(pix))
-				using (var res = new WicScaler(cmy, true))
-				using (var lll = new WicConvertToCustomPixelFormat(res))
-				using (var mmm = new WicHighQualityScaler(lll))
-				using (var mat = new WicMatteTransform(mmm))
-				using (var ggg = new WicConvertFromCustomPixelFormat(mat))
-				using (var csc = new WicColorspaceConverter(ggg))
-				using (var sss = new WicUnsharpMask(csc))
-				using (var dit = new WicPaletizer(sss))
-				using (var enc = new WicEncoder(ostm.AsIStream(), ctx))
-					enc.WriteSource(dit);
+				MagicTransforms.AddInternalFormatConverter(ctx);
+				MagicTransforms.AddHighQualityScaler(ctx);
+				MagicTransforms.AddExternalFormatConverter(ctx);
+
+				ctx.SwitchPlanarSource(WicPlane.Luma);
+
+				if (!savePlanar)
+				{
+					WicTransforms.AddPlanarConverter(ctx);
+					WicTransforms.AddColorspaceConverter(ctx);
+				}
 			}
+			else
+			{
+				WicTransforms.AddNativeScaler(ctx);
+				WicTransforms.AddExifRotator(ctx);
+				WicTransforms.AddConditionalCache(ctx);
+				WicTransforms.AddCropper(ctx);
+				WicTransforms.AddPixelFormatConverter(ctx);
+				WicTransforms.AddScaler(ctx, true);
+				MagicTransforms.AddInternalFormatConverter(ctx);
+				MagicTransforms.AddHighQualityScaler(ctx);
+				MagicTransforms.AddMatte(ctx);
+				MagicTransforms.AddExternalFormatConverter(ctx);
+				MagicTransforms.AddUnsharpMask(ctx);
+				WicTransforms.AddColorspaceConverter(ctx);
+			}
+		}
+
+		private static void processImage(WicProcessingContext ctx, Stream ostm)
+		{
+			WicTransforms.AddIndexedColorConverter(ctx);
+
+			var enc = new WicEncoder(ctx, ostm.AsIStream());
+			enc.WriteSource(ctx);
 		}
 	}
 }

@@ -1,18 +1,14 @@
-﻿using System;
-
-using PhotoSauce.MagicScaler.Interop;
+﻿using PhotoSauce.MagicScaler.Interop;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal class WicConvertToCustomPixelFormat : WicTransform
+	internal static class MagicTransforms
 	{
-		private FormatConversionTransform conv;
-
-		public WicConvertToCustomPixelFormat(WicTransform prev) : base(prev)
+		public static void AddInternalFormatConverter(WicProcessingContext ctx)
 		{
-			var ifmt = Source.GetPixelFormat();
+			var ifmt = ctx.Source.Format.FormatGuid;
 			var ofmt = ifmt;
-			bool linear = Context.Settings.BlendingMode == GammaMode.Linear;
+			bool linear = ctx.Settings.BlendingMode == GammaMode.Linear;
 
 			if (MagicImageProcessor.EnableSimd)
 			{
@@ -44,24 +40,12 @@ namespace PhotoSauce.MagicScaler
 			if (ofmt == ifmt)
 				return;
 
-			Source = conv = new FormatConversionTransform(Source, ofmt);
-			Context.PixelFormat = PixelFormat.Cache[Source.GetPixelFormat()];
+			ctx.Source = ctx.AddDispose(new FormatConversionTransform(ctx.Source, ofmt));
 		}
 
-		public override void Dispose()
+		public static void AddExternalFormatConverter(WicProcessingContext ctx)
 		{
-			base.Dispose();
-			conv?.Dispose();
-		}
-	}
-
-	internal class WicConvertFromCustomPixelFormat : WicTransform
-	{
-		private FormatConversionTransform conv;
-
-		public WicConvertFromCustomPixelFormat(WicTransform prev) : base(prev)
-		{
-			var ifmt = Source.GetPixelFormat();
+			var ifmt = ctx.Source.Format.FormatGuid;
 			var ofmt = ifmt;
 
 			if (ifmt == Consts.GUID_WICPixelFormat32bppGrayFloat || ifmt == PixelFormat.Grey32BppLinearFloat.FormatGuid || ifmt == PixelFormat.Grey16BppLinearUQ15.FormatGuid)
@@ -78,117 +62,57 @@ namespace PhotoSauce.MagicScaler
 			if (ofmt == ifmt)
 				return;
 
-			Source = conv = new FormatConversionTransform(Source, ofmt);
-			Context.PixelFormat = PixelFormat.Cache[Source.GetPixelFormat()];
+			ctx.Source = ctx.AddDispose(new FormatConversionTransform(ctx.Source, ofmt));
 		}
 
-		public override void Dispose()
+		public static void AddHighQualityScaler(WicProcessingContext ctx)
 		{
-			base.Dispose();
-			conv?.Dispose();
-		}
-	}
+			uint width = (uint)ctx.Settings.Width, height = (uint)ctx.Settings.Height;
+			var interpolatorx = width == ctx.Source.Width ? InterpolationSettings.NearestNeighbor : ctx.Settings.Interpolation;
+			var interpolatory = height == ctx.Source.Height ? InterpolationSettings.NearestNeighbor : ctx.Settings.Interpolation;
 
-	internal class WicHighQualityScaler : WicTransform
-	{
-		private IDisposable mapx;
-		private IDisposable mapy;
-		private WicBitmapSourceBase source;
-
-		public WicHighQualityScaler(WicTransform prev) : base(prev)
-		{
-			uint width = (uint)Context.Settings.Width, height = (uint)Context.Settings.Height;
-			var interpolatorx = width == Context.Width ? InterpolationSettings.NearestNeighbor : Context.Settings.Interpolation;
-			var interpolatory = height == Context.Height ? InterpolationSettings.NearestNeighbor : Context.Settings.Interpolation;
-
-			var fmt = PixelFormat.Cache[Source.GetPixelFormat()];
+			var fmt = ctx.Source.Format;
 			if (fmt.NumericRepresentation == PixelNumericRepresentation.Float)
 			{
-				var mx = KernelMap<float>.MakeScaleMap(Context.Width, width, fmt.ColorChannelCount, fmt.AlphaRepresentation != PixelAlphaRepresentation.None, true, interpolatorx);
-				var my = KernelMap<float>.MakeScaleMap(Context.Height, height, fmt.ColorChannelCount, fmt.AlphaRepresentation != PixelAlphaRepresentation.None, true, interpolatory);
+				var mx = ctx.AddDispose(KernelMap<float>.MakeScaleMap(ctx.Source.Width, width, fmt.ColorChannelCount, fmt.AlphaRepresentation != PixelAlphaRepresentation.None, true, interpolatorx));
+				var my = ctx.AddDispose(KernelMap<float>.MakeScaleMap(ctx.Source.Height, height, fmt.ColorChannelCount, fmt.AlphaRepresentation != PixelAlphaRepresentation.None, true, interpolatory));
 
-				source = new ConvolutionTransform<float, float>(Source, mx, my);
-
-				mapx = mx;
-				mapy = my;
+				ctx.Source = ctx.AddDispose(new ConvolutionTransform<float, float>(ctx.Source, mx, my));
 			}
 			else
 			{
-				var mx = KernelMap<int>.MakeScaleMap(Context.Width, width, 1, fmt.AlphaRepresentation == PixelAlphaRepresentation.Unassociated, false, interpolatorx);
-				var my = KernelMap<int>.MakeScaleMap(Context.Height, height, 1, fmt.AlphaRepresentation == PixelAlphaRepresentation.Unassociated, false, interpolatory);
+				var mx = ctx.AddDispose(KernelMap<int>.MakeScaleMap(ctx.Source.Width, width, 1, fmt.AlphaRepresentation == PixelAlphaRepresentation.Unassociated, false, interpolatorx));
+				var my = ctx.AddDispose(KernelMap<int>.MakeScaleMap(ctx.Source.Height, height, 1, fmt.AlphaRepresentation == PixelAlphaRepresentation.Unassociated, false, interpolatory));
 
 				if (fmt.NumericRepresentation == PixelNumericRepresentation.Fixed)
-					source = new ConvolutionTransform<ushort, int>(Source, mx, my);
+					ctx.Source = ctx.AddDispose(new ConvolutionTransform<ushort, int>(ctx.Source, mx, my));
 				else
-					source = new ConvolutionTransform<byte, int>(Source, mx, my);
-
-				mapx = mx;
-				mapy = my;
+					ctx.Source = ctx.AddDispose(new ConvolutionTransform<byte, int>(ctx.Source, mx, my));
 			}
-
-			Source = source;
-			Source.GetSize(out Context.Width, out Context.Height);
 		}
 
-		public override void Dispose()
+		public static void AddUnsharpMask(WicProcessingContext ctx)
 		{
-			base.Dispose();
-			mapx?.Dispose();
-			mapy?.Dispose();
-			source?.Dispose();
-		}
-	}
-
-	internal class WicUnsharpMask : WicTransform
-	{
-		private KernelMap<int> mapx;
-		private KernelMap<int> mapy;
-		private WicBitmapSourceBase source;
-
-		public WicUnsharpMask(WicTransform prev) : base(prev)
-		{
-			var ss = Context.Settings.UnsharpMask;
-			if (ss.Radius <= 0d || ss.Amount <= 0)
+			var ss = ctx.Settings.UnsharpMask;
+			if (!ctx.Settings.Sharpen || ss.Radius <= 0d || ss.Amount <= 0)
 				return;
 
-			var fmt = PixelFormat.Cache[Source.GetPixelFormat()];
-			mapx = KernelMap<int>.MakeBlurMap(Context.Width, ss.Radius, 1u, fmt.AlphaRepresentation != PixelAlphaRepresentation.None);
-			mapy = KernelMap<int>.MakeBlurMap(Context.Height, ss.Radius, 1u, fmt.AlphaRepresentation != PixelAlphaRepresentation.None);
+			var fmt = ctx.Source.Format;
+			var mapx = ctx.AddDispose(KernelMap<int>.MakeBlurMap(ctx.Source.Width, ss.Radius, 1u, fmt.AlphaRepresentation != PixelAlphaRepresentation.None));
+			var mapy = ctx.AddDispose(KernelMap<int>.MakeBlurMap(ctx.Source.Height, ss.Radius, 1u, fmt.AlphaRepresentation != PixelAlphaRepresentation.None));
 
-			Source = source = new UnsharpMaskTransform<byte, int>(Source, mapx, mapy, ss);
+			ctx.Source = ctx.AddDispose(new UnsharpMaskTransform<byte, int>(ctx.Source, mapx, mapy, ss));
 		}
 
-		public override void Dispose()
+		public static void AddMatte(WicProcessingContext ctx)
 		{
-			base.Dispose();
-			mapx?.Dispose();
-			mapy?.Dispose();
-			source?.Dispose();
-		}
-	}
+			if (ctx.Source.Format == PixelFormat.Pbgra128BppFloat)
+				ctx.Source = ctx.AddDispose(new FormatConversionTransform(ctx.Source, Consts.GUID_WICPixelFormat32bppBGRA));
 
-	internal class WicMatteTransform : WicTransform
-	{
-		private FormatConversionTransform conv;
-
-		public WicMatteTransform(WicTransform prev) : base(prev)
-		{
-			if (Context.PixelFormat == PixelFormat.Pbgra128BppFloat)
-			{
-				Source = conv = new FormatConversionTransform(Source, Consts.GUID_WICPixelFormat32bppBGRA);
-				Context.PixelFormat = PixelFormat.Cache[Source.GetPixelFormat()];
-			}
-
-			if (Context.Settings.MatteColor.IsEmpty || Context.PixelFormat.ColorRepresentation != PixelColorRepresentation.Bgr || Context.PixelFormat.AlphaRepresentation == PixelAlphaRepresentation.None)
+			if (ctx.Settings.MatteColor.IsEmpty || ctx.Source.Format.ColorRepresentation != PixelColorRepresentation.Bgr || ctx.Source.Format.AlphaRepresentation == PixelAlphaRepresentation.None)
 				return;
 
-			Source = new MatteTransform(Source, Context.Settings.MatteColor);
-		}
-
-		public override void Dispose()
-		{
-			base.Dispose();
-			conv?.Dispose();
+			ctx.Source = new MatteTransform(ctx.Source, ctx.Settings.MatteColor);
 		}
 	}
 }

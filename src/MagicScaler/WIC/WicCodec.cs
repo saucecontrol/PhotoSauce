@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 
@@ -7,16 +9,30 @@ using PhotoSauce.MagicScaler.Interop;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal class WicDecoder : WicBase
+	internal class WicDecoder
 	{
+		private static readonly IDictionary<Guid, FileFormat> formatMap = new Dictionary<Guid, FileFormat> {
+			[Consts.GUID_ContainerFormatBmp] = FileFormat.Bmp,
+			[Consts.GUID_ContainerFormatGif] = FileFormat.Gif,
+			[Consts.GUID_ContainerFormatJpeg] = FileFormat.Jpeg,
+			[Consts.GUID_ContainerFormatPng] = FileFormat.Png,
+			[Consts.GUID_ContainerFormatTiff] = FileFormat.Tiff
+		};
+
 		public IWICBitmapDecoder Decoder { get; private set; }
+		public Guid WicContainerFormat { get; private set; }
+		public FileFormat ContainerFormat { get; private set; }
+		public uint FrameCount { get; private set; }
 
 		private void init(IWICBitmapDecoder dec, WicProcessingContext ctx)
 		{
-			Decoder = AddRef(dec);
+			ctx.Decoder = this;
 
-			ctx.ContainerFormat = dec.GetContainerFormat();
-			ctx.ContainerFrameCount = dec.GetFrameCount();
+			Decoder = ctx.AddRef(dec);
+
+			WicContainerFormat = dec.GetContainerFormat();
+			ContainerFormat = formatMap.GetValueOrDefault(WicContainerFormat, () => FileFormat.Unknown);
+			FrameCount = dec.GetFrameCount();
 		}
 
 		private IWICBitmapDecoder checkDecoder(Func<IWICBitmapDecoder> factory)
@@ -33,117 +49,73 @@ namespace PhotoSauce.MagicScaler
 
 		public WicDecoder(string fileName, WicProcessingContext ctx)
 		{
-			init(checkDecoder(() => Wic.CreateDecoderFromFilename(fileName, null, GenericAccessRights.GENERIC_READ, WICDecodeOptions.WICDecodeMetadataCacheOnDemand)), ctx);
+			init(checkDecoder(() => Wic.Factory.CreateDecoderFromFilename(fileName, null, GenericAccessRights.GENERIC_READ, WICDecodeOptions.WICDecodeMetadataCacheOnDemand)), ctx);
 		}
 
 		public WicDecoder(Stream inFile, WicProcessingContext ctx)
 		{
-			var stm = AddRef(Wic.CreateStream());
+			var stm = ctx.AddRef(Wic.Factory.CreateStream());
 			stm.InitializeFromIStream(inFile.AsIStream());
-			init(checkDecoder(() => Wic.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand)), ctx);
+			init(checkDecoder(() => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand)), ctx);
 		}
 
 		public WicDecoder(ArraySegment<byte> inBuffer, WicProcessingContext ctx)
 		{
-			var stm = AddRef(Wic.CreateStream());
+			var stm = ctx.AddRef(Wic.Factory.CreateStream());
 			stm.InitializeFromMemory(inBuffer.Array, (uint)inBuffer.Count);
-			init(checkDecoder(() => Wic.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand)), ctx);
+			init(checkDecoder(() => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand)), ctx);
 		}
 	}
 
-	internal class WicEncoder : WicBase
+	internal class WicEncoder
 	{
+		private static readonly IDictionary<FileFormat, Guid> formatMap = new Dictionary<FileFormat, Guid> {
+			[FileFormat.Bmp] = Consts.GUID_ContainerFormatBmp,
+			[FileFormat.Gif] = Consts.GUID_ContainerFormatGif,
+			[FileFormat.Jpeg] = Consts.GUID_ContainerFormatJpeg,
+			[FileFormat.Png] = Consts.GUID_ContainerFormatPng,
+			[FileFormat.Png8] = Consts.GUID_ContainerFormatPng,
+			[FileFormat.Tiff] = Consts.GUID_ContainerFormatTiff
+		};
+
 		public IWICBitmapEncoder Encoder { get; private set; }
 		public IWICBitmapFrameEncode Frame { get; private set; }
 
-		public WicEncoder(IStream stm, WicProcessingContext ctx)
+		public WicEncoder(WicProcessingContext ctx, IStream stm)
 		{
-			var frame = default(IWICBitmapFrameEncode);
+			Encoder = ctx.AddRef(Wic.Factory.CreateEncoder(formatMap.GetValueOrDefault(ctx.Settings.SaveFormat, () => Consts.GUID_ContainerFormatPng), null));
+			Encoder.Initialize(stm, WICBitmapEncoderCacheOption.WICBitmapEncoderNoCache);
+
+			var props = new Dictionary<string, object>();
+			var bag = default(IPropertyBag2);
+			Encoder.CreateNewFrame(out var frame, ref bag);
+			ctx.AddRef(frame);
+			ctx.AddRef(bag);
+
 			if (ctx.Settings.SaveFormat == FileFormat.Jpeg)
-			{
-				Encoder = AddRef(Wic.CreateEncoder(Consts.GUID_ContainerFormatJpeg, null));
-				Encoder.Initialize(stm, WICBitmapEncoderCacheOption.WICBitmapEncoderNoCache);
+				props.Add("ImageQuality", ctx.Settings.JpegQuality / 100f);
 
-				var bag = default(IPropertyBag2);
-				Encoder.CreateNewFrame(out frame, ref bag);
-				AddRef(frame);
-				AddRef(bag);
+			if (ctx.Settings.SaveFormat == FileFormat.Jpeg && ctx.Settings.JpegSubsampleMode != ChromaSubsampleMode.Default)
+				props.Add("JpegYCrCbSubsampling", (byte)ctx.Settings.JpegSubsampleMode);
 
-				if (ctx.Settings.JpegSubsampleMode != ChromaSubsampleMode.Default)
-				{
-					var props = new PROPBAG2[] { new PROPBAG2 { pstrName = "ImageQuality" }, new PROPBAG2 { pstrName = "JpegYCrCbSubsampling" } };
-					bag.Write(2, props, new object[] { ctx.Settings.JpegQuality / 100f, (byte)ctx.Settings.JpegSubsampleMode });
-				}
-				else
-				{
-					var props = new PROPBAG2[] { new PROPBAG2 { pstrName = "ImageQuality" } };
-					bag.Write(1, props, new object[] { ctx.Settings.JpegQuality / 100f });
-				}
+			if (ctx.Settings.SaveFormat == FileFormat.Tiff)
+				props.Add("TiffCompressionMethod", (byte)WICTiffCompressionOption.WICTiffCompressionNone);
 
-				frame.Initialize(bag);
-			}
-			else if (ctx.Settings.SaveFormat == FileFormat.Gif)
-			{
-				Encoder = AddRef(Wic.CreateEncoder(Consts.GUID_ContainerFormatGif, null));
-				Encoder.Initialize(stm, WICBitmapEncoderCacheOption.WICBitmapEncoderNoCache);
+			if (ctx.Settings.SaveFormat == FileFormat.Bmp && ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None)
+				props.Add("EnableV5Header32bppBGRA", true);
 
-				Encoder.CreateNewFrame(out frame, null);
-				AddRef(frame);
+			if (props.Count > 0)
+				bag.Write((uint)props.Count, props.Keys.Select(k => new PROPBAG2 { pstrName = k }).ToArray(), props.Values.ToArray());
 
-				frame.Initialize(null);
-			}
-			else if (ctx.Settings.SaveFormat == FileFormat.Bmp)
-			{
-				Encoder = AddRef(Wic.CreateEncoder(Consts.GUID_ContainerFormatBmp, null));
-				Encoder.Initialize(stm, WICBitmapEncoderCacheOption.WICBitmapEncoderNoCache);
-
-				var bag = default(IPropertyBag2);
-				Encoder.CreateNewFrame(out frame, ref bag);
-				AddRef(frame);
-				AddRef(bag);
-
-				var props = new PROPBAG2[] { new PROPBAG2 { pstrName = "EnableV5Header32bppBGRA" } };
-				bag.Write(1, props, new object[] { ctx.PixelFormat.FormatGuid == Consts.GUID_WICPixelFormat32bppBGRA });
-
-				frame.Initialize(bag);
-			}
-			else if (ctx.Settings.SaveFormat == FileFormat.Tiff)
-			{
-				Encoder = AddRef(Wic.CreateEncoder(Consts.GUID_ContainerFormatTiff, null));
-				Encoder.Initialize(stm, WICBitmapEncoderCacheOption.WICBitmapEncoderNoCache);
-
-				var bag = default(IPropertyBag2);
-				Encoder.CreateNewFrame(out frame, ref bag);
-				AddRef(frame);
-				AddRef(bag);
-
-				var props = new PROPBAG2[] { new PROPBAG2 { pstrName = "TiffCompressionMethod" } };
-				bag.Write(1, props, new object[] { (byte)WICTiffCompressionOption.WICTiffCompressionNone });
-
-				frame.Initialize(bag);
-			}
-			else
-			{
-				Encoder = AddRef(Wic.CreateEncoder(Consts.GUID_ContainerFormatPng, null));
-				Encoder.Initialize(stm, WICBitmapEncoderCacheOption.WICBitmapEncoderNoCache);
-
-				Encoder.CreateNewFrame(out frame, null);
-				AddRef(frame);
-
-				frame.Initialize(null);
-			}
-
-			frame.SetResolution(ctx.Settings.DpiX > 0d ? ctx.Settings.DpiX : ctx.DpiX, ctx.Settings.DpiY > 0d ? ctx.Settings.DpiY : ctx.DpiY);
-			frame.SetSize(ctx.Width, ctx.Height);
-
-			if (ctx.Settings.IndexedColor && ctx.PixelFormat.FormatGuid == Consts.GUID_WICPixelFormat8bppIndexed)
-				frame.SetPalette(ctx.DestPalette);
+			frame.Initialize(bag);
+			frame.SetSize(ctx.Source.Width, ctx.Source.Height);
+			frame.SetResolution(ctx.Settings.DpiX > 0d ? ctx.Settings.DpiX : ctx.DecoderFrame.DpiX, ctx.Settings.DpiY > 0d ? ctx.Settings.DpiY : ctx.DecoderFrame.DpiY);
 
 #if NET46
-			if (ctx.Metadata?.Count > 0 && frame.TryGetMetadataQueryWriter(out var metawriter))
+			if (ctx.DecoderFrame.Metadata?.Count > 0 && frame.TryGetMetadataQueryWriter(out var metawriter))
 			{
-				AddRef(metawriter);
-				foreach (var nv in ctx.Metadata)
+				ctx.AddRef(metawriter);
+				foreach (var nv in ctx.DecoderFrame.Metadata)
 					metawriter.TrySetMetadataByName(nv.Key, nv.Value);
 			}
 #endif
@@ -151,31 +123,44 @@ namespace PhotoSauce.MagicScaler
 			Frame = frame;
 		}
 
-		public void WriteSource(WicTransform prev)
+		public void WriteSource(WicProcessingContext ctx)
 		{
-			var src = prev.Source;
-
-			var iformat = src.GetPixelFormat();
-			var oformat = iformat;
-
-			Frame.SetPixelFormat(ref oformat);
-			if (oformat != iformat)
+			if (ctx.PlanarLumaSource != null)
 			{
-				var pal = default(IWICPalette);
-				var ptt = WICBitmapPaletteType.WICBitmapPaletteTypeCustom;
-				if (PixelFormat.Cache[oformat].NumericRepresentation == PixelNumericRepresentation.Indexed)
+				var oformat = Consts.GUID_WICPixelFormat24bppBGR;
+				Frame.SetPixelFormat(ref oformat);
+
+				var penc = Frame as IWICPlanarBitmapFrameEncode;
+				penc.WriteSource(new[] { ctx.PlanarLumaSource.WicSource, ctx.PlanarChromaSource.WicSource }, 2, null);
+			}
+			else
+			{
+				var oformat = ctx.Source.Format.FormatGuid;
+				Frame.SetPixelFormat(ref oformat);
+				if (oformat != ctx.Source.Format.FormatGuid)
 				{
-					pal = AddRef(Wic.CreatePalette());
-					pal.InitializePredefined(WICBitmapPaletteType.WICBitmapPaletteTypeFixedGray256, false);
-					ptt = WICBitmapPaletteType.WICBitmapPaletteTypeFixedGray256;
+					var pal = default(IWICPalette);
+					var ptt = WICBitmapPaletteType.WICBitmapPaletteTypeCustom;
+					if (PixelFormat.Cache[oformat].NumericRepresentation == PixelNumericRepresentation.Indexed)
+					{
+						pal = ctx.AddRef(Wic.Factory.CreatePalette());
+						pal.InitializePredefined(WICBitmapPaletteType.WICBitmapPaletteTypeFixedGray256, false);
+						ptt = WICBitmapPaletteType.WICBitmapPaletteTypeFixedGray256;
+
+						Frame.SetPalette(pal);
+					}
+
+					var conv = ctx.AddRef(Wic.Factory.CreateFormatConverter());
+					conv.Initialize(ctx.Source.WicSource, oformat, WICBitmapDitherType.WICBitmapDitherTypeNone, pal, 0.0, ptt);
+					ctx.Source = new WicBitmapSourceWrapper(conv);
+				}
+				else if (oformat == Consts.GUID_WICPixelFormat8bppIndexed)
+				{
+					Frame.SetPalette(ctx.DestPalette);
 				}
 
-				var conv = AddRef(Wic.CreateFormatConverter());
-				conv.Initialize(src, oformat, WICBitmapDitherType.WICBitmapDitherTypeNone, pal, 0.0, ptt);
-				src = conv;
+				Frame.WriteSource(ctx.Source.WicSource, null);
 			}
-
-			Frame.WriteSource(src, null);
 
 			Frame.Commit();
 			Encoder.Commit();

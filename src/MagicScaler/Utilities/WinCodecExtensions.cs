@@ -2,6 +2,11 @@
 
 namespace PhotoSauce.MagicScaler.Interop
 {
+	internal static class Wic
+	{
+		public static readonly IWICImagingFactory Factory = new WICImagingFactory2() as IWICImagingFactory;
+	}
+
 	internal static class WinCodecExtensions
 	{
 		public static bool RequiresCache(this WICBitmapTransformOptions opt) => opt != WICBitmapTransformOptions.WICBitmapTransformRotate0 && opt != WICBitmapTransformOptions.WICBitmapTransformFlipHorizontal;

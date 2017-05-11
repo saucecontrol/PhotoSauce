@@ -1,8 +1,6 @@
 ﻿using System;
 using System.IO;
 
-using PhotoSauce.MagicScaler.Interop;
-
 namespace PhotoSauce.MagicScaler
 {
 	internal class ImageFileInfo
@@ -35,8 +33,7 @@ namespace PhotoSauce.MagicScaler
 				throw new FileNotFoundException("File not found", imgPath);
 
 			using (var ctx = new WicProcessingContext(new ProcessImageSettings()))
-			using (var dec = new WicDecoder(imgPath, ctx))
-				loadInfo(dec, ctx);
+				loadInfo(new WicDecoder(imgPath, ctx), ctx);
 
 			FileSize = fi.Length;
 			FileDate = fi.LastWriteTimeUtc;
@@ -47,8 +44,7 @@ namespace PhotoSauce.MagicScaler
 			if (imgBuffer == null) throw new ArgumentNullException(nameof(imgBuffer));
 
 			using (var ctx = new WicProcessingContext(new ProcessImageSettings()))
-			using (var dec = new WicDecoder(imgBuffer, ctx))
-				loadInfo(dec, ctx);
+				loadInfo(new WicDecoder(imgBuffer, ctx), ctx);
 
 			FileSize = imgBuffer.Count;
 			FileDate = lastModified;
@@ -61,8 +57,7 @@ namespace PhotoSauce.MagicScaler
 			if (istm.Length <= 0 || istm.Position >= istm.Length) throw new ArgumentException("Input Stream is empty or positioned at its end", nameof(istm));
 
 			using (var ctx = new WicProcessingContext(new ProcessImageSettings()))
-			using (var dec = new WicDecoder(istm, ctx))
-				loadInfo(dec, ctx);
+				loadInfo(new WicDecoder(istm, ctx), ctx);
 
 			FileSize = istm.Length;
 			FileDate = lastModified;
@@ -70,27 +65,15 @@ namespace PhotoSauce.MagicScaler
 
 		private void loadInfo(WicDecoder dec, WicProcessingContext ctx)
 		{
-			ContainerType = FileFormat.Unknown;
-			if (ctx.ContainerFormat == Consts.GUID_ContainerFormatJpeg)
-				ContainerType = FileFormat.Jpeg;
-			else if (ctx.ContainerFormat == Consts.GUID_ContainerFormatPng)
-				ContainerType = FileFormat.Png;
-			else if (ctx.ContainerFormat == Consts.GUID_ContainerFormatGif)
-				ContainerType = FileFormat.Gif;
-			else if (ctx.ContainerFormat == Consts.GUID_ContainerFormatBmp)
-				ContainerType = FileFormat.Bmp;
-			else if (ctx.ContainerFormat == Consts.GUID_ContainerFormatTiff)
-				ContainerType = FileFormat.Tiff;
-
-			Frames = new FrameInfo[ctx.ContainerFrameCount];
-			for (int i = 0; i < ctx.ContainerFrameCount; i++)
+			ContainerType = ctx.Decoder.ContainerFormat;
+			Frames = new FrameInfo[ctx.Decoder.FrameCount];
+			for (int i = 0; i < ctx.Decoder.FrameCount; i++)
 			{
 				ctx.Settings.FrameIndex = i;
-				using (var frm = new WicFrameReader(dec, ctx))
-				using (var met = new WicMetadataReader(frm, basicOnly: true))
-				{
-					Frames[i] = new FrameInfo((int)ctx.Width, (int)ctx.Height, ctx.IsRotated90, ctx.HasAlpha);
-				}
+				var frm = new WicFrameReader(ctx);
+				WicTransforms.AddMetadataReader(ctx, basicOnly: true);
+
+				Frames[i] = new FrameInfo((int)ctx.Source.Width, (int)ctx.Source.Height, frm.SwapDimensions, ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
 			}
 		}
 	}

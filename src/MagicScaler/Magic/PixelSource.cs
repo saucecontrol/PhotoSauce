@@ -4,39 +4,66 @@ using PhotoSauce.MagicScaler.Interop;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal abstract class WicBitmapSourceBase : WicBase, IWICBitmapSource
+	internal abstract class PixelSource
 	{
-		protected IWICBitmapSource Source;
-		protected PixelFormat Format;
-		protected uint Width;
-		protected uint Height;
-		protected uint Stride;
-		protected int Bpp;
+		public PixelFormat Format { get; protected set; }
+		public uint Width { get; protected set; }
+		public uint Height { get; protected set; }
+		public IWICBitmapSource WicSource { get; protected set; }
 
-		protected WicBitmapSourceBase() { }
+		protected PixelSource Source { get; set; }
+		protected uint BufferStride { get; set; }
 
-		protected WicBitmapSourceBase(IWICBitmapSource source)
+		protected PixelSource() { }
+
+		protected PixelSource(PixelSource source) : this()
 		{
 			Source = source;
-
-			Source.GetSize(out Width, out Height);
-			Format = PixelFormat.Cache[Source.GetPixelFormat()];
-			Bpp = Format.BitsPerPixel / 8;
-			Stride = Width * (uint)Bpp + 3u & ~3u;
+			WicSource = new PixelSourceAsIWICBitmapSource(this);
+			Format = Source.Format;
+			Width = Source.Width;
+			Height = Source.Height;
+			BufferStride = (Width * (uint)Format.BitsPerPixel + 7u & ~7u) / 8u + ((uint)IntPtr.Size - 1u) & ~((uint)IntPtr.Size - 1u);
 		}
 
 		public abstract void CopyPixels(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer);
+	}
 
-		public virtual Guid GetPixelFormat() => Format.FormatGuid;
+	internal class WicBitmapSourceWrapper : PixelSource
+	{
+		private IWICBitmapSource realSource;
 
-		public virtual void GetResolution(out double pDpiX, out double pDpiY) => Source.GetResolution(out pDpiX, out pDpiY);
-
-		public virtual void CopyPalette(IWICPalette pIPalette) => Source.CopyPalette(pIPalette);
-
-		public virtual void GetSize(out uint puiWidth, out uint puiHeight)
+		public WicBitmapSourceWrapper(IWICBitmapSource source) : base()
 		{
-			puiWidth = Width;
-			puiHeight = Height;
+			realSource = source;
+			WicSource = source;
+			Format = PixelFormat.Cache[source.GetPixelFormat()];
+			source.GetSize(out uint width, out uint height);
+			Width = width;
+			Height = height;
 		}
+
+		public override void CopyPixels(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) => realSource.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
+	}
+
+	internal class PixelSourceAsIWICBitmapSource : IWICBitmapSource
+	{
+		private PixelSource source;
+
+		public PixelSourceAsIWICBitmapSource(PixelSource src) => source = src;
+
+		public void GetSize(out uint puiWidth, out uint puiHeight)
+		{
+			puiWidth = source.Width;
+			puiHeight = source.Height;
+		}
+
+		public Guid GetPixelFormat() => source.Format.FormatGuid;
+
+		public void GetResolution(out double pDpiX, out double pDpiY) => pDpiX = pDpiY = 96d;
+
+		public void CopyPalette(IWICPalette pIPalette) => throw new NotImplementedException();
+
+		public void CopyPixels(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) => source.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
 	}
 }

@@ -13,14 +13,12 @@ namespace PhotoSauce.MagicScaler
 		void SharpenLine(byte* cstart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh);
 	}
 
-	internal class ConvolutionTransform<TPixel, TWeight> : WicBitmapSourceBase where TPixel : struct where TWeight : struct
+	internal class ConvolutionTransform<TPixel, TWeight> : PixelSource, IDisposable where TPixel : struct where TWeight : struct
 	{
 		protected bool BufferSource;
 		protected int IntBpp;
 		protected int IntStride;
 		protected int IntStartLine;
-		protected uint OutWidth;
-		protected uint OutHeight;
 		protected ArraySegment<byte> LineBuff;
 		protected ArraySegment<byte> IntBuff;
 		protected KernelMap<TWeight> XMap;
@@ -28,7 +26,7 @@ namespace PhotoSauce.MagicScaler
 		protected WICRect SourceRect;
 		protected IConvolver Processor;
 
-		public ConvolutionTransform(IWICBitmapSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, bool bufferSource = false) : base(source)
+		public ConvolutionTransform(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, bool bufferSource = false) : base(source)
 		{
 			if (Format.FormatGuid == Consts.GUID_WICPixelFormat32bppPBGRA)
 				Processor = new Convolver4ChanByte();
@@ -60,31 +58,25 @@ namespace PhotoSauce.MagicScaler
 				throw new NotSupportedException("Unsupported pixel format");
 
 			BufferSource = bufferSource;
-			OutWidth = (uint)mapx.OutPixels;
-			OutHeight = (uint)mapy.OutPixels;
 			SourceRect = new WICRect { Width = (int)Width, Height = 1 };
+			Width = (uint)mapx.OutPixels;
+			Height = (uint)mapy.OutPixels;
 			XMap = mapx;
 			YMap = mapy;
 
-			IntBpp = Bpp / Unsafe.SizeOf<TPixel>() * Unsafe.SizeOf<TWeight>();
+			IntBpp = Format.BitsPerPixel / 8 / Unsafe.SizeOf<TPixel>() * Unsafe.SizeOf<TWeight>();
 			IntStride = mapy.Samples * IntBpp;
 			IntStartLine = -mapy.Samples;
 
-			int lineBuffLen = (bufferSource ? mapy.Samples : 1) * (int)Stride;
+			int lineBuffLen = (bufferSource ? mapy.Samples : 1) * (int)BufferStride;
 			int intBuffLen = mapx.OutPixels * IntStride;
 			LineBuff = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(lineBuffLen), 0, lineBuffLen);
 			IntBuff = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(intBuffLen), 0, intBuffLen);
 		}
 
-		public override void GetSize(out uint puiWidth, out uint puiHeight)
-		{
-			puiWidth = OutWidth;
-			puiHeight = OutHeight;
-		}
-
 		unsafe public override void CopyPixels(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
-			if (prc.X < 0 || prc.Y < 0 || prc.X + prc.Width > OutWidth || prc.Y + prc.Height > OutHeight)
+			if (prc.X < 0 || prc.Y < 0 || prc.X + prc.Width > Width || prc.Y + prc.Height > Height)
 				throw new ArgumentOutOfRangeException(nameof(prc), "Requested rectangle does not fall within the image bounds");
 
 			fixed (byte* bstart = LineBuff.Array, tstart = IntBuff.Array)
@@ -126,28 +118,26 @@ namespace PhotoSauce.MagicScaler
 				if (tk > 0)
 				{
 					if (BufferSource)
-						Buffer.MemoryCopy(bstart + tc * Stride, bstart, LineBuff.Array.Length, tk * Stride);
+						Buffer.MemoryCopy(bstart + tc * BufferStride, bstart, LineBuff.Array.Length, tk * BufferStride);
 
 					Buffer.MemoryCopy(tstart + tc * IntBpp, tstart, IntBuff.Array.Length, IntBuff.Count - tc * IntBpp);
 				}
 
 				for (int ty = tk; ty < smapy; ty++)
 				{
-					byte* bline = BufferSource ? bstart + ty * Stride : bstart;
+					byte* bline = BufferSource ? bstart + ty * BufferStride : bstart;
 					byte* tline = tstart + ty * IntBpp;
 
 					SourceRect.Y = iy + ty;
-					Source.CopyPixels(SourceRect, Stride, Stride, (IntPtr)bline);
+					Source.CopyPixels(SourceRect, BufferStride, BufferStride, (IntPtr)bline);
 
 					Processor.ConvolveSourceLine(bline, tline, IntBuff.Count, mapxstart, XMap.Samples, YMap.Samples);
 				}
 			}
 		}
 
-		public override void Dispose()
+		public virtual void Dispose()
 		{
-			base.Dispose();
-
 			ArrayPool<byte>.Shared.Return(LineBuff.Array ?? Array.Empty<byte>());
 			ArrayPool<byte>.Shared.Return(IntBuff.Array ?? Array.Empty<byte>());
 			LineBuff = IntBuff = default(ArraySegment<byte>);
@@ -159,10 +149,10 @@ namespace PhotoSauce.MagicScaler
 		private UnsharpMaskSettings sharpenSettings;
 		private byte[] blurBuff;
 
-		public UnsharpMaskTransform(IWICBitmapSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, UnsharpMaskSettings ss) : base(source, mapx, mapy, true)
+		public UnsharpMaskTransform(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, UnsharpMaskSettings ss) : base(source, mapx, mapy, true)
 		{
 			sharpenSettings = ss;
-			blurBuff = ArrayPool<byte>.Shared.Rent((int)Stride);
+			blurBuff = ArrayPool<byte>.Shared.Rent((int)BufferStride);
 		}
 
 		unsafe protected override void ConvolveLine(byte* bstart, byte* tstart, byte* ostart, byte* pmapy, int smapy, int ox, int oy, int ow)
@@ -178,7 +168,7 @@ namespace PhotoSauce.MagicScaler
 				else if (cy > by)
 					cy += cy - by;
 
-				byte* bp = bstart + cy * Stride;
+				byte* bp = bstart + cy * BufferStride;
 				Processor.SharpenLine(bp, blurstart, ostart, ox, ow, sharpenSettings.Amount, sharpenSettings.Threshold);
 			}
 		}

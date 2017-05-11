@@ -9,54 +9,75 @@ using PhotoSauce.MagicScaler.Interop;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal class WicTransform : WicBase
+	internal class WicFrameReader
 	{
-		public WicProcessingContext Context { get; protected set; }
-		public IWICBitmapFrameDecode Frame { get; protected set; }
-		public IWICBitmapSource Source { get; protected set; }
+		public IWICBitmapFrameDecode Frame { get; private set; }
+		public double DpiX { get; private set; }
+		public double DpiY { get; private set; }
+		public bool SupportsNativeScale { get; private set; }
+		public bool SupportsNativeTransform { get; private set; }
+		public bool SupportsPlanarPipeline { get; private set; }
+		public WICBitmapTransformOptions TransformOptions { get; set; }
+		public IDictionary<string, PropVariant> Metadata { get; set; }
 
-		protected WicTransform(WicProcessingContext ctx)
+		public bool SwapDimensions => TransformOptions.HasFlag(WICBitmapTransformOptions.WICBitmapTransformRotate90);
+
+		public WicFrameReader(WicProcessingContext ctx, bool planar = false)
 		{
-			Context = ctx;
-		}
+			ctx.DecoderFrame = this;
 
-		public WicTransform(WicTransform prev)
-		{
-			Context = prev.Context;
-			Frame = prev.Frame;
-			Source = prev.Source;
-		}
-	}
+			var source = default(IWICBitmapSource);
+			source = Frame = ctx.AddRef(ctx.Decoder.Decoder.GetFrame((uint)ctx.Settings.FrameIndex));
 
-	internal class WicFrameReader : WicTransform
-	{
-		public WicFrameReader(WicDecoder dec, WicProcessingContext ctx) : base(ctx)
-		{
-			Frame = AddRef(dec.Decoder.GetFrame((uint)ctx.Settings.FrameIndex));
-			Source = Frame;
+			if (ctx.Decoder.WicContainerFormat == Consts.GUID_ContainerFormatRaw && ctx.Settings.FrameIndex == 0 && ctx.Decoder.Decoder.TryGetPreview(out var preview))
+				source = ctx.AddRef(preview);
 
-			if (ctx.ContainerFormat == Consts.GUID_ContainerFormatRaw && ctx.Settings.FrameIndex == 0 && dec.Decoder.TryGetPreview(out var preview))
-				Source = AddRef(preview);
+			source.GetResolution(out double dpix, out double dpiy);
+			DpiX = dpix;
+			DpiY = dpiy;
 
-			ctx.PixelFormat = PixelFormat.Cache[Source.GetPixelFormat()];
-			Source.GetSize(out ctx.Width, out ctx.Height);
-			Source.GetResolution(out ctx.DpiX, out ctx.DpiY);
-
-			if (Source is IWICPlanarBitmapSourceTransform ptrans)
+			if (PixelFormat.Cache[source.GetPixelFormat()].NumericRepresentation == PixelNumericRepresentation.Indexed)
 			{
-				uint pw = ctx.Width, ph = ctx.Height;
-				var pdesc = new WICBitmapPlaneDescription[2];
-				var pfmts = new Guid[] { Consts.GUID_WICPixelFormat8bppY, Consts.GUID_WICPixelFormat16bppCbCr };
-				ctx.SupportsPlanar = ptrans.DoesSupportTransform(ref pw, ref ph, WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault, pfmts, pdesc, 2);
+				var pal = ctx.AddRef(Wic.Factory.CreatePalette());
+				source.CopyPalette(pal);
+
+				var newFormat = Consts.GUID_WICPixelFormat24bppBGR;
+				if (pal.HasAlpha())
+					newFormat = Consts.GUID_WICPixelFormat32bppBGRA;
+				else if (pal.IsGrayscale() || pal.IsBlackWhite())
+					newFormat = Consts.GUID_WICPixelFormat8bppGray;
+
+				var conv = ctx.AddRef(Wic.Factory.CreateFormatConverter());
+				conv.Initialize(source, newFormat, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
+				source = conv;
 			}
+
+			if (source is IWICBitmapSourceTransform trans)
+			{
+				uint pw = 1, ph = 1;
+				source.GetSize(out uint ow, out uint oh);
+				trans.GetClosestSize(ref pw, ref ph);
+				SupportsNativeScale = pw < ow || ph < oh;
+				SupportsNativeTransform = trans.DoesSupportTransform(WICBitmapTransformOptions.WICBitmapTransformRotate270);
+			}
+
+			if (planar && source is IWICPlanarBitmapSourceTransform ptrans)
+			{
+				uint pw = 1, ph = 1;
+				var pdesc = new WICBitmapPlaneDescription[2];
+				var pfmts = new[] { Consts.GUID_WICPixelFormat8bppY, Consts.GUID_WICPixelFormat16bppCbCr };
+				SupportsPlanarPipeline = ptrans.DoesSupportTransform(ref pw, ref ph, WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault, pfmts, pdesc, 2);
+			}
+
+			ctx.Source = new WicBitmapSourceWrapper(source);
 		}
 	}
 
-	internal class WicMetadataReader : WicTransform
+	internal static class WicTransforms
 	{
 		private static IWICColorContext getDefaultColorProfile(Guid pixelFormat)
 		{
-			var pfi = Wic.CreateComponentInfo(pixelFormat) as IWICPixelFormatInfo;
+			var pfi = Wic.Factory.CreateComponentInfo(pixelFormat) as IWICPixelFormatInfo;
 			var cc = pfi.GetColorContext();
 			Marshal.ReleaseComObject(pfi);
 			return cc;
@@ -65,26 +86,12 @@ namespace PhotoSauce.MagicScaler
 		private static readonly Lazy<IWICColorContext> cmykProfile = new Lazy<IWICColorContext>(() => getDefaultColorProfile(Consts.GUID_WICPixelFormat32bppCMYK));
 		private static readonly Lazy<IWICColorContext> srgbProfile = new Lazy<IWICColorContext>(() => getDefaultColorProfile(Consts.GUID_WICPixelFormat24bppBGR));
 
-		public WicMetadataReader(WicTransform prev, bool basicOnly = false) : base(prev)
+		public static void AddMetadataReader(WicProcessingContext ctx, bool basicOnly = false)
 		{
-			if (Context.PixelFormat.NumericRepresentation == PixelNumericRepresentation.Indexed)
-			{
-				var pal = AddRef(Wic.CreatePalette());
-				Frame.CopyPalette(pal);
-
-				Context.HasAlpha = pal.HasAlpha();
-				Context.IsGreyscale = pal.IsGrayscale();
-			}
-			else
-			{
-				Context.HasAlpha = Context.PixelFormat.AlphaRepresentation != PixelAlphaRepresentation.None;
-				Context.IsGreyscale = Context.PixelFormat.ColorRepresentation == PixelColorRepresentation.Grey;
-			}
-
 #if NET46
-			if (Frame.TryGetMetadataQueryReader(out var metareader))
+			if (ctx.DecoderFrame.Frame.TryGetMetadataQueryReader(out var metareader))
 			{
-				AddRef(metareader);
+				ctx.AddRef(metareader);
 
 				// Exif orientation
 				if (metareader.TryGetMetadataByName("System.Photo.Orientation", out var ovar))
@@ -104,7 +111,7 @@ namespace PhotoSauce.MagicScaler
 					if (orientation == 2 || orientation == 4 || orientation == 5 || orientation == 7)
 						opt |= WICBitmapTransformOptions.WICBitmapTransformFlipHorizontal;
 
-					Context.TransformOptions = opt;
+					ctx.DecoderFrame.TransformOptions = opt;
 				}
 
 				if (basicOnly)
@@ -112,28 +119,31 @@ namespace PhotoSauce.MagicScaler
 
 				// other requested properties
 				var propdic = new Dictionary<string, PropVariant>();
-				foreach (string prop in Context.Settings.MetadataNames ?? Enumerable.Empty<string>())
+				foreach (string prop in ctx.Settings.MetadataNames ?? Enumerable.Empty<string>())
 				{
 					if (metareader.TryGetMetadataByName(prop, out var pvar) && pvar.Value != null)
 						propdic[prop] = pvar;
 				}
 
-				Context.Metadata = propdic;
+				ctx.DecoderFrame.Metadata = propdic;
 			}
 #endif
 
+			if (basicOnly)
+				return;
+
 			// ICC profiles
 			//http://ninedegreesbelow.com/photography/embedded-color-space-information.html
-			uint ccc = Frame.GetColorContextCount();
+			uint ccc = ctx.DecoderFrame.Frame.GetColorContextCount();
 			var profiles = new IWICColorContext[ccc];
 			var profile = default(IWICColorContext);
 
 			if (ccc > 0)
 			{
 				for (int i = 0; i < ccc; i++)
-					profiles[i] = AddRef(Wic.CreateColorContext());
+					profiles[i] = ctx.AddRef(Wic.Factory.CreateColorContext());
 
-				Frame.GetColorContexts(ccc, profiles);
+				ctx.DecoderFrame.Frame.GetColorContexts(ccc, profiles);
 			}
 
 			foreach (var cc in profiles)
@@ -149,7 +159,7 @@ namespace PhotoSauce.MagicScaler
 					ArrayPool<byte>.Shared.Return(ccb);
 
 					// match only color profiles that match our intended use. if we have a standard sRGB profile, don't save it; we don't need to convert
-					if (cp.IsValid && ((cp.IsDisplayRgb && !cp.IsStandardSrgb) || (cp.IsCmyk && Context.PixelFormat.ColorRepresentation == PixelColorRepresentation.Cmyk) /* || (Context.IsGreyscale && cp.DataColorSpace == "GRAY") */))
+					if (cp.IsValid && ((cp.IsDisplayRgb && !cp.IsStandardSrgb) || (cp.IsCmyk && ctx.Source.Format.ColorRepresentation == PixelColorRepresentation.Cmyk) /* || (Context.IsGreyscale && cp.DataColorSpace == "GRAY") */))
 					{
 						profile = cc;
 						break;
@@ -162,181 +172,139 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			Context.SourceColorContext = profile ?? (Context.PixelFormat.ColorRepresentation ==	PixelColorRepresentation.Cmyk ? cmykProfile.Value : null);
-			Context.DestColorContext = srgbProfile.Value;
+			ctx.SourceColorContext = profile ?? (ctx.Source.Format.ColorRepresentation ==	PixelColorRepresentation.Cmyk ? cmykProfile.Value : null);
+			ctx.DestColorContext = srgbProfile.Value;
 		}
-	}
 
-	internal class WicConditionalCache : WicTransform
-	{
-		public WicConditionalCache(WicTransform prev) : base(prev)
+		public static void AddConditionalCache(WicProcessingContext ctx)
 		{
-			if (!Context.TransformOptions.RequiresCache())
+			if (!ctx.DecoderFrame.TransformOptions.RequiresCache())
 				return;
 
-			var crop = Context.Settings.Crop;
-			var bmp = AddRef(Wic.CreateBitmapFromSourceRect(Source, (uint)crop.X, (uint)crop.Y, (uint)crop.Width, (uint)crop.Height));
+			var crop = ctx.Settings.Crop;
+			var bmp = ctx.AddRef(Wic.Factory.CreateBitmapFromSourceRect(ctx.Source.WicSource, (uint)crop.X, (uint)crop.Y, (uint)crop.Width, (uint)crop.Height));
+			ctx.Source = new WicBitmapSourceWrapper(bmp);
 
-			Source = bmp;
-			Source.GetSize(out Context.Width, out Context.Height);
-			Context.Settings.Crop = new Rectangle(0, 0, (int)Context.Width, (int)Context.Height);
+			ctx.Settings.Crop = new Rectangle(0, 0, crop.Width, crop.Height);
 		}
-	}
 
-	internal class WicCmykConverter : WicTransform
-	{
-		public WicCmykConverter(WicTransform prev) : base(prev)
+		public static void AddColorspaceConverter(WicProcessingContext ctx)
 		{
-			if (Context.PixelFormat.ColorRepresentation != PixelColorRepresentation.Cmyk)
+			if (ctx.SourceColorContext == null)
 				return;
 
-			var trans = AddRef(Wic.CreateColorTransform());
-			trans.Initialize(Source, Context.SourceColorContext, Context.DestColorContext, Context.PixelFormat.AlphaRepresentation != PixelAlphaRepresentation.None ? Consts.GUID_WICPixelFormat32bppBGRA : Consts.GUID_WICPixelFormat24bppBGR);
-
-			Source = trans;
-			Context.SourceColorContext = null;
+			var trans = ctx.AddRef(Wic.Factory.CreateColorTransform());
+			trans.Initialize(ctx.Source.WicSource, ctx.SourceColorContext, ctx.DestColorContext, ctx.Source.Format.FormatGuid);
+			ctx.Source = new WicBitmapSourceWrapper(trans);
 		}
-	}
 
-	internal class WicColorspaceConverter : WicTransform
-	{
-		public WicColorspaceConverter(WicTransform prev) : base(prev)
+		public static void AddPixelFormatConverter(WicProcessingContext ctx)
 		{
-			if (Context.SourceColorContext == null)
-				return;
+			var oldFormat = ctx.Source.Format;
+			if (oldFormat.ColorRepresentation == PixelColorRepresentation.Cmyk)
+			{
+				//TODO WIC doesn't support proper CMYKA conversion with color profile
+				if (oldFormat.AlphaRepresentation == PixelAlphaRepresentation.None)
+				{
+					var trans = ctx.AddRef(Wic.Factory.CreateColorTransform());
+					trans.Initialize(ctx.Source.WicSource, ctx.SourceColorContext, ctx.DestColorContext, Consts.GUID_WICPixelFormat24bppBGR);
+					ctx.Source = new WicBitmapSourceWrapper(trans);
+				}
 
-			var trans = AddRef(Wic.CreateColorTransform());
-			trans.Initialize(Source, Context.SourceColorContext, Context.DestColorContext, Context.PixelFormat.FormatGuid);
+				ctx.SourceColorContext = null;
+			}
 
-			Source = trans;
-		}
-	}
-
-	internal class WicPixelFormatConverter : WicTransform
-	{
-		public WicPixelFormatConverter(WicTransform prev) : base(prev)
-		{
 			var newFormat = Consts.GUID_WICPixelFormat24bppBGR;
-			if (Context.HasAlpha)
-				newFormat = Context.PixelFormat.FormatGuid == Consts.GUID_WICPixelFormat32bppPBGRA ? Consts.GUID_WICPixelFormat32bppPBGRA : Consts.GUID_WICPixelFormat32bppBGRA;
-			else if (Context.IsGreyscale)
+			if (oldFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
+				newFormat = oldFormat.AlphaRepresentation == PixelAlphaRepresentation.Associated ? Consts.GUID_WICPixelFormat32bppPBGRA : Consts.GUID_WICPixelFormat32bppBGRA;
+			else if (oldFormat.ColorRepresentation == PixelColorRepresentation.Grey)
 				newFormat = Consts.GUID_WICPixelFormat8bppGray;
-			else if (Context.PixelFormat.ColorRepresentation == PixelColorRepresentation.Cmyk)
-				newFormat = Consts.GUID_WICPixelFormat32bppCMYK;
 
-			if (Context.PixelFormat.FormatGuid == newFormat)
+			if (oldFormat.FormatGuid == newFormat)
 				return;
 
-			var conv = AddRef(Wic.CreateFormatConverter());
-			if (!conv.CanConvert(Context.PixelFormat.FormatGuid, newFormat))
+			var conv = ctx.AddRef(Wic.Factory.CreateFormatConverter());
+			if (!conv.CanConvert(oldFormat.FormatGuid, newFormat))
 				throw new NotSupportedException("Can't convert to destination pixel format");
 
-			conv.Initialize(Source, newFormat, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
-			Source = conv;
-			Context.PixelFormat = PixelFormat.Cache[Source.GetPixelFormat()];
+			conv.Initialize(ctx.Source.WicSource, newFormat, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
+			ctx.Source = new WicBitmapSourceWrapper(conv);
 		}
-	}
 
-	internal class WicPaletizer : WicTransform
-	{
-		public WicPaletizer(WicTransform prev, uint colors = 256u) : base(prev)
+		public static void AddIndexedColorConverter(WicProcessingContext ctx)
 		{
 			var newFormat = Consts.GUID_WICPixelFormat8bppIndexed;
 
-			if (!Context.Settings.IndexedColor || Context.PixelFormat.FormatGuid == newFormat || Context.IsGreyscale)
+			if (!ctx.Settings.IndexedColor || ctx.Source.Format.NumericRepresentation == PixelNumericRepresentation.Indexed || ctx.Source.Format.ColorRepresentation == PixelColorRepresentation.Grey)
 				return;
 
-			var conv = AddRef(Wic.CreateFormatConverter());
-			if (!conv.CanConvert(Context.PixelFormat.FormatGuid, newFormat))
+			var conv = ctx.AddRef(Wic.Factory.CreateFormatConverter());
+			if (!conv.CanConvert(ctx.Source.Format.FormatGuid, newFormat))
 				throw new NotSupportedException("Can't convert to destination pixel format");
 
-			var bmp = AddRef(Wic.CreateBitmapFromSource(Source, WICBitmapCreateCacheOption.WICBitmapCacheOnDemand));
+			var bmp = ctx.AddRef(Wic.Factory.CreateBitmapFromSource(ctx.Source.WicSource, WICBitmapCreateCacheOption.WICBitmapCacheOnDemand));
+			ctx.Source = new WicBitmapSourceWrapper(bmp);
 
-			var pal = AddRef(Wic.CreatePalette());
-			pal.InitializeFromBitmap(bmp, colors, false);
-			Context.DestPalette = pal;
+			var pal = ctx.AddRef(Wic.Factory.CreatePalette());
+			pal.InitializeFromBitmap(ctx.Source.WicSource, 256u, ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
+			ctx.DestPalette = pal;
 
-			conv.Initialize(bmp, newFormat, WICBitmapDitherType.WICBitmapDitherTypeErrorDiffusion, pal, 10.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
-			Source = conv;
-			Context.PixelFormat = PixelFormat.Cache[Source.GetPixelFormat()];
+			conv.Initialize(ctx.Source.WicSource, newFormat, WICBitmapDitherType.WICBitmapDitherTypeErrorDiffusion, pal, 10.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
+			ctx.Source = new WicBitmapSourceWrapper(conv);
 		}
-	}
 
-	internal class WicExifRotator : WicTransform
-	{
-		public WicExifRotator(WicTransform prev) : base(prev)
+		public static void AddExifRotator(WicProcessingContext ctx)
 		{
-			if (Context.TransformOptions == WICBitmapTransformOptions.WICBitmapTransformRotate0)
+			if (ctx.DecoderFrame.TransformOptions == WICBitmapTransformOptions.WICBitmapTransformRotate0)
 				return;
 
-			var rotator = AddRef(Wic.CreateBitmapFlipRotator());
-			rotator.Initialize(Source, Context.TransformOptions);
-
-			Source = rotator;
-			Source.GetSize(out Context.Width, out Context.Height);
+			var rotator = ctx.AddRef(Wic.Factory.CreateBitmapFlipRotator());
+			rotator.Initialize(ctx.Source.WicSource, ctx.DecoderFrame.TransformOptions);
+			ctx.Source = new WicBitmapSourceWrapper(rotator);
 		}
-	}
 
-	internal class WicCropper : WicTransform
-	{
-		public WicCropper(WicTransform prev) : base(prev)
+		public static void AddCropper(WicProcessingContext ctx)
 		{
-			if (Context.Settings.Crop == new Rectangle(0, 0, (int)Context.Width, (int)Context.Height))
+			if (ctx.Settings.Crop == new Rectangle(0, 0, (int)ctx.Source.Width, (int)ctx.Source.Height))
 				return;
 
-			var cropper = AddRef(Wic.CreateBitmapClipper());
-			cropper.Initialize(Source, Context.Settings.Crop.ToWicRect());
-
-			Source = cropper;
-			Source.GetSize(out Context.Width, out Context.Height);
+			var cropper = ctx.AddRef(Wic.Factory.CreateBitmapClipper());
+			cropper.Initialize(ctx.Source.WicSource, ctx.Settings.Crop.ToWicRect());
+			ctx.Source = new WicBitmapSourceWrapper(cropper);
 		}
-	}
 
-	internal class WicScaler : WicTransform
-	{
-		public WicScaler(WicTransform prev, bool hybrid = false) : base(prev)
+		public static void AddScaler(WicProcessingContext ctx, bool hybrid = false)
 		{
-			double rat = Context.Settings.HybridScaleRatio;
-			if ((Context.Settings.Width == Context.Width && Context.Settings.Height == Context.Height) || (hybrid && rat == 1d))
+			double rat = ctx.Settings.HybridScaleRatio;
+			if ((ctx.Settings.Width == ctx.Source.Width && ctx.Settings.Height == ctx.Source.Height) || (hybrid && rat == 1d))
 				return;
 
-			if (Source is IWICBitmapSourceTransform)
-			{
-				// null crop to disable IWICBitmapSourceTransform scaling
-				var clip = AddRef(Wic.CreateBitmapClipper());
-				clip.Initialize(Source, new WICRect { X = 0, Y = 0, Width = (int)Context.Width, Height = (int)Context.Height });
+			if (ctx.Source.WicSource is IWICBitmapSourceTransform)
+				ctx.Source = new WicBitmapSourceWrapper(ctx.Source.WicSource);
 
-				Source = clip;
-			}
-
-			uint ow = hybrid ? (uint)Math.Ceiling(Context.Width / rat) : (uint)Context.Settings.Width;
-			uint oh = hybrid ? (uint)Math.Ceiling(Context.Height / rat) : (uint)Context.Settings.Height;
+			uint ow = hybrid ? (uint)Math.Ceiling(ctx.Source.Width / rat) : (uint)ctx.Settings.Width;
+			uint oh = hybrid ? (uint)Math.Ceiling(ctx.Source.Height / rat) : (uint)ctx.Settings.Height;
 			var mode = hybrid ? WICBitmapInterpolationMode.WICBitmapInterpolationModeFant :
-			           Context.Settings.Interpolation.WeightingFunction.Support < 0.1 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeNearestNeighbor :
-			           Context.Settings.Interpolation.WeightingFunction.Support < 1.0 ? Context.Settings.ScaleRatio > 1.0 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeFant : WICBitmapInterpolationMode.WICBitmapInterpolationModeNearestNeighbor :
-			           Context.Settings.Interpolation.WeightingFunction.Support > 1.0 ? Context.Settings.ScaleRatio > 1.0 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeHighQualityCubic :WICBitmapInterpolationMode.WICBitmapInterpolationModeCubic :
-			           Context.Settings.ScaleRatio > 1.0 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeFant : WICBitmapInterpolationMode.WICBitmapInterpolationModeLinear;
+			           ctx.Settings.Interpolation.WeightingFunction.Support < 0.1 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeNearestNeighbor :
+			           ctx.Settings.Interpolation.WeightingFunction.Support < 1.0 ? ctx.Settings.ScaleRatio > 1.0 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeFant : WICBitmapInterpolationMode.WICBitmapInterpolationModeNearestNeighbor :
+			           ctx.Settings.Interpolation.WeightingFunction.Support > 1.0 ? ctx.Settings.ScaleRatio > 1.0 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeHighQualityCubic :WICBitmapInterpolationMode.WICBitmapInterpolationModeCubic :
+			           ctx.Settings.ScaleRatio > 1.0 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeFant : WICBitmapInterpolationMode.WICBitmapInterpolationModeLinear;
 
-			var scaler = AddRef(Wic.CreateBitmapScaler());
-			scaler.Initialize(Source, ow, oh, mode);
-
-			Source = scaler;
-			Source.GetSize(out Context.Width, out Context.Height);
+			var scaler = ctx.AddRef(Wic.Factory.CreateBitmapScaler());
+			scaler.Initialize(ctx.Source.WicSource, ow, oh, mode);
+			ctx.Source = new WicBitmapSourceWrapper(scaler);
 
 			if (hybrid)
-				Context.Settings.Crop = new Rectangle(0, 0, (int)Context.Width, (int)Context.Height);
+				ctx.Settings.Crop = new Rectangle(0, 0, (int)ctx.Source.Width, (int)ctx.Source.Height);
 		}
-	}
 
-	internal class WicNativeScaler : WicTransform
-	{
-		public WicNativeScaler(WicTransform prev) : base(prev)
+		public static void AddNativeScaler(WicProcessingContext ctx)
 		{
-			double rat = Context.Settings.HybridScaleRatio;
-			if (rat == 1d || !(Source is IWICBitmapSourceTransform trans))
+			double rat = ctx.Settings.HybridScaleRatio;
+			if (rat == 1d || !ctx.DecoderFrame.SupportsNativeScale || !(ctx.Source.WicSource is IWICBitmapSourceTransform trans))
 				return;
 
-			uint ow = Context.Width, oh = Context.Height;
+			uint ow = ctx.Source.Width, oh = ctx.Source.Height;
 			uint cw = (uint)Math.Ceiling(ow / rat), ch = (uint)Math.Ceiling(oh / rat);
 			trans.GetClosestSize(ref cw, ref ch);
 
@@ -345,14 +313,43 @@ namespace PhotoSauce.MagicScaler
 
 			double wrat = (double)ow / cw, hrat = (double)oh / ch;
 
-			var crop = Context.Settings.Crop;
-			Context.Settings.Crop = new Rectangle((int)Math.Floor(crop.X / wrat), (int)Math.Floor(crop.Y / hrat), (int)Math.Ceiling(crop.Width / wrat), (int)Math.Ceiling(crop.Height / hrat));
+			var crop = ctx.Settings.Crop;
+			ctx.Settings.Crop = new Rectangle((int)Math.Floor(crop.X / wrat), (int)Math.Floor(crop.Y / hrat), (int)Math.Ceiling(crop.Width / wrat), (int)Math.Ceiling(crop.Height / hrat));
 
-			var scaler = AddRef(Wic.CreateBitmapScaler());
-			scaler.Initialize(Source, cw, ch, WICBitmapInterpolationMode.WICBitmapInterpolationModeFant);
+			var scaler = ctx.AddRef(Wic.Factory.CreateBitmapScaler());
+			scaler.Initialize(ctx.Source.WicSource, cw, ch, WICBitmapInterpolationMode.WICBitmapInterpolationModeFant);
+			ctx.Source = new WicBitmapSourceWrapper(scaler);
+		}
 
-			Source = scaler;
-			Source.GetSize(out Context.Width, out Context.Height);
+		public static void AddPlanarCache(WicProcessingContext ctx)
+		{
+			if (!(ctx.Source.WicSource is IWICPlanarBitmapSourceTransform trans))
+				throw new NotSupportedException("Transform chain doesn't support planar mode.  Only JPEG Decoder, Rotator, Scaler, and PixelFormatConverter are allowed");
+
+			double rat = ctx.Settings.HybridScaleRatio.Clamp(1d, 8d);
+			uint width = (uint)Math.Ceiling(ctx.Source.Width / rat);
+			uint height = (uint)Math.Ceiling(ctx.Source.Height / rat);
+
+			var fmts = new[] { Consts.GUID_WICPixelFormat8bppY, Consts.GUID_WICPixelFormat16bppCbCr };
+			var desc = new WICBitmapPlaneDescription[2];
+
+			if (!trans.DoesSupportTransform(ref width, ref height, ctx.DecoderFrame.TransformOptions, WICPlanarOptions.WICPlanarOptionsDefault, fmts, desc, 2))
+				throw new NotSupportedException("Requested planar transform not supported");
+
+			var cacheSource = ctx.AddDispose(new WicPlanarCache(trans, desc[0], desc[1], ctx.Settings.Crop.ToWicRect(), ctx.DecoderFrame.TransformOptions, width, height, rat));
+
+			ctx.PlanarChromaSource = cacheSource.GetPlane(WicPlane.Chroma);
+			ctx.PlanarLumaSource = cacheSource.GetPlane(WicPlane.Luma);
+			ctx.Source = ctx.PlanarChromaSource;
+			ctx.Source = ctx.PlanarLumaSource;
+		}
+
+		public static void AddPlanarConverter(WicProcessingContext ctx)
+		{
+			var conv = ctx.AddRef(Wic.Factory.CreateFormatConverter()) as IWICPlanarFormatConverter;
+			conv.Initialize(new[] { ctx.PlanarLumaSource.WicSource, ctx.PlanarChromaSource.WicSource }, 2, Consts.GUID_WICPixelFormat24bppBGR, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
+			ctx.Source = new WicBitmapSourceWrapper(conv);
+			ctx.PlanarChromaSource = ctx.PlanarLumaSource = null;
 		}
 	}
 }

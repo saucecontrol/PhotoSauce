@@ -5,7 +5,9 @@ using PhotoSauce.MagicScaler.Interop;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal class WicPlanarCacheSource : IDisposable
+		internal enum WicPlane { Luma, Chroma }
+
+		internal class WicPlanarCache : IDisposable
 	{
 		private double subsampleRatioX, subsampleRatioY;
 		private uint scaledWidth, scaledHeight;
@@ -16,10 +18,10 @@ namespace PhotoSauce.MagicScaler
 		private ArraySegment<byte> lineBuffY, lineBuffC;
 		private IWICPlanarBitmapSourceTransform sourceTransform;
 		private WICBitmapTransformOptions sourceTransformOptions;
-		private WicPlanarSource sourceY, sourceC;
+		private PlanarPixelSource sourceY, sourceC;
 		private WICRect scaledCrop;
 
-		public WicPlanarCacheSource(IWICPlanarBitmapSourceTransform source, WICBitmapPlaneDescription descY, WICBitmapPlaneDescription descC, WICRect crop, WICBitmapTransformOptions transformOptions, uint width, uint height, double ratio)
+		public WicPlanarCache(IWICPlanarBitmapSourceTransform source, WICBitmapPlaneDescription descY, WICBitmapPlaneDescription descC, WICRect crop, WICBitmapTransformOptions transformOptions, uint width, uint height, double ratio)
 		{
 			// TODO fractional ratio support?
 			subsampleRatioX = Math.Ceiling((double)descY.Width / descC.Width);
@@ -74,15 +76,15 @@ namespace PhotoSauce.MagicScaler
 			strideC = (int)Math.Ceiling(scrop.Width / subsampleRatioX) * 2 + 3 & ~3;
 			buffHeightC = (int)Math.Ceiling(buffHeightY / subsampleRatioY);
 
-			sourceY = new WicPlanarSource(this, WicPlane.Luma, descY);
-			sourceC = new WicPlanarSource(this, WicPlane.Chroma, descC);
+			sourceY = new PlanarPixelSource(this, WicPlane.Luma, descY);
+			sourceC = new PlanarPixelSource(this, WicPlane.Chroma, descC);
 		}
 
 		unsafe private void loadBuffer(byte* pBuffY, byte* pBuffC, WICRect rect)
 		{
 			var planes = new WICBitmapPlane[2];
-			planes[0].Format = sourceY.GetPixelFormat();
-			planes[1].Format = sourceC.GetPixelFormat();
+			planes[0].Format = sourceY.Format.FormatGuid;
+			planes[1].Format = sourceC.Format.FormatGuid;
 			planes[0].cbStride = (uint)strideY;
 			planes[1].cbStride = (uint)strideC;
 			planes[0].cbBufferSize = (uint)lineBuffY.Count;
@@ -190,9 +192,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		public void GetResolution(out double pDpiX, out double pDpiY) => ((IWICBitmapSource)sourceTransform).GetResolution(out pDpiX, out pDpiY);
-
-		public IWICBitmapSource GetPlane(WicPlane plane) => plane == WicPlane.Luma ? sourceY : sourceC;
+		public PixelSource GetPlane(WicPlane plane) => plane == WicPlane.Luma ? sourceY : sourceC;
 
 		public void Dispose()
 		{
@@ -202,12 +202,12 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	internal class WicPlanarSource : WicBitmapSourceBase
+	internal class PlanarPixelSource : PixelSource
 	{
-		private WicPlanarCacheSource cacheSource;
+		private WicPlanarCache cacheSource;
 		private WicPlane cachePlane;
 
-		public WicPlanarSource(WicPlanarCacheSource cache, WicPlane plane, WICBitmapPlaneDescription planeDesc)
+		public PlanarPixelSource(WicPlanarCache cache, WicPlane plane, WICBitmapPlaneDescription planeDesc)
 		{
 			Width = planeDesc.Width;
 			Height = planeDesc.Height;
@@ -218,9 +218,5 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		public override void CopyPixels(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) => cacheSource.CopyPixels(cachePlane, prc, cbStride, cbBufferSize, pbBuffer);
-
-		public override void GetResolution(out double pDpiX, out double pDpiY) => cacheSource.GetResolution(out pDpiX, out pDpiY);
-
-		public override void CopyPalette(IWICPalette pIPalette) => throw new NotImplementedException();
 	}
 }

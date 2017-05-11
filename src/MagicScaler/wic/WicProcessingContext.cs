@@ -7,20 +7,39 @@ using PhotoSauce.MagicScaler.Interop;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal abstract class WicBase : IDisposable
+	internal class WicProcessingContext : IDisposable
 	{
-		protected static readonly IWICImagingFactory Wic = new WICImagingFactory2() as IWICImagingFactory;
-
 		private readonly Stack<object> comHandles = new Stack<object>();
+		private readonly Stack<IDisposable> disposeHandles = new Stack<IDisposable>();
 
-		private void popRelease()
+		private IWICColorContext sourceColorContext;
+		private IWICColorContext destColorContext;
+		private IWICPalette destPalette;
+
+		public ProcessImageSettings Settings { get; private set; }
+		public WicDecoder Decoder { get; set; }
+		public WicFrameReader DecoderFrame { get; set; }
+		public PixelSource Source { get; set; }
+		public PixelSource PlanarLumaSource { get; set; }
+		public PixelSource PlanarChromaSource { get; set; }
+
+		public IWICColorContext SourceColorContext { get => sourceColorContext; set => sourceColorContext = AddOwnRef(value); }
+		public IWICColorContext DestColorContext { get => destColorContext; set => destColorContext = AddOwnRef(value); }
+		public IWICPalette DestPalette { get => destPalette; set => destPalette = AddOwnRef(value); }
+
+		public WicProcessingContext(ProcessImageSettings settings)
 		{
-			var h = comHandles.Pop();
-			if (h != null && Marshal.IsComObject(h))
-				Marshal.ReleaseComObject(h);
+			Settings = settings.Clone();
 		}
 
-		protected T AddRef<T>(T comHandle) where T : class
+		public T AddDispose<T>(T disposeHandle) where T : IDisposable
+		{
+			disposeHandles.Push(disposeHandle);
+
+			return disposeHandle;
+		}
+
+		public T AddRef<T>(T comHandle) where T : class
 		{
 			Debug.Assert(Marshal.IsComObject(comHandle), "Not a COM object");
 
@@ -29,7 +48,7 @@ namespace PhotoSauce.MagicScaler
 			return comHandle;
 		}
 
-		protected T AddOwnRef<T>(T comHandle) where T : class
+		public T AddOwnRef<T>(T comHandle) where T : class
 		{
 			if (comHandle == null)
 				return null;
@@ -41,49 +60,42 @@ namespace PhotoSauce.MagicScaler
 			return AddRef(newHandle);
 		}
 
-		protected void Release<T>(T comHandle) where T : class
+		public void FinalizeSettings()
 		{
-			Debug.Assert(ReferenceEquals(comHandles.Peek(), comHandle), "Release() should only be called on the last handle passed to AddRef()");
+			if (!Settings.Normalized)
+			{
+				Settings.Fixup((int)Source.Width, (int)Source.Height, DecoderFrame.SwapDimensions);
 
-			popRelease();
+				if (Settings.SaveFormat == FileFormat.Auto)
+					Settings.SetSaveFormat(Decoder.ContainerFormat, Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
+			}
 		}
 
-		public virtual void Dispose()
+		public void SwitchPlanarSource(WicPlane plane)
+		{
+			if (plane == WicPlane.Chroma)
+			{
+				PlanarLumaSource = Source;
+				Source = PlanarChromaSource;
+			}
+			else
+			{
+				PlanarChromaSource = Source;
+				Source = PlanarLumaSource;
+			}
+		}
+
+		public void Dispose()
 		{
 			while (comHandles.Count > 0)
-				popRelease();
-		}
-	}
+			{
+				var h = comHandles.Pop();
+				if (h != null && Marshal.IsComObject(h))
+					Marshal.ReleaseComObject(h);
+			}
 
-	internal class WicProcessingContext : WicBase
-	{
-		private IWICColorContext sourceColorContext;
-		private IWICColorContext destColorContext;
-		private IWICPalette destPalette;
-
-		public ProcessImageSettings Settings;
-		public Guid ContainerFormat;
-		public uint ContainerFrameCount;
-		public PixelFormat PixelFormat;
-		public uint Width;
-		public uint Height;
-		public double DpiX;
-		public double DpiY;
-		public WICBitmapTransformOptions TransformOptions;
-		public IDictionary<string, PropVariant> Metadata;
-		public bool SupportsPlanar;
-		public bool HasAlpha;
-		public bool IsGreyscale;
-
-		public bool IsRotated90 => TransformOptions.HasFlag(WICBitmapTransformOptions.WICBitmapTransformRotate90);
-
-		public IWICColorContext SourceColorContext { get => sourceColorContext; set => sourceColorContext = AddOwnRef(value); }
-		public IWICColorContext DestColorContext { get => destColorContext; set => destColorContext = AddOwnRef(value); }
-		public IWICPalette DestPalette { get => destPalette; set => destPalette = AddOwnRef(value); }
-
-		public WicProcessingContext(ProcessImageSettings settings)
-		{
-			Settings = settings.Clone();
+			while (disposeHandles.Count > 0)
+				disposeHandles.Pop()?.Dispose();
 		}
 	}
 }
