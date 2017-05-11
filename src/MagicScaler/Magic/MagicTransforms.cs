@@ -183,7 +183,7 @@ namespace PhotoSauce.MagicScaler
 			if (Context.Settings.MatteColor.IsEmpty || Context.PixelFormat.ColorRepresentation != PixelColorRepresentation.Bgr || Context.PixelFormat.AlphaRepresentation == PixelAlphaRepresentation.None)
 				return;
 
-			Source = new WicMatte(Source, Context.Settings.MatteColor);
+			Source = new Matte(Source, Context.Settings.MatteColor);
 		}
 
 		public override void Dispose()
