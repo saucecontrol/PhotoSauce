@@ -18,4 +18,22 @@ namespace PhotoSauce.MagicScaler
 		public ProcessImageSettings Settings { get; internal set; }
 		public IEnumerable<PixelSourceStats> Stats { get; internal set; }
 	}
+
+	public sealed class ProcessingPipeline : IDisposable
+	{
+		private WicProcessingContext context;
+		private IPixelSource source;
+
+		internal ProcessingPipeline(WicProcessingContext ctx)
+		{
+			context = ctx;
+			source = ctx.Source.AsIPixelSource();
+		}
+
+		public IPixelSource PixelSource => source;
+		public ProcessImageSettings Settings => context.Settings;
+		public IEnumerable<PixelSourceStats> Stats => context.Stats;
+
+		public void Dispose() => context.Dispose();
+	}
 }

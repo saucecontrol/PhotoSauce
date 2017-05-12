@@ -14,7 +14,7 @@ namespace PhotoSauce.MagicScaler.Interop
 
 			internal StreamAsIStream(Stream backingStream)
 			{
-				stream = backingStream;
+				stream = backingStream ?? throw new ArgumentNullException(nameof(backingStream));
 			}
 
 			void IStream.Read(byte[] pv, int cb, IntPtr pcbRead)
@@ -58,11 +58,6 @@ namespace PhotoSauce.MagicScaler.Interop
 			void IStream.UnlockRegion(long libOffset, long cb, int dwLockType) => throw new NotImplementedException();
 		}
 
-		public static IStream AsIStream(this Stream s)
-		{
-			if (s == null) throw new ArgumentNullException(nameof(s));
-
-			return new StreamAsIStream(s);
-		}
+		public static IStream AsIStream(this Stream s) => new StreamAsIStream(s);
 	}
 }

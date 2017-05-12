@@ -28,6 +28,9 @@ namespace PhotoSauce.MagicScaler
 		{
 			ctx.Decoder = this;
 
+			if (dec == null)
+				return;
+
 			Decoder = ctx.AddRef(dec);
 
 			WicContainerFormat = dec.GetContainerFormat();
@@ -64,6 +67,14 @@ namespace PhotoSauce.MagicScaler
 			var stm = ctx.AddRef(Wic.Factory.CreateStream());
 			stm.InitializeFromMemory(inBuffer.Array, (uint)inBuffer.Count);
 			init(checkDecoder(() => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand)), ctx);
+		}
+
+		public WicDecoder(IPixelSource imgSource, WicProcessingContext ctx)
+		{
+			init(null, ctx);
+			ContainerFormat = FileFormat.Unknown;
+			FrameCount = 1;
+			ctx.Source = imgSource.AsPixelSource();
 		}
 	}
 
@@ -152,7 +163,7 @@ namespace PhotoSauce.MagicScaler
 
 					var conv = ctx.AddRef(Wic.Factory.CreateFormatConverter());
 					conv.Initialize(ctx.Source.WicSource, oformat, WICBitmapDitherType.WICBitmapDitherTypeNone, pal, 0.0, ptt);
-					ctx.Source = new WicBitmapSourceWrapper(conv, nameof(IWICFormatConverter), false);
+					ctx.Source = conv.AsPixelSource(nameof(IWICFormatConverter), false);
 				}
 				else if (oformat == Consts.GUID_WICPixelFormat8bppIndexed)
 				{

@@ -63,7 +63,60 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private static void buildPipeline(WicProcessingContext ctx)
+		public static ProcessImageResult ProcessImage(IPixelSource imgSource, Stream outStream, ProcessImageSettings settings)
+		{
+			if (imgSource == null) throw new ArgumentNullException(nameof(imgSource));
+			checkOutStream(outStream);
+
+			using (var ctx = new WicProcessingContext(settings))
+			{
+				var dec = new WicDecoder(imgSource, ctx);
+				buildPipeline(ctx);
+				return processImage(ctx, outStream);
+			}
+		}
+
+		public static ProcessingPipeline BuildPipeline(string imgPath, ProcessImageSettings settings)
+		{
+			if (imgPath == null) throw new ArgumentNullException(nameof(imgPath));
+
+			var ctx = new WicProcessingContext(settings);
+			var dec = new WicDecoder(imgPath, ctx);
+			buildPipeline(ctx, false);
+			return new ProcessingPipeline(ctx);
+		}
+
+		public static ProcessingPipeline BuildPipeline(ArraySegment<byte> imgBuffer, ProcessImageSettings settings)
+		{
+			if (imgBuffer == null) throw new ArgumentNullException(nameof(imgBuffer));
+
+			var ctx = new WicProcessingContext(settings);
+			var dec = new WicDecoder(imgBuffer, ctx);
+			buildPipeline(ctx, false);
+			return new ProcessingPipeline(ctx);
+		}
+
+		public static ProcessingPipeline BuildPipeline(Stream imgStream, ProcessImageSettings settings)
+		{
+			checkInStream(imgStream);
+
+			var ctx = new WicProcessingContext(settings);
+			var dec = new WicDecoder(imgStream, ctx);
+			buildPipeline(ctx, false);
+			return new ProcessingPipeline(ctx);
+		}
+
+		public static ProcessingPipeline BuildPipeline(IPixelSource imgSource, ProcessImageSettings settings)
+		{
+			if (imgSource == null) throw new ArgumentNullException(nameof(imgSource));
+
+			var ctx = new WicProcessingContext(settings);
+			var dec = new WicDecoder(imgSource, ctx);
+			buildPipeline(ctx, false);
+			return new ProcessingPipeline(ctx);
+		}
+
+		private static void buildPipeline(WicProcessingContext ctx, bool outputPlanar = true)
 		{
 			var frm = new WicFrameReader(ctx, EnablePlanarPipeline);
 			WicTransforms.AddMetadataReader(ctx);
@@ -72,7 +125,7 @@ namespace PhotoSauce.MagicScaler
 
 			if (ctx.DecoderFrame.SupportsPlanarPipeline)
 			{
-				bool savePlanar = ctx.Settings.SaveFormat == FileFormat.Jpeg && ctx.SourceColorContext == null;
+				bool savePlanar = outputPlanar && ctx.Settings.SaveFormat == FileFormat.Jpeg && ctx.SourceColorContext == null;
 
 				WicTransforms.AddExifRotator(ctx);
 				WicTransforms.AddPlanarCache(ctx);

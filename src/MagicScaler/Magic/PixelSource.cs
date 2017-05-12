@@ -1,10 +1,20 @@
 ﻿using System;
+using System.Drawing;
 using System.Diagnostics;
 
 using PhotoSauce.MagicScaler.Interop;
 
 namespace PhotoSauce.MagicScaler
 {
+	public interface IPixelSource
+	{
+		Guid Format { get; }
+		int Width { get; }
+		int Height { get; }
+
+		void CopyPixels(Rectangle sourceArea, long cbStride, long cbBufferSize, IntPtr pbBuffer);
+	}
+
 	internal abstract class PixelSource
 	{
 		private readonly Lazy<PixelSourceStats> stats;
@@ -28,7 +38,7 @@ namespace PhotoSauce.MagicScaler
 		protected PixelSource(PixelSource source) : this()
 		{
 			Source = source;
-			WicSource = new PixelSourceAsIWICBitmapSource(this);
+			WicSource = this.AsIWICBitmapSource();
 			Format = Source.Format;
 			Width = Source.Width;
 			Height = Source.Height;
@@ -64,45 +74,85 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	internal class WicBitmapSourceWrapper : PixelSource
+	internal static class PixelSourceExtensions
 	{
-		private IWICBitmapSource realSource;
-		private string sourceName;
-
-		public WicBitmapSourceWrapper(IWICBitmapSource source, string name, bool profile = true) : base()
+		private class PixelSourceFromIWICBitmapSource : PixelSource
 		{
-			realSource = source;
-			sourceName = profile ? name : $"{name} (nonprofiling)";
-			WicSource = profile ? new PixelSourceAsIWICBitmapSource(this) : source;
-			Format = PixelFormat.Cache[source.GetPixelFormat()];
-			source.GetSize(out uint width, out uint height);
-			Width = width;
-			Height = height;
+			private IWICBitmapSource realSource;
+			private string sourceName;
+
+			public PixelSourceFromIWICBitmapSource(IWICBitmapSource source, string name, bool profile = true) : base()
+			{
+				realSource = source;
+				sourceName = profile ? name : $"{name} (nonprofiling)";
+				WicSource = profile ? this.AsIWICBitmapSource() : source;
+				Format = PixelFormat.Cache[source.GetPixelFormat()];
+				source.GetSize(out uint width, out uint height);
+				Width = width;
+				Height = height;
+			}
+
+			protected override void CopyPixelsInternal(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) => realSource.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
+
+			public override string ToString() => sourceName;
 		}
 
-		protected override void CopyPixelsInternal(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) => realSource.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
-
-		public override string ToString() => sourceName;
-	}
-
-	internal class PixelSourceAsIWICBitmapSource : IWICBitmapSource
-	{
-		private PixelSource source;
-
-		public PixelSourceAsIWICBitmapSource(PixelSource src) => source = src;
-
-		public void GetSize(out uint puiWidth, out uint puiHeight)
+		private class PixelSourceAsIWICBitmapSource : IWICBitmapSource
 		{
-			puiWidth = source.Width;
-			puiHeight = source.Height;
+			private PixelSource source;
+
+			public PixelSourceAsIWICBitmapSource(PixelSource src) => source = src;
+
+			public void GetSize(out uint puiWidth, out uint puiHeight)
+			{
+				puiWidth = source.Width;
+				puiHeight = source.Height;
+			}
+
+			public Guid GetPixelFormat() => source.Format.FormatGuid;
+
+			public void GetResolution(out double pDpiX, out double pDpiY) => pDpiX = pDpiY = 96d;
+
+			public void CopyPalette(IWICPalette pIPalette) => throw new NotImplementedException();
+
+			public void CopyPixels(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) => source.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
 		}
 
-		public Guid GetPixelFormat() => source.Format.FormatGuid;
+		private class PixelSourceFromIPixelSource : PixelSource
+		{
+			private IPixelSource realSource;
 
-		public void GetResolution(out double pDpiX, out double pDpiY) => pDpiX = pDpiY = 96d;
+			public PixelSourceFromIPixelSource(IPixelSource source) : base()
+			{
+				realSource = source;
+				WicSource = this.AsIWICBitmapSource();
+				Format = PixelFormat.Cache[source.Format];
+				Width = (uint)source.Width;
+				Height = (uint)source.Height;
+			}
 
-		public void CopyPalette(IWICPalette pIPalette) => throw new NotImplementedException();
+			protected override void CopyPixelsInternal(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) => realSource.CopyPixels(prc.ToGdiRect(), cbStride, cbBufferSize, pbBuffer);
 
-		public void CopyPixels(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) => source.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
+			public override string ToString() => realSource.ToString();
+		}
+
+		private class PixelSourceAsIPixelSource : IPixelSource
+		{
+			private PixelSource source;
+
+			public PixelSourceAsIPixelSource(PixelSource src) => source = src;
+
+			public Guid Format => source.Format.FormatGuid;
+			public int Width => (int)source.Width;
+			public int Height => (int)source.Height;
+
+			public void CopyPixels(Rectangle prc, long cbStride, long cbBufferSize, IntPtr pbBuffer) => source.CopyPixels(prc.ToWicRect(), (uint)cbStride, (uint)cbBufferSize, pbBuffer);
+		}
+
+		public static PixelSource AsPixelSource(this IWICBitmapSource source, string name, bool profile = true) => new PixelSourceFromIWICBitmapSource(source, name, profile);
+		public static IWICBitmapSource AsIWICBitmapSource(this PixelSource source) => new PixelSourceAsIWICBitmapSource(source);
+
+		public static PixelSource AsPixelSource(this IPixelSource source) => new PixelSourceFromIPixelSource(source);
+		public static IPixelSource AsIPixelSource(this PixelSource source) => new PixelSourceAsIPixelSource(source);
 	}
 }

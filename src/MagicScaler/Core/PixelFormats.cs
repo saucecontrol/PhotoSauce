@@ -263,4 +263,11 @@ namespace PhotoSauce.MagicScaler
 			Cache = new ReadOnlyDictionary<Guid, PixelFormat>(dic);
 		}
 	}
+
+	public static class PixelFormats
+	{
+		public static readonly Guid Grey8bpp = Consts.GUID_WICPixelFormat8bppGray;
+		public static readonly Guid Bgr24bpp = Consts.GUID_WICPixelFormat24bppBGR;
+		public static readonly Guid Bgra32bpp = Consts.GUID_WICPixelFormat32bppBGRA;
+	}
 }
