@@ -5,9 +5,9 @@ using PhotoSauce.MagicScaler.Interop;
 
 namespace PhotoSauce.MagicScaler
 {
-		internal enum WicPlane { Luma, Chroma }
+	internal enum WicPlane { Luma, Chroma }
 
-		internal class WicPlanarCache : IDisposable
+	internal class WicPlanarCache : IDisposable
 	{
 		private double subsampleRatioX, subsampleRatioY;
 		private uint scaledWidth, scaledHeight;
@@ -97,9 +97,6 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe public void CopyPixels(WicPlane plane, WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
-			if (prc.X < 0 || prc.Y < 0 || prc.X + prc.Width > scaledWidth || prc.Y + prc.Height > scaledHeight)
-				throw new ArgumentOutOfRangeException(nameof(prc), "Requested rectangle does not fall within the image bounds");
-
 			bool load = (lineBuffY.Array == null || (plane == WicPlane.Luma && prc.Y + prc.Height > startY + buffHeightY) || (plane == WicPlane.Chroma && prc.Y + prc.Height > startC + buffHeightC));
 			if (load && (lineBuffY.Array == null || posY < buffHeightY / 4 || posC < buffHeightC / 4))
 			{
@@ -180,13 +177,13 @@ namespace PhotoSauce.MagicScaler
 				if (plane == WicPlane.Luma)
 				{
 					for (int y = 0; y < prc.Height; y++)
-						Buffer.MemoryCopy(pBuffY + posY * strideY + y * strideY, (byte*)pbBuffer + y * cbStride, cbBufferSize, cbStride);
+						Buffer.MemoryCopy(pBuffY + posY * strideY + y * strideY + prc.X, (byte*)pbBuffer + y * cbStride, cbStride, prc.Width);
 					posY += prc.Height;
 				}
 				else
 				{
 					for (int y = 0; y < prc.Height; y++)
-						Buffer.MemoryCopy(pBuffC + posC * strideC + y * strideC, (byte*)pbBuffer + y * cbStride, cbBufferSize, cbStride);
+						Buffer.MemoryCopy(pBuffC + posC * strideC + y * strideC + prc.X * 2, (byte*)pbBuffer + y * cbStride, cbStride, prc.Width * 2);
 					posC += prc.Height;
 				}
 			}
@@ -217,6 +214,8 @@ namespace PhotoSauce.MagicScaler
 			cachePlane = plane;
 		}
 
-		public override void CopyPixels(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) => cacheSource.CopyPixels(cachePlane, prc, cbStride, cbBufferSize, pbBuffer);
+		protected override void CopyPixelsInternal(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) => cacheSource.CopyPixels(cachePlane, prc, cbStride, cbBufferSize, pbBuffer);
+
+		public override string ToString() => $"{base.ToString()}: {cachePlane}";
 	}
 }

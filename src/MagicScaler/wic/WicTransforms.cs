@@ -69,7 +69,8 @@ namespace PhotoSauce.MagicScaler
 				SupportsPlanarPipeline = ptrans.DoesSupportTransform(ref pw, ref ph, WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault, pfmts, pdesc, 2);
 			}
 
-			ctx.Source = new WicBitmapSourceWrapper(source);
+			bool preserveNative = SupportsPlanarPipeline || SupportsNativeTransform || (SupportsNativeScale && ctx.Settings.HybridScaleRatio > 1d);
+			ctx.Source = new WicBitmapSourceWrapper(source, nameof(IWICBitmapFrameDecode), !preserveNative);
 		}
 	}
 
@@ -183,7 +184,7 @@ namespace PhotoSauce.MagicScaler
 
 			var crop = ctx.Settings.Crop;
 			var bmp = ctx.AddRef(Wic.Factory.CreateBitmapFromSourceRect(ctx.Source.WicSource, (uint)crop.X, (uint)crop.Y, (uint)crop.Width, (uint)crop.Height));
-			ctx.Source = new WicBitmapSourceWrapper(bmp);
+			ctx.Source = new WicBitmapSourceWrapper(bmp, nameof(IWICBitmap));
 
 			ctx.Settings.Crop = new Rectangle(0, 0, crop.Width, crop.Height);
 		}
@@ -195,7 +196,7 @@ namespace PhotoSauce.MagicScaler
 
 			var trans = ctx.AddRef(Wic.Factory.CreateColorTransform());
 			trans.Initialize(ctx.Source.WicSource, ctx.SourceColorContext, ctx.DestColorContext, ctx.Source.Format.FormatGuid);
-			ctx.Source = new WicBitmapSourceWrapper(trans);
+			ctx.Source = new WicBitmapSourceWrapper(trans, nameof(IWICColorTransform));
 		}
 
 		public static void AddPixelFormatConverter(WicProcessingContext ctx)
@@ -208,7 +209,7 @@ namespace PhotoSauce.MagicScaler
 				{
 					var trans = ctx.AddRef(Wic.Factory.CreateColorTransform());
 					trans.Initialize(ctx.Source.WicSource, ctx.SourceColorContext, ctx.DestColorContext, Consts.GUID_WICPixelFormat24bppBGR);
-					ctx.Source = new WicBitmapSourceWrapper(trans);
+					ctx.Source = new WicBitmapSourceWrapper(trans, nameof(IWICColorTransform));
 				}
 
 				ctx.SourceColorContext = null;
@@ -228,7 +229,7 @@ namespace PhotoSauce.MagicScaler
 				throw new NotSupportedException("Can't convert to destination pixel format");
 
 			conv.Initialize(ctx.Source.WicSource, newFormat, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
-			ctx.Source = new WicBitmapSourceWrapper(conv);
+			ctx.Source = new WicBitmapSourceWrapper(conv, nameof(IWICFormatConverter));
 		}
 
 		public static void AddIndexedColorConverter(WicProcessingContext ctx)
@@ -243,14 +244,14 @@ namespace PhotoSauce.MagicScaler
 				throw new NotSupportedException("Can't convert to destination pixel format");
 
 			var bmp = ctx.AddRef(Wic.Factory.CreateBitmapFromSource(ctx.Source.WicSource, WICBitmapCreateCacheOption.WICBitmapCacheOnDemand));
-			ctx.Source = new WicBitmapSourceWrapper(bmp);
+			ctx.Source = new WicBitmapSourceWrapper(bmp, nameof(IWICBitmap));
 
 			var pal = ctx.AddRef(Wic.Factory.CreatePalette());
 			pal.InitializeFromBitmap(ctx.Source.WicSource, 256u, ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
 			ctx.DestPalette = pal;
 
 			conv.Initialize(ctx.Source.WicSource, newFormat, WICBitmapDitherType.WICBitmapDitherTypeErrorDiffusion, pal, 10.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
-			ctx.Source = new WicBitmapSourceWrapper(conv);
+			ctx.Source = new WicBitmapSourceWrapper(conv, nameof(IWICFormatConverter), false);
 		}
 
 		public static void AddExifRotator(WicProcessingContext ctx)
@@ -260,7 +261,7 @@ namespace PhotoSauce.MagicScaler
 
 			var rotator = ctx.AddRef(Wic.Factory.CreateBitmapFlipRotator());
 			rotator.Initialize(ctx.Source.WicSource, ctx.DecoderFrame.TransformOptions);
-			ctx.Source = new WicBitmapSourceWrapper(rotator);
+			ctx.Source = new WicBitmapSourceWrapper(rotator, nameof(IWICBitmapFlipRotator), !ctx.DecoderFrame.SupportsPlanarPipeline && !ctx.DecoderFrame.SupportsNativeTransform);
 		}
 
 		public static void AddCropper(WicProcessingContext ctx)
@@ -270,7 +271,7 @@ namespace PhotoSauce.MagicScaler
 
 			var cropper = ctx.AddRef(Wic.Factory.CreateBitmapClipper());
 			cropper.Initialize(ctx.Source.WicSource, ctx.Settings.Crop.ToWicRect());
-			ctx.Source = new WicBitmapSourceWrapper(cropper);
+			ctx.Source = new WicBitmapSourceWrapper(cropper, nameof(IWICBitmapClipper));
 		}
 
 		public static void AddScaler(WicProcessingContext ctx, bool hybrid = false)
@@ -280,7 +281,7 @@ namespace PhotoSauce.MagicScaler
 				return;
 
 			if (ctx.Source.WicSource is IWICBitmapSourceTransform)
-				ctx.Source = new WicBitmapSourceWrapper(ctx.Source.WicSource);
+				ctx.Source = new WicBitmapSourceWrapper(ctx.Source.WicSource, nameof(IWICBitmapFrameDecode));
 
 			uint ow = hybrid ? (uint)Math.Ceiling(ctx.Source.Width / rat) : (uint)ctx.Settings.Width;
 			uint oh = hybrid ? (uint)Math.Ceiling(ctx.Source.Height / rat) : (uint)ctx.Settings.Height;
@@ -292,7 +293,7 @@ namespace PhotoSauce.MagicScaler
 
 			var scaler = ctx.AddRef(Wic.Factory.CreateBitmapScaler());
 			scaler.Initialize(ctx.Source.WicSource, ow, oh, mode);
-			ctx.Source = new WicBitmapSourceWrapper(scaler);
+			ctx.Source = new WicBitmapSourceWrapper(scaler, nameof(IWICBitmapScaler));
 
 			if (hybrid)
 				ctx.Settings.Crop = new Rectangle(0, 0, (int)ctx.Source.Width, (int)ctx.Source.Height);
@@ -318,7 +319,7 @@ namespace PhotoSauce.MagicScaler
 
 			var scaler = ctx.AddRef(Wic.Factory.CreateBitmapScaler());
 			scaler.Initialize(ctx.Source.WicSource, cw, ch, WICBitmapInterpolationMode.WICBitmapInterpolationModeFant);
-			ctx.Source = new WicBitmapSourceWrapper(scaler);
+			ctx.Source = new WicBitmapSourceWrapper(scaler, nameof(IWICBitmapSourceTransform));
 		}
 
 		public static void AddPlanarCache(WicProcessingContext ctx)
@@ -348,7 +349,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			var conv = ctx.AddRef(Wic.Factory.CreateFormatConverter()) as IWICPlanarFormatConverter;
 			conv.Initialize(new[] { ctx.PlanarLumaSource.WicSource, ctx.PlanarChromaSource.WicSource }, 2, Consts.GUID_WICPixelFormat24bppBGR, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
-			ctx.Source = new WicBitmapSourceWrapper(conv);
+			ctx.Source = new WicBitmapSourceWrapper(conv, nameof(IWICPlanarFormatConverter));
 			ctx.PlanarChromaSource = ctx.PlanarLumaSource = null;
 		}
 	}

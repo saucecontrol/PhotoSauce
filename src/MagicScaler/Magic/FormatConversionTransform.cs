@@ -20,23 +20,22 @@ namespace PhotoSauce.MagicScaler
 			LineBuff = ArrayPool<byte>.Shared.Rent((int)BufferStride);
 		}
 
-		unsafe public override void CopyPixels(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		unsafe protected override void CopyPixelsInternal(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
-			if (prc.X < 0 || prc.Y < 0 || prc.X + prc.Width > Width || prc.Y + prc.Height > Height)
-				throw new ArgumentOutOfRangeException(nameof(prc), "Requested rectangle does not fall within the image bounds");
-
 			fixed (byte* bstart = LineBuff)
 			{
 				int oh = prc.Height, oy = prc.Y;
 
 				prc.Height = 1;
+				int cb = (prc.Width * InFormat.BitsPerPixel + 7 & ~7) / 8;
 				for (int y = 0; y < oh; y++)
 				{
 					prc.Y = oy + y;
+					Timer.Stop();
 					Source.CopyPixels(prc, BufferStride, BufferStride, (IntPtr)bstart);
+					Timer.Start();
 
 					byte* op = (byte*)pbBuffer + y * cbStride;
-					int cb = prc.Width * InFormat.BitsPerPixel / 8;
 
 					if (InFormat.Colorspace == PixelColorspace.sRgb && Format.Colorspace == PixelColorspace.LinearRgb && Format.NumericRepresentation == PixelNumericRepresentation.Fixed)
 					{

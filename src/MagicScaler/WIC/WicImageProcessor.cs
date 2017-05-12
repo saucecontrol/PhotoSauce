@@ -7,25 +7,25 @@ namespace PhotoSauce.MagicScaler
 {
 	public static class WicImageProcessor
 	{
-		public static void ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
+		public static ProcessImageResult ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
 		{
 			using (var ctx = new WicProcessingContext(settings))
-				processImage(new WicDecoder(imgPath, ctx), ctx, outStream);
+				return processImage(new WicDecoder(imgPath, ctx), ctx, outStream);
 		}
 
-		public static void ProcessImage(ArraySegment<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
+		public static ProcessImageResult ProcessImage(ArraySegment<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
 			using (var ctx = new WicProcessingContext(settings))
-				processImage(new WicDecoder(imgBuffer, ctx), ctx, outStream);
+				return processImage(new WicDecoder(imgBuffer, ctx), ctx, outStream);
 		}
 
-		public static void ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings)
+		public static ProcessImageResult ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings)
 		{
 			using (var ctx = new WicProcessingContext(settings))
-				processImage(new WicDecoder(imgStream, ctx), ctx, outStream);
+				return processImage(new WicDecoder(imgStream, ctx), ctx, outStream);
 		}
 
-		private static void processImage(WicDecoder dec, WicProcessingContext ctx, Stream ostm)
+		private static ProcessImageResult processImage(WicDecoder dec, WicProcessingContext ctx, Stream ostm)
 		{
 			var frm = new WicFrameReader(ctx);
 			WicTransforms.AddMetadataReader(ctx);
@@ -44,6 +44,8 @@ namespace PhotoSauce.MagicScaler
 
 			var enc = new WicEncoder(ctx, ostm.AsIStream());
 			enc.WriteSource(ctx);
+
+			return new ProcessImageResult { Settings = ctx.UsedSettings, Stats = ctx.Stats };
 		}
 	}
 }

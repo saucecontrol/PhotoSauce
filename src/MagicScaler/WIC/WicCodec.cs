@@ -152,7 +152,7 @@ namespace PhotoSauce.MagicScaler
 
 					var conv = ctx.AddRef(Wic.Factory.CreateFormatConverter());
 					conv.Initialize(ctx.Source.WicSource, oformat, WICBitmapDitherType.WICBitmapDitherTypeNone, pal, 0.0, ptt);
-					ctx.Source = new WicBitmapSourceWrapper(conv);
+					ctx.Source = new WicBitmapSourceWrapper(conv, nameof(IWICFormatConverter), false);
 				}
 				else if (oformat == Consts.GUID_WICPixelFormat8bppIndexed)
 				{

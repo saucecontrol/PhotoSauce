@@ -74,11 +74,8 @@ namespace PhotoSauce.MagicScaler
 			IntBuff = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(intBuffLen), 0, intBuffLen);
 		}
 
-		unsafe public override void CopyPixels(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		unsafe protected override void CopyPixelsInternal(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
-			if (prc.X < 0 || prc.Y < 0 || prc.X + prc.Width > Width || prc.Y + prc.Height > Height)
-				throw new ArgumentOutOfRangeException(nameof(prc), "Requested rectangle does not fall within the image bounds");
-
 			fixed (byte* bstart = LineBuff.Array, tstart = IntBuff.Array)
 			fixed (byte* mapxstart = XMap.Map.Array, mapystart = YMap.Map.Array)
 			{
@@ -129,7 +126,9 @@ namespace PhotoSauce.MagicScaler
 					byte* tline = tstart + ty * IntBpp;
 
 					SourceRect.Y = iy + ty;
+					Timer.Stop();
 					Source.CopyPixels(SourceRect, BufferStride, BufferStride, (IntPtr)bline);
+					Timer.Start();
 
 					Processor.ConvolveSourceLine(bline, tline, IntBuff.Count, mapxstart, XMap.Samples, YMap.Samples);
 				}
@@ -142,6 +141,8 @@ namespace PhotoSauce.MagicScaler
 			ArrayPool<byte>.Shared.Return(IntBuff.Array ?? Array.Empty<byte>());
 			LineBuff = IntBuff = default(ArraySegment<byte>);
 		}
+
+		public override string ToString() => Processor?.ToString() ?? base.ToString();
 	}
 
 	internal class UnsharpMaskTransform<TPixel, TWeight> : ConvolutionTransform<TPixel, TWeight> where TPixel : struct where TWeight : struct
@@ -180,5 +181,7 @@ namespace PhotoSauce.MagicScaler
 			ArrayPool<byte>.Shared.Return(blurBuff ?? Array.Empty<byte>());
 			blurBuff = null;
 		}
+
+		public override string ToString() => $"{base.ToString()}: Sharpen";
 	}
 }

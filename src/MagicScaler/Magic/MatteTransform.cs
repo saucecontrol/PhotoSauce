@@ -26,9 +26,11 @@ namespace PhotoSauce.MagicScaler
 			maskBlue = color.B;
 		}
 
-		unsafe public override void CopyPixels(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		unsafe protected override void CopyPixelsInternal(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
+			Timer.Stop();
 			Source.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
+			Timer.Start();
 
 			if (Format == PixelFormat.Pbgra128BppLinearFloat)
 				applyMatteLinearFloat(prc, (float*)pbBuffer, (int)(cbStride / sizeof(float)));
@@ -51,7 +53,7 @@ namespace PhotoSauce.MagicScaler
 			for (int y = 0; y < prc.Height; y++)
 			{
 				float* ip = pixels + y * stride;
-				float* ipe = ip + stride - Vector<float>.Count;
+				float* ipe = ip + prc.Width * 4 - Vector<float>.Count;
 
 				while (ip <= ipe)
 				{
@@ -101,7 +103,7 @@ namespace PhotoSauce.MagicScaler
 			for (int y = 0; y < prc.Height; y++)
 			{
 				ushort* ip = pixels + y * stride;
-				ushort* ipe = ip + stride;
+				ushort* ipe = ip + prc.Width * 4;
 
 				while (ip < ipe)
 				{
@@ -145,13 +147,12 @@ namespace PhotoSauce.MagicScaler
 			{
 				byte* gt = gtstart;
 				ushort* igt = igtstart, at = atstart;
-
 				ushort mrl = igt[maskRed], mgl = igt[maskGreen], mbl = igt[maskBlue];
 
 				for (int y = 0; y < prc.Height; y++)
 				{
 					byte* ip = pixels + y * stride;
-					byte* ipe = ip + stride;
+					byte* ipe = ip + prc.Width * 4;
 
 					while (ip < ipe)
 					{

@@ -40,23 +40,23 @@ namespace PhotoSauce.MagicScaler
 				img.RotateFlip(rot);
 		}
 
-		public static void ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
+		public static ProcessImageResult ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
 		{
 			using (var fs = new FileStream(imgPath, FileMode.Open, FileAccess.Read, FileShare.Read))
-				ProcessImage(fs, outStream, settings);
+				return ProcessImage(fs, outStream, settings);
 		}
 
-		public static void ProcessImage(ArraySegment<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
+		public static ProcessImageResult ProcessImage(ArraySegment<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
 			using (var ms = new MemoryStream(imgBuffer.Array, imgBuffer.Offset, imgBuffer.Count, false))
-				ProcessImage(ms, outStream, settings);
+				return ProcessImage(ms, outStream, settings);
 		}
 
-		public static void ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings) => processImage(imgStream, outStream, settings);
+		public static ProcessImageResult ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings) => processImage(imgStream, outStream, settings);
 
 		public static void CreateBrokenImage(Stream outStream, ProcessImageSettings settings) => createBrokenImage(outStream, settings);
 
-		private static void processImage(Stream istm, Stream ostm, ProcessImageSettings s)
+		private static ProcessImageResult processImage(Stream istm, Stream ostm, ProcessImageSettings s)
 		{
 			using (var img = Image.FromStream(istm, true, false))
 			{
@@ -149,6 +149,8 @@ namespace PhotoSauce.MagicScaler
 					}
 				}
 			}
+
+			return new ProcessImageResult { Settings = s, Stats = Enumerable.Empty<PixelSourceStats>() };
 		}
 
 		private static void createBrokenImage(Stream ostm, ProcessImageSettings s)

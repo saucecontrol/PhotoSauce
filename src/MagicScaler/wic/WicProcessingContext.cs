@@ -12,14 +12,17 @@ namespace PhotoSauce.MagicScaler
 		private readonly Stack<object> comHandles = new Stack<object>();
 		private readonly Stack<IDisposable> disposeHandles = new Stack<IDisposable>();
 
+		private PixelSource source;
 		private IWICColorContext sourceColorContext;
 		private IWICColorContext destColorContext;
 		private IWICPalette destPalette;
 
 		public ProcessImageSettings Settings { get; private set; }
+		public ProcessImageSettings UsedSettings { get; private set; }
+		public IList<PixelSourceStats> Stats { get; private set; }
+
 		public WicDecoder Decoder { get; set; }
 		public WicFrameReader DecoderFrame { get; set; }
-		public PixelSource Source { get; set; }
 		public PixelSource PlanarLumaSource { get; set; }
 		public PixelSource PlanarChromaSource { get; set; }
 
@@ -27,9 +30,20 @@ namespace PhotoSauce.MagicScaler
 		public IWICColorContext DestColorContext { get => destColorContext; set => destColorContext = AddOwnRef(value); }
 		public IWICPalette DestPalette { get => destPalette; set => destPalette = AddOwnRef(value); }
 
+		public PixelSource Source
+		{
+			get => source;
+			set
+			{
+				source = value;
+				Stats.Add(source.Stats);
+			}
+		}
+
 		public WicProcessingContext(ProcessImageSettings settings)
 		{
 			Settings = settings.Clone();
+			Stats = new List<PixelSourceStats>();
 		}
 
 		public T AddDispose<T>(T disposeHandle) where T : IDisposable
@@ -69,19 +83,21 @@ namespace PhotoSauce.MagicScaler
 				if (Settings.SaveFormat == FileFormat.Auto)
 					Settings.SetSaveFormat(Decoder.ContainerFormat, Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
 			}
+
+			UsedSettings = Settings.Clone();
 		}
 
 		public void SwitchPlanarSource(WicPlane plane)
 		{
 			if (plane == WicPlane.Chroma)
 			{
-				PlanarLumaSource = Source;
-				Source = PlanarChromaSource;
+				PlanarLumaSource = source;
+				source = PlanarChromaSource;
 			}
 			else
 			{
-				PlanarChromaSource = Source;
-				Source = PlanarLumaSource;
+				PlanarChromaSource = source;
+				source = PlanarLumaSource;
 			}
 		}
 

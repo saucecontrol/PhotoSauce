@@ -24,7 +24,7 @@ namespace PhotoSauce.MagicScaler
 			if (!outStream.CanSeek || !outStream.CanWrite) throw new ArgumentException("Output Stream must allow Seek and Write", nameof(outStream));
 		}
 
-		public static void ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
+		public static ProcessImageResult ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
 		{
 			if (imgPath == null) throw new ArgumentNullException(nameof(imgPath));
 			checkOutStream(outStream);
@@ -33,11 +33,11 @@ namespace PhotoSauce.MagicScaler
 			{
 				var dec = new WicDecoder(imgPath, ctx);
 				buildPipeline(ctx);
-				processImage(ctx, outStream);
+				return processImage(ctx, outStream);
 			}
 		}
 
-		public static void ProcessImage(ArraySegment<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
+		public static ProcessImageResult ProcessImage(ArraySegment<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
 			if (imgBuffer == null) throw new ArgumentNullException(nameof(imgBuffer));
 			checkOutStream(outStream);
@@ -46,11 +46,11 @@ namespace PhotoSauce.MagicScaler
 			{
 				var dec = new WicDecoder(imgBuffer, ctx);
 				buildPipeline(ctx);
-				processImage(ctx, outStream);
+				return processImage(ctx, outStream);
 			}
 		}
 
-		public static void ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings)
+		public static ProcessImageResult ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings)
 		{
 			checkInStream(imgStream);
 			checkOutStream(outStream);
@@ -59,7 +59,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				var dec = new WicDecoder(imgStream, ctx);
 				buildPipeline(ctx);
-				processImage(ctx, outStream);
+				return processImage(ctx, outStream);
 			}
 		}
 
@@ -123,12 +123,14 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private static void processImage(WicProcessingContext ctx, Stream ostm)
+		private static ProcessImageResult processImage(WicProcessingContext ctx, Stream ostm)
 		{
 			WicTransforms.AddIndexedColorConverter(ctx);
 
 			var enc = new WicEncoder(ctx, ostm.AsIStream());
 			enc.WriteSource(ctx);
+
+			return new ProcessImageResult { Settings = ctx.UsedSettings, Stats = ctx.Stats };
 		}
 	}
 }
