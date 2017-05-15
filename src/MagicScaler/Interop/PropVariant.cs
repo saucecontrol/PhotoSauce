@@ -28,11 +28,11 @@ namespace PhotoSauce.MagicScaler.Interop
 			public IntPtr ptr;
 		}
 
-		[FieldOffset(0)] public ushort vt;
+		[FieldOffset(0)] private ushort _vt;
 
-		[FieldOffset(2)] public ushort reserved1;
-		[FieldOffset(4)] public ushort reserved2;
-		[FieldOffset(6)] public ushort reserved3;
+		[FieldOffset(2)] private ushort reserved1;
+		[FieldOffset(4)] private ushort reserved2;
+		[FieldOffset(6)] private ushort reserved3;
 
 		[FieldOffset(8)] public sbyte sbyteValue;
 		[FieldOffset(8)] public byte byteValue;
@@ -47,43 +47,28 @@ namespace PhotoSauce.MagicScaler.Interop
 
 		[FieldOffset(8)] public IntPtr pointerValue;
 		[FieldOffset(8)] public PropVariantVector vectorValue;
+
+		public VarEnum vt { get =>(VarEnum)_vt; set => _vt = (ushort)value; }
 	}
 
 	internal sealed class PropVariant : IEquatable<PropVariant>
 	{
-		public object Value { get; private set; }
-		public PropVariantMarshalType MarshalType { get; private set; }
+#if !NET46
+		public interface ICustomMarshaler { }
+#endif
 
-		public PropVariant() : this (null) { }
+		public enum PropVariantMarshalType { Automatic, Ascii, Blob }
 
-		public PropVariant(object value) : this(value, PropVariantMarshalType.Automatic) { }
-
-		public PropVariant(object value, PropVariantMarshalType marshalType)
+		private static VarEnum getUnmanagedType(object o, PropVariantMarshalType marshalType)
 		{
-			MarshalType = marshalType;
-			Value = value;
+			if (o == null) return VarEnum.VT_EMPTY;
+			if (Marshal.IsComObject(o)) return VarEnum.VT_UNKNOWN;
+			if (o is PropVariant pv) return pv.UnmanagedType;
 
-			if ((value is Array) && value.GetType().Equals(typeof(object[])))
-			{
-				var objectArray = (object[])value;
-				var typedArray = Array.CreateInstance(objectArray[0].GetType(), objectArray.Length);
-				Array.Copy(objectArray, typedArray, objectArray.Length);
-
-				Value = typedArray;
-			}
-
-			getUnmanagedType();
-		}
-
-		private VarEnum getUnmanagedType()
-		{
-			if (Value == null) return VarEnum.VT_EMPTY;
-			if (Marshal.IsComObject(Value)) return VarEnum.VT_UNKNOWN;
-
-			var type = Value.GetType();
-			if ((MarshalType == PropVariantMarshalType.Blob ) && type.Equals(typeof(byte  []))) return VarEnum.VT_BLOB;
-			if ((MarshalType == PropVariantMarshalType.Ascii) && type.Equals(typeof(string  ))) return VarEnum.VT_LPSTR;
-			if ((MarshalType == PropVariantMarshalType.Ascii) && type.Equals(typeof(string[]))) return VarEnum.VT_LPSTR | VarEnum.VT_VECTOR;
+			var type = o.GetType();
+			if ((marshalType == PropVariantMarshalType.Blob ) && type.Equals(typeof(byte  []))) return VarEnum.VT_BLOB;
+			if ((marshalType == PropVariantMarshalType.Ascii) && type.Equals(typeof(string  ))) return VarEnum.VT_LPSTR;
+			if ((marshalType == PropVariantMarshalType.Ascii) && type.Equals(typeof(string[]))) return VarEnum.VT_LPSTR | VarEnum.VT_VECTOR;
 			if (type.Equals(typeof(sbyte   ))) return VarEnum.VT_I1;
 			if (type.Equals(typeof(sbyte []))) return VarEnum.VT_I1     | VarEnum.VT_VECTOR;
 			if (type.Equals(typeof(byte    ))) return VarEnum.VT_UI1;
@@ -110,10 +95,34 @@ namespace PhotoSauce.MagicScaler.Interop
 			if (type.Equals(typeof(string[]))) return VarEnum.VT_LPWSTR | VarEnum.VT_VECTOR;
 			if (type.Equals(typeof(DateTime))) return VarEnum.VT_FILETIME;
 
-			throw new NotImplementedException();
+			throw new ArgumentException($"Value is not supported by {nameof(PropVariant)}", nameof(o));
 		}
 
-		public VarEnum UnmanagedType => getUnmanagedType();
+
+		public object Value { get; private set; }
+		public PropVariantMarshalType MarshalType { get; private set; }
+		public VarEnum UnmanagedType { get; private set; }
+
+		public PropVariant() : this (null) { }
+
+		public PropVariant(object value) : this(value, PropVariantMarshalType.Automatic) { }
+
+		public PropVariant(object value, PropVariantMarshalType marshalType)
+		{
+			Value = value;
+			MarshalType = marshalType;
+
+			if ((value is Array) && value.GetType().Equals(typeof(object[])))
+			{
+				var objectArray = (object[])value;
+				var typedArray = Array.CreateInstance(objectArray[0].GetType(), objectArray.Length);
+				Array.Copy(objectArray, typedArray, objectArray.Length);
+
+				Value = typedArray;
+			}
+
+			UnmanagedType = getUnmanagedType(Value, MarshalType);
+		}
 
 		public bool Equals(PropVariant other)
 		{
@@ -129,19 +138,16 @@ namespace PhotoSauce.MagicScaler.Interop
 			return ReferenceEquals(Value, other.Value) || !ReferenceEquals(Value, null) && Value.Equals(other.Value);
 		}
 
-		public static bool operator ==(PropVariant pv1, PropVariant pv2) => ReferenceEquals(pv1, pv2) || !ReferenceEquals(pv1, null) && pv1.Equals(pv2);
+		public static bool operator ==(PropVariant pv1, PropVariant pv2) => ReferenceEquals(pv1, pv2) || (!ReferenceEquals(pv1, null) && pv1.Equals(pv2));
 		public static bool operator !=(PropVariant pv1, PropVariant pv2) => !(pv1 == pv2);
 
 		public override bool Equals(object o) => Equals(o as PropVariant);
-		public override int GetHashCode() => Value == null ? 0 : Value.GetHashCode();
+		public override int GetHashCode() => Value?.GetHashCode() ?? 0;
 		public override string ToString() => $"{(UnmanagedType & ~VarEnum.VT_VECTOR)}: {(Value is Array ? string.Join(" ", (Array)Value) : Value)}";
 
-		internal enum PropVariantMarshalType { Automatic, Ascii, Blob }
-
-#if NET46
 		internal sealed class Marshaler : ICustomMarshaler
 		{
-			[DllImport("kernel32", EntryPoint="RtlZeroMemory", SetLastError=false)]
+			[DllImport("kernel32", EntryPoint = "RtlZeroMemory", SetLastError = false)]
 			private extern static void zeroMemory(IntPtr dst, int length);
 
 			[DllImport("ole32", EntryPoint = "PropVariantClear", PreserveSig = false)]
@@ -157,18 +163,18 @@ namespace PhotoSauce.MagicScaler.Interop
 				return res;
 			}
 
+			private static TOut[] convertArray<TIn, TOut>(TIn[] array, Func<TIn, TOut> converter)
+			{
+				var res = new TOut[array.Length];
+				for (int i = 0; i < array.Length; i++)
+					res[i] = converter(array[i]);
+
+				return res;
+			}
+
 			public static ICustomMarshaler GetInstance(string str) => new Marshaler();
 
 			private PropVariant pv;
-
-			private IntPtr allocatePropVariant()
-			{
-				int size = Marshal.SizeOf<UnmanagedPropVariant>();
-				var pNativeData = Marshal.AllocCoTaskMem(size);
-				zeroMemory(pNativeData, size);
-
-				return pNativeData;
-			}
 
 			public void CleanUpManagedData(object obj) { }
 
@@ -180,12 +186,13 @@ namespace PhotoSauce.MagicScaler.Interop
 
 			public int GetNativeDataSize() => -1;
 
-			public IntPtr MarshalManagedToNative(object o)
+			unsafe public IntPtr MarshalManagedToNative(object o)
 			{
 				if (o == null)
 					return IntPtr.Zero;
 
 				var marshalType = PropVariantMarshalType.Automatic;
+				var unmanagedType = getUnmanagedType(o, marshalType);
 				if (o is PropVariant)
 				{
 					pv = (PropVariant)o;
@@ -193,93 +200,72 @@ namespace PhotoSauce.MagicScaler.Interop
 					marshalType = pv.MarshalType;
 				}
 
-				var pNativeData = allocatePropVariant();
+				int cbNative = Marshal.SizeOf<UnmanagedPropVariant>();
+				var pNativeData = Marshal.AllocCoTaskMem(cbNative);
+				zeroMemory(pNativeData, cbNative);
+
 				if (o == null)
 					return pNativeData;
 
-				var type = o.GetType();
 				if (!(o is Array))
 				{
-					if (marshalType == PropVariantMarshalType.Ascii)
+					if (o is DateTime || o is string)
 					{
-						var upv = new UnmanagedPropVariant();
-						upv.vt = (ushort)VarEnum.VT_LPSTR;
-						upv.pointerValue = Marshal.StringToCoTaskMemAnsi((string)o);
-						Marshal.StructureToPtr(upv, pNativeData, false);
-					}
-					else if (o is string)
-					{
-						var upv = new UnmanagedPropVariant();
-						upv.vt = (ushort)VarEnum.VT_LPWSTR;
-						upv.pointerValue = Marshal.StringToCoTaskMemUni((string)o);
-						Marshal.StructureToPtr(upv, pNativeData, false);
-					}
-					else if (o is DateTime)
-					{
-						var upv = new UnmanagedPropVariant();
-						upv.vt = (ushort)VarEnum.VT_FILETIME;
-						upv.int64Value = ((DateTime)o).ToFileTimeUtc();
+						var upv = new UnmanagedPropVariant { vt = unmanagedType };
+						if (o is DateTime)
+							upv.int64Value = ((DateTime)o).ToFileTimeUtc();
+						else
+							upv.pointerValue = marshalType == PropVariantMarshalType.Ascii ? Marshal.StringToCoTaskMemAnsi((string)o) : Marshal.StringToCoTaskMemUni((string)o);
+
 						Marshal.StructureToPtr(upv, pNativeData, false);
 					}
 					else
 					{
 						Marshal.GetNativeVariantForObject(o, pNativeData);
 					}
+
+					return pNativeData;
 				}
-				else if ((type.Equals(typeof(byte []))) || (type.Equals(typeof(sbyte []))) ||
-				         (type.Equals(typeof(short[]))) || (type.Equals(typeof(ushort[]))) ||
-				         (type.Equals(typeof(int  []))) || (type.Equals(typeof(uint  []))) ||
-				         (type.Equals(typeof(long []))) || (type.Equals(typeof(ulong []))) ||
-				         (type.Equals(typeof(float[]))) || (type.Equals(typeof(double[]))))
+
+				var type = o.GetType();
+				if (type.Equals(typeof(byte  [])) || type.Equals(typeof(sbyte [])) ||
+				    type.Equals(typeof(short [])) || type.Equals(typeof(ushort[])) ||
+				    type.Equals(typeof(int   [])) || type.Equals(typeof(uint  [])) ||
+				    type.Equals(typeof(long  [])) || type.Equals(typeof(ulong [])) ||
+				    type.Equals(typeof(float [])) || type.Equals(typeof(double[])) ||
+				    type.Equals(typeof(string[])))
 				{
 					var a = (Array)o;
-					int count = a.Length;
-					int elementSize = Marshal.SizeOf(type.GetElementType());
-					var pNativeBuffer = Marshal.AllocCoTaskMem(elementSize * count);
+					int bufflen = type.Equals(typeof(string[])) ? IntPtr.Size * a.Length : Buffer.ByteLength(a);
+					var pNativeBuffer = Marshal.AllocCoTaskMem(bufflen);
 
-					var gch = GCHandle.Alloc(a, GCHandleType.Pinned);
-					for (int i = 0; i < count; i++)
+					if (type.Equals(typeof(string[])))
 					{
-						var pNativeValue = Marshal.UnsafeAddrOfPinnedArrayElement(a, i);
-						for (int j = 0; j < elementSize; j++)
+						var sa = (string[])o;
+						for (int i = 0; i < sa.Length; i++)
 						{
-							byte value = Marshal.ReadByte(pNativeValue, j);
-							Marshal.WriteByte(pNativeBuffer, elementSize * i + j, value);
+							var strPtr = marshalType == PropVariantMarshalType.Ascii ? Marshal.StringToCoTaskMemAnsi(sa[i]) : Marshal.StringToCoTaskMemUni(sa[i]);
+							Marshal.WriteIntPtr(pNativeBuffer, IntPtr.Size * i, strPtr);
 						}
 					}
-					gch.Free();
-
-					var upv = new UnmanagedPropVariant();
-					upv.vectorValue.count = (uint)count;
-					upv.vectorValue.ptr = pNativeBuffer;
-					upv.vt = (ushort)(pv ?? new PropVariant(o)).UnmanagedType;
-
-					Marshal.StructureToPtr(upv, pNativeData, false);
-				}
-				else if (type.Equals(typeof(string[])))
-				{
-					int count = ((Array)o).Length;
-					var pNativeBuffer = Marshal.AllocCoTaskMem(IntPtr.Size * count);
-
-					for (int i = 0; i < count; i++)
+					else
 					{
-						var strPtr = Marshal.StringToCoTaskMemUni(((string[])o)[i]);
-						Marshal.WriteIntPtr(pNativeBuffer, IntPtr.Size * i, strPtr);
+						var gch = GCHandle.Alloc(a, GCHandleType.Pinned);
+						var pNativeValue = Marshal.UnsafeAddrOfPinnedArrayElement(a, 0);
+						Buffer.MemoryCopy(pNativeValue.ToPointer(), pNativeBuffer.ToPointer(), bufflen, bufflen);
+						gch.Free();
 					}
 
-					var upv = new UnmanagedPropVariant();
-					upv.vectorValue.count = (uint)count;
+					var upv = new UnmanagedPropVariant { vt = unmanagedType };
+					upv.vectorValue.count = (uint)a.Length;
 					upv.vectorValue.ptr = pNativeBuffer;
-					upv.vt = (ushort)(pv ?? new PropVariant(o)).UnmanagedType;
-
 					Marshal.StructureToPtr(upv, pNativeData, false);
-				}
-				else
-				{
-					throw new NotImplementedException();
+
+					return pNativeData;
 				}
 
-				return pNativeData;
+				Marshal.FreeCoTaskMem(pNativeData);
+				throw new NotImplementedException();
 			}
 
 			public object MarshalNativeToManaged(IntPtr pNativeData)
@@ -289,10 +275,11 @@ namespace PhotoSauce.MagicScaler.Interop
 
 				var upv = Marshal.PtrToStructure<UnmanagedPropVariant>(pNativeData);
 				pv.MarshalType = PropVariantMarshalType.Automatic;
+				pv.UnmanagedType = upv.vt;
 
-				if (((upv.vt & (ushort)VarEnum.VT_VECTOR) == 0) && (upv.vt != (ushort)VarEnum.VT_BLOB))
+				if (!upv.vt.HasFlag(VarEnum.VT_VECTOR) && upv.vt != VarEnum.VT_BLOB)
 				{
-					switch ((VarEnum)upv.vt)
+					switch (upv.vt)
 					{
 						case VarEnum.VT_EMPTY:
 							pv.Value = null;
@@ -318,7 +305,7 @@ namespace PhotoSauce.MagicScaler.Interop
 				}
 				else
 				{
-					var elementVt = (VarEnum)(upv.vt & ~(ushort)VarEnum.VT_VECTOR);
+					var elementVt = upv.vt & ~VarEnum.VT_VECTOR;
 					switch (elementVt)
 					{
 						case VarEnum.VT_I1:
@@ -353,22 +340,21 @@ namespace PhotoSauce.MagicScaler.Interop
 							break;
 						case VarEnum.VT_BLOB:
 							pv.MarshalType = PropVariantMarshalType.Blob;
-							pv.Value = toArrayOf<byte>(upv); ;
+							pv.Value = toArrayOf<byte>(upv);
 							break;
 						case VarEnum.VT_LPSTR:
 							pv.MarshalType = PropVariantMarshalType.Ascii;
-							pv.Value = Array.ConvertAll(toArrayOf<IntPtr>(upv), Marshal.PtrToStringAnsi);
+							pv.Value = convertArray(toArrayOf<IntPtr>(upv), Marshal.PtrToStringAnsi);
 							break;
 						case VarEnum.VT_LPWSTR:
-							pv.Value = Array.ConvertAll(toArrayOf<IntPtr>(upv), Marshal.PtrToStringUni);
+							pv.Value = convertArray(toArrayOf<IntPtr>(upv), Marshal.PtrToStringUni);
 							break;
 						default: throw new NotImplementedException();
 					}
 				}
 
-				return null;
+				return pv;
 			}
 		}
-#endif
 	}
 }

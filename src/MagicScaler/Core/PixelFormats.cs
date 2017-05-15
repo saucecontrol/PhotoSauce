@@ -217,9 +217,8 @@ namespace PhotoSauce.MagicScaler
 			};
 
 			uint fet = 10u;
-			var wic = new WICImagingFactory2() as IWICImagingFactory;
-			var cen = wic.CreateComponentEnumerator(WICComponentType.WICPixelFormat, WICComponentEnumerateOptions.WICComponentEnumerateDefault);
 			var oar = new object[fet];
+			var cen = Wic.Factory.CreateComponentEnumerator(WICComponentType.WICPixelFormat, WICComponentEnumerateOptions.WICComponentEnumerateDefault);
 			do
 			{
 				fet = cen.Next(fet, oar);
@@ -258,7 +257,6 @@ namespace PhotoSauce.MagicScaler
 			} while (fet > 0);
 
 			Marshal.ReleaseComObject(cen);
-			Marshal.ReleaseComObject(wic);
 
 			Cache = new ReadOnlyDictionary<Guid, PixelFormat>(dic);
 		}

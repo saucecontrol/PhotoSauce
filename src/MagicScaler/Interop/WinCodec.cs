@@ -133,32 +133,28 @@ namespace PhotoSauce.MagicScaler.Interop
 		CF_DSPENHMETAFILE = 0x8E,
 	}
 
-	internal enum PROPBAG2_TYPE
+	internal enum PROPBAG2_TYPE : uint
 	{
 		PROPBAG2_TYPE_UNDEFINED = 0,
-		PROPBAG2_TYPE_DATA = 1,         // Value is simple data
-		PROPBAG2_TYPE_URL = 2,          // Value is a URL reference
-		PROPBAG2_TYPE_OBJECT = 3,       // Value is an object
-		PROPBAG2_TYPE_STREAM = 4,       // Value is a stream
-		PROPBAG2_TYPE_STORAGE = 5,      // Value is a storage
-		PROPBAG2_TYPE_MONIKER = 6       // Value is a moniker
+		PROPBAG2_TYPE_DATA = 1,
+		PROPBAG2_TYPE_URL = 2,
+		PROPBAG2_TYPE_OBJECT = 3,
+		PROPBAG2_TYPE_STREAM = 4,
+		PROPBAG2_TYPE_STORAGE = 5,
+		PROPBAG2_TYPE_MONIKER = 6
 	}
 
 	internal struct PROPBAG2
 	{
-		public uint dwType;                 // Property type (from PROPBAG2_TYPE)
-		short _vt;                          // VARIANT property type
+		public PROPBAG2_TYPE dwType;        // Property type (from PROPBAG2_TYPE)
+		private ushort _vt;                 // VARIANT property type
 		public CLIPFORMAT cfType;           // Clipboard format (aka MIME-type)
 		public uint dwHint;                 // Property name hint
 		[MarshalAs(UnmanagedType.LPWStr)]
 		public string pstrName;             // Property name
 		public Guid clsid;                  // CLSID (for PROPBAG2_TYPE_OBJECT)
 
-		public VarEnum vt
-		{
-			get { return (VarEnum)_vt; }
-			set { _vt = (short)value; }
-		}
+		public VarEnum vt { get => (VarEnum)_vt; set => _vt = (ushort)value; }
 	}
 
 	[ComImport, Guid("3127CA40-446E-11CE-8135-00AA004BB851"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -1128,6 +1124,7 @@ namespace PhotoSauce.MagicScaler.Interop
 
 		IWICEnumMetadataItem Clone();
 	}
+#endif
 
 	[ComImport, Guid("30989668-E1C9-4597-B395-458EEDB808DF"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICMetadataQueryReader
@@ -1143,8 +1140,12 @@ namespace PhotoSauce.MagicScaler.Interop
 		void GetMetadataByName(
 			[MarshalAs(UnmanagedType.LPWStr)]
 			string wzName,
+#if NET46
 			[In, Out, MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(PropVariant.Marshaler))]
 			PropVariant pvarValue
+#else
+			IntPtr pvarValue
+#endif
 		);
 
 		IEnumString GetEnumerator();
@@ -1165,8 +1166,12 @@ namespace PhotoSauce.MagicScaler.Interop
 		new void GetMetadataByName(
 			[MarshalAs(UnmanagedType.LPWStr)]
 			string wzName,
+#if NET46
 			[In, Out, MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(PropVariant.Marshaler))]
 			PropVariant pvarValue
+#else
+			IntPtr pvarValue
+#endif
 		);
 
 		new IEnumString GetEnumerator();
@@ -1175,8 +1180,12 @@ namespace PhotoSauce.MagicScaler.Interop
 		void SetMetadataByName(
 			[MarshalAs(UnmanagedType.LPWStr)]
 			string wzName,
+#if NET46
 			[In, MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(PropVariant.Marshaler))]
 			PropVariant pvarValue
+#else
+			IntPtr pvarValue
+#endif
 		);
 
 		void RemoveMetadataByName(
@@ -1184,10 +1193,6 @@ namespace PhotoSauce.MagicScaler.Interop
 			string wzName
 		);
 	}
-#else
-	internal interface IWICMetadataQueryReader { }
-	internal interface IWICMetadataQueryWriter { }
-#endif
 
 	[ComImport, Guid("00000103-a8f2-4877-ba0a-fd2b6645fb94"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICBitmapEncoder
@@ -2721,7 +2726,6 @@ namespace PhotoSauce.MagicScaler.Interop
 			out uint pcActualCount
 		);
 
-#if NET46
 		[DllImport("WindowsCodecs", EntryPoint = "IWICBitmapFrameDecode_GetMetadataQueryReader_Proxy")]
 		public extern static int GetMetadataQueryReader(
 			IWICBitmapFrameDecode THIS_PTR,
@@ -2747,9 +2751,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			IWICMetadataQueryWriter THIS_PTR,
 			[MarshalAs(UnmanagedType.LPWStr)]
 			string wzName,
-			[In, MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(PropVariant.Marshaler))]
-			PropVariant pvarValue
+			IntPtr pvarValue
 		);
-#endif
 	}
 }

@@ -23,7 +23,6 @@ namespace PhotoSauce.MagicScaler.Interop
 			return hr >= 0 ? ccc : 0u;
 		}
 
-#if NET46
 		public static bool TryGetMetadataQueryReader(this IWICBitmapFrameDecode frame, out IWICMetadataQueryReader rdr)
 		{
 			int hr = ProxyFunctions.GetMetadataQueryReader(frame, out rdr);
@@ -36,24 +35,33 @@ namespace PhotoSauce.MagicScaler.Interop
 			return hr >= 0;
 		}
 
-		public static bool TryGetMetadataByName(this IWICMetadataQueryReader meta, string name, out PropVariant val)
+		public static bool TryGetMetadataByName(this IWICMetadataQueryReader meta, string name, out PropVariant value)
 		{
-			val = null;
+			value = null;
 
 			int hr = ProxyFunctions.GetMetadataByName(meta, name, IntPtr.Zero);
 			if (hr >= 0)
 			{
-				val = new PropVariant();
-				meta.GetMetadataByName(name, val);
+				value = new PropVariant();
+
+				var pvMarshal = new PropVariant.Marshaler();
+				var pvNative = pvMarshal.MarshalManagedToNative(value);
+				hr = ProxyFunctions.GetMetadataByName(meta, name, pvNative);
+				pvMarshal.MarshalNativeToManaged(pvNative);
+				pvMarshal.CleanUpNativeData(pvNative);
 			}
+
 			return hr >= 0;
 		}
 
 		public static bool TrySetMetadataByName(this IWICMetadataQueryWriter meta, string name, PropVariant value)
 		{
-			int hr = ProxyFunctions.SetMetadataByName(meta, name, value);
+			var pvMarshal = new PropVariant.Marshaler();
+			var pvNative = pvMarshal.MarshalManagedToNative(value);
+			int hr = ProxyFunctions.SetMetadataByName(meta, name, pvNative);
+			pvMarshal.CleanUpNativeData(pvNative);
+
 			return hr >= 0;
 		}
-#endif
 	}
 }

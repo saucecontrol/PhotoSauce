@@ -122,14 +122,12 @@ namespace PhotoSauce.MagicScaler
 			frame.SetSize(ctx.Source.Width, ctx.Source.Height);
 			frame.SetResolution(ctx.Settings.DpiX > 0d ? ctx.Settings.DpiX : ctx.DecoderFrame.DpiX, ctx.Settings.DpiY > 0d ? ctx.Settings.DpiY : ctx.DecoderFrame.DpiY);
 
-#if NET46
 			if (ctx.DecoderFrame.Metadata?.Count > 0 && frame.TryGetMetadataQueryWriter(out var metawriter))
 			{
 				ctx.AddRef(metawriter);
 				foreach (var nv in ctx.DecoderFrame.Metadata)
 					metawriter.TrySetMetadataByName(nv.Key, nv.Value);
 			}
-#endif
 
 			Frame = frame;
 		}

@@ -16,7 +16,7 @@ namespace PhotoSauce.MagicScaler
 		public double DpiY { get; private set; }
 		public bool SupportsNativeScale { get; private set; }
 		public bool SupportsNativeTransform { get; private set; }
-		public bool SupportsPlanarPipeline { get; private set; }
+		public bool SupportsPlanarPipeline { get; set; }
 		public WICBitmapTransformOptions TransformOptions { get; set; }
 		public IDictionary<string, PropVariant> Metadata { get; set; }
 
@@ -98,17 +98,16 @@ namespace PhotoSauce.MagicScaler
 			if (ctx.DecoderFrame.Frame == null)
 				return;
 
-#if NET46
 			if (ctx.DecoderFrame.Frame.TryGetMetadataQueryReader(out var metareader))
 			{
 				ctx.AddRef(metareader);
 
 				// Exif orientation
-				if (metareader.TryGetMetadataByName("System.Photo.Orientation", out var ovar))
+				if (metareader.TryGetMetadataByName("System.Photo.Orientation", out var pv))
 				{
 					ushort orientation = 1;
-					if (ovar.UnmanagedType == VarEnum.VT_UI2)
-						orientation = (ushort)ovar.Value;
+					if (pv.UnmanagedType == VarEnum.VT_UI2)
+						orientation = (ushort)pv.Value;
 
 					var opt = WICBitmapTransformOptions.WICBitmapTransformRotate0;
 					if (orientation == 3 || orientation == 4)
@@ -122,6 +121,14 @@ namespace PhotoSauce.MagicScaler
 						opt |= WICBitmapTransformOptions.WICBitmapTransformFlipHorizontal;
 
 					ctx.DecoderFrame.TransformOptions = opt;
+
+					if (ctx.DecoderFrame.SupportsPlanarPipeline && opt != WICBitmapTransformOptions.WICBitmapTransformRotate0 && ctx.DecoderFrame.Frame is IWICPlanarBitmapSourceTransform ptrans)
+					{
+						uint pw = 1, ph = 1;
+						var pdesc = new WICBitmapPlaneDescription[2];
+						var pfmts = new[] { Consts.GUID_WICPixelFormat8bppY, Consts.GUID_WICPixelFormat16bppCbCr };
+						ctx.DecoderFrame.SupportsPlanarPipeline = ptrans.DoesSupportTransform(ref pw, ref ph, opt, WICPlanarOptions.WICPlanarOptionsDefault, pfmts, pdesc, 2);
+					}
 				}
 
 				if (basicOnly)
@@ -137,7 +144,6 @@ namespace PhotoSauce.MagicScaler
 
 				ctx.DecoderFrame.Metadata = propdic;
 			}
-#endif
 
 			if (basicOnly)
 				return;
