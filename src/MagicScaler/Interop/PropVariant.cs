@@ -138,7 +138,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			return ReferenceEquals(Value, other.Value) || !ReferenceEquals(Value, null) && Value.Equals(other.Value);
 		}
 
-		public static bool operator ==(PropVariant pv1, PropVariant pv2) => ReferenceEquals(pv1, pv2) || (!ReferenceEquals(pv1, null) && pv1.Equals(pv2));
+		public static bool operator ==(PropVariant pv1, PropVariant pv2) => ReferenceEquals(pv1, pv2) || !ReferenceEquals(pv1, null) && pv1.Equals(pv2);
 		public static bool operator !=(PropVariant pv1, PropVariant pv2) => !(pv1 == pv2);
 
 		public override bool Equals(object o) => Equals(o as PropVariant);
@@ -212,8 +212,8 @@ namespace PhotoSauce.MagicScaler.Interop
 					if (o is DateTime || o is string)
 					{
 						var upv = new UnmanagedPropVariant { vt = unmanagedType };
-						if (o is DateTime)
-							upv.int64Value = ((DateTime)o).ToFileTimeUtc();
+						if (o is DateTime dt)
+							upv.int64Value = dt.ToFileTimeUtc();
 						else
 							upv.pointerValue = marshalType == PropVariantMarshalType.Ascii ? Marshal.StringToCoTaskMemAnsi((string)o) : Marshal.StringToCoTaskMemUni((string)o);
 
@@ -239,9 +239,8 @@ namespace PhotoSauce.MagicScaler.Interop
 					int bufflen = type.Equals(typeof(string[])) ? IntPtr.Size * a.Length : Buffer.ByteLength(a);
 					var pNativeBuffer = Marshal.AllocCoTaskMem(bufflen);
 
-					if (type.Equals(typeof(string[])))
+					if (o is string[] sa)
 					{
-						var sa = (string[])o;
 						for (int i = 0; i < sa.Length; i++)
 						{
 							var strPtr = marshalType == PropVariantMarshalType.Ascii ? Marshal.StringToCoTaskMemAnsi(sa[i]) : Marshal.StringToCoTaskMemUni(sa[i]);

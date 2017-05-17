@@ -33,19 +33,13 @@ namespace System.Drawing.Temp
 
         private static void FillConstants(Dictionary<string, Color> colors, Type enumType)
         {
-            const MethodAttributes attrs = MethodAttributes.Public | MethodAttributes.Static;
-            PropertyInfo[] props = enumType.GetProperties();
-
-            foreach (PropertyInfo prop in props)
+            bool systemColors = enumType.Equals(typeof(SystemColors));
+            int end = (int)KnownColor.MenuHighlight + 1;
+            for (int i = 1; i < end; i ++)
             {
-                if (prop.PropertyType == typeof(Color))
-                {
-                    MethodInfo method = prop.GetGetMethod();
-                    if (method != null && (method.Attributes & attrs) == attrs)
-                    {
-                        colors[prop.Name] = (Color)prop.GetValue(null, null);
-                    }
-                }
+                bool systemColor = i < (int)KnownColor.Transparent || i > (int)KnownColor.YellowGreen;
+                if (systemColor == systemColors)
+                    colors[KnownColorTable.KnownColorToName((KnownColor)i)] = new Color((KnownColor)i);
             }
         }
 

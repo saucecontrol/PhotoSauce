@@ -15,6 +15,7 @@ namespace System.Drawing.Temp
 {
     public class ColorConverter : TypeConverter
     {
+#if NETCOREAPP10
         private static readonly Lazy<StandardValuesCollection> s_valuesLazy = new Lazy<StandardValuesCollection>(() => {
             // We must take the value from each hashtable and combine them.
             //
@@ -22,7 +23,7 @@ namespace System.Drawing.Temp
 
             return new StandardValuesCollection(set.OrderBy(c => c, new ColorComparer()).ToList());
         });
-
+#endif
         public ColorConverter()
         {
         }
@@ -38,10 +39,12 @@ namespace System.Drawing.Temp
 
         public override bool CanConvertTo(ITypeDescriptorContext context, Type destinationType)
         {
+#if NETCOREAPP10
             if (destinationType == typeof(InstanceDescriptor))
             {
                 return true;
             }
+#endif
             return base.CanConvertTo(context, destinationType);
         }
 
@@ -212,7 +215,7 @@ namespace System.Drawing.Temp
                         }
                     }
                 }
-                
+#if NETCOREAPP10
                 if (destinationType == typeof(InstanceDescriptor))
                 {
                     MemberInfo member = null;
@@ -258,11 +261,12 @@ namespace System.Drawing.Temp
                         return null;
                     }
                 }
+#endif
             }
 
             return base.ConvertTo(context, culture, value, destinationType);
         }
-
+#if NETCOREAPP10
         public override StandardValuesCollection GetStandardValues(ITypeDescriptorContext context)
         {
             return s_valuesLazy.Value;
@@ -272,7 +276,7 @@ namespace System.Drawing.Temp
         {
             return true;
         }
-
+#endif
         private class ColorComparer : IComparer<Color>
         {
             public int Compare(Color left, Color right)
