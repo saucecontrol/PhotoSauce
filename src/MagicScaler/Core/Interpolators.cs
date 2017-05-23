@@ -119,13 +119,14 @@ namespace PhotoSauce.MagicScaler.Interpolators
 	//http://en.wikipedia.org/wiki/Lanczos_resampling
 	public sealed class LanczosInterpolator : IInterpolator
 	{
-		private readonly double support;
+		private readonly double support, isupport;
 
 		public LanczosInterpolator(int lobes = 3)
 		{
 			if (lobes <= 0) throw new ArgumentOutOfRangeException(nameof(lobes), "Value must be greater than 0");
 
 			support = lobes;
+			isupport = 1.0 / support;
 		}
 
 		public double Support => support;
@@ -137,7 +138,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 			if (d < support)
 			{
 				d *= PI;
-				return (support * Sin(d) * Sin(d / support)) / (d * d);
+				return (support * Sin(d) * Sin(d * isupport)) / (d * d);
 			}
 
 			return 0.0;

@@ -209,7 +209,7 @@ namespace PhotoSauce.MagicScaler
 					byte o0 = gt[ip[-4]];
 					byte o1 = gt[ip[-3]];
 					byte o2 = gt[ip[-2]];
-					byte o3 = UnscaleToByte(ip[-1] * byte.MaxValue);
+					byte o3 = UnFix15ToByte(ip[-1] * byte.MaxValue);
 					op[-4] = o0;
 					op[-3] = o1;
 					op[-2] = o2;
@@ -241,13 +241,13 @@ namespace PhotoSauce.MagicScaler
 					else
 					{
 						int o3i = (UQ15One << 15) / o3;
-						byte o0 = gt[UnscaleToUQ15(ip[-4] * o3i)];
-						byte o1 = gt[UnscaleToUQ15(ip[-3] * o3i)];
-						byte o2 = gt[UnscaleToUQ15(ip[-2] * o3i)];
+						byte o0 = gt[UnFixToUQ15(ip[-4] * o3i)];
+						byte o1 = gt[UnFixToUQ15(ip[-3] * o3i)];
+						byte o2 = gt[UnFixToUQ15(ip[-2] * o3i)];
 						op[-4] = o0;
 						op[-3] = o1;
 						op[-2] = o2;
-						op[-1] = UnscaleToByte(o3 * byte.MaxValue);
+						op[-1] = UnFix15ToByte(o3 * byte.MaxValue);
 					}
 
 					ip += 4;
@@ -355,7 +355,7 @@ namespace PhotoSauce.MagicScaler
 				byte* op = opstart, gt = gtstart;
 
 				var vmin = Vector<float>.Zero;
-				var vmax = new Vector<float>(UQ15Max);
+				var vmax = new Vector<float>(UQ15One);
 				var vscale = new Vector<float>(FloatScale);
 				var vround = new Vector<float>(FloatRound);
 
@@ -393,7 +393,7 @@ namespace PhotoSauce.MagicScaler
 				ipe += Vector<float>.Count;
 				while (ip < ipe)
 				{
-					op[0] = gt[ScaleToUQ15(ip[0])];
+					op[0] = gt[FixToUQ15(ip[0])];
 					ip++;
 					op++;
 				}
@@ -411,10 +411,10 @@ namespace PhotoSauce.MagicScaler
 				{
 					float f3 = ip[-1];
 					float f3i = FloatScale / f3;
-					byte o0 = gt[ClampToUQ15((int)(ip[-4] * f3i + FloatRound))];
-					byte o1 = gt[ClampToUQ15((int)(ip[-3] * f3i + FloatRound))];
-					byte o2 = gt[ClampToUQ15((int)(ip[-2] * f3i + FloatRound))];
-					byte o3 = ScaleToByte(f3);
+					byte o0 = gt[ClampToUQ15((int)(ip[-4] * f3i))];
+					byte o1 = gt[ClampToUQ15((int)(ip[-3] * f3i))];
+					byte o2 = gt[ClampToUQ15((int)(ip[-2] * f3i))];
+					byte o3 = FixToByte(f3);
 					op[-4] = o0;
 					op[-3] = o1;
 					op[-2] = o2;
@@ -526,7 +526,7 @@ namespace PhotoSauce.MagicScaler
 			ipe += Vector<float>.Count;
 			while (ip < ipe)
 			{
-				op[0] = ScaleToByte(ip[0]);
+				op[0] = FixToByte(ip[0]);
 				ip++;
 				op++;
 			}
@@ -541,10 +541,10 @@ namespace PhotoSauce.MagicScaler
 			{
 				float f3 = ip[-1];
 				float f3i = byte.MaxValue / f3;
-				byte o0 = ClampToByte((int)(ip[-4] * f3i + FloatRound));
-				byte o1 = ClampToByte((int)(ip[-3] * f3i + FloatRound));
-				byte o2 = ClampToByte((int)(ip[-2] * f3i + FloatRound));
-				byte o3 = ScaleToByte(f3);
+				byte o0 = ClampToByte((int)(ip[-4] * f3i));
+				byte o1 = ClampToByte((int)(ip[-3] * f3i));
+				byte o2 = ClampToByte((int)(ip[-2] * f3i));
+				byte o3 = FixToByte(f3);
 				op[-4] = o0;
 				op[-3] = o1;
 				op[-2] = o2;

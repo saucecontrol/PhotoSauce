@@ -35,43 +35,37 @@ namespace PhotoSauce.MagicScaler
 		public static Vector<T> Clamp<T>(this Vector<T> x, Vector<T> min, Vector<T> max) where T : struct => Vector.Min(Vector.Max(min, x), max);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ushort ClampToUQ15(int x) => (ushort)Min(Max(0, x), imax);
+		public static ushort ClampToUQ15(int x) => (ushort)Min(Max(0, x), UQ15One);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte ClampToByte(int x) => (byte)Min(Max(0, x), byte.MaxValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int ScaleToInt32(double x) => (int)(x * dscale);
+		public static int Fix15(double x) => (int)Round(x * dscale);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int ScaleToInt32(float x) => (int)(x * fscale);
+		public static ushort FixToUQ15(double x) => ClampToUQ15((int)(x * dscale + dround));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ushort ScaleToUQ15(double x) => ClampToUQ15(ScaleToInt32(x));
+		public static ushort FixToUQ15(float x) => ClampToUQ15((int)(x * fscale + fround));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ushort ScaleToUQ15(float x) => ClampToUQ15(ScaleToInt32(x));
+		public static byte FixToByte(double x) => ClampToByte((int)(x * byte.MaxValue + dround));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte ScaleToByte(double x) => ClampToByte((int)(x * byte.MaxValue + dround));
+		public static byte FixToByte(float x) => ClampToByte((int)(x * byte.MaxValue + fround));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte ScaleToByte(float x) => ClampToByte((int)(x * byte.MaxValue + fround));
+		public static double UnFix15ToDouble(int x) => x * idscale;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static double UnscaleToDouble(int x) => x * idscale;
+		public static int UnFix15(int x) => x + iround >> ishift;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static float UnscaleToFloat(int x) => x * ifscale;
+		public static ushort UnFixToUQ15(int x) => ClampToUQ15(UnFix15(x));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int UnscaleToInt32(int x) => x + iround >> ishift;
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ushort UnscaleToUQ15(int x) => ClampToUQ15(UnscaleToInt32(x));
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte UnscaleToByte(int x) => ClampToByte(UnscaleToInt32(x));
+		public static byte UnFix15ToByte(int x) => ClampToByte(UnFix15(x));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ushort LumaFromBgr(ushort b, ushort g, ushort r)
@@ -81,7 +75,7 @@ namespace PhotoSauce.MagicScaler
 			const int gY = (ushort)(0.7152 * dscale + dround);
 			const int bY = (ushort)(0.0722 * dscale + dround);
 
-			return UnscaleToUQ15(r * rY + g * gY + b * bY);
+			return UnFixToUQ15(r * rY + g * gY + b * bY);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -92,7 +86,7 @@ namespace PhotoSauce.MagicScaler
 			const int gY = (ushort)(0.587 * dscale + dround);
 			const int bY = (ushort)(0.114 * dscale + dround);
 
-			return UnscaleToByte(r * rY + g * gY + b * bY);
+			return UnFix15ToByte(r * rY + g * gY + b * bY);
 		}
 
 		public static uint ReadBigEndianUInt32(this BinaryReader rdr)

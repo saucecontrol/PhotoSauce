@@ -119,15 +119,15 @@ namespace PhotoSauce.MagicScaler
 				if (aw != 0)
 				{
 					int wf = aw == UQ15One ? UQ15One : ((UQ15One << 15) / (UQ15One - aw));
-					a0 = UnscaleToInt32(a0) * wf;
-					a1 = UnscaleToInt32(a1) * wf;
-					a2 = UnscaleToInt32(a2) * wf;
+					a0 = UnFix15(a0) * wf;
+					a1 = UnFix15(a1) * wf;
+					a2 = UnFix15(a2) * wf;
 				}
 
-				tp[0] = UnscaleToInt32(a0);
-				tp[1] = UnscaleToInt32(a1);
-				tp[2] = UnscaleToInt32(a2);
-				tp[3] = UnscaleToInt32(aa);
+				tp[0] = UnFix15(a0);
+				tp[1] = UnFix15(a1);
+				tp[2] = UnFix15(a2);
+				tp[3] = UnFix15(aa);
 				tp += tstride;
 			}
 		}
@@ -208,15 +208,15 @@ namespace PhotoSauce.MagicScaler
 				else if (aw != 0)
 				{
 					int wf = aw == UQ15One ? UQ15One : ((UQ15One << 15) / (UQ15One - aw));
-					a0 = UnscaleToInt32(a0) * wf;
-					a1 = UnscaleToInt32(a1) * wf;
-					a2 = UnscaleToInt32(a2) * wf;
+					a0 = UnFix15(a0) * wf;
+					a1 = UnFix15(a1) * wf;
+					a2 = UnFix15(a2) * wf;
 				}
 
-				op[0] = UnscaleToByte(a0);
-				op[1] = UnscaleToByte(a1);
-				op[2] = UnscaleToByte(a2);
-				op[3] = UnscaleToByte(aa);
+				op[0] = UnFix15ToByte(a0);
+				op[1] = UnFix15ToByte(a1);
+				op[2] = UnFix15ToByte(a2);
+				op[3] = UnFix15ToByte(aa);
 				op += Channels;
 				ox++;
 			}
@@ -224,7 +224,7 @@ namespace PhotoSauce.MagicScaler
 
 		void IConvolver.SharpenLine(byte* cstart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh)
 		{
-			int iamt = ScaleToInt32(amt * 0.01);
+			int iamt = Fix15(amt * 0.01);
 			int threshold = thresh;
 
 			byte* ip = (byte*)cstart, bp = (byte*)bstart, op = (byte*)ostart;
@@ -237,7 +237,7 @@ namespace PhotoSauce.MagicScaler
 				int yb = LumaFromBgr(bp[0], bp[1], bp[2]);
 				if (threshold == 0 || Math.Abs(yi - yb) > threshold)
 				{
-					int dif = UnscaleToInt32((yi - yb) * iamt);
+					int dif = UnFix15((yi - yb) * iamt);
 					op[0] = ClampToByte(c0 + dif);
 					op[1] = ClampToByte(c1 + dif);
 					op[2] = ClampToByte(c2 + dif);
@@ -362,15 +362,15 @@ namespace PhotoSauce.MagicScaler
 				if (aw != 0)
 				{
 					int wf = aw == UQ15One ? UQ15One : ((UQ15One << 15) / (UQ15One - aw));
-					a0 = UnscaleToInt32(a0) * wf;
-					a1 = UnscaleToInt32(a1) * wf;
-					a2 = UnscaleToInt32(a2) * wf;
+					a0 = UnFix15(a0) * wf;
+					a1 = UnFix15(a1) * wf;
+					a2 = UnFix15(a2) * wf;
 				}
 
-				tp[0] = UnscaleToInt32(a0);
-				tp[1] = UnscaleToInt32(a1);
-				tp[2] = UnscaleToInt32(a2);
-				tp[3] = UnscaleToInt32(aa);
+				tp[0] = UnFix15(a0);
+				tp[1] = UnFix15(a1);
+				tp[2] = UnFix15(a2);
+				tp[3] = UnFix15(aa);
 				tp += tstride;
 			}
 		}
@@ -451,15 +451,15 @@ namespace PhotoSauce.MagicScaler
 				else if (aw != 0)
 				{
 					int wf = aw == UQ15One ? UQ15One : ((UQ15One << 15) / (UQ15One - aw));
-					a0 = UnscaleToInt32(a0) * wf;
-					a1 = UnscaleToInt32(a1) * wf;
-					a2 = UnscaleToInt32(a2) * wf;
+					a0 = UnFix15(a0) * wf;
+					a1 = UnFix15(a1) * wf;
+					a2 = UnFix15(a2) * wf;
 				}
 
-				op[0] = UnscaleToUQ15(a0);
-				op[1] = UnscaleToUQ15(a1);
-				op[2] = UnscaleToUQ15(a2);
-				op[3] = UnscaleToUQ15(aa);
+				op[0] = UnFixToUQ15(a0);
+				op[1] = UnFixToUQ15(a1);
+				op[2] = UnFixToUQ15(a2);
+				op[3] = UnFixToUQ15(aa);
 				op += Channels;
 				ox++;
 			}
@@ -533,10 +533,10 @@ namespace PhotoSauce.MagicScaler
 					mp++;
 				}
 
-				tp[0] = UnscaleToInt32(a0);
-				tp[1] = UnscaleToInt32(a1);
-				tp[2] = UnscaleToInt32(a2);
-				tp[3] = UnscaleToInt32(a3);
+				tp[0] = UnFix15(a0);
+				tp[1] = UnFix15(a1);
+				tp[2] = UnFix15(a2);
+				tp[3] = UnFix15(a3);
 				tp += tstride;
 			}
 		}
@@ -586,10 +586,10 @@ namespace PhotoSauce.MagicScaler
 					mp++;
 				}
 
-				op[0] = UnscaleToByte(a0);
-				op[1] = UnscaleToByte(a1);
-				op[2] = UnscaleToByte(a2);
-				op[3] = UnscaleToByte(a3);
+				op[0] = UnFix15ToByte(a0);
+				op[1] = UnFix15ToByte(a1);
+				op[2] = UnFix15ToByte(a2);
+				op[3] = UnFix15ToByte(a3);
 				op += Channels;
 				ox++;
 			}
@@ -663,10 +663,10 @@ namespace PhotoSauce.MagicScaler
 					mp++;
 				}
 
-				tp[0] = UnscaleToInt32(a0);
-				tp[1] = UnscaleToInt32(a1);
-				tp[2] = UnscaleToInt32(a2);
-				tp[3] = UnscaleToInt32(a3);
+				tp[0] = UnFix15(a0);
+				tp[1] = UnFix15(a1);
+				tp[2] = UnFix15(a2);
+				tp[3] = UnFix15(a3);
 				tp += tstride;
 			}
 		}
@@ -716,10 +716,10 @@ namespace PhotoSauce.MagicScaler
 					mp++;
 				}
 
-				op[0] = UnscaleToUQ15(a0);
-				op[1] = UnscaleToUQ15(a1);
-				op[2] = UnscaleToUQ15(a2);
-				op[3] = UnscaleToUQ15(a3);
+				op[0] = UnFixToUQ15(a0);
+				op[1] = UnFixToUQ15(a1);
+				op[2] = UnFixToUQ15(a2);
+				op[3] = UnFixToUQ15(a3);
 				op += Channels;
 				ox++;
 			}
@@ -793,9 +793,9 @@ namespace PhotoSauce.MagicScaler
 					mp++;
 				}
 
-				tp[0] = UnscaleToInt32(a0);
-				tp[1] = UnscaleToInt32(a1);
-				tp[2] = UnscaleToInt32(a2);
+				tp[0] = UnFix15(a0);
+				tp[1] = UnFix15(a1);
+				tp[2] = UnFix15(a2);
 				tp += tstride;
 			}
 		}
@@ -842,9 +842,9 @@ namespace PhotoSauce.MagicScaler
 					mp++;
 				}
 
-				op[0] = UnscaleToByte(a0);
-				op[1] = UnscaleToByte(a1);
-				op[2] = UnscaleToByte(a2);
+				op[0] = UnFix15ToByte(a0);
+				op[1] = UnFix15ToByte(a1);
+				op[2] = UnFix15ToByte(a2);
 				op += Channels;
 				ox++;
 			}
@@ -852,7 +852,7 @@ namespace PhotoSauce.MagicScaler
 
 		void IConvolver.SharpenLine(byte* cstart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh)
 		{
-			int iamt = ScaleToInt32(amt * 0.01);
+			int iamt = Fix15(amt * 0.01);
 			int threshold = thresh;
 
 			byte* ip = (byte*)cstart, bp = (byte*)bstart, op = (byte*)ostart;
@@ -865,7 +865,7 @@ namespace PhotoSauce.MagicScaler
 				int yb = LumaFromBgr(bp[0], bp[1], bp[2]);
 				if (threshold == 0 || Math.Abs(yi - yb) > threshold)
 				{
-					int dif = UnscaleToInt32((yi - yb) * iamt);
+					int dif = UnFix15((yi - yb) * iamt);
 					op[0] = ClampToByte(c0 + dif);
 					op[1] = ClampToByte(c1 + dif);
 					op[2] = ClampToByte(c2 + dif);
@@ -945,9 +945,9 @@ namespace PhotoSauce.MagicScaler
 					mp++;
 				}
 
-				tp[0] = UnscaleToInt32(a0);
-				tp[1] = UnscaleToInt32(a1);
-				tp[2] = UnscaleToInt32(a2);
+				tp[0] = UnFix15(a0);
+				tp[1] = UnFix15(a1);
+				tp[2] = UnFix15(a2);
 				tp += tstride;
 			}
 		}
@@ -994,9 +994,9 @@ namespace PhotoSauce.MagicScaler
 					mp++;
 				}
 
-				op[0] = UnscaleToUQ15(a0);
-				op[1] = UnscaleToUQ15(a1);
-				op[2] = UnscaleToUQ15(a2);
+				op[0] = UnFixToUQ15(a0);
+				op[1] = UnFixToUQ15(a1);
+				op[2] = UnFixToUQ15(a2);
 				op += Channels;
 				ox++;
 			}
@@ -1076,8 +1076,8 @@ namespace PhotoSauce.MagicScaler
 					mp++;
 				}
 
-				tp[0] = UnscaleToInt32(a0);
-				tp[1] = UnscaleToInt32(a1);
+				tp[0] = UnFix15(a0);
+				tp[1] = UnFix15(a1);
 				tp += tstride;
 			}
 		}
@@ -1129,8 +1129,8 @@ namespace PhotoSauce.MagicScaler
 					mp++;
 				}
 
-				op[0] = UnscaleToByte(a0);
-				op[1] = UnscaleToByte(a1);
+				op[0] = UnFix15ToByte(a0);
+				op[1] = UnFix15ToByte(a1);
 				op += Channels;
 				ox++;
 			}
@@ -1184,7 +1184,7 @@ namespace PhotoSauce.MagicScaler
 					mp++;
 				}
 
-				tp[0] = UnscaleToInt32(a0);
+				tp[0] = UnFix15(a0);
 				tp += tstride;
 			}
 		}
@@ -1222,7 +1222,7 @@ namespace PhotoSauce.MagicScaler
 					mp++;
 				}
 
-				op[0] = UnscaleToByte(a0);
+				op[0] = UnFix15ToByte(a0);
 				op += Channels;
 				ox++;
 			}
@@ -1230,7 +1230,7 @@ namespace PhotoSauce.MagicScaler
 
 		void IConvolver.SharpenLine(byte* cstart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh)
 		{
-			int iamt = ScaleToInt32(amt * 0.01);
+			int iamt = Fix15(amt * 0.01);
 			int threshold = thresh;
 
 			byte* ip = (byte*)cstart, bp = (byte*)bstart, op = (byte*)ostart;
@@ -1243,7 +1243,7 @@ namespace PhotoSauce.MagicScaler
 				int yb = bp[0];
 				if (threshold == 0 || Math.Abs(yi - yb) > threshold)
 				{
-					int dif = UnscaleToInt32((yi - yb) * iamt);
+					int dif = UnFix15((yi - yb) * iamt);
 					op[0] = ClampToByte(c0 + dif);
 				}
 				else
@@ -1299,7 +1299,7 @@ namespace PhotoSauce.MagicScaler
 					mp++;
 				}
 
-				tp[0] = UnscaleToInt32(a0);
+				tp[0] = UnFix15(a0);
 				tp += tstride;
 			}
 		}
@@ -1337,7 +1337,7 @@ namespace PhotoSauce.MagicScaler
 					mp++;
 				}
 
-				op[0] = UnscaleToUQ15(a0);
+				op[0] = UnFixToUQ15(a0);
 				op += Channels;
 				ox++;
 			}

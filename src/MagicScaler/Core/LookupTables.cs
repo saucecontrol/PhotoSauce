@@ -16,7 +16,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				double d = i * ascale;
 				atf[i] = (float)d;
-				atq[i] = ScaleToUQ15(d);
+				atq[i] = FixToUQ15(d);
 			}
 
 			return Tuple.Create(atf, atq);
@@ -27,13 +27,13 @@ namespace PhotoSauce.MagicScaler
 			var gt = new byte[UQ15Max + 1];
 			for (int i = 0; i < gt.Length; i++)
 			{
-				double d = UnscaleToDouble(i);
+				double d = UnFix15ToDouble(i);
 				if (d <= 0.0031308)
 					d *= 12.92;
 				else
 					d = 1.055 * Pow(d, 1.0 / 2.4) - 0.055;
 
-				gt[i] = ScaleToByte(d);
+				gt[i] = FixToByte(d);
 			}
 
 			return gt;
@@ -52,7 +52,7 @@ namespace PhotoSauce.MagicScaler
 					d = Pow(((d + 0.055) / 1.055), 2.4);
 
 				igtf[i] = (float)d;
-				igtq[i] = ScaleToUQ15(d);
+				igtq[i] = FixToUQ15(d);
 			}
 
 			return Tuple.Create(igtf, igtq);

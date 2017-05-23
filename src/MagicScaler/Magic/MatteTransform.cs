@@ -123,9 +123,9 @@ namespace PhotoSauce.MagicScaler
 						ushort ir = ip[2];
 						if (premul) ia = UQ15One;
 
-						ib = UnscaleToUQ15(ib * ia + mbl * ma);
-						ig = UnscaleToUQ15(ig * ia + mgl * ma);
-						ir = UnscaleToUQ15(ir * ia + mrl * ma);
+						ib = UnFixToUQ15(ib * ia + mbl * ma);
+						ig = UnFixToUQ15(ig * ia + mgl * ma);
+						ir = UnFixToUQ15(ir * ia + mrl * ma);
 
 						ip[0] = ib;
 						ip[1] = ig;
@@ -172,9 +172,9 @@ namespace PhotoSauce.MagicScaler
 							int ir = igt[ip[2]];
 							if (premul) ia = UQ15One;
 
-							ib = UnscaleToUQ15(ib * ia + mbl * ma);
-							ig = UnscaleToUQ15(ig * ia + mgl * ma);
-							ir = UnscaleToUQ15(ir * ia + mrl * ma);
+							ib = UnFixToUQ15(ib * ia + mbl * ma);
+							ig = UnFixToUQ15(ig * ia + mgl * ma);
+							ir = UnFixToUQ15(ir * ia + mrl * ma);
 
 							ip[0] = gt[ib];
 							ip[1] = gt[ig];

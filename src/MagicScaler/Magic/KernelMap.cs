@@ -24,7 +24,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			T v = default(T);
 			if (typeof(T) == typeof(int))
-				Unsafe.Write(Unsafe.AsPointer(ref v), MathUtil.ScaleToInt32(d));
+				Unsafe.Write(Unsafe.AsPointer(ref v), MathUtil.Fix15(d));
 			else if (typeof(T) == typeof(float))
 				Unsafe.Write(Unsafe.AsPointer(ref v), (float)d);
 
