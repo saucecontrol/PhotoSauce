@@ -22,7 +22,7 @@ namespace System.Drawing.Temp
 
         private static void InitColorTable()
         {
-            int[] values = new int[KnownColor.YellowGreen - KnownColor.Transparent + 1];
+            int[] values = new int[(int)KnownColor.YellowGreen + 1];
 
             // just consts...
             //
@@ -182,7 +182,7 @@ namespace System.Drawing.Temp
 
         private static void InitColorNameTable()
         {
-            string[] values = new string[KnownColor.YellowGreen - KnownColor.Transparent + 1];
+            string[] values = new string[(int)KnownColor.YellowGreen + 1];
 
             // just consts...
             //

@@ -8,7 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace System.Drawing.Temp
 {
     [SuppressMessage("Microsoft.Design", "CA1008:EnumsShouldHaveZeroValue")]
-    public enum KnownColor
+    internal enum KnownColor
     {
         // This enum is order dependant!!!
         //

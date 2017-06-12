@@ -362,13 +362,13 @@ namespace System.Drawing.Temp
 
         public byte A => (byte)((Value >> ARGBAlphaShift) & 0xFF);
 
-        public bool IsKnownColor => ((state & StateKnownColorValid) != 0);
+        private bool IsKnownColor => ((state & StateKnownColorValid) != 0);
 
         public bool IsEmpty => state == 0;
 
         public bool IsNamedColor => ((state & StateNameValid) != 0) || IsKnownColor;
 
-        public bool IsSystemColor => IsKnownColor && ((((KnownColor)knownColor) <= KnownColor.WindowText) || (((KnownColor)knownColor) > KnownColor.YellowGreen));
+        public bool IsSystemColor => IsKnownColor && ((((KnownColor)knownColor) < KnownColor.Transparent) || (((KnownColor)knownColor) > KnownColor.YellowGreen));
 
         // Not localized because it's only used for the DebuggerDisplayAttribute, and the values are
         // programmatic items.
@@ -450,7 +450,7 @@ namespace System.Drawing.Temp
 
         public static Color FromArgb(int red, int green, int blue) => FromArgb(255, red, green, blue);
 
-        public static Color FromKnownColor(KnownColor color)
+        private static Color FromKnownColor(KnownColor color)
         {
             var value = (int)color;
             if (value < (int)KnownColor.Transparent || value > (int)KnownColor.YellowGreen)
@@ -575,7 +575,7 @@ namespace System.Drawing.Temp
 
         public int ToArgb() => unchecked((int)Value);
 
-        public KnownColor ToKnownColor() => (KnownColor)knownColor;
+        private KnownColor ToKnownColor() => (KnownColor)knownColor;
 
         public override string ToString()
         {
