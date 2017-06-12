@@ -453,7 +453,7 @@ namespace System.Drawing.Temp
         public static Color FromKnownColor(KnownColor color)
         {
             var value = (int)color;
-            if (value < (int)KnownColor.ActiveBorder || value > (int)KnownColor.MenuHighlight)
+            if (value < (int)KnownColor.Transparent || value > (int)KnownColor.YellowGreen)
             {
                 return FromName(color.ToString());
             }
@@ -617,10 +617,10 @@ namespace System.Drawing.Temp
             if (name != null & !IsKnownColor)
                 return name.GetHashCode();
 
+            int combineHash(int h1, int h2) => ((h1 << 5) + h1) ^ h2;
+
             return combineHash(combineHash(value.GetHashCode(), state.GetHashCode()), knownColor.GetHashCode());
         }
-
-				private int combineHash(int h1, int h2) => ((h1 << 5) + h1) ^ h2;
     }
 }
 #endif
