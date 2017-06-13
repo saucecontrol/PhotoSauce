@@ -14,30 +14,6 @@ namespace PhotoSauce.MagicScaler
 	unsafe internal class Convolver4ChanFloat : IConvolver
 	{
 		private const int Channels = 4;
-		private static readonly Vector<float> mask0;
-		private static readonly Vector<float> mask1;
-		private static readonly Vector<float> mask2;
-		private static readonly Vector<float> mask3;
-
-		static Convolver4ChanFloat()
-		{
-			var arr = new float[Vector<float>.Count];
-			for (int i = 0; i < Vector<float>.Count; i++)
-				arr[i] = i % Channels == 0 ? 1f : 0f;
-			mask0 = new Vector<float>(arr);
-
-			for (int i = 0; i < Vector<float>.Count; i++)
-				arr[i] = i % Channels == 1 ? 1f : 0f;
-			mask1 = new Vector<float>(arr);
-
-			for (int i = 0; i < Vector<float>.Count; i++)
-				arr[i] = i % Channels == 2 ? 1f : 0f;
-			mask2 = new Vector<float>(arr);
-
-			for (int i = 0; i < Vector<float>.Count; i++)
-				arr[i] = i % Channels == 3 ? 1f : 0f;
-			mask3 = new Vector<float>(arr);
-		}
 
 		void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
@@ -45,8 +21,6 @@ namespace PhotoSauce.MagicScaler
 			float* tp = (float*)tstart;
 			float* tpe = (float*)(tstart + cb);
 			int tstride = smapy * Channels;
-
-			Vector<float> m0 = mask0, m1 = mask1, m2 = mask2, m3 = mask3;
 
 			while (tp < tpe)
 			{
@@ -79,10 +53,18 @@ namespace PhotoSauce.MagicScaler
 					mp += 4 * Vector<float>.Count;
 				}
 
-				float a0 = Vector.Dot(av0, m0);
-				float a1 = Vector.Dot(av0, m1);
-				float a2 = Vector.Dot(av0, m2);
-				float a3 = Vector.Dot(av0, m3);
+				float a0 = av0[0];
+				float a1 = av0[1];
+				float a2 = av0[2];
+				float a3 = av0[3];
+
+				if (Vector<float>.Count == 8)
+				{
+					a0 += av0[4];
+					a1 += av0[5];
+					a2 += av0[6];
+					a3 += av0[7];
+				}
 
 				ipe += 4 * Vector<float>.Count;
 				while (ip < ipe)
@@ -108,8 +90,6 @@ namespace PhotoSauce.MagicScaler
 		{
 			float* op = (float*)ostart;
 			int xc = ox + ow, tstride = smapy * Channels;
-
-			Vector<float> m0 = mask0, m1 = mask1, m2 = mask2, m3 = mask3;
 
 			while (ox < xc)
 			{
@@ -140,10 +120,18 @@ namespace PhotoSauce.MagicScaler
 					mp += 4 * Vector<float>.Count;
 				}
 
-				float a0 = Vector.Dot(av0, m0);
-				float a1 = Vector.Dot(av0, m1);
-				float a2 = Vector.Dot(av0, m2);
-				float a3 = Vector.Dot(av0, m3);
+				float a0 = av0[0];
+				float a1 = av0[1];
+				float a2 = av0[2];
+				float a3 = av0[3];
+
+				if (Vector<float>.Count == 8)
+				{
+					a0 += av0[4];
+					a1 += av0[5];
+					a2 += av0[6];
+					a3 += av0[7];
+				}
 
 				tpe += 4 * Vector<float>.Count;
 				while (tp < tpe)

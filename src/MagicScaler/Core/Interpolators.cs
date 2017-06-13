@@ -34,43 +34,47 @@ namespace PhotoSauce.MagicScaler.Interpolators
 	//http://www.imagemagick.org/Usage/filter/#gaussian
 	public sealed class GaussianInterpolator : IInterpolator
 	{
-		private readonly double sigma, support;
-		private readonly MathUtil.GaussianFactory gauss;
+		private readonly double support, sigma, s0, s1;
 
 		public GaussianInterpolator(double sigma)
 		{
 			if (sigma <= 0.0) throw new ArgumentOutOfRangeException(nameof(sigma), "Value must be greater than 0");
 
 			this.sigma = sigma;
-			gauss = new MathUtil.GaussianFactory(sigma);
-			support = gauss.Support;
+			support = sigma * 3.0;
+			s0 = 1.0 /     (     2.0 * sigma * sigma);
+			s1 = 1.0 / Sqrt(PI * 2.0 * sigma * sigma);
 		}
 
 		public double Support => support;
-		public double GetValue(double d) => (d < support) ? gauss.GetValue(d) : 0.0;
+		public double GetValue(double d) => (d < support) ? Exp(-(d * d * s0)) * s1 : 0.0;
 		public override string ToString() => $"{base.ToString()}({sigma})";
 	}
 
 	//http://neildodgson.com/pubs/quad.pdf
 	public sealed class QuadraticInterpolator : IInterpolator
 	{
-		private readonly double r;
+		private readonly double r, r0, r1, r2, r3;
 
 		public QuadraticInterpolator(double r = 1.0)
 		{
-			if (r < 0.5 || r > 1.0) throw new ArgumentOutOfRangeException(nameof(r), "Value must be between 0.5 and 1.0");
+			if (r < 0.5 || r > 1.5) throw new ArgumentOutOfRangeException(nameof(r), "Value must be between 0.5 and 1.5");
 
 			this.r = r;
+			r0 = -2.0  *  r;
+			r1 = -2.0  *  r        - 0.5;
+			r2 =  0.5  * (r + 1.0);
+			r3 =  0.75 * (r + 1.0);
 		}
 
 		public double Support => 1.5;
 		public double GetValue(double d)
 		{
 			if (d < 0.5)
-				return (-2.0 * r) * (d * d)                        + 0.50 * (r + 1.0);
+				return d * d * r0          + r2;
 
 			if (d < 1.5)
-				return         r  * (d * d) + (-2.0 * r - 0.5) * d + 0.75 * (r + 1.0);
+				return d * d * r  + d * r1 + r3;
 
 			return 0.0;
 		}
@@ -81,8 +85,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 	//http://www.imagemagick.org/Usage/filter/#cubics
 	public sealed class CubicInterpolator : IInterpolator
 	{
-		private readonly double support;
-		private readonly double b, c, p0, p2, p3, q0, q1, q2, q3;
+		private readonly double support, b, c, p0, p2, p3, q0, q1, q2, q3;
 
 		public CubicInterpolator(double b = 0.0, double c = 0.5)
 		{

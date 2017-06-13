@@ -98,8 +98,8 @@ namespace PhotoSauce.MagicScaler
 				return;
 
 			var fmt = ctx.Source.Format;
-			var mapx = ctx.AddDispose(KernelMap<int>.MakeBlurMap(ctx.Source.Width, ss.Radius, 1u, fmt.AlphaRepresentation != PixelAlphaRepresentation.None));
-			var mapy = ctx.AddDispose(KernelMap<int>.MakeBlurMap(ctx.Source.Height, ss.Radius, 1u, fmt.AlphaRepresentation != PixelAlphaRepresentation.None));
+			var mapx = ctx.AddDispose(KernelMap<int>.MakeBlurMap(ctx.Source.Width, ss.Radius, 1, fmt.AlphaRepresentation != PixelAlphaRepresentation.None, false));
+			var mapy = ctx.AddDispose(KernelMap<int>.MakeBlurMap(ctx.Source.Height, ss.Radius, 1, fmt.AlphaRepresentation != PixelAlphaRepresentation.None, false));
 
 			ctx.Source = ctx.AddDispose(new UnsharpMaskTransform<byte, int>(ctx.Source, mapx, mapy, ss));
 		}

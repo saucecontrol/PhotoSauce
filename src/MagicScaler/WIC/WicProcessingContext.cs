@@ -13,9 +13,6 @@ namespace PhotoSauce.MagicScaler
 		private readonly Stack<IDisposable> disposeHandles = new Stack<IDisposable>();
 
 		private PixelSource source;
-		private IWICColorContext sourceColorContext;
-		private IWICColorContext destColorContext;
-		private IWICPalette destPalette;
 
 		public ProcessImageSettings Settings { get; private set; }
 		public ProcessImageSettings UsedSettings { get; private set; }
@@ -26,9 +23,9 @@ namespace PhotoSauce.MagicScaler
 		public PixelSource PlanarLumaSource { get; set; }
 		public PixelSource PlanarChromaSource { get; set; }
 
-		public IWICColorContext SourceColorContext { get => sourceColorContext; set => sourceColorContext = AddOwnRef(value); }
-		public IWICColorContext DestColorContext { get => destColorContext; set => destColorContext = AddOwnRef(value); }
-		public IWICPalette DestPalette { get => destPalette; set => destPalette = AddOwnRef(value); }
+		public IWICColorContext SourceColorContext { get; set; }
+		public IWICColorContext DestColorContext { get; set; }
+		public IWICPalette DestPalette { get; set; }
 
 		public PixelSource Source
 		{
@@ -60,18 +57,6 @@ namespace PhotoSauce.MagicScaler
 			comHandles.Push(comHandle);
 
 			return comHandle;
-		}
-
-		public T AddOwnRef<T>(T comHandle) where T : class
-		{
-			if (comHandle == null)
-				return null;
-
-			var punk = Marshal.GetIUnknownForObject(comHandle);
-			var newHandle = (T)Marshal.GetUniqueObjectForIUnknown(punk);
-			Marshal.Release(punk);
-
-			return AddRef(newHandle);
 		}
 
 		public void FinalizeSettings()

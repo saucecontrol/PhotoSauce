@@ -107,31 +107,31 @@ namespace PhotoSauce.MagicScaler
 				IntStartLine = iy - smapy;
 
 			int tc = Math.Min(iy - IntStartLine, smapy);
-			if (tc > 0)
+			if (tc <= 0)
+				return;
+
+			IntStartLine = iy;
+
+			int tk = smapy - tc;
+			if (tk > 0)
 			{
-				IntStartLine = iy;
+				if (BufferSource)
+					Buffer.MemoryCopy(bstart + tc * BufferStride, bstart, LineBuff.Array.Length, tk * BufferStride);
 
-				int tk = smapy - tc;
-				if (tk > 0)
-				{
-					if (BufferSource)
-						Buffer.MemoryCopy(bstart + tc * BufferStride, bstart, LineBuff.Array.Length, tk * BufferStride);
+				Buffer.MemoryCopy(tstart + tc * IntBpp, tstart, IntBuff.Array.Length, IntBuff.Count - tc * IntBpp);
+			}
 
-					Buffer.MemoryCopy(tstart + tc * IntBpp, tstart, IntBuff.Array.Length, IntBuff.Count - tc * IntBpp);
-				}
+			for (int ty = tk; ty < smapy; ty++)
+			{
+				byte* bline = BufferSource ? bstart + ty * BufferStride : bstart;
+				byte* tline = tstart + ty * IntBpp;
 
-				for (int ty = tk; ty < smapy; ty++)
-				{
-					byte* bline = BufferSource ? bstart + ty * BufferStride : bstart;
-					byte* tline = tstart + ty * IntBpp;
+				SourceRect.Y = iy + ty;
+				Timer.Stop();
+				Source.CopyPixels(SourceRect, BufferStride, BufferStride, (IntPtr)bline);
+				Timer.Start();
 
-					SourceRect.Y = iy + ty;
-					Timer.Stop();
-					Source.CopyPixels(SourceRect, BufferStride, BufferStride, (IntPtr)bline);
-					Timer.Start();
-
-					Processor.ConvolveSourceLine(bline, tline, IntBuff.Count, mapxstart, XMap.Samples, YMap.Samples);
-				}
+				Processor.ConvolveSourceLine(bline, tline, IntBuff.Count, mapxstart, XMap.Samples, YMap.Samples);
 			}
 		}
 
@@ -160,16 +160,10 @@ namespace PhotoSauce.MagicScaler
 		{
 			fixed (byte* blurstart = blurBuff)
 			{
-				Processor.WriteDestLine(tstart, blurstart, ox, ow, pmapy, smapy);
-
-				int by = (int)Height - 1 - oy;
-				int cy = smapy / 2;
-				if (cy > oy)
-					cy = oy;
-				else if (cy > by)
-					cy += cy - by;
-
+				int cy = oy - IntStartLine;
 				byte* bp = bstart + cy * BufferStride;
+
+				Processor.WriteDestLine(tstart, blurstart, ox, ow, pmapy, smapy);
 				Processor.SharpenLine(bp, blurstart, ostart, ox, ow, sharpenSettings.Amount, sharpenSettings.Threshold);
 			}
 		}

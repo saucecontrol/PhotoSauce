@@ -15,6 +15,7 @@ using System;
 using System.Linq;
 using System.Collections;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler.Interop
 {
@@ -147,9 +148,6 @@ namespace PhotoSauce.MagicScaler.Interop
 
 		internal sealed class Marshaler : ICustomMarshaler
 		{
-			[DllImport("kernel32", EntryPoint = "RtlZeroMemory", SetLastError = false)]
-			private extern static void zeroMemory(IntPtr dst, int length);
-
 			[DllImport("ole32", EntryPoint = "PropVariantClear", PreserveSig = false)]
 			private extern static void propVariantClear([In, Out] IntPtr pvar);
 
@@ -202,7 +200,7 @@ namespace PhotoSauce.MagicScaler.Interop
 
 				int cbNative = Marshal.SizeOf<UnmanagedPropVariant>();
 				var pNativeData = Marshal.AllocCoTaskMem(cbNative);
-				zeroMemory(pNativeData, cbNative);
+				Unsafe.InitBlock(pNativeData.ToPointer(), default(byte), (uint)cbNative);
 
 				if (o == null)
 					return pNativeData;

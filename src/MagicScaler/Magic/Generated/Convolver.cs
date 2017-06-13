@@ -27,7 +27,7 @@ namespace PhotoSauce.MagicScaler
 				int a0 = 0, a1 = 0, a2 = 0, aa = 0, aw = 0;
 
 				int ix = *pmapx++;
-				byte* ip = (byte*)istart + ix * Channels + 4 * Channels;
+				byte* ip = istart + ix * Channels + 4 * Channels;
 				byte* ipe = ip + smapx * Channels - 3 * Channels;
 				int* mp = pmapx + 8;
 				pmapx += smapx * 2;
@@ -134,7 +134,7 @@ namespace PhotoSauce.MagicScaler
 
 		void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
-			byte* op = (byte*)ostart;
+			byte* op = ostart;
 			int xc = ox + ow, tstride = smapy * Channels;
 
 			while (ox < xc)
@@ -227,7 +227,7 @@ namespace PhotoSauce.MagicScaler
 			int iamt = Fix15(amt * 0.01);
 			int threshold = thresh;
 
-			byte* ip = (byte*)cstart, bp = (byte*)bstart, op = (byte*)ostart;
+			byte* ip = cstart, bp = bstart, op = ostart;
 			int xc = ox + ow;
 
 			for (int x = ox; x < xc; x++, ip += Channels, bp += Channels, op += Channels)
@@ -484,7 +484,7 @@ namespace PhotoSauce.MagicScaler
 				int a0 = 0, a1 = 0, a2 = 0, a3 = 0;
 
 				int ix = *pmapx++;
-				byte* ip = (byte*)istart + ix * Channels + 4 * Channels;
+				byte* ip = istart + ix * Channels + 4 * Channels;
 				byte* ipe = ip + smapx * Channels - 3 * Channels;
 				int* mp = pmapx + 4;
 				pmapx += smapx;
@@ -543,7 +543,7 @@ namespace PhotoSauce.MagicScaler
 
 		void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
-			byte* op = (byte*)ostart;
+			byte* op = ostart;
 			int xc = ox + ow, tstride = smapy * Channels;
 
 			while (ox < xc)
@@ -744,7 +744,7 @@ namespace PhotoSauce.MagicScaler
 				int a0 = 0, a1 = 0, a2 = 0;
 
 				int ix = *pmapx++;
-				byte* ip = (byte*)istart + ix * Channels + 5 * Channels;
+				byte* ip = istart + ix * Channels + 5 * Channels;
 				byte* ipe = ip + smapx * Channels - 4 * Channels;
 				int* mp = pmapx + 5;
 				pmapx += smapx;
@@ -802,7 +802,7 @@ namespace PhotoSauce.MagicScaler
 
 		void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
-			byte* op = (byte*)ostart;
+			byte* op = ostart;
 			int xc = ox + ow, tstride = smapy * Channels;
 
 			while (ox < xc)
@@ -855,7 +855,7 @@ namespace PhotoSauce.MagicScaler
 			int iamt = Fix15(amt * 0.01);
 			int threshold = thresh;
 
-			byte* ip = (byte*)cstart, bp = (byte*)bstart, op = (byte*)ostart;
+			byte* ip = cstart, bp = bstart, op = ostart;
 			int xc = ox + ow;
 
 			for (int x = ox; x < xc; x++, ip += Channels, bp += Channels, op += Channels)
@@ -1021,7 +1021,7 @@ namespace PhotoSauce.MagicScaler
 				int a0 = 0, a1 = 0;
 
 				int ix = *pmapx++;
-				byte* ip = (byte*)istart + ix * Channels + 8 * Channels;
+				byte* ip = istart + ix * Channels + 8 * Channels;
 				byte* ipe = ip + smapx * Channels - 7 * Channels;
 				int* mp = pmapx + 8;
 				pmapx += smapx;
@@ -1084,7 +1084,7 @@ namespace PhotoSauce.MagicScaler
 
 		void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
-			byte* op = (byte*)ostart;
+			byte* op = ostart;
 			int xc = ox + ow, tstride = smapy * Channels;
 
 			while (ox < xc)
@@ -1155,7 +1155,7 @@ namespace PhotoSauce.MagicScaler
 				int a0 = 0;
 
 				int ix = *pmapx++;
-				byte* ip = (byte*)istart + ix * Channels + 8 * Channels;
+				byte* ip = istart + ix * Channels + 8 * Channels;
 				byte* ipe = ip + smapx * Channels - 7 * Channels;
 				int* mp = pmapx + 8;
 				pmapx += smapx;
@@ -1191,7 +1191,7 @@ namespace PhotoSauce.MagicScaler
 
 		void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
-			byte* op = (byte*)ostart;
+			byte* op = ostart;
 			int xc = ox + ow, tstride = smapy * Channels;
 
 			while (ox < xc)
@@ -1233,7 +1233,7 @@ namespace PhotoSauce.MagicScaler
 			int iamt = Fix15(amt * 0.01);
 			int threshold = thresh;
 
-			byte* ip = (byte*)cstart, bp = (byte*)bstart, op = (byte*)ostart;
+			byte* ip = cstart, bp = bstart, op = ostart;
 			int xc = ox + ow;
 
 			for (int x = ox; x < xc; x++, ip += Channels, bp += Channels, op += Channels)
@@ -1244,7 +1244,7 @@ namespace PhotoSauce.MagicScaler
 				if (threshold == 0 || Math.Abs(yi - yb) > threshold)
 				{
 					int dif = UnFix15((yi - yb) * iamt);
-					op[0] = ClampToByte(c0 + dif);
+					op[0] = ClampToByte(yi + dif);
 				}
 				else
 				{

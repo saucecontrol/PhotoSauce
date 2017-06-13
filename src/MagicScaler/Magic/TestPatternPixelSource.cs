@@ -22,8 +22,8 @@ namespace PhotoSauce.MagicScaler
 		public TestPatternPixelSource(int width, int height, Guid pixelFormat)
 		{
 			chans = Array.IndexOf(formats, pixelFormat);
-			if (width < 1 || width > 32768) throw new ArgumentOutOfRangeException(nameof(width), "Value must be between 1 and 32768");
-			if (height < 1 || height > 32768) throw new ArgumentOutOfRangeException(nameof(height), "Value must be between 1 and 32768");
+			if (width < 1 || width > 65535) throw new ArgumentOutOfRangeException(nameof(width), "Value must be between 1 and 65535");
+			if (height < 1 || height > 65535) throw new ArgumentOutOfRangeException(nameof(height), "Value must be between 1 and 65535");
 			if (chans < 1 || chans == 2) throw new ArgumentException("Unexpected pixel format", nameof(pixelFormat));
 
 			this.width = width;
@@ -95,10 +95,7 @@ namespace PhotoSauce.MagicScaler
 					uint* ip = (uint*)(bstart + i * stride + cs * chan);
 					uint* ie = (uint*)(bstart + (i + 1) * stride);
 					while (ip < ie)
-					{
-						*ip = cv;
-						ip++;
-					}
+						*ip++ = cv;
 				}
 			}
 		}

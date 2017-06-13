@@ -18,6 +18,12 @@ namespace PhotoSauce.MagicScaler
 
 		public static Rectangle ToGdiRect(this WICRect r) => new Rectangle(r.X, r.Y, r.Width, r.Height);
 
+		public static ArraySegment<T> Zero<T>(this ArraySegment<T> a)
+		{
+			Array.Clear(a.Array, a.Offset, a.Count);
+			return a;
+		}
+
 		public static TValue GetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dic, TKey key, Func<TValue> valueFactory = null)
 		{
 			return dic.TryGetValue(key, out var value) ? value : valueFactory == null ? default(TValue) : valueFactory();

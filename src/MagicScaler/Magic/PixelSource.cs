@@ -42,14 +42,14 @@ namespace PhotoSauce.MagicScaler
 			Format = Source.Format;
 			Width = Source.Width;
 			Height = Source.Height;
-			BufferStride = (Width * (uint)Format.BitsPerPixel + 7u & ~7u) / 8u + ((uint)IntPtr.Size - 1u) & ~((uint)IntPtr.Size - 1u);
+			BufferStride = (Width * (uint)Format.BitsPerPixel + 7u) / 8u + ((uint)IntPtr.Size - 1u) & ~((uint)IntPtr.Size - 1u);
 		}
 
 		protected abstract void CopyPixelsInternal(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer);
 
 		public void CopyPixels(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
-			int cbLine = (prc.Width * Format.BitsPerPixel + 7 & ~7) / 8;
+			int cbLine = (prc.Width * Format.BitsPerPixel + 7) / 8;
 
 			if (prc.X < 0 || prc.Y < 0 || prc.Width < 0 || prc.Height < 0 || prc.X + prc.Width > (int)Width || prc.Y + prc.Height > (int)Height)
 				throw new ArgumentOutOfRangeException(nameof(prc), "Requested area does not fall within the image bounds");

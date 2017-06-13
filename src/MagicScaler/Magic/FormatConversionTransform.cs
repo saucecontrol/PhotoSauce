@@ -27,7 +27,7 @@ namespace PhotoSauce.MagicScaler
 				int oh = prc.Height, oy = prc.Y;
 
 				prc.Height = 1;
-				int cb = (prc.Width * InFormat.BitsPerPixel + 7 & ~7) / 8;
+				int cb = (prc.Width * InFormat.BitsPerPixel + 7) / 8;
 				for (int y = 0; y < oh; y++)
 				{
 					prc.Y = oy + y;

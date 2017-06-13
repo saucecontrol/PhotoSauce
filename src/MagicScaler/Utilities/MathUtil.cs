@@ -1,5 +1,4 @@
 ﻿using System.IO;
-using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -97,35 +96,6 @@ namespace PhotoSauce.MagicScaler
 		public static ushort ReadBigEndianUInt16(this BinaryReader rdr)
 		{
 			return (ushort)(rdr.ReadByte() << 8 | rdr.ReadByte());
-		}
-
-		//http://en.wikipedia.org/wiki/Gaussian_blur
-		public class GaussianFactory
-		{
-			private readonly double sigma;
-			private readonly double dx;
-
-			public GaussianFactory(double sigma)
-			{
-				this.sigma = sigma;
-				dx = 1d / Sqrt(2d * PI * (sigma * sigma));
-			}
-
-			public double Support => sigma * 3d;
-
-			public double GetValue(double d) => dx * Exp(-((d * d) / (2d * (sigma * sigma))));
-
-			public double[] MakeKernel()
-			{
-				int dist = (int)Ceiling(Support);
-				var kernel = new double[dist * 2 + 1];
-
-				for (int i = -dist; i <= dist; i++)
-					kernel[i + dist] = GetValue(i);
-
-				double sum = kernel.Sum();
-				return kernel.Select(d => d / sum).ToArray();
-			}
 		}
 	}
 }

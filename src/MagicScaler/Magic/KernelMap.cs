@@ -3,6 +3,8 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
+using PhotoSauce.MagicScaler.Interpolators;
+
 namespace PhotoSauce.MagicScaler
 {
 	internal class KernelMap<T> : IDisposable where T : struct
@@ -22,13 +24,13 @@ namespace PhotoSauce.MagicScaler
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		unsafe private static T convertWeight(double d)
 		{
-			T v = default(T);
+			var w = default(T);
 			if (typeof(T) == typeof(int))
-				Unsafe.Write(Unsafe.AsPointer(ref v), MathUtil.Fix15(d));
+				Unsafe.Write(Unsafe.AsPointer(ref w), MathUtil.Fix15(d));
 			else if (typeof(T) == typeof(float))
-				Unsafe.Write(Unsafe.AsPointer(ref v), (float)d);
+				Unsafe.Write(Unsafe.AsPointer(ref w), (float)d);
 
-			return v;
+			return w;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -41,6 +43,30 @@ namespace PhotoSauce.MagicScaler
 				Unsafe.Write(ap, Unsafe.Read<float>(ap) + Unsafe.Read<float>(b));
 		}
 
+		unsafe private static void fillKernelWeights(IInterpolator interpolator, double* kernel, int ksize, double start, double center, double scale)
+		{
+			double sum = 0d;
+			for (int i = 0; i < ksize; i++)
+			{
+				double weight = interpolator.GetValue(Math.Abs((start - center + i) * scale));
+				sum += weight;
+				kernel[i] = weight;
+			}
+
+			sum = 1d / sum;
+			for (int i = 0; i < ksize; i++)
+				kernel[i] *= sum;
+		}
+
+		private static int getKernelPadding(int isize, int ksize, int channels)
+		{
+			int kpad = 0;
+			if (ksize * channels % (Vector<T>.Count * channels) > 1)
+				kpad = (ksize * channels + (Vector<T>.Count * channels - 1)) / (Vector<T>.Count * channels) * Vector<T>.Count - ksize;
+
+			return ksize + kpad > isize ? 0 : kpad;
+		}
+
 		private KernelMap(int inPixels, int outPixels, int samples, int channels)
 		{
 			InPixels = inPixels;
@@ -49,7 +75,7 @@ namespace PhotoSauce.MagicScaler
 			Channels = channels;
 
 			int mapLen = OutPixels * (Samples * Channels * Unsafe.SizeOf<T>() + sizeof(int));
-			Map = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(mapLen), 0, mapLen);
+			Map = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(mapLen), 0, mapLen).Zero();
 		}
 
 		unsafe private KernelMap<T> clamp()
@@ -71,7 +97,7 @@ namespace PhotoSauce.MagicScaler
 						int* mpw = mp + 1;
 						for (int k = 0; k < chan; k++)
 						{
-							T a = default(T);
+							var a = default(T);
 							for (int j = 0; j <= o; j++)
 								addWeight(ref a, mpw + j * chan + k);
 
@@ -89,7 +115,7 @@ namespace PhotoSauce.MagicScaler
 						int* mpw = mp + 1;
 						for (int k = 0; k < chan; k++)
 						{
-							T a = default(T);
+							var a = default(T);
 							for (int j = 0; j <= o; j++)
 								addWeight(ref a, mpw + last * chan - j * chan + k);
 
@@ -112,98 +138,80 @@ namespace PhotoSauce.MagicScaler
 			var ainterpolator = interpolator.WeightingFunction.Support > 1d ? InterpolationSettings.Hermite : interpolator;
 
 			double offs = interpolator.WeightingFunction.Support < 0.1 ? 0.5 : 0.0;
-			double wfactor = Math.Min((double)osize / isize, 1d);
-			double wscale = wfactor / interpolator.Blur;
-			double awscale = wfactor / ainterpolator.Blur;
-			double wdist = Math.Min(interpolator.WeightingFunction.Support / wscale, isize / 2d);
+			double ratio = Math.Min((double)osize / isize, 1d);
+			double cscale = ratio / interpolator.Blur, ascale = ratio / ainterpolator.Blur;
+			double support = Math.Min(interpolator.WeightingFunction.Support / cscale, isize / 2d);
 
 			int channels = colorChannels + (alphaChannel ? 1 : 0);
-			int wsize = (int)Math.Ceiling(wdist * 2d);
-			if (vectored && wsize * channels % (Vector<T>.Count * channels) >= (Vector<T>.Count * channels) / 2)
-				wsize = (wsize * channels + (Vector<T>.Count * channels - 1) & ~(Vector<T>.Count * channels - 1)) / channels;
-			wsize = Math.Min(wsize, (int)isize);
+			int ksize = (int)Math.Ceiling(support * 2d);
+			int kpad = vectored ? getKernelPadding((int)isize, ksize, channels) : 0;
 
-			var map = new KernelMap<T>((int)isize, (int)osize, wsize, channels);
-			fixed (byte* mapstart = map.Map.Array)
+			var map = new KernelMap<T>((int)isize, (int)osize, ksize + kpad, channels);
+			fixed (byte* mstart = map.Map.Array)
 			{
-				double* wp = stackalloc double[wsize];
-				double* awp = stackalloc double[wsize];
-				int* mp = (int*)mapstart;
+				double* ckern = stackalloc double[ksize];
+				double* akern = stackalloc double[alphaChannel ? ksize : 0];
+				int* mp = (int*)mstart;
 
 				double inc = (double)isize / osize;
 				double spoint = ((double)isize - osize) / (osize * 2d) + offs;
-
 				for (int i = 0; i < osize; i++)
 				{
-					int start = (int)(spoint + wdist) - wsize + 1;
-					*mp++ = start;
-
-					double weightsum = 0d;
-					for (int j = 0; j < wsize; j++)
-					{
-						double weight = interpolator.WeightingFunction.GetValue(Math.Abs(((double)start + j - spoint) * wscale));
-						weightsum += weight;
-						wp[j] = weight;
-					}
-					weightsum = 1d / weightsum;
-					for (int j = 0; j < wsize; j++)
-						wp[j] *= weightsum;
+					int start = (int)(spoint + support) - ksize + 1;
+					fillKernelWeights(interpolator.WeightingFunction, ckern, ksize, start, spoint, cscale);
 
 					if (alphaChannel)
-					{
-						double aweightsum = 0d;
-						for (int j = 0; j < wsize; j++)
-						{
-							double weight = ainterpolator.WeightingFunction.GetValue(Math.Abs(((double)start + j - spoint) * awscale));
-							aweightsum += weight;
-							awp[j] = weight;
-						}
-						aweightsum = 1d / aweightsum;
-						for (int j = 0; j < wsize; j++)
-							awp[j] *= aweightsum;
-					}
+						fillKernelWeights(ainterpolator.WeightingFunction, akern, ksize, start, spoint, ascale);
 
-					for (int j = 0; j < wsize; j++)
+					spoint += inc;
+					*mp++ = start;
+
+					for (int j = 0; j < ksize; j++)
 					{
-						T w = convertWeight(wp[j]);
+						var w = convertWeight(ckern[j]);
 						for (int k = 0; k < colorChannels; k++)
 							Unsafe.Write(mp++, w);
 
 						if (alphaChannel)
-							Unsafe.Write(mp++, convertWeight(awp[j]));
+							Unsafe.Write(mp++, convertWeight(akern[j]));
 					}
 
-					spoint += inc;
+					mp += kpad * channels;
 				}
 			}
 
 			return map.clamp();
 		}
 
-		unsafe public static KernelMap<T> MakeBlurMap(uint size, double radius, uint colorChannels, bool alphaChannel)
+		unsafe public static KernelMap<T> MakeBlurMap(uint size, double radius, int colorChannels, bool alphaChannel, bool vectored)
 		{
-			double[] blurkernel = new MathUtil.GaussianFactory(radius).MakeKernel();
-			int blurdist = Math.Min(blurkernel.Length, (int)size);
-			int channels = (int)colorChannels + (alphaChannel ? 1 : 0);
+			var interpolator = new GaussianInterpolator(radius);
 
-			var map = new KernelMap<T>((int)size, (int)size, blurdist, channels);
+			int channels = colorChannels + (alphaChannel ? 1 : 0);
+			int dist = (int)Math.Ceiling(interpolator.Support);
+			int ksize = Math.Min(dist * 2 + 1, (int)size);
+			int kpad = vectored ? getKernelPadding((int)size, ksize, channels) : 0;
+
+			var map = new KernelMap<T>((int)size, (int)size, ksize + kpad, channels);
 			fixed (byte* mstart = map.Map.Array)
-			fixed (double* kstart = blurkernel)
 			{
 				int* mp = (int*)mstart;
-				double* kp = kstart;
+				double* kp = stackalloc double[ksize];
+				fillKernelWeights(interpolator, kp, ksize, 0d, dist, 1d);
 
 				for (int i = 0; i < size; i++)
 				{
-					int start = i - blurdist / 2;
+					int start = i - ksize / 2;
 					*mp++ = start;
 
-					for (int j = 0; j < blurdist; j++)
+					for (int j = 0; j < ksize; j++)
 					{
-						T w = convertWeight(kp[j]);
+						var w = convertWeight(kp[j]);
 						for (int k = 0; k < channels; k++)
 							Unsafe.Write(mp++, w);
 					}
+
+					mp += kpad * channels;
 				}
 			}
 
