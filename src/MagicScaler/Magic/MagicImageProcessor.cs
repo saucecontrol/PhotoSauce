@@ -89,6 +89,7 @@ namespace PhotoSauce.MagicScaler
 		public static ProcessingPipeline BuildPipeline(ArraySegment<byte> imgBuffer, ProcessImageSettings settings)
 		{
 			if (imgBuffer == null) throw new ArgumentNullException(nameof(imgBuffer));
+			if (imgBuffer.Offset != 0) throw new ArgumentException($"{nameof(imgBuffer.Offset)} must be 0", nameof(imgBuffer));
 
 			var ctx = new WicProcessingContext(settings);
 			var dec = new WicDecoder(imgBuffer, ctx);
@@ -136,6 +137,7 @@ namespace PhotoSauce.MagicScaler
 				MagicTransforms.AddUnsharpMask(ctx);
 
 				ctx.SwitchPlanarSource(WicPlane.Chroma);
+				int yw = ctx.Settings.Width, yh = ctx.Settings.Height;
 
 				if (savePlanar)
 				{
@@ -151,6 +153,8 @@ namespace PhotoSauce.MagicScaler
 				MagicTransforms.AddHighQualityScaler(ctx);
 				MagicTransforms.AddExternalFormatConverter(ctx);
 
+				ctx.Settings.Width = yw;
+				ctx.Settings.Height = yh;
 				ctx.SwitchPlanarSource(WicPlane.Luma);
 
 				if (!savePlanar)

@@ -417,7 +417,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			Debug.Assert(Normalized, "Hash is only valid for normalized settings.");
 
-			using (var bw = new BinaryWriter(new MemoryStream(), Encoding.UTF8))
+			using (var bw = new BinaryWriter(new MemoryStream(256), Encoding.UTF8))
 			{
 				bw.Write(imageInfo?.FileSize ?? 0L);
 				bw.Write(imageInfo?.FileDate.Ticks ?? 0L);
@@ -446,9 +446,9 @@ namespace PhotoSauce.MagicScaler
 				bw.Write((int)JpegSubsampleMode);
 				foreach (string m in MetadataNames ?? Enumerable.Empty<string>())
 					bw.Write(m);
-				bw.Seek(0, SeekOrigin.Begin);
 
-				return CacheHash.Create(bw.BaseStream);
+				((MemoryStream)bw.BaseStream).TryGetBuffer(out var buff);
+				return CacheHash.Create(buff);
 			}
 		}
 

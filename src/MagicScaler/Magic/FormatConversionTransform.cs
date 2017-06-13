@@ -331,10 +331,10 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip <= ipe)
 				{
-					float o0 = igt[ip[-8]];
-					float o1 = igt[ip[-7]];
-					float o2 = igt[ip[-6]];
-					float o3 = at[ip[-5]];
+					float o0 = igt[ip[-4]];
+					float o1 = igt[ip[-3]];
+					float o2 = igt[ip[-2]];
+					float o3 = at[ip[-1]];
 					op[-4] = o0;
 					op[-3] = o1;
 					op[-2] = o2;
@@ -470,7 +470,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private static void mapValuesByteToFloatWithAlpha(byte* ipstart, byte* opstart, int cb)
 		{
-			fixed (float* igtstart = LookupTables.InverseGammaFloat, atstart = LookupTables.AlphaFloat)
+			fixed (float* atstart = LookupTables.AlphaFloat)
 			{
 				byte* ip = ipstart + 4, ipe = ipstart + cb;
 				float* op = (float*)opstart + 4, at = atstart;
