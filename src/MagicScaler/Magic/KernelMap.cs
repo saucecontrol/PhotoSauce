@@ -60,9 +60,9 @@ namespace PhotoSauce.MagicScaler
 
 		private static int getKernelPadding(int isize, int ksize, int channels)
 		{
-			int kpad = 0;
-			if (ksize * channels % (Vector<T>.Count * channels) > 1)
-				kpad = (ksize * channels + (Vector<T>.Count * channels - 1)) / (Vector<T>.Count * channels) * Vector<T>.Count - ksize;
+			int kpad = 0, inc = channels == 2 || channels == 3 ? 4 : Vector<T>.Count;
+			if (ksize * channels % (inc * channels) > 1)
+				kpad = (ksize * channels + (inc * channels - 1)) / (inc * channels) * inc - ksize;
 
 			return ksize + kpad > isize ? 0 : kpad;
 		}

@@ -82,9 +82,9 @@ namespace PhotoSauce.MagicScaler
 				{
 					float ib = ip[0], ig = ip[1], ir = ip[2], ia = ip[3], ma = 1f - ia;
 
-					ib = ib + mbl * ma;
-					ig = ig + mgl * ma;
-					ir = ir + mrl * ma;
+					ib += mbl * ma;
+					ig += mgl * ma;
+					ir += mrl * ma;
 
 					ip[0] = ib;
 					ip[1] = ig;

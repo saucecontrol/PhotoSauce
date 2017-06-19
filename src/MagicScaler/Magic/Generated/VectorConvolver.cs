@@ -9,6 +9,8 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
+using VectorF = System.Numerics.Vector<float>;
+
 namespace PhotoSauce.MagicScaler
 {
 	unsafe internal class Convolver4ChanFloat : IConvolver
@@ -26,31 +28,31 @@ namespace PhotoSauce.MagicScaler
 			{
 				int ix = *(int*)pmapx++;
 				float* ip = (float*)istart + ix * Channels;
-				float* ipe = ip + smapx * Channels - 4 * Vector<float>.Count;
+				float* ipe = ip + smapx * Channels - 4 * VectorF.Count;
 				float* mp = pmapx;
 				pmapx += smapx * Channels;
 
-				Vector<float> av0 = Vector<float>.Zero;
+				VectorF av0 = VectorF.Zero;
 
 				while (ip <= ipe)
 				{
-					var iv0 = Unsafe.Read<Vector<float>>(ip);
-					var iv1 = Unsafe.Read<Vector<float>>(ip + Vector<float>.Count);
-					var iv2 = Unsafe.Read<Vector<float>>(ip + 2 * Vector<float>.Count);
-					var iv3 = Unsafe.Read<Vector<float>>(ip + 3 * Vector<float>.Count);
+					var iv0 = Unsafe.Read<VectorF>(ip);
+					var iv1 = Unsafe.Read<VectorF>(ip + VectorF.Count);
+					var iv2 = Unsafe.Read<VectorF>(ip + 2 * VectorF.Count);
+					var iv3 = Unsafe.Read<VectorF>(ip + 3 * VectorF.Count);
 
-					var mv0 = Unsafe.Read<Vector<float>>(mp);
-					var mv1 = Unsafe.Read<Vector<float>>(mp + Vector<float>.Count);
-					var mv2 = Unsafe.Read<Vector<float>>(mp + 2 * Vector<float>.Count);
-					var mv3 = Unsafe.Read<Vector<float>>(mp + 3 * Vector<float>.Count);
+					var mv0 = Unsafe.Read<VectorF>(mp);
+					var mv1 = Unsafe.Read<VectorF>(mp + VectorF.Count);
+					var mv2 = Unsafe.Read<VectorF>(mp + 2 * VectorF.Count);
+					var mv3 = Unsafe.Read<VectorF>(mp + 3 * VectorF.Count);
 
 					av0 += iv0 * mv0;
 					av0 += iv1 * mv1;
 					av0 += iv2 * mv2;
 					av0 += iv3 * mv3;
 
-					ip += 4 * Vector<float>.Count;
-					mp += 4 * Vector<float>.Count;
+					ip += 4 * VectorF.Count;
+					mp += 4 * VectorF.Count;
 				}
 
 				float a0 = av0[0];
@@ -58,7 +60,7 @@ namespace PhotoSauce.MagicScaler
 				float a2 = av0[2];
 				float a3 = av0[3];
 
-				if (Vector<float>.Count == 8)
+				if (VectorF.Count == 8)
 				{
 					a0 += av0[4];
 					a1 += av0[5];
@@ -66,7 +68,7 @@ namespace PhotoSauce.MagicScaler
 					a3 += av0[7];
 				}
 
-				ipe += 4 * Vector<float>.Count;
+				ipe += 4 * VectorF.Count;
 				while (ip < ipe)
 				{
 					a0 += ip[0] * mp[0];
@@ -90,34 +92,35 @@ namespace PhotoSauce.MagicScaler
 		{
 			float* op = (float*)ostart;
 			int xc = ox + ow, tstride = smapy * Channels;
+			float fmin = VectorF.Zero[0], fmax = VectorF.One[0];
 
 			while (ox < xc)
 			{
 				float* tp = (float*)tstart + ox * tstride;
-				float* tpe = tp + tstride - 4 * Vector<float>.Count;
+				float* tpe = tp + tstride - 4 * VectorF.Count;
 				float* mp = (float*)pmapy;
 
-				Vector<float> av0 = Vector<float>.Zero;
+				VectorF av0 = VectorF.Zero;
 
 				while (tp <= tpe)
 				{
-					var tv0 = Unsafe.Read<Vector<float>>(tp);
-					var tv1 = Unsafe.Read<Vector<float>>(tp + Vector<float>.Count);
-					var tv2 = Unsafe.Read<Vector<float>>(tp + 2 * Vector<float>.Count);
-					var tv3 = Unsafe.Read<Vector<float>>(tp + 3 * Vector<float>.Count);
+					var tv0 = Unsafe.Read<VectorF>(tp);
+					var tv1 = Unsafe.Read<VectorF>(tp + VectorF.Count);
+					var tv2 = Unsafe.Read<VectorF>(tp + 2 * VectorF.Count);
+					var tv3 = Unsafe.Read<VectorF>(tp + 3 * VectorF.Count);
 
-					var mv0 = Unsafe.Read<Vector<float>>(mp);
-					var mv1 = Unsafe.Read<Vector<float>>(mp + Vector<float>.Count);
-					var mv2 = Unsafe.Read<Vector<float>>(mp + 2 * Vector<float>.Count);
-					var mv3 = Unsafe.Read<Vector<float>>(mp + 3 * Vector<float>.Count);
+					var mv0 = Unsafe.Read<VectorF>(mp);
+					var mv1 = Unsafe.Read<VectorF>(mp + VectorF.Count);
+					var mv2 = Unsafe.Read<VectorF>(mp + 2 * VectorF.Count);
+					var mv3 = Unsafe.Read<VectorF>(mp + 3 * VectorF.Count);
 
 					av0 += tv0 * mv0;
 					av0 += tv1 * mv1;
 					av0 += tv2 * mv2;
 					av0 += tv3 * mv3;
 
-					tp += 4 * Vector<float>.Count;
-					mp += 4 * Vector<float>.Count;
+					tp += 4 * VectorF.Count;
+					mp += 4 * VectorF.Count;
 				}
 
 				float a0 = av0[0];
@@ -125,7 +128,7 @@ namespace PhotoSauce.MagicScaler
 				float a2 = av0[2];
 				float a3 = av0[3];
 
-				if (Vector<float>.Count == 8)
+				if (VectorF.Count == 8)
 				{
 					a0 += av0[4];
 					a1 += av0[5];
@@ -133,7 +136,7 @@ namespace PhotoSauce.MagicScaler
 					a3 += av0[7];
 				}
 
-				tpe += 4 * Vector<float>.Count;
+				tpe += 4 * VectorF.Count;
 				while (tp < tpe)
 				{
 					a0 += tp[0] * mp[0];
@@ -145,10 +148,10 @@ namespace PhotoSauce.MagicScaler
 					mp += Channels;
 				}
 
-				op[0] = a0;
-				op[1] = a1;
-				op[2] = a2;
-				op[3] = a3;
+				op[0] = a0.Clamp(fmin, fmax);
+				op[1] = a1.Clamp(fmin, fmax);
+				op[2] = a2.Clamp(fmin, fmax);
+				op[3] = a3.Clamp(fmin, fmax);
 				op += Channels;
 				ox++;
 			}
@@ -160,40 +163,6 @@ namespace PhotoSauce.MagicScaler
 	unsafe internal class Convolver3ChanFloat : IConvolver
 	{
 		private const int Channels = 3;
-		private static readonly Vector<int> mask00;
-		private static readonly Vector<int> mask10;
-		private static readonly Vector<int> mask20;
-		private static readonly Vector<int> mask01;
-		private static readonly Vector<int> mask11;
-		private static readonly Vector<int> mask21;
-
-		static Convolver3ChanFloat()
-		{
-			var arr = new int[Vector<int>.Count];
-			for (int i = 0; i < Vector<int>.Count; i++)
-				arr[i] = i % Channels == 0 ? -1 : 0;
-			mask00 = new Vector<int>(arr);
-
-			for (int i = 0; i < Vector<int>.Count; i++)
-				arr[i] = i % Channels == 1 ? -1 : 0;
-			mask10 = new Vector<int>(arr);
-
-			for (int i = 0; i < Vector<int>.Count; i++)
-				arr[i] = i % Channels == 2 ? -1 : 0;
-			mask20 = new Vector<int>(arr);
-
-			for (int i = 0; i < Vector<int>.Count; i++)
-				arr[i] = i % Channels == Vector<int>.Count % Channels ? 0 : -1;
-			mask01 = new Vector<int>(arr);
-
-			for (int i = 0; i < Vector<int>.Count; i++)
-				arr[i] = i % Channels == (Vector<int>.Count + 1) % Channels ? 0 : -1;
-			mask11 = new Vector<int>(arr);
-
-			for (int i = 0; i < Vector<int>.Count; i++)
-				arr[i] = i % Channels == (Vector<int>.Count + 2) % Channels ? 0 : -1;
-			mask21 = new Vector<int>(arr);
-		}
 
 		void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
@@ -202,50 +171,39 @@ namespace PhotoSauce.MagicScaler
 			float* tpe = (float*)(tstart + cb);
 			int tstride = smapy * Channels;
 
-			Vector<float> m0 = Vector<float>.One;
-			Vector<int> m00 = mask00, m10 = mask10, m20 = mask20, m01 = mask01, m11 = mask11, m21 = mask21;
-
 			while (tp < tpe)
 			{
 				int ix = *(int*)pmapx++;
 				float* ip = (float*)istart + ix * Channels;
-				float* ipe = ip + smapx * Channels - 3 * Vector<float>.Count;
+				float* ipe = ip + smapx * Channels - 3 * 4;
 				float* mp = pmapx;
 				pmapx += smapx * Channels;
 
-				Vector<float> av0 = Vector<float>.Zero, av1 = av0, av2 = av0;
+				Vector4 av0 = Vector4.Zero, av1 = av0, av2 = av0;
 
 				while (ip <= ipe)
 				{
-					var iv0 = Unsafe.Read<Vector<float>>(ip);
-					var iv1 = Unsafe.Read<Vector<float>>(ip + Vector<float>.Count);
-					var iv2 = Unsafe.Read<Vector<float>>(ip + 2 * Vector<float>.Count);
+					var iv0 = Unsafe.Read<Vector4>(ip);
+					var iv1 = Unsafe.Read<Vector4>(ip + 4);
+					var iv2 = Unsafe.Read<Vector4>(ip + 2 * 4);
 
-					var mv0 = Unsafe.Read<Vector<float>>(mp);
-					var mv1 = Unsafe.Read<Vector<float>>(mp + Vector<float>.Count);
-					var mv2 = Unsafe.Read<Vector<float>>(mp + 2 * Vector<float>.Count);
+					var mv0 = Unsafe.Read<Vector4>(mp);
+					var mv1 = Unsafe.Read<Vector4>(mp + 4);
+					var mv2 = Unsafe.Read<Vector4>(mp + 2 * 4);
 
 					av0 += iv0 * mv0;
 					av1 += iv1 * mv1;
 					av2 += iv2 * mv2;
 
-					ip += 3 * Vector<float>.Count;
-					mp += 3 * Vector<float>.Count;
+					ip += 3 * 4;
+					mp += 3 * 4;
 				}
 
-				var at0 = Vector.ConditionalSelect(m00, av0, av1);
-				var at1 = Vector.ConditionalSelect(m10, av0, av1);
-				var at2 = Vector.ConditionalSelect(m20, av0, av1);
+				float a0 = av0.X + av0.W + av1.Z + av2.Y;
+				float a1 = av0.Y + av1.X + av1.W + av2.Z;
+				float a2 = av0.Z + av1.Y + av2.X + av2.W;
 
-				at0 = Vector.ConditionalSelect(m01, at0, av2);
-				at1 = Vector.ConditionalSelect(m11, at1, av2);
-				at2 = Vector.ConditionalSelect(m21, at2, av2);
-
-				float a0 = Vector.Dot(at0, m0);
-				float a1 = Vector.Dot(at1, m0);
-				float a2 = Vector.Dot(at2, m0);
-
-				ipe += 3 * Vector<float>.Count;
+				ipe += 3 * 4;
 				while (ip < ipe)
 				{
 					a0 += ip[0] * mp[0];
@@ -267,49 +225,39 @@ namespace PhotoSauce.MagicScaler
 		{
 			float* op = (float*)ostart;
 			int xc = ox + ow, tstride = smapy * Channels;
-
-			Vector<float> m0 = Vector<float>.One;
-			Vector<int> m00 = mask00, m10 = mask10, m20 = mask20, m01 = mask01, m11 = mask11, m21 = mask21;
+			float fmin = Vector4.Zero.X, fmax = Vector4.One.X;
 
 			while (ox < xc)
 			{
 				float* tp = (float*)tstart + ox * tstride;
-				float* tpe = tp + tstride - 3 * Vector<float>.Count;
+				float* tpe = tp + tstride - 3 * 4;
 				float* mp = (float*)pmapy;
 
-				Vector<float> av0 = Vector<float>.Zero, av1 = av0, av2 = av0;
+				Vector4 av0 = Vector4.Zero, av1 = av0, av2 = av0;
 
 				while (tp <= tpe)
 				{
-					var tv0 = Unsafe.Read<Vector<float>>(tp);
-					var tv1 = Unsafe.Read<Vector<float>>(tp + Vector<float>.Count);
-					var tv2 = Unsafe.Read<Vector<float>>(tp + 2 * Vector<float>.Count);
+					var tv0 = Unsafe.Read<Vector4>(tp);
+					var tv1 = Unsafe.Read<Vector4>(tp + 4);
+					var tv2 = Unsafe.Read<Vector4>(tp + 2 * 4);
 
-					var mv0 = Unsafe.Read<Vector<float>>(mp);
-					var mv1 = Unsafe.Read<Vector<float>>(mp + Vector<float>.Count);
-					var mv2 = Unsafe.Read<Vector<float>>(mp + 2 * Vector<float>.Count);
+					var mv0 = Unsafe.Read<Vector4>(mp);
+					var mv1 = Unsafe.Read<Vector4>(mp + 4);
+					var mv2 = Unsafe.Read<Vector4>(mp + 2 * 4);
 
 					av0 += tv0 * mv0;
 					av1 += tv1 * mv1;
 					av2 += tv2 * mv2;
 
-					tp += 3 * Vector<float>.Count;
-					mp += 3 * Vector<float>.Count;
+					tp += 3 * 4;
+					mp += 3 * 4;
 				}
 
-				var at0 = Vector.ConditionalSelect(m00, av0, av1);
-				var at1 = Vector.ConditionalSelect(m10, av0, av1);
-				var at2 = Vector.ConditionalSelect(m20, av0, av1);
+				float a0 = av0.X + av0.W + av1.Z + av2.Y;
+				float a1 = av0.Y + av1.X + av1.W + av2.Z;
+				float a2 = av0.Z + av1.Y + av2.X + av2.W;
 
-				at0 = Vector.ConditionalSelect(m01, at0, av2);
-				at1 = Vector.ConditionalSelect(m11, at1, av2);
-				at2 = Vector.ConditionalSelect(m21, at2, av2);
-
-				float a0 = Vector.Dot(at0, m0);
-				float a1 = Vector.Dot(at1, m0);
-				float a2 = Vector.Dot(at2, m0);
-
-				tpe += 3 * Vector<float>.Count;
+				tpe += 3 * 4;
 				while (tp < tpe)
 				{
 					a0 += tp[0] * mp[0];
@@ -320,9 +268,9 @@ namespace PhotoSauce.MagicScaler
 					mp += Channels;
 				}
 
-				op[0] = a0;
-				op[1] = a1;
-				op[2] = a2;
+				op[0] = a0.Clamp(fmin, fmax);
+				op[1] = a1.Clamp(fmin, fmax);
+				op[2] = a2.Clamp(fmin, fmax);
 				op += Channels;
 				ox++;
 			}
@@ -334,20 +282,6 @@ namespace PhotoSauce.MagicScaler
 	unsafe internal class Convolver2ChanFloat : IConvolver
 	{
 		private const int Channels = 2;
-		private static readonly Vector<float> mask0;
-		private static readonly Vector<float> mask1;
-
-		static Convolver2ChanFloat()
-		{
-			var arr = new float[Vector<float>.Count];
-			for (int i = 0; i < Vector<float>.Count; i++)
-				arr[i] = i % Channels == 0 ? 1f : 0f;
-			mask0 = new Vector<float>(arr);
-
-			for (int i = 0; i < Vector<float>.Count; i++)
-				arr[i] = i % Channels == 1 ? 1f : 0f;
-			mask1 = new Vector<float>(arr);
-		}
 
 		void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
@@ -356,37 +290,35 @@ namespace PhotoSauce.MagicScaler
 			float* tpe = (float*)(tstart + cb);
 			int tstride = smapy * Channels;
 
-			Vector<float> m0 = mask0, m1 = mask1;
-
 			while (tp < tpe)
 			{
 				int ix = *(int*)pmapx++;
 				float* ip = (float*)istart + ix * Channels;
-				float* ipe = ip + smapx * Channels - 2 * Vector<float>.Count;
+				float* ipe = ip + smapx * Channels - 2 * 4;
 				float* mp = pmapx;
 				pmapx += smapx * Channels;
 
-				Vector<float> av0 = Vector<float>.Zero;
+				Vector4 av0 = Vector4.Zero;
 
 				while (ip <= ipe)
 				{
-					var iv0 = Unsafe.Read<Vector<float>>(ip);
-					var iv1 = Unsafe.Read<Vector<float>>(ip + Vector<float>.Count);
+					var iv0 = Unsafe.Read<Vector4>(ip);
+					var iv1 = Unsafe.Read<Vector4>(ip + 4);
 
-					var mv0 = Unsafe.Read<Vector<float>>(mp);
-					var mv1 = Unsafe.Read<Vector<float>>(mp + Vector<float>.Count);
+					var mv0 = Unsafe.Read<Vector4>(mp);
+					var mv1 = Unsafe.Read<Vector4>(mp + 4);
 
 					av0 += iv0 * mv0;
 					av0 += iv1 * mv1;
 
-					ip += 2 * Vector<float>.Count;
-					mp += 2 * Vector<float>.Count;
+					ip += 2 * 4;
+					mp += 2 * 4;
 				}
 
-				float a0 = Vector.Dot(av0, m0);
-				float a1 = Vector.Dot(av0, m1);
+				float a0 = av0.X + av0.Z;
+				float a1 = av0.Y + av0.W;
 
-				ipe += 2 * Vector<float>.Count;
+				ipe += 2 * 4;
 				while (ip < ipe)
 				{
 					a0 += ip[0] * mp[0];
@@ -406,36 +338,35 @@ namespace PhotoSauce.MagicScaler
 		{
 			float* op = (float*)ostart;
 			int xc = ox + ow, tstride = smapy * Channels;
-
-			Vector<float> m0 = mask0, m1 = mask1;
+			float fmin = Vector4.Zero.X, fmax = Vector4.One.X;
 
 			while (ox < xc)
 			{
 				float* tp = (float*)tstart + ox * tstride;
-				float* tpe = tp + tstride - 2 * Vector<float>.Count;
+				float* tpe = tp + tstride - 2 * 4;
 				float* mp = (float*)pmapy;
 
-				Vector<float> av0 = Vector<float>.Zero;
+				Vector4 av0 = Vector4.Zero;
 
 				while (tp <= tpe)
 				{
-					var tv0 = Unsafe.Read<Vector<float>>(tp);
-					var tv1 = Unsafe.Read<Vector<float>>(tp + Vector<float>.Count);
+					var tv0 = Unsafe.Read<Vector4>(tp);
+					var tv1 = Unsafe.Read<Vector4>(tp + 4);
 
-					var mv0 = Unsafe.Read<Vector<float>>(mp);
-					var mv1 = Unsafe.Read<Vector<float>>(mp + Vector<float>.Count);
+					var mv0 = Unsafe.Read<Vector4>(mp);
+					var mv1 = Unsafe.Read<Vector4>(mp + 4);
 
 					av0 += tv0 * mv0;
 					av0 += tv1 * mv1;
 
-					tp += 2 * Vector<float>.Count;
-					mp += 2 * Vector<float>.Count;
+					tp += 2 * 4;
+					mp += 2 * 4;
 				}
 
-				float a0 = Vector.Dot(av0, m0);
-				float a1 = Vector.Dot(av0, m1);
+				float a0 = av0.X + av0.Z;
+				float a1 = av0.Y + av0.W;
 
-				tpe += 2 * Vector<float>.Count;
+				tpe += 2 * 4;
 				while (tp < tpe)
 				{
 					a0 += tp[0] * mp[0];
@@ -445,8 +376,8 @@ namespace PhotoSauce.MagicScaler
 					mp += Channels;
 				}
 
-				op[0] = a0;
-				op[1] = a1;
+				op[0] = a0.Clamp(fmin, fmax);
+				op[1] = a1.Clamp(fmin, fmax);
 				op += Channels;
 				ox++;
 			}
@@ -466,33 +397,33 @@ namespace PhotoSauce.MagicScaler
 			float* tpe = (float*)(tstart + cb);
 			int tstride = smapy * Channels;
 
-			Vector<float> m0 = Vector<float>.One;
+			var m0 = VectorF.One;
 
 			while (tp < tpe)
 			{
 				int ix = *(int*)pmapx++;
 				float* ip = (float*)istart + ix * Channels;
-				float* ipe = ip + smapx * Channels - Vector<float>.Count;
+				float* ipe = ip + smapx * Channels - VectorF.Count;
 				float* mp = pmapx;
 				pmapx += smapx * Channels;
 
-				Vector<float> av0 = Vector<float>.Zero;
+				VectorF av0 = VectorF.Zero;
 
 				while (ip <= ipe)
 				{
-					var iv0 = Unsafe.Read<Vector<float>>(ip);
+					var iv0 = Unsafe.Read<VectorF>(ip);
 
-					var mv0 = Unsafe.Read<Vector<float>>(mp);
+					var mv0 = Unsafe.Read<VectorF>(mp);
 
 					av0 += iv0 * mv0;
 
-					ip += Vector<float>.Count;
-					mp += Vector<float>.Count;
+					ip += VectorF.Count;
+					mp += VectorF.Count;
 				}
 
 				float a0 = Vector.Dot(av0, m0);
 
-				ipe += Vector<float>.Count;
+				ipe += VectorF.Count;
 				while (ip < ipe)
 				{
 					a0 += ip[0] * mp[0];
@@ -511,31 +442,32 @@ namespace PhotoSauce.MagicScaler
 			float* op = (float*)ostart;
 			int xc = ox + ow, tstride = smapy * Channels;
 
-			Vector<float> m0 = Vector<float>.One;
+			var m0 = VectorF.One;
+			float fmin = VectorF.Zero[0], fmax = VectorF.One[0];
 
 			while (ox < xc)
 			{
 				float* tp = (float*)tstart + ox * tstride;
-				float* tpe = tp + tstride - Vector<float>.Count;
+				float* tpe = tp + tstride - VectorF.Count;
 				float* mp = (float*)pmapy;
 
-				Vector<float> av0 = Vector<float>.Zero;
+				VectorF av0 = VectorF.Zero;
 
 				while (tp <= tpe)
 				{
-					var tv0 = Unsafe.Read<Vector<float>>(tp);
+					var tv0 = Unsafe.Read<VectorF>(tp);
 
-					var mv0 = Unsafe.Read<Vector<float>>(mp);
+					var mv0 = Unsafe.Read<VectorF>(mp);
 
 					av0 += tv0 * mv0;
 
-					tp += Vector<float>.Count;
-					mp += Vector<float>.Count;
+					tp += VectorF.Count;
+					mp += VectorF.Count;
 				}
 
 				float a0 = Vector.Dot(av0, m0);
 
-				tpe += Vector<float>.Count;
+				tpe += VectorF.Count;
 				while (tp < tpe)
 				{
 					a0 += tp[0] * mp[0];
@@ -544,7 +476,7 @@ namespace PhotoSauce.MagicScaler
 					mp += Channels;
 				}
 
-				op[0] = a0;
+				op[0] = a0.Clamp(fmin, fmax);
 				op += Channels;
 				ox++;
 			}

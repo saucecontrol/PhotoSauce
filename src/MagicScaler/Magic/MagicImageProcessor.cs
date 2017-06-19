@@ -9,7 +9,7 @@ namespace PhotoSauce.MagicScaler
 	public static class MagicImageProcessor
 	{
 		public static bool EnablePlanarPipeline { get; set; } = true;
-		public static bool EnableSimd { get; set; } = Vector.IsHardwareAccelerated;
+		public static bool EnableSimd { get; set; } = Vector.IsHardwareAccelerated && (Vector<float>.Count == 4 || Vector<float>.Count == 8);
 
 		private static void checkInStream(Stream imgStream)
 		{

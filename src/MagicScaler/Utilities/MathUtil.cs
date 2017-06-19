@@ -31,6 +31,9 @@ namespace PhotoSauce.MagicScaler
 		public static double Clamp(this double x, double min, double max) => Min(Max(min, x), max);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static float Clamp(this float x, float min, float max) => x < min ? min : x > max ? max : x;
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Vector<T> Clamp<T>(this Vector<T> x, Vector<T> min, Vector<T> max) where T : struct => Vector.Min(Vector.Max(min, x), max);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

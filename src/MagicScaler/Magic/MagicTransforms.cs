@@ -68,10 +68,11 @@ namespace PhotoSauce.MagicScaler
 		public static void AddHighQualityScaler(WicProcessingContext ctx)
 		{
 			uint width = (uint)ctx.Settings.Width, height = (uint)ctx.Settings.Height;
-			var interpolatorx = width == ctx.Source.Width ? InterpolationSettings.NearestNeighbor : ctx.Settings.Interpolation;
-			var interpolatory = height == ctx.Source.Height ? InterpolationSettings.NearestNeighbor : ctx.Settings.Interpolation;
-
 			var fmt = ctx.Source.Format;
+			var interpolator = fmt.ColorRepresentation == PixelColorRepresentation.Unspecified ? InterpolationSettings.Hermite : ctx.Settings.Interpolation;
+			var interpolatorx = width == ctx.Source.Width ? InterpolationSettings.NearestNeighbor : interpolator;
+			var interpolatory = height == ctx.Source.Height ? InterpolationSettings.NearestNeighbor : interpolator;
+
 			if (fmt.NumericRepresentation == PixelNumericRepresentation.Float)
 			{
 				var mx = ctx.AddDispose(KernelMap<float>.MakeScaleMap(ctx.Source.Width, width, fmt.ColorChannelCount, fmt.AlphaRepresentation != PixelAlphaRepresentation.None, true, interpolatorx));
