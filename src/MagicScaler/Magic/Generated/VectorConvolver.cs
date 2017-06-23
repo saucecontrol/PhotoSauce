@@ -169,7 +169,7 @@ namespace PhotoSauce.MagicScaler
 			float* pmapx = (float*)mapxstart;
 			float* tp = (float*)tstart;
 			float* tpe = (float*)(tstart + cb);
-			int tstride = smapy * Channels;
+			int tstride = smapy * 4;
 
 			while (tp < tpe)
 			{
@@ -258,6 +258,145 @@ namespace PhotoSauce.MagicScaler
 				float a2 = av0.Z + av1.Y + av2.X + av2.W;
 
 				tpe += 3 * 4;
+				while (tp < tpe)
+				{
+					a0 += tp[0] * mp[0];
+					a1 += tp[1] * mp[1];
+					a2 += tp[2] * mp[2];
+
+					tp += Channels;
+					mp += Channels;
+				}
+
+				op[0] = a0.Clamp(fmin, fmax);
+				op[1] = a1.Clamp(fmin, fmax);
+				op[2] = a2.Clamp(fmin, fmax);
+				op += Channels;
+				ox++;
+			}
+		}
+
+		void IConvolver.SharpenLine(byte* cstart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh) => throw new NotImplementedException();
+	}
+
+	unsafe internal class Convolver3XChanFloat : IConvolver
+	{
+		private const int Channels = 4;
+
+		void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
+		{
+			float* pmapx = (float*)mapxstart;
+			float* tp = (float*)tstart;
+			float* tpe = (float*)(tstart + cb);
+			int tstride = smapy * Channels;
+
+			while (tp < tpe)
+			{
+				int ix = *(int*)pmapx++;
+				float* ip = (float*)istart + ix * Channels;
+				float* ipe = ip + smapx * Channels - 4 * VectorF.Count;
+				float* mp = pmapx;
+				pmapx += smapx * Channels;
+
+				VectorF av0 = VectorF.Zero;
+
+				while (ip <= ipe)
+				{
+					var iv0 = Unsafe.Read<VectorF>(ip);
+					var iv1 = Unsafe.Read<VectorF>(ip + VectorF.Count);
+					var iv2 = Unsafe.Read<VectorF>(ip + 2 * VectorF.Count);
+					var iv3 = Unsafe.Read<VectorF>(ip + 3 * VectorF.Count);
+
+					var mv0 = Unsafe.Read<VectorF>(mp);
+					var mv1 = Unsafe.Read<VectorF>(mp + VectorF.Count);
+					var mv2 = Unsafe.Read<VectorF>(mp + 2 * VectorF.Count);
+					var mv3 = Unsafe.Read<VectorF>(mp + 3 * VectorF.Count);
+
+					av0 += iv0 * mv0;
+					av0 += iv1 * mv1;
+					av0 += iv2 * mv2;
+					av0 += iv3 * mv3;
+
+					ip += 4 * VectorF.Count;
+					mp += 4 * VectorF.Count;
+				}
+
+				float a0 = av0[0];
+				float a1 = av0[1];
+				float a2 = av0[2];
+
+				if (VectorF.Count == 8)
+				{
+					a0 += av0[4];
+					a1 += av0[5];
+					a2 += av0[6];
+				}
+
+				ipe += 4 * VectorF.Count;
+				while (ip < ipe)
+				{
+					a0 += ip[0] * mp[0];
+					a1 += ip[1] * mp[1];
+					a2 += ip[2] * mp[2];
+
+					ip += Channels;
+					mp += Channels;
+				}
+
+				tp[0] = a0;
+				tp[1] = a1;
+				tp[2] = a2;
+				tp += tstride;
+			}
+		}
+
+		void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
+		{
+			float* op = (float*)ostart;
+			int xc = ox + ow, tstride = smapy * Channels;
+			float fmin = VectorF.Zero[0], fmax = VectorF.One[0];
+
+			while (ox < xc)
+			{
+				float* tp = (float*)tstart + ox * tstride;
+				float* tpe = tp + tstride - 4 * VectorF.Count;
+				float* mp = (float*)pmapy;
+
+				VectorF av0 = VectorF.Zero;
+
+				while (tp <= tpe)
+				{
+					var tv0 = Unsafe.Read<VectorF>(tp);
+					var tv1 = Unsafe.Read<VectorF>(tp + VectorF.Count);
+					var tv2 = Unsafe.Read<VectorF>(tp + 2 * VectorF.Count);
+					var tv3 = Unsafe.Read<VectorF>(tp + 3 * VectorF.Count);
+
+					var mv0 = Unsafe.Read<VectorF>(mp);
+					var mv1 = Unsafe.Read<VectorF>(mp + VectorF.Count);
+					var mv2 = Unsafe.Read<VectorF>(mp + 2 * VectorF.Count);
+					var mv3 = Unsafe.Read<VectorF>(mp + 3 * VectorF.Count);
+
+					av0 += tv0 * mv0;
+					av0 += tv1 * mv1;
+					av0 += tv2 * mv2;
+					av0 += tv3 * mv3;
+
+					tp += 4 * VectorF.Count;
+					mp += 4 * VectorF.Count;
+				}
+
+				float a0 = av0[0];
+				float a1 = av0[1];
+				float a2 = av0[2];
+
+				if (VectorF.Count == 8)
+				{
+					a0 += av0[4];
+					a1 += av0[5];
+					a2 += av0[6];
+				}
+
+				tpe += 4 * VectorF.Count;
 				while (tp < tpe)
 				{
 					a0 += tp[0] * mp[0];

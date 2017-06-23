@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Buffers;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 
 using PhotoSauce.MagicScaler.Interop;
@@ -15,63 +17,69 @@ namespace PhotoSauce.MagicScaler
 
 	internal class ConvolutionTransform<TPixel, TWeight> : PixelSource, IDisposable where TPixel : struct where TWeight : struct
 	{
+		protected static readonly ReadOnlyDictionary<Guid, IConvolver> ProcessorMap = new ReadOnlyDictionary<Guid, IConvolver>(new Dictionary<Guid, IConvolver> {
+			[Consts.GUID_WICPixelFormat32bppPBGRA         ] = new Convolver4ChanByte(),
+			[Consts.GUID_WICPixelFormat32bppBGRA          ] = new ConvolverBgraByte(),
+			[Consts.GUID_WICPixelFormat24bppBGR           ] = new ConvolverBgrByte(),
+			[Consts.GUID_WICPixelFormat16bppCbCr          ] = new Convolver2ChanByte(),
+			[Consts.GUID_WICPixelFormat8bppGray           ] = new Convolver1ChanByte(),
+			[Consts.GUID_WICPixelFormat8bppY              ] = new Convolver1ChanByte(),
+			[PixelFormat.Pbgra64BppLinearUQ15.FormatGuid  ] = new Convolver4ChanUQ15(),
+			[PixelFormat.Bgra64BppLinearUQ15.FormatGuid   ] = new ConvolverBgraUQ15(),
+			[PixelFormat.Bgr48BppLinearUQ15.FormatGuid    ] = new ConvolverBgrUQ15(),
+			[PixelFormat.Grey16BppLinearUQ15.FormatGuid   ] = new Convolver1ChanUQ15(),
+			[PixelFormat.Y16BppLinearUQ15.FormatGuid      ] = new Convolver1ChanUQ15(),
+			[PixelFormat.Pbgra128BppLinearFloat.FormatGuid] = new Convolver4ChanFloat(),
+			[PixelFormat.Pbgra128BppFloat.FormatGuid      ] = new Convolver4ChanFloat(),
+			[PixelFormat.Bgrx128BppLinearFloat.FormatGuid ] = new Convolver3XChanFloat(),
+			[PixelFormat.Bgrx128BppFloat.FormatGuid       ] = new Convolver3XChanFloat(),
+			[PixelFormat.Bgr96BppLinearFloat.FormatGuid   ] = new Convolver3ChanFloat(),
+			[PixelFormat.Bgr96BppFloat.FormatGuid         ] = new Convolver3ChanFloat(),
+			[PixelFormat.CbCr64BppFloat.FormatGuid        ] = new Convolver2ChanFloat(),
+			[PixelFormat.Grey32BppLinearFloat.FormatGuid  ] = new Convolver1ChanFloat(),
+			[Consts.GUID_WICPixelFormat32bppGrayFloat     ] = new Convolver1ChanFloat(),
+			[PixelFormat.Y32BppLinearFloat.FormatGuid     ] = new Convolver1ChanFloat(),
+			[PixelFormat.Y32BppFloat.FormatGuid           ] = new Convolver1ChanFloat()
+		});
+
 		protected bool BufferSource;
 		protected int IntBpp;
 		protected int IntStride;
 		protected int IntStartLine;
-		protected ArraySegment<byte> LineBuff;
-		protected ArraySegment<byte> IntBuff;
-		protected KernelMap<TWeight> XMap;
-		protected KernelMap<TWeight> YMap;
 		protected WICRect SourceRect;
-		protected IConvolver Processor;
+		protected ArraySegment<byte> LineBuff, IntBuff;
+		protected KernelMap<TWeight> XMap, YMap;
+		protected IConvolver XProcessor, YProcessor;
 
 		public ConvolutionTransform(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, bool bufferSource = false) : base(source)
 		{
-			if (Format.FormatGuid == Consts.GUID_WICPixelFormat32bppPBGRA)
-				Processor = new Convolver4ChanByte();
-			else if (Format.FormatGuid == Consts.GUID_WICPixelFormat32bppBGRA)
-				Processor = new ConvolverBgraByte();
-			else if (Format.FormatGuid == Consts.GUID_WICPixelFormat24bppBGR)
-				Processor = new ConvolverBgrByte();
-			else if (Format.FormatGuid == Consts.GUID_WICPixelFormat16bppCbCr)
-				Processor = new Convolver2ChanByte();
-			else if (Format.FormatGuid == Consts.GUID_WICPixelFormat8bppGray || Format.FormatGuid == Consts.GUID_WICPixelFormat8bppY)
-				Processor = new Convolver1ChanByte();
-			else if (Format == PixelFormat.Pbgra64BppLinearUQ15)
-				Processor = new Convolver4ChanUQ15();
-			else if (Format == PixelFormat.Bgra64BppLinearUQ15)
-				Processor = new ConvolverBgraUQ15();
-			else if (Format == PixelFormat.Bgr48BppLinearUQ15)
-				Processor = new ConvolverBgrUQ15();
-			else if (Format == PixelFormat.Grey16BppLinearUQ15 || Format == PixelFormat.Y16BppLinearUQ15)
-				Processor = new Convolver1ChanUQ15();
-			else if (Format == PixelFormat.Pbgra128BppLinearFloat || Format == PixelFormat.Pbgra128BppFloat)
-				Processor = new Convolver4ChanFloat();
-			else if (Format == PixelFormat.Bgr96BppLinearFloat || Format == PixelFormat.Bgr96BppFloat)
-				Processor = new Convolver3ChanFloat();
-			else if (Format == PixelFormat.CbCr64BppFloat)
-				Processor = new Convolver2ChanFloat();
-			else if (Format == PixelFormat.Grey32BppLinearFloat || Format.FormatGuid == Consts.GUID_WICPixelFormat32bppGrayFloat || Format == PixelFormat.Y32BppLinearFloat || Format == PixelFormat.Y32BppFloat)
-				Processor = new Convolver1ChanFloat();
-			else
+
+			if (!ProcessorMap.TryGetValue(Format.FormatGuid, out XProcessor))
 				throw new NotSupportedException("Unsupported pixel format");
 
-			BufferSource = bufferSource;
-			SourceRect = new WICRect { Width = (int)Width, Height = 1 };
-			Width = (uint)mapx.OutPixels;
-			Height = (uint)mapy.OutPixels;
+			if (Format == PixelFormat.Bgr96BppLinearFloat)
+				Format = PixelFormat.Bgrx128BppLinearFloat;
+			else if (Format == PixelFormat.Bgr96BppFloat)
+				Format = PixelFormat.Bgrx128BppFloat;
+
+			YProcessor = ProcessorMap[Format.FormatGuid];
 			XMap = mapx;
 			YMap = mapy;
 
+			BufferSource = bufferSource;
+			SourceRect = new WICRect { Width = (int)Width, Height = 1 };
+			IntStartLine = -mapy.Samples;
+
 			IntBpp = Format.BitsPerPixel / 8 / Unsafe.SizeOf<TPixel>() * Unsafe.SizeOf<TWeight>();
 			IntStride = mapy.Samples * IntBpp;
-			IntStartLine = -mapy.Samples;
 
 			int lineBuffLen = (bufferSource ? mapy.Samples : 1) * (int)BufferStride;
 			int intBuffLen = mapx.OutPixels * IntStride;
 			LineBuff = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(lineBuffLen), 0, lineBuffLen);
 			IntBuff = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(intBuffLen), 0, intBuffLen);
+
+			Width = (uint)mapx.OutPixels;
+			Height = (uint)mapy.OutPixels;
 		}
 
 		unsafe protected override void CopyPixelsInternal(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
@@ -96,7 +104,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe protected virtual void ConvolveLine(byte* bstart, byte* tstart, byte* ostart, byte* pmapy, int smapy, int ox, int oy, int ow)
 		{
-			Processor.WriteDestLine(tstart, ostart, ox, ow, pmapy, smapy);
+			YProcessor.WriteDestLine(tstart, ostart, ox, ow, pmapy, smapy);
 		}
 
 		unsafe protected void LoadBuffer(byte* bstart, byte* tstart, byte* mapxstart, int iy)
@@ -124,14 +132,14 @@ namespace PhotoSauce.MagicScaler
 			for (int ty = tk; ty < smapy; ty++)
 			{
 				byte* bline = BufferSource ? bstart + ty * BufferStride : bstart;
-				byte* tline = tstart + ty * IntBpp;
 
 				SourceRect.Y = iy + ty;
 				Timer.Stop();
 				Source.CopyPixels(SourceRect, BufferStride, BufferStride, (IntPtr)bline);
 				Timer.Start();
 
-				Processor.ConvolveSourceLine(bline, tline, IntBuff.Count, mapxstart, XMap.Samples, YMap.Samples);
+				byte* tline = tstart + ty * IntBpp;
+				XProcessor.ConvolveSourceLine(bline, tline, IntBuff.Count, mapxstart, XMap.Samples, smapy);
 			}
 		}
 
@@ -142,29 +150,29 @@ namespace PhotoSauce.MagicScaler
 			LineBuff = IntBuff = default(ArraySegment<byte>);
 		}
 
-		public override string ToString() => Processor?.ToString() ?? base.ToString();
+		public override string ToString() => XProcessor?.ToString() ?? base.ToString();
 	}
 
 	internal class UnsharpMaskTransform<TPixel, TWeight> : ConvolutionTransform<TPixel, TWeight> where TPixel : struct where TWeight : struct
 	{
 		private UnsharpMaskSettings sharpenSettings;
-		private byte[] blurBuff;
+		private ArraySegment<byte> blurBuff;
 
 		public UnsharpMaskTransform(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, UnsharpMaskSettings ss) : base(source, mapx, mapy, true)
 		{
 			sharpenSettings = ss;
-			blurBuff = ArrayPool<byte>.Shared.Rent((int)BufferStride);
+			blurBuff = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent((int)BufferStride), 0, (int)BufferStride);
 		}
 
 		unsafe protected override void ConvolveLine(byte* bstart, byte* tstart, byte* ostart, byte* pmapy, int smapy, int ox, int oy, int ow)
 		{
-			fixed (byte* blurstart = blurBuff)
+			fixed (byte* blurstart = blurBuff.Array)
 			{
 				int cy = oy - IntStartLine;
 				byte* bp = bstart + cy * BufferStride;
 
-				Processor.WriteDestLine(tstart, blurstart, ox, ow, pmapy, smapy);
-				Processor.SharpenLine(bp, blurstart, ostart, ox, ow, sharpenSettings.Amount, sharpenSettings.Threshold);
+				YProcessor.WriteDestLine(tstart, blurstart, ox, ow, pmapy, smapy);
+				YProcessor.SharpenLine(bp, blurstart, ostart, ox, ow, sharpenSettings.Amount, sharpenSettings.Threshold);
 			}
 		}
 
@@ -172,8 +180,8 @@ namespace PhotoSauce.MagicScaler
 		{
 			base.Dispose();
 
-			ArrayPool<byte>.Shared.Return(blurBuff ?? Array.Empty<byte>());
-			blurBuff = null;
+			ArrayPool<byte>.Shared.Return(blurBuff.Array ?? Array.Empty<byte>());
+			blurBuff = default(ArraySegment<byte>);
 		}
 
 		public override string ToString() => $"{base.ToString()}: Sharpen";

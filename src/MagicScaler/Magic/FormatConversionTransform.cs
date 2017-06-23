@@ -61,6 +61,8 @@ namespace PhotoSauce.MagicScaler
 							mapValuesByteToFloatLinearWithAssociatedAlpha(bstart, op, cb);
 						else if (InFormat.AlphaRepresentation == PixelAlphaRepresentation.Unassociated)
 							mapValuesByteToFloatLinearWithAlpha(bstart, op, cb);
+						else if (InFormat.AlphaRepresentation == PixelAlphaRepresentation.None && InFormat.ChannelCount == 3 && Format.ChannelCount == 4)
+							mapValuesByteToFloatLinearWithNullAlpha(bstart, op, cb);
 						else
 							mapValuesByteToFloatLinear(bstart, op, cb);
 					}
@@ -68,6 +70,8 @@ namespace PhotoSauce.MagicScaler
 					{
 						if (Format.AlphaRepresentation == PixelAlphaRepresentation.Unassociated)
 							mapValuesFloatLinearToByteWithAlpha(bstart, op, cb);
+						else if (InFormat.AlphaRepresentation == PixelAlphaRepresentation.None && InFormat.ChannelCount == 4 && Format.ChannelCount == 3)
+							mapValuesFloatLinearWithNullAlphaToByte(bstart, op, cb);
 						else
 							mapValuesFloatLinearToByte(bstart, op, cb);
 					}
@@ -75,6 +79,8 @@ namespace PhotoSauce.MagicScaler
 					{
 						if (InFormat.AlphaRepresentation == PixelAlphaRepresentation.Unassociated)
 							mapValuesByteToFloatWithAlpha(bstart, op, cb);
+						else if (InFormat.AlphaRepresentation == PixelAlphaRepresentation.None && InFormat.ChannelCount == 3 && Format.ChannelCount == 4)
+							mapValuesByteToFloatWithNullAlpha(bstart, op, cb);
 						else
 							mapValuesByteToFloat(bstart, op, cb);
 					}
@@ -82,6 +88,8 @@ namespace PhotoSauce.MagicScaler
 					{
 						if (Format.AlphaRepresentation == PixelAlphaRepresentation.Unassociated)
 							mapValuesFloatToByteWithAlpha(bstart, op, cb);
+						else if (InFormat.AlphaRepresentation == PixelAlphaRepresentation.None && InFormat.ChannelCount == 4 && Format.ChannelCount == 3)
+							mapValuesFloatWithNullAlphaToByte(bstart, op, cb);
 						else
 							mapValuesFloatToByte(bstart, op, cb);
 					}
@@ -348,6 +356,27 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
+		unsafe private static void mapValuesByteToFloatLinearWithNullAlpha(byte* ipstart, byte* opstart, int cb)
+		{
+			fixed (float* igtstart = LookupTables.InverseGammaFloat)
+			{
+				byte* ip = ipstart + 3, ipe = ipstart + cb;
+				float* op = (float*)opstart + 4, igt = igtstart;
+
+				while (ip <= ipe)
+				{
+					float o0 = igt[ip[-3]];
+					float o1 = igt[ip[-2]];
+					float o2 = igt[ip[-1]];
+					op[-4] = o0;
+					op[-3] = o1;
+					op[-2] = o2;
+
+					ip += 3;
+					op += 4;
+				}
+			}
+		}
 
 		unsafe private static void mapValuesFloatLinearToByte(byte* ipstart, byte* opstart, int cb)
 		{
@@ -408,15 +437,16 @@ namespace PhotoSauce.MagicScaler
 			{
 				float* ip = (float*)ipstart + 4, ipe = (float*)(ipstart + cb);
 				byte* op = opstart + 4, gt = gtstart;
+				float fmax = new Vector4(byte.MaxValue).X, fround = new Vector4(FloatRound).X;
 
 				while (ip <= ipe)
 				{
 					float f3 = ip[-1];
 					float f3i = FloatScale / f3;
-					byte o0 = gt[ClampToUQ15((int)(ip[-4] * f3i))];
-					byte o1 = gt[ClampToUQ15((int)(ip[-3] * f3i))];
-					byte o2 = gt[ClampToUQ15((int)(ip[-2] * f3i))];
-					byte o3 = FixToByte(f3);
+					byte o0 = gt[ClampToUQ15((int)(ip[-4] * f3i + fround))];
+					byte o1 = gt[ClampToUQ15((int)(ip[-3] * f3i + fround))];
+					byte o2 = gt[ClampToUQ15((int)(ip[-2] * f3i + fround))];
+					byte o3 = ClampToByte((int)(f3 * fmax + fround));
 					op[-4] = o0;
 					op[-3] = o1;
 					op[-2] = o2;
@@ -424,6 +454,57 @@ namespace PhotoSauce.MagicScaler
 
 					ip += 4;
 					op += 4;
+				}
+			}
+		}
+
+		unsafe private static void mapValuesFloatLinearWithNullAlphaToByte(byte* ipstart, byte* opstart, int cb)
+		{
+			fixed (byte* gtstart = LookupTables.Gamma)
+			{
+				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - VectorF.Count;
+				byte* op = opstart, gt = gtstart;
+
+				var vmin = VectorF.Zero;
+				var vmax = new VectorF(UQ15One);
+				var vscale = new VectorF(FloatScale);
+				var vround = new VectorF(FloatRound);
+
+				while (ip <= ipe)
+				{
+					var v = Unsafe.Read<VectorF>(ip) * vscale + vround;
+					v = v.Clamp(vmin, vmax);
+
+					byte o0 = gt[(ushort)v[0]];
+					byte o1 = gt[(ushort)v[1]];
+					byte o2 = gt[(ushort)v[2]];
+					op[0] = o0;
+					op[1] = o1;
+					op[2] = o2;
+
+					if (VectorF.Count == 8)
+					{
+						o0 = gt[(ushort)v[4]];
+						o1 = gt[(ushort)v[5]];
+						o2 = gt[(ushort)v[6]];
+						op[3] = o0;
+						op[4] = o1;
+						op[5] = o2;
+					}
+
+					ip += VectorF.Count;
+					op += VectorF.Count - VectorF.Count / 4;
+				}
+
+				ipe += VectorF.Count;
+				while (ip < ipe)
+				{
+					op[0] = gt[FixToUQ15(ip[0])];
+					op[1] = gt[FixToUQ15(ip[1])];
+					op[2] = gt[FixToUQ15(ip[2])];
+
+					ip += 4;
+					op += 3;
 				}
 			}
 		}
@@ -494,6 +575,28 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
+		unsafe private static void mapValuesByteToFloatWithNullAlpha(byte* ipstart, byte* opstart, int cb)
+		{
+			fixed (float* atstart = LookupTables.AlphaFloat)
+			{
+				byte* ip = ipstart + 3, ipe = ipstart + cb;
+				float* op = (float*)opstart + 4, at = atstart;
+
+				while (ip <= ipe)
+				{
+					float o0 = at[ip[-3]];
+					float o1 = at[ip[-2]];
+					float o2 = at[ip[-1]];
+					op[-4] = o0;
+					op[-3] = o1;
+					op[-2] = o2;
+
+					ip += 3;
+					op += 4;
+				}
+			}
+		}
+
 		unsafe private static void mapValuesFloatToByte(byte* ipstart, byte* opstart, int cb)
 		{
 			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - VectorF.Count;
@@ -538,15 +641,16 @@ namespace PhotoSauce.MagicScaler
 		{
 			float* ip = (float*)ipstart + 4, ipe = (float*)(ipstart + cb);
 			byte* op = opstart + 4;
+			float fmax = new Vector4(byte.MaxValue).X, fround = new Vector4(FloatRound).X;
 
 			while (ip <= ipe)
 			{
 				float f3 = ip[-1];
 				float f3i = byte.MaxValue / f3;
-				byte o0 = ClampToByte((int)(ip[-4] * f3i));
-				byte o1 = ClampToByte((int)(ip[-3] * f3i));
-				byte o2 = ClampToByte((int)(ip[-2] * f3i));
-				byte o3 = FixToByte(f3);
+				byte o0 = ClampToByte((int)(ip[-4] * f3i + fround));
+				byte o1 = ClampToByte((int)(ip[-3] * f3i + fround));
+				byte o2 = ClampToByte((int)(ip[-2] * f3i + fround));
+				byte o3 = ClampToByte((int)(f3 * fmax + fround));
 				op[-4] = o0;
 				op[-3] = o1;
 				op[-2] = o2;
@@ -554,6 +658,47 @@ namespace PhotoSauce.MagicScaler
 
 				ip += 4;
 				op += 4;
+			}
+		}
+
+		unsafe private static void mapValuesFloatWithNullAlphaToByte(byte* ipstart, byte* opstart, int cb)
+		{
+			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - VectorF.Count;
+			byte* op = opstart;
+
+			var vmin = new VectorF(byte.MinValue);
+			var vmax = new VectorF(byte.MaxValue);
+			var vround = new VectorF(FloatRound);
+
+			while (ip <= ipe)
+			{
+				var v = Unsafe.Read<VectorF>(ip) * vmax + vround;
+				v = v.Clamp(vmin, vmax);
+
+				op[0] = (byte)v[0];
+				op[1] = (byte)v[1];
+				op[2] = (byte)v[2];
+
+				if (VectorF.Count == 8)
+				{
+					op[3] = (byte)v[4];
+					op[4] = (byte)v[5];
+					op[5] = (byte)v[6];
+				}
+
+				ip += VectorF.Count;
+				op += VectorF.Count - VectorF.Count / 4;
+			}
+
+			ipe += VectorF.Count;
+			while (ip < ipe)
+			{
+				op[0] = FixToByte(ip[0]);
+				op[1] = FixToByte(ip[1]);
+				op[2] = FixToByte(ip[2]);
+
+				ip += 4;
+				op += 3;
 			}
 		}
 

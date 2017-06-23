@@ -52,7 +52,7 @@ namespace PhotoSauce.MagicScaler
 				ofmt = Consts.GUID_WICPixelFormat8bppGray;
 			else if (ifmt == PixelFormat.Y32BppFloat.FormatGuid || ifmt == PixelFormat.Y32BppLinearFloat.FormatGuid || ifmt == PixelFormat.Y16BppLinearUQ15.FormatGuid)
 				ofmt = Consts.GUID_WICPixelFormat8bppY;
-			else if (ifmt == PixelFormat.Bgr96BppFloat.FormatGuid || ifmt == PixelFormat.Bgr96BppLinearFloat.FormatGuid || ifmt == PixelFormat.Bgr48BppLinearUQ15.FormatGuid)
+			else if (ifmt == PixelFormat.Bgrx128BppFloat.FormatGuid || ifmt == PixelFormat.Bgrx128BppLinearFloat.FormatGuid || ifmt == PixelFormat.Bgr96BppFloat.FormatGuid || ifmt == PixelFormat.Bgr96BppLinearFloat.FormatGuid || ifmt == PixelFormat.Bgr48BppLinearUQ15.FormatGuid)
 				ofmt = Consts.GUID_WICPixelFormat24bppBGR;
 			else if (ifmt == PixelFormat.Pbgra128BppFloat.FormatGuid || ifmt == PixelFormat.Pbgra128BppLinearFloat.FormatGuid || ifmt == PixelFormat.Bgra64BppLinearUQ15.FormatGuid || ifmt == PixelFormat.Pbgra64BppLinearUQ15.FormatGuid)
 				ofmt = Consts.GUID_WICPixelFormat32bppBGRA;
@@ -76,7 +76,7 @@ namespace PhotoSauce.MagicScaler
 			if (fmt.NumericRepresentation == PixelNumericRepresentation.Float)
 			{
 				var mx = ctx.AddDispose(KernelMap<float>.MakeScaleMap(ctx.Source.Width, width, fmt.ColorChannelCount, fmt.AlphaRepresentation != PixelAlphaRepresentation.None, true, interpolatorx));
-				var my = ctx.AddDispose(KernelMap<float>.MakeScaleMap(ctx.Source.Height, height, fmt.ColorChannelCount, fmt.AlphaRepresentation != PixelAlphaRepresentation.None, true, interpolatory));
+				var my = ctx.AddDispose(KernelMap<float>.MakeScaleMap(ctx.Source.Height, height, fmt.ChannelCount == 3 ? 4 : fmt.ColorChannelCount, fmt.AlphaRepresentation != PixelAlphaRepresentation.None, true, interpolatory));
 
 				ctx.Source = ctx.AddDispose(new ConvolutionTransform<float, float>(ctx.Source, mx, my));
 			}

@@ -196,6 +196,28 @@ namespace PhotoSauce.MagicScaler
 			NumericRepresentation = PixelNumericRepresentation.Float
 		};
 
+		public static readonly PixelFormat Bgrx128BppFloat = new PixelFormat {
+			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xAD),
+			Name = "128bpp BGRX Float",
+			BitsPerPixel = 128,
+			ChannelCount = 4,
+			NumericRepresentation = PixelNumericRepresentation.Float,
+			ColorRepresentation = PixelColorRepresentation.Bgr,
+			AlphaRepresentation = PixelAlphaRepresentation.None,
+			Colorspace = PixelColorspace.sRgb
+		};
+
+		public static readonly PixelFormat Bgrx128BppLinearFloat = new PixelFormat {
+			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xAE),
+			Name = "128bpp BGRX Float Linear",
+			BitsPerPixel = 128,
+			ChannelCount = 4,
+			NumericRepresentation = PixelNumericRepresentation.Float,
+			ColorRepresentation = PixelColorRepresentation.Bgr,
+			AlphaRepresentation = PixelAlphaRepresentation.None,
+			Colorspace = PixelColorspace.LinearRgb
+		};
+
 		public static ReadOnlyDictionary<Guid, PixelFormat> Cache;
 
 		static PixelFormat()
@@ -214,6 +236,8 @@ namespace PhotoSauce.MagicScaler
 				[Y32BppFloat.FormatGuid]            = Y32BppFloat,
 				[Y32BppLinearFloat.FormatGuid]      = Y32BppLinearFloat,
 				[CbCr64BppFloat.FormatGuid]         = CbCr64BppFloat,
+				[Bgrx128BppFloat.FormatGuid]        = Bgrx128BppFloat,
+				[Bgrx128BppLinearFloat.FormatGuid]  = Bgrx128BppLinearFloat,
 			};
 
 			uint fet = 10u;
