@@ -133,8 +133,8 @@ namespace PhotoSauce.MagicScaler
 
 				MagicTransforms.AddInternalFormatConverter(ctx);
 				MagicTransforms.AddHighQualityScaler(ctx);
-				MagicTransforms.AddExternalFormatConverter(ctx);
 				MagicTransforms.AddUnsharpMask(ctx);
+				MagicTransforms.AddExternalFormatConverter(ctx);
 
 				ctx.SwitchPlanarSource(WicPlane.Chroma);
 				int yw = ctx.Settings.Width, yh = ctx.Settings.Height;
@@ -174,8 +174,8 @@ namespace PhotoSauce.MagicScaler
 				MagicTransforms.AddInternalFormatConverter(ctx);
 				MagicTransforms.AddHighQualityScaler(ctx);
 				MagicTransforms.AddMatte(ctx);
-				MagicTransforms.AddExternalFormatConverter(ctx);
 				MagicTransforms.AddUnsharpMask(ctx);
+				MagicTransforms.AddExternalFormatConverter(ctx);
 				WicTransforms.AddColorspaceConverter(ctx);
 			}
 		}

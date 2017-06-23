@@ -10,6 +10,42 @@ using VectorF = System.Numerics.Vector<float>;
 
 namespace PhotoSauce.MagicScaler
 {
+	internal static class Rec601
+	{
+		public const float R = 0.299f;
+		public const float G = 0.587f;
+		public const float B = 0.114f;
+		public static Vector3 Coefficients = new Vector3(B, G, R);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static byte LumaFromBgr(byte b, byte g, byte r)
+		{
+			const int rY = (ushort)(R * DoubleScale + DoubleRound);
+			const int gY = (ushort)(G * DoubleScale + DoubleRound);
+			const int bY = (ushort)(B * DoubleScale + DoubleRound);
+
+			return UnFix15ToByte(r * rY + g * gY + b * bY);
+		}
+	}
+
+	internal static class Rec709
+	{
+		public const float R = 0.2126f;
+		public const float G = 0.7152f;
+		public const float B = 0.0722f;
+		public static Vector3 Coefficients = new Vector3(B, G, R);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ushort LumaFromBgr(ushort b, ushort g, ushort r)
+		{
+			const int rY = (ushort)(R * DoubleScale + DoubleRound);
+			const int gY = (ushort)(G * DoubleScale + DoubleRound);
+			const int bY = (ushort)(B * DoubleScale + DoubleRound);
+
+			return UnFixToUQ15(r * rY + g * gY + b * bY);
+		}
+	}
+
 	internal class FormatConversionTransform : PixelSource, IDisposable
 	{
 		protected byte[] LineBuff;
@@ -700,6 +736,139 @@ namespace PhotoSauce.MagicScaler
 				ip += 4;
 				op += 3;
 			}
+		}
+
+		unsafe public static void ConvertBgrToGreyByte(byte* ipstart, byte* opstart, int cb)
+		{
+			byte* ip = ipstart + 3, ipe = ipstart + cb;
+			byte* op = opstart + 1;
+
+			while (ip <= ipe)
+			{
+				byte y = Rec601.LumaFromBgr(ip[-3], ip[-2], ip[-1]);
+				op[-1] = y;
+
+				ip += 3;
+				op++;
+			}
+		}
+
+		unsafe public static void ConvertBgrToGreyUQ15(byte* ipstart, byte* opstart, int cb)
+		{
+			fixed (byte* gtstart = LookupTables.Gamma)
+			{
+				ushort* ip = (ushort*)ipstart + 3, ipe = (ushort*)ipstart + cb;
+				byte* op = opstart + 1, gt = gtstart;
+
+				while (ip <= ipe)
+				{
+					ushort y = Rec709.LumaFromBgr(ip[-3], ip[-2], ip[-1]);
+					op[-1] = gt[ClampToUQ15(y)];
+
+					ip += 3;
+					op++;
+				}
+			}
+		}
+
+		unsafe public static void ConvertBgrToGreyFloat(byte* ipstart, byte* opstart, int cb, bool linear)
+		{
+			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb);
+			float* op = (float*)opstart;
+
+			var clum = linear ? Rec709.Coefficients : Rec601.Coefficients;
+			float cbl = clum.X, cgl = clum.Y, crl = clum.Z;
+
+			while (ip < ipe)
+			{
+				float c0 = ip[0] * cbl, c1 = ip[1] * cgl, c2 = ip[2] * crl;
+				op[0] = c0 + c1 + c2;
+
+				ip += 3;
+				op++;
+			}
+		}
+
+		unsafe public static void ConvertBgrxToGreyByte(byte* ipstart, byte* opstart, int cb)
+		{
+			byte* ip = ipstart + 4, ipe = ipstart + cb;
+			byte* op = opstart + 1;
+
+			while (ip <= ipe)
+			{
+				byte y = Rec601.LumaFromBgr(ip[-4], ip[-3], ip[-2]);
+				op[-1] = y;
+
+				ip += 4;
+				op++;
+			}
+		}
+
+		unsafe public static void ConvertBgrxToGreyUQ15(byte* ipstart, byte* opstart, int cb)
+		{
+			fixed (byte* gtstart = LookupTables.Gamma)
+			{
+				ushort* ip = (ushort*)ipstart + 4, ipe = (ushort*)ipstart + cb, op = (ushort*)opstart + 1;
+				byte* gt = gtstart;
+
+				while (ip <= ipe)
+				{
+					ushort y = Rec709.LumaFromBgr(ip[-4], ip[-3], ip[-2]);
+					op[-1] = gt[y];
+
+					ip += 4;
+					op++;
+				}
+			}
+		}
+
+		unsafe public static void ConvertBgrxToGreyFloat(byte* ipstart, byte* opstart, int cb, bool linear)
+		{
+			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb);
+			float* op = (float*)opstart;
+
+			var clum = linear ? Rec709.Coefficients : Rec601.Coefficients;
+			float cbl = clum.X, cgl = clum.Y, crl = clum.Z;
+
+			while (ip < ipe)
+			{
+				float c0 = ip[0] * cbl, c1 = ip[1] * cgl, c2 = ip[2] * crl;
+				op[0] = c0 + c1 + c2;
+
+				ip += 4;
+				op++;
+			}
+		}
+
+		unsafe public static void ConvertGreyLinearToGreyUQ15(byte* ipstart, byte* opstart, int cb)
+		{
+			fixed (byte* gtstart = LookupTables.Gamma)
+			{
+				ushort* ip = (ushort*)ipstart, ipe = (ushort*)ipstart + cb, op = (ushort*)opstart;
+				byte* gt = gtstart;
+
+				while (ip < ipe)
+					*op++ = gt[*ip++];
+			}
+		}
+
+		unsafe public static void ConvertGreyLinearToGreyFloat(byte* ipstart, byte* opstart, int cb)
+		{
+			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - VectorF.Count;
+			float* op = (float*)opstart;
+
+			while (ip <= ipe)
+			{
+				var v = Unsafe.Read<VectorF>(ip);
+				Unsafe.Write(op, Vector.SquareRoot(v));
+
+				ip += VectorF.Count;
+				op += VectorF.Count;
+			}
+
+			ipe += VectorF.Count;
+			while (ip < ipe)
+				*op++ = (float)Math.Sqrt(*ip++);
 		}
 
 		public void Dispose()

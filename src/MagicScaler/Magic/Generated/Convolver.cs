@@ -222,22 +222,22 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		void IConvolver.SharpenLine(byte* cstart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh)
+		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
 		{
 			int iamt = Fix15(amt * 0.01);
 			int threshold = thresh;
 
-			byte* ip = cstart, bp = bstart, op = ostart;
-			int xc = ox + ow;
+			byte* ip = cstart, yp = ystart, bp = bstart, op = ostart;
 
-			for (int x = ox; x < xc; x++, ip += Channels, bp += Channels, op += Channels)
+			int xc = ox + ow;
+			for (int x = ox; x < xc; x++, ip += Channels, op += Channels)
 			{
+				int dif = *yp++ - *bp++;
+
 				byte c0 = ip[0], c1 = ip[1], c2 = ip[2], c3 = ip[3];
-				int yi = LumaFromBgr(c0, c1, c2);
-				int yb = LumaFromBgr(bp[0], bp[1], bp[2]);
-				if (threshold == 0 || Math.Abs(yi - yb) > threshold)
+				if (threshold == 0 || Math.Abs(dif) > threshold)
 				{
-					int dif = UnFix15((yi - yb) * iamt);
+					dif = UnFix15(dif * iamt);
 					op[0] = ClampToByte(c0 + dif);
 					op[1] = ClampToByte(c1 + dif);
 					op[2] = ClampToByte(c2 + dif);
@@ -465,7 +465,41 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		void IConvolver.SharpenLine(byte* cstart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh) => throw new NotImplementedException();
+		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
+		{
+			fixed (byte* gtstart = LookupTables.Gamma)
+			fixed (ushort* igtstart = LookupTables.InverseGammaUQ15)
+			{
+				int iamt = Fix15(amt * 0.01);
+				int threshold = thresh;
+	
+				byte* gt = gtstart;
+				ushort* ip = (ushort*)cstart, yp = (ushort*)ystart, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;
+	
+				int xc = ox + ow;
+				for (int x = ox; x < xc; x++, ip += Channels, op += Channels)
+				{
+					int dif = *yp++ - *bp++;
+	
+					ushort c0 = ip[0], c1 = ip[1], c2 = ip[2], c3 = ip[3];
+					if (threshold == 0 || Math.Abs(dif) > threshold)
+					{
+						dif = UnFix15(dif * iamt);
+						op[0] = igt[ClampToByte(gt[c0] + dif)];
+						op[1] = igt[ClampToByte(gt[c1] + dif)];
+						op[2] = igt[ClampToByte(gt[c2] + dif)];
+						op[3] = c3;
+					}
+					else
+					{
+						op[0] = c0;
+						op[1] = c1;
+						op[2] = c2;
+						op[3] = c3;
+					}
+				}
+			}
+		}
 	}
 
 	unsafe internal class Convolver4ChanByte : IConvolver
@@ -595,7 +629,36 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		void IConvolver.SharpenLine(byte* cstart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh) => throw new NotImplementedException();
+		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
+		{
+			int iamt = Fix15(amt * 0.01);
+			int threshold = thresh;
+
+			byte* ip = cstart, yp = ystart, bp = bstart, op = ostart;
+
+			int xc = ox + ow;
+			for (int x = ox; x < xc; x++, ip += Channels, op += Channels)
+			{
+				int dif = *yp++ - *bp++;
+
+				byte c0 = ip[0], c1 = ip[1], c2 = ip[2], c3 = ip[3];
+				if (threshold == 0 || Math.Abs(dif) > threshold)
+				{
+					dif = UnFix15(dif * iamt);
+					op[0] = ClampToByte(c0 + dif);
+					op[1] = ClampToByte(c1 + dif);
+					op[2] = ClampToByte(c2 + dif);
+					op[3] = c3;
+				}
+				else
+				{
+					op[0] = c0;
+					op[1] = c1;
+					op[2] = c2;
+					op[3] = c3;
+				}
+			}
+		}
 	}
 
 	unsafe internal class Convolver4ChanUQ15 : IConvolver
@@ -725,7 +788,41 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		void IConvolver.SharpenLine(byte* cstart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh) => throw new NotImplementedException();
+		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
+		{
+			fixed (byte* gtstart = LookupTables.Gamma)
+			fixed (ushort* igtstart = LookupTables.InverseGammaUQ15)
+			{
+				int iamt = Fix15(amt * 0.01);
+				int threshold = thresh;
+	
+				byte* gt = gtstart;
+				ushort* ip = (ushort*)cstart, yp = (ushort*)ystart, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;
+	
+				int xc = ox + ow;
+				for (int x = ox; x < xc; x++, ip += Channels, op += Channels)
+				{
+					int dif = *yp++ - *bp++;
+	
+					ushort c0 = ip[0], c1 = ip[1], c2 = ip[2], c3 = ip[3];
+					if (threshold == 0 || Math.Abs(dif) > threshold)
+					{
+						dif = UnFix15(dif * iamt);
+						op[0] = igt[ClampToByte(gt[c0] + dif)];
+						op[1] = igt[ClampToByte(gt[c1] + dif)];
+						op[2] = igt[ClampToByte(gt[c2] + dif)];
+						op[3] = c3;
+					}
+					else
+					{
+						op[0] = c0;
+						op[1] = c1;
+						op[2] = c2;
+						op[3] = c3;
+					}
+				}
+			}
+		}
 	}
 
 	unsafe internal class ConvolverBgrByte : IConvolver
@@ -850,22 +947,22 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		void IConvolver.SharpenLine(byte* cstart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh)
+		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
 		{
 			int iamt = Fix15(amt * 0.01);
 			int threshold = thresh;
 
-			byte* ip = cstart, bp = bstart, op = ostart;
-			int xc = ox + ow;
+			byte* ip = cstart, yp = ystart, bp = bstart, op = ostart;
 
-			for (int x = ox; x < xc; x++, ip += Channels, bp += Channels, op += Channels)
+			int xc = ox + ow;
+			for (int x = ox; x < xc; x++, ip += Channels, op += Channels)
 			{
+				int dif = *yp++ - *bp++;
+
 				byte c0 = ip[0], c1 = ip[1], c2 = ip[2];
-				int yi = LumaFromBgr(c0, c1, c2);
-				int yb = LumaFromBgr(bp[0], bp[1], bp[2]);
-				if (threshold == 0 || Math.Abs(yi - yb) > threshold)
+				if (threshold == 0 || Math.Abs(dif) > threshold)
 				{
-					int dif = UnFix15((yi - yb) * iamt);
+					dif = UnFix15(dif * iamt);
 					op[0] = ClampToByte(c0 + dif);
 					op[1] = ClampToByte(c1 + dif);
 					op[2] = ClampToByte(c2 + dif);
@@ -1002,7 +1099,39 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		void IConvolver.SharpenLine(byte* cstart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh) => throw new NotImplementedException();
+		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
+		{
+			fixed (byte* gtstart = LookupTables.Gamma)
+			fixed (ushort* igtstart = LookupTables.InverseGammaUQ15)
+			{
+				int iamt = Fix15(amt * 0.01);
+				int threshold = thresh;
+	
+				byte* gt = gtstart;
+				ushort* ip = (ushort*)cstart, yp = (ushort*)ystart, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;
+	
+				int xc = ox + ow;
+				for (int x = ox; x < xc; x++, ip += Channels, op += Channels)
+				{
+					int dif = *yp++ - *bp++;
+	
+					ushort c0 = ip[0], c1 = ip[1], c2 = ip[2];
+					if (threshold == 0 || Math.Abs(dif) > threshold)
+					{
+						dif = UnFix15(dif * iamt);
+						op[0] = igt[ClampToByte(gt[c0] + dif)];
+						op[1] = igt[ClampToByte(gt[c1] + dif)];
+						op[2] = igt[ClampToByte(gt[c2] + dif)];
+					}
+					else
+					{
+						op[0] = c0;
+						op[1] = c1;
+						op[2] = c2;
+					}
+				}
+			}
+		}
 	}
 
 	unsafe internal class Convolver2ChanByte : IConvolver
@@ -1136,7 +1265,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		void IConvolver.SharpenLine(byte* cstart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh) => throw new NotImplementedException();
+		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma) => throw new NotImplementedException();
 	}
 
 	unsafe internal class Convolver1ChanByte : IConvolver
@@ -1228,23 +1357,23 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		void IConvolver.SharpenLine(byte* cstart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh)
+		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
 		{
 			int iamt = Fix15(amt * 0.01);
 			int threshold = thresh;
 
-			byte* ip = cstart, bp = bstart, op = ostart;
-			int xc = ox + ow;
+			byte* ip = cstart, yp = ystart, bp = bstart, op = ostart;
 
-			for (int x = ox; x < xc; x++, ip += Channels, bp += Channels, op += Channels)
+			int xc = ox + ow;
+			for (int x = ox; x < xc; x++, ip += Channels, op += Channels)
 			{
+				int dif = *yp++ - *bp++;
+
 				byte c0 = ip[0];
-				int yi = c0;
-				int yb = bp[0];
-				if (threshold == 0 || Math.Abs(yi - yb) > threshold)
+				if (threshold == 0 || Math.Abs(dif) > threshold)
 				{
-					int dif = UnFix15((yi - yb) * iamt);
-					op[0] = ClampToByte(yi + dif);
+					dif = UnFix15(dif * iamt);
+					op[0] = ClampToByte(c0 + dif);
 				}
 				else
 				{
@@ -1343,6 +1472,34 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		void IConvolver.SharpenLine(byte* cstart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh) => throw new NotImplementedException();
+		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
+		{
+			fixed (byte* gtstart = LookupTables.Gamma)
+			fixed (ushort* igtstart = LookupTables.InverseGammaUQ15)
+			{
+				int iamt = Fix15(amt * 0.01);
+				int threshold = thresh;
+	
+				byte* gt = gtstart;
+				ushort* ip = (ushort*)cstart, yp = (ushort*)ystart, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;
+	
+				int xc = ox + ow;
+				for (int x = ox; x < xc; x++, ip += Channels, op += Channels)
+				{
+					int dif = *yp++ - *bp++;
+	
+					ushort c0 = ip[0];
+					if (threshold == 0 || Math.Abs(dif) > threshold)
+					{
+						dif = UnFix15(dif * iamt);
+						op[0] = igt[ClampToByte(gt[c0] + dif)];
+					}
+					else
+					{
+						op[0] = c0;
+					}
+				}
+			}
+		}
 	}
 }

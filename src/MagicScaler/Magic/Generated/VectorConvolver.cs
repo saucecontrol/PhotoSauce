@@ -157,7 +157,42 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		void IConvolver.SharpenLine(byte* cstart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh) => throw new NotImplementedException();
+		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
+		{
+			float famt = amt * 0.01f;
+			float threshold = (float)thresh / byte.MaxValue;
+
+			float* ip = (float*)cstart, yp = (float*)ystart, bp = (float*)bstart, op = (float*)ostart;
+			float* ipe = ip + ow * Channels;
+
+			var vmin = Vector4.Zero;
+			var vmax = Vector4.One;
+			var vamt = new Vector4(famt, famt, famt, 0f);
+
+			while (ip < ipe)
+			{
+				float dif = *yp++ - *bp++;
+				var c0 = Unsafe.Read<Vector4>(ip);
+
+				if (threshold == 0 || Math.Abs(dif) > threshold)
+				{
+					var vd = new Vector4(dif) * vamt;
+
+					if (gamma)
+						c0 = Vector4.SquareRoot(c0);
+
+					c0 = Vector4.Clamp(c0 + vd, vmin, vmax);
+
+					if (gamma)
+						c0 *= c0;
+				}
+
+				Unsafe.Write(op, c0);
+
+				ip += Channels;
+				op += Channels;
+			}
+		}
 	}
 
 	unsafe internal class Convolver3ChanFloat : IConvolver
@@ -276,7 +311,41 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		void IConvolver.SharpenLine(byte* cstart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh) => throw new NotImplementedException();
+		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
+		{
+			float famt = amt * 0.01f;
+			float threshold = (float)thresh / byte.MaxValue;
+
+			float* ip = (float*)cstart, yp = (float*)ystart, bp = (float*)bstart, op = (float*)ostart;
+			float* ipe = ip + ow * Channels;
+
+			var vmin = Vector3.Zero;
+			var vmax = Vector3.One;
+
+			while (ip < ipe)
+			{
+				float dif = *yp++ - *bp++;
+				var c0 = Unsafe.Read<Vector3>(ip);
+
+				if (threshold == 0 || Math.Abs(dif) > threshold)
+				{
+					var vd = new Vector3(dif * famt);
+
+					if (gamma)
+						c0 = Vector3.SquareRoot(c0);
+
+					c0 = Vector3.Clamp(c0 + vd, vmin, vmax);
+
+					if (gamma)
+						c0 *= c0;
+				}
+
+				Unsafe.Write(op, c0);
+
+				ip += Channels;
+				op += Channels;
+			}
+		}
 	}
 
 	unsafe internal class Convolver3XChanFloat : IConvolver
@@ -415,7 +484,41 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		void IConvolver.SharpenLine(byte* cstart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh) => throw new NotImplementedException();
+		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
+		{
+			float famt = amt * 0.01f;
+			float threshold = (float)thresh / byte.MaxValue;
+
+			float* ip = (float*)cstart, yp = (float*)ystart, bp = (float*)bstart, op = (float*)ostart;
+			float* ipe = ip + ow * Channels;
+
+			var vmin = Vector4.Zero;
+			var vmax = Vector4.One;
+
+			while (ip < ipe)
+			{
+				float dif = *yp++ - *bp++;
+				var c0 = Unsafe.Read<Vector4>(ip);
+
+				if (threshold == 0 || Math.Abs(dif) > threshold)
+				{
+					var vd = new Vector4(dif * famt);
+
+					if (gamma)
+						c0 = Vector4.SquareRoot(c0);
+
+					c0 = Vector4.Clamp(c0 + vd, vmin, vmax);
+
+					if (gamma)
+						c0 *= c0;
+				}
+
+				Unsafe.Write(op, c0);
+
+				ip += Channels;
+				op += Channels;
+			}
+		}
 	}
 
 	unsafe internal class Convolver2ChanFloat : IConvolver
@@ -522,7 +625,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		void IConvolver.SharpenLine(byte* cstart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh) => throw new NotImplementedException();
+		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma) => throw new NotImplementedException();
 	}
 
 	unsafe internal class Convolver1ChanFloat : IConvolver
@@ -621,6 +724,72 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		void IConvolver.SharpenLine(byte* cstart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh) => throw new NotImplementedException();
+		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
+		{
+			float famt = amt * 0.01f;
+			float threshold = (float)thresh / byte.MaxValue;
+
+			float* ip = (float*)cstart, yp = (float*)ystart, bp = (float*)bstart, op = (float*)ostart;
+			float* ipe = ip + ow * Channels - VectorF.Count;
+
+			var vthresh = new VectorF(threshold > 0f ? threshold : -1f);
+			var vamt = new VectorF(famt);
+			var vmin = VectorF.Zero;
+			var vmax = VectorF.One;
+			float fmin = vmin[0], fmax = vmax[0];
+
+			while (ip <= ipe)
+			{
+				var vd = Unsafe.Read<VectorF>(yp) - Unsafe.Read<VectorF>(bp);
+				if (thresh > 0)
+				{
+					var sm = Vector.GreaterThan(Vector.Abs(vd), vthresh);
+					vd = Vector.ConditionalSelect(sm, vd, vmin);
+				}
+				vd *= vamt;
+
+				var v0 = Unsafe.Read<VectorF>(ip);
+
+				if (gamma)
+					v0 = Vector.SquareRoot(v0);
+
+				v0 = (v0 + vd).Clamp(vmin, vmax);
+
+				if (gamma)
+					v0 *= v0;
+
+				Unsafe.Write(op, v0);
+
+				ip += VectorF.Count * Channels;
+				op += VectorF.Count * Channels;
+				yp += VectorF.Count;
+				bp += VectorF.Count;
+			}
+
+			ipe += VectorF.Count;
+			while (ip < ipe)
+			{
+				float dif = *yp++ - *bp++;
+				float c0 = *ip;
+
+				if (threshold == 0 || Math.Abs(dif) > threshold)
+				{
+					dif *= famt;
+
+					if (gamma)
+						c0 = (float)Math.Sqrt(c0);
+
+					c0 = (c0 + dif).Clamp(fmin, fmax);
+
+					if (gamma)
+						c0 *= c0;
+				}
+
+				*op = c0;
+
+				ip += Channels;
+				op += Channels;
+			}
+		}
 	}
 }

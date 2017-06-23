@@ -23,6 +23,8 @@ namespace PhotoSauce.MagicScaler
 		public const ushort UQ15One = iscale;
 		public const float FloatScale = fscale;
 		public const float FloatRound = fround;
+		public const double DoubleScale = dscale;
+		public const double DoubleRound = dround;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int Clamp(this int x, int min, int max) => Min(Max(min, x), max);
@@ -68,28 +70,6 @@ namespace PhotoSauce.MagicScaler
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte UnFix15ToByte(int x) => ClampToByte(UnFix15(x));
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ushort LumaFromBgr(ushort b, ushort g, ushort r)
-		{
-			//http://en.wikipedia.org/wiki/Relative_luminance
-			const int rY = (ushort)(0.2126 * dscale + dround);
-			const int gY = (ushort)(0.7152 * dscale + dround);
-			const int bY = (ushort)(0.0722 * dscale + dround);
-
-			return UnFixToUQ15(r * rY + g * gY + b * bY);
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte LumaFromBgr(byte b, byte g, byte r)
-		{
-			//http://www.w3.org/TR/AERT#color-contrast
-			const int rY = (ushort)(0.299 * dscale + dround);
-			const int gY = (ushort)(0.587 * dscale + dround);
-			const int bY = (ushort)(0.114 * dscale + dround);
-
-			return UnFix15ToByte(r * rY + g * gY + b * bY);
-		}
 
 		public static uint ReadBigEndianUInt32(this BinaryReader rdr)
 		{
