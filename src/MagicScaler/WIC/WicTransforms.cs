@@ -105,21 +105,11 @@ namespace PhotoSauce.MagicScaler
 				// Exif orientation
 				if (metareader.TryGetMetadataByName("System.Photo.Orientation", out var pv))
 				{
-					ushort orientation = 1;
+					var orientation = Orientation.Normal;
 					if (pv.UnmanagedType == VarEnum.VT_UI2)
-						orientation = (ushort)pv.Value;
+						orientation = (Orientation)(ushort)pv.Value;
 
-					var opt = WICBitmapTransformOptions.WICBitmapTransformRotate0;
-					if (orientation == 3 || orientation == 4)
-						opt = WICBitmapTransformOptions.WICBitmapTransformRotate180;
-					else if (orientation == 6 || orientation == 7)
-						opt = WICBitmapTransformOptions.WICBitmapTransformRotate90;
-					else if (orientation == 5 || orientation == 8)
-						opt = WICBitmapTransformOptions.WICBitmapTransformRotate270;
-
-					if (orientation == 2 || orientation == 4 || orientation == 5 || orientation == 7)
-						opt |= WICBitmapTransformOptions.WICBitmapTransformFlipHorizontal;
-
+					var opt = orientation.ToWicTransformOptions();
 					ctx.DecoderFrame.TransformOptions = opt;
 
 					if (ctx.DecoderFrame.SupportsPlanarPipeline && opt != WICBitmapTransformOptions.WICBitmapTransformRotate0 && ctx.DecoderFrame.Frame is IWICPlanarBitmapSourceTransform ptrans)

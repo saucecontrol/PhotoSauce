@@ -21,19 +21,34 @@ namespace PhotoSauce.MagicScaler
 
 	public sealed class ProcessingPipeline : IDisposable
 	{
-		private WicProcessingContext context;
-		private IPixelSource source;
+		internal WicProcessingContext Context;
+		private Lazy<IPixelSource> source;
 
 		internal ProcessingPipeline(WicProcessingContext ctx)
 		{
-			context = ctx;
-			source = ctx.Source.AsIPixelSource();
+			Context = ctx;
+			source = new Lazy<IPixelSource>(() => Context.Source.AsIPixelSource());
 		}
 
-		public IPixelSource PixelSource => source;
-		public ProcessImageSettings Settings => context.Settings;
-		public IEnumerable<PixelSourceStats> Stats => context.Stats;
+		public IPixelSource PixelSource => source.Value;
+		public ProcessImageSettings Settings => Context.UsedSettings;
+		public IEnumerable<PixelSourceStats> Stats => Context.Stats;
 
-		public void Dispose() => context.Dispose();
+		public void AddTransform(IPixelTransform transform)
+		{
+			if (source.IsValueCreated)
+				throw new NotSupportedException("A Transform cannot be added once the Pipeline Source is materialized");
+
+			if (transform is IPixelTransformInternal tint)
+			{
+				tint.Init(Context);
+				return;
+			}
+
+			transform.Init(Context.Source.AsIPixelSource());
+			Context.Source = transform.AsPixelSource();
+		}
+
+		public void Dispose() => Context.Dispose();
 	}
 }

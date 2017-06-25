@@ -18,6 +18,24 @@ namespace PhotoSauce.MagicScaler
 
 		public static Rectangle ToGdiRect(this WICRect r) => new Rectangle(r.X, r.Y, r.Width, r.Height);
 
+		public static WICBitmapTransformOptions ToWicTransformOptions(this Orientation o)
+		{
+			int orientation = (int)o;
+
+			var opt = WICBitmapTransformOptions.WICBitmapTransformRotate0;
+			if (orientation == 3 || orientation == 4)
+				opt = WICBitmapTransformOptions.WICBitmapTransformRotate180;
+			else if (orientation == 6 || orientation == 7)
+				opt = WICBitmapTransformOptions.WICBitmapTransformRotate90;
+			else if (orientation == 5 || orientation == 8)
+				opt = WICBitmapTransformOptions.WICBitmapTransformRotate270;
+
+			if (orientation == 2 || orientation == 4 || orientation == 5 || orientation == 7)
+				opt |= WICBitmapTransformOptions.WICBitmapTransformFlipHorizontal;
+
+			return opt;
+		}
+
 		public static ArraySegment<T> Zero<T>(this ArraySegment<T> a)
 		{
 			Array.Clear(a.Array, a.Offset, a.Count);

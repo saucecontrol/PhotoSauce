@@ -33,7 +33,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				var dec = new WicDecoder(imgPath, ctx);
 				buildPipeline(ctx);
-				return processImage(ctx, outStream);
+				return executePipeline(ctx, outStream);
 			}
 		}
 
@@ -46,7 +46,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				var dec = new WicDecoder(imgBuffer, ctx);
 				buildPipeline(ctx);
-				return processImage(ctx, outStream);
+				return executePipeline(ctx, outStream);
 			}
 		}
 
@@ -59,7 +59,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				var dec = new WicDecoder(imgStream, ctx);
 				buildPipeline(ctx);
-				return processImage(ctx, outStream);
+				return executePipeline(ctx, outStream);
 			}
 		}
 
@@ -72,7 +72,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				var dec = new WicDecoder(imgSource, ctx);
 				buildPipeline(ctx);
-				return processImage(ctx, outStream);
+				return executePipeline(ctx, outStream);
 			}
 		}
 
@@ -117,12 +117,20 @@ namespace PhotoSauce.MagicScaler
 			return new ProcessingPipeline(ctx);
 		}
 
+		public static ProcessImageResult ExecutePipeline(ProcessingPipeline pipeline, Stream outStream)
+		{
+			return executePipeline(pipeline.Context, outStream);
+		}
+
 		private static void buildPipeline(WicProcessingContext ctx, bool outputPlanar = true)
 		{
 			var frm = new WicFrameReader(ctx, EnablePlanarPipeline);
 			WicTransforms.AddMetadataReader(ctx);
 
 			ctx.FinalizeSettings();
+			ctx.Settings.UnsharpMask = ctx.UsedSettings.UnsharpMask;
+			ctx.Settings.JpegQuality = ctx.UsedSettings.JpegQuality;
+			ctx.Settings.JpegSubsampleMode = ctx.UsedSettings.JpegSubsampleMode;
 
 			if (ctx.DecoderFrame.SupportsPlanarPipeline)
 			{
@@ -137,7 +145,6 @@ namespace PhotoSauce.MagicScaler
 				MagicTransforms.AddExternalFormatConverter(ctx);
 
 				ctx.SwitchPlanarSource(WicPlane.Chroma);
-				int yw = ctx.Settings.Width, yh = ctx.Settings.Height;
 
 				if (savePlanar)
 				{
@@ -153,8 +160,6 @@ namespace PhotoSauce.MagicScaler
 				MagicTransforms.AddHighQualityScaler(ctx);
 				MagicTransforms.AddExternalFormatConverter(ctx);
 
-				ctx.Settings.Width = yw;
-				ctx.Settings.Height = yh;
 				ctx.SwitchPlanarSource(WicPlane.Luma);
 
 				if (!savePlanar)
@@ -180,7 +185,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private static ProcessImageResult processImage(WicProcessingContext ctx, Stream ostm)
+		private static ProcessImageResult executePipeline(WicProcessingContext ctx, Stream ostm)
 		{
 			WicTransforms.AddIndexedColorConverter(ctx);
 

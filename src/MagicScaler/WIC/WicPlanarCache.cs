@@ -23,7 +23,6 @@ namespace PhotoSauce.MagicScaler
 
 		public WicPlanarCache(IWICPlanarBitmapSourceTransform source, WICBitmapPlaneDescription descY, WICBitmapPlaneDescription descC, WICRect crop, WICBitmapTransformOptions transformOptions, uint width, uint height, double ratio)
 		{
-			// TODO fractional ratio support?
 			subsampleRatioX = Math.Ceiling((double)descY.Width / descC.Width);
 			subsampleRatioY = Math.Ceiling((double)descY.Height / descC.Height);
 
