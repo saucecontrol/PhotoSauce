@@ -393,7 +393,7 @@ namespace PhotoSauce.MagicScaler
 
 			var frame = img.Frames[FrameIndex];
 
-			Fixup(frame.Width, frame.Height, frame.Rotated90);
+			Fixup(frame.Width, frame.Height, frame.SwapDimensions);
 
 			if (SaveFormat == FileFormat.Auto)
 				SetSaveFormat(img.ContainerType, frame.HasAlpha);

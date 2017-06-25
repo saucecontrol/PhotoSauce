@@ -3,21 +3,21 @@ using System.IO;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal class ImageFileInfo
+	public sealed class ImageFileInfo
 	{
 		public struct FrameInfo
 		{
 			public int Width { get; private set; }
 			public int Height { get; private set; }
-			public bool Rotated90 { get; private set; }
+			public bool SwapDimensions { get; private set; }
 			public bool HasAlpha { get; private set; }
 
-			public FrameInfo(int width, int height, bool rotated, bool alpha)
+			public FrameInfo(int width, int height, bool swapDimensions, bool hasAlpha)
 			{
 				Width = width;
 				Height = height;
-				Rotated90 = rotated;
-				HasAlpha = alpha;
+				SwapDimensions = swapDimensions;
+				HasAlpha = hasAlpha;
 			}
 		}
 
@@ -25,6 +25,12 @@ namespace PhotoSauce.MagicScaler
 		public DateTime FileDate { get; private set; }
 		public FileFormat ContainerType { get; private set; }
 		public FrameInfo[] Frames { get; private set; }
+
+		public ImageFileInfo(int width, int height)
+		{
+			Frames = new[] { new FrameInfo(width, height, false, false) };
+			ContainerType = FileFormat.Unknown;
+		}
 
 		public ImageFileInfo(string imgPath)
 		{
@@ -39,6 +45,8 @@ namespace PhotoSauce.MagicScaler
 			FileDate = fi.LastWriteTimeUtc;
 		}
 
+		public ImageFileInfo(ArraySegment<byte> imgBuffer) : this(imgBuffer, DateTime.MinValue) { }
+
 		public ImageFileInfo(ArraySegment<byte> imgBuffer, DateTime lastModified)
 		{
 			if (imgBuffer == null) throw new ArgumentNullException(nameof(imgBuffer));
@@ -50,16 +58,18 @@ namespace PhotoSauce.MagicScaler
 			FileDate = lastModified;
 		}
 
-		public ImageFileInfo(Stream istm, DateTime lastModified)
+		public ImageFileInfo(Stream imgStream) : this(imgStream, DateTime.MinValue) { }
+
+		public ImageFileInfo(Stream imgStream, DateTime lastModified)
 		{
-			if (istm == null) throw new ArgumentNullException(nameof(istm));
-			if (!istm.CanSeek || !istm.CanRead) throw new ArgumentException("Input Stream must allow Seek and Read", nameof(istm));
-			if (istm.Length <= 0 || istm.Position >= istm.Length) throw new ArgumentException("Input Stream is empty or positioned at its end", nameof(istm));
+			if (imgStream == null) throw new ArgumentNullException(nameof(imgStream));
+			if (!imgStream.CanSeek || !imgStream.CanRead) throw new ArgumentException("Input Stream must allow Seek and Read", nameof(imgStream));
+			if (imgStream.Length <= 0 || imgStream.Position >= imgStream.Length) throw new ArgumentException("Input Stream is empty or positioned at its end", nameof(imgStream));
 
 			using (var ctx = new WicProcessingContext(new ProcessImageSettings()))
-				loadInfo(new WicDecoder(istm, ctx), ctx);
+				loadInfo(new WicDecoder(imgStream, ctx), ctx);
 
-			FileSize = istm.Length;
+			FileSize = imgStream.Length;
 			FileDate = lastModified;
 		}
 
