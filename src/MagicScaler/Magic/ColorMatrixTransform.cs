@@ -30,7 +30,7 @@ namespace PhotoSauce.MagicScaler
 		                                                  1f,  1f,  1f, 0f);
 	}
 
-	public class ColorMatrixTransform : IPixelTransform
+	public sealed class ColorMatrixTransform : IPixelTransform
 	{
 		private IPixelSource source;
 		private Vector4 vec0, vec1, vec2, vec3;
