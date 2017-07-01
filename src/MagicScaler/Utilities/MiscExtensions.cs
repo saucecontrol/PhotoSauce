@@ -36,6 +36,10 @@ namespace PhotoSauce.MagicScaler
 			return opt;
 		}
 
+		public static bool SwapDimensions(this Orientation o) => o > Orientation.FlipVertical;
+
+		public static bool RequiresCache(this Orientation o) => o > Orientation.FlipHorizontal;
+
 		public static ArraySegment<T> Zero<T>(this ArraySegment<T> a)
 		{
 			Array.Clear(a.Array, a.Offset, a.Count);

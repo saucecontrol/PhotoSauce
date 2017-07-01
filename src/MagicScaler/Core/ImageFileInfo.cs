@@ -9,15 +9,15 @@ namespace PhotoSauce.MagicScaler
 		{
 			public int Width { get; private set; }
 			public int Height { get; private set; }
-			public bool SwapDimensions { get; private set; }
 			public bool HasAlpha { get; private set; }
+			public Orientation ExifOrientation { get; private set; }
 
-			public FrameInfo(int width, int height, bool swapDimensions, bool hasAlpha)
+			public FrameInfo(int width, int height, bool hasAlpha, Orientation orientation)
 			{
 				Width = width;
 				Height = height;
-				SwapDimensions = swapDimensions;
 				HasAlpha = hasAlpha;
+				ExifOrientation = orientation;
 			}
 		}
 
@@ -28,7 +28,7 @@ namespace PhotoSauce.MagicScaler
 
 		public ImageFileInfo(int width, int height)
 		{
-			Frames = new[] { new FrameInfo(width, height, false, false) };
+			Frames = new[] { new FrameInfo(width, height, false, Orientation.Normal) };
 			ContainerType = FileFormat.Unknown;
 		}
 
@@ -83,7 +83,9 @@ namespace PhotoSauce.MagicScaler
 				var frm = new WicFrameReader(ctx);
 				WicTransforms.AddMetadataReader(ctx, basicOnly: true);
 
-				Frames[i] = new FrameInfo((int)ctx.Source.Width, (int)ctx.Source.Height, frm.SwapDimensions, ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
+				int width = (int)(frm.ExifOrientation.SwapDimensions() ? ctx.Source.Height : ctx.Source.Width);
+				int height = (int)(frm.ExifOrientation.SwapDimensions() ? ctx.Source.Width : ctx.Source.Height);
+				Frames[i] = new FrameInfo(width, height, ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None, frm.ExifOrientation);
 			}
 		}
 	}

@@ -34,13 +34,11 @@ namespace PhotoSauce.MagicScaler
 
 		void IPixelTransformInternal.Init(WicProcessingContext ctx)
 		{
-			var opt = orientation.ToWicTransformOptions();
-
 			var rotator = ctx.AddRef(Wic.Factory.CreateBitmapFlipRotator());
-			rotator.Initialize(ctx.Source.WicSource, opt);
+			rotator.Initialize(ctx.Source.WicSource, orientation.ToWicTransformOptions());
 			ctx.Source = rotator.AsPixelSource(nameof(IWICBitmapFlipRotator));
 
-			if (opt.RequiresCache())
+			if (orientation.RequiresCache())
 			{
 				var bmp = ctx.AddRef(Wic.Factory.CreateBitmapFromSource(ctx.Source.WicSource, WICBitmapCreateCacheOption.WICBitmapCacheOnDemand));
 				ctx.Source = bmp.AsPixelSource(nameof(IWICBitmap));

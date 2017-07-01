@@ -17,10 +17,8 @@ namespace PhotoSauce.MagicScaler
 		public bool SupportsNativeScale { get; private set; }
 		public bool SupportsNativeTransform { get; private set; }
 		public bool SupportsPlanarPipeline { get; set; }
-		public WICBitmapTransformOptions TransformOptions { get; set; }
+		public Orientation ExifOrientation { get; set; } = Orientation.Normal;
 		public IDictionary<string, PropVariant> Metadata { get; set; }
-
-		public bool SwapDimensions => TransformOptions.HasFlag(WICBitmapTransformOptions.WICBitmapTransformRotate90);
 
 		public WicFrameReader(WicProcessingContext ctx, bool planar = false)
 		{
@@ -105,13 +103,10 @@ namespace PhotoSauce.MagicScaler
 				// Exif orientation
 				if (metareader.TryGetMetadataByName("System.Photo.Orientation", out var pv))
 				{
-					var orientation = Orientation.Normal;
 					if (pv.UnmanagedType == VarEnum.VT_UI2)
-						orientation = (Orientation)(ushort)pv.Value;
+						ctx.DecoderFrame.ExifOrientation = (Orientation)Math.Min(Math.Max((ushort)Orientation.Normal, (ushort)pv.Value), (ushort)Orientation.Rotate270);
 
-					var opt = orientation.ToWicTransformOptions();
-					ctx.DecoderFrame.TransformOptions = opt;
-
+					var opt = ctx.DecoderFrame.ExifOrientation.ToWicTransformOptions();
 					if (ctx.DecoderFrame.SupportsPlanarPipeline && opt != WICBitmapTransformOptions.WICBitmapTransformRotate0 && ctx.DecoderFrame.Frame is IWICPlanarBitmapSourceTransform ptrans)
 					{
 						uint pw = 1, ph = 1;
@@ -184,7 +179,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddConditionalCache(WicProcessingContext ctx)
 		{
-			if (!ctx.DecoderFrame.TransformOptions.RequiresCache())
+			if (!ctx.DecoderFrame.ExifOrientation.RequiresCache())
 				return;
 
 			var crop = ctx.Settings.Crop;
@@ -261,11 +256,11 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddExifRotator(WicProcessingContext ctx)
 		{
-			if (ctx.DecoderFrame.TransformOptions == WICBitmapTransformOptions.WICBitmapTransformRotate0)
+			if (ctx.DecoderFrame.ExifOrientation == Orientation.Normal)
 				return;
 
 			var rotator = ctx.AddRef(Wic.Factory.CreateBitmapFlipRotator());
-			rotator.Initialize(ctx.Source.WicSource, ctx.DecoderFrame.TransformOptions);
+			rotator.Initialize(ctx.Source.WicSource, ctx.DecoderFrame.ExifOrientation.ToWicTransformOptions());
 			ctx.Source = rotator.AsPixelSource(nameof(IWICBitmapFlipRotator), !ctx.DecoderFrame.SupportsPlanarPipeline && !ctx.DecoderFrame.SupportsNativeTransform);
 		}
 
@@ -339,10 +334,11 @@ namespace PhotoSauce.MagicScaler
 			var fmts = new[] { Consts.GUID_WICPixelFormat8bppY, Consts.GUID_WICPixelFormat16bppCbCr };
 			var desc = new WICBitmapPlaneDescription[2];
 
-			if (!trans.DoesSupportTransform(ref width, ref height, ctx.DecoderFrame.TransformOptions, WICPlanarOptions.WICPlanarOptionsDefault, fmts, desc, 2))
+			var opt = ctx.DecoderFrame.ExifOrientation.ToWicTransformOptions();
+			if (!trans.DoesSupportTransform(ref width, ref height, opt, WICPlanarOptions.WICPlanarOptionsDefault, fmts, desc, 2))
 				throw new NotSupportedException("Requested planar transform not supported");
 
-			var cacheSource = ctx.AddDispose(new WicPlanarCache(trans, desc[0], desc[1], ctx.Settings.Crop.ToWicRect(), ctx.DecoderFrame.TransformOptions, width, height, rat));
+			var cacheSource = ctx.AddDispose(new WicPlanarCache(trans, desc[0], desc[1], ctx.Settings.Crop.ToWicRect(), opt, width, height, rat));
 
 			ctx.PlanarChromaSource = cacheSource.GetPlane(WicPlane.Chroma);
 			ctx.PlanarLumaSource = cacheSource.GetPlane(WicPlane.Luma);
