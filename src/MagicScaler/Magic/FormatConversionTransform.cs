@@ -757,7 +757,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			fixed (byte* gtstart = LookupTables.Gamma)
 			{
-				ushort* ip = (ushort*)ipstart + 3, ipe = (ushort*)ipstart + cb;
+				ushort* ip = (ushort*)ipstart + 3, ipe = (ushort*)(ipstart + cb);
 				byte* op = opstart + 1, gt = gtstart;
 
 				while (ip <= ipe)
@@ -808,7 +808,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			fixed (byte* gtstart = LookupTables.Gamma)
 			{
-				ushort* ip = (ushort*)ipstart + 4, ipe = (ushort*)ipstart + cb, op = (ushort*)opstart + 1;
+				ushort* ip = (ushort*)ipstart + 4, ipe = (ushort*)(ipstart + cb), op = (ushort*)opstart + 1;
 				byte* gt = gtstart;
 
 				while (ip <= ipe)
@@ -844,7 +844,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			fixed (byte* gtstart = LookupTables.Gamma)
 			{
-				ushort* ip = (ushort*)ipstart, ipe = (ushort*)ipstart + cb, op = (ushort*)opstart;
+				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb), op = (ushort*)opstart;
 				byte* gt = gtstart;
 
 				while (ip < ipe)
