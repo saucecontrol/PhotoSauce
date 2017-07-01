@@ -33,7 +33,8 @@ namespace PhotoSauce.MagicScaler
 	public sealed class ColorMatrixTransform : IPixelTransform
 	{
 		private IPixelSource source;
-		private Vector4 vec0, vec1, vec2, vec3;
+		private Vector4 vec0, vec1, vec2;
+		private int channels;
 
 		public Guid Format => source.Format;
 
@@ -43,24 +44,23 @@ namespace PhotoSauce.MagicScaler
 
 		public ColorMatrixTransform(Matrix4x4 matrix)
 		{
-			matrix = Matrix4x4.Transpose(matrix);
-			vec0 = new Vector4(matrix.M11, matrix.M12, matrix.M13, matrix.M14);
-			vec1 = new Vector4(matrix.M21, matrix.M22, matrix.M23, matrix.M24);
-			vec2 = new Vector4(matrix.M31, matrix.M32, matrix.M33, matrix.M34);
-			vec3 = new Vector4(matrix.M31, matrix.M32, matrix.M33, matrix.M34);
+			vec0 = new Vector4(matrix.M11, matrix.M21, matrix.M31, matrix.M41);
+			vec1 = new Vector4(matrix.M12, matrix.M22, matrix.M32, matrix.M42);
+			vec2 = new Vector4(matrix.M13, matrix.M23, matrix.M33, matrix.M43);
 		}
 
 		unsafe public void CopyPixels(Rectangle sourceArea, long cbStride, long cbBufferSize, IntPtr pbBuffer)
 		{
 			source.CopyPixels(sourceArea, cbStride, cbBufferSize, pbBuffer);
 
+			Vector4 vb = vec0, vg = vec1, vr = vec2, vdiv = new Vector4(1f / byte.MaxValue);
+			Vector4 vmin = Vector4.Zero, vmax = new Vector4(byte.MaxValue), vrnd = new Vector4(0.5f);
+			float fmax = vmax.X;
+			int chan = channels;
+
 			for (int y = 0; y < sourceArea.Height; y++)
 			{
-				byte* ip = (byte*)pbBuffer + y * cbStride, ipe = ip + sourceArea.Width * 3;
-
-				Vector4 vb = vec0, vg = vec1, vr = vec2, vdiv = new Vector4(1f / byte.MaxValue);
-				float fmin = Vector3.Zero.X, fmax = new Vector3(byte.MaxValue).X, frnd = new Vector3(0.5f).X;
-
+				byte* ip = (byte*)pbBuffer + y * cbStride, ipe = ip + sourceArea.Width * chan;
 				while (ip < ipe)
 				{
 					var v0 = new Vector4(ip[0], ip[1], ip[2], fmax) * vdiv;
@@ -68,21 +68,23 @@ namespace PhotoSauce.MagicScaler
 					float f1 = Vector4.Dot(v0, vg);
 					float f2 = Vector4.Dot(v0, vr);
 
-					ip[0] = (byte)(f0 * fmax + frnd).Clamp(fmin, fmax);
-					ip[1] = (byte)(f1 * fmax + frnd).Clamp(fmin, fmax);
-					ip[2] = (byte)(f2 * fmax + frnd).Clamp(fmin, fmax);
+					v0 = Vector4.Clamp(new Vector4(f0, f1, f2, 0f) * vmax + vrnd, vmin, vmax);
+					ip[0] = (byte)v0.X;
+					ip[1] = (byte)v0.Y;
+					ip[2] = (byte)v0.Z;
 
-					ip += 3;
+					ip += chan;
 				}
 			}
 		}
 
 		public void Init(IPixelSource source)
 		{
-			if (source.Format != Consts.GUID_WICPixelFormat24bppBGR)
-				throw new NotSupportedException("Pixel format must be BGR");
+			if (source.Format != Consts.GUID_WICPixelFormat24bppBGR && source.Format != Consts.GUID_WICPixelFormat32bppBGRA)
+				throw new NotSupportedException("Pixel format must be BGR or BGRA");
 
 			this.source = source;
+			channels = PixelFormat.Cache[source.Format].ChannelCount;
 		}
 	}
 }
