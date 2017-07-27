@@ -8,7 +8,7 @@
     <RuntimeFrameworkVersion Condition=" '$(TargetFramework)' == 'netcoreapp1.0' ">1.0.3</RuntimeFrameworkVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>7</LangVersion>
-    <VersionPrefix>0.8.0-beta2</VersionPrefix>
+    <VersionPrefix>0.8.0-beta3</VersionPrefix>
     <Authors>Clinton Ingram</Authors>
     <Company>PhotoSauce</Company>
     <Product>MagicScaler</Product>
