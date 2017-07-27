@@ -777,7 +777,7 @@ namespace PhotoSauce.MagicScaler
 					dif *= famt;
 
 					if (gamma)
-						c0 = (float)Math.Sqrt(c0);
+						c0 = c0.Sqrt();
 
 					c0 = (c0 + dif).Clamp(fmin, fmax);
 

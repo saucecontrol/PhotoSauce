@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -33,7 +34,11 @@ namespace PhotoSauce.MagicScaler
 		public static double Clamp(this double x, double min, double max) => Min(Max(min, x), max);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NETCOREAPP10
+		public static float Clamp(this float x, float min, float max) => MathF.Min(MathF.Max(min, x), max);
+#else
 		public static float Clamp(this float x, float min, float max) => x < min ? min : x > max ? max : x;
+#endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Vector<T> Clamp<T>(this Vector<T> x, Vector<T> min, Vector<T> max) where T : struct => Vector.Min(Vector.Max(min, x), max);
@@ -70,6 +75,13 @@ namespace PhotoSauce.MagicScaler
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte UnFix15ToByte(int x) => ClampToByte(UnFix15(x));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NETCOREAPP10
+		public static float Sqrt(this float x) => MathF.Sqrt(x);
+#else
+		public static float Sqrt(this float x) => (float)Math.Sqrt(x);
+#endif
 
 		public static uint ReadBigEndianUInt32(this BinaryReader rdr)
 		{

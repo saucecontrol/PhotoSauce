@@ -868,7 +868,7 @@ namespace PhotoSauce.MagicScaler
 
 			ipe += VectorF.Count;
 			while (ip < ipe)
-				*op++ = (float)Math.Sqrt(*ip++);
+				*op++ = (*ip++).Sqrt();
 		}
 
 		public void Dispose()
