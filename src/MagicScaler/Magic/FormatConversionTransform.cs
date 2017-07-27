@@ -144,19 +144,19 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip <= ipe)
 				{
-					ushort o0 = igt[ip[-8]];
-					ushort o1 = igt[ip[-7]];
-					ushort o2 = igt[ip[-6]];
-					ushort o3 = igt[ip[-5]];
+					ushort o0 = igt[(uint)ip[-8]];
+					ushort o1 = igt[(uint)ip[-7]];
+					ushort o2 = igt[(uint)ip[-6]];
+					ushort o3 = igt[(uint)ip[-5]];
 					op[-8] = o0;
 					op[-7] = o1;
 					op[-6] = o2;
 					op[-5] = o3;
 
-					o0 = igt[ip[-4]];
-					o1 = igt[ip[-3]];
-					o2 = igt[ip[-2]];
-					o3 = igt[ip[-1]];
+					o0 = igt[(uint)ip[-4]];
+					o1 = igt[(uint)ip[-3]];
+					o2 = igt[(uint)ip[-2]];
+					o3 = igt[(uint)ip[-1]];
 					op[-4] = o0;
 					op[-3] = o1;
 					op[-2] = o2;
@@ -186,10 +186,10 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip <= ipe)
 				{
-					ushort o0 = igt[ip[-4]];
-					ushort o1 = igt[ip[-3]];
-					ushort o2 = igt[ip[-2]];
-					ushort o3 = at[ip[-1]];
+					ushort o0 = igt[(uint)ip[-4]];
+					ushort o1 = igt[(uint)ip[-3]];
+					ushort o2 = igt[(uint)ip[-2]];
+					ushort o3 = at[(uint)ip[-1]];
 					op[-4] = o0;
 					op[-3] = o1;
 					op[-2] = o2;
@@ -210,19 +210,19 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip <= ipe)
 				{
-					byte o0 = gt[ip[-8]];
-					byte o1 = gt[ip[-7]];
-					byte o2 = gt[ip[-6]];
-					byte o3 = gt[ip[-5]];
+					byte o0 = gt[(uint)ip[-8]];
+					byte o1 = gt[(uint)ip[-7]];
+					byte o2 = gt[(uint)ip[-6]];
+					byte o3 = gt[(uint)ip[-5]];
 					op[-8] = o0;
 					op[-7] = o1;
 					op[-6] = o2;
 					op[-5] = o3;
 
-					o0 = gt[ip[-4]];
-					o1 = gt[ip[-3]];
-					o2 = gt[ip[-2]];
-					o3 = gt[ip[-1]];
+					o0 = gt[(uint)ip[-4]];
+					o1 = gt[(uint)ip[-3]];
+					o2 = gt[(uint)ip[-2]];
+					o3 = gt[(uint)ip[-1]];
 					op[-4] = o0;
 					op[-3] = o1;
 					op[-2] = o2;
@@ -252,9 +252,9 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip <= ipe)
 				{
-					byte o0 = gt[ip[-4]];
-					byte o1 = gt[ip[-3]];
-					byte o2 = gt[ip[-2]];
+					byte o0 = gt[(uint)ip[-4]];
+					byte o1 = gt[(uint)ip[-3]];
+					byte o2 = gt[(uint)ip[-2]];
 					byte o3 = UnFix15ToByte(ip[-1] * byte.MaxValue);
 					op[-4] = o0;
 					op[-3] = o1;
@@ -311,14 +311,14 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip <= ipe)
 				{
-					float o0 = igt[ip[-8]];
-					float o1 = igt[ip[-7]];
-					float o2 = igt[ip[-6]];
-					float o3 = igt[ip[-5]];
-					float o4 = igt[ip[-4]];
-					float o5 = igt[ip[-3]];
-					float o6 = igt[ip[-2]];
-					float o7 = igt[ip[-1]];
+					float o0 = igt[(uint)ip[-8]];
+					float o1 = igt[(uint)ip[-7]];
+					float o2 = igt[(uint)ip[-6]];
+					float o3 = igt[(uint)ip[-5]];
+					float o4 = igt[(uint)ip[-4]];
+					float o5 = igt[(uint)ip[-3]];
+					float o6 = igt[(uint)ip[-2]];
+					float o7 = igt[(uint)ip[-1]];
 
 					op[-8] = o0;
 					op[-7] = o1;
@@ -353,10 +353,10 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip <= ipe)
 				{
-					float o0 = igt[ip[-4]];
-					float o1 = igt[ip[-3]];
-					float o2 = igt[ip[-2]];
-					float o3 = at[ip[-1]];
+					float o0 = igt[(uint)ip[-4]];
+					float o1 = igt[(uint)ip[-3]];
+					float o2 = igt[(uint)ip[-2]];
+					float o3 = at[(uint)ip[-1]];
 					op[-4] = o0 * o3;
 					op[-3] = o1 * o3;
 					op[-2] = o2 * o3;
@@ -377,10 +377,10 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip <= ipe)
 				{
-					float o0 = igt[ip[-4]];
-					float o1 = igt[ip[-3]];
-					float o2 = igt[ip[-2]];
-					float o3 = at[ip[-1]];
+					float o0 = igt[(uint)ip[-4]];
+					float o1 = igt[(uint)ip[-3]];
+					float o2 = igt[(uint)ip[-2]];
+					float o3 = at[(uint)ip[-1]];
 					op[-4] = o0;
 					op[-3] = o1;
 					op[-2] = o2;
@@ -401,9 +401,9 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip <= ipe)
 				{
-					float o0 = igt[ip[-3]];
-					float o1 = igt[ip[-2]];
-					float o2 = igt[ip[-1]];
+					float o0 = igt[(uint)ip[-3]];
+					float o1 = igt[(uint)ip[-2]];
+					float o2 = igt[(uint)ip[-1]];
 					op[-4] = o0;
 					op[-3] = o1;
 					op[-2] = o2;
@@ -432,10 +432,10 @@ namespace PhotoSauce.MagicScaler
 					v = v.Clamp(vmin, vmax);
 
 					//TODO future JIT versions will auto-unroll loops over vector elements
-					byte o0 = gt[(ushort)v[0]];
-					byte o1 = gt[(ushort)v[1]];
-					byte o2 = gt[(ushort)v[2]];
-					byte o3 = gt[(ushort)v[3]];
+					byte o0 = gt[(uint)v[0]];
+					byte o1 = gt[(uint)v[1]];
+					byte o2 = gt[(uint)v[2]];
+					byte o3 = gt[(uint)v[3]];
 					op[0] = o0;
 					op[1] = o1;
 					op[2] = o2;
@@ -443,10 +443,10 @@ namespace PhotoSauce.MagicScaler
 
 					if (VectorF.Count == 8)
 					{
-						o0 = gt[(ushort)v[4]];
-						o1 = gt[(ushort)v[5]];
-						o2 = gt[(ushort)v[6]];
-						o3 = gt[(ushort)v[7]];
+						o0 = gt[(uint)v[4]];
+						o1 = gt[(uint)v[5]];
+						o2 = gt[(uint)v[6]];
+						o3 = gt[(uint)v[7]];
 						op[4] = o0;
 						op[5] = o1;
 						op[6] = o2;
@@ -511,18 +511,18 @@ namespace PhotoSauce.MagicScaler
 					var v = Unsafe.Read<VectorF>(ip) * vscale + vround;
 					v = v.Clamp(vmin, vmax);
 
-					byte o0 = gt[(ushort)v[0]];
-					byte o1 = gt[(ushort)v[1]];
-					byte o2 = gt[(ushort)v[2]];
+					byte o0 = gt[(uint)v[0]];
+					byte o1 = gt[(uint)v[1]];
+					byte o2 = gt[(uint)v[2]];
 					op[0] = o0;
 					op[1] = o1;
 					op[2] = o2;
 
 					if (VectorF.Count == 8)
 					{
-						o0 = gt[(ushort)v[4]];
-						o1 = gt[(ushort)v[5]];
-						o2 = gt[(ushort)v[6]];
+						o0 = gt[(uint)v[4]];
+						o1 = gt[(uint)v[5]];
+						o2 = gt[(uint)v[6]];
 						op[3] = o0;
 						op[4] = o1;
 						op[5] = o2;
@@ -554,14 +554,14 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip <= ipe)
 				{
-					float o0 = at[ip[-8]];
-					float o1 = at[ip[-7]];
-					float o2 = at[ip[-6]];
-					float o3 = at[ip[-5]];
-					float o4 = at[ip[-4]];
-					float o5 = at[ip[-3]];
-					float o6 = at[ip[-2]];
-					float o7 = at[ip[-1]];
+					float o0 = at[(uint)ip[-8]];
+					float o1 = at[(uint)ip[-7]];
+					float o2 = at[(uint)ip[-6]];
+					float o3 = at[(uint)ip[-5]];
+					float o4 = at[(uint)ip[-4]];
+					float o5 = at[(uint)ip[-3]];
+					float o6 = at[(uint)ip[-2]];
+					float o7 = at[(uint)ip[-1]];
 
 					op[-8] = o0;
 					op[-7] = o1;
@@ -596,10 +596,10 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip <= ipe)
 				{
-					float o0 = at[ip[-4]];
-					float o1 = at[ip[-3]];
-					float o2 = at[ip[-2]];
-					float o3 = at[ip[-1]];
+					float o0 = at[(uint)ip[-4]];
+					float o1 = at[(uint)ip[-3]];
+					float o2 = at[(uint)ip[-2]];
+					float o3 = at[(uint)ip[-1]];
 					op[-4] = o0 * o3;
 					op[-3] = o1 * o3;
 					op[-2] = o2 * o3;
@@ -620,9 +620,9 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip <= ipe)
 				{
-					float o0 = at[ip[-3]];
-					float o1 = at[ip[-2]];
-					float o2 = at[ip[-1]];
+					float o0 = at[(uint)ip[-3]];
+					float o1 = at[(uint)ip[-2]];
+					float o2 = at[(uint)ip[-1]];
 					op[-4] = o0;
 					op[-3] = o1;
 					op[-2] = o2;
@@ -813,7 +813,7 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip <= ipe)
 				{
-					ushort y = Rec709.LumaFromBgr(ip[-4], ip[-3], ip[-2]);
+					uint y = Rec709.LumaFromBgr(ip[-4], ip[-3], ip[-2]);
 					op[-1] = gt[y];
 
 					ip += 4;
@@ -848,7 +848,7 @@ namespace PhotoSauce.MagicScaler
 				byte* gt = gtstart;
 
 				while (ip < ipe)
-					*op++ = gt[*ip++];
+					*op++ = gt[(uint)*ip++];
 			}
 		}
 
