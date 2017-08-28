@@ -90,6 +90,8 @@ namespace PhotoSauce.MagicScaler
 					ip[1] = ig;
 					ip[2] = ir;
 					ip[3] = 1f;
+
+					ip += 4;
 				}
 			}
 		}
