@@ -46,14 +46,13 @@ namespace PhotoSauce.MagicScaler
 
 				PcsColorSpace = new string(rdr.ReadChars(4));
 
-				ushort year = rdr.ReadBigEndianUInt16();
-				ushort month = rdr.ReadBigEndianUInt16();
-				ushort day = rdr.ReadBigEndianUInt16();
-				ushort hour = rdr.ReadBigEndianUInt16();
-				ushort minute = rdr.ReadBigEndianUInt16();
-				ushort second = rdr.ReadBigEndianUInt16();
-				if (year > 0 && month > 0 && day > 0)
-					CreateDate = new DateTime(year, month, day, hour, minute, second);
+				ushort year = rdr.ReadBigEndianUInt16().Clamp(1, 9999);
+				ushort month = rdr.ReadBigEndianUInt16().Clamp(1, 12);
+				ushort day = rdr.ReadBigEndianUInt16().Clamp(1, (ushort)DateTime.DaysInMonth(year, month));
+				ushort hour = rdr.ReadBigEndianUInt16().Clamp(0, 23);
+				ushort minute = rdr.ReadBigEndianUInt16().Clamp(0, 59);
+				ushort second = rdr.ReadBigEndianUInt16().Clamp(0, 59);
+				CreateDate = new DateTime(year, month, day, hour, minute, second);
 
 				var acsp = rdr.ReadBytes(4);
 

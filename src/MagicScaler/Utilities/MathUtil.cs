@@ -31,6 +31,9 @@ namespace PhotoSauce.MagicScaler
 		public static int Clamp(this int x, int min, int max) => Min(Max(min, x), max);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ushort Clamp(this ushort x, ushort min, ushort max) => Min(Max(min, x), max);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static double Clamp(this double x, double min, double max) => Min(Max(min, x), max);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
