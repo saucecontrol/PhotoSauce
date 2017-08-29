@@ -2,17 +2,18 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#if !NET46
+#if DRAWING_SHIM
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Linq;
 
 namespace System.Drawing.Temp
 {
     public class ColorConverter : TypeConverter
     {
-#if NETCOREAPP10
+#if !NETSTANDARD1_3
         private static readonly Lazy<StandardValuesCollection> s_valuesLazy = new Lazy<StandardValuesCollection>(() => {
             // We must take the value from each hashtable and combine them.
             //
@@ -118,7 +119,7 @@ namespace System.Drawing.Temp
 
             return base.ConvertTo(context, culture, value, destinationType);
         }
-#if NETCOREAPP10
+#if !NETSTANDARD1_3
         public override StandardValuesCollection GetStandardValues(ITypeDescriptorContext context)
         {
             return s_valuesLazy.Value;

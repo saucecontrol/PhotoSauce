@@ -37,7 +37,7 @@ namespace PhotoSauce.MagicScaler
 		public static double Clamp(this double x, double min, double max) => Min(Max(min, x), max);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NETCOREAPP10
+#if MATHF
 		public static float Clamp(this float x, float min, float max) => MathF.Min(MathF.Max(min, x), max);
 #else
 		public static float Clamp(this float x, float min, float max) => x < min ? min : x > max ? max : x;
@@ -80,7 +80,7 @@ namespace PhotoSauce.MagicScaler
 		public static byte UnFix15ToByte(int x) => ClampToByte(UnFix15(x));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NETCOREAPP10
+#if MATHF
 		public static float Sqrt(this float x) => MathF.Sqrt(x);
 #else
 		public static float Sqrt(this float x) => (float)Math.Sqrt(x);

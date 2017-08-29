@@ -11,6 +11,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //----------------------------------------------------------------------------------------
 
+#pragma warning disable 0618 // VarEnum is obsolete
+
 using System;
 using System.Text;
 using System.Runtime.InteropServices;
@@ -1102,7 +1104,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		);
 	}
 
-#if NET46
+#if CUSTOM_MARSHAL
 	[ComImport, Guid("DC2BB46D-3F07-481E-8625-220C4AEDBB33"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICEnumMetadataItem
 	{
@@ -1140,7 +1142,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		void GetMetadataByName(
 			[MarshalAs(UnmanagedType.LPWStr)]
 			string wzName,
-#if NET46
+#if CUSTOM_MARSHAL
 			[In, Out, MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(PropVariant.Marshaler))]
 			PropVariant pvarValue
 #else
@@ -1166,7 +1168,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		new void GetMetadataByName(
 			[MarshalAs(UnmanagedType.LPWStr)]
 			string wzName,
-#if NET46
+#if CUSTOM_MARSHAL
 			[In, Out, MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(PropVariant.Marshaler))]
 			PropVariant pvarValue
 #else
@@ -1180,7 +1182,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		void SetMetadataByName(
 			[MarshalAs(UnmanagedType.LPWStr)]
 			string wzName,
-#if NET46
+#if CUSTOM_MARSHAL
 			[In, MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(PropVariant.Marshaler))]
 			PropVariant pvarValue
 #else

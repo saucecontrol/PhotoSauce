@@ -11,6 +11,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //----------------------------------------------------------------------------------------
 
+#pragma warning disable 0618 // VarEnum is obsolete
+
 using System;
 using System.Linq;
 using System.Collections;
@@ -54,7 +56,7 @@ namespace PhotoSauce.MagicScaler.Interop
 
 	internal sealed class PropVariant : IEquatable<PropVariant>
 	{
-#if !NET46
+#if !CUSTOM_MARSHAL
 		public interface ICustomMarshaler { }
 #endif
 

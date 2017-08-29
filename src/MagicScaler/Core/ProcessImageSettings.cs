@@ -7,7 +7,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
 
-#if !NET46
+#if DRAWING_SHIM
 using System.Drawing.Temp;
 #endif
 

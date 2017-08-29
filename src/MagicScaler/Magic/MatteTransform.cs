@@ -3,7 +3,7 @@ using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
-#if !NET46
+#if DRAWING_SHIM
 using System.Drawing.Temp;
 #endif
 
