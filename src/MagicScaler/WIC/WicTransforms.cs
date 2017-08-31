@@ -314,14 +314,16 @@ namespace PhotoSauce.MagicScaler
 			if (cw == ow && ch == oh)
 				return;
 
-			double wrat = (double)ow / cw, hrat = (double)oh / ch;
+			bool swap = ctx.DecoderFrame.ExifOrientation.SwapDimensions();
+			double wrat = swap ? (double)oh / ch : (double)ow / cw;
+			double hrat = swap ? (double)ow / cw : (double)oh / ch;
 
 			var crop = ctx.Settings.Crop;
 			ctx.Settings.Crop = new Rectangle(
 				(int)Math.Floor(crop.X / wrat),
 				(int)Math.Floor(crop.Y / hrat),
-				Math.Min((int)Math.Ceiling(crop.Width / wrat), (int)cw),
-				Math.Min((int)Math.Ceiling(crop.Height / hrat), (int)ch)
+				Math.Min((int)Math.Ceiling(crop.Width / wrat), (int)(swap ? ch : cw)),
+				Math.Min((int)Math.Ceiling(crop.Height / hrat), (int)(swap ? cw : ch))
 			);
 
 			var scaler = ctx.AddRef(Wic.Factory.CreateBitmapScaler());
