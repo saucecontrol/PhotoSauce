@@ -317,7 +317,12 @@ namespace PhotoSauce.MagicScaler
 			double wrat = (double)ow / cw, hrat = (double)oh / ch;
 
 			var crop = ctx.Settings.Crop;
-			ctx.Settings.Crop = new Rectangle((int)Math.Floor(crop.X / wrat), (int)Math.Floor(crop.Y / hrat), (int)Math.Ceiling(crop.Width / wrat), (int)Math.Ceiling(crop.Height / hrat));
+			ctx.Settings.Crop = new Rectangle(
+				(int)Math.Floor(crop.X / wrat),
+				(int)Math.Floor(crop.Y / hrat),
+				Math.Min((int)Math.Ceiling(crop.Width / wrat), (int)cw),
+				Math.Min((int)Math.Ceiling(crop.Height / hrat), (int)ch)
+			);
 
 			var scaler = ctx.AddRef(Wic.Factory.CreateBitmapScaler());
 			scaler.Initialize(ctx.Source.WicSource, cw, ch, WICBitmapInterpolationMode.WICBitmapInterpolationModeFant);
