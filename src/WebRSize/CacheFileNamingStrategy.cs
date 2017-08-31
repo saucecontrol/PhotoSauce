@@ -1,4 +1,6 @@
-﻿using System.Web;
+﻿using System.IO;
+using System.Web;
+using System.Text;
 
 using PhotoSauce.MagicScaler;
 
@@ -16,11 +18,20 @@ namespace PhotoSauce.WebRSize
 		protected string WrapFileName(string newPath, ProcessImageSettings settings, bool includeResolution = true)
 		{
 			string file = VirtualPathUtility.GetFileName(newPath);
-			file = $"{settings.GetCacheHash()}.{file}";
-			if (includeResolution)
-				file = file.Insert(file.LastIndexOf('.'), $".{settings.Width}x{settings.Height}");
+			var sb = new StringBuilder(128);
+			sb.Append(VirtualPathUtility.GetDirectory(newPath).Substring(1));
+			sb.Append('/');
+			sb.Append(settings.GetCacheHash());
+			sb.Append('.');
+			sb.Append(Path.GetFileNameWithoutExtension(file));
 
-			return VirtualPathUtility.Combine(cacheRoot, $"{VirtualPathUtility.GetDirectory(newPath).Substring(1)}/{file}");
+			if (includeResolution)
+				sb.AppendFormat(".{0}x{1}", settings.Width, settings.Height);
+
+			sb.Append('.');
+			sb.Append(settings.SaveFormat.GetFileExtension(Path.GetExtension(file)));
+
+			return VirtualPathUtility.Combine(cacheRoot, sb.ToString());
 		}
 
 		public abstract string GetCacheFilePath(string inPath, ProcessImageSettings settings);

@@ -40,6 +40,26 @@ namespace PhotoSauce.MagicScaler
 
 		public static bool RequiresCache(this Orientation o) => o > Orientation.FlipHorizontal;
 
+		public static bool InsensitiveEquals(this string s1, string s2) => string.Equals(s1, s2, StringComparison.OrdinalIgnoreCase);
+
+		public static string GetFileExtension(this FileFormat fmt, string preferredExtension = null)
+		{
+			if (fmt == FileFormat.Png8)
+				fmt = FileFormat.Png;
+
+			string ext = fmt.ToString().ToLower();
+			if (!string.IsNullOrEmpty(preferredExtension))
+			{
+				if (preferredExtension[0] == '.')
+					preferredExtension = preferredExtension.Substring(1);
+
+				if (preferredExtension.InsensitiveEquals(ext) || (preferredExtension.InsensitiveEquals("jpg") && fmt == FileFormat.Jpeg) || (preferredExtension.InsensitiveEquals("tif") && fmt == FileFormat.Tiff))
+					return preferredExtension;
+			}
+
+			return ext;
+		}
+
 		public static ArraySegment<T> Zero<T>(this ArraySegment<T> a)
 		{
 			Array.Clear(a.Array, a.Offset, a.Count);
