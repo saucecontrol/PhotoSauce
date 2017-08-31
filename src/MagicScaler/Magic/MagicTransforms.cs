@@ -69,7 +69,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			uint width = (uint)ctx.Settings.Width, height = (uint)ctx.Settings.Height;
 			var fmt = ctx.Source.Format;
-			var interpolator = fmt.ColorRepresentation == PixelColorRepresentation.Unspecified ? InterpolationSettings.Hermite : ctx.Settings.Interpolation;
+			var interpolator = ctx.Settings.Interpolation.WeightingFunction.Support > 1d && fmt.ColorRepresentation == PixelColorRepresentation.Unspecified ? InterpolationSettings.Hermite : ctx.Settings.Interpolation;
 			var interpolatorx = width == ctx.Source.Width ? InterpolationSettings.NearestNeighbor : interpolator;
 			var interpolatory = height == ctx.Source.Height ? InterpolationSettings.NearestNeighbor : interpolator;
 

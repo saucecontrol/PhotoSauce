@@ -13,8 +13,8 @@ namespace PhotoSauce.MagicScaler
 		private uint scaledWidth, scaledHeight;
 		private int strideY, strideC;
 		private int buffHeightY, buffHeightC;
-		private int startY = -1, posY = 0;
-		private int startC = -1, posC = 0;
+		private int startY = -1, loadedY = -1, nextY = 0;
+		private int startC = -1, loadedC = -1, nextC = 0;
 		private ArraySegment<byte> lineBuffY, lineBuffC;
 		private IWICPlanarBitmapSourceTransform sourceTransform;
 		private WICBitmapTransformOptions sourceTransformOptions;
@@ -33,34 +33,29 @@ namespace PhotoSauce.MagicScaler
 				Height = Math.Min((int)Math.Ceiling(crop.Height / ratio), (int)descY.Height)
 			};
 
+			descC.Width = descY.Width = (uint)scrop.Width;
+			descC.Height = descY.Height = (uint)scrop.Height;
+
 			if (subsampleRatioX > 1d)
 			{
-				if (scrop.X % subsampleRatioX > 0d)
+				if (scrop.X % subsampleRatioX > double.Epsilon)
 					scrop.X = (int)(scrop.X / subsampleRatioX) * (int)subsampleRatioX;
-				if (scrop.Width % subsampleRatioX > 0d)
+				if (scrop.Width % subsampleRatioX > double.Epsilon)
 					scrop.Width = (int)Math.Min(Math.Ceiling(scrop.Width / subsampleRatioX) * (int)subsampleRatioX, descY.Width);
 
 				descC.Width = Math.Min((uint)Math.Ceiling(scrop.Width / subsampleRatioX), descC.Width);
 				descY.Width = (uint)Math.Min(descC.Width * subsampleRatioX, scrop.Width);
 			}
-			else
-			{
-				descC.Width = descY.Width = (uint)scrop.Width;
-			}
 
 			if (subsampleRatioY > 1d)
 			{
-				if (scrop.Y % subsampleRatioY > 0d)
+				if (scrop.Y % subsampleRatioY > double.Epsilon)
 					scrop.Y = (int)(scrop.Y / subsampleRatioY) * (int)subsampleRatioY;
-				if (scrop.Height % subsampleRatioY > 0d)
+				if (scrop.Height % subsampleRatioY > double.Epsilon)
 					scrop.Height = (int)Math.Min(Math.Ceiling(scrop.Height / subsampleRatioY) * (int)subsampleRatioY, descY.Height);
 
 				descC.Height = Math.Min((uint)Math.Ceiling(scrop.Height / subsampleRatioY), descC.Height);
 				descY.Height = (uint)Math.Min(descC.Height * subsampleRatioY, scrop.Height);
-			}
-			else
-			{
-				descC.Height = descY.Height = (uint)scrop.Height;
 			}
 
 			sourceTransform = source;
@@ -70,34 +65,17 @@ namespace PhotoSauce.MagicScaler
 			scaledHeight = height;
 
 			strideY = scrop.Width + 3 & ~3;
-			buffHeightY = Math.Min(scrop.Height, transformOptions.RequiresCache() ? scrop.Height : 16);
-
 			strideC = (int)Math.Ceiling(scrop.Width / subsampleRatioX) * 2 + 3 & ~3;
+			buffHeightY = Math.Min(scrop.Height, transformOptions.RequiresCache() ? scrop.Height : 16);
 			buffHeightC = (int)Math.Ceiling(buffHeightY / subsampleRatioY);
 
 			sourceY = new PlanarPixelSource(this, WicPlane.Luma, descY);
 			sourceC = new PlanarPixelSource(this, WicPlane.Chroma, descC);
 		}
 
-		unsafe private void loadBuffer(byte* pBuffY, byte* pBuffC, WICRect rect)
+		unsafe private void loadBuffer(WicPlane plane, WICRect prc)
 		{
-			var planes = new WICBitmapPlane[2];
-			planes[0].Format = sourceY.Format.FormatGuid;
-			planes[1].Format = sourceC.Format.FormatGuid;
-			planes[0].cbStride = (uint)strideY;
-			planes[1].cbStride = (uint)strideC;
-			planes[0].cbBufferSize = (uint)lineBuffY.Count;
-			planes[1].cbBufferSize = (uint)lineBuffC.Count;
-			planes[0].pbBuffer = (IntPtr)pBuffY;
-			planes[1].pbBuffer = (IntPtr)pBuffC;
-
-			sourceTransform.CopyPixels(rect, scaledWidth, scaledHeight, sourceTransformOptions, WICPlanarOptions.WICPlanarOptionsDefault, planes, 2);
-		}
-
-		unsafe public void CopyPixels(WicPlane plane, WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
-		{
-			bool load = (lineBuffY.Array == null || (plane == WicPlane.Luma && prc.Y + prc.Height > startY + buffHeightY) || (plane == WicPlane.Chroma && prc.Y + prc.Height > startC + buffHeightC));
-			if (load && (lineBuffY.Array == null || posY < buffHeightY / 4 || posC < buffHeightC / 4))
+			if (lineBuffY.Array == null || nextY < buffHeightY / 4 || nextC < buffHeightC / 4)
 			{
 				if (lineBuffY.Array != null)
 				{
@@ -114,12 +92,7 @@ namespace PhotoSauce.MagicScaler
 					{
 						Buffer.MemoryCopy(pcbuffY, ptbuffY, tbuffY.Array.Length, lineBuffY.Count);
 						Buffer.MemoryCopy(pcbuffC, ptbuffC, tbuffC.Array.Length, lineBuffC.Count);
-
-						var rect = new WICRect { X = scaledCrop.X, Y = scaledCrop.Y + startY + posY, Width = scaledCrop.Width, Height = Math.Min(buffHeightY - posY, scaledCrop.Height - (plane == WicPlane.Luma ? prc.Y : (int)Math.Ceiling(prc.Y * subsampleRatioY))) };
-						loadBuffer(ptbuffY + lineBuffY.Count, ptbuffC + lineBuffC.Count, rect);
 					}
-
-					load = false;
 
 					ArrayPool<byte>.Shared.Return(lineBuffY.Array);
 					ArrayPool<byte>.Shared.Return(lineBuffC.Array);
@@ -131,60 +104,76 @@ namespace PhotoSauce.MagicScaler
 
 			fixed (byte* pBuffY = lineBuffY.Array, pBuffC = lineBuffC.Array)
 			{
-				if (load)
+				int offsY = 0, offsC = 0;
+				if (startY == -1)
 				{
-					int offsY = 0, offsC = 0;
-					if (startY == -1)
-					{
-						startY = prc.Y;
-						if (startY % subsampleRatioY > 0)
-							startY = (int)(startY / subsampleRatioY) * (int)subsampleRatioY;
+					startY = prc.Y;
+					if (startY % subsampleRatioY > 0)
+						startY = (int)(startY / subsampleRatioY) * (int)subsampleRatioY;
 
-						startC = (int)(startY / subsampleRatioY);
-						posY = prc.Y - startY;
-						posC = (int)(posY / subsampleRatioY);
-					}
-					else if (posY < buffHeightY || posC < buffHeightC)
-					{
-						int posMin = (int)Math.Min(posC * subsampleRatioY, posY);
-						int posMins = (int)(posMin / subsampleRatioY);
-						posMin =  posMins * (int)subsampleRatioY;
-
-						Buffer.MemoryCopy(pBuffY + posMin * strideY, pBuffY, lineBuffY.Array.Length, (buffHeightY - posMin) * strideY);
-						Buffer.MemoryCopy(pBuffC + posMins * strideC, pBuffC, lineBuffC.Array.Length, (buffHeightC - posMins) * strideC);
-
-						startY += posMin;
-						startC += posMins;
-
-						posY -= posMin;
-						posC -= posMins;
-
-						offsY = buffHeightY - posMin;
-						offsC = buffHeightC - posMins;
-					}
-					else
-					{
-						startY += buffHeightY;
-						startC += buffHeightC;
-						posY = posC = 0;
-					}
-
-					var rect = new WICRect { X = scaledCrop.X, Y = scaledCrop.Y + startY + offsY, Width = scaledCrop.Width, Height = Math.Min(buffHeightY - offsY, scaledCrop.Height - (plane == WicPlane.Luma ? prc.Y : (int)Math.Ceiling(prc.Y * subsampleRatioY))) };
-					loadBuffer(pBuffY + offsY * strideY, pBuffC + offsC * strideC, rect);
+					startC = (int)(startY / subsampleRatioY);
 				}
-
-				if (plane == WicPlane.Luma)
+				else if (nextY < buffHeightY || nextC < buffHeightC)
 				{
-					for (int y = 0; y < prc.Height; y++)
-						Buffer.MemoryCopy(pBuffY + posY * strideY + y * strideY + prc.X, (byte*)pbBuffer + y * cbStride, cbStride, prc.Width);
-					posY += prc.Height;
+					int minY = (int)Math.Min(nextC * subsampleRatioY, nextY);
+					int minC = (int)(minY / subsampleRatioY);
+					minY = minC * (int)subsampleRatioY;
+
+					Buffer.MemoryCopy(pBuffY + minY * strideY, pBuffY, lineBuffY.Array.Length, (buffHeightY - minY) * strideY);
+					Buffer.MemoryCopy(pBuffC + minC * strideC, pBuffC, lineBuffC.Array.Length, (buffHeightC - minC) * strideC);
+
+					offsY = loadedY - startY - minY;
+					offsC = (int)(loadedY / subsampleRatioY) - startC - minC;
+
+					startY += minY;
+					startC += minC;
+
+					nextY -= minY;
+					nextC -= minC;
 				}
 				else
 				{
-					for (int y = 0; y < prc.Height; y++)
-						Buffer.MemoryCopy(pBuffC + posC * strideC + y * strideC + prc.X * 2, (byte*)pbBuffer + y * cbStride, cbStride, prc.Width * 2);
-					posC += prc.Height;
+					startY += buffHeightY;
+					startC += buffHeightC;
 				}
+
+				var rect = new WICRect {
+					X = scaledCrop.X,
+					Y = Math.Max(0, Math.Max(scaledCrop.Y + startY + offsY, loadedY)),
+					Width = scaledCrop.Width,
+					Height = Math.Min(buffHeightY - offsY, scaledCrop.Height - (plane == WicPlane.Luma ? prc.Y : (int)Math.Ceiling(prc.Y * subsampleRatioY)))
+				};
+
+				var planes = new[] {
+					new WICBitmapPlane { Format = sourceY.Format.FormatGuid, pbBuffer = (IntPtr)(pBuffY + offsY * strideY), cbStride = (uint)strideY, cbBufferSize = (uint)lineBuffY.Count },
+					new WICBitmapPlane { Format = sourceC.Format.FormatGuid, pbBuffer = (IntPtr)(pBuffC + offsC * strideC), cbStride = (uint)strideC, cbBufferSize = (uint)lineBuffC.Count }
+				};
+
+				sourceTransform.CopyPixels(rect, scaledWidth, scaledHeight, sourceTransformOptions, WICPlanarOptions.WICPlanarOptionsDefault, planes, (uint)planes.Length);
+				loadedY = rect.Y + rect.Height;
+				loadedC = (int)Math.Ceiling(loadedY / subsampleRatioY);
+			}
+		}
+
+		unsafe public void CopyPixels(WicPlane plane, WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		{
+			if (lineBuffY.Array == null || (plane == WicPlane.Luma && prc.Y + prc.Height > loadedY) || (plane == WicPlane.Chroma && prc.Y + prc.Height > loadedC))
+				loadBuffer(plane, prc);
+
+			switch (plane)
+			{
+				case WicPlane.Luma:
+					fixed (byte* pBuffY = lineBuffY.Array)
+					for (int y = 0; y < prc.Height; y++)
+						Buffer.MemoryCopy(pBuffY + (prc.Y - startY) * strideY + y * strideY + prc.X, (byte*)pbBuffer + y * cbStride, cbStride, prc.Width);
+					nextY = prc.Y + prc.Height - startY;
+					break;
+				case WicPlane.Chroma:
+					fixed (byte* pBuffC = lineBuffC.Array)
+					for (int y = 0; y < prc.Height; y++)
+						Buffer.MemoryCopy(pBuffC + (prc.Y - startC) * strideC + y * strideC + prc.X * 2, (byte*)pbBuffer + y * cbStride, cbStride, prc.Width * 2);
+					nextC = prc.Y + prc.Height - startC;
+					break;
 			}
 		}
 
