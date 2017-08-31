@@ -55,7 +55,7 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("08FB9676-B444-41E8-8DBE-6A53A542BFF1"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICMetadataBlockWriter : IWICMetadataBlockReader
 	{
-#region IWICMetadataBlockReader
+		#region IWICMetadataBlockReader
 		new Guid GetContainerFormat();
 
 		new uint GetCount();
@@ -65,7 +65,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		);
 
 		new IEnumUnknown GetEnumerator();
-#endregion
+		#endregion
 
 		void InitializeFromBlockReader(
 			IWICMetadataBlockReader pIMDBlockReader
@@ -123,7 +123,7 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("F7836E16-3BE0-470B-86BB-160D0AECD7DE"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICMetadataWriter : IWICMetadataReader
 	{
-#region IWICMetadataReader
+		#region IWICMetadataReader
 		new Guid GetMetadataFormat();
 
 		new IWICMetadataHandlerInfo GetMetadataHandlerInfo();
@@ -149,7 +149,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		);
 
 		new IWICEnumMetadataItem GetEnumerator();
-#endregion
+		#endregion
 
 		void SetValue(
 			[In, MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(PropVariant.Marshaler))]
@@ -197,7 +197,7 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("ABA958BF-C672-44D1-8D61-CE6DF2E682C2"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICMetadataHandlerInfo : IWICComponentInfo
 	{
-#region IWICComponentInfo
+		#region IWICComponentInfo
 		new WICComponentType GetComponentType();
 
 		new Guid GetCLSID();
@@ -229,7 +229,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)] 
 			StringBuilder wzFriendlyName
 		);
-#endregion
+		#endregion
 
 		Guid GetMetadataFormat();
 
@@ -273,8 +273,8 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("EEBF1F5B-07C1-4447-A3AB-22ACAF78A804"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICMetadataReaderInfo : IWICMetadataHandlerInfo
 	{
-#region IWICMetadataHandlerInfo
-#region IWICComponentInfo
+		#region IWICMetadataHandlerInfo
+		#region IWICComponentInfo
 		new WICComponentType GetComponentType();
 
 		new Guid GetCLSID();
@@ -306,7 +306,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)] 
 			StringBuilder wzFriendlyName
 		);
-#endregion
+		#endregion
 
 		new Guid GetMetadataFormat();
 
@@ -336,7 +336,7 @@ namespace PhotoSauce.MagicScaler.Interop
 
 		[return: MarshalAs(UnmanagedType.Bool)]
 		new bool DoesRequireFixedSize();
-#endregion
+		#endregion
 
 		uint GetPatterns(
 			[MarshalAs(UnmanagedType.LPStruct)]
@@ -367,8 +367,8 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("B22E3FBA-3925-4323-B5C1-9EBFC430F236"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICMetadataWriterInfo : IWICMetadataHandlerInfo
 	{
-#region IWICMetadataHandlerInfo
-#region IWICComponentInfo
+		#region IWICMetadataHandlerInfo
+		#region IWICComponentInfo
 		new WICComponentType GetComponentType();
 
 		new Guid GetCLSID();
@@ -400,7 +400,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)] 
 			StringBuilder wzFriendlyName
 		);
-#endregion
+		#endregion
 
 		new Guid GetMetadataFormat();
 
@@ -430,7 +430,7 @@ namespace PhotoSauce.MagicScaler.Interop
 
 		[return: MarshalAs(UnmanagedType.Bool)]
 		new bool DoesRequireFixedSize();
-#endregion
+		#endregion
 
 		uint GetHeader(
 			[MarshalAs(UnmanagedType.LPStruct)] 
@@ -445,7 +445,7 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("412D0C3A-9650-44FA-AF5B-DD2A06C8E8FB"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICComponentFactory : IWICImagingFactory
 	{
-#region IWICImagingFactory
+		#region IWICImagingFactory
 		new IWICBitmapDecoder CreateDecoderFromFilename(
 			[MarshalAs(UnmanagedType.LPWStr)]
 			string wzFilename,
@@ -571,7 +571,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPArray, SizeConst = 1)]
 			Guid[] pguidVendor
 		);
-#endregion
+		#endregion
 
 		IWICMetadataReader CreateMetadataReader(
 			[MarshalAs(UnmanagedType.LPStruct)] 
