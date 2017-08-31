@@ -55,13 +55,13 @@ namespace PhotoSauce.WebRSize
 		{
 			try
 			{
-				if (!s.Normalized)
+				if (reqPath == WebRSizeModule.NotFoundPath)
 				{
 					using (await enterWorkQueueAsync())
 					using (var oimg = new MemoryStream(8192))
 					{
 						GdiImageProcessor.CreateBrokenImage(oimg, s);
-
+						oimg.Position = 0;
 						saveResult(tcs, oimg, cachePath, DateTime.MinValue);
 						return;
 					}
@@ -113,6 +113,9 @@ namespace PhotoSauce.WebRSize
 			}
 
 			var res = await task;
+
+			if (!ctx.Response.IsClientConnected)
+				return;
 
 			ctx.Response.BufferOutput = false;
 			ctx.Response.ContentType = MimeMapping.GetMimeMapping(Path.GetFileName(cachePath));

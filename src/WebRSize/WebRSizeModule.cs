@@ -11,8 +11,9 @@ namespace PhotoSauce.WebRSize
 {
 	public class WebRSizeModule : IHttpModule
 	{
-		public const string ProcessImageSettingsKey = "wsmssettings";
-		public const string CachePathKey            = "wscachepath";
+		internal const string ProcessImageSettingsKey = "wsmssettings";
+		internal const string CachePathKey            = "wscachepath";
+		internal const string NotFoundPath            = "/404/notfound.png";
 
 		private static readonly WebRSizeHandler handler = new WebRSizeHandler();
 		private static readonly ImageFolder[] imageFolders = WebRSizeConfig.Current.ImageFolders.OfType<ImageFolder>().ToArray();
@@ -21,55 +22,62 @@ namespace PhotoSauce.WebRSize
 		private async Task mapRequest(object sender, EventArgs e)
 		{
 			var ctx = ((HttpApplication)sender).Context;
+			var vpp = HostingEnvironment.VirtualPathProvider;
+			var vppAsync = vpp as CachingAsyncVirtualPathProvider;
+
+			string path = ctx.Request.Path;
+			bool exists = vppAsync != null ? await vppAsync.FileExistsAsync(path) : vpp.FileExists(path);
 
 			var folderConfig = imageFolders.FirstOrDefault(f => ctx.Request.Path.StartsWith(f.Path, StringComparison.OrdinalIgnoreCase));
 			if (folderConfig == null)
 				return;
 
-			var dic = folderConfig.DefaultSettings.ToDictionary().Coalesce(ctx.Request.QueryString.ToDictionary());
-			var s = ProcessImageSettings.FromDictionary(dic);
+			var dic = ctx.Request.QueryString.ToDictionary();
+			if (folderConfig.DefaultSettingsDictionary.Count > 0)
+				dic = folderConfig.DefaultSettingsDictionary.Coalesce(dic);
 
-			string path = ctx.Request.Path;
-			var vpp = HostingEnvironment.VirtualPathProvider;
-			var vppAsync = vpp as CachingAsyncVirtualPathProvider;
-			bool exists = vppAsync != null ? await vppAsync.FileExistsAsync(path) : vpp.FileExists(path);
+			var s = ProcessImageSettings.FromDictionary(dic);
+			if (exists && s.IsEmpty && !folderConfig.ForceProcessing)
+				return;
+
+			var ifi = default(ImageFileInfo);
 			if (!exists)
 			{
 				ctx.Response.TrySkipIisCustomErrors = true;
 				ctx.Response.StatusCode = 404;
-				path = "/404/notfound.png";
+				path = NotFoundPath;
 
-				if (s.Width == 0 && s.Height == 0)
+				if (s.Width <= 0 && s.Height <= 0)
 					s.Width = s.Height = 100;
-				else if (s.Width <= 0 || s.Height <= 0)
-					s.Fixup(s.Width > 0 ? s.Width : s.Height, s.Height > 0 ? s.Height : s.Width);
-			}
-			else if (s.Width == 0 && s.Height == 0 && s.Crop.IsEmpty && s.SaveFormat == FileFormat.Auto && !folderConfig.ForceProcessing)
-			{
-				return;
-			}
-			else
-			{
-				var ifi = await CacheHelper.GetImageInfoAsync(path);
-				s.NormalizeFrom(ifi);
 
-				if (!folderConfig.AllowEnlarge)
+				ifi = new ImageFileInfo(s.Width > 0 ? s.Width : s.Height, s.Height > 0 ? s.Height : s.Width);
+			}
+
+			ifi = ifi ?? await CacheHelper.GetImageInfoAsync(path);
+			s.NormalizeFrom(ifi);
+
+			if (!folderConfig.AllowEnlarge)
+			{
+				var frame = ifi.Frames[s.FrameIndex];
+				if (s.Width > frame.Width)
 				{
-					var frame = ifi.Frames[s.FrameIndex];
-					int iw = frame.Rotated90 ? frame.Height : frame.Width, ih = frame.Rotated90 ? frame.Width : frame.Height;
-					if (s.Width > iw)
-					{
-						s.Width = Math.Min(s.Width, iw);
-						s.Height = 0;
-						s.Fixup(iw, ih);
-					}
-					if (s.Height > ih)
-					{
-						s.Height = Math.Min(s.Height, ih);
-						s.Width = 0;
-						s.Fixup(iw, ih);
-					}
+					s.Width = frame.Width;
+					s.Height = 0;
+					s.Fixup(frame.Width, frame.Height);
 				}
+				if (s.Height > frame.Height)
+				{
+					s.Width = 0;
+					s.Height = frame.Height;
+					s.Fixup(frame.Width, frame.Height);
+				}
+			}
+
+			if (s.Width * s.Height > folderConfig.MaxPixels)
+			{
+				ctx.Response.StatusCode = 400;
+				ctx.ApplicationInstance.CompleteRequest();
+				return;
 			}
 
 			var cacheVPath = namingStrategy.Value.GetCacheFilePath(path, s);
@@ -81,12 +89,8 @@ namespace PhotoSauce.WebRSize
 				return;
 			}
 
-			if (s.Width * s.Height > folderConfig.MaxPixels)
-			{
-				ctx.Response.StatusCode = 400;
-				ctx.ApplicationInstance.CompleteRequest();
-				return;
-			}
+			if (path == NotFoundPath)
+				ctx.RewritePath(NotFoundPath);
 
 			ctx.Items[ProcessImageSettingsKey] = s;
 			ctx.Items[CachePathKey] = cachePath;

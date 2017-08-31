@@ -75,6 +75,7 @@ namespace PhotoSauce.MagicScaler
 		private static readonly Regex anchorExpression = new Regex(@"^(top|middle|bottom)?\-?(left|center|right)?$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 		private static readonly Regex subsampleExpression = new Regex(@"^4(20|22|44)$", RegexOptions.Compiled);
 		private static readonly Regex hexColorExpression = new Regex(@"^[0-9A-Fa-f]{6}$", RegexOptions.Compiled);
+		private static readonly ProcessImageSettings empty = new ProcessImageSettings();
 
 		private int width;
 		private int height;
@@ -98,6 +99,20 @@ namespace PhotoSauce.MagicScaler
 		public IEnumerable<string> MetadataNames { get; set; }
 
 		internal bool Normalized => imageInfo != null;
+
+		internal bool IsEmpty =>
+			width           == empty.width           &&
+			height          == empty.height          &&
+			jpegQuality     == empty.jpegQuality     &&
+			jpegSubsampling == empty.jpegSubsampling &&
+			FrameIndex      == empty.FrameIndex      &&
+			DpiX            == empty.DpiX            &&
+			DpiY            == empty.DpiY            &&
+			Crop            == empty.Crop            &&
+			SaveFormat      == empty.SaveFormat      &&
+			MatteColor      == empty.MatteColor      &&
+			unsharpMask.Equals(empty.unsharpMask)
+		;
 
 		public int Width
 		{
@@ -231,6 +246,7 @@ namespace PhotoSauce.MagicScaler
 		public static ProcessImageSettings FromDictionary(IDictionary<string, string> dic)
 		{
 			if (dic == null) throw new ArgumentNullException(nameof(dic));
+			if (dic.Count == 0) return new ProcessImageSettings();
 
 			var s = new ProcessImageSettings {
 				FrameIndex = Math.Max(int.TryParse(dic.GetValueOrDefault("frame") ?? dic.GetValueOrDefault("page"), out int f) ? f : 0, 0),
