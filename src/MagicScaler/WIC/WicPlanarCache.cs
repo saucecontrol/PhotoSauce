@@ -33,18 +33,19 @@ namespace PhotoSauce.MagicScaler
 				Height = Math.Min((int)Math.Ceiling(crop.Height / ratio), (int)descY.Height)
 			};
 
-			descC.Width = descY.Width = (uint)scrop.Width;
-			descC.Height = descY.Height = (uint)scrop.Height;
-
 			if (subsampleRatioX > 1d)
 			{
 				if (scrop.X % subsampleRatioX > double.Epsilon)
 					scrop.X = (int)(scrop.X / subsampleRatioX) * (int)subsampleRatioX;
 				if (scrop.Width % subsampleRatioX > double.Epsilon)
-					scrop.Width = (int)Math.Min(Math.Ceiling(scrop.Width / subsampleRatioX) * (int)subsampleRatioX, descY.Width);
+					scrop.Width = (int)Math.Min(Math.Ceiling(scrop.Width / subsampleRatioX) * (int)subsampleRatioX, descY.Width - scrop.X);
 
 				descC.Width = Math.Min((uint)Math.Ceiling(scrop.Width / subsampleRatioX), descC.Width);
 				descY.Width = (uint)Math.Min(descC.Width * subsampleRatioX, scrop.Width);
+			}
+			else
+			{
+				descC.Width = descY.Width = (uint)scrop.Width;
 			}
 
 			if (subsampleRatioY > 1d)
@@ -52,10 +53,14 @@ namespace PhotoSauce.MagicScaler
 				if (scrop.Y % subsampleRatioY > double.Epsilon)
 					scrop.Y = (int)(scrop.Y / subsampleRatioY) * (int)subsampleRatioY;
 				if (scrop.Height % subsampleRatioY > double.Epsilon)
-					scrop.Height = (int)Math.Min(Math.Ceiling(scrop.Height / subsampleRatioY) * (int)subsampleRatioY, descY.Height);
+					scrop.Height = (int)Math.Min(Math.Ceiling(scrop.Height / subsampleRatioY) * (int)subsampleRatioY, descY.Height - scrop.Y);
 
 				descC.Height = Math.Min((uint)Math.Ceiling(scrop.Height / subsampleRatioY), descC.Height);
 				descY.Height = (uint)Math.Min(descC.Height * subsampleRatioY, scrop.Height);
+			}
+			else
+			{
+				descC.Height = descY.Height = (uint)scrop.Height;
 			}
 
 			sourceTransform = source;
@@ -150,7 +155,7 @@ namespace PhotoSauce.MagicScaler
 				};
 
 				sourceTransform.CopyPixels(rect, scaledWidth, scaledHeight, sourceTransformOptions, WICPlanarOptions.WICPlanarOptionsDefault, planes, (uint)planes.Length);
-				loadedY = rect.Y + rect.Height;
+				loadedY = rect.Y + rect.Height - scaledCrop.Y;
 				loadedC = (int)Math.Ceiling(loadedY / subsampleRatioY);
 			}
 		}
