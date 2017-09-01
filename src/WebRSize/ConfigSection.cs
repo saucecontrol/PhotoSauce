@@ -7,8 +7,6 @@ using System.Web.Compilation;
 using System.Web.Configuration;
 using System.Collections.Generic;
 
-using PhotoSauce.MagicScaler;
-
 namespace PhotoSauce.WebRSize
 {
 	public class WebRSizeSection : ConfigurationSection
@@ -34,10 +32,6 @@ namespace PhotoSauce.WebRSize
 
 	public class ImageFolder : NameKeyedConfigurationElement
 	{
-		private readonly Lazy<IDictionary<string, string>> settingsDictionary;
-
-		public ImageFolder() =>	settingsDictionary = new Lazy<IDictionary<string, string>>(() => DefaultSettings.ToDictionary());
-
 		[ConfigurationProperty("path", IsRequired = true)]
 		public string Path => (string)base["path"];
 
@@ -52,8 +46,6 @@ namespace PhotoSauce.WebRSize
 
 		[ConfigurationProperty("defaultSettings"), ConfigurationCollection(typeof(KeyValueConfigurationCollection))]
 		public KeyValueConfigurationCollection DefaultSettings => (KeyValueConfigurationCollection)base["defaultSettings"];
-
-		public IDictionary<string, string> DefaultSettingsDictionary => settingsDictionary.Value;
 	}
 
 	public class NameKeyedConfigurationElement : ConfigurationElement

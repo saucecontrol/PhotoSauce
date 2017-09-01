@@ -33,8 +33,8 @@ namespace PhotoSauce.WebRSize
 				return;
 
 			var dic = ctx.Request.QueryString.ToDictionary();
-			if (folderConfig.DefaultSettingsDictionary.Count > 0)
-				dic = folderConfig.DefaultSettingsDictionary.Coalesce(dic);
+			if (folderConfig.DefaultSettings.Count > 0)
+				dic = folderConfig.DefaultSettings.ToDictionary().Coalesce(dic);
 
 			var s = ProcessImageSettings.FromDictionary(dic);
 			if (exists && s.IsEmpty && !folderConfig.ForceProcessing)
