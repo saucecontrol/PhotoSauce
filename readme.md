@@ -61,24 +61,31 @@ See the [documentation page](doc/web.md) for more details.
 
 Release History
 ---------------
-#### MagicScaler 0.7.1.0
-* Allow 0 Width and Height in Crop Mode from WebRSize.  This re-enables crop-only or transcode-only operations.
+#### MagicScaler 0.8.0.0
+NOTE: This version contains breaking changes to the API.  While your code will most likely not require changes, you will have to rebuild when upgrading.
 
-#### MagicScaler 0.7.0.0
-* Added .NET Core version. The Core build does not include metadata support (including auto-rotation) due to the absence of CustomMarshaler support in NetStandard <2.
-* Added vectorized (SIMD) versions of convolvers and matting/compositing.  Can be enabled/disabled via a global setting.
-* Added pooling for all internal pixel buffers.  Reduces garbage collections overall and improves GC performance related to buffer pinning.
-* Added support for greyscale (indexed) BMP output and proper greyscale palettes for indexed PNG and GIF.
-* Added support for custom DPI settings.  Copy from input image or set explicitly.
-* Added support for configuring resampling filter with dictionary config (for use with WebRSize).
-* Added global setting to enable/disable the planar processing pipeline.
-* Expanded scenarios in which the planar pipeline can be used.  It now works for all planar inputs.
-* Increased quality of default resamplers for high-ratio downscaling.  The improved performance of the convolvers means no penalty for always scaling high-quality.
-* Fixed invalid pixel format error when using planar processing with indexed color output.
-* Fixed argument out of range error when using planar processing with non-planar output at some output sizes.
+* Changed parameter names on public methods to be more descriptive.
+* Changed ProcessImage() overloads that accepted byte[] to accept ArraySegment&lt;byte&gt;.
+* Added metadata support (including Exif auto-rotation) to the .NET Core version.
+* Added ImageFileInfo class to expose basic information read from image headers.
+* Added IPixelSource interface to allow clients to feed pixels into the pipeline from custom sources.
+* Added IPixelTransform class to allow custom filtering.
+* Added ProcessingPipeline class to allow clients to request pixels from the pipeline without saving directly to an image file.
+* Added ProcessImageResults class to expose calculated settings used and basic instrumentation.
+* Added sample IPixelSource and IPixelTransform implementations.
+* Improved fixed-point math accuracy for non-SIMD implementation.
+* Improved RGBA performance in SIMD implementation.
+* Improved Auto output format logic to match WebRSize.
+* Fixed invalid crop values when using Hybrid scaling.
+* Fixed invalid crop offsets when using Planar mode.
+* UnsharpMaskSettings no longer overrides the Sharpen setting.  If Sharpen is false, there will be no auto-sharpening regardless of UnsharpMaskSettings.
 
-#### WebRSize 0.2.2.0
-* Added allowEnlarge setting to the imageFolders config.  This enables/disables image enlarging by the WebRSizeHandler. This value is set to false by default, meaning you will have to opt in to allow enlarging starting with this version.
+#### WebRSize 0.3.0.0
+NOTE: Cache file naming has changed in this version.  You should empty your WebRSize disk cache when upgrading.
+
+* Changed cache file name generator to use the correct file extension when transcoding to a different format.
+* Fixed a bug in the cache file name generator that caused duplicate cache files.
+* Improved speed and reduced allocations in the HTTP intercept module.
 
 See the [releases page](https://github.com/saucecontrol/PhotoSauce/releases) for previous updates.
 

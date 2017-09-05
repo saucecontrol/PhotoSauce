@@ -68,7 +68,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static TValue GetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dic, TKey key, Func<TValue> valueFactory = null)
 		{
-			return dic.TryGetValue(key, out var value) ? value : valueFactory == null ? default(TValue) : valueFactory();
+			return dic.TryGetValue(key, out var value) ? value : valueFactory == null ? default : valueFactory();
 		}
 
 #if NET46

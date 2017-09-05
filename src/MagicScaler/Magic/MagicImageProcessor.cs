@@ -117,7 +117,7 @@ namespace PhotoSauce.MagicScaler
 			return new ProcessingPipeline(ctx);
 		}
 
-		public static ProcessImageResult ExecutePipeline(ProcessingPipeline pipeline, Stream outStream)
+		public static ProcessImageResult ExecutePipeline(this ProcessingPipeline pipeline, Stream outStream)
 		{
 			return executePipeline(pipeline.Context, outStream);
 		}

@@ -5,8 +5,8 @@
     <AssemblyName>PhotoSauce.WebRSize</AssemblyName>
     <AssemblyTitle>WebRSize</AssemblyTitle>
     <TargetFramework>net46</TargetFramework>
-    <LangVersion>7</LangVersion>
-    <VersionPrefix>0.3.0-beta1</VersionPrefix>
+    <LangVersion>latest</LangVersion>
+    <VersionPrefix>0.3.0</VersionPrefix>
     <Authors>Clinton Ingram</Authors>
     <Description>Web extensions for the MagicScaler library, inlcluding an HTTP request intercept module for automatic image processing.</Description>
     <Company>PhotoSauce</Company>

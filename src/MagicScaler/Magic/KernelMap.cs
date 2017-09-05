@@ -221,7 +221,7 @@ namespace PhotoSauce.MagicScaler
 		public void Dispose()
 		{
 			ArrayPool<byte>.Shared.Return(Map.Array ?? Array.Empty<byte>());
-			Map = default(ArraySegment<byte>);
+			Map = default;
 		}
 	}
 }

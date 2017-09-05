@@ -26,6 +26,7 @@ Processing and caching are managed by an `IHttpModule` implementation called `We
 The `WebRSizeModule` must receive event notifications for static image requests in your configured folders in order to do its job.  There are multiple ways to accomplish this.
 
 1. The module will automatically register itself by using the assembly `PreApplicationStartMethodAttribute`.  For some configurations, this may be adequate.  However, modules registered programmatically are set up with the `ManagedHandler` [PreCondition](https://blogs.msdn.microsoft.com/david.wang/2006/03/19/iis7-preconditions-and-the-integrated-pipeline/), which means the module will only receive even notifications if a managed `IHttpHandler` is associated with the file extension being requested.  For most IIS configurations, image file extensions will be mapped to the unmanaged (and very efficient) IIS static file handler.  In these cases, the self-registered module will not receive event notifications and won't work.
+
 2. You can register the module explicitly in the `system.webServer` section.
 
     ```
@@ -36,6 +37,7 @@ The `WebRSizeModule` must receive event notifications for static image requests 
     </system.webServer>
     ```
 Omit the `preCondition` attribute on the module entry to ensure it will see all requests, managed or not.  The `WebRSizeModule` detects when it has been manually registered and will skip self-registration.  This option will always work and is the safe way to go if you are in doubt.
+
 3. You can set up an explicit handler mapping for image file extension you want to process that maps to a managed `IHttpHandler`.
 
     ```

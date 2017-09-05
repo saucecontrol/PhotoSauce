@@ -197,7 +197,7 @@ namespace PhotoSauce.MagicScaler
 			if (WorkBuff.Array != LineBuff.Array)
 				ArrayPool<byte>.Shared.Return(WorkBuff.Array ?? Array.Empty<byte>());
 
-			LineBuff = WorkBuff = IntBuff = default(ArraySegment<byte>);
+			LineBuff = WorkBuff = IntBuff = default;
 		}
 
 		public override string ToString() => XProcessor?.ToString() ?? base.ToString();
@@ -234,7 +234,7 @@ namespace PhotoSauce.MagicScaler
 			base.Dispose();
 
 			ArrayPool<byte>.Shared.Return(blurBuff.Array ?? Array.Empty<byte>());
-			blurBuff = default(ArraySegment<byte>);
+			blurBuff = default;
 		}
 
 		public override string ToString() => $"{processor?.ToString() ?? base.ToString()}: Sharpen";

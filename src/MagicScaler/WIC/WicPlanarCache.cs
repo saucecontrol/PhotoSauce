@@ -188,7 +188,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			ArrayPool<byte>.Shared.Return(lineBuffY.Array ?? Array.Empty<byte>());
 			ArrayPool<byte>.Shared.Return(lineBuffC.Array ?? Array.Empty<byte>());
-			lineBuffY = lineBuffC = default(ArraySegment<byte>);
+			lineBuffY = lineBuffC = default;
 		}
 	}
 

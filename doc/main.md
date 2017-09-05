@@ -29,15 +29,39 @@ Default Value: true if the runtime/JIT and hardware support hardware-accelerated
 
 ### ProcessImage(string, Stream, ProcessImageSettings)
 
-Accepts a file path for the input image, a stream for the output image, and a ProcessImageSettings object for settings.  The output stream must allow Seek and Write.
+Accepts a file path for the input image, a stream for the output image, and a [ProcessImageSettings](#processimagesettings) object for settings.  The output stream must allow Seek and Write.  Returns a [ProcessImageResult](#processimageresult).
 
-### ProcessImage(byte[], Stream, ProcessImageSettings)
+### ProcessImage(ArraySegment&lt;byte&gt;, Stream, ProcessImageSettings)
 
-Accepts a byte array for the input image, a stream for the output image, and a ProcessImageSettings object for settings.  The output stream must allow Seek and Write.
+Accepts a byte ArraySegment for the input image, a stream for the output image, and a [ProcessImageSettings](#processimagesettings) object for settings.  The output stream must allow Seek and Write.  Returns a [ProcessImageResult](#processimageresult).
 
 ### ProcessImage(Stream, Stream, ProcessImageSettings)
 
-Accepts a stream for the input image, a stream for the output image, and a ProcessImageSettings object for settings.  The output stream must allow Seek and Write.  The input stream must allow Seek and Read.
+Accepts a stream for the input image, a stream for the output image, and a [ProcessImageSettings](#processimagesettings) object for settings.  The output stream must allow Seek and Write.  The input stream must allow Seek and Read.  Returns a [ProcessImageResult](#processimageresult).
+
+### ProcessImage(IPixelSource, Stream, ProcessImageSettings)
+
+Accepts an [IPixelSource](#ipixelsource) input, a stream for the output image, and a [ProcessImageSettings](#processimagesettings) object for settings.  The output stream must allow Seek and Write.  Returns a [ProcessImageResult](#processimageresult).
+
+### BuildPipeline(string, ProcessImageSettings)
+
+Accepts a file path for the input image and a [ProcessImageSettings](#processimagesettings) object for settings.  Returns a [ProcessingPipeline](#processingpipeline) for custom processing.
+
+### BuildPipeline(ArraySegment&lt;byte&gt;, ProcessImageSettings)
+
+Accepts a byte ArraySegment for the input image and a [ProcessImageSettings](#processimagesettings) object for settings.  Returns a [ProcessingPipeline](#processingpipeline) for custom processing.
+
+### BuildPipeline(Stream, ProcessImageSettings)
+
+Accepts a stream for the input image and a [ProcessImageSettings](#processimagesettings) object for settings.  Returns a [ProcessingPipeline](#processingpipeline) for custom processing.  The input stream must allow Seek and Read.
+
+### BuildPipeline(IPixelSource, ProcessImageSettings)
+
+Accepts an [IPixelSource](#ipixelsource) input and a [ProcessImageSettings](#processimagesettings) object for settings.  Returns a [ProcessingPipeline](#processingpipeline) for custom processing.
+
+### ExecutePipeline(ProcessingPipeline, Stream)
+
+Accepts a [ProcessingPipeline](#processingpipeline) and a stream for the output image.  This method completes pipeline processing by requesting the processed pixels and saving the output.  The output stream must allow Seek and Read.  Returns a [ProcessImageResult](#processimageresult).
 
 ## GdiImageProcessor
 
@@ -133,7 +157,7 @@ A [GammaMode](#gammamode) value indicating whether the scaling algorithm is appl
 
 Default value: GammaMode.Linear
 
-### MetadataNames: IEnumerable<string>
+### MetadataNames: IEnumerable&lt;string&gt;
 
 A list of metadata policy names or explicit metadata paths to be copied from the input image to the output image.  This can be useful for preserving author or copyright EXIF tags in the output image.  See the [Windows Photo Metadata Policies](https://msdn.microsoft.com/en-us/library/windows/desktop/ee872003(v=vs.85).aspx) for examples of commonly-used values, or the [Metadata Query Language Overview](https://msdn.microsoft.com/en-us/library/windows/desktop/ee872003(v=vs.85).aspx) for explicit path syntax.
 
@@ -343,3 +367,142 @@ The support radius of the sampling function.  The sampling window will be twice 
 
 The weighting function.  This function accepts a distance from the destination sample's center and returns a weight for the sample at that distance.
 
+## ProcessImageResult
+
+This class encapsulates information about the results of an image processing operation.  It includes the settings used for the processing as well as some basic instrumentation.
+
+### Settings: ProcessImageSettings
+
+The settings used for the processing operation.  If any settings supplied in the input were set to automatic values, this object will reflect the calculated values used.
+
+### Stats: IEnumerable&lt;PixelSourceStats&gt;
+
+A collection of [PixelSourceStats](#pixelsourcestats) objects containing information about the number of pixels processed and time taken in each stage of the pipeline.
+
+## PixelSourceStats
+
+This class encapsulates basic instrumentation for the [IPixelSource](#ipixelsource) used in each stage of the processing pipeline.
+
+### CallCount: int
+
+The number of times CopyPixels() was called on this pixel source.
+
+### PixelCount: int
+
+The total number of pixels requested from the pixel source.
+
+### ProcessingTime: double
+
+The total processing time (in milliseconds) for this pixel source.  Some WIC wrappers may report times that include the processing of chained pixel sources they use and may not, therefore report times accurately.  This information is most useful for diagnosing performance issues in your own pixel sources or transforms.
+
+### SourceName: string
+
+The name of the pixel source as returned by ToString().  The default ToString() implementation returns the class name, but this may be overridden, so the output may not make sense.
+
+## IPixelSource
+
+This interface defines a custom pixel source.  It can either retrieve those pixels from an upstream source or can generate them itself.  For a sample implementation, refer to the [TestPatternPixelSource](../src/MagicScaler/Magic/TestPatternPixelSource.cs) code.
+
+### Width: int
+
+The width of the source image in pixels.
+
+### Height: int
+
+The height of the source image in pixels.
+
+### Format: Guid
+
+The [WIC pixel format](https://msdn.microsoft.com/en-us/library/windows/desktop/ee719797.aspx) GUID of the source image.  For the current version, this must be a value included as one of the [PixelFormats](#pixelformats) static fields.
+
+### CopyPixels(Rectangle, long, long, IntPtr)
+
+Copy pixels from the source image.  The caller will provide a rectangle specifying an area of interest and an IntPtr that points to a destination byte buffer as well as a stride and buffer length.  If writing a custom IPixelSource, it is your responsibility to implement this method to provide pixels to downstream sources and transforms.
+
+## PixelFormats
+
+This static class contains member fields for each of the supported WIC pixel format GUIDs.
+
+### Bgr24bpp
+
+24 bits-per-pixel.  8 bits-per-channel in BGR channel order.
+
+### Bgra32bpp
+
+32 bits-per-pixel.  8 bits-per-channel in BGR channel order, plus an 8-bit alpha channel.
+
+### Grey8bpp
+
+8 bits-per-pixel greyscale.
+
+## IPixelTransform : IPixelSource
+
+This interface inherits from [IPixelSource](#ipixelsource) and is intended to be used to build a custom processing step.  For a sample implementation, refer to the [ColorMatrixTransform](../src/MagicScaler/Magic/ColorMatrixTransform.cs) code.
+
+### Init(IPixelSource)
+
+The pipeline will call this method and pass in the upstream pixel source.  Use this method to configure the transform according to its own settings and the properties of the upstream source.
+
+## ProcessingPipeline
+
+This class represents an image processing pipeline that is configured but not yet executed.  This allows for further customization of the processing, such as filtering, before the pipeline is executed and the output image saved.  It also allows pixels to be pulled from the pipeline rather than written directly to an output image.
+
+### PixelSource: IPixelSource
+
+The [IPixelSource](#ipixelsource) representing the current last step of the pipeline.  The image properties and CopyPixels() results reflect all processing that has been configured up to the current point in the pipeline.
+
+### Settings: ProcessImageSettings
+
+The [ProcessImageSettings](#processimagesettings) object representing the current state of the settings on this pipeline.  Any settings configured with automatic values initially will have their calculated values at this point.
+
+### Stats: IEnumerable&lt;PixelSourceStats&gt;
+
+A collection of the [PixelSourceStats](#pixelsourcestats) for all processing up to this point.  Until CopyPixels() is called on the PixelSource, there will be no stats to report.
+
+### AddTransform(IPixelTransform)
+
+Adds an [IPixelTransform](#ipixeltransform) to the pipeline.  This allows for custom filtering of the pipeline output before the final image is saved.
+
+### ExecutePipeline(Stream)
+
+This extension method on the [MagicImageProcessor](#magicimageprocessor) requests all pixels from the pipeline and saves the output to a stream.  You may use this after configuring the pipeline (e.g. adding filters) if you do not wish to request the pixels from the PixelSource.
+
+## ImageFileInfo
+
+This class reads and exposes basic information about an image file from its header.
+
+### ContainerType: FileFormat
+
+The [FileFormat](#fileformat) of the image.  This is based on the contents of the image, not its file name/extension.
+
+### FileDate: DateTime
+
+The last modified date of the image file, if available.
+
+### FileSize: int
+
+The size of the image file, in bytes, if available.
+
+### Frames: FrameInfo[]
+
+An array of [FrameInfo](#frameinfo) objects, with details about each image frame in the file.
+
+## FrameInfo
+
+This class describes a single image frame from within an image file.  All valid images have at least one frame, some (e.g. TIFF and GIF) may have many.
+
+### Width: int
+
+The width of the image frame in pixels.
+
+### Height: int
+
+The height of the image frame in pixels.
+
+### HasAlpha: bool
+
+True if the image frame has a separate alpha channel or if it is in an indexed format and any of the color values have a transparency value set.
+
+### ExifOrientation: Orientation
+
+The [Exif Orientation](http://www.impulseadventure.com/photo/exif-orientation.html) value stored for this image frame.  The Width and Height values are pre-corrected according to this value, so you can ignore it if you are using MagicScaler to process the image, as it performs orientation correction automatically.  The integer values defined in the Orientation enumeration match the stored Exif values.
