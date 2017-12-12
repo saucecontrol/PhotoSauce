@@ -209,9 +209,14 @@ namespace PhotoSauce.MagicScaler
 				//TODO WIC doesn't support proper CMYKA conversion with color profile
 				if (oldFormat.AlphaRepresentation == PixelAlphaRepresentation.None)
 				{
+					// WIC doesn't support 16bpc CMYK conversion with color profile
+					if (oldFormat.BitsPerPixel == 64)
+						ctx.Source = new FormatConversionTransform(ctx.Source, Consts.GUID_WICPixelFormat32bppCMYK);
+
 					var trans = ctx.AddRef(Wic.Factory.CreateColorTransform());
 					trans.Initialize(ctx.Source.WicSource, ctx.SourceColorContext, ctx.DestColorContext, Consts.GUID_WICPixelFormat24bppBGR);
 					ctx.Source = trans.AsPixelSource(nameof(IWICColorTransform));
+					oldFormat = ctx.Source.Format;
 				}
 
 				ctx.SourceColorContext = null;

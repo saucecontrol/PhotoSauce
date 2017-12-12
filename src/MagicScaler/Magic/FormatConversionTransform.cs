@@ -75,7 +75,11 @@ namespace PhotoSauce.MagicScaler
 
 					byte* op = (byte*)pbBuffer + y * cbStride;
 
-					if (InFormat.Colorspace == PixelColorspace.sRgb && Format.Colorspace == PixelColorspace.LinearRgb && Format.NumericRepresentation == PixelNumericRepresentation.Fixed)
+					if (InFormat.ColorRepresentation == PixelColorRepresentation.Cmyk && InFormat.BitsPerPixel == 64 && Format.BitsPerPixel == 32)
+					{
+						mapValuesShortToByte(bstart, op, cb);
+					}
+					else if (InFormat.Colorspace == PixelColorspace.sRgb && Format.Colorspace == PixelColorspace.LinearRgb && Format.NumericRepresentation == PixelNumericRepresentation.Fixed)
 					{
 						if (InFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
 							mapValuesByteToUQ15LinearWithAlpha(bstart, op, cb);
@@ -132,6 +136,27 @@ namespace PhotoSauce.MagicScaler
 					else
 						throw new NotSupportedException("Unsupported pixel format");
 				}
+			}
+		}
+
+		unsafe private static void mapValuesShortToByte(byte* ipstart, byte* opstart, int cb)
+		{
+			ushort* ip = (ushort*)ipstart + 4, ipe = (ushort*)(ipstart + cb);
+			byte* op = opstart + 4;
+
+			while (ip <= ipe)
+			{
+				byte o0 = (byte)(ip[-4] >> 8);
+				byte o1 = (byte)(ip[-3] >> 8);
+				byte o2 = (byte)(ip[-2] >> 8);
+				byte o3 = (byte)(ip[-1] >> 8);
+				op[-4] = o0;
+				op[-3] = o1;
+				op[-2] = o2;
+				op[-1] = o3;
+
+				ip += 4;
+				op += 4;
 			}
 		}
 
