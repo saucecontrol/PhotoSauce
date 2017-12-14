@@ -2755,5 +2755,15 @@ namespace PhotoSauce.MagicScaler.Interop
 			string wzName,
 			IntPtr pvarValue
 		);
+
+		[DllImport("WindowsCodecsExt", EntryPoint = "IWICColorTransform_Initialize_Proxy")]
+		public extern static int InitializeColorTransform(
+			IWICColorTransform THIS_PTR,
+			IWICBitmapSource pIBitmapSource,
+			IWICColorContext pIContextSource,
+			IWICColorContext pIContextDest,
+			[MarshalAs(UnmanagedType.LPStruct)]
+			Guid pixelFmtDest
+		);
 	}
 }

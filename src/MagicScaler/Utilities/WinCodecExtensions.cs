@@ -63,5 +63,11 @@ namespace PhotoSauce.MagicScaler.Interop
 
 			return hr >= 0;
 		}
+
+		public static bool TryInitialize(this IWICColorTransform trans, IWICBitmapSource source, IWICColorContext ctxSrc, IWICColorContext ctxDest, Guid fmtDest)
+		{
+			int hr = ProxyFunctions.InitializeColorTransform(trans, source, ctxSrc, ctxDest, fmtDest);
+			return hr >= 0;
+		}
 	}
 }
