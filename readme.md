@@ -61,6 +61,12 @@ See the [documentation page](doc/web.md) for more details.
 
 Release History
 ---------------
+#### MagicScaler 0.8.2.0
+* No longer throws an exception if an image contains an invalid embedded ICC profile.  Color management is silently skipped in these cases.
+
+#### MagicScaler 0.8.1.0
+* Fixed "Unsupported Pixel Format" error when converting 16-bit CMYK to RGB formats using an ICC profile
+
 #### MagicScaler 0.8.0.0
 NOTE: This version contains breaking changes to the API.  While your code will most likely not require changes, you will have to rebuild when upgrading.
 
