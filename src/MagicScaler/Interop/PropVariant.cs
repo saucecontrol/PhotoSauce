@@ -202,7 +202,7 @@ namespace PhotoSauce.MagicScaler.Interop
 
 				int cbNative = Marshal.SizeOf<UnmanagedPropVariant>();
 				var pNativeData = Marshal.AllocCoTaskMem(cbNative);
-				Unsafe.InitBlock(pNativeData.ToPointer(), default(byte), (uint)cbNative);
+				Unsafe.InitBlock(pNativeData.ToPointer(), default, (uint)cbNative);
 
 				if (o == null)
 					return pNativeData;

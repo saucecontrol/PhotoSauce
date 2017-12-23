@@ -1,7 +1,7 @@
 MagicScaler
 ===========
 
-MagicScaler brings high-performance, high-quality image scaling to .NET.
+High-performance image processing pipeline for .NET.  Implements best-of-breed algorithms, linear light processing, and sharpening for the best image resizing quality available.  Speed and efficiency are unmatched by anything else on the .NET platform.
 
 Requirements
 ------------
@@ -26,8 +26,14 @@ Basic usage looks something like this:
 
 ```C#
 using (var outStream = new FileStream(@"c:\smallimage.jpg", FileMode.Create))
+{
   MagicImageProcessor.ProcessImage(@"c:\bigimage.jpg", outStream, new ProcessImageSettings { Width = 400 });
+}
 ``` 
+
+The above example will resize `bigimage.jpg` to a width of 400 pixels and save the output to	 `smallimage.jpg`.  The height will be set automatically to preserve the correct aspect ratio.  Default settings are optimized for a balance of speed and image quality.
+
+The MagicScaler pipleline is also customizable if you wish to use an alternate pixel source, capture the output pixels for additional processing, or add custom filtering.
 
 See the [documentation page](doc/main.md) for more details.
 
@@ -61,44 +67,20 @@ See the [documentation page](doc/web.md) for more details.
 
 Release History
 ---------------
-#### MagicScaler 0.8.2.0
-* No longer throws an exception if an image contains an invalid embedded ICC profile.  Color management is silently skipped in these cases.
+#### WebRSize 0.3.1.0
+* Require MagicScaler 0.8.3 or later
+* Fix nuget config transform to place `configSections` as the first child of `configuration`
 
-#### MagicScaler 0.8.1.0
-* Fixed "Unsupported Pixel Format" error when converting 16-bit CMYK to RGB formats using an ICC profile
-
-#### MagicScaler 0.8.0.0
-NOTE: This version contains breaking changes to the API.  While your code will most likely not require changes, you will have to rebuild when upgrading.
-
-* Changed parameter names on public methods to be more descriptive.
-* Changed ProcessImage() overloads that accepted byte[] to accept ArraySegment&lt;byte&gt;.
-* Added metadata support (including Exif auto-rotation) to the .NET Core version.
-* Added ImageFileInfo class to expose basic information read from image headers.
-* Added IPixelSource interface to allow clients to feed pixels into the pipeline from custom sources.
-* Added IPixelTransform class to allow custom filtering.
-* Added ProcessingPipeline class to allow clients to request pixels from the pipeline without saving directly to an image file.
-* Added ProcessImageResults class to expose calculated settings used and basic instrumentation.
-* Added sample IPixelSource and IPixelTransform implementations.
-* Improved fixed-point math accuracy for non-SIMD implementation.
-* Improved RGBA performance in SIMD implementation.
-* Improved Auto output format logic to match WebRSize.
-* Fixed invalid crop values when using Hybrid scaling.
-* Fixed invalid crop offsets when using Planar mode.
-* UnsharpMaskSettings no longer overrides the Sharpen setting.  If Sharpen is false, there will be no auto-sharpening regardless of UnsharpMaskSettings.
-
-#### WebRSize 0.3.0.0
-NOTE: Cache file naming has changed in this version.  You should empty your WebRSize disk cache when upgrading.
-
-* Changed cache file name generator to use the correct file extension when transcoding to a different format.
-* Fixed a bug in the cache file name generator that caused duplicate cache files.
-* Improved speed and reduced allocations in the HTTP intercept module.
+#### MagicScaler 0.8.3.0
+* Fixed image corruption (and possible access violation) when sharpening BGR/BGRA images in sRGB blending mode.
+* Use latest System.Buffers version for .NET Framework installations
 
 See the [releases page](https://github.com/saucecontrol/PhotoSauce/releases) for previous updates.
 
 Versioning
 ----------
 
-This project is using [semantic versioning](http://semver.org/).  Releases without an alpha/beta/RC tag are considered release quality and are safe for production use. The major version number will remain at 0, however, until the APIs are complete and stabilized.  You can expect significant API changes coming in MagicScaler 0.8.
+This project is using [semantic versioning](http://semver.org/).  Releases without an alpha/beta/RC tag are considered release quality and are safe for production use. The major version number will remain at 0, however, until the APIs are complete and stabilized.
 
 Contributing
 ------------

@@ -104,7 +104,7 @@ namespace PhotoSauce.MagicScaler
 							Unsafe.Write(mpw + k, a);
 
 							for (int j = 1; j < samp; j++)
-								Unsafe.Write(mpw + j * chan + k, j < samp - o ? Unsafe.Read<T>(mpw + j * chan + o * chan + k) : default(T));
+								Unsafe.Write(mpw + j * chan + k, j < samp - o ? Unsafe.Read<T>(mpw + j * chan + o * chan + k) : default);
 						}
 					}
 					else if (start + samp > ipix)
@@ -122,7 +122,7 @@ namespace PhotoSauce.MagicScaler
 							Unsafe.Write(mpw + last * chan + k, a);
 
 							for (int j = last - 1; j >= 0; j--)
-								Unsafe.Write(mpw + j * chan + k, j >= o ? Unsafe.Read<T>(mpw + j * chan - o * chan + k) : default(T));
+								Unsafe.Write(mpw + j * chan + k, j >= o ? Unsafe.Read<T>(mpw + j * chan - o * chan + k) : default);
 						}
 					}
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 
 namespace PhotoSauce.MagicScaler.Interop
 {
@@ -67,6 +68,9 @@ namespace PhotoSauce.MagicScaler.Interop
 		public static bool TryInitialize(this IWICColorTransform trans, IWICBitmapSource source, IWICColorContext ctxSrc, IWICColorContext ctxDest, Guid fmtDest)
 		{
 			int hr = ProxyFunctions.InitializeColorTransform(trans, source, ctxSrc, ctxDest, fmtDest);
+			if (hr < 0 && hr != (int)WinCodecError.ERROR_INVALID_PROFILE)
+				Marshal.ThrowExceptionForHR(hr);
+
 			return hr >= 0;
 		}
 	}

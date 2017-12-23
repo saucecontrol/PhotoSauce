@@ -60,7 +60,8 @@ namespace PhotoSauce.MagicScaler
 				if (fmt.ColorRepresentation == PixelColorRepresentation.Bgr || fmt.ColorRepresentation == PixelColorRepresentation.Grey)
 					fmt = fmt.NumericRepresentation == PixelNumericRepresentation.Float ? PixelFormat.Cache[Consts.GUID_WICPixelFormat32bppGrayFloat] :
 					      fmt.NumericRepresentation == PixelNumericRepresentation.Fixed ? PixelFormat.Grey16BppUQ15 :
-					      Format;
+					      fmt.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger ? PixelFormat.Cache[Consts.GUID_WICPixelFormat8bppGray] :
+					      throw new NotSupportedException("Unsupported pixel format");
 				else
 					throw new NotSupportedException("Unsupported pixel format");
 			}

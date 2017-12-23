@@ -36,7 +36,7 @@ The `WebRSizeModule` must receive event notifications for static image requests 
       </modules>
     </system.webServer>
     ```
-Omit the `preCondition` attribute on the module entry to ensure it will see all requests, managed or not.  The `WebRSizeModule` detects when it has been manually registered and will skip self-registration.  This option will always work and is the safe way to go if you are in doubt.
+    Omit the `preCondition` attribute on the module entry to ensure it will see all requests, managed or not.  The `WebRSizeModule` detects when it has been manually registered and will skip self-registration.  This option will always work and is the safe way to go if you are in doubt.
 
 3. You can set up an explicit handler mapping for image file extension you want to process that maps to a managed `IHttpHandler`.
 
@@ -47,7 +47,7 @@ Omit the `preCondition` attribute on the module entry to ensure it will see all 
       </handlers>
     </system.webServer>
     ```
-This is common in scenarios where images will be served from a `VirtualPathProvider` that uses a database or cloud storage.  The built-in `StaticFileHandler` will request files from the registered `VirtualPathProvider`, and because the handler is managed, the self-registered `WebRSizeModule` instance will be able to intercept image processing requests.
+    This is common in scenarios where images will be served from a `VirtualPathProvider` that uses a database or cloud storage.  The built-in `StaticFileHandler` will request files from the registered `VirtualPathProvider`, and because the handler is managed, the self-registered `WebRSizeModule` instance will be able to intercept image processing requests.
 
 ## Configuration Reference
 
