@@ -22,6 +22,7 @@ namespace PhotoSauce.MagicScaler
 
 		public const ushort UQ15Max = imax;
 		public const ushort UQ15One = iscale;
+		public const ushort UQ15Round = iround;
 		public const float FloatScale = fscale;
 		public const float FloatRound = fround;
 		public const double DoubleScale = dscale;
@@ -42,6 +43,12 @@ namespace PhotoSauce.MagicScaler
 #else
 		public static float Clamp(this float x, float min, float max) => x < min ? min : x > max ? max : x;
 #endif
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Vector3 Clamp(this Vector3 x, Vector3 min, Vector3 max) => Vector3.Min(Vector3.Max(min, x), max);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Vector4 Clamp(this Vector4 x, Vector4 min, Vector4 max) => Vector4.Min(Vector4.Max(min, x), max);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Vector<T> Clamp<T>(this Vector<T> x, Vector<T> min, Vector<T> max) where T : struct => Vector.Min(Vector.Max(min, x), max);

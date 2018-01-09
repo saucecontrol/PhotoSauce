@@ -82,8 +82,8 @@ namespace PhotoSauce.MagicScaler
 			}
 			else
 			{
-				var mx = ctx.AddDispose(KernelMap<int>.MakeScaleMap(ctx.Source.Width, width, 1, fmt.AlphaRepresentation == PixelAlphaRepresentation.Unassociated, false, interpolatorx));
-				var my = ctx.AddDispose(KernelMap<int>.MakeScaleMap(ctx.Source.Height, height, 1, fmt.AlphaRepresentation == PixelAlphaRepresentation.Unassociated, false, interpolatory));
+				var mx = ctx.AddDispose(KernelMap<int>.MakeScaleMap(ctx.Source.Width, width, 1, false, false, interpolatorx));
+				var my = ctx.AddDispose(KernelMap<int>.MakeScaleMap(ctx.Source.Height, height, 1, false, false, interpolatory));
 
 				if (fmt.NumericRepresentation == PixelNumericRepresentation.Fixed)
 					ctx.Source = ctx.AddDispose(new ConvolutionTransform<ushort, int>(ctx.Source, mx, my));
@@ -120,11 +120,11 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddMatte(WicProcessingContext ctx)
 		{
-			if (ctx.Source.Format == PixelFormat.Pbgra128BppFloat)
-				ctx.Source = ctx.AddDispose(new FormatConversionTransform(ctx.Source, Consts.GUID_WICPixelFormat32bppBGRA));
-
 			if (ctx.Settings.MatteColor.IsEmpty || ctx.Source.Format.ColorRepresentation != PixelColorRepresentation.Bgr || ctx.Source.Format.AlphaRepresentation == PixelAlphaRepresentation.None)
 				return;
+
+			if (ctx.Source.Format == PixelFormat.Pbgra128BppFloat)
+				ctx.Source = ctx.AddDispose(new FormatConversionTransform(ctx.Source, Consts.GUID_WICPixelFormat32bppBGRA));
 
 			ctx.Source = new MatteTransform(ctx.Source, ctx.Settings.MatteColor);
 		}

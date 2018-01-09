@@ -135,11 +135,9 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe public static KernelMap<T> MakeScaleMap(uint isize, uint osize, int colorChannels, bool alphaChannel, bool vectored, InterpolationSettings interpolator)
 		{
-			var ainterpolator = interpolator.WeightingFunction.Support > 1d ? InterpolationSettings.Hermite : interpolator;
-
 			double offs = interpolator.WeightingFunction.Support < 0.1 ? 0.5 : 0.0;
 			double ratio = Math.Min((double)osize / isize, 1d);
-			double cscale = ratio / interpolator.Blur, ascale = ratio / ainterpolator.Blur;
+			double cscale = ratio / interpolator.Blur;
 			double support = Math.Min(interpolator.WeightingFunction.Support / cscale, isize / 2d);
 
 			int channels = colorChannels + (alphaChannel ? 1 : 0);
@@ -149,31 +147,24 @@ namespace PhotoSauce.MagicScaler
 			var map = new KernelMap<T>((int)isize, (int)osize, ksize + kpad, channels);
 			fixed (byte* mstart = map.Map.Array)
 			{
-				double* ckern = stackalloc double[ksize];
-				double* akern = stackalloc double[alphaChannel ? ksize : 0];
 				int* mp = (int*)mstart;
+				double* kp = stackalloc double[ksize];
 
 				double inc = (double)isize / osize;
 				double spoint = ((double)isize - osize) / (osize * 2d) + offs;
 				for (int i = 0; i < osize; i++)
 				{
 					int start = (int)(spoint + support) - ksize + 1;
-					fillKernelWeights(interpolator.WeightingFunction, ckern, ksize, start, spoint, cscale);
-
-					if (alphaChannel)
-						fillKernelWeights(ainterpolator.WeightingFunction, akern, ksize, start, spoint, ascale);
+					fillKernelWeights(interpolator.WeightingFunction, kp, ksize, start, spoint, cscale);
 
 					spoint += inc;
 					*mp++ = start;
 
 					for (int j = 0; j < ksize; j++)
 					{
-						var w = convertWeight(ckern[j]);
-						for (int k = 0; k < colorChannels; k++)
+						var w = convertWeight(kp[j]);
+						for (int k = 0; k < channels; k++)
 							Unsafe.Write(mp++, w);
-
-						if (alphaChannel)
-							Unsafe.Write(mp++, convertWeight(akern[j]));
 					}
 
 					mp += kpad * channels;

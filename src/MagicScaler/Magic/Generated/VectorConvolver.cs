@@ -181,7 +181,7 @@ namespace PhotoSauce.MagicScaler
 					if (gamma)
 						c0 = Vector4.SquareRoot(c0);
 
-					c0 = Vector4.Clamp(c0 + vd, vmin, vmax);
+					c0 = (c0 + vd).Clamp(vmin, vmax);
 
 					if (gamma)
 						c0 *= c0;
@@ -334,7 +334,7 @@ namespace PhotoSauce.MagicScaler
 					if (gamma)
 						c0 = Vector3.SquareRoot(c0);
 
-					c0 = Vector3.Clamp(c0 + vd, vmin, vmax);
+					c0 = (c0 + vd).Clamp(vmin, vmax);
 
 					if (gamma)
 						c0 *= c0;
@@ -507,7 +507,7 @@ namespace PhotoSauce.MagicScaler
 					if (gamma)
 						c0 = Vector4.SquareRoot(c0);
 
-					c0 = Vector4.Clamp(c0 + vd, vmin, vmax);
+					c0 = (c0 + vd).Clamp(vmin, vmax);
 
 					if (gamma)
 						c0 *= c0;
@@ -732,10 +732,10 @@ namespace PhotoSauce.MagicScaler
 			float* ip = (float*)cstart, yp = (float*)ystart, bp = (float*)bstart, op = (float*)ostart;
 			float* ipe = ip + ow * Channels - VectorF.Count;
 
-			var vthresh = new VectorF(threshold > 0f ? threshold : -1f);
-			var vamt = new VectorF(famt);
 			var vmin = VectorF.Zero;
 			var vmax = VectorF.One;
+			var vthresh = new VectorF(threshold > 0f ? threshold : -1f);
+			var vamt = new VectorF(famt);
 			float fmin = vmin[0], fmax = vmax[0];
 
 			while (ip <= ipe)

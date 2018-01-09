@@ -277,14 +277,24 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip <= ipe)
 				{
-					byte o0 = gt[(uint)ip[-4]];
-					byte o1 = gt[(uint)ip[-3]];
-					byte o2 = gt[(uint)ip[-2]];
 					byte o3 = UnFix15ToByte(ip[-1] * byte.MaxValue);
-					op[-4] = o0;
-					op[-3] = o1;
-					op[-2] = o2;
-					op[-1] = o3;
+					if (o3 == 0)
+					{
+						op[-4] = 0;
+						op[-3] = 0;
+						op[-2] = 0;
+						op[-1] = 0;
+					}
+					else
+					{
+						byte o0 = gt[(uint)ip[-4]];
+						byte o1 = gt[(uint)ip[-3]];
+						byte o2 = gt[(uint)ip[-2]];
+						op[-4] = o0;
+						op[-3] = o1;
+						op[-2] = o2;
+						op[-1] = o3;
+					}
 
 					ip += 4;
 					op += 4;
@@ -301,7 +311,7 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip <= ipe)
 				{
-					ushort o3 = ip[-1];
+					byte o3 = UnFix15ToByte(ip[-1] * byte.MaxValue);
 					if (o3 == 0)
 					{
 						op[-4] = 0;
@@ -318,7 +328,7 @@ namespace PhotoSauce.MagicScaler
 						op[-4] = o0;
 						op[-3] = o1;
 						op[-2] = o2;
-						op[-1] = UnFix15ToByte(o3 * byte.MaxValue);
+						op[-1] = o3;
 					}
 
 					ip += 4;
@@ -498,20 +508,30 @@ namespace PhotoSauce.MagicScaler
 			{
 				float* ip = (float*)ipstart + 4, ipe = (float*)(ipstart + cb);
 				byte* op = opstart + 4, gt = gtstart;
-				float fmax = new Vector4(byte.MaxValue).X, fround = new Vector4(FloatRound).X;
+				float fmax = new Vector4(byte.MaxValue).X, fround = new Vector4(FloatRound).X, fmin = fround / fmax;
 
 				while (ip <= ipe)
 				{
 					float f3 = ip[-1];
-					float f3i = FloatScale / f3;
-					byte o0 = gt[ClampToUQ15((int)(ip[-4] * f3i + fround))];
-					byte o1 = gt[ClampToUQ15((int)(ip[-3] * f3i + fround))];
-					byte o2 = gt[ClampToUQ15((int)(ip[-2] * f3i + fround))];
-					byte o3 = ClampToByte((int)(f3 * fmax + fround));
-					op[-4] = o0;
-					op[-3] = o1;
-					op[-2] = o2;
-					op[-1] = o3;
+					if (f3 < fmin)
+					{
+						op[-4] = 0;
+						op[-3] = 0;
+						op[-2] = 0;
+						op[-1] = 0;
+					}
+					else
+					{
+						float f3i = FloatScale / f3;
+						byte o0 = gt[ClampToUQ15((int)(ip[-4] * f3i + fround))];
+						byte o1 = gt[ClampToUQ15((int)(ip[-3] * f3i + fround))];
+						byte o2 = gt[ClampToUQ15((int)(ip[-2] * f3i + fround))];
+						byte o3 = ClampToByte((int)(f3 * fmax + fround));
+						op[-4] = o0;
+						op[-3] = o1;
+						op[-2] = o2;
+						op[-1] = o3;
+					}
 
 					ip += 4;
 					op += 4;
@@ -702,20 +722,30 @@ namespace PhotoSauce.MagicScaler
 		{
 			float* ip = (float*)ipstart + 4, ipe = (float*)(ipstart + cb);
 			byte* op = opstart + 4;
-			float fmax = new Vector4(byte.MaxValue).X, fround = new Vector4(FloatRound).X;
+			float fmax = new Vector4(byte.MaxValue).X, fround = new Vector4(FloatRound).X, fmin = fround / fmax;
 
 			while (ip <= ipe)
 			{
 				float f3 = ip[-1];
-				float f3i = byte.MaxValue / f3;
-				byte o0 = ClampToByte((int)(ip[-4] * f3i + fround));
-				byte o1 = ClampToByte((int)(ip[-3] * f3i + fround));
-				byte o2 = ClampToByte((int)(ip[-2] * f3i + fround));
-				byte o3 = ClampToByte((int)(f3 * fmax + fround));
-				op[-4] = o0;
-				op[-3] = o1;
-				op[-2] = o2;
-				op[-1] = o3;
+				if (f3 < fmin)
+				{
+					op[-4] = 0;
+					op[-3] = 0;
+					op[-2] = 0;
+					op[-1] = 0;
+				}
+				else
+				{
+					float f3i = byte.MaxValue / f3;
+					byte o0 = ClampToByte((int)(ip[-4] * f3i + fround));
+					byte o1 = ClampToByte((int)(ip[-3] * f3i + fround));
+					byte o2 = ClampToByte((int)(ip[-2] * f3i + fround));
+					byte o3 = ClampToByte((int)(f3 * fmax + fround));
+					op[-4] = o0;
+					op[-3] = o1;
+					op[-2] = o2;
+					op[-1] = o3;
+				}
 
 				ip += 4;
 				op += 4;
