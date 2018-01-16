@@ -9,7 +9,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace System.Drawing.Temp
 {
     [DebuggerDisplay("{NameAndARGBValue}")]
-    public struct Color : IEquatable<Color>
+    public readonly struct Color : IEquatable<Color>
     {
         public static readonly Color Empty = new Color();
 
@@ -323,19 +323,19 @@ namespace System.Drawing.Temp
         // user supplied name of color. Will not be filled in if
         // we map to a "knowncolor"
         //
-        private readonly string name;
+        private readonly string name; // Do not rename (binary serialization)
 
         // will contain standard 32bit sRGB (ARGB)
         //
-        private readonly long value;
+        private readonly long value; // Do not rename (binary serialization)
 
         // ignored, unless "state" says it is valid
         //
-        private readonly short knownColor;
+        private readonly short knownColor; // Do not rename (binary serialization)
 
         // implementation specific information
         //
-        private readonly short state;
+        private readonly short state; // Do not rename (binary serialization)
 
 
         internal Color(KnownColor knownColor)
@@ -368,7 +368,7 @@ namespace System.Drawing.Temp
 
         public bool IsNamedColor => ((state & StateNameValid) != 0) || IsKnownColor;
 
-        public bool IsSystemColor => IsKnownColor && ((((KnownColor)knownColor) < KnownColor.Transparent) || (((KnownColor)knownColor) > KnownColor.YellowGreen));
+        public bool IsSystemColor => IsKnownColor && ((((KnownColor) knownColor) <= KnownColor.WindowText) || (((KnownColor) knownColor) > KnownColor.YellowGreen));
 
         // Not localized because it's only used for the DebuggerDisplayAttribute, and the values are
         // programmatic items.
@@ -450,16 +450,8 @@ namespace System.Drawing.Temp
 
         public static Color FromArgb(int red, int green, int blue) => FromArgb(255, red, green, blue);
 
-        private static Color FromKnownColor(KnownColor color)
-        {
-            var value = (int)color;
-            if (value < (int)KnownColor.Transparent || value > (int)KnownColor.YellowGreen)
-            {
-                return FromName(color.ToString());
-            }
-
-            return new Color(color);
-        }
+        private static Color FromKnownColor(KnownColor color) =>
+            color <= 0 || color > KnownColor.MenuHighlight ? FromName(color.ToString()) : new Color(color);
 
         public static Color FromName(string name)
         {
@@ -483,11 +475,23 @@ namespace System.Drawing.Temp
 
             max = r; min = r;
 
-            if (g > max) max = g;
-            if (b > max) max = b;
+            if (g > max)
+            {
+                max = g;
+            }
+            else if (g < min)
+            {
+                min = g;
+            }
 
-            if (g < min) min = g;
-            if (b < min) min = b;
+            if (b > max)
+            {
+                max = b;
+            }
+            else if (b < min)
+            {
+                min = b;
+            }
 
             return (max + min) / 2;
         }
@@ -504,15 +508,27 @@ namespace System.Drawing.Temp
 
             float max, min;
             float delta;
-            float hue = 0.0f;
+            float hue;
 
             max = r; min = r;
 
-            if (g > max) max = g;
-            if (b > max) max = b;
+            if (g > max)
+            {
+                max = g;
+            }
+            else if (g < min)
+            {
+                min = g;
+            }
 
-            if (g < min) min = g;
-            if (b < min) min = b;
+            if (b > max)
+            {
+                max = b;
+            }
+            else if (b < min)
+            {
+                min = b;
+            }
 
             delta = max - min;
 
@@ -524,8 +540,9 @@ namespace System.Drawing.Temp
             {
                 hue = 2 + (b - r) / delta;
             }
-            else if (b == max)
+            else
             {
+                Debug.Assert(b == max);
                 hue = 4 + (r - g) / delta;
             }
             hue *= 60;
@@ -548,11 +565,23 @@ namespace System.Drawing.Temp
             float max = r;
             float min = r;
 
-            if (g > max) max = g;
-            if (b > max) max = b;
+            if (g > max)
+            {
+                max = g;
+            }
+            else if (g < min)
+            {
+                min = g;
+            }
 
-            if (g < min) min = g;
-            if (b < min) min = b;
+            if (b > max)
+            {
+                max = b;
+            }
+            else if (b < min)
+            {
+                min = b;
+            }
 
             // if max == min, then there is no color and
             // the saturation is zero.

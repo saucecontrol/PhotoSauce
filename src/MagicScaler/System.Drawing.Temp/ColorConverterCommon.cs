@@ -133,7 +133,7 @@ namespace System.Drawing.Temp
             }
             catch (Exception e)
             {
-                throw new Exception($"InvalidPrimitive: {typeof(int).Name} {text}", e);
+                throw new ArgumentException($"InvalidPrimitive: {typeof(int).Name} {text}", e);
             }
         }
 
