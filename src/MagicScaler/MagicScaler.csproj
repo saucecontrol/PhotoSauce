@@ -8,7 +8,7 @@
     <RuntimeFrameworkVersion Condition=" '$(TargetFramework)' == 'netcoreapp1.0' ">1.0.4</RuntimeFrameworkVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
-    <VersionPrefix>0.8.3</VersionPrefix>
+    <VersionPrefix>0.8.4</VersionPrefix>
     <Authors>Clinton Ingram</Authors>
     <Company>PhotoSauce</Company>
     <Product>MagicScaler</Product>
@@ -28,13 +28,16 @@
     <DefineConstants Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">$(DefineConstants);MATHF</DefineConstants>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>True</DebugSymbols>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.4.0" />
+    <PackageReference Include="GitLink" Version="3.1.0">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp1.0' Or '$(TargetFramework)' == 'netstandard1.3' ">
@@ -52,6 +55,34 @@
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Magic\Generated\Convolver.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Convolver.cs</LastGenOutput>
+    </None>
+    <None Update="Magic\Generated\VectorConvolver.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>VectorConvolver.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Magic\Generated\Convolver.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Convolver.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Magic\Generated\VectorConvolver.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>VectorConvolver.tt</DependentUpon>
+    </Compile>
   </ItemGroup>
 
 </Project>
