@@ -154,10 +154,16 @@ The following MagicScaler `ProcessImageSettings` values can be set from the quer
 | Sharpen | sharpen | bool |
 | HybridMode | hybrid | favorquality, favorspeed, turbo, off |
 | SaveFormat | format | jpg, jpeg, png, png8, gif, bmp, tiff |
-| JpegQuality | quality | int |
+| JpegQuality | quality<br />q | int |
 | JpegSubsampleMode | subsample | 420, 422, 444 |
 | MatteColor | bgcolor<br />bg | [CSS3 named color], [rgba hex values] |
 | Interpolation | filter | nearestneighbor, average, linear, quadratic, catrom, cubic, lanczos, spline36 |
+
+Additionally, WebRSize supports a `devicepixelratio` (or `dpr`) query string parameter.  This setting will automatically adjust both the size and quality settings for the target client.  Using `srcset`, you can configure images with the same logical (CSS) size and have WebRSize take care of the rest.  In this example, a retina device will receive a 200px wide image with a lower jpeg quality/subsampling to compensate and keep file sizes reasonable.
+
+```
+<img src="photo.jpg?w=100" srcset="photo.jpg?w=100 1x, photo.jpg?w=100&dpr=2 2x" />
+```
 
 ## Advanced Topics
 

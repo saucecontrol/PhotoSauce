@@ -67,13 +67,16 @@ See the [documentation page](doc/web.md) for more details.
 
 Release History
 ---------------
-#### WebRSize 0.3.1.0
-* Require MagicScaler 0.8.3 or later
-* Fix nuget config transform to place `configSections` as the first child of `configuration`
+#### MagicScaler 0.8.4.0
+* Fixed an issue that caused sharpening to be a no-op when working with some pixel formats in sRGB blending mode.
+* Improved quality of scaling and sharpening with partially-transparent images.
+* Added [GitLink](https://github.com/GitTools/GitLink) to enable github source server support for debugging.
 
-#### MagicScaler 0.8.3.0
-* Fixed image corruption (and possible access violation) when sharpening BGR/BGRA images in sRGB blending mode.
-* Use latest System.Buffers version for .NET Framework installations
+#### WebRSize 0.3.2.0
+* Fixed incorrect file extension for 404 images in the disk cache
+* Added exception handler for "Client Disconnected" errors when transmitting images from the HttpHandler
+* Added devicePixelRatio (dpr) setting to enable automatic size and quality adjustments for retina clients
+* Added "q" shortcut for quality setting
 
 See the [releases page](https://github.com/saucecontrol/PhotoSauce/releases) for previous updates.
 
