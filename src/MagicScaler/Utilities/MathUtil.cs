@@ -93,6 +93,13 @@ namespace PhotoSauce.MagicScaler
 		public static float Sqrt(this float x) => (float)Math.Sqrt(x);
 #endif
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if MATHF
+		public static float MaxF(float x, float o) => MathF.Max(x, o);
+#else
+		public static float MaxF(float x, float o) => x < o ? o : x;
+#endif
+
 		public static uint ReadBigEndianUInt32(this BinaryReader rdr)
 		{
 			return (uint)(rdr.ReadByte() << 24 | rdr.ReadByte() << 16 | rdr.ReadByte() << 8 | rdr.ReadByte());

@@ -13,7 +13,7 @@ using VectorF = System.Numerics.Vector<float>;
 
 namespace PhotoSauce.MagicScaler
 {
-	unsafe internal class Convolver4ChanFloat : IConvolver
+	unsafe internal sealed class Convolver4ChanFloat : IConvolver
 	{
 		private const int Channels = 4;
 
@@ -92,7 +92,6 @@ namespace PhotoSauce.MagicScaler
 		{
 			float* op = (float*)ostart;
 			int xc = ox + ow, tstride = smapy * Channels;
-			float fmin = VectorF.Zero[0], fmax = VectorF.One[0];
 
 			while (ox < xc)
 			{
@@ -148,10 +147,10 @@ namespace PhotoSauce.MagicScaler
 					mp += Channels;
 				}
 
-				op[0] = a0.Clamp(fmin, fmax);
-				op[1] = a1.Clamp(fmin, fmax);
-				op[2] = a2.Clamp(fmin, fmax);
-				op[3] = a3.Clamp(fmin, fmax);
+				op[0] = a0;
+				op[1] = a1;
+				op[2] = a2;
+				op[3] = a3;
 				op += Channels;
 				ox++;
 			}
@@ -166,7 +165,6 @@ namespace PhotoSauce.MagicScaler
 			float* ipe = ip + ow * Channels;
 
 			var vmin = Vector4.Zero;
-			var vmax = Vector4.One;
 			var vamt = new Vector4(famt, famt, famt, 0f);
 
 			while (ip < ipe)
@@ -179,12 +177,15 @@ namespace PhotoSauce.MagicScaler
 					var vd = new Vector4(dif) * vamt;
 
 					if (gamma)
-						c0 = Vector4.SquareRoot(c0);
-
-					c0 = (c0 + vd).Clamp(vmin, vmax);
-
-					if (gamma)
+					{
+						c0 = Vector4.SquareRoot(Vector4.Max(c0, vmin));
+						c0 = Vector4.Max(c0 + vd, vmin);
 						c0 *= c0;
+					}
+					else
+					{
+						c0 += vd;
+					}
 				}
 
 				Unsafe.Write(op, c0);
@@ -195,7 +196,7 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	unsafe internal class Convolver3ChanFloat : IConvolver
+	unsafe internal sealed class Convolver3ChanFloat : IConvolver
 	{
 		private const int Channels = 3;
 
@@ -260,7 +261,6 @@ namespace PhotoSauce.MagicScaler
 		{
 			float* op = (float*)ostart;
 			int xc = ox + ow, tstride = smapy * Channels;
-			float fmin = Vector4.Zero.X, fmax = Vector4.One.X;
 
 			while (ox < xc)
 			{
@@ -303,52 +303,18 @@ namespace PhotoSauce.MagicScaler
 					mp += Channels;
 				}
 
-				op[0] = a0.Clamp(fmin, fmax);
-				op[1] = a1.Clamp(fmin, fmax);
-				op[2] = a2.Clamp(fmin, fmax);
+				op[0] = a0;
+				op[1] = a1;
+				op[2] = a2;
 				op += Channels;
 				ox++;
 			}
 		}
 
-		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
-		{
-			float famt = amt * 0.01f;
-			float threshold = (float)thresh / byte.MaxValue;
-
-			float* ip = (float*)cstart, yp = (float*)ystart, bp = (float*)bstart, op = (float*)ostart;
-			float* ipe = ip + ow * Channels;
-
-			var vmin = Vector3.Zero;
-			var vmax = Vector3.One;
-
-			while (ip < ipe)
-			{
-				float dif = *yp++ - *bp++;
-				var c0 = Unsafe.Read<Vector3>(ip);
-
-				if (threshold == 0 || Math.Abs(dif) > threshold)
-				{
-					var vd = new Vector3(dif * famt);
-
-					if (gamma)
-						c0 = Vector3.SquareRoot(c0);
-
-					c0 = (c0 + vd).Clamp(vmin, vmax);
-
-					if (gamma)
-						c0 *= c0;
-				}
-
-				Unsafe.Write(op, c0);
-
-				ip += Channels;
-				op += Channels;
-			}
-		}
+		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma) => throw new NotImplementedException();
 	}
 
-	unsafe internal class Convolver3XChanFloat : IConvolver
+	unsafe internal sealed class Convolver3XChanFloat : IConvolver
 	{
 		private const int Channels = 4;
 
@@ -423,7 +389,6 @@ namespace PhotoSauce.MagicScaler
 		{
 			float* op = (float*)ostart;
 			int xc = ox + ow, tstride = smapy * Channels;
-			float fmin = VectorF.Zero[0], fmax = VectorF.One[0];
 
 			while (ox < xc)
 			{
@@ -476,9 +441,9 @@ namespace PhotoSauce.MagicScaler
 					mp += Channels;
 				}
 
-				op[0] = a0.Clamp(fmin, fmax);
-				op[1] = a1.Clamp(fmin, fmax);
-				op[2] = a2.Clamp(fmin, fmax);
+				op[0] = a0;
+				op[1] = a1;
+				op[2] = a2;
 				op += Channels;
 				ox++;
 			}
@@ -493,7 +458,6 @@ namespace PhotoSauce.MagicScaler
 			float* ipe = ip + ow * Channels;
 
 			var vmin = Vector4.Zero;
-			var vmax = Vector4.One;
 
 			while (ip < ipe)
 			{
@@ -505,12 +469,15 @@ namespace PhotoSauce.MagicScaler
 					var vd = new Vector4(dif * famt);
 
 					if (gamma)
-						c0 = Vector4.SquareRoot(c0);
-
-					c0 = (c0 + vd).Clamp(vmin, vmax);
-
-					if (gamma)
+					{
+						c0 = Vector4.SquareRoot(Vector4.Max(c0, vmin));
+						c0 = Vector4.Max(c0 + vd, vmin);
 						c0 *= c0;
+					}
+					else
+					{
+						c0 += vd;
+					}
 				}
 
 				Unsafe.Write(op, c0);
@@ -521,7 +488,7 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	unsafe internal class Convolver2ChanFloat : IConvolver
+	unsafe internal sealed class Convolver2ChanFloat : IConvolver
 	{
 		private const int Channels = 2;
 
@@ -580,7 +547,6 @@ namespace PhotoSauce.MagicScaler
 		{
 			float* op = (float*)ostart;
 			int xc = ox + ow, tstride = smapy * Channels;
-			float fmin = Vector4.Zero.X, fmax = Vector4.One.X;
 
 			while (ox < xc)
 			{
@@ -618,8 +584,8 @@ namespace PhotoSauce.MagicScaler
 					mp += Channels;
 				}
 
-				op[0] = a0.Clamp(fmin, fmax);
-				op[1] = a1.Clamp(fmin, fmax);
+				op[0] = a0;
+				op[1] = a1;
 				op += Channels;
 				ox++;
 			}
@@ -628,7 +594,7 @@ namespace PhotoSauce.MagicScaler
 		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma) => throw new NotImplementedException();
 	}
 
-	unsafe internal class Convolver1ChanFloat : IConvolver
+	unsafe internal sealed class Convolver1ChanFloat : IConvolver
 	{
 		private const int Channels = 1;
 
@@ -685,7 +651,6 @@ namespace PhotoSauce.MagicScaler
 			int xc = ox + ow, tstride = smapy * Channels;
 
 			var m0 = VectorF.One;
-			float fmin = VectorF.Zero[0], fmax = VectorF.One[0];
 
 			while (ox < xc)
 			{
@@ -718,7 +683,7 @@ namespace PhotoSauce.MagicScaler
 					mp += Channels;
 				}
 
-				op[0] = a0.Clamp(fmin, fmax);
+				op[0] = a0;
 				op += Channels;
 				ox++;
 			}
@@ -733,10 +698,9 @@ namespace PhotoSauce.MagicScaler
 			float* ipe = ip + ow * Channels - VectorF.Count;
 
 			var vmin = VectorF.Zero;
-			var vmax = VectorF.One;
 			var vthresh = new VectorF(threshold > 0f ? threshold : -1f);
 			var vamt = new VectorF(famt);
-			float fmin = vmin[0], fmax = vmax[0];
+			float fmin = vmin[0];
 
 			while (ip <= ipe)
 			{
@@ -751,12 +715,15 @@ namespace PhotoSauce.MagicScaler
 				var v0 = Unsafe.Read<VectorF>(ip);
 
 				if (gamma)
-					v0 = Vector.SquareRoot(v0);
-
-				v0 = (v0 + vd).Clamp(vmin, vmax);
-
-				if (gamma)
+				{
+					v0 = Vector.SquareRoot(Vector.Max(v0, vmin));
+					v0 = Vector.Max(v0 + vd, vmin);
 					v0 *= v0;
+				}
+				else
+				{
+					v0 += vd;
+				}
 
 				Unsafe.Write(op, v0);
 
@@ -777,12 +744,15 @@ namespace PhotoSauce.MagicScaler
 					dif *= famt;
 
 					if (gamma)
-						c0 = c0.Sqrt();
-
-					c0 = (c0 + dif).Clamp(fmin, fmax);
-
-					if (gamma)
+					{
+						c0 = MathUtil.MaxF(c0, fmin).Sqrt();
+						c0 = MathUtil.MaxF(c0 + dif, fmin);
 						c0 *= c0;
+					}
+					else
+					{
+						c0 += dif;
+					}
 				}
 
 				*op = c0;

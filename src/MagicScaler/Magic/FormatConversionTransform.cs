@@ -311,7 +311,8 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip <= ipe)
 				{
-					byte o3 = UnFix15ToByte(ip[-1] * byte.MaxValue);
+					ushort i3 = ip[-1];
+					byte o3 = UnFix15ToByte(i3 * byte.MaxValue);
 					if (o3 == 0)
 					{
 						op[-4] = 0;
@@ -321,7 +322,7 @@ namespace PhotoSauce.MagicScaler
 					}
 					else
 					{
-						int o3i = (UQ15One << 15) / o3;
+						int o3i = (UQ15One << 15) / i3;
 						byte o0 = gt[UnFixToUQ15(ip[-4] * o3i)];
 						byte o1 = gt[UnFixToUQ15(ip[-3] * o3i)];
 						byte o2 = gt[UnFixToUQ15(ip[-2] * o3i)];
@@ -795,8 +796,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe public static void ConvertBgrToGreyByte(byte* ipstart, byte* opstart, int cb)
 		{
-			byte* ip = ipstart + 3, ipe = ipstart + cb;
-			byte* op = opstart + 1;
+			byte* ip = ipstart + 3, ipe = ipstart + cb, op = opstart + 1;
 
 			while (ip <= ipe)
 			{
@@ -812,13 +812,13 @@ namespace PhotoSauce.MagicScaler
 		{
 			fixed (byte* gtstart = LookupTables.Gamma)
 			{
-				ushort* ip = (ushort*)ipstart + 3, ipe = (ushort*)(ipstart + cb);
-				byte* op = opstart + 1, gt = gtstart;
+				ushort* ip = (ushort*)ipstart + 3, ipe = (ushort*)(ipstart + cb), op = (ushort*)opstart + 1;
+				byte* gt = gtstart;
 
 				while (ip <= ipe)
 				{
-					ushort y = Rec709.LumaFromBgr(ip[-3], ip[-2], ip[-1]);
-					op[-1] = gt[ClampToUQ15(y)];
+					uint y = Rec709.LumaFromBgr(ip[-3], ip[-2], ip[-1]);
+					op[-1] = gt[y];
 
 					ip += 3;
 					op++;
@@ -828,9 +828,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe public static void ConvertBgrToGreyFloat(byte* ipstart, byte* opstart, int cb, bool linear)
 		{
-			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb);
-			float* op = (float*)opstart;
-
+			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb), op = (float*)opstart;
 			var clum = linear ? Rec709.Coefficients : Rec601.Coefficients;
 			float cbl = clum.X, cgl = clum.Y, crl = clum.Z;
 
@@ -846,8 +844,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe public static void ConvertBgrxToGreyByte(byte* ipstart, byte* opstart, int cb)
 		{
-			byte* ip = ipstart + 4, ipe = ipstart + cb;
-			byte* op = opstart + 1;
+			byte* ip = ipstart + 4, ipe = ipstart + cb, op = opstart + 1;
 
 			while (ip <= ipe)
 			{
@@ -879,19 +876,13 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe public static void ConvertBgrxToGreyFloat(byte* ipstart, byte* opstart, int cb, bool linear)
 		{
-			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb);
-			float* op = (float*)opstart;
-
-			var clum = linear ? Rec709.Coefficients : Rec601.Coefficients;
-			float cbl = clum.X, cgl = clum.Y, crl = clum.Z;
+			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb), op = (float*)opstart;
+			var clum = new Vector4(linear ? Rec709.Coefficients : Rec601.Coefficients, 0f);
 
 			while (ip < ipe)
 			{
-				float c0 = ip[0] * cbl, c1 = ip[1] * cgl, c2 = ip[2] * crl;
-				op[0] = c0 + c1 + c2;
-
+				*op++ = Vector4.Dot(Unsafe.Read<Vector4>(ip), clum);
 				ip += 4;
-				op++;
 			}
 		}
 
@@ -909,13 +900,14 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe public static void ConvertGreyLinearToGreyFloat(byte* ipstart, byte* opstart, int cb)
 		{
-			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - VectorF.Count;
-			float* op = (float*)opstart;
+			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - VectorF.Count, op = (float*)opstart;
+			var vmin = Vector<float>.Zero;
+			float fmin = vmin[0];
 
 			while (ip <= ipe)
 			{
 				var v = Unsafe.Read<VectorF>(ip);
-				Unsafe.Write(op, Vector.SquareRoot(v));
+				Unsafe.Write(op, Vector.SquareRoot(Vector.Max(v, vmin)));
 
 				ip += VectorF.Count;
 				op += VectorF.Count;
@@ -923,7 +915,7 @@ namespace PhotoSauce.MagicScaler
 
 			ipe += VectorF.Count;
 			while (ip < ipe)
-				*op++ = (*ip++).Sqrt();
+				*op++ = MaxF(*ip++, fmin).Sqrt();
 		}
 
 		public void Dispose()

@@ -38,7 +38,7 @@ namespace PhotoSauce.MagicScaler
 			[PixelFormat.Bgr96BppFloat.FormatGuid         ] = new Convolver3ChanFloat(),
 			[PixelFormat.CbCr64BppFloat.FormatGuid        ] = new Convolver2ChanFloat(),
 			[PixelFormat.Grey32BppLinearFloat.FormatGuid  ] = new Convolver1ChanFloat(),
-			[Consts.GUID_WICPixelFormat32bppGrayFloat     ] = new Convolver1ChanFloat(),
+			[PixelFormat.Grey32BppFloat.FormatGuid        ] = new Convolver1ChanFloat(),
 			[PixelFormat.Y32BppLinearFloat.FormatGuid     ] = new Convolver1ChanFloat(),
 			[PixelFormat.Y32BppFloat.FormatGuid           ] = new Convolver1ChanFloat()
 		});
@@ -58,7 +58,7 @@ namespace PhotoSauce.MagicScaler
 			if (lumaMode)
 			{
 				if (fmt.ColorRepresentation == PixelColorRepresentation.Bgr || fmt.ColorRepresentation == PixelColorRepresentation.Grey)
-					fmt = fmt.NumericRepresentation == PixelNumericRepresentation.Float ? PixelFormat.Cache[Consts.GUID_WICPixelFormat32bppGrayFloat] :
+					fmt = fmt.NumericRepresentation == PixelNumericRepresentation.Float ? PixelFormat.Grey32BppFloat :
 					      fmt.NumericRepresentation == PixelNumericRepresentation.Fixed ? PixelFormat.Grey16BppUQ15 :
 					      fmt.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger ? PixelFormat.Cache[Consts.GUID_WICPixelFormat8bppGray] :
 					      throw new NotSupportedException("Unsupported pixel format");
@@ -86,12 +86,12 @@ namespace PhotoSauce.MagicScaler
 			IntStride = mapy.Samples * IntBpp;
 			WorkStride = fmt.BitsPerPixel / 8 * (int)Width + (IntPtr.Size - 1) & ~(IntPtr.Size - 1);
 
-			int lineBuffLen = (lumaMode ? mapy.Samples : 1) * (int)BufferStride;
+			int lineBuffLen = (BufferSource ? mapy.Samples : 1) * (int)BufferStride;
 			int intBuffLen = mapx.OutPixels * IntStride;
 			int workBuffLen = mapy.Samples * WorkStride;
 			LineBuff = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(lineBuffLen), 0, lineBuffLen).Zero();
 			IntBuff = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(intBuffLen), 0, intBuffLen).Zero();
-			WorkBuff = lumaMode && Format != fmt ? new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(workBuffLen), 0, workBuffLen).Zero() : LineBuff;
+			WorkBuff = lumaMode && !Format.IsBinaryCompatibleWith(fmt) ? new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(workBuffLen), 0, workBuffLen).Zero() : LineBuff;
 
 			Width = (uint)mapx.OutPixels;
 			Height = (uint)mapy.OutPixels;
@@ -166,6 +166,8 @@ namespace PhotoSauce.MagicScaler
 						FormatConversionTransform.ConvertGreyLinearToGreyUQ15(bline, wline, (int)BufferStride);
 					else if (Format.FormatGuid == Consts.GUID_WICPixelFormat24bppBGR)
 						FormatConversionTransform.ConvertBgrToGreyByte(bline, wline, (int)BufferStride);
+					else if (Format == PixelFormat.Bgr48BppLinearUQ15)
+						FormatConversionTransform.ConvertBgrToGreyUQ15(bline, wline, (int)BufferStride);
 					else if (Format.FormatGuid == Consts.GUID_WICPixelFormat32bppBGR || Format.FormatGuid == Consts.GUID_WICPixelFormat32bppBGRA || Format.FormatGuid == Consts.GUID_WICPixelFormat32bppPBGRA)
 						FormatConversionTransform.ConvertBgrxToGreyByte(bline, wline, (int)BufferStride);
 					else if (Format == PixelFormat.Bgra64BppLinearUQ15 || Format == PixelFormat.Pbgra64BppLinearUQ15)

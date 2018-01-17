@@ -13,7 +13,7 @@ namespace PhotoSauce.MagicScaler
 			if (MagicImageProcessor.EnableSimd)
 			{
 				if (ifmt == Consts.GUID_WICPixelFormat8bppGray)
-					ofmt = linear ? PixelFormat.Grey32BppLinearFloat.FormatGuid : Consts.GUID_WICPixelFormat32bppGrayFloat;
+					ofmt = linear ? PixelFormat.Grey32BppLinearFloat.FormatGuid : PixelFormat.Grey32BppFloat.FormatGuid;
 				else if (ifmt == Consts.GUID_WICPixelFormat8bppY)
 					ofmt = linear ? PixelFormat.Y32BppLinearFloat.FormatGuid : PixelFormat.Y32BppFloat.FormatGuid;
 				else if (ifmt == Consts.GUID_WICPixelFormat24bppBGR)
@@ -48,7 +48,7 @@ namespace PhotoSauce.MagicScaler
 			var ifmt = ctx.Source.Format.FormatGuid;
 			var ofmt = ifmt;
 
-			if (ifmt == Consts.GUID_WICPixelFormat32bppGrayFloat || ifmt == PixelFormat.Grey32BppLinearFloat.FormatGuid || ifmt == PixelFormat.Grey16BppLinearUQ15.FormatGuid)
+			if (ifmt == PixelFormat.Grey32BppFloat.FormatGuid || ifmt == PixelFormat.Grey32BppLinearFloat.FormatGuid || ifmt == PixelFormat.Grey16BppLinearUQ15.FormatGuid)
 				ofmt = Consts.GUID_WICPixelFormat8bppGray;
 			else if (ifmt == PixelFormat.Y32BppFloat.FormatGuid || ifmt == PixelFormat.Y32BppLinearFloat.FormatGuid || ifmt == PixelFormat.Y16BppLinearUQ15.FormatGuid)
 				ofmt = Consts.GUID_WICPixelFormat8bppY;

@@ -11,7 +11,7 @@ using static PhotoSauce.MagicScaler.MathUtil;
 
 namespace PhotoSauce.MagicScaler
 {
-	unsafe internal class ConvolverBgraByte : IConvolver
+	unsafe internal sealed class ConvolverBgraByte : IConvolver
 	{
 		private const int Channels = 4;
 
@@ -254,7 +254,7 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	unsafe internal class ConvolverBgraUQ15 : IConvolver
+	unsafe internal sealed class ConvolverBgraUQ15 : IConvolver
 	{
 		private const int Channels = 4;
 
@@ -502,7 +502,7 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	unsafe internal class Convolver4ChanByte : IConvolver
+	unsafe internal sealed class Convolver4ChanByte : IConvolver
 	{
 		private const int Channels = 4;
 
@@ -661,7 +661,7 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	unsafe internal class Convolver4ChanUQ15 : IConvolver
+	unsafe internal sealed class Convolver4ChanUQ15 : IConvolver
 	{
 		private const int Channels = 4;
 
@@ -825,7 +825,7 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	unsafe internal class ConvolverBgrByte : IConvolver
+	unsafe internal sealed class ConvolverBgrByte : IConvolver
 	{
 		private const int Channels = 3;
 
@@ -977,7 +977,7 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	unsafe internal class ConvolverBgrUQ15 : IConvolver
+	unsafe internal sealed class ConvolverBgrUQ15 : IConvolver
 	{
 		private const int Channels = 3;
 
@@ -1134,7 +1134,7 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	unsafe internal class Convolver2ChanByte : IConvolver
+	unsafe internal sealed class Convolver2ChanByte : IConvolver
 	{
 		private const int Channels = 2;
 
@@ -1268,7 +1268,7 @@ namespace PhotoSauce.MagicScaler
 		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma) => throw new NotImplementedException();
 	}
 
-	unsafe internal class Convolver1ChanByte : IConvolver
+	unsafe internal sealed class Convolver1ChanByte : IConvolver
 	{
 		private const int Channels = 1;
 
@@ -1383,7 +1383,7 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	unsafe internal class Convolver1ChanUQ15 : IConvolver
+	unsafe internal sealed class Convolver1ChanUQ15 : IConvolver
 	{
 		private const int Channels = 1;
 

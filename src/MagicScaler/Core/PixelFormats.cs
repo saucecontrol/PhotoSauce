@@ -64,6 +64,16 @@ namespace PhotoSauce.MagicScaler
 		public override bool Equals(object o) => o is PixelFormat pf ? Equals(pf) : false;
 		public override int GetHashCode() => FormatGuid.GetHashCode();
 
+		public bool IsBinaryCompatibleWith(PixelFormat other)
+		{
+			return BitsPerPixel == other.BitsPerPixel &&
+			       ChannelCount == other.ChannelCount &&
+			       NumericRepresentation == other.NumericRepresentation &&
+			       ColorRepresentation == other.ColorRepresentation &&
+			       AlphaRepresentation == other.AlphaRepresentation &&
+			       Colorspace == other.Colorspace;
+		}
+
 		public static readonly PixelFormat Grey16BppUQ15 = new PixelFormat {
 			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0x9F),
 			Name = "16bpp Grey UQ15",
@@ -82,6 +92,16 @@ namespace PhotoSauce.MagicScaler
 			NumericRepresentation = PixelNumericRepresentation.Fixed,
 			ColorRepresentation = PixelColorRepresentation.Grey,
 			Colorspace = PixelColorspace.LinearRgb
+		};
+
+		public static readonly PixelFormat Grey32BppFloat = new PixelFormat {
+			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0x9E),
+			Name = "32bpp Grey Float",
+			BitsPerPixel = 32,
+			ChannelCount = 1,
+			NumericRepresentation = PixelNumericRepresentation.Float,
+			ColorRepresentation = PixelColorRepresentation.Grey,
+			Colorspace = PixelColorspace.sRgb
 		};
 
 		public static readonly PixelFormat Grey32BppLinearFloat = new PixelFormat {
