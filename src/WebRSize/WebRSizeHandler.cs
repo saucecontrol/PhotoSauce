@@ -3,6 +3,7 @@ using System.IO;
 using System.Web;
 using System.Web.Hosting;
 using System.Reflection;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
@@ -107,22 +108,29 @@ namespace PhotoSauce.WebRSize
 
 			if (tsource?.Task == task)
 			{
-				ctx.Trace.Write("ProcessImage Begin");
+				ctx.Trace.Write(nameof(WebRSize), $"{nameof(MagicImageProcessor.ProcessImage)} Begin");
 				await process(tsource, ctx.Request.Path, cachePath, s);
-				ctx.Trace.Write("ProcessImage End");
+				ctx.Trace.Write(nameof(WebRSize), $"{nameof(MagicImageProcessor.ProcessImage)} End");
 			}
 
-			var res = await task;
+			var img = await task;
+			var res = ctx.Response;
 
-			if (!ctx.Response.IsClientConnected)
+			if (!res.IsClientConnected)
 				return;
 
-			ctx.Response.BufferOutput = false;
-			ctx.Response.ContentType = MimeMapping.GetMimeMapping(Path.GetFileName(cachePath));
-			ctx.Response.AddHeader("Content-Length", res.Count.ToString());
-			ctx.Response.Cache.SetLastModifiedFromFileDependencies();
+			try
+			{
+				res.BufferOutput = false;
+				res.ContentType = MimeMapping.GetMimeMapping(Path.GetFileName(cachePath));
+				res.AddHeader("Content-Length", img.Count.ToString());
 
-			await ctx.Response.OutputStream.WriteAsync(res.Array, res.Offset, res.Count);
+				await res.OutputStream.WriteAsync(img.Array, img.Offset, img.Count);
+			}
+			catch (HttpException ex) when (new StackTrace(ex).GetFrame(0)?.GetMethod().Name == "RaiseCommunicationError")
+			{
+				// no problem here.  client just disconnected before transmission completed.
+			}
 		}
 
 		public override bool IsReusable => true;

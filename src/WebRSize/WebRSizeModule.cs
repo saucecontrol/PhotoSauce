@@ -37,6 +37,15 @@ namespace PhotoSauce.WebRSize
 				dic = folderConfig.DefaultSettings.ToDictionary().Coalesce(dic);
 
 			var s = ProcessImageSettings.FromDictionary(dic);
+
+			int rw = s.Width, rh = s.Height;
+			if (double.TryParse(dic.GetValueOrDefault("devicepixelratio") ?? dic.GetValueOrDefault("dpr"), out double dpr))
+			{
+				dpr = dpr.Clamp(1d, 5d);
+				s.Width = (int)Math.Floor(s.Width * dpr);
+				s.Height = (int)Math.Floor(s.Height * dpr);
+			}
+
 			if (exists && s.IsEmpty && !folderConfig.ForceProcessing)
 				return;
 
@@ -51,6 +60,7 @@ namespace PhotoSauce.WebRSize
 					s.Width = s.Height = 100;
 
 				ifi = new ImageFileInfo(s.Width > 0 ? s.Width : s.Height, s.Height > 0 ? s.Height : s.Width);
+				s.SaveFormat = FileFormat.Png;
 			}
 
 			ifi = ifi ?? await CacheHelper.GetImageInfoAsync(path);
@@ -80,8 +90,14 @@ namespace PhotoSauce.WebRSize
 				return;
 			}
 
-			var cacheVPath = namingStrategy.Value.GetCacheFilePath(path, s);
-			var cachePath = HostingEnvironment.MapPath(cacheVPath);
+			if (dpr > 0d && !dic.ContainsKey("quality") && !dic.ContainsKey("q"))
+			{
+				dpr = Math.Max(Math.Max((double)s.Width / (rw > 0 ? rw : s.Width), (double)s.Height / (rh > 0 ? rh : s.Height)), 1d);
+				s.JpegQuality -= (int)Math.Round((dpr - 1d) * 10);
+			}
+
+			string cacheVPath = namingStrategy.Value.GetCacheFilePath(path, s);
+			string cachePath = HostingEnvironment.MapPath(cacheVPath);
 
 			if (File.Exists(cachePath))
 			{
