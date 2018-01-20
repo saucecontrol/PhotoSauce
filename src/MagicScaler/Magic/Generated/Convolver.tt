@@ -158,11 +158,16 @@ for (int i = 0; i < t.xUnroll; i++) {
 #>
 					<#= i == 0 ? "int " : "" #>alpha = ip[<#= (i - t.xUnroll) * t.channels + t.channels - 1 #>];
 					<#= i == 0 ? "int " : "" #>w = mp[<#= (i - t.xUnroll) #>];
-					if (alpha == 0)
+
+					aa += alpha * w;
+					if (alpha < <#= t.suffix == "UQ15" ? "UQ15One" : "255" #>)
 					{
-						aw += w;
+						int pw = UnFix15(w * alpha<#= t.suffix == "UQ15" ? "" : " << 7" #>);
+						aw += w - pw;
+						w = pw;
 					}
-					else
+
+					if (w != 0)
 					{
 <#
 			PushIndent("\t");
@@ -170,10 +175,6 @@ for (int i = 0; i < t.xUnroll; i++) {
 		if (!t.alpha) {
 #>
 					<#= i == 0 ? "int " : "" #>w = mp[<#= (i - t.xUnroll) #>];
-<#
-		} else {
-#>
-					aa += alpha * w;
 <#
 		}
 		for (int j = 0; j < t.channels - (t.alpha ? 1 : 0); j++) {
@@ -212,11 +213,16 @@ if (t.xUnroll > 1) {
 #>
 					int alpha = ip[<#= -t.channels + t.channels - 1 #>];
 					int w = mp[-1];
-					if (alpha == 0)
+
+					aa += alpha * w;
+					if (alpha < <#= t.suffix == "UQ15" ? "UQ15One" : "255" #>)
 					{
-						aw += w;
+						int pw = UnFix15(w * alpha<#= t.suffix == "UQ15" ? "" : " << 7" #>);
+						aw += w - pw;
+						w = pw;
 					}
-					else
+
+					if (w != 0)
 					{
 <#
 			PushIndent("\t");
@@ -224,10 +230,6 @@ if (t.xUnroll > 1) {
 		if (!t.alpha) {
 #>
 					int w = mp[-1];
-<#
-		} else {
-#>
-					aa += alpha * w;
 <#
 		}
 		for (int j = 0; j < t.channels - (t.alpha ? 1 : 0); j++) {
@@ -307,11 +309,16 @@ for (int i = 0; i < t.yUnroll; i++) {
 #>
 					<#= i == 0 ? "int " : "" #>alpha = tp[<#= (i - t.yUnroll) * t.channels + t.channels - 1 #>];
 					<#= i == 0 ? "int " : "" #>w = mp[<#= (i - t.yUnroll) #>];
-					if (alpha == 0)
+
+					aa += alpha * w;
+					if (alpha < <#= t.suffix == "UQ15" ? "UQ15One" : "255" #>)
 					{
-						aw += w;
+						int pw = UnFix15(w * alpha<#= t.suffix == "UQ15" ? "" : " << 7" #>);
+						aw += w - pw;
+						w = pw;
 					}
-					else
+
+					if (w != 0)
 					{
 <#
 			PushIndent("\t");
@@ -319,10 +326,6 @@ for (int i = 0; i < t.yUnroll; i++) {
 		if (!t.alpha) {
 #>
 					<#= i == 0 ? "int " : "" #>w = mp[<#= (i - t.yUnroll) #>];
-<#
-		} else {
-#>
-					aa += alpha * w;
 <#
 		}
 		for (int j = 0; j < t.channels - (t.alpha ? 1 : 0); j++) {
@@ -361,11 +364,16 @@ if (t.yUnroll > 1) {
 #>
 					int alpha = tp[<#= -t.channels + t.channels - 1 #>];
 					int w = mp[-1];
-					if (alpha == 0)
+
+					aa += alpha * w;
+					if (alpha < <#= t.suffix == "UQ15" ? "UQ15One" : "255" #>)
 					{
-						aw += w;
+						int pw = UnFix15(w * alpha<#= t.suffix == "UQ15" ? "" : " << 7" #>);
+						aw += w - pw;
+						w = pw;
 					}
-					else
+
+					if (w != 0)
 					{
 <#
 			PushIndent("\t");
@@ -373,10 +381,6 @@ if (t.yUnroll > 1) {
 		if (!t.alpha) {
 #>
 					int w = mp[-1];
-<#
-		} else {
-#>
-					aa += alpha * w;
 <#
 		}
 		for (int j = 0; j < t.channels - (t.alpha ? 1 : 0); j++) {

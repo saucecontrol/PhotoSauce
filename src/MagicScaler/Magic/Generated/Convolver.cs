@@ -36,13 +36,17 @@ namespace PhotoSauce.MagicScaler
 				{
 					int alpha = ip[-13];
 					int w = mp[-4];
-					if (alpha == 0)
+
+					aa += alpha * w;
+					if (alpha < 255)
 					{
-						aw += w;
+						int pw = UnFix15(w * alpha << 7);
+						aw += w - pw;
+						w = pw;
 					}
-					else
+
+					if (w != 0)
 					{
-						aa += alpha * w;
 						a0 += ip[-16] * w;
 						a1 += ip[-15] * w;
 						a2 += ip[-14] * w;
@@ -50,13 +54,17 @@ namespace PhotoSauce.MagicScaler
 
 					alpha = ip[-9];
 					w = mp[-3];
-					if (alpha == 0)
+
+					aa += alpha * w;
+					if (alpha < 255)
 					{
-						aw += w;
+						int pw = UnFix15(w * alpha << 7);
+						aw += w - pw;
+						w = pw;
 					}
-					else
+
+					if (w != 0)
 					{
-						aa += alpha * w;
 						a0 += ip[-12] * w;
 						a1 += ip[-11] * w;
 						a2 += ip[-10] * w;
@@ -64,13 +72,17 @@ namespace PhotoSauce.MagicScaler
 
 					alpha = ip[-5];
 					w = mp[-2];
-					if (alpha == 0)
+
+					aa += alpha * w;
+					if (alpha < 255)
 					{
-						aw += w;
+						int pw = UnFix15(w * alpha << 7);
+						aw += w - pw;
+						w = pw;
 					}
-					else
+
+					if (w != 0)
 					{
-						aa += alpha * w;
 						a0 += ip[-8] * w;
 						a1 += ip[-7] * w;
 						a2 += ip[-6] * w;
@@ -78,13 +90,17 @@ namespace PhotoSauce.MagicScaler
 
 					alpha = ip[-1];
 					w = mp[-1];
-					if (alpha == 0)
+
+					aa += alpha * w;
+					if (alpha < 255)
 					{
-						aw += w;
+						int pw = UnFix15(w * alpha << 7);
+						aw += w - pw;
+						w = pw;
 					}
-					else
+
+					if (w != 0)
 					{
-						aa += alpha * w;
 						a0 += ip[-4] * w;
 						a1 += ip[-3] * w;
 						a2 += ip[-2] * w;
@@ -100,13 +116,17 @@ namespace PhotoSauce.MagicScaler
 				{
 					int alpha = ip[-1];
 					int w = mp[-1];
-					if (alpha == 0)
+
+					aa += alpha * w;
+					if (alpha < 255)
 					{
-						aw += w;
+						int pw = UnFix15(w * alpha << 7);
+						aw += w - pw;
+						w = pw;
 					}
-					else
+
+					if (w != 0)
 					{
-						aa += alpha * w;
 						a0 += ip[-4] * w;
 						a1 += ip[-3] * w;
 						a2 += ip[-2] * w;
@@ -149,13 +169,17 @@ namespace PhotoSauce.MagicScaler
 				{
 					int alpha = tp[-5];
 					int w = mp[-2];
-					if (alpha == 0)
+
+					aa += alpha * w;
+					if (alpha < 255)
 					{
-						aw += w;
+						int pw = UnFix15(w * alpha << 7);
+						aw += w - pw;
+						w = pw;
 					}
-					else
+
+					if (w != 0)
 					{
-						aa += alpha * w;
 						a0 += tp[-8] * w;
 						a1 += tp[-7] * w;
 						a2 += tp[-6] * w;
@@ -163,13 +187,17 @@ namespace PhotoSauce.MagicScaler
 
 					alpha = tp[-1];
 					w = mp[-1];
-					if (alpha == 0)
+
+					aa += alpha * w;
+					if (alpha < 255)
 					{
-						aw += w;
+						int pw = UnFix15(w * alpha << 7);
+						aw += w - pw;
+						w = pw;
 					}
-					else
+
+					if (w != 0)
 					{
-						aa += alpha * w;
 						a0 += tp[-4] * w;
 						a1 += tp[-3] * w;
 						a2 += tp[-2] * w;
@@ -185,13 +213,17 @@ namespace PhotoSauce.MagicScaler
 				{
 					int alpha = tp[-1];
 					int w = mp[-1];
-					if (alpha == 0)
+
+					aa += alpha * w;
+					if (alpha < 255)
 					{
-						aw += w;
+						int pw = UnFix15(w * alpha << 7);
+						aw += w - pw;
+						w = pw;
 					}
-					else
+
+					if (w != 0)
 					{
-						aa += alpha * w;
 						a0 += tp[-4] * w;
 						a1 += tp[-3] * w;
 						a2 += tp[-2] * w;
@@ -279,13 +311,17 @@ namespace PhotoSauce.MagicScaler
 				{
 					int alpha = ip[-13];
 					int w = mp[-4];
-					if (alpha == 0)
+
+					aa += alpha * w;
+					if (alpha < UQ15One)
 					{
-						aw += w;
+						int pw = UnFix15(w * alpha);
+						aw += w - pw;
+						w = pw;
 					}
-					else
+
+					if (w != 0)
 					{
-						aa += alpha * w;
 						a0 += ip[-16] * w;
 						a1 += ip[-15] * w;
 						a2 += ip[-14] * w;
@@ -293,13 +329,17 @@ namespace PhotoSauce.MagicScaler
 
 					alpha = ip[-9];
 					w = mp[-3];
-					if (alpha == 0)
+
+					aa += alpha * w;
+					if (alpha < UQ15One)
 					{
-						aw += w;
+						int pw = UnFix15(w * alpha);
+						aw += w - pw;
+						w = pw;
 					}
-					else
+
+					if (w != 0)
 					{
-						aa += alpha * w;
 						a0 += ip[-12] * w;
 						a1 += ip[-11] * w;
 						a2 += ip[-10] * w;
@@ -307,13 +347,17 @@ namespace PhotoSauce.MagicScaler
 
 					alpha = ip[-5];
 					w = mp[-2];
-					if (alpha == 0)
+
+					aa += alpha * w;
+					if (alpha < UQ15One)
 					{
-						aw += w;
+						int pw = UnFix15(w * alpha);
+						aw += w - pw;
+						w = pw;
 					}
-					else
+
+					if (w != 0)
 					{
-						aa += alpha * w;
 						a0 += ip[-8] * w;
 						a1 += ip[-7] * w;
 						a2 += ip[-6] * w;
@@ -321,13 +365,17 @@ namespace PhotoSauce.MagicScaler
 
 					alpha = ip[-1];
 					w = mp[-1];
-					if (alpha == 0)
+
+					aa += alpha * w;
+					if (alpha < UQ15One)
 					{
-						aw += w;
+						int pw = UnFix15(w * alpha);
+						aw += w - pw;
+						w = pw;
 					}
-					else
+
+					if (w != 0)
 					{
-						aa += alpha * w;
 						a0 += ip[-4] * w;
 						a1 += ip[-3] * w;
 						a2 += ip[-2] * w;
@@ -343,13 +391,17 @@ namespace PhotoSauce.MagicScaler
 				{
 					int alpha = ip[-1];
 					int w = mp[-1];
-					if (alpha == 0)
+
+					aa += alpha * w;
+					if (alpha < UQ15One)
 					{
-						aw += w;
+						int pw = UnFix15(w * alpha);
+						aw += w - pw;
+						w = pw;
 					}
-					else
+
+					if (w != 0)
 					{
-						aa += alpha * w;
 						a0 += ip[-4] * w;
 						a1 += ip[-3] * w;
 						a2 += ip[-2] * w;
@@ -392,13 +444,17 @@ namespace PhotoSauce.MagicScaler
 				{
 					int alpha = tp[-5];
 					int w = mp[-2];
-					if (alpha == 0)
+
+					aa += alpha * w;
+					if (alpha < UQ15One)
 					{
-						aw += w;
+						int pw = UnFix15(w * alpha);
+						aw += w - pw;
+						w = pw;
 					}
-					else
+
+					if (w != 0)
 					{
-						aa += alpha * w;
 						a0 += tp[-8] * w;
 						a1 += tp[-7] * w;
 						a2 += tp[-6] * w;
@@ -406,13 +462,17 @@ namespace PhotoSauce.MagicScaler
 
 					alpha = tp[-1];
 					w = mp[-1];
-					if (alpha == 0)
+
+					aa += alpha * w;
+					if (alpha < UQ15One)
 					{
-						aw += w;
+						int pw = UnFix15(w * alpha);
+						aw += w - pw;
+						w = pw;
 					}
-					else
+
+					if (w != 0)
 					{
-						aa += alpha * w;
 						a0 += tp[-4] * w;
 						a1 += tp[-3] * w;
 						a2 += tp[-2] * w;
@@ -428,13 +488,17 @@ namespace PhotoSauce.MagicScaler
 				{
 					int alpha = tp[-1];
 					int w = mp[-1];
-					if (alpha == 0)
+
+					aa += alpha * w;
+					if (alpha < UQ15One)
 					{
-						aw += w;
+						int pw = UnFix15(w * alpha);
+						aw += w - pw;
+						w = pw;
 					}
-					else
+
+					if (w != 0)
 					{
-						aa += alpha * w;
 						a0 += tp[-4] * w;
 						a1 += tp[-3] * w;
 						a2 += tp[-2] * w;
