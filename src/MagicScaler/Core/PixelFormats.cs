@@ -255,6 +255,7 @@ namespace PhotoSauce.MagicScaler
 			var dic = new Dictionary<Guid, PixelFormat> {
 				[Grey16BppUQ15.FormatGuid]          = Grey16BppUQ15,
 				[Grey16BppLinearUQ15.FormatGuid]    = Grey16BppLinearUQ15,
+				[Grey32BppFloat.FormatGuid]         = Grey32BppFloat,
 				[Grey32BppLinearFloat.FormatGuid]   = Grey32BppLinearFloat,
 				[Bgr48BppLinearUQ15.FormatGuid]     = Bgr48BppLinearUQ15,
 				[Bgr96BppFloat.FormatGuid]          = Bgr96BppFloat,
