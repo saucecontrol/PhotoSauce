@@ -198,7 +198,7 @@ namespace System.Drawing.Temp
         GradientActiveCaption,
         GradientInactiveCaption,
         MenuBar,
-        MenuHighlight,
+        MenuHighlight
     }
 }
 #endif

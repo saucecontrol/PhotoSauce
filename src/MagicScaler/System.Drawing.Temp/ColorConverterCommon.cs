@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 #if DRAWING_SHIM
+using System.Diagnostics;
 using System.Globalization;
 
 namespace System.Drawing.Temp
@@ -12,6 +13,8 @@ namespace System.Drawing.Temp
     {
         public static Color ConvertFromString(string strValue, CultureInfo culture)
         {
+            Debug.Assert(culture != null);
+
             string text = strValue.Trim();
 
             if (text.Length == 0)
@@ -27,11 +30,6 @@ namespace System.Drawing.Temp
                 {
                     return c;
                 }
-            }
-
-            if (culture == null)
-            {
-                culture = CultureInfo.CurrentCulture;
             }
 
             char sep = culture.TextInfo.ListSeparator[0];
@@ -57,7 +55,7 @@ namespace System.Drawing.Temp
                 }
             }
 
-            // Nope.  Parse the RGBA from the text.
+            // Nope. Parse the RGBA from the text.
             //
             string[] tokens = text.Split(sep);
             int[] values = new int[tokens.Length];
@@ -91,7 +89,7 @@ namespace System.Drawing.Temp
         private static Color PossibleKnownColor(Color color)
         {
             // Now check to see if this color matches one of our known colors.
-            // If it does, then substitute it.  We can only do this for "Colors"
+            // If it does, then substitute it. We can only do this for "Colors"
             // because system colors morph with user settings.
             //
             int targetARGB = color.ToArgb();
@@ -123,10 +121,7 @@ namespace System.Drawing.Temp
                 }
                 else
                 {
-                    if (culture == null)
-                    {
-                        culture = CultureInfo.CurrentCulture;
-                    }
+                    Debug.Assert(culture != null);
                     NumberFormatInfo formatInfo = (NumberFormatInfo)culture.GetFormat(typeof(NumberFormatInfo));
                     return IntFromString(text, formatInfo);
                 }
