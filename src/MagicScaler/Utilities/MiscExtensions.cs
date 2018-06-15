@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Drawing;
+using System.Diagnostics;
 using System.Collections.Generic;
 
 #if NET46
@@ -88,5 +89,20 @@ namespace PhotoSauce.MagicScaler
 			dic2.ToList().ForEach(i => dic1[i.Key] = i.Value);
 			return dic1;
 		}
+
+#if CUSTOM_MARSHAL
+		public static TOut[] ConvertAll<TIn, TOut>(this TIn[] array, Converter<TIn, TOut> converter) => Array.ConvertAll(array, converter);
+#else
+		public static TOut[] ConvertAll<TIn, TOut>(this TIn[] array, Func<TIn, TOut> converter)
+		{
+			var res = new TOut[array.Length];
+			for (int i = 0; i < array.Length; i++)
+				res[i] = converter(array[i]);
+
+			return res;
+		}
+#endif
+
+		public static double ElapsedMilliseconds(this Stopwatch s) => (double)s.ElapsedTicks / Stopwatch.Frequency * 1000;
 	}
 }

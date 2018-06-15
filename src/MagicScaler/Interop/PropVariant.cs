@@ -21,7 +21,7 @@ using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler.Interop
 {
-	[StructLayout(LayoutKind.Explicit, Size = 16)]
+	[StructLayout(LayoutKind.Explicit)]
 	internal struct UnmanagedPropVariant
 	{
 		[StructLayout(LayoutKind.Sequential)]
@@ -129,7 +129,7 @@ namespace PhotoSauce.MagicScaler.Interop
 
 		public bool Equals(PropVariant other)
 		{
-			if (ReferenceEquals(other, null))
+			if (other is null)
 				return false;
 
 			if ((Value is Array) != (other.Value is Array))
@@ -138,11 +138,11 @@ namespace PhotoSauce.MagicScaler.Interop
 			if ((Value is Array))
 				return ((IEnumerable)Value).Cast<object>().SequenceEqual(((IEnumerable)other.Value).Cast<object>());
 
-			return ReferenceEquals(Value, other.Value) || !ReferenceEquals(Value, null) && Value.Equals(other.Value);
+			return Equals(Value, other.Value);
 		}
 
-		public static bool operator ==(PropVariant pv1, PropVariant pv2) => ReferenceEquals(pv1, pv2) || !ReferenceEquals(pv1, null) && pv1.Equals(pv2);
-		public static bool operator !=(PropVariant pv1, PropVariant pv2) => !(pv1 == pv2);
+		public static bool operator ==(PropVariant left, PropVariant right) => left?.Equals(right) ?? ReferenceEquals(left, right);
+		public static bool operator !=(PropVariant left, PropVariant right) => !(left == right);
 
 		public override bool Equals(object o) => Equals(o as PropVariant);
 		public override int GetHashCode() => Value?.GetHashCode() ?? 0;
@@ -159,15 +159,6 @@ namespace PhotoSauce.MagicScaler.Interop
 				var res = new T[size];
 				for (int i = 0; i < size; i++)
 					res[i] = Marshal.PtrToStructure<T>(pv.vectorValue.ptr + i * Marshal.SizeOf<T>());
-
-				return res;
-			}
-
-			private static TOut[] convertArray<TIn, TOut>(TIn[] array, Func<TIn, TOut> converter)
-			{
-				var res = new TOut[array.Length];
-				for (int i = 0; i < array.Length; i++)
-					res[i] = converter(array[i]);
 
 				return res;
 			}
@@ -250,8 +241,7 @@ namespace PhotoSauce.MagicScaler.Interop
 					else
 					{
 						var gch = GCHandle.Alloc(a, GCHandleType.Pinned);
-						var pNativeValue = Marshal.UnsafeAddrOfPinnedArrayElement(a, 0);
-						Buffer.MemoryCopy(pNativeValue.ToPointer(), pNativeBuffer.ToPointer(), bufflen, bufflen);
+						Unsafe.CopyBlockUnaligned(pNativeBuffer.ToPointer(), Marshal.UnsafeAddrOfPinnedArrayElement(a, 0).ToPointer(), (uint)bufflen);
 						gch.Free();
 					}
 
@@ -343,10 +333,10 @@ namespace PhotoSauce.MagicScaler.Interop
 							break;
 						case VarEnum.VT_LPSTR:
 							pv.MarshalType = PropVariantMarshalType.Ascii;
-							pv.Value = convertArray(toArrayOf<IntPtr>(upv), Marshal.PtrToStringAnsi);
+							pv.Value = toArrayOf<IntPtr>(upv).ConvertAll(Marshal.PtrToStringAnsi);
 							break;
 						case VarEnum.VT_LPWSTR:
-							pv.Value = convertArray(toArrayOf<IntPtr>(upv), Marshal.PtrToStringUni);
+							pv.Value = toArrayOf<IntPtr>(upv).ConvertAll(Marshal.PtrToStringUni);
 							break;
 						default: throw new NotImplementedException();
 					}

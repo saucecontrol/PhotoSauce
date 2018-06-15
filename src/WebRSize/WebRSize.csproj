@@ -11,7 +11,7 @@
     <Description>Web extensions for the MagicScaler library, inlcluding an HTTP request intercept module for automatic image processing.</Description>
     <Company>PhotoSauce</Company>
     <Product>WebRSize</Product>
-    <Copyright>Copyright © 2015-2017 Clinton Ingram</Copyright>
+    <Copyright>Copyright © 2015-2018 Clinton Ingram</Copyright>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/saucecontrol/PhotoSauce</RepositoryUrl>
     <PackageReleaseNotes>See https://github.com/saucecontrol/PhotoSauce/releases</PackageReleaseNotes>
@@ -27,9 +27,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="GitLink" Version="3.1.0">
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
+    <PackageReference Include="GitLink" Version="3.1.0" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net46' ">

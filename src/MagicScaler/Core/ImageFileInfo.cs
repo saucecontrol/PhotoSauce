@@ -5,12 +5,12 @@ namespace PhotoSauce.MagicScaler
 {
 	public sealed class ImageFileInfo
 	{
-		public struct FrameInfo
+		public readonly struct FrameInfo
 		{
-			public int Width { get; private set; }
-			public int Height { get; private set; }
-			public bool HasAlpha { get; private set; }
-			public Orientation ExifOrientation { get; private set; }
+			public int Width { get; }
+			public int Height { get; }
+			public bool HasAlpha { get; }
+			public Orientation ExifOrientation { get; }
 
 			public FrameInfo(int width, int height, bool hasAlpha, Orientation orientation)
 			{

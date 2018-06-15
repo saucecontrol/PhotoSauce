@@ -23,13 +23,13 @@ namespace PhotoSauce.MagicScaler
 	public enum ChromaSubsampleMode { Default = 0, Subsample420 = 1, Subsample422 = 2, Subsample444 = 3 }
 	public enum FileFormat { Auto, Jpeg, Png, Png8, Gif, Bmp, Tiff, Unknown = Auto }
 
-	public struct UnsharpMaskSettings
+	public readonly struct UnsharpMaskSettings
 	{
-		public static readonly UnsharpMaskSettings None = new UnsharpMaskSettings();
+		public static readonly UnsharpMaskSettings None = default;
 
-		public int Amount { get; private set; }
-		public double Radius { get; private set; }
-		public byte Threshold { get; private set; }
+		public int Amount { get; }
+		public double Radius { get; }
+		public byte Threshold { get; }
 
 		public UnsharpMaskSettings(int amount, double radius, byte threshold)
 		{
@@ -39,7 +39,7 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	public struct InterpolationSettings
+	public readonly struct InterpolationSettings
 	{
 		public static readonly InterpolationSettings NearestNeighbor = new InterpolationSettings(new PointInterpolator());
 		public static readonly InterpolationSettings Average = new InterpolationSettings(new BoxInterpolator());
@@ -53,10 +53,10 @@ namespace PhotoSauce.MagicScaler
 		public static readonly InterpolationSettings Lanczos = new InterpolationSettings(new LanczosInterpolator());
 		public static readonly InterpolationSettings Spline36 = new InterpolationSettings(new Spline36Interpolator());
 
-		private double blur;
-		public double Blur => WeightingFunction == null ? 0d : WeightingFunction.Support * blur < 0.5 ? 1d : blur;
+		private readonly double blur;
+		public double Blur => WeightingFunction == null ? default : WeightingFunction.Support * blur < 0.5 ? 1d : blur;
 
-		public IInterpolator WeightingFunction { get; private set; }
+		public IInterpolator WeightingFunction { get; }
 
 		public InterpolationSettings(IInterpolator weighting) : this(weighting, 1d) { }
 

@@ -547,8 +547,8 @@ namespace PhotoSauce.MagicScaler.Interop
 		);
 
 		new IEnumUnknown CreateComponentEnumerator(
-			WICComponentType componentTypes,           /* WICComponentType */
-			WICComponentEnumerateOptions options       /* WICComponentEnumerateOptions */
+			WICComponentType componentTypes,
+			WICComponentEnumerateOptions options
 		);
 
 		new IWICFastMetadataEncoder CreateFastMetadataEncoderFromDecoder(

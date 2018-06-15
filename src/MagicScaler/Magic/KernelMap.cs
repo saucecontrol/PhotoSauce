@@ -7,7 +7,7 @@ using PhotoSauce.MagicScaler.Interpolators;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal class KernelMap<T> : IDisposable where T : struct
+	internal class KernelMap<T> : IDisposable where T : unmanaged
 	{
 		public int InPixels { get; private set; }
 		public int OutPixels { get; private set; }

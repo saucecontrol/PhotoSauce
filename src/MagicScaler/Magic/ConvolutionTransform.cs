@@ -15,7 +15,7 @@ namespace PhotoSauce.MagicScaler
 		void SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma);
 	}
 
-	internal class ConvolutionTransform<TPixel, TWeight> : PixelSource, IDisposable where TPixel : struct where TWeight : struct
+	internal class ConvolutionTransform<TPixel, TWeight> : PixelSource, IDisposable where TPixel : unmanaged where TWeight : unmanaged
 	{
 		protected static readonly ReadOnlyDictionary<Guid, IConvolver> ProcessorMap = new ReadOnlyDictionary<Guid, IConvolver>(new Dictionary<Guid, IConvolver> {
 			[Consts.GUID_WICPixelFormat32bppPBGRA         ] = new Convolver4ChanByte(),
@@ -206,7 +206,7 @@ namespace PhotoSauce.MagicScaler
 		public override string ToString() => XProcessor?.ToString() ?? base.ToString();
 	}
 
-	internal class UnsharpMaskTransform<TPixel, TWeight> : ConvolutionTransform<TPixel, TWeight> where TPixel : struct where TWeight : struct
+	internal class UnsharpMaskTransform<TPixel, TWeight> : ConvolutionTransform<TPixel, TWeight> where TPixel : unmanaged where TWeight : unmanaged
 	{
 		private UnsharpMaskSettings sharpenSettings;
 		private ArraySegment<byte> blurBuff;

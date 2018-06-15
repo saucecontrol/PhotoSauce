@@ -70,7 +70,7 @@ namespace PhotoSauce.MagicScaler
 			var stats = Stats;
 			stats.CallCount++;
 			stats.PixelCount += prc.Width * prc.Height;
-			stats.ProcessingTime += (double)Timer.ElapsedTicks / Stopwatch.Frequency * 1000;
+			stats.ProcessingTime += Timer.ElapsedMilliseconds();
 		}
 	}
 

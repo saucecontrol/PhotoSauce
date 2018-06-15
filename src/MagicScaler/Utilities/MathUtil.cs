@@ -51,7 +51,7 @@ namespace PhotoSauce.MagicScaler
 		public static Vector4 Clamp(this Vector4 x, Vector4 min, Vector4 max) => Vector4.Min(Vector4.Max(min, x), max);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Vector<T> Clamp<T>(this Vector<T> x, Vector<T> min, Vector<T> max) where T : struct => Vector.Min(Vector.Max(min, x), max);
+		public static Vector<T> Clamp<T>(this Vector<T> x, Vector<T> min, Vector<T> max) where T : unmanaged => Vector.Min(Vector.Max(min, x), max);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ushort ClampToUQ15(int x) => (ushort)Min(Max(0, x), UQ15One);
