@@ -17,6 +17,9 @@ namespace PhotoSauce.MagicScaler
 	{
 		private const int Channels = 4;
 
+		int IConvolver.Channels => Channels;
+		int IConvolver.MapChannels => Channels;
+
 		void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			float* pmapx = (float*)mapxstart;
@@ -200,6 +203,9 @@ namespace PhotoSauce.MagicScaler
 	{
 		private const int Channels = 3;
 
+		int IConvolver.Channels => Channels;
+		int IConvolver.MapChannels => Channels;
+
 		void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			float* pmapx = (float*)mapxstart;
@@ -317,6 +323,9 @@ namespace PhotoSauce.MagicScaler
 	unsafe internal sealed class Convolver3XChanFloat : IConvolver
 	{
 		private const int Channels = 4;
+
+		int IConvolver.Channels => Channels;
+		int IConvolver.MapChannels => Channels;
 
 		void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
@@ -492,6 +501,9 @@ namespace PhotoSauce.MagicScaler
 	{
 		private const int Channels = 2;
 
+		int IConvolver.Channels => Channels;
+		int IConvolver.MapChannels => Channels;
+
 		void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			float* pmapx = (float*)mapxstart;
@@ -597,6 +609,9 @@ namespace PhotoSauce.MagicScaler
 	unsafe internal sealed class Convolver1ChanFloat : IConvolver
 	{
 		private const int Channels = 1;
+
+		int IConvolver.Channels => Channels;
+		int IConvolver.MapChannels => Channels;
 
 		void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{

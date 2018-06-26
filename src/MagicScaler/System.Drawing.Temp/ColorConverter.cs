@@ -11,7 +11,7 @@ using System.Linq;
 
 namespace System.Drawing.Temp
 {
-    public class ColorConverter : TypeConverter
+    internal class ColorConverter : TypeConverter
     {
 #if !NETSTANDARD1_3
         private static readonly Lazy<StandardValuesCollection> s_valuesLazy = new Lazy<StandardValuesCollection>(() =>

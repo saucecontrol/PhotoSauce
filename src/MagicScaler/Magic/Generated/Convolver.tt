@@ -128,6 +128,9 @@ foreach (var t in ta) {
 	{
 		private const int Channels = <#= t.channels #>;
 
+		int IConvolver.Channels => Channels;
+		int IConvolver.MapChannels => 1;
+
 		void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			<#= t.weighType #>* pmapx = (<#= t.weighType #>*)mapxstart;
@@ -449,8 +452,8 @@ if (t.sharpen) {
 <#
 if (t.pixelType == "ushort") {
 #>
-			fixed (byte* gtstart = LookupTables.Gamma)
-			fixed (ushort* igtstart = LookupTables.InverseGammaUQ15)
+			fixed (byte* gtstart = &LookupTables.Gamma[0])
+			fixed (ushort* igtstart = &LookupTables.InverseGammaUQ15[0])
 			{
 <#
 	PushIndent("\t");
@@ -458,8 +461,8 @@ if (t.pixelType == "ushort") {
 #>
 			<#= t.interType #> iamt = Fix15(amt * 0.01);
 			<#= t.interType #> threshold = thresh;
-
 <#
+WriteLine(null);
 if (t.pixelType == "ushort") {
 #>
 			byte* gt = gtstart;
@@ -467,12 +470,16 @@ if (t.pixelType == "ushort") {
 }
 #>
 			<#= t.pixelType #>* ip = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>cstart, yp = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>ystart, bp = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>bstart, op = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>ostart<#= t.pixelType == "ushort" ? ", igt = igtstart" : "" #>;
-
+<#
+WriteLine(null);
+#>
 			int xc = ox + ow;
 			for (int x = ox; x < xc; x++, ip += Channels, op += Channels)
 			{
 				<#= t.interType #> dif = *yp++ - *bp++;
-
+<#
+WriteLine(null);
+#>
 				<#= t.pixelType #><# for (int j = 0; j < t.channels; j++) { #><#= j > 0 ? "," : "" #> c<#= j #> = ip[<#= j #>]<# } #>;
 				if (threshold == 0 || Math.Abs(dif) > threshold)
 				{

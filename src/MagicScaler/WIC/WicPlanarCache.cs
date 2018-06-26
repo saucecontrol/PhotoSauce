@@ -93,7 +93,7 @@ namespace PhotoSauce.MagicScaler
 
 				if (lineBuffY.Array != null)
 				{
-					fixed (byte* ptbuffY = tbuffY.Array, ptbuffC = tbuffC.Array, pcbuffY = lineBuffY.Array, pcbuffC = lineBuffC.Array)
+					fixed (byte* ptbuffY = &tbuffY.Array[0], ptbuffC = &tbuffC.Array[0], pcbuffY = &lineBuffY.Array[0], pcbuffC = &lineBuffC.Array[0])
 					{
 						Buffer.MemoryCopy(pcbuffY, ptbuffY, tbuffY.Array.Length, lineBuffY.Count);
 						Buffer.MemoryCopy(pcbuffC, ptbuffC, tbuffC.Array.Length, lineBuffC.Count);
@@ -107,7 +107,7 @@ namespace PhotoSauce.MagicScaler
 				lineBuffC = tbuffC;
 			}
 
-			fixed (byte* pBuffY = lineBuffY.Array, pBuffC = lineBuffC.Array)
+			fixed (byte* pBuffY = &lineBuffY.Array[0], pBuffC = &lineBuffC.Array[0])
 			{
 				int offsY = 0, offsC = 0;
 				if (startY == -1)
@@ -168,13 +168,13 @@ namespace PhotoSauce.MagicScaler
 			switch (plane)
 			{
 				case WicPlane.Luma:
-					fixed (byte* pBuffY = lineBuffY.Array)
+					fixed (byte* pBuffY = &lineBuffY.Array[0])
 					for (int y = 0; y < prc.Height; y++)
 						Buffer.MemoryCopy(pBuffY + (prc.Y - startY) * strideY + y * strideY + prc.X, (byte*)pbBuffer + y * cbStride, cbStride, prc.Width);
 					nextY = prc.Y + prc.Height - startY;
 					break;
 				case WicPlane.Chroma:
-					fixed (byte* pBuffC = lineBuffC.Array)
+					fixed (byte* pBuffC = &lineBuffC.Array[0])
 					for (int y = 0; y < prc.Height; y++)
 						Buffer.MemoryCopy(pBuffC + (prc.Y - startC) * strideC + y * strideC + prc.X * 2, (byte*)pbBuffer + y * cbStride, cbStride, prc.Width * 2);
 					nextC = prc.Y + prc.Height - startC;

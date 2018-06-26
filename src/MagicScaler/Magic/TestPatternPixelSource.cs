@@ -116,7 +116,7 @@ namespace PhotoSauce.MagicScaler
 			if (pbBuffer == IntPtr.Zero)
 				throw new ArgumentOutOfRangeException(nameof(pbBuffer), "Buffer pointer is invalid");
 
-			fixed (byte* pstart = pixels.Value)
+			fixed (byte* pstart = &pixels.Value[0])
 			for (int y = 0; y < sourceArea.Height; y++)
 			{
 				int row = Math.Min((int)((sourceArea.Y + y) * rheight), rows - 1);

@@ -73,6 +73,9 @@ foreach (var t in ta) {
 	{
 		private const int Channels = <#= t.channels #>;
 
+		int IConvolver.Channels => Channels;
+		int IConvolver.MapChannels => Channels;
+
 		void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			float* pmapx = (float*)mapxstart;

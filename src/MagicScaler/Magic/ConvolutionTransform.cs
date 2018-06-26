@@ -10,6 +10,8 @@ namespace PhotoSauce.MagicScaler
 {
 	unsafe internal interface IConvolver
 	{
+		int Channels { get; }
+		int MapChannels { get; }
 		void ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy);
 		void WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy);
 		void SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma);
@@ -78,6 +80,9 @@ namespace PhotoSauce.MagicScaler
 			XMap = mapx;
 			YMap = mapy;
 
+			if (XMap.Channels != XProcessor.MapChannels || YMap.Channels != YProcessor.MapChannels)
+				throw new NotSupportedException("Map and Processor channel counts don't match");
+
 			BufferSource = lumaMode;
 			SourceRect = new WICRect { Width = (int)Width, Height = 1 };
 			IntStartLine = -mapy.Samples;
@@ -99,8 +104,8 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe protected override void CopyPixelsInternal(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
-			fixed (byte* bstart = LineBuff.Array, wstart = WorkBuff.Array, tstart = IntBuff.Array)
-			fixed (byte* mapxstart = XMap.Map.Array, mapystart = YMap.Map.Array)
+			fixed (byte* bstart = &LineBuff.Array[0], wstart = &WorkBuff.Array[0], tstart = &IntBuff.Array[0])
+			fixed (byte* mapxstart = &XMap.Map.Array[0], mapystart = &YMap.Map.Array[0])
 			{
 				int oh = prc.Height, ow = prc.Width, ox = prc.X, oy = prc.Y;
 				int smapy = YMap.Samples, chan = YMap.Channels;
@@ -221,7 +226,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe protected override void ConvolveLine(byte* bstart, byte* wstart, byte* tstart, byte* ostart, byte* pmapy, int smapy, int ox, int oy, int ow)
 		{
-			fixed (byte* blurstart = blurBuff.Array)
+			fixed (byte* blurstart = &blurBuff.Array[0])
 			{
 				int cy = oy - IntStartLine;
 				byte* bp = bstart + cy * BufferStride;

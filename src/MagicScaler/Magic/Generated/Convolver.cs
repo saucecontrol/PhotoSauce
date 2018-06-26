@@ -15,6 +15,9 @@ namespace PhotoSauce.MagicScaler
 	{
 		private const int Channels = 4;
 
+		int IConvolver.Channels => Channels;
+		int IConvolver.MapChannels => 1;
+
 		void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			int* pmapx = (int*)mapxstart;
@@ -290,6 +293,9 @@ namespace PhotoSauce.MagicScaler
 	{
 		private const int Channels = 4;
 
+		int IConvolver.Channels => Channels;
+		int IConvolver.MapChannels => 1;
+
 		void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			int* pmapx = (int*)mapxstart;
@@ -531,8 +537,8 @@ namespace PhotoSauce.MagicScaler
 
 		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
 		{
-			fixed (byte* gtstart = LookupTables.Gamma)
-			fixed (ushort* igtstart = LookupTables.InverseGammaUQ15)
+			fixed (byte* gtstart = &LookupTables.Gamma[0])
+			fixed (ushort* igtstart = &LookupTables.InverseGammaUQ15[0])
 			{
 				int iamt = Fix15(amt * 0.01);
 				int threshold = thresh;
@@ -569,6 +575,9 @@ namespace PhotoSauce.MagicScaler
 	unsafe internal sealed class Convolver4ChanByte : IConvolver
 	{
 		private const int Channels = 4;
+
+		int IConvolver.Channels => Channels;
+		int IConvolver.MapChannels => 1;
 
 		void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
@@ -729,6 +738,9 @@ namespace PhotoSauce.MagicScaler
 	{
 		private const int Channels = 4;
 
+		int IConvolver.Channels => Channels;
+		int IConvolver.MapChannels => 1;
+
 		void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			int* pmapx = (int*)mapxstart;
@@ -854,8 +866,8 @@ namespace PhotoSauce.MagicScaler
 
 		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
 		{
-			fixed (byte* gtstart = LookupTables.Gamma)
-			fixed (ushort* igtstart = LookupTables.InverseGammaUQ15)
+			fixed (byte* gtstart = &LookupTables.Gamma[0])
+			fixed (ushort* igtstart = &LookupTables.InverseGammaUQ15[0])
 			{
 				int iamt = Fix15(amt * 0.01);
 				int threshold = thresh;
@@ -892,6 +904,9 @@ namespace PhotoSauce.MagicScaler
 	unsafe internal sealed class ConvolverBgrByte : IConvolver
 	{
 		private const int Channels = 3;
+
+		int IConvolver.Channels => Channels;
+		int IConvolver.MapChannels => 1;
 
 		void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
@@ -1045,6 +1060,9 @@ namespace PhotoSauce.MagicScaler
 	{
 		private const int Channels = 3;
 
+		int IConvolver.Channels => Channels;
+		int IConvolver.MapChannels => 1;
+
 		void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			int* pmapx = (int*)mapxstart;
@@ -1165,8 +1183,8 @@ namespace PhotoSauce.MagicScaler
 
 		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
 		{
-			fixed (byte* gtstart = LookupTables.Gamma)
-			fixed (ushort* igtstart = LookupTables.InverseGammaUQ15)
+			fixed (byte* gtstart = &LookupTables.Gamma[0])
+			fixed (ushort* igtstart = &LookupTables.InverseGammaUQ15[0])
 			{
 				int iamt = Fix15(amt * 0.01);
 				int threshold = thresh;
@@ -1201,6 +1219,9 @@ namespace PhotoSauce.MagicScaler
 	unsafe internal sealed class Convolver2ChanByte : IConvolver
 	{
 		private const int Channels = 2;
+
+		int IConvolver.Channels => Channels;
+		int IConvolver.MapChannels => 1;
 
 		void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
@@ -1336,6 +1357,9 @@ namespace PhotoSauce.MagicScaler
 	{
 		private const int Channels = 1;
 
+		int IConvolver.Channels => Channels;
+		int IConvolver.MapChannels => 1;
+
 		void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			int* pmapx = (int*)mapxstart;
@@ -1451,6 +1475,9 @@ namespace PhotoSauce.MagicScaler
 	{
 		private const int Channels = 1;
 
+		int IConvolver.Channels => Channels;
+		int IConvolver.MapChannels => 1;
+
 		void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			int* pmapx = (int*)mapxstart;
@@ -1538,8 +1565,8 @@ namespace PhotoSauce.MagicScaler
 
 		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
 		{
-			fixed (byte* gtstart = LookupTables.Gamma)
-			fixed (ushort* igtstart = LookupTables.InverseGammaUQ15)
+			fixed (byte* gtstart = &LookupTables.Gamma[0])
+			fixed (ushort* igtstart = &LookupTables.InverseGammaUQ15[0])
 			{
 				int iamt = Fix15(amt * 0.01);
 				int threshold = thresh;

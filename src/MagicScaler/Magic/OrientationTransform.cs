@@ -47,6 +47,6 @@ namespace PhotoSauce.MagicScaler
 			source = ctx.Source;
 		}
 
-		public void Init(IPixelSource source) => throw new NotImplementedException();
+		void IPixelTransform.Init(IPixelSource source) => throw new NotImplementedException();
 	}
 }

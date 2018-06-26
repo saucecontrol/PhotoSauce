@@ -144,8 +144,8 @@ namespace PhotoSauce.MagicScaler
 		{
 			const byte maxalpha = byte.MaxValue;
 
-			fixed (ushort* igtstart = LookupTables.InverseGammaUQ15, atstart = LookupTables.AlphaUQ15)
-			fixed (byte* gtstart = LookupTables.Gamma)
+			fixed (ushort* igtstart = &LookupTables.InverseGammaUQ15[0], atstart = &LookupTables.AlphaUQ15[0])
+			fixed (byte* gtstart = &LookupTables.Gamma[0])
 			{
 				byte* gt = gtstart;
 				ushort* igt = igtstart, at = atstart;

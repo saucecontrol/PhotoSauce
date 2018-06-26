@@ -80,7 +80,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private KernelMap<T> clamp()
 		{
-			fixed (byte* mstart = Map.Array)
+			fixed (byte* mstart = &Map.Array[0])
 			{
 				int samp = Samples, ipix = InPixels, chan = Channels;
 
@@ -145,7 +145,7 @@ namespace PhotoSauce.MagicScaler
 			int kpad = vectored ? getKernelPadding((int)isize, ksize, channels) : 0;
 
 			var map = new KernelMap<T>((int)isize, (int)osize, ksize + kpad, channels);
-			fixed (byte* mstart = map.Map.Array)
+			fixed (byte* mstart = &map.Map.Array[0])
 			{
 				int* mp = (int*)mstart;
 				double* kp = stackalloc double[ksize];
@@ -184,7 +184,7 @@ namespace PhotoSauce.MagicScaler
 			int kpad = vectored ? getKernelPadding((int)size, ksize, channels) : 0;
 
 			var map = new KernelMap<T>((int)size, (int)size, ksize + kpad, channels);
-			fixed (byte* mstart = map.Map.Array)
+			fixed (byte* mstart = &map.Map.Array[0])
 			{
 				int* mp = (int*)mstart;
 				double* kp = stackalloc double[ksize];

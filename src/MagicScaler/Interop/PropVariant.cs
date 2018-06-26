@@ -33,9 +33,9 @@ namespace PhotoSauce.MagicScaler.Interop
 
 		[FieldOffset(0)] private ushort _vt;
 
-		[FieldOffset(2)] private ushort reserved1;
-		[FieldOffset(4)] private ushort reserved2;
-		[FieldOffset(6)] private ushort reserved3;
+		[FieldOffset(2)] private readonly ushort reserved1;
+		[FieldOffset(4)] private readonly ushort reserved2;
+		[FieldOffset(6)] private readonly ushort reserved3;
 
 		[FieldOffset(8)] public sbyte sbyteValue;
 		[FieldOffset(8)] public byte byteValue;
@@ -153,12 +153,14 @@ namespace PhotoSauce.MagicScaler.Interop
 			[DllImport("ole32", EntryPoint = "PropVariantClear", PreserveSig = false)]
 			private extern static void propVariantClear([In, Out] IntPtr pvar);
 
-			private static T[] toArrayOf<T>(UnmanagedPropVariant pv) where T : struct
+			unsafe private static T[] toArrayOf<T>(UnmanagedPropVariant pv) where T : unmanaged
 			{
-				int size = (int)pv.vectorValue.count;
-				var res = new T[size];
-				for (int i = 0; i < size; i++)
-					res[i] = Marshal.PtrToStructure<T>(pv.vectorValue.ptr + i * Marshal.SizeOf<T>());
+				if (pv.vectorValue.count == 0)
+					return Array.Empty<T>();
+
+				var res = new T[pv.vectorValue.count];
+				fixed (T* pres = &res[0])
+					Unsafe.CopyBlock(pres, pv.vectorValue.ptr.ToPointer(), (uint)(res.Length * Unsafe.SizeOf<T>()));
 
 				return res;
 			}
