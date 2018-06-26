@@ -203,64 +203,65 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddPixelFormatConverter(WicProcessingContext ctx)
 		{
-			var oldFormat = ctx.Source.Format;
-			if (oldFormat.ColorRepresentation == PixelColorRepresentation.Cmyk)
+			var curFormat = ctx.Source.Format;
+			if (curFormat.ColorRepresentation == PixelColorRepresentation.Cmyk)
 			{
 				//TODO WIC doesn't support proper CMYKA conversion with color profile
-				if (oldFormat.AlphaRepresentation == PixelAlphaRepresentation.None)
+				if (curFormat.AlphaRepresentation == PixelAlphaRepresentation.None)
 				{
 					// WIC doesn't support 16bpc CMYK conversion with color profile
-					if (oldFormat.BitsPerPixel == 64)
-						ctx.Source = new FormatConversionTransform(ctx.Source, Consts.GUID_WICPixelFormat32bppCMYK);
+					if (curFormat.BitsPerPixel == 64)
+						ctx.Source = ctx.AddDispose(new FormatConversionTransform(ctx.Source, Consts.GUID_WICPixelFormat32bppCMYK));
 
 					var trans = ctx.AddRef(Wic.Factory.CreateColorTransform());
 					if (trans.TryInitialize(ctx.Source.WicSource, ctx.SourceColorContext, ctx.DestColorContext, Consts.GUID_WICPixelFormat24bppBGR))
 					{
 						ctx.Source = trans.AsPixelSource(nameof(IWICColorTransform));
-						oldFormat = ctx.Source.Format;
+						curFormat = ctx.Source.Format;
 					}
 				}
 
 				ctx.SourceColorContext = null;
 			}
 
-			var newFormat = Consts.GUID_WICPixelFormat24bppBGR;
-			if (oldFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
-				newFormat = oldFormat.AlphaRepresentation == PixelAlphaRepresentation.Associated ? Consts.GUID_WICPixelFormat32bppPBGRA : Consts.GUID_WICPixelFormat32bppBGRA;
-			else if (oldFormat.ColorRepresentation == PixelColorRepresentation.Grey)
-				newFormat = Consts.GUID_WICPixelFormat8bppGray;
+			var newFormat = PixelFormat.Cache[Consts.GUID_WICPixelFormat24bppBGR];
+			if (curFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
+				newFormat = curFormat.AlphaRepresentation == PixelAlphaRepresentation.Associated ? PixelFormat.Cache[Consts.GUID_WICPixelFormat32bppPBGRA] : PixelFormat.Cache[Consts.GUID_WICPixelFormat32bppBGRA];
+			else if (curFormat.ColorRepresentation == PixelColorRepresentation.Grey)
+				newFormat = PixelFormat.Cache[Consts.GUID_WICPixelFormat8bppGray];
 
-			if (oldFormat.FormatGuid == newFormat)
+			if (curFormat.FormatGuid == newFormat.FormatGuid)
 				return;
 
 			var conv = ctx.AddRef(Wic.Factory.CreateFormatConverter());
-			if (!conv.CanConvert(oldFormat.FormatGuid, newFormat))
+			if (!conv.CanConvert(curFormat.FormatGuid, newFormat.FormatGuid))
 				throw new NotSupportedException("Can't convert to destination pixel format");
 
-			conv.Initialize(ctx.Source.WicSource, newFormat, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
-			ctx.Source = conv.AsPixelSource(nameof(IWICFormatConverter));
+			conv.Initialize(ctx.Source.WicSource, newFormat.FormatGuid, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
+			ctx.Source = conv.AsPixelSource($"{nameof(IWICFormatConverter)}: {curFormat.Name}->{newFormat.Name}");
 		}
 
 		public static void AddIndexedColorConverter(WicProcessingContext ctx)
 		{
-			var newFormat = Consts.GUID_WICPixelFormat8bppIndexed;
+			var curFormat = ctx.Source.Format;
+			var newFormat = PixelFormat.Cache[Consts.GUID_WICPixelFormat8bppIndexed];
 
-			if (!ctx.Settings.IndexedColor || ctx.Source.Format.NumericRepresentation == PixelNumericRepresentation.Indexed || ctx.Source.Format.ColorRepresentation == PixelColorRepresentation.Grey)
+			if (!ctx.Settings.IndexedColor || curFormat.NumericRepresentation == PixelNumericRepresentation.Indexed || curFormat.ColorRepresentation == PixelColorRepresentation.Grey)
 				return;
 
 			var conv = ctx.AddRef(Wic.Factory.CreateFormatConverter());
-			if (!conv.CanConvert(ctx.Source.Format.FormatGuid, newFormat))
+			if (!conv.CanConvert(curFormat.FormatGuid, newFormat.FormatGuid))
 				throw new NotSupportedException("Can't convert to destination pixel format");
 
 			var bmp = ctx.AddRef(Wic.Factory.CreateBitmapFromSource(ctx.Source.WicSource, WICBitmapCreateCacheOption.WICBitmapCacheOnDemand));
 			ctx.Source = bmp.AsPixelSource(nameof(IWICBitmap));
 
 			var pal = ctx.AddRef(Wic.Factory.CreatePalette());
-			pal.InitializeFromBitmap(ctx.Source.WicSource, 256u, ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
+			pal.InitializeFromBitmap(ctx.Source.WicSource, 256u, curFormat.AlphaRepresentation != PixelAlphaRepresentation.None);
 			ctx.DestPalette = pal;
 
-			conv.Initialize(ctx.Source.WicSource, newFormat, WICBitmapDitherType.WICBitmapDitherTypeErrorDiffusion, pal, 10.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
-			ctx.Source = conv.AsPixelSource(nameof(IWICFormatConverter), false);
+			conv.Initialize(ctx.Source.WicSource, newFormat.FormatGuid, WICBitmapDitherType.WICBitmapDitherTypeErrorDiffusion, pal, 10.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
+			ctx.Source = conv.AsPixelSource($"{nameof(IWICFormatConverter)}: {curFormat.Name}->{newFormat.Name}", false);
 		}
 
 		public static void AddExifRotator(WicProcessingContext ctx)

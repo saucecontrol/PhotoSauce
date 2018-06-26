@@ -161,7 +161,7 @@ namespace PhotoSauce.MagicScaler
 
 					var conv = ctx.AddRef(Wic.Factory.CreateFormatConverter());
 					conv.Initialize(ctx.Source.WicSource, oformat, WICBitmapDitherType.WICBitmapDitherTypeNone, pal, 0.0, ptt);
-					ctx.Source = conv.AsPixelSource(nameof(IWICFormatConverter), false);
+					ctx.Source = conv.AsPixelSource($"{nameof(IWICFormatConverter)}: {ctx.Source.Format.Name}->{PixelFormat.Cache[oformat].Name}", false);
 				}
 				else if (oformat == Consts.GUID_WICPixelFormat8bppIndexed)
 				{
