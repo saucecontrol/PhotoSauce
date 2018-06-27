@@ -248,6 +248,17 @@ namespace PhotoSauce.MagicScaler
 			Colorspace = PixelColorspace.LinearRgb
 		};
 
+		public static readonly PixelFormat Bgra128BppLinearFloat = new PixelFormat {
+			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xAF),
+			Name = "128bpp BGRA Float Linear",
+			BitsPerPixel = 128,
+			ChannelCount = 4,
+			NumericRepresentation = PixelNumericRepresentation.Float,
+			ColorRepresentation = PixelColorRepresentation.Bgr,
+			AlphaRepresentation = PixelAlphaRepresentation.Unassociated,
+			Colorspace = PixelColorspace.LinearRgb
+		};
+
 		public static ReadOnlyDictionary<Guid, PixelFormat> Cache;
 
 		static PixelFormat()
@@ -270,6 +281,7 @@ namespace PhotoSauce.MagicScaler
 				[CbCr64BppFloat.FormatGuid]         = CbCr64BppFloat,
 				[Bgrx128BppFloat.FormatGuid]        = Bgrx128BppFloat,
 				[Bgrx128BppLinearFloat.FormatGuid]  = Bgrx128BppLinearFloat,
+				[Bgra128BppLinearFloat.FormatGuid]  = Bgra128BppLinearFloat,
 			};
 
 			uint fet = 10u;

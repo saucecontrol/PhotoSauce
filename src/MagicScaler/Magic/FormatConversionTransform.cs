@@ -119,7 +119,9 @@ namespace PhotoSauce.MagicScaler
 					{
 						fixed (byte* gtstart = &LookupTables.Gamma[0])
 						{
-							if (Format.AlphaRepresentation == PixelAlphaRepresentation.Unassociated)
+							if (InFormat.AlphaRepresentation == PixelAlphaRepresentation.Associated)
+								mapValuesFloatLinearToByteWithAssociatedAlpha(bstart, op, gtstart, cb);
+							else if (InFormat.AlphaRepresentation == PixelAlphaRepresentation.Unassociated)
 								mapValuesFloatLinearToByteWithAlpha(bstart, op, gtstart, cb);
 							else if (InFormat.AlphaRepresentation == PixelAlphaRepresentation.None && InFormat.ChannelCount == 4 && Format.ChannelCount == 3)
 								mapValuesFloatLinearWithNullAlphaToByte(bstart, op, gtstart, cb);
@@ -324,9 +326,12 @@ namespace PhotoSauce.MagicScaler
 				else
 				{
 					int o3i = (UQ15One << 15) / i3;
-					byte o0 = gt[UnFixToUQ15(ip[-4] * o3i)];
-					byte o1 = gt[UnFixToUQ15(ip[-3] * o3i)];
-					byte o2 = gt[UnFixToUQ15(ip[-2] * o3i)];
+					int i0 = gt[(uint)ip[-4]];
+					int i1 = gt[(uint)ip[-3]];
+					int i2 = gt[(uint)ip[-2]];
+					byte o0 = UnFix15ToByte(i0 * o3i);
+					byte o1 = UnFix15ToByte(i1 * o3i);
+					byte o2 = UnFix15ToByte(i2 * o3i);
 					op[-4] = o0;
 					op[-3] = o1;
 					op[-2] = o2;
@@ -491,6 +496,43 @@ namespace PhotoSauce.MagicScaler
 				op[0] = gt[FixToUQ15(ip[0])];
 				ip++;
 				op++;
+			}
+		}
+
+		unsafe private static void mapValuesFloatLinearToByteWithAssociatedAlpha(byte* ipstart, byte* opstart, byte* gtstart, int cb)
+		{
+			float* ip = (float*)ipstart + 4, ipe = (float*)(ipstart + cb);
+			byte* op = opstart + 4, gt = gtstart;
+			float fmax = new Vector4(byte.MaxValue).X, fscale = new Vector4(FloatScale).X, fround = new Vector4(FloatRound).X, fmin = fround / fmax;
+
+			while (ip <= ipe)
+			{
+				float f3 = ip[-1];
+				if (f3 < fmin)
+				{
+					op[-4] = 0;
+					op[-3] = 0;
+					op[-2] = 0;
+					op[-1] = 0;
+				}
+				else
+				{
+					int o3i = Fix15(1f / f3);
+					int i0 = gt[ClampToUQ15((int)(ip[-4] * fscale + fround))];
+					int i1 = gt[ClampToUQ15((int)(ip[-3] * fscale + fround))];
+					int i2 = gt[ClampToUQ15((int)(ip[-2] * fscale + fround))];
+					byte o0 = UnFix15ToByte(i0 * o3i);
+					byte o1 = UnFix15ToByte(i1 * o3i);
+					byte o2 = UnFix15ToByte(i2 * o3i);
+					byte o3 = ClampToByte((int)(f3 * fmax + fround));
+					op[-4] = o0;
+					op[-3] = o1;
+					op[-2] = o2;
+					op[-1] = o3;
+				}
+
+				ip += 4;
+				op += 4;
 			}
 		}
 

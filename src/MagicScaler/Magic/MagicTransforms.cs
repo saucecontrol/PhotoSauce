@@ -4,7 +4,7 @@ namespace PhotoSauce.MagicScaler
 {
 	internal static class MagicTransforms
 	{
-		public static void AddInternalFormatConverter(WicProcessingContext ctx)
+		public static void AddInternalFormatConverter(WicProcessingContext ctx, bool allow96bppFloat = false)
 		{
 			var ifmt = ctx.Source.Format.FormatGuid;
 			var ofmt = ifmt;
@@ -16,9 +16,13 @@ namespace PhotoSauce.MagicScaler
 					ofmt = linear ? PixelFormat.Grey32BppLinearFloat.FormatGuid : PixelFormat.Grey32BppFloat.FormatGuid;
 				else if (ifmt == Consts.GUID_WICPixelFormat8bppY)
 					ofmt = linear ? PixelFormat.Y32BppLinearFloat.FormatGuid : PixelFormat.Y32BppFloat.FormatGuid;
-				else if (ifmt == Consts.GUID_WICPixelFormat24bppBGR)
+				else if (ifmt == Consts.GUID_WICPixelFormat24bppBGR && allow96bppFloat)
 					ofmt = linear ? PixelFormat.Bgr96BppLinearFloat.FormatGuid : PixelFormat.Bgr96BppFloat.FormatGuid;
-				else if (ifmt == Consts.GUID_WICPixelFormat32bppBGRA || ifmt == Consts.GUID_WICPixelFormat32bppPBGRA)
+				else if (ifmt == Consts.GUID_WICPixelFormat24bppBGR)
+					ofmt = linear ? PixelFormat.Bgrx128BppLinearFloat.FormatGuid : PixelFormat.Bgrx128BppFloat.FormatGuid;
+				else if (ifmt == Consts.GUID_WICPixelFormat32bppBGRA)
+					ofmt = linear ? PixelFormat.Bgra128BppLinearFloat.FormatGuid : PixelFormat.Pbgra128BppFloat.FormatGuid;
+				else if (ifmt == Consts.GUID_WICPixelFormat32bppPBGRA)
 					ofmt = linear ? PixelFormat.Pbgra128BppLinearFloat.FormatGuid : PixelFormat.Pbgra128BppFloat.FormatGuid;
 				else if (ifmt == Consts.GUID_WICPixelFormat16bppCbCr)
 					ofmt = PixelFormat.CbCr64BppFloat.FormatGuid;
@@ -54,7 +58,7 @@ namespace PhotoSauce.MagicScaler
 				ofmt = Consts.GUID_WICPixelFormat8bppY;
 			else if (ifmt == PixelFormat.Bgrx128BppFloat.FormatGuid || ifmt == PixelFormat.Bgrx128BppLinearFloat.FormatGuid || ifmt == PixelFormat.Bgr96BppFloat.FormatGuid || ifmt == PixelFormat.Bgr96BppLinearFloat.FormatGuid || ifmt == PixelFormat.Bgr48BppLinearUQ15.FormatGuid)
 				ofmt = Consts.GUID_WICPixelFormat24bppBGR;
-			else if (ifmt == PixelFormat.Pbgra128BppFloat.FormatGuid || ifmt == PixelFormat.Pbgra128BppLinearFloat.FormatGuid || ifmt == PixelFormat.Bgra64BppLinearUQ15.FormatGuid || ifmt == PixelFormat.Pbgra64BppLinearUQ15.FormatGuid)
+			else if (ifmt == PixelFormat.Pbgra128BppFloat.FormatGuid || ifmt == PixelFormat.Bgra128BppLinearFloat.FormatGuid || ifmt == PixelFormat.Pbgra128BppLinearFloat.FormatGuid || ifmt == PixelFormat.Bgra64BppLinearUQ15.FormatGuid || ifmt == PixelFormat.Pbgra64BppLinearUQ15.FormatGuid)
 				ofmt = Consts.GUID_WICPixelFormat32bppBGRA;
 			else if (ifmt == PixelFormat.CbCr64BppFloat.FormatGuid)
 				ofmt = Consts.GUID_WICPixelFormat16bppCbCr;
@@ -68,6 +72,12 @@ namespace PhotoSauce.MagicScaler
 		public static void AddHighQualityScaler(WicProcessingContext ctx)
 		{
 			uint width = (uint)ctx.Settings.Width, height = (uint)ctx.Settings.Height;
+
+			if (ctx.Source.Width == width && ctx.Source.Height == height)
+				return;
+
+			AddInternalFormatConverter(ctx, allow96bppFloat: true);
+
 			var fmt = ctx.Source.Format;
 			var interpolator = ctx.Settings.Interpolation.WeightingFunction.Support > 1d && fmt.ColorRepresentation == PixelColorRepresentation.Unspecified ? InterpolationSettings.Hermite : ctx.Settings.Interpolation;
 			var interpolatorx = width == ctx.Source.Width ? InterpolationSettings.NearestNeighbor : interpolator;

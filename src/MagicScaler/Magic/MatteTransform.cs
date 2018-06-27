@@ -32,7 +32,7 @@ namespace PhotoSauce.MagicScaler
 			Source.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
 			Timer.Start();
 
-			if (Format == PixelFormat.Pbgra128BppLinearFloat)
+			if (Format == PixelFormat.Bgra128BppLinearFloat || Format == PixelFormat.Pbgra128BppLinearFloat)
 				applyMatteLinearFloat(prc, (float*)pbBuffer, (int)(cbStride / sizeof(float)));
 			else if (Format == PixelFormat.Bgra64BppLinearUQ15 || Format == PixelFormat.Pbgra64BppLinearUQ15)
 				applyMatteLinear(prc, (ushort*)pbBuffer, (int)(cbStride / sizeof(ushort)), Format.AlphaRepresentation == PixelAlphaRepresentation.Associated);
