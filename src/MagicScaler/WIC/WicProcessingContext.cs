@@ -23,6 +23,9 @@ namespace PhotoSauce.MagicScaler
 		public PixelSource PlanarLumaSource { get; set; }
 		public PixelSource PlanarChromaSource { get; set; }
 
+		public ColorProfile SourceColorProfile { get; set; }
+		public ColorProfile DestColorProfile { get; set; }
+
 		public IWICColorContext SourceColorContext { get; set; }
 		public IWICColorContext DestColorContext { get; set; }
 		public IWICPalette DestPalette { get; set; }

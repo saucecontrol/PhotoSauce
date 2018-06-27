@@ -4,11 +4,11 @@ namespace PhotoSauce.MagicScaler
 {
 	internal static class MagicTransforms
 	{
-		public static void AddInternalFormatConverter(WicProcessingContext ctx, bool allow96bppFloat = false)
+		public static void AddInternalFormatConverter(WicProcessingContext ctx, bool allow96bppFloat = false, bool forceLinear = false)
 		{
 			var ifmt = ctx.Source.Format.FormatGuid;
 			var ofmt = ifmt;
-			bool linear = ctx.Settings.BlendingMode == GammaMode.Linear;
+			bool linear = forceLinear || ctx.Settings.BlendingMode == GammaMode.Linear;
 
 			if (MagicImageProcessor.EnableSimd)
 			{
@@ -44,7 +44,9 @@ namespace PhotoSauce.MagicScaler
 			if (ofmt == ifmt)
 				return;
 
-			ctx.Source = ctx.AddDispose(new FormatConversionTransform(ctx.Source, ofmt));
+			bool forceSrgb = (ofmt == PixelFormat.Y32BppLinearFloat.FormatGuid || ofmt == PixelFormat.Y16BppLinearUQ15.FormatGuid) && ctx.SourceColorProfile != ColorProfile.sRGB;
+
+			ctx.Source = ctx.AddDispose(new FormatConversionTransform(ctx.Source, forceSrgb ? ColorProfile.sRGB : ctx.SourceColorProfile, forceSrgb ? ColorProfile.sRGB : ctx.DestColorProfile, ofmt));
 		}
 
 		public static void AddExternalFormatConverter(WicProcessingContext ctx)
@@ -66,7 +68,9 @@ namespace PhotoSauce.MagicScaler
 			if (ofmt == ifmt)
 				return;
 
-			ctx.Source = ctx.AddDispose(new FormatConversionTransform(ctx.Source, ofmt));
+			bool forceSrgb = (ifmt == PixelFormat.Y32BppLinearFloat.FormatGuid || ifmt == PixelFormat.Y16BppLinearUQ15.FormatGuid) && ctx.SourceColorProfile != ColorProfile.sRGB;
+
+			ctx.Source = ctx.AddDispose(new FormatConversionTransform(ctx.Source, forceSrgb ? ColorProfile.sRGB : ctx.SourceColorProfile, forceSrgb ? ColorProfile.sRGB : ctx.DestColorProfile, ofmt));
 		}
 
 		public static void AddHighQualityScaler(WicProcessingContext ctx)
@@ -134,9 +138,39 @@ namespace PhotoSauce.MagicScaler
 				return;
 
 			if (ctx.Source.Format == PixelFormat.Pbgra128BppFloat)
-				ctx.Source = ctx.AddDispose(new FormatConversionTransform(ctx.Source, Consts.GUID_WICPixelFormat32bppBGRA));
+				ctx.Source = ctx.AddDispose(new FormatConversionTransform(ctx.Source, ctx.SourceColorProfile, ctx.SourceColorProfile, Consts.GUID_WICPixelFormat32bppBGRA));
 
 			ctx.Source = new MatteTransform(ctx.Source, ctx.Settings.MatteColor);
+		}
+
+		public static void AddColorspaceConverter(WicProcessingContext ctx)
+		{
+			if (ctx.SourceColorProfile == ctx.DestColorProfile)
+			{
+				if (ctx.SourceColorContext != null)
+				{
+					AddExternalFormatConverter(ctx);
+					WicTransforms.AddColorspaceConverter(ctx);
+				}
+
+				return;
+			}
+
+			if (ctx.Source.Format.NumericRepresentation == PixelNumericRepresentation.Float && ctx.Source.Format.Colorspace != PixelColorspace.LinearRgb)
+				AddExternalFormatConverter(ctx);
+
+			AddInternalFormatConverter(ctx, forceLinear: true);
+
+			if (ctx.Source.Format.ColorRepresentation != PixelColorRepresentation.Bgr)
+				return;
+
+			var matrix = ctx.SourceColorProfile.Matrix * ctx.DestColorProfile.InverseMatrix;
+			if (matrix == default || matrix.IsIdentity)
+				return;
+
+			var cmt = new ColorMatrixTransform(matrix);
+			cmt.Init(ctx.Source.AsIPixelSource());
+			ctx.Source = cmt.AsPixelSource();
 		}
 	}
 }

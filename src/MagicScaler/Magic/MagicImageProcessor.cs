@@ -163,7 +163,7 @@ namespace PhotoSauce.MagicScaler
 				if (!savePlanar)
 				{
 					WicTransforms.AddPlanarConverter(ctx);
-					WicTransforms.AddColorspaceConverter(ctx);
+					MagicTransforms.AddColorspaceConverter(ctx);
 					MagicTransforms.AddExternalFormatConverter(ctx);
 				}
 			}
@@ -176,10 +176,10 @@ namespace PhotoSauce.MagicScaler
 				WicTransforms.AddPixelFormatConverter(ctx);
 				WicTransforms.AddScaler(ctx, true);
 				MagicTransforms.AddHighQualityScaler(ctx);
+				MagicTransforms.AddColorspaceConverter(ctx);
 				MagicTransforms.AddMatte(ctx);
 				MagicTransforms.AddUnsharpMask(ctx);
 				MagicTransforms.AddExternalFormatConverter(ctx);
-				WicTransforms.AddColorspaceConverter(ctx);
 			}
 		}
 

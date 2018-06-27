@@ -4,10 +4,10 @@
     <RootNamespace>PhotoSauce.MagicScaler</RootNamespace>
     <AssemblyName>PhotoSauce.MagicScaler</AssemblyName>
     <AssemblyTitle>MagicScaler</AssemblyTitle>
-    <TargetFrameworks>net46;netcoreapp1.0;netcoreapp2.0;netstandard1.3</TargetFrameworks>
+    <TargetFrameworks>net46;netcoreapp1.0;netcoreapp2.0;netcoreapp2.1;netstandard1.3</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
-    <VersionPrefix>0.8.4</VersionPrefix>
+    <VersionPrefix>0.8.5</VersionPrefix>
     <Authors>Clinton Ingram</Authors>
     <Company>PhotoSauce</Company>
     <Product>MagicScaler</Product>
@@ -18,24 +18,28 @@
     <PackageProjectUrl>http://photosauce.net/</PackageProjectUrl>
     <PackageLicenseUrl>https://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
     <PackageReleaseNotes>See https://github.com/saucecontrol/PhotoSauce/releases</PackageReleaseNotes>
-    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
   </PropertyGroup>
 
   <PropertyGroup>
     <DefineConstants Condition="'$(TargetFramework)'=='netcoreapp1.0' Or '$(TargetFramework)'=='netstandard1.3'">$(DefineConstants);DRAWING_SHIM</DefineConstants>
-    <DefineConstants Condition="'$(TargetFramework)'=='net46' Or '$(TargetFramework)'=='netcoreapp2.0'">$(DefineConstants);CUSTOM_MARSHAL</DefineConstants>
-    <DefineConstants Condition="'$(TargetFramework)'=='netcoreapp2.0'">$(DefineConstants);MATHF</DefineConstants>
+    <DefineConstants Condition="'$(TargetFramework)'=='net46' Or '$(TargetFramework)'=='netcoreapp2.0' Or '$(TargetFramework)'=='netcoreapp2.1'">$(DefineConstants);CUSTOM_MARSHAL</DefineConstants>
+    <DefineConstants Condition="'$(TargetFramework)'=='netcoreapp2.0' Or '$(TargetFramework)'=='netcoreapp2.1'">$(DefineConstants);MATHF</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>true</DebugSymbols>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.4.0" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.1" />
     <PackageReference Include="GitLink" Version="3.1.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)'!='netcoreapp2.1'">
+    <PackageReference Include="System.Memory" Version="4.5.1" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='netcoreapp1.0' Or '$(TargetFramework)'=='netstandard1.3'">
@@ -45,8 +49,8 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='net46' Or '$(TargetFramework)'=='netstandard1.3'">
-    <PackageReference Include="System.Buffers" Version="4.4.0" />
-    <PackageReference Include="System.Numerics.Vectors" Version="4.4.0" />
+    <PackageReference Include="System.Buffers" Version="4.5.0" />
+    <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='net46'">
@@ -80,6 +84,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>VectorConvolver.tt</DependentUpon>
     </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\sGrey-v4.icc" />
+    <EmbeddedResource Include="Resources\sRGB-v4.icc" />
   </ItemGroup>
 
 </Project>

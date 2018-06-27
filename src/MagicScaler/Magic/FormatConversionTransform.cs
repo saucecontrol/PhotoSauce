@@ -50,11 +50,15 @@ namespace PhotoSauce.MagicScaler
 	{
 		protected byte[] LineBuff;
 		protected PixelFormat InFormat;
+		protected ColorProfile SourceProfile;
+		protected ColorProfile DestProfile;
 
-		public FormatConversionTransform(PixelSource source, Guid dstFormat) : base(source)
+		public FormatConversionTransform(PixelSource source, ColorProfile sourceProfile, ColorProfile destProfile, Guid destFormat) : base(source)
 		{
 			InFormat = source.Format;
-			Format = PixelFormat.Cache[dstFormat];
+			Format = PixelFormat.Cache[destFormat];
+			SourceProfile = sourceProfile;
+			DestProfile = destProfile;
 			LineBuff = ArrayPool<byte>.Shared.Rent((int)BufferStride);
 		}
 
@@ -81,7 +85,7 @@ namespace PhotoSauce.MagicScaler
 					}
 					else if (InFormat.Colorspace == PixelColorspace.sRgb && Format.Colorspace == PixelColorspace.LinearRgb && Format.NumericRepresentation == PixelNumericRepresentation.Fixed)
 					{
-						fixed (ushort* igtstart = &LookupTables.InverseGammaUQ15[0])
+						fixed (ushort* igtstart = &SourceProfile.InverseGammaUQ15[0])
 						{
 							if (InFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
 								mapValuesByteToUQ15LinearWithAlpha(bstart, op, igtstart, cb);
@@ -91,7 +95,7 @@ namespace PhotoSauce.MagicScaler
 					}
 					else if (InFormat.Colorspace == PixelColorspace.LinearRgb && Format.Colorspace == PixelColorspace.sRgb && InFormat.NumericRepresentation == PixelNumericRepresentation.Fixed)
 					{
-						fixed (byte* gtstart = &LookupTables.Gamma[0])
+						fixed (byte* gtstart = &DestProfile.Gamma[0])
 						{
 							if (InFormat.AlphaRepresentation == PixelAlphaRepresentation.Associated)
 								mapValuesUQ15LinearToByteWithAssociatedAlpha(bstart, op, gtstart, cb);
@@ -103,7 +107,7 @@ namespace PhotoSauce.MagicScaler
 					}
 					else if (InFormat.Colorspace == PixelColorspace.sRgb && Format.Colorspace == PixelColorspace.LinearRgb && Format.NumericRepresentation == PixelNumericRepresentation.Float)
 					{
-						fixed (float* igtstart = &LookupTables.InverseGammaFloat[0])
+						fixed (float* igtstart = &SourceProfile.InverseGammaFloat[0])
 						{
 							if (InFormat.AlphaRepresentation == PixelAlphaRepresentation.Associated)
 								mapValuesByteToFloatLinearWithAssociatedAlpha(bstart, op, igtstart, cb);
@@ -117,7 +121,7 @@ namespace PhotoSauce.MagicScaler
 					}
 					else if (InFormat.Colorspace == PixelColorspace.LinearRgb && Format.Colorspace == PixelColorspace.sRgb && InFormat.NumericRepresentation == PixelNumericRepresentation.Float)
 					{
-						fixed (byte* gtstart = &LookupTables.Gamma[0])
+						fixed (byte* gtstart = &DestProfile.Gamma[0])
 						{
 							if (InFormat.AlphaRepresentation == PixelAlphaRepresentation.Associated)
 								mapValuesFloatLinearToByteWithAssociatedAlpha(bstart, op, gtstart, cb);
@@ -837,7 +841,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe public static void ConvertBgrToGreyUQ15(byte* ipstart, byte* opstart, int cb)
 		{
-			fixed (byte* gtstart = &LookupTables.Gamma[0])
+			fixed (byte* gtstart = &LookupTables.SrgbGamma[0])
 			{
 				ushort* ip = (ushort*)ipstart + 3, ipe = (ushort*)(ipstart + cb), op = (ushort*)opstart + 1;
 				byte* gt = gtstart;
@@ -885,7 +889,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe public static void ConvertBgrxToGreyUQ15(byte* ipstart, byte* opstart, int cb)
 		{
-			fixed (byte* gtstart = &LookupTables.Gamma[0])
+			fixed (byte* gtstart = &LookupTables.SrgbGamma[0])
 			{
 				ushort* ip = (ushort*)ipstart + 4, ipe = (ushort*)(ipstart + cb), op = (ushort*)opstart + 1;
 				byte* gt = gtstart;
@@ -915,7 +919,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe public static void ConvertGreyLinearToGreyUQ15(byte* ipstart, byte* opstart, int cb)
 		{
-			fixed (byte* gtstart = &LookupTables.Gamma[0])
+			fixed (byte* gtstart = &LookupTables.SrgbGamma[0])
 			{
 				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb), op = (ushort*)opstart;
 				byte* gt = gtstart;

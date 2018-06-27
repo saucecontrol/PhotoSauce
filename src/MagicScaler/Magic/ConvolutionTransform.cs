@@ -32,6 +32,7 @@ namespace PhotoSauce.MagicScaler
 			[PixelFormat.Grey16BppLinearUQ15.FormatGuid   ] = new Convolver1ChanUQ15(),
 			[PixelFormat.Grey16BppUQ15.FormatGuid         ] = new Convolver1ChanUQ15(),
 			[PixelFormat.Y16BppLinearUQ15.FormatGuid      ] = new Convolver1ChanUQ15(),
+			[PixelFormat.Bgra128BppLinearFloat.FormatGuid ] = new Convolver4ChanFloat(),
 			[PixelFormat.Pbgra128BppLinearFloat.FormatGuid] = new Convolver4ChanFloat(),
 			[PixelFormat.Pbgra128BppFloat.FormatGuid      ] = new Convolver4ChanFloat(),
 			[PixelFormat.Bgrx128BppLinearFloat.FormatGuid ] = new Convolver3XChanFloat(),
@@ -186,7 +187,7 @@ namespace PhotoSauce.MagicScaler
 						FormatConversionTransform.ConvertBgrToGreyFloat(bline, wline, (int)BufferStride, true);
 						FormatConversionTransform.ConvertGreyLinearToGreyFloat(wline, wline, WorkStride);
 					}
-					else if (Format == PixelFormat.Bgrx128BppLinearFloat || Format == PixelFormat.Pbgra128BppLinearFloat)
+					else if (Format == PixelFormat.Bgrx128BppLinearFloat || Format == PixelFormat.Bgra128BppLinearFloat || Format == PixelFormat.Pbgra128BppLinearFloat)
 					{
 						FormatConversionTransform.ConvertBgrxToGreyFloat(bline, wline, (int)BufferStride, true);
 						FormatConversionTransform.ConvertGreyLinearToGreyFloat(wline, wline, WorkStride);

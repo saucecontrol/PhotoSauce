@@ -63,6 +63,13 @@ namespace PhotoSauce.MagicScaler
 		public static int Fix15(double x) => (int)Round(x * dscale);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if MATHF
+		public static int Fix15(float x) => (int)MathF.Round(x * fscale);
+#else
+		public static int Fix15(float x) => (int)Round(x * fscale);
+#endif
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ushort FixToUQ15(double x) => ClampToUQ15((int)(x * dscale + dround));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -76,6 +83,9 @@ namespace PhotoSauce.MagicScaler
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static double UnFix15ToDouble(int x) => x * idscale;
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static float UnFix15ToFloat(int x) => x * ifscale;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int UnFix15(int x) => x + iround >> ishift;
@@ -95,19 +105,48 @@ namespace PhotoSauce.MagicScaler
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if MATHF
+		public static float Floor(this float x) => MathF.Floor(x);
+#else
+		public static float Floor(this float x) => (float)Math.Floor(x);
+#endif
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if MATHF
+		public static float Abs(this float x) => MathF.Abs(x);
+#else
+		public static float Abs(this float x) => (float)Math.Abs(x);
+#endif
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if MATHF
 		public static float MaxF(float x, float o) => MathF.Max(x, o);
 #else
 		public static float MaxF(float x, float o) => x < o ? o : x;
 #endif
 
-		public static uint ReadBigEndianUInt32(this BinaryReader rdr)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if MATHF
+		public static float PowF(float x, float y) => MathF.Pow(x, y);
+#else
+		public static float PowF(float x, float y) => (float)Pow(x, y);
+#endif
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static float Lerp(float l, float h, float d)
 		{
-			return (uint)(rdr.ReadByte() << 24 | rdr.ReadByte() << 16 | rdr.ReadByte() << 8 | rdr.ReadByte());
+			return h * d + l * (1f - d);
 		}
 
-		public static ushort ReadBigEndianUInt16(this BinaryReader rdr)
+		public static bool IsRouglyEqualTo(this in Matrix4x4 m1, in Matrix4x4 m2)
 		{
-			return (ushort)(rdr.ReadByte() << 8 | rdr.ReadByte());
+			float epsilon = 0.001f;
+			var md = m1 - m2;
+
+			return
+				md.M11.Abs() < epsilon && md.M12.Abs() < epsilon && md.M13.Abs() < epsilon && md.M14.Abs() < epsilon &&
+				md.M21.Abs() < epsilon && md.M22.Abs() < epsilon && md.M23.Abs() < epsilon && md.M24.Abs() < epsilon &&
+				md.M31.Abs() < epsilon && md.M32.Abs() < epsilon && md.M33.Abs() < epsilon && md.M34.Abs() < epsilon &&
+				md.M41.Abs() < epsilon && md.M42.Abs() < epsilon && md.M43.Abs() < epsilon && md.M44.Abs() < epsilon;
 		}
 	}
 }

@@ -24,11 +24,11 @@ namespace PhotoSauce.MagicScaler
 
 		//http://www.w3.org/Graphics/Color/srgb
 		private static readonly Lazy<byte[]> gammaTable = new Lazy<byte[]>(() => {
-			var gt = new byte[UQ15Max + 1];
+			var gt = new byte[UQ15One + 1];
 			for (int i = 0; i < gt.Length; i++)
 			{
 				double d = UnFix15ToDouble(i);
-				if (d <= 0.0031308)
+				if (d <= (0.04045 / 12.92))
 					d *= 12.92;
 				else
 					d = 1.055 * Pow(d, 1.0 / 2.4) - 0.055;
@@ -60,8 +60,8 @@ namespace PhotoSauce.MagicScaler
 
 		public static float[] AlphaFloat => alphaTable.Value.Item1;
 		public static ushort[] AlphaUQ15 => alphaTable.Value.Item2;
-		public static byte[] Gamma => gammaTable.Value;
-		public static float[] InverseGammaFloat => inverseGammaTable.Value.Item1;
-		public static ushort[] InverseGammaUQ15 => inverseGammaTable.Value.Item2;
+		public static byte[] SrgbGamma => gammaTable.Value;
+		public static float[] SrgbInverseGammaFloat => inverseGammaTable.Value.Item1;
+		public static ushort[] SrgbInverseGammaUQ15 => inverseGammaTable.Value.Item2;
 	}
 }

@@ -42,7 +42,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private void applyMatteLinearFloat(WICRect prc, float* pixels, int stride)
 		{
-			var igt = LookupTables.InverseGammaFloat;
+			var igt = LookupTables.SrgbInverseGammaFloat;
 			float mrl = igt[maskRed], mgl = igt[maskGreen], mbl = igt[maskBlue];
 
 			var v1 = new Vector<float>(1f);
@@ -99,7 +99,7 @@ namespace PhotoSauce.MagicScaler
 		unsafe private void applyMatteLinear(WICRect prc, ushort* pixels, int stride, bool premul)
 		{
 			const ushort maxalpha = UQ15One;
-			var igt = LookupTables.InverseGammaUQ15;
+			var igt = LookupTables.SrgbInverseGammaUQ15;
 			ushort mrl = igt[maskRed], mgl = igt[maskGreen], mbl = igt[maskBlue];
 
 			for (int y = 0; y < prc.Height; y++)
@@ -144,8 +144,8 @@ namespace PhotoSauce.MagicScaler
 		{
 			const byte maxalpha = byte.MaxValue;
 
-			fixed (ushort* igtstart = &LookupTables.InverseGammaUQ15[0], atstart = &LookupTables.AlphaUQ15[0])
-			fixed (byte* gtstart = &LookupTables.Gamma[0])
+			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15[0], atstart = &LookupTables.AlphaUQ15[0])
+			fixed (byte* gtstart = &LookupTables.SrgbGamma[0])
 			{
 				byte* gt = gtstart;
 				ushort* igt = igtstart, at = atstart;
