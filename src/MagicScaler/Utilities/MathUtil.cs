@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -114,7 +113,7 @@ namespace PhotoSauce.MagicScaler
 #if MATHF
 		public static float Abs(this float x) => MathF.Abs(x);
 #else
-		public static float Abs(this float x) => (float)Math.Abs(x);
+		public static float Abs(this float x) => Math.Abs(x);
 #endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -139,7 +138,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static bool IsRouglyEqualTo(this in Matrix4x4 m1, in Matrix4x4 m2)
 		{
-			float epsilon = 0.001f;
+			const float epsilon = 0.001f;
 			var md = m1 - m2;
 
 			return
@@ -148,5 +147,7 @@ namespace PhotoSauce.MagicScaler
 				md.M31.Abs() < epsilon && md.M32.Abs() < epsilon && md.M33.Abs() < epsilon && md.M34.Abs() < epsilon &&
 				md.M41.Abs() < epsilon && md.M42.Abs() < epsilon && md.M43.Abs() < epsilon && md.M44.Abs() < epsilon;
 		}
+
+		public static bool IsRoughlyEqualTo(this float x, float y) => (x - y).Abs() < 0.0001f;
 	}
 }

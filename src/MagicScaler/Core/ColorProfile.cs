@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Buffers;
 using System.Numerics;
 using System.Security.Cryptography;
 using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
 using static PhotoSauce.MagicScaler.MathUtil;
@@ -32,24 +34,6 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 		}
-
-		private static Lazy<ColorProfile> srgb = new Lazy<ColorProfile>(() => {
-			var m = new Matrix4x4(
-				0.71393112f, 0.06062103f, 0.14307328f, 0f,
-				0.09707674f, 0.71694100f, 0.38510027f, 0f,
-				0.01389754f, 0.22243797f, 0.43602939f, 0f,
-				0f, 0f, 0f, 1f
-			);
-			Matrix4x4.Invert(m, out var im);
-
-			return new ColorProfile {
-				Matrix = m,
-				InverseMatrix = im,
-				Gamma = LookupTables.SrgbGamma,
-				InverseGammaFloat = LookupTables.SrgbInverseGammaFloat,
-				InverseGammaUQ15 = LookupTables.SrgbInverseGammaUQ15
-			};
-		});
 
 		private readonly struct TagEntry
 		{
@@ -95,13 +79,6 @@ namespace PhotoSauce.MagicScaler
 			public const uint para = 0x70617261u;
 		}
 
-		private static class IccD50
-		{
-			public const uint X = 0x0f6d6u;
-			public const uint Y = 0x10000u;
-			public const uint Z = 0x0d32du;
-		}
-
 		internal enum ProfileColorSpace
 		{
 			Other,
@@ -112,24 +89,29 @@ namespace PhotoSauce.MagicScaler
 			Lab
 		}
 
-		public ProfileColorSpace DataColorSpace { get; private set; }
-		public ProfileColorSpace PcsColorSpace { get; private set; }
+		private static Lazy<ColorProfile> srgb = new Lazy<ColorProfile>(() => {
+			var m = new Matrix4x4(
+				0.71393112f, 0.06062103f, 0.14307328f, 0f,
+				0.09707674f, 0.71694100f, 0.38510027f, 0f,
+				0.01389754f, 0.22243797f, 0.43602939f, 0f,
+				0f,          0f,          0f,          1f
+			);
+			Matrix4x4.Invert(m, out var im);
 
-		public bool IsValid { get; private set; }
-		public bool IsGreyTrc { get; private set; }
-		public bool IsRgbMatrix { get; private set; }
-		public bool IsLinear { get; private set; }
-		public bool IsSrgb { get; private set; }
+			return new ColorProfile {
+				Matrix = m,
+				InverseMatrix = im,
+				Gamma = LookupTables.SrgbGamma,
+				InverseGammaFloat = LookupTables.SrgbInverseGammaFloat,
+				InverseGammaUQ15 = LookupTables.SrgbInverseGammaUQ15
+			};
+		});
 
-		public byte[] Gamma { get; private set; }
-		public float[] InverseGammaFloat { get; private set; }
-		public ushort[] InverseGammaUQ15 { get; private set; }
-
-		public Matrix4x4 Matrix { get; private set; }
-		public Matrix4x4 InverseMatrix { get; private set; }
-
-		private void lutsFromPower(float gamma, float[] igtf, ushort[] igtq, byte[] gt)
+		private void lutsFromPower(float gamma)
 		{
+			var igtf = new float[256];
+			var igtq = new ushort[256];
+
 			for (int i = 0; i < igtf.Length; i++)
 			{
 				float f = PowF((float)i / byte.MaxValue, gamma);
@@ -138,17 +120,26 @@ namespace PhotoSauce.MagicScaler
 			}
 
 			gamma = 1f / gamma;
+			var gt = new byte[UQ15One + 1];
+
 			for (int i = 0; i < gt.Length; i++)
 				gt[i] = FixToByte(PowF(UnFix15ToFloat(i), gamma));
+
+			setLuts(gt, igtf, igtq);
 		}
 
-		private void lutsFromPoints(ushort[] points, float[] igtf, ushort[] igtq, byte[] gt)
+		private void lutsFromPoints(ReadOnlySpan<ushort> points)
 		{
 			float div = 1f / ushort.MaxValue;
-			var curve = new float[points.Length];
+			int buffLen = points.Length * sizeof(float);
+			var buff = ArrayPool<byte>.Shared.Rent(buffLen);
+			var curve = MemoryMarshal.Cast<byte, float>(new Span<byte>(buff, 0, buffLen));
+
 			for (int i = 0; i < curve.Length; i++)
 				curve[i] = points[i] * div;
 
+			var igtf = new float[256];
+			var igtq = new ushort[256];
 			float cscal = curve.Length - 1;
 			float cstep = 1f / cscal;
 			float vstep = 1f / (igtf.Length - 1);
@@ -168,12 +159,21 @@ namespace PhotoSauce.MagicScaler
 				igtq[i] = FixToUQ15(val);
 			}
 
+			ArrayPool<byte>.Shared.Return(buff);
+			if (lutInvertsTo(igtq, LookupTables.SrgbGamma))
+			{
+				setSrgbLuts();
+				return;
+			}
+
 			float scale = (float)ushort.MaxValue / UQ15One;
+			var gt = new byte[UQ15One + 1];
+
 			for (int i = 0; i < gt.Length; i++)
 			{
 				ushort val = (ushort)(i * scale + FloatRound);
 				float pos = 0f;
-				int idx = Array.BinarySearch(points, val);
+				int idx = points.BinarySearch(val);
 				if (idx >= 0)
 					pos = idx;
 				else
@@ -194,10 +194,26 @@ namespace PhotoSauce.MagicScaler
 
 				gt[i] = FixToByte(pos / (points.Length - 1));
 			}
+
+			setLuts(gt, igtf, igtq);
 		}
 
-		private void lutsFromParameters(float a, float b, float c, float d, float e, float f, float g, float[] igtf, ushort[] igtq, byte[] gt)
+		private void lutsFromParameters(float a, float b, float c, float d, float e, float f, float g)
 		{
+			if (g.IsRoughlyEqualTo(2.4f)
+				&& d.IsRoughlyEqualTo(0.04045f)
+				&& a.IsRoughlyEqualTo(1.000f/1.055f)
+				&& b.IsRoughlyEqualTo(0.055f/1.055f)
+				&& c.IsRoughlyEqualTo(1.000f/12.92f)
+			)
+			{
+				setSrgbLuts();
+				return;
+			}
+
+			var igtf = new float[256];
+			var igtq = new ushort[256];
+
 			for (int i = 0; i < igtf.Length; i++)
 			{
 				float val = (float)i / byte.MaxValue;
@@ -211,6 +227,8 @@ namespace PhotoSauce.MagicScaler
 			}
 
 			g = 1f / g;
+			var gt = new byte[UQ15One + 1];
+
 			for (int i = 0; i < gt.Length; i++)
 			{
 				float val = UnFix15ToFloat(i);
@@ -221,9 +239,11 @@ namespace PhotoSauce.MagicScaler
 
 				gt[i] = FixToByte(val);
 			}
+
+			setLuts(gt, igtf, igtq);
 		}
 
-		private bool lutInverts(ushort[] igtq, byte[] gt)
+		private bool lutInvertsTo(ushort[] igtq, byte[] gt)
 		{
 			for (int i = 0; i < igtq.Length; i++)
 			{
@@ -233,6 +253,15 @@ namespace PhotoSauce.MagicScaler
 
 			return true;
 		}
+
+		private void setLuts(byte[] gt, float[] igtf, ushort[] igtq)
+		{
+			Gamma = gt;
+			InverseGammaFloat = igtf;
+			InverseGammaUQ15 = igtq;
+		}
+
+		private void setSrgbLuts() => setLuts(LookupTables.SrgbGamma, LookupTables.SrgbInverseGammaFloat, LookupTables.SrgbInverseGammaUQ15);
 
 		private bool tryGetTagEntry(TagEntry[] entries, uint tag, out TagEntry entry)
 		{
@@ -274,6 +303,13 @@ namespace PhotoSauce.MagicScaler
 				0f,       0f,       0f,       1f
 			);
 
+			if (Matrix.IsRouglyEqualTo(sRGB.Matrix))
+			{
+				Matrix = sRGB.Matrix;
+				InverseMatrix = sRGB.InverseMatrix;
+				return true;
+			}
+
 			bool invertible = Matrix4x4.Invert(Matrix, out var imatrix);
 			InverseMatrix = imatrix;
 			return invertible;
@@ -282,12 +318,8 @@ namespace PhotoSauce.MagicScaler
 		private bool tryGetCurve(ReadOnlySpan<byte> trc)
 		{
 			uint tag = ReadUInt32BigEndian(trc);
-			if (trc.Length < 12 || tag != IccTypes.curv && tag != IccTypes.para)
+			if (trc.Length < 12 || (tag != IccTypes.curv && tag != IccTypes.para))
 				return false;
-
-			var igtf = new float[256];
-			var igtq = new ushort[256];
-			var gt = new byte[UQ15One + 1];
 
 			if (tag == IccTypes.curv)
 			{
@@ -323,7 +355,7 @@ namespace PhotoSauce.MagicScaler
 							break;
 					}
 
-					lutsFromPower(gf, igtf, igtq, gt);
+					lutsFromPower(gf);
 				}
 				else
 				{
@@ -333,11 +365,15 @@ namespace PhotoSauce.MagicScaler
 						return true;
 					}
 
-					var points = new ushort[pcnt];
+					int buffLen = (int)pcnt * sizeof(ushort);
+					var buff = ArrayPool<byte>.Shared.Rent(buffLen);
+					var points = MemoryMarshal.Cast<byte, ushort>(new Span<byte>(buff, 0, buffLen));
+
 					for (int i = 0; i < points.Length; i++)
 						points[i] = ReadUInt16BigEndian(trc.Slice(12 + i * sizeof(ushort)));
 
-					lutsFromPoints(points, igtf, igtq, gt);
+					lutsFromPoints(points);
+					ArrayPool<byte>.Shared.Return(buff);
 				}
 			}
 
@@ -403,14 +439,10 @@ namespace PhotoSauce.MagicScaler
 				}
 
 				if (func == 0)
-					lutsFromPower(fg, igtf, igtq, gt);
+					lutsFromPower(fg);
 				else
-					lutsFromParameters(fa, fb, fc, fd, fe, ff, fg, igtf, igtq, gt);
+					lutsFromParameters(fa, fb, fc, fd, fe, ff, fg);
 			}
-
-			Gamma = gt;
-			InverseGammaFloat = igtf;
-			InverseGammaUQ15 = igtq;
 
 			return true;
 		}
@@ -475,37 +507,50 @@ namespace PhotoSauce.MagicScaler
 				tagEntries[i] = new TagEntry(tag, (int)pos, (int)cb);
 			}
 
-			if (DataColorSpace == ProfileColorSpace.Grey && tryGetTagEntry(tagEntries, IccTags.kTRC, out var kTRC))
-			{
-				IsGreyTrc = tryGetCurve(prof.Slice(kTRC.pos, kTRC.cb));
-			}
+			IsGreyTrc = DataColorSpace == ProfileColorSpace.Grey
+				&& tryGetTagEntry(tagEntries, IccTags.kTRC, out var kTRC)
+				&& tryGetCurve(prof.Slice(kTRC.pos, kTRC.cb));
 
-			if (DataColorSpace == ProfileColorSpace.Rgb && tryGetTagEntry(tagEntries, IccTags.bTRC, out var bTRC)
-				&& tryGetTagEntry(tagEntries, IccTags.gTRC, out var gTRC) && tryGetTagEntry(tagEntries, IccTags.rTRC, out var rTRC))
+			if (DataColorSpace == ProfileColorSpace.Rgb
+				&& tryGetTagEntry(tagEntries, IccTags.bTRC, out var bTRC)
+				&& tryGetTagEntry(tagEntries, IccTags.gTRC, out var gTRC)
+				&& tryGetTagEntry(tagEntries, IccTags.rTRC, out var rTRC)
+				&& tryGetTagEntry(tagEntries, IccTags.bXYZ, out var bXYZ)
+				&& tryGetTagEntry(tagEntries, IccTags.gXYZ, out var gXYZ)
+				&& tryGetTagEntry(tagEntries, IccTags.rXYZ, out var rXYZ)
+			)
 			{
 				var bTRCData = prof.Slice(bTRC.pos, bTRC.cb);
 				var gTRCData = prof.Slice(gTRC.pos, gTRC.cb);
 				var rTRCData = prof.Slice(rTRC.pos, rTRC.cb);
 
-				IsRgbMatrix = bTRCData.SequenceEqual(gTRCData) && bTRCData.SequenceEqual(rTRCData) && tryGetCurve(bTRCData);
+				IsRgbMatrix = bTRCData.SequenceEqual(gTRCData) && bTRCData.SequenceEqual(rTRCData)
+					&& tryGetCurve(bTRCData)
+					&& tryGetMatrix(prof.Slice(bXYZ.pos, bXYZ.cb), prof.Slice(gXYZ.pos, gXYZ.cb), prof.Slice(rXYZ.pos, rXYZ.cb));
 			}
 
-			if (IsRgbMatrix && tryGetTagEntry(tagEntries, IccTags.bXYZ, out var bXYZ)
-				 && tryGetTagEntry(tagEntries, IccTags.gXYZ, out var gXYZ) && tryGetTagEntry(tagEntries, IccTags.rXYZ, out var rXYZ))
-			{
-				IsRgbMatrix = tryGetMatrix(prof.Slice(bXYZ.pos, bXYZ.cb), prof.Slice(gXYZ.pos, gXYZ.cb), prof.Slice(rXYZ.pos, rXYZ.cb));
-			}
-
-			IsSrgb = Matrix.IsRouglyEqualTo(sRGB.Matrix) && lutInverts(InverseGammaUQ15, sRGB.Gamma);
 		}
 
 		public static ColorProfile sRGB => srgb.Value;
 
+		public ProfileColorSpace DataColorSpace { get; private set; }
+		public ProfileColorSpace PcsColorSpace { get; private set; }
+
+		public bool IsValid { get; private set; }
+		public bool IsGreyTrc { get; private set; }
+		public bool IsRgbMatrix { get; private set; }
+		public bool IsLinear { get; private set; }
+		public bool IsSrgb => Gamma == sRGB.Gamma && Matrix == sRGB.Matrix;
+
+		public Matrix4x4 Matrix { get; private set; } = Matrix4x4.Identity;
+		public Matrix4x4 InverseMatrix { get; private set; } = Matrix4x4.Identity;
+
+		public byte[] Gamma { get; private set; }
+		public float[] InverseGammaFloat { get; private set; }
+		public ushort[] InverseGammaUQ15 { get; private set; }
+
 		private ColorProfile() { }
 
-		public ColorProfile(ReadOnlySpan<byte> profileData)
-		{
-			parse(profileData);
-		}
+		public ColorProfile(ReadOnlySpan<byte> profileData) => parse(profileData);
 	}
 }

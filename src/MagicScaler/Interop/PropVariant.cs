@@ -186,9 +186,8 @@ namespace PhotoSauce.MagicScaler.Interop
 
 				var marshalType = PropVariantMarshalType.Automatic;
 				var unmanagedType = getUnmanagedType(o, marshalType);
-				if (o is PropVariant)
+				if (o is PropVariant pv)
 				{
-					pv = (PropVariant)o;
 					o = pv.Value;
 					marshalType = pv.MarshalType;
 				}
@@ -293,55 +292,55 @@ namespace PhotoSauce.MagicScaler.Interop
 							pv.Value = Marshal.GetObjectForNativeVariant(pNativeData);
 							break;
 					}
+
+					return pv;
 				}
-				else
+
+				var elementVt = upv.vt & ~VarEnum.VT_VECTOR;
+				switch (elementVt)
 				{
-					var elementVt = upv.vt & ~VarEnum.VT_VECTOR;
-					switch (elementVt)
-					{
-						case VarEnum.VT_I1:
-							pv.Value = toArrayOf<sbyte>(upv);
-							break;
-						case VarEnum.VT_UI1:
-							pv.Value = toArrayOf<byte>(upv);
-							break;
-						case VarEnum.VT_I2:
-							pv.Value = toArrayOf<short>(upv);
-							break;
-						case VarEnum.VT_UI2:
-							pv.Value = toArrayOf<ushort>(upv);
-							break;
-						case VarEnum.VT_I4:
-							pv.Value = toArrayOf<int>(upv);
-							break;
-						case VarEnum.VT_UI4:
-							pv.Value = toArrayOf<uint>(upv);
-							break;
-						case VarEnum.VT_I8:
-							pv.Value = toArrayOf<long>(upv);
-							break;
-						case VarEnum.VT_UI8:
-							pv.Value = toArrayOf<ulong>(upv);
-							break;
-						case VarEnum.VT_R4:
-							pv.Value = toArrayOf<float>(upv);
-							break;
-						case VarEnum.VT_R8:
-							pv.Value = toArrayOf<double>(upv);
-							break;
-						case VarEnum.VT_BLOB:
-							pv.MarshalType = PropVariantMarshalType.Blob;
-							pv.Value = toArrayOf<byte>(upv);
-							break;
-						case VarEnum.VT_LPSTR:
-							pv.MarshalType = PropVariantMarshalType.Ascii;
-							pv.Value = toArrayOf<IntPtr>(upv).ConvertAll(Marshal.PtrToStringAnsi);
-							break;
-						case VarEnum.VT_LPWSTR:
-							pv.Value = toArrayOf<IntPtr>(upv).ConvertAll(Marshal.PtrToStringUni);
-							break;
-						default: throw new NotImplementedException();
-					}
+					case VarEnum.VT_I1:
+						pv.Value = toArrayOf<sbyte>(upv);
+						break;
+					case VarEnum.VT_UI1:
+						pv.Value = toArrayOf<byte>(upv);
+						break;
+					case VarEnum.VT_I2:
+						pv.Value = toArrayOf<short>(upv);
+						break;
+					case VarEnum.VT_UI2:
+						pv.Value = toArrayOf<ushort>(upv);
+						break;
+					case VarEnum.VT_I4:
+						pv.Value = toArrayOf<int>(upv);
+						break;
+					case VarEnum.VT_UI4:
+						pv.Value = toArrayOf<uint>(upv);
+						break;
+					case VarEnum.VT_I8:
+						pv.Value = toArrayOf<long>(upv);
+						break;
+					case VarEnum.VT_UI8:
+						pv.Value = toArrayOf<ulong>(upv);
+						break;
+					case VarEnum.VT_R4:
+						pv.Value = toArrayOf<float>(upv);
+						break;
+					case VarEnum.VT_R8:
+						pv.Value = toArrayOf<double>(upv);
+						break;
+					case VarEnum.VT_BLOB:
+						pv.MarshalType = PropVariantMarshalType.Blob;
+						pv.Value = toArrayOf<byte>(upv);
+						break;
+					case VarEnum.VT_LPSTR:
+						pv.MarshalType = PropVariantMarshalType.Ascii;
+						pv.Value = toArrayOf<IntPtr>(upv).ConvertAll(Marshal.PtrToStringAnsi);
+						break;
+					case VarEnum.VT_LPWSTR:
+						pv.Value = toArrayOf<IntPtr>(upv).ConvertAll(Marshal.PtrToStringUni);
+						break;
+					default: throw new NotImplementedException();
 				}
 
 				return pv;
