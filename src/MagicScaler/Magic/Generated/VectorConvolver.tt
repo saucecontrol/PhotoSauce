@@ -106,7 +106,7 @@ if (t.channels == 1) {
 <#
 for (int i = 0; i < t.xUnroll; i++) {
 #>
-					var iv<#= i #> = Unsafe.Read<Vector<#= t.vtype #>>(ip<#= i != 0 ? $" + {(i > 1 ? $"{i} * " : "")}{(t.vtype == "F" ? "VectorF.Count" : t.vtype)}" : "" #>);
+					var iv<#= i #> = Unsafe.Read<Vector<#= t.vtype #>>(ip<#= i != 0 ? $" + {(t.vtype == "F" ? "VectorF.Count" : t.vtype)}{(i > 1 ? $" * {i}" : "")}" : "" #>);
 <#
 }
 #>
@@ -114,7 +114,7 @@ for (int i = 0; i < t.xUnroll; i++) {
 <#
 for (int i = 0; i < t.xUnroll; i++) {
 #>
-					var mv<#= i #> = Unsafe.Read<Vector<#= t.vtype #>>(mp<#= i != 0 ? $" + {(i > 1 ? $"{i} * " : "")}{(t.vtype == "F" ? "VectorF.Count" : t.vtype)}" : "" #>);
+					var mv<#= i #> = Unsafe.Read<Vector<#= t.vtype #>>(mp<#= i != 0 ? $" + {(t.vtype == "F" ? "VectorF.Count" : t.vtype)}{(i > 1 ? $" * {i}" : "")}" : "" #>);
 <#
 }
 #>
@@ -223,7 +223,7 @@ if (t.channels == 1) {
 <#
 for (int i = 0; i < t.yUnroll; i++) {
 #>
-					var tv<#= i #> = Unsafe.Read<Vector<#= t.vtype #>>(tp<#= i != 0 ? $" + {(i > 1 ? $"{i} * " : "")}{(t.vtype == "F" ? "VectorF.Count" : t.vtype)}" : "" #>);
+					var tv<#= i #> = Unsafe.Read<Vector<#= t.vtype #>>(tp<#= i != 0 ? $" + {(t.vtype == "F" ? "VectorF.Count" : t.vtype)}{(i > 1 ? $" * {i}" : "")}" : "" #>);
 <#
 }
 #>
@@ -231,7 +231,7 @@ for (int i = 0; i < t.yUnroll; i++) {
 <#
 for (int i = 0; i < t.yUnroll; i++) {
 #>
-					var mv<#= i #> = Unsafe.Read<Vector<#= t.vtype #>>(mp<#= i != 0 ? $" + {(i > 1 ? $"{i} * " : "")}{(t.vtype == "F" ? "VectorF.Count" : t.vtype)}" : "" #>);
+					var mv<#= i #> = Unsafe.Read<Vector<#= t.vtype #>>(mp<#= i != 0 ? $" + {(t.vtype == "F" ? "VectorF.Count" : t.vtype)}{(i > 1 ? $" * {i}" : "")}" : "" #>);
 <#
 }
 #>

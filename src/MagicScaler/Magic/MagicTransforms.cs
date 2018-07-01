@@ -1,4 +1,7 @@
-﻿using PhotoSauce.MagicScaler.Interop;
+﻿using System;
+using System.Drawing;
+
+using PhotoSauce.MagicScaler.Interop;
 
 namespace PhotoSauce.MagicScaler
 {
@@ -73,19 +76,30 @@ namespace PhotoSauce.MagicScaler
 			ctx.Source = ctx.AddDispose(new FormatConversionTransform(ctx.Source, forceSrgb ? ColorProfile.sRGB : ctx.SourceColorProfile, forceSrgb ? ColorProfile.sRGB : ctx.DestColorProfile, ofmt));
 		}
 
-		public static void AddHighQualityScaler(WicProcessingContext ctx)
+		public static void AddHighQualityScaler(WicProcessingContext ctx, bool hybrid = false)
 		{
 			uint width = (uint)ctx.Settings.Width, height = (uint)ctx.Settings.Height;
+			double rat = ctx.Settings.HybridScaleRatio;
 
-			if (ctx.Source.Width == width && ctx.Source.Height == height)
+			if ((ctx.Source.Width == width && ctx.Source.Height == height) || (hybrid && rat == 1d))
 				return;
+
+			if (hybrid)
+			{
+				if (ctx.Source.Format.FormatGuid != Consts.GUID_WICPixelFormat32bppCMYK)
+					return;
+
+				width = (uint)Math.Ceiling(ctx.Source.Width / rat);
+				height = (uint)Math.Ceiling(ctx.Source.Height / rat);
+				ctx.Settings.HybridMode = HybridScaleMode.Off;
+			}
 
 			AddInternalFormatConverter(ctx, allow96bppFloat: true);
 
 			var fmt = ctx.Source.Format;
 			var interpolator = ctx.Settings.Interpolation.WeightingFunction.Support > 1d && fmt.ColorRepresentation == PixelColorRepresentation.Unspecified ? InterpolationSettings.Hermite : ctx.Settings.Interpolation;
-			var interpolatorx = width == ctx.Source.Width ? InterpolationSettings.NearestNeighbor : interpolator;
-			var interpolatory = height == ctx.Source.Height ? InterpolationSettings.NearestNeighbor : interpolator;
+			var interpolatorx = width == ctx.Source.Width ? InterpolationSettings.NearestNeighbor : hybrid ? InterpolationSettings.Average : interpolator;
+			var interpolatory = height == ctx.Source.Height ? InterpolationSettings.NearestNeighbor : hybrid ? InterpolationSettings.Average : interpolator;
 
 			if (fmt.NumericRepresentation == PixelNumericRepresentation.Float)
 			{

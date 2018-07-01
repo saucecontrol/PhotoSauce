@@ -315,27 +315,31 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddScaler(WicProcessingContext ctx, bool hybrid = false)
 		{
+			uint width = (uint)ctx.Settings.Width, height = (uint)ctx.Settings.Height;
 			double rat = ctx.Settings.HybridScaleRatio;
-			if ((ctx.Settings.Width == ctx.Source.Width && ctx.Settings.Height == ctx.Source.Height) || (hybrid && rat == 1d))
+
+			if ((ctx.Source.Width == width && ctx.Source.Height == height) || (hybrid && rat == 1d))
 				return;
 
-			if (ctx.Source.WicSource is IWICBitmapSourceTransform)
-				ctx.Source = ctx.Source.WicSource.AsPixelSource(nameof(IWICBitmapFrameDecode));
+			if (hybrid)
+			{
+				width = (uint)Math.Ceiling(ctx.Source.Width / rat);
+				height = (uint)Math.Ceiling(ctx.Source.Height / rat);
+				ctx.Settings.HybridMode = HybridScaleMode.Off;
+			}
 
-			uint ow = hybrid ? (uint)Math.Ceiling(ctx.Source.Width / rat) : (uint)ctx.Settings.Width;
-			uint oh = hybrid ? (uint)Math.Ceiling(ctx.Source.Height / rat) : (uint)ctx.Settings.Height;
 			var mode = hybrid ? WICBitmapInterpolationMode.WICBitmapInterpolationModeFant :
 			           ctx.Settings.Interpolation.WeightingFunction.Support < 0.1 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeNearestNeighbor :
 			           ctx.Settings.Interpolation.WeightingFunction.Support < 1.0 ? ctx.Settings.ScaleRatio > 1.0 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeFant : WICBitmapInterpolationMode.WICBitmapInterpolationModeNearestNeighbor :
 			           ctx.Settings.Interpolation.WeightingFunction.Support > 1.0 ? ctx.Settings.ScaleRatio > 1.0 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeHighQualityCubic :WICBitmapInterpolationMode.WICBitmapInterpolationModeCubic :
 			           ctx.Settings.ScaleRatio > 1.0 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeFant : WICBitmapInterpolationMode.WICBitmapInterpolationModeLinear;
 
-			var scaler = ctx.AddRef(Wic.Factory.CreateBitmapScaler());
-			scaler.Initialize(ctx.Source.WicSource, ow, oh, mode);
-			ctx.Source = scaler.AsPixelSource(nameof(IWICBitmapScaler));
+			if (ctx.Source.WicSource is IWICBitmapSourceTransform)
+				ctx.Source = ctx.Source.WicSource.AsPixelSource(nameof(IWICBitmapFrameDecode));
 
-			if (hybrid)
-				ctx.Settings.Crop = new Rectangle(0, 0, (int)ctx.Source.Width, (int)ctx.Source.Height);
+			var scaler = ctx.AddRef(Wic.Factory.CreateBitmapScaler());
+			scaler.Initialize(ctx.Source.WicSource, width, height, mode);
+			ctx.Source = scaler.AsPixelSource(nameof(IWICBitmapScaler));
 		}
 
 		public static void AddNativeScaler(WicProcessingContext ctx)

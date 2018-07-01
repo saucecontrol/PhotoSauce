@@ -20,6 +20,7 @@ namespace PhotoSauce.MagicScaler
 	internal class ConvolutionTransform<TPixel, TWeight> : PixelSource, IDisposable where TPixel : unmanaged where TWeight : unmanaged
 	{
 		protected static readonly ReadOnlyDictionary<Guid, IConvolver> ProcessorMap = new ReadOnlyDictionary<Guid, IConvolver>(new Dictionary<Guid, IConvolver> {
+			[Consts.GUID_WICPixelFormat32bppCMYK          ] = new Convolver4ChanByte(),
 			[Consts.GUID_WICPixelFormat32bppPBGRA         ] = new Convolver4ChanByte(),
 			[Consts.GUID_WICPixelFormat32bppBGRA          ] = new ConvolverBgraByte(),
 			[Consts.GUID_WICPixelFormat24bppBGR           ] = new ConvolverBgrByte(),

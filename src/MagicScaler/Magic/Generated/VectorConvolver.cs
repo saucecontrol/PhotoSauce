@@ -41,13 +41,13 @@ namespace PhotoSauce.MagicScaler
 				{
 					var iv0 = Unsafe.Read<VectorF>(ip);
 					var iv1 = Unsafe.Read<VectorF>(ip + VectorF.Count);
-					var iv2 = Unsafe.Read<VectorF>(ip + 2 * VectorF.Count);
-					var iv3 = Unsafe.Read<VectorF>(ip + 3 * VectorF.Count);
+					var iv2 = Unsafe.Read<VectorF>(ip + VectorF.Count * 2);
+					var iv3 = Unsafe.Read<VectorF>(ip + VectorF.Count * 3);
 
 					var mv0 = Unsafe.Read<VectorF>(mp);
 					var mv1 = Unsafe.Read<VectorF>(mp + VectorF.Count);
-					var mv2 = Unsafe.Read<VectorF>(mp + 2 * VectorF.Count);
-					var mv3 = Unsafe.Read<VectorF>(mp + 3 * VectorF.Count);
+					var mv2 = Unsafe.Read<VectorF>(mp + VectorF.Count * 2);
+					var mv3 = Unsafe.Read<VectorF>(mp + VectorF.Count * 3);
 
 					av0 += iv0 * mv0;
 					av0 += iv1 * mv1;
@@ -108,13 +108,13 @@ namespace PhotoSauce.MagicScaler
 				{
 					var tv0 = Unsafe.Read<VectorF>(tp);
 					var tv1 = Unsafe.Read<VectorF>(tp + VectorF.Count);
-					var tv2 = Unsafe.Read<VectorF>(tp + 2 * VectorF.Count);
-					var tv3 = Unsafe.Read<VectorF>(tp + 3 * VectorF.Count);
+					var tv2 = Unsafe.Read<VectorF>(tp + VectorF.Count * 2);
+					var tv3 = Unsafe.Read<VectorF>(tp + VectorF.Count * 3);
 
 					var mv0 = Unsafe.Read<VectorF>(mp);
 					var mv1 = Unsafe.Read<VectorF>(mp + VectorF.Count);
-					var mv2 = Unsafe.Read<VectorF>(mp + 2 * VectorF.Count);
-					var mv3 = Unsafe.Read<VectorF>(mp + 3 * VectorF.Count);
+					var mv2 = Unsafe.Read<VectorF>(mp + VectorF.Count * 2);
+					var mv3 = Unsafe.Read<VectorF>(mp + VectorF.Count * 3);
 
 					av0 += tv0 * mv0;
 					av0 += tv1 * mv1;
@@ -227,11 +227,11 @@ namespace PhotoSauce.MagicScaler
 				{
 					var iv0 = Unsafe.Read<Vector4>(ip);
 					var iv1 = Unsafe.Read<Vector4>(ip + 4);
-					var iv2 = Unsafe.Read<Vector4>(ip + 2 * 4);
+					var iv2 = Unsafe.Read<Vector4>(ip + 4 * 2);
 
 					var mv0 = Unsafe.Read<Vector4>(mp);
 					var mv1 = Unsafe.Read<Vector4>(mp + 4);
-					var mv2 = Unsafe.Read<Vector4>(mp + 2 * 4);
+					var mv2 = Unsafe.Read<Vector4>(mp + 4 * 2);
 
 					av0 += iv0 * mv0;
 					av1 += iv1 * mv1;
@@ -280,11 +280,11 @@ namespace PhotoSauce.MagicScaler
 				{
 					var tv0 = Unsafe.Read<Vector4>(tp);
 					var tv1 = Unsafe.Read<Vector4>(tp + 4);
-					var tv2 = Unsafe.Read<Vector4>(tp + 2 * 4);
+					var tv2 = Unsafe.Read<Vector4>(tp + 4 * 2);
 
 					var mv0 = Unsafe.Read<Vector4>(mp);
 					var mv1 = Unsafe.Read<Vector4>(mp + 4);
-					var mv2 = Unsafe.Read<Vector4>(mp + 2 * 4);
+					var mv2 = Unsafe.Read<Vector4>(mp + 4 * 2);
 
 					av0 += tv0 * mv0;
 					av1 += tv1 * mv1;
@@ -348,13 +348,13 @@ namespace PhotoSauce.MagicScaler
 				{
 					var iv0 = Unsafe.Read<VectorF>(ip);
 					var iv1 = Unsafe.Read<VectorF>(ip + VectorF.Count);
-					var iv2 = Unsafe.Read<VectorF>(ip + 2 * VectorF.Count);
-					var iv3 = Unsafe.Read<VectorF>(ip + 3 * VectorF.Count);
+					var iv2 = Unsafe.Read<VectorF>(ip + VectorF.Count * 2);
+					var iv3 = Unsafe.Read<VectorF>(ip + VectorF.Count * 3);
 
 					var mv0 = Unsafe.Read<VectorF>(mp);
 					var mv1 = Unsafe.Read<VectorF>(mp + VectorF.Count);
-					var mv2 = Unsafe.Read<VectorF>(mp + 2 * VectorF.Count);
-					var mv3 = Unsafe.Read<VectorF>(mp + 3 * VectorF.Count);
+					var mv2 = Unsafe.Read<VectorF>(mp + VectorF.Count * 2);
+					var mv3 = Unsafe.Read<VectorF>(mp + VectorF.Count * 3);
 
 					av0 += iv0 * mv0;
 					av0 += iv1 * mv1;
@@ -411,13 +411,13 @@ namespace PhotoSauce.MagicScaler
 				{
 					var tv0 = Unsafe.Read<VectorF>(tp);
 					var tv1 = Unsafe.Read<VectorF>(tp + VectorF.Count);
-					var tv2 = Unsafe.Read<VectorF>(tp + 2 * VectorF.Count);
-					var tv3 = Unsafe.Read<VectorF>(tp + 3 * VectorF.Count);
+					var tv2 = Unsafe.Read<VectorF>(tp + VectorF.Count * 2);
+					var tv3 = Unsafe.Read<VectorF>(tp + VectorF.Count * 3);
 
 					var mv0 = Unsafe.Read<VectorF>(mp);
 					var mv1 = Unsafe.Read<VectorF>(mp + VectorF.Count);
-					var mv2 = Unsafe.Read<VectorF>(mp + 2 * VectorF.Count);
-					var mv3 = Unsafe.Read<VectorF>(mp + 3 * VectorF.Count);
+					var mv2 = Unsafe.Read<VectorF>(mp + VectorF.Count * 2);
+					var mv3 = Unsafe.Read<VectorF>(mp + VectorF.Count * 3);
 
 					av0 += tv0 * mv0;
 					av0 += tv1 * mv1;
