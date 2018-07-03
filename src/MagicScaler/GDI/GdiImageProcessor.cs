@@ -110,14 +110,14 @@ namespace PhotoSauce.MagicScaler
 					gfx.CompositingMode = CompositingMode.SourceCopy;
 					gfx.InterpolationMode = mode;
 
-					if (alpha && !s.MatteColor.IsEmpty)
+					if ((alpha || s.InnerRect != s.OuterRect) && !s.MatteColor.IsEmpty)
 					{
 						gfx.Clear(s.MatteColor);
 						gfx.CompositingMode = CompositingMode.SourceOver;
 						gfx.CompositingQuality = CompositingQuality.GammaCorrected;
 					}
 
-					gfx.DrawImage(src, new Rectangle(0, 0, s.Width, s.Height), crop.X, crop.Y, crop.Width, crop.Height, GraphicsUnit.Pixel, iat);
+					gfx.DrawImage(src, s.InnerRect, crop.X, crop.Y, crop.Width, crop.Height, GraphicsUnit.Pixel, iat);
 
 					switch (s.SaveFormat)
 					{

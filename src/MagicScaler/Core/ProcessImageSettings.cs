@@ -17,7 +17,7 @@ namespace PhotoSauce.MagicScaler
 {
 	[Flags]
 	public enum CropAnchor { Center = 0, Top = 1, Bottom = 2, Left = 4, Right = 8 }
-	public enum CropScaleMode { Crop, Max, Stretch }
+	public enum CropScaleMode { Crop, Max, Stretch, Pad }
 	public enum HybridScaleMode { FavorQuality, FavorSpeed, Turbo, Off }
 	public enum GammaMode { Linear, sRGB }
 	public enum ChromaSubsampleMode { Default = 0, Subsample420 = 1, Subsample422 = 2, Subsample444 = 3 }
@@ -77,13 +77,13 @@ namespace PhotoSauce.MagicScaler
 		private static readonly Regex hexColorExpression = new Regex(@"^[0-9A-Fa-f]{6}$", RegexOptions.Compiled);
 		private static readonly ProcessImageSettings empty = new ProcessImageSettings();
 
-		private int width;
-		private int height;
 		private InterpolationSettings interpolation;
 		private UnsharpMaskSettings unsharpMask;
 		private int jpegQuality;
 		private ChromaSubsampleMode jpegSubsampling;
 		private ImageFileInfo imageInfo;
+		internal Rectangle InnerRect;
+		internal Rectangle OuterRect;
 
 		public int FrameIndex { get; set; }
 		public double DpiX { get; set; } = 96d;
@@ -101,8 +101,7 @@ namespace PhotoSauce.MagicScaler
 		internal bool Normalized => imageInfo != null;
 
 		internal bool IsEmpty =>
-			width           == empty.width           &&
-			height          == empty.height          &&
+			OuterRect       == empty.OuterRect       &&
 			jpegQuality     == empty.jpegQuality     &&
 			jpegSubsampling == empty.jpegSubsampling &&
 			FrameIndex      == empty.FrameIndex      &&
@@ -116,27 +115,27 @@ namespace PhotoSauce.MagicScaler
 
 		public int Width
 		{
-			get => width;
+			get => OuterRect.Width;
 			set
 			{
 				if (value < 0) throw new ArgumentOutOfRangeException(nameof(Width), "Value must be >= 0");
-				width = value;
+				OuterRect.Width = value;
 			}
 		}
 
 		public int Height
 		{
-			get => height;
+			get => OuterRect.Height;
 			set
 			{
 				if (value < 0) throw new ArgumentOutOfRangeException(nameof(Height), "Value must be >= 0");
-				height = value;
+				OuterRect.Height = value;
 			}
 		}
 
 		public bool IndexedColor => SaveFormat == FileFormat.Png8 || SaveFormat == FileFormat.Gif;
 
-		public double ScaleRatio => Math.Max(Width > 0 ? (double)Crop.Width / Width : 0d, Height > 0 ? (double)Crop.Height / Height : 0d);
+		public double ScaleRatio => Math.Max(InnerRect.Width > 0 ? (double)Crop.Width / InnerRect.Width : 0d, InnerRect.Height > 0 ? (double)Crop.Height / InnerRect.Height : 0d); //inner dimensions?
 
 		public double HybridScaleRatio
 		{
@@ -329,7 +328,7 @@ namespace PhotoSauce.MagicScaler
 			int imgHeight = swapDimensions ? inWidth : inHeight;
 
 			var whole = new Rectangle(0, 0, imgWidth, imgHeight);
-			bool needsCrop = Crop.IsEmpty || !Crop.IntersectsWith(whole);
+			bool needsCrop = Crop.IsEmpty || Crop != Rectangle.Intersect(whole, Crop);
 
 			if (Width == 0 || Height == 0)
 				ResizeMode = CropScaleMode.Crop;
@@ -337,9 +336,7 @@ namespace PhotoSauce.MagicScaler
 			if (Width == 0 && Height == 0)
 			{
 				Crop = needsCrop ? whole : Crop;
-				Crop.Intersect(whole);
-				Width = Crop.Width;
-				Height = Crop.Height;
+				OuterRect = InnerRect = new Rectangle(0, 0, Crop.Width, Crop.Height);
 				return;
 			}
 
@@ -347,54 +344,62 @@ namespace PhotoSauce.MagicScaler
 				Anchor = CropAnchor.Center;
 
 			int wwin = imgWidth, hwin = imgHeight;
-			double wrat = Width > 0 ? (double)wwin / Width : (double)hwin / Height;
-			double hrat = Height > 0 ? (double)hwin / Height : wrat;
+			int width = Width, height = Height;
+			double wrat = width > 0 ? (double)wwin / width : (double)hwin / height;
+			double hrat = height > 0 ? (double)hwin / height : wrat;
 
 			if (needsCrop)
 			{
 				if (ResizeMode == CropScaleMode.Crop)
 				{
 					double rat = Math.Min(wrat, hrat);
-					hwin = Height > 0 ? MathUtil.Clamp((int)Math.Ceiling(rat * Height), 1, imgHeight) : hwin;
-					wwin = Width > 0 ? MathUtil.Clamp((int)Math.Ceiling(rat * Width), 1, imgWidth) : wwin;
+					hwin = height > 0 ? MathUtil.Clamp((int)Math.Ceiling(rat * height), 1, imgHeight) : hwin;
+					wwin = width > 0 ? MathUtil.Clamp((int)Math.Ceiling(rat * width), 1, imgWidth) : wwin;
 
 					int left = Anchor.HasFlag(CropAnchor.Left) ? 0 : Anchor.HasFlag(CropAnchor.Right) ? (imgWidth - wwin) : ((imgWidth - wwin) / 2);
 					int top = Anchor.HasFlag(CropAnchor.Top) ? 0 : Anchor.HasFlag(CropAnchor.Bottom) ? (imgHeight - hwin) : ((imgHeight - hwin) / 2);
 
 					Crop = new Rectangle(left, top, wwin, hwin);
 
-					Width = Width > 0 ? Width : Math.Max((int)Math.Round(imgWidth / wrat), 1);
-					Height = Height > 0 ? Height : Math.Max((int)Math.Round(imgHeight / hrat), 1);
+					width = width > 0 ? width : Math.Max((int)Math.Round(imgWidth / wrat), 1);
+					height = height > 0 ? height : Math.Max((int)Math.Round(imgHeight / hrat), 1);
 				}
 				else
 				{
 					Crop = whole;
-
-					if (ResizeMode == CropScaleMode.Max)
-					{
-						double rat = Math.Max(wrat, hrat);
-						int dim = Math.Max(Width, Height);
-
-						Width = MathUtil.Clamp((int)Math.Round(imgWidth / rat), 1, dim);
-						Height = MathUtil.Clamp((int)Math.Round(imgHeight / rat), 1, dim);
-					}
 				}
 			}
 
-			Crop.Intersect(whole);
+			wrat = width > 0 ? (double)Crop.Width / width : (double)Crop.Height / height;
+			hrat = height > 0 ? (double)Crop.Height / height : wrat;
 
-			wrat = Width > 0 ? (double)Crop.Width / Width : (double)Crop.Height / Height;
-			hrat = Height > 0 ? (double)Crop.Height / Height : wrat;
+			if (ResizeMode == CropScaleMode.Max || ResizeMode == CropScaleMode.Pad)
+			{
+				double rat = Math.Max(wrat, hrat);
+				int dim = Math.Max(width, height);
 
-			Width = Width > 0 ? Width : Math.Max((int)Math.Round(Crop.Width / wrat), 1);
-			Height = Height > 0 ? Height : Math.Max((int)Math.Round(Crop.Height / hrat), 1);
+				width = MathUtil.Clamp((int)Math.Round(Crop.Width / rat), 1, dim);
+				height = MathUtil.Clamp((int)Math.Round(Crop.Height / rat), 1, dim);
+			}
+
+			InnerRect.Width = width > 0 ? width : Math.Max((int)Math.Round(Crop.Width / wrat), 1);
+			InnerRect.Height = height > 0 ? height : Math.Max((int)Math.Round(Crop.Height / hrat), 1);
+
+			if (ResizeMode == CropScaleMode.Crop || ResizeMode == CropScaleMode.Max)
+				OuterRect = InnerRect;
+
+			if (ResizeMode == CropScaleMode.Pad)
+			{
+				InnerRect.X = (OuterRect.Width - InnerRect.Width) / 2;
+				InnerRect.Y = (OuterRect.Height - InnerRect.Height) / 2;
+			}
 		}
 
 		internal void SetSaveFormat(FileFormat containerType, bool frameHasAlpha)
 		{
 			if (containerType == FileFormat.Gif) // Restrict to animated only?
 				SaveFormat = FileFormat.Gif;
-			else if (containerType == FileFormat.Png || (frameHasAlpha && MatteColor.A < byte.MaxValue))
+			else if (containerType == FileFormat.Png || ((frameHasAlpha || InnerRect != OuterRect) && MatteColor.A < byte.MaxValue))
 				SaveFormat = FileFormat.Png;
 			else
 				SaveFormat = FileFormat.Jpeg;
@@ -420,7 +425,7 @@ namespace PhotoSauce.MagicScaler
 				JpegQuality = 0;
 			}
 
-			if (!frame.HasAlpha)
+			if (!frame.HasAlpha && InnerRect == OuterRect)
 				MatteColor = Color.Empty;
 
 			if (!Sharpen)

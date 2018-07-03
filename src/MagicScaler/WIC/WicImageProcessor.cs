@@ -40,6 +40,7 @@ namespace PhotoSauce.MagicScaler
 			WicTransforms.AddScaler(ctx);
 			WicTransforms.AddColorspaceConverter(ctx);
 			MagicTransforms.AddMatte(ctx);
+			MagicTransforms.AddPad(ctx);
 			WicTransforms.AddIndexedColorConverter(ctx);
 
 			var enc = new WicEncoder(ctx, ostm.AsIStream());

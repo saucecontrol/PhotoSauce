@@ -315,7 +315,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddScaler(WicProcessingContext ctx, bool hybrid = false)
 		{
-			uint width = (uint)ctx.Settings.Width, height = (uint)ctx.Settings.Height;
+			uint width = (uint)ctx.Settings.InnerRect.Width, height = (uint)ctx.Settings.InnerRect.Height;
 			double rat = ctx.Settings.HybridScaleRatio;
 
 			if ((ctx.Source.Width == width && ctx.Source.Height == height) || (hybrid && rat == 1d))

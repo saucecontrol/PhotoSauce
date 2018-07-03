@@ -324,7 +324,7 @@ if (t.sharpen) {
 			float famt = amt * 0.01f;
 			float threshold = (float)thresh / byte.MaxValue;
 
-			float* ip = (float*)cstart, yp = (float*)ystart, bp = (float*)bstart, op = (float*)ostart;
+			float* ip = (float*)cstart + ox * Channels, yp = (float*)ystart + ox, bp = (float*)bstart, op = (float*)ostart;
 			float* ipe = ip + ow * Channels<#= t.channels == 1 ? " - VectorF.Count" : "" #>;
 
 			var vmin = Vector<#= t.channels == 1 ? "F" : t.channels.ToString() #>.Zero;

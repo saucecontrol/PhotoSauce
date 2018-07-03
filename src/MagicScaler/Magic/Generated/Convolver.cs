@@ -262,7 +262,7 @@ namespace PhotoSauce.MagicScaler
 			int iamt = Fix15(amt * 0.01);
 			int threshold = thresh;
 
-			byte* ip = cstart, yp = ystart, bp = bstart, op = ostart;
+			byte* ip = cstart + ox * Channels, yp = ystart + ox, bp = bstart, op = ostart;
 
 			int xc = ox + ow;
 			for (int x = ox; x < xc; x++, ip += Channels, op += Channels)
@@ -544,7 +544,7 @@ namespace PhotoSauce.MagicScaler
 				int threshold = thresh;
 
 				byte* gt = gtstart;
-				ushort* ip = (ushort*)cstart, yp = (ushort*)ystart, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;
+				ushort* ip = (ushort*)cstart + ox * Channels, yp = (ushort*)ystart + ox, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;
 
 				int xc = ox + ow;
 				for (int x = ox; x < xc; x++, ip += Channels, op += Channels)
@@ -707,7 +707,7 @@ namespace PhotoSauce.MagicScaler
 			int iamt = Fix15(amt * 0.01);
 			int threshold = thresh;
 
-			byte* ip = cstart, yp = ystart, bp = bstart, op = ostart;
+			byte* ip = cstart + ox * Channels, yp = ystart + ox, bp = bstart, op = ostart;
 
 			int xc = ox + ow;
 			for (int x = ox; x < xc; x++, ip += Channels, op += Channels)
@@ -873,7 +873,7 @@ namespace PhotoSauce.MagicScaler
 				int threshold = thresh;
 
 				byte* gt = gtstart;
-				ushort* ip = (ushort*)cstart, yp = (ushort*)ystart, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;
+				ushort* ip = (ushort*)cstart + ox * Channels, yp = (ushort*)ystart + ox, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;
 
 				int xc = ox + ow;
 				for (int x = ox; x < xc; x++, ip += Channels, op += Channels)
@@ -1031,7 +1031,7 @@ namespace PhotoSauce.MagicScaler
 			int iamt = Fix15(amt * 0.01);
 			int threshold = thresh;
 
-			byte* ip = cstart, yp = ystart, bp = bstart, op = ostart;
+			byte* ip = cstart + ox * Channels, yp = ystart + ox, bp = bstart, op = ostart;
 
 			int xc = ox + ow;
 			for (int x = ox; x < xc; x++, ip += Channels, op += Channels)
@@ -1190,7 +1190,7 @@ namespace PhotoSauce.MagicScaler
 				int threshold = thresh;
 
 				byte* gt = gtstart;
-				ushort* ip = (ushort*)cstart, yp = (ushort*)ystart, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;
+				ushort* ip = (ushort*)cstart + ox * Channels, yp = (ushort*)ystart + ox, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;
 
 				int xc = ox + ow;
 				for (int x = ox; x < xc; x++, ip += Channels, op += Channels)
@@ -1450,7 +1450,7 @@ namespace PhotoSauce.MagicScaler
 			int iamt = Fix15(amt * 0.01);
 			int threshold = thresh;
 
-			byte* ip = cstart, yp = ystart, bp = bstart, op = ostart;
+			byte* ip = cstart + ox * Channels, yp = ystart + ox, bp = bstart, op = ostart;
 
 			int xc = ox + ow;
 			for (int x = ox; x < xc; x++, ip += Channels, op += Channels)
@@ -1572,7 +1572,7 @@ namespace PhotoSauce.MagicScaler
 				int threshold = thresh;
 
 				byte* gt = gtstart;
-				ushort* ip = (ushort*)cstart, yp = (ushort*)ystart, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;
+				ushort* ip = (ushort*)cstart + ox * Channels, yp = (ushort*)ystart + ox, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;
 
 				int xc = ox + ow;
 				for (int x = ox; x < xc; x++, ip += Channels, op += Channels)

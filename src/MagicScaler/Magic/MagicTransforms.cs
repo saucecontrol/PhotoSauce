@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Drawing;
 
 using PhotoSauce.MagicScaler.Interop;
 
@@ -78,7 +77,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddHighQualityScaler(WicProcessingContext ctx, bool hybrid = false)
 		{
-			uint width = (uint)ctx.Settings.Width, height = (uint)ctx.Settings.Height;
+			uint width = (uint)ctx.Settings.InnerRect.Width, height = (uint)ctx.Settings.InnerRect.Height;
 			double rat = ctx.Settings.HybridScaleRatio;
 
 			if ((ctx.Source.Width == width && ctx.Source.Height == height) || (hybrid && rat == 1d))
@@ -155,6 +154,14 @@ namespace PhotoSauce.MagicScaler
 				ctx.Source = ctx.AddDispose(new FormatConversionTransform(ctx.Source, ctx.SourceColorProfile, ctx.SourceColorProfile, Consts.GUID_WICPixelFormat32bppBGRA));
 
 			ctx.Source = new MatteTransform(ctx.Source, ctx.Settings.MatteColor);
+		}
+
+		public static void AddPad(WicProcessingContext ctx)
+		{
+			if (ctx.Settings.InnerRect == ctx.Settings.OuterRect)
+				return;
+
+			ctx.Source = new PadTransform(ctx.Source, ctx.Settings.MatteColor, ctx.Settings.InnerRect, ctx.Settings.OuterRect);
 		}
 
 		public static void AddColorspaceConverter(WicProcessingContext ctx)

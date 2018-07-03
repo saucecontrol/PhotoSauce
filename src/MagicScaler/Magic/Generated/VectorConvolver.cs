@@ -164,7 +164,7 @@ namespace PhotoSauce.MagicScaler
 			float famt = amt * 0.01f;
 			float threshold = (float)thresh / byte.MaxValue;
 
-			float* ip = (float*)cstart, yp = (float*)ystart, bp = (float*)bstart, op = (float*)ostart;
+			float* ip = (float*)cstart + ox * Channels, yp = (float*)ystart + ox, bp = (float*)bstart, op = (float*)ostart;
 			float* ipe = ip + ow * Channels;
 
 			var vmin = Vector4.Zero;
@@ -463,7 +463,7 @@ namespace PhotoSauce.MagicScaler
 			float famt = amt * 0.01f;
 			float threshold = (float)thresh / byte.MaxValue;
 
-			float* ip = (float*)cstart, yp = (float*)ystart, bp = (float*)bstart, op = (float*)ostart;
+			float* ip = (float*)cstart + ox * Channels, yp = (float*)ystart + ox, bp = (float*)bstart, op = (float*)ostart;
 			float* ipe = ip + ow * Channels;
 
 			var vmin = Vector4.Zero;
@@ -709,7 +709,7 @@ namespace PhotoSauce.MagicScaler
 			float famt = amt * 0.01f;
 			float threshold = (float)thresh / byte.MaxValue;
 
-			float* ip = (float*)cstart, yp = (float*)ystart, bp = (float*)bstart, op = (float*)ostart;
+			float* ip = (float*)cstart + ox * Channels, yp = (float*)ystart + ox, bp = (float*)bstart, op = (float*)ostart;
 			float* ipe = ip + ow * Channels - VectorF.Count;
 
 			var vmin = VectorF.Zero;

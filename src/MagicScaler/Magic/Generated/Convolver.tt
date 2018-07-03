@@ -469,7 +469,7 @@ if (t.pixelType == "ushort") {
 <#
 }
 #>
-			<#= t.pixelType #>* ip = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>cstart, yp = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>ystart, bp = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>bstart, op = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>ostart<#= t.pixelType == "ushort" ? ", igt = igtstart" : "" #>;
+			<#= t.pixelType #>* ip = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>cstart + ox * Channels, yp = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>ystart + ox, bp = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>bstart, op = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>ostart<#= t.pixelType == "ushort" ? ", igt = igtstart" : "" #>;
 <#
 WriteLine(null);
 #>

@@ -101,7 +101,6 @@ namespace PhotoSauce.MagicScaler.Interop
 			throw new ArgumentException($"Value is not supported by {nameof(PropVariant)}", nameof(o));
 		}
 
-
 		public object Value { get; private set; }
 		public PropVariantMarshalType MarshalType { get; private set; }
 		public VarEnum UnmanagedType { get; private set; }
@@ -186,8 +185,9 @@ namespace PhotoSauce.MagicScaler.Interop
 
 				var marshalType = PropVariantMarshalType.Automatic;
 				var unmanagedType = getUnmanagedType(o, marshalType);
-				if (o is PropVariant pv)
+				if (o is PropVariant)
 				{
+					pv = (PropVariant)o;
 					o = pv.Value;
 					marshalType = pv.MarshalType;
 				}

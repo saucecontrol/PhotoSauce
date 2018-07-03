@@ -134,7 +134,10 @@ namespace PhotoSauce.MagicScaler
 
 			if (ctx.DecoderFrame.SupportsPlanarPipeline)
 			{
-				bool savePlanar = outputPlanar && ctx.Settings.SaveFormat == FileFormat.Jpeg && ctx.SourceColorContext == null;
+				bool savePlanar = outputPlanar
+					&& ctx.Settings.SaveFormat == FileFormat.Jpeg
+					&& ctx.Settings.InnerRect == ctx.Settings.OuterRect
+					&& ctx.SourceColorContext == null;
 
 				WicTransforms.AddExifRotator(ctx);
 				WicTransforms.AddPlanarCache(ctx);
@@ -149,10 +152,10 @@ namespace PhotoSauce.MagicScaler
 				{
 					var subsample = ctx.Settings.JpegSubsampleMode;
 					if (subsample == ChromaSubsampleMode.Subsample420)
-						ctx.Settings.Height = (int)Math.Ceiling(ctx.Settings.Height / 2d);
+						ctx.Settings.InnerRect.Height = (int)Math.Ceiling(ctx.Settings.InnerRect.Height / 2d);
 
 					if (subsample == ChromaSubsampleMode.Subsample420 || subsample == ChromaSubsampleMode.Subsample422)
-						ctx.Settings.Width = (int)Math.Ceiling(ctx.Settings.Width / 2d);
+						ctx.Settings.InnerRect.Width = (int)Math.Ceiling(ctx.Settings.InnerRect.Width / 2d);
 				}
 
 				MagicTransforms.AddHighQualityScaler(ctx);
@@ -165,6 +168,7 @@ namespace PhotoSauce.MagicScaler
 					WicTransforms.AddPlanarConverter(ctx);
 					MagicTransforms.AddColorspaceConverter(ctx);
 					MagicTransforms.AddExternalFormatConverter(ctx);
+					MagicTransforms.AddPad(ctx);
 				}
 			}
 			else
@@ -173,6 +177,7 @@ namespace PhotoSauce.MagicScaler
 				WicTransforms.AddExifRotator(ctx);
 				WicTransforms.AddConditionalCache(ctx);
 				WicTransforms.AddCropper(ctx);
+				MagicTransforms.AddHighQualityScaler(ctx, true);
 				WicTransforms.AddPixelFormatConverter(ctx);
 				WicTransforms.AddScaler(ctx, true);
 				MagicTransforms.AddHighQualityScaler(ctx);
@@ -180,6 +185,7 @@ namespace PhotoSauce.MagicScaler
 				MagicTransforms.AddMatte(ctx);
 				MagicTransforms.AddUnsharpMask(ctx);
 				MagicTransforms.AddExternalFormatConverter(ctx);
+				MagicTransforms.AddPad(ctx);
 			}
 		}
 
