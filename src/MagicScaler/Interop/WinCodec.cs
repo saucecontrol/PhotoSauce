@@ -2742,6 +2742,14 @@ namespace PhotoSauce.MagicScaler.Interop
 			out IWICMetadataQueryWriter ppIMetadataQueryWriter
 		);
 
+		[DllImport("WindowsCodecs", EntryPoint = "IWICBitmapFrameEncode_SetColorContexts_Proxy")]
+		public extern static int SetColorContexts(
+			IWICBitmapFrameEncode THIS_PTR,
+			uint cCount,
+			[MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)]
+			IWICColorContext[] ppIColorContext
+		);
+
 		[DllImport("WindowsCodecs", EntryPoint = "IWICMetadataQueryReader_GetMetadataByName_Proxy")]
 		public extern static int GetMetadataByName(
 			IWICMetadataQueryReader THIS_PTR,

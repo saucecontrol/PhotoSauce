@@ -168,7 +168,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			if (ctx.SourceColorProfile == ctx.DestColorProfile)
 			{
-				if (ctx.SourceColorContext != null)
+				if (ctx.SourceColorProfile == ColorProfile.sRGB && ctx.SourceColorContext != null)
 				{
 					AddExternalFormatConverter(ctx);
 					WicTransforms.AddColorspaceConverter(ctx);

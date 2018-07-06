@@ -73,5 +73,11 @@ namespace PhotoSauce.MagicScaler.Interop
 
 			return hr >= 0;
 		}
+
+		public static bool TrySetColorContexts(this IWICBitmapFrameEncode frame, params IWICColorContext[] contexts)
+		{
+			int hr = ProxyFunctions.SetColorContexts(frame, (uint)contexts.Length, contexts);
+			return hr >= 0;
+		}
 	}
 }

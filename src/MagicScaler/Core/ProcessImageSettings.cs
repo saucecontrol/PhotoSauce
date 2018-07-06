@@ -22,6 +22,8 @@ namespace PhotoSauce.MagicScaler
 	public enum GammaMode { Linear, sRGB }
 	public enum ChromaSubsampleMode { Default = 0, Subsample420 = 1, Subsample422 = 2, Subsample444 = 3 }
 	public enum FileFormat { Auto, Jpeg, Png, Png8, Gif, Bmp, Tiff, Unknown = Auto }
+	public enum OrientationMode { Normalize, Preserve, Ignore = 0xff }
+	public enum ColorProfileMode { Normalize, NormalizeAndEmbed, Preserve, Ignore = 0xff }
 
 	public readonly struct UnsharpMaskSettings
 	{
@@ -96,6 +98,8 @@ namespace PhotoSauce.MagicScaler
 		public Color MatteColor { get; set; }
 		public HybridScaleMode HybridMode { get; set; }
 		public GammaMode BlendingMode { get; set; }
+		public OrientationMode OrientationMode { get; set; }
+		public ColorProfileMode ColorProfileMode { get; set; }
 		public IEnumerable<string> MetadataNames { get; set; }
 
 		internal bool Normalized => imageInfo != null;
@@ -322,6 +326,15 @@ namespace PhotoSauce.MagicScaler
 			return s;
 		}
 
+		public static ProcessImageSettings Calculate(ProcessImageSettings settings, ImageFileInfo imageInfo)
+		{
+			var clone = settings.Clone();
+			clone.NormalizeFrom(imageInfo);
+			clone.imageInfo = null;
+
+			return clone;
+		}
+
 		internal void Fixup(int inWidth, int inHeight, bool swapDimensions = false)
 		{
 			int imgWidth = swapDimensions ? inHeight : inWidth;
@@ -414,7 +427,7 @@ namespace PhotoSauce.MagicScaler
 
 			var frame = img.Frames[FrameIndex];
 
-			Fixup(frame.Width, frame.Height);
+			Fixup(frame.Width, frame.Height, OrientationMode != OrientationMode.Normalize && frame.ExifOrientation.SwapDimensions());
 
 			if (SaveFormat == FileFormat.Auto)
 				SetSaveFormat(img.ContainerType, frame.HasAlpha);
@@ -446,7 +459,7 @@ namespace PhotoSauce.MagicScaler
 				bw.Write(Width);
 				bw.Write(Height);
 				bw.Write((int)SaveFormat);
-				bw.Write((int)BlendingMode);
+				bw.Write((int)BlendingMode | ((int)OrientationMode << 8) | ((int)ColorProfileMode << 16));
 				bw.Write((int)ResizeMode);
 				bw.Write((int)Anchor);
 				bw.Write(Crop.X);

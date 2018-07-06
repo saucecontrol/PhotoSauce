@@ -58,7 +58,7 @@ namespace PhotoSauce.MagicScaler
 
 		private static ProcessImageResult processImage(Stream istm, Stream ostm, ProcessImageSettings s)
 		{
-			using (var img = Image.FromStream(istm, true, false))
+			using (var img = Image.FromStream(istm, s.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed, false))
 			{
 				if (s.FrameIndex > 0)
 				{
@@ -69,7 +69,8 @@ namespace PhotoSauce.MagicScaler
 						throw new ArgumentOutOfRangeException("Invalid Frame Index");
 				}
 
-				img.ExifRotate();
+				if (s.OrientationMode == OrientationMode.Normalize)
+					img.ExifRotate();
 
 				s = s.Clone();
 				s.Fixup(img.Width, img.Height);

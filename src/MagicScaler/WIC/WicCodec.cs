@@ -129,6 +129,9 @@ namespace PhotoSauce.MagicScaler
 					metawriter.TrySetMetadataByName(nv.Key, nv.Value);
 			}
 
+			if ((ctx.Settings.ColorProfileMode == ColorProfileMode.NormalizeAndEmbed || ctx.Settings.ColorProfileMode == ColorProfileMode.Preserve) && ctx.DestColorContext != null)
+				frame.TrySetColorContexts(ctx.DestColorContext);
+
 			Frame = frame;
 		}
 

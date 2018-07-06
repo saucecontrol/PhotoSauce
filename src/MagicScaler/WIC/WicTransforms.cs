@@ -118,11 +118,12 @@ namespace PhotoSauce.MagicScaler
 				ctx.AddRef(metareader);
 
 				// Exif orientation
-				if (metareader.TryGetMetadataByName("System.Photo.Orientation", out var pv))
+				var pvorient = default(PropVariant);
+				if (ctx.Settings.OrientationMode != OrientationMode.Ignore && metareader.TryGetMetadataByName("System.Photo.Orientation", out pvorient))
 				{
 #pragma warning disable 0618 // VarEnum is obsolete
-					if (pv.UnmanagedType == VarEnum.VT_UI2)
-						ctx.DecoderFrame.ExifOrientation = (Orientation)Math.Min(Math.Max((ushort)Orientation.Normal, (ushort)pv.Value), (ushort)Orientation.Rotate270);
+					if (ctx.Settings.OrientationMode == OrientationMode.Normalize && pvorient.UnmanagedType == VarEnum.VT_UI2)
+						ctx.DecoderFrame.ExifOrientation = (Orientation)Math.Min(Math.Max((ushort)Orientation.Normal, (ushort)pvorient.Value), (ushort)Orientation.Rotate270);
 #pragma warning restore 0618
 
 					var opt = ctx.DecoderFrame.ExifOrientation.ToWicTransformOptions();
@@ -145,6 +146,9 @@ namespace PhotoSauce.MagicScaler
 					if (metareader.TryGetMetadataByName(prop, out var pvar) && pvar.Value != null)
 						propdic[prop] = pvar;
 				}
+
+				if (ctx.Settings.OrientationMode == OrientationMode.Preserve && pvorient != null)
+					propdic["System.Photo.Orientation"] = pvorient;
 
 				ctx.DecoderFrame.Metadata = propdic;
 			}
@@ -201,11 +205,12 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
+			var defaultColorContext = ctx.Source.Format.ColorRepresentation == PixelColorRepresentation.Grey ? greyProfile.Value : srgbProfile.Value;
 			ctx.SourceColorContext = profile ?? (ctx.Source.Format.ColorRepresentation == PixelColorRepresentation.Cmyk ? cmykProfile.Value : null);
-			ctx.DestColorContext = ctx.Source.Format.ColorRepresentation == PixelColorRepresentation.Grey ? greyProfile.Value : srgbProfile.Value;
+			ctx.DestColorContext = ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed || ctx.SourceColorContext == null ? defaultColorContext : ctx.SourceColorContext;
 
 			ctx.SourceColorProfile = ctx.SourceColorProfile ?? ColorProfile.sRGB;
-			ctx.DestColorProfile = ColorProfile.sRGB;
+			ctx.DestColorProfile = ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed ? ColorProfile.sRGB : ctx.SourceColorProfile;
 		}
 
 		public static void AddConditionalCache(WicProcessingContext ctx)
@@ -222,7 +227,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddColorspaceConverter(WicProcessingContext ctx)
 		{
-			if (ctx.SourceColorContext == null)
+			if (ctx.SourceColorContext == null || ctx.SourceColorContext == ctx.DestColorContext)
 				return;
 
 			var trans = ctx.AddRef(Wic.Factory.CreateColorTransform());
