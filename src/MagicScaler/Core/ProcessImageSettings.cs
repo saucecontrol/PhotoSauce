@@ -71,10 +71,10 @@ namespace PhotoSauce.MagicScaler
 
 	public sealed class ProcessImageSettings
 	{
-		private static readonly Regex cropExpression = new Regex(@"^(\d+,){3}\d+$", RegexOptions.Compiled);
-		private static readonly Regex anchorExpression = new Regex(@"^(top|middle|bottom)?\-?(left|center|right)?$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-		private static readonly Regex subsampleExpression = new Regex(@"^4(20|22|44)$", RegexOptions.Compiled);
-		private static readonly Regex hexColorExpression = new Regex(@"^[0-9A-Fa-f]{6}$", RegexOptions.Compiled);
+		private static readonly Lazy<Regex> cropExpression = new Lazy<Regex>(() => new Regex(@"^(\d+,){3}\d+$", RegexOptions.Compiled));
+		private static readonly Lazy<Regex> anchorExpression = new Lazy<Regex>(() => new Regex(@"^(top|middle|bottom)?\-?(left|center|right)?$", RegexOptions.Compiled | RegexOptions.IgnoreCase));
+		private static readonly Lazy<Regex> subsampleExpression = new Lazy<Regex>(() => new Regex(@"^4(20|22|44)$", RegexOptions.Compiled));
+		private static readonly Lazy<Regex> hexColorExpression = new Lazy<Regex>(() => new Regex(@"^[0-9A-Fa-f]{6}$", RegexOptions.Compiled));
 		private static readonly ProcessImageSettings empty = new ProcessImageSettings();
 
 		private InterpolationSettings interpolation;
@@ -260,25 +260,25 @@ namespace PhotoSauce.MagicScaler
 			s.HybridMode = Enum.TryParse(dic.GetValueOrDefault("hybrid"), true, out HybridScaleMode hyb) ? hyb : s.HybridMode;
 			s.SaveFormat = Enum.TryParse(dic.GetValueOrDefault("format")?.ToLower().Replace("jpg", "jpeg"), true, out FileFormat fmt) ? fmt : s.SaveFormat;
 
-			if (cropExpression.IsMatch(dic.GetValueOrDefault("crop") ?? string.Empty))
+			if (cropExpression.Value.IsMatch(dic.GetValueOrDefault("crop") ?? string.Empty))
 			{
 				string[] ps = dic["crop"].Split(',');
 				s.Crop = new Rectangle(int.Parse(ps[0]), int.Parse(ps[1]), int.Parse(ps[2]), int.Parse(ps[3]));
 			}
 
-			foreach (var group in anchorExpression.Match(dic.GetValueOrDefault("anchor") ?? string.Empty).Groups.Cast<Group>())
+			foreach (var group in anchorExpression.Value.Match(dic.GetValueOrDefault("anchor") ?? string.Empty).Groups.Cast<Group>())
 			{
 				if (Enum.TryParse(group.Value, true, out CropAnchor anchor))
 					s.Anchor |= anchor;
 			}
 
-			foreach (var cap in subsampleExpression.Match(dic.GetValueOrDefault("subsample") ?? string.Empty).Captures.Cast<Capture>())
+			foreach (var cap in subsampleExpression.Value.Match(dic.GetValueOrDefault("subsample") ?? string.Empty).Captures.Cast<Capture>())
 				s.JpegSubsampleMode = Enum.TryParse(string.Concat("Subsample", cap.Value), true, out ChromaSubsampleMode csub) ? csub : s.JpegSubsampleMode;
 
 			string color = dic.GetValueOrDefault("bgcolor") ?? dic.GetValueOrDefault("bg");
 			if (color != null)
 			{
-				if (hexColorExpression.IsMatch(color))
+				if (hexColorExpression.Value.IsMatch(color))
 					color = string.Concat('#', color);
 
 				try { s.MatteColor = (Color)(new ColorConverter()).ConvertFromString(color); } catch { }

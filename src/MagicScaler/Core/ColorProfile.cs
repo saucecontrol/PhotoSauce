@@ -89,7 +89,7 @@ namespace PhotoSauce.MagicScaler
 			Lab
 		}
 
-		private static Lazy<ColorProfile> srgb = new Lazy<ColorProfile>(() => {
+		private static readonly Lazy<ColorProfile> srgb = new Lazy<ColorProfile>(() => {
 			var m = new Matrix4x4(
 				0.71393112f, 0.06062103f, 0.14307328f, 0f,
 				0.09707674f, 0.71694100f, 0.38510027f, 0f,

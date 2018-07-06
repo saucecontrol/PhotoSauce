@@ -48,10 +48,11 @@ namespace PhotoSauce.MagicScaler
 
 	internal class FormatConversionTransform : PixelSource, IDisposable
 	{
+		protected readonly PixelFormat InFormat;
+		protected readonly ColorProfile SourceProfile;
+		protected readonly ColorProfile DestProfile;
+
 		protected byte[] LineBuff;
-		protected PixelFormat InFormat;
-		protected ColorProfile SourceProfile;
-		protected ColorProfile DestProfile;
 
 		public FormatConversionTransform(PixelSource source, ColorProfile sourceProfile, ColorProfile destProfile, Guid destFormat) : base(source)
 		{

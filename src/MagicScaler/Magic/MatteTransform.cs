@@ -14,7 +14,7 @@ namespace PhotoSauce.MagicScaler
 {
 	internal class MatteTransform : PixelSource
 	{
-		private byte maskRed, maskGreen, maskBlue;
+		private readonly byte maskRed, maskGreen, maskBlue;
 
 		public MatteTransform(PixelSource source, Color color) : base(source)
 		{

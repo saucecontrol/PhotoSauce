@@ -5,15 +5,16 @@ namespace PhotoSauce.MagicScaler
 {
 	public class TestPatternPixelSource : IPixelSource
 	{
-		private Guid[] formats = new[] { Guid.Empty, PixelFormats.Grey8bpp, Guid.Empty, PixelFormats.Bgr24bpp, PixelFormats.Bgra32bpp };
-		private Lazy<byte[]> pixels;
-		private int chans;
-		private int width;
-		private int height;
-		private int cols;
-		private int rows;
-		private int stride;
-		private double rheight;
+		private static readonly Guid[] formats = new[] { Guid.Empty, PixelFormats.Grey8bpp, Guid.Empty, PixelFormats.Bgr24bpp, PixelFormats.Bgra32bpp };
+
+		private readonly Lazy<byte[]> pixels;
+		private readonly int chans;
+		private readonly int width;
+		private readonly int height;
+		private readonly int cols;
+		private readonly int rows;
+		private readonly int stride;
+		private readonly double rheight;
 
 		public Guid Format => formats[chans];
 		public int Width => width;
@@ -24,7 +25,7 @@ namespace PhotoSauce.MagicScaler
 			chans = Array.IndexOf(formats, pixelFormat);
 			if (width < 1 || width > 65535) throw new ArgumentOutOfRangeException(nameof(width), "Value must be between 1 and 65535");
 			if (height < 1 || height > 65535) throw new ArgumentOutOfRangeException(nameof(height), "Value must be between 1 and 65535");
-			if (chans < 1 || chans == 2) throw new ArgumentException("Unexpected pixel format", nameof(pixelFormat));
+			if (chans < 1 || chans == 2) throw new ArgumentException("Unsupported pixel format", nameof(pixelFormat));
 
 			this.width = width;
 			this.height = height;

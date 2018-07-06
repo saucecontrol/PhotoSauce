@@ -21,8 +21,9 @@ namespace PhotoSauce.MagicScaler
 
 	public sealed class ProcessingPipeline : IDisposable
 	{
-		internal WicProcessingContext Context;
-		private Lazy<IPixelSource> source;
+		internal readonly WicProcessingContext Context;
+
+		private readonly Lazy<IPixelSource> source;
 
 		internal ProcessingPipeline(WicProcessingContext ctx)
 		{

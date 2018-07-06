@@ -47,14 +47,15 @@ namespace PhotoSauce.MagicScaler
 			[PixelFormat.Y32BppFloat.FormatGuid           ] = new Convolver1ChanFloat()
 		});
 
+		protected readonly KernelMap<TWeight> XMap, YMap;
+		protected readonly IConvolver XProcessor, YProcessor;
+
 		protected bool BufferSource;
 		protected int IntBpp;
 		protected int IntStride, WorkStride;
 		protected int IntStartLine;
 		protected WICRect SourceRect;
 		protected ArraySegment<byte> LineBuff, WorkBuff, IntBuff;
-		protected KernelMap<TWeight> XMap, YMap;
-		protected IConvolver XProcessor, YProcessor;
 
 		public ConvolutionTransform(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, bool lumaMode = false) : base(source)
 		{

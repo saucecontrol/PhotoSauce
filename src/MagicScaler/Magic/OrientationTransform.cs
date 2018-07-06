@@ -19,7 +19,8 @@ namespace PhotoSauce.MagicScaler
 
 	public sealed class OrientationTransform : IPixelTransformInternal
 	{
-		private Orientation orientation;
+		private readonly Orientation orientation;
+
 		private PixelSource source;
 
 		public Guid Format => source.Format.FormatGuid;

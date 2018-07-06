@@ -9,17 +9,19 @@ namespace PhotoSauce.MagicScaler
 
 	internal class WicPlanarCache : IDisposable
 	{
-		private double subsampleRatioX, subsampleRatioY;
-		private uint scaledWidth, scaledHeight;
-		private int strideY, strideC;
+		private readonly double subsampleRatioX, subsampleRatioY;
+		private readonly uint scaledWidth, scaledHeight;
+		private readonly int strideY, strideC;
+
+		private readonly IWICPlanarBitmapSourceTransform sourceTransform;
+		private readonly WICBitmapTransformOptions sourceTransformOptions;
+		private readonly PlanarPixelSource sourceY, sourceC;
+		private readonly WICRect scaledCrop;
+
 		private int buffHeightY, buffHeightC;
 		private int startY = -1, loadedY = -1, nextY = 0;
 		private int startC = -1, loadedC = -1, nextC = 0;
 		private ArraySegment<byte> lineBuffY, lineBuffC;
-		private IWICPlanarBitmapSourceTransform sourceTransform;
-		private WICBitmapTransformOptions sourceTransformOptions;
-		private PlanarPixelSource sourceY, sourceC;
-		private WICRect scaledCrop;
 
 		public WicPlanarCache(IWICPlanarBitmapSourceTransform source, WICBitmapPlaneDescription descY, WICBitmapPlaneDescription descC, WICRect crop, WICBitmapTransformOptions transformOptions, uint width, uint height, double ratio)
 		{
@@ -80,7 +82,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private void loadBuffer(WicPlane plane, WICRect prc)
 		{
-			if (lineBuffY.Array == null || nextY < buffHeightY / 4 || nextC < buffHeightC / 4)
+			if (lineBuffY.Array == null || ((startY >= 0 || startC >= 0) && (nextY < buffHeightY / 4 || nextC < buffHeightC / 4)))
 			{
 				if (lineBuffY.Array != null)
 				{
@@ -110,12 +112,14 @@ namespace PhotoSauce.MagicScaler
 			fixed (byte* pBuffY = &lineBuffY.Array[0], pBuffC = &lineBuffC.Array[0])
 			{
 				int offsY = 0, offsC = 0;
+				int prcY = plane == WicPlane.Luma ? prc.Y : (int)Math.Ceiling(prc.Y * subsampleRatioY);
+
+				if (prcY % subsampleRatioY > double.Epsilon)
+					prcY = (int)(prcY / subsampleRatioY) * (int)subsampleRatioY;
+
 				if (startY == -1)
 				{
-					startY = prc.Y;
-					if (startY % subsampleRatioY > 0)
-						startY = (int)(startY / subsampleRatioY) * (int)subsampleRatioY;
-
+					startY = prcY;
 					startC = (int)(startY / subsampleRatioY);
 				}
 				else if (nextY < buffHeightY || nextC < buffHeightC)
@@ -144,9 +148,9 @@ namespace PhotoSauce.MagicScaler
 
 				var rect = new WICRect {
 					X = scaledCrop.X,
-					Y = Math.Max(0, Math.Max(scaledCrop.Y + startY + offsY, loadedY)),
+					Y = Math.Max(Math.Max(0, scaledCrop.Y + startY + offsY), loadedY),
 					Width = scaledCrop.Width,
-					Height = Math.Min(buffHeightY - offsY, scaledCrop.Height - (plane == WicPlane.Luma ? prc.Y : (int)Math.Ceiling(prc.Y * subsampleRatioY)))
+					Height = Math.Min(buffHeightY - offsY, scaledCrop.Height - prcY)
 				};
 
 				var planes = new[] {
@@ -162,6 +166,13 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe public void CopyPixels(WicPlane plane, WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
+			if ((plane == WicPlane.Luma && (prc.Y < startY || prc.Y > (startY + buffHeightY))) || (plane == WicPlane.Chroma && (prc.Y < startC || prc.Y > (startC + buffHeightC))))
+			{
+				startY = startC = -1;
+				loadedY = loadedC = -1;
+				nextY = nextC = 0;
+			}
+
 			if (lineBuffY.Array == null || (plane == WicPlane.Luma && prc.Y + prc.Height > loadedY) || (plane == WicPlane.Chroma && prc.Y + prc.Height > loadedC))
 				loadBuffer(plane, prc);
 
@@ -194,8 +205,8 @@ namespace PhotoSauce.MagicScaler
 
 	internal class PlanarPixelSource : PixelSource
 	{
-		private WicPlanarCache cacheSource;
-		private WicPlane cachePlane;
+		private readonly WicPlanarCache cacheSource;
+		private readonly WicPlane cachePlane;
 
 		public PlanarPixelSource(WicPlanarCache cache, WicPlane plane, WICBitmapPlaneDescription planeDesc)
 		{

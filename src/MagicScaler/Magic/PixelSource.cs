@@ -78,8 +78,8 @@ namespace PhotoSauce.MagicScaler
 	{
 		private class PixelSourceFromIWICBitmapSource : PixelSource
 		{
-			private IWICBitmapSource realSource;
-			private string sourceName;
+			private readonly IWICBitmapSource realSource;
+			private readonly string sourceName;
 
 			public PixelSourceFromIWICBitmapSource(IWICBitmapSource source, string name, bool profile = true) : base()
 			{
@@ -99,7 +99,7 @@ namespace PhotoSauce.MagicScaler
 
 		private class PixelSourceAsIWICBitmapSource : IWICBitmapSource
 		{
-			private PixelSource source;
+			private readonly PixelSource source;
 
 			public PixelSourceAsIWICBitmapSource(PixelSource src) => source = src;
 
@@ -120,7 +120,7 @@ namespace PhotoSauce.MagicScaler
 
 		private class PixelSourceFromIPixelSource : PixelSource
 		{
-			private IPixelSource realSource;
+			private readonly IPixelSource realSource;
 
 			public PixelSourceFromIPixelSource(IPixelSource source) : base()
 			{
@@ -138,7 +138,7 @@ namespace PhotoSauce.MagicScaler
 
 		private class PixelSourceAsIPixelSource : IPixelSource
 		{
-			private PixelSource source;
+			private readonly PixelSource source;
 
 			public PixelSourceAsIPixelSource(PixelSource src) => source = src;
 

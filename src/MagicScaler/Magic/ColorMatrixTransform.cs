@@ -10,33 +10,34 @@ namespace PhotoSauce.MagicScaler
 {
 	public static class ColorMatrix
 	{
-		public static Matrix4x4 Grey     = new Matrix4x4(0.114f, 0.114f, 0.114f, 0f,
-		                                                 0.587f, 0.587f, 0.587f, 0f,
-		                                                 0.299f, 0.299f, 0.299f, 0f,
-		                                                     0f,     0f,     0f, 1f);
+		public static readonly Matrix4x4 Grey     = new Matrix4x4(0.114f, 0.114f, 0.114f, 0f,
+		                                                          0.587f, 0.587f, 0.587f, 0f,
+		                                                          0.299f, 0.299f, 0.299f, 0f,
+		                                                          0f,     0f,     0f,     1f);
 
-		public static Matrix4x4 Sepia    = new Matrix4x4(0.131f, 0.168f, 0.189f, 0f,
-		                                                 0.534f, 0.686f, 0.769f, 0f,
-		                                                 0.272f, 0.349f, 0.393f, 0f,
-		                                                     0f,     0f,     0f, 1f);
+		public static readonly Matrix4x4 Sepia    = new Matrix4x4(0.131f, 0.168f, 0.189f, 0f,
+		                                                          0.534f, 0.686f, 0.769f, 0f,
+		                                                          0.272f, 0.349f, 0.393f, 0f,
+		                                                          0f,     0f,     0f,     1f);
 
-		public static Matrix4x4 Polaroid = new Matrix4x4( 1.483f, -0.016f, -0.016f, 0f,
-		                                                 -0.122f,  1.378f, -0.122f, 0f,
-		                                                 -0.062f, -0.062f,  1.438f, 0f,
-		                                                 -0.020f,  0.050f, -0.030f, 1f);
+		public static readonly Matrix4x4 Polaroid = new Matrix4x4( 1.483f, -0.016f, -0.016f, 0f,
+		                                                          -0.122f,  1.378f, -0.122f, 0f,
+		                                                          -0.062f, -0.062f,  1.438f, 0f,
+		                                                          -0.020f,  0.050f, -0.030f, 1f);
 
-		public static Matrix4x4 Negative = new Matrix4x4(-1f,  0f,  0f, 0f,
-		                                                  0f, -1f,  0f, 0f,
-		                                                  0f,  0f, -1f, 0f,
-		                                                  1f,  1f,  1f, 1f);
+		public static readonly Matrix4x4 Negative = new Matrix4x4(-1f,  0f,  0f, 0f,
+		                                                           0f, -1f,  0f, 0f,
+		                                                           0f,  0f, -1f, 0f,
+		                                                           1f,  1f,  1f, 1f);
 	}
 
 	public sealed class ColorMatrixTransform : IPixelTransform
 	{
+		private readonly Vector4 vec0, vec1, vec2, vec3;
+		private readonly int[] matrixFixed;
+
 		private IPixelSource source;
-		private Vector4 vec0, vec1, vec2, vec3;
 		private PixelFormat format;
-		private int[] mint;
 
 		public Guid Format => source.Format;
 
@@ -51,7 +52,7 @@ namespace PhotoSauce.MagicScaler
 			vec2 = new Vector4(matrix.M13, matrix.M23, matrix.M33, matrix.M43);
 			vec3 = new Vector4(matrix.M14, matrix.M24, matrix.M34, matrix.M44);
 
-			mint = new[] {
+			matrixFixed = new[] {
 				Fix15(matrix.M11), Fix15(matrix.M21), Fix15(matrix.M31), Fix15(matrix.M41),
 				Fix15(matrix.M12), Fix15(matrix.M22), Fix15(matrix.M32), Fix15(matrix.M42),
 				Fix15(matrix.M13), Fix15(matrix.M23), Fix15(matrix.M33), Fix15(matrix.M43),
@@ -75,9 +76,9 @@ namespace PhotoSauce.MagicScaler
 		unsafe private void copyPixelsByte(Rectangle sourceArea, long cbStride, long cbBufferSize, IntPtr pbBuffer)
 		{
 			int chan = format.ChannelCount;
-			bool alpha = chan == 4 && mint[15] != UQ15One;
+			bool alpha = chan == 4 && matrixFixed[15] != UQ15One;
 
-			fixed (int* pm = &mint[0])
+			fixed (int* pm = &matrixFixed[0])
 			for (int y = 0; y < sourceArea.Height; y++)
 			{
 				byte* ip = (byte*)pbBuffer + y * cbStride, ipe = ip + sourceArea.Width * chan;
@@ -106,9 +107,9 @@ namespace PhotoSauce.MagicScaler
 		unsafe private void copyPixelsFixed(Rectangle sourceArea, long cbStride, long cbBufferSize, IntPtr pbBuffer)
 		{
 			int chan = format.ChannelCount;
-			bool alpha = chan == 4 && mint[15] != UQ15One;
+			bool alpha = chan == 4 && matrixFixed[15] != UQ15One;
 
-			fixed (int* pm = &mint[0])
+			fixed (int* pm = &matrixFixed[0])
 			for (int y = 0; y < sourceArea.Height; y++)
 			{
 				ushort* ip = (ushort*)((byte*)pbBuffer + y * cbStride), ipe = ip + sourceArea.Width * chan;
