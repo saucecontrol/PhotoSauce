@@ -1,7 +1,4 @@
-﻿using System;
-using System.Drawing;
-
-using PhotoSauce.MagicScaler.Interop;
+﻿using PhotoSauce.MagicScaler.Interop;
 
 namespace PhotoSauce.MagicScaler
 {
@@ -17,21 +14,11 @@ namespace PhotoSauce.MagicScaler
 		Rotate270 = 8
 	}
 
-	public sealed class OrientationTransform : IPixelTransformInternal
+	public sealed class OrientationTransform : PixelTransform, IPixelTransformInternal
 	{
 		private readonly Orientation orientation;
 
-		private PixelSource source;
-
-		public Guid Format => source.Format.FormatGuid;
-
-		public int Width => (int)source.Width;
-
-		public int Height => (int)source.Height;
-
 		public OrientationTransform(Orientation orientation) => this.orientation = orientation;
-
-		public void CopyPixels(Rectangle sourceArea, long cbStride, long cbBufferSize, IntPtr pbBuffer) => source.CopyPixels(sourceArea.ToWicRect(), (uint)cbStride, (uint)cbBufferSize, pbBuffer);
 
 		void IPixelTransformInternal.Init(WicProcessingContext ctx)
 		{
@@ -45,9 +32,7 @@ namespace PhotoSauce.MagicScaler
 				ctx.Source = bmp.AsPixelSource(nameof(IWICBitmap));
 			}
 
-			source = ctx.Source;
+			Source = ctx.Source;
 		}
-
-		void IPixelTransform.Init(IPixelSource source) => throw new NotImplementedException();
 	}
 }

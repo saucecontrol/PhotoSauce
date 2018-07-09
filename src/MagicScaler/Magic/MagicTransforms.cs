@@ -189,9 +189,7 @@ namespace PhotoSauce.MagicScaler
 			if (matrix == default || matrix.IsIdentity)
 				return;
 
-			var cmt = new ColorMatrixTransform(matrix);
-			cmt.Init(ctx.Source.AsIPixelSource());
-			ctx.Source = cmt.AsPixelSource();
+			ctx.Source = new ColorMatrixTransformInternal(ctx.Source, matrix);
 		}
 	}
 }

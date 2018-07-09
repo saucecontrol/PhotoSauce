@@ -69,13 +69,13 @@ namespace PhotoSauce.MagicScaler
 			{
 				int oh = prc.Height, oy = prc.Y;
 
-				prc.Height = 1;
-				int cb = (prc.Width * InFormat.BitsPerPixel + 7) / 8;
+				var irc = new WICRect { X = prc.X, Width = prc.Width, Height = 1 };
+				int cb = (irc.Width * InFormat.BitsPerPixel + 7) / 8;
 				for (int y = 0; y < oh; y++)
 				{
-					prc.Y = oy + y;
+					irc.Y = oy + y;
 					Timer.Stop();
-					Source.CopyPixels(prc, BufferStride, BufferStride, (IntPtr)bstart);
+					Source.CopyPixels(irc, BufferStride, BufferStride, (IntPtr)bstart);
 					Timer.Start();
 
 					byte* op = (byte*)pbBuffer + y * cbStride;
@@ -86,7 +86,8 @@ namespace PhotoSauce.MagicScaler
 					}
 					else if (InFormat.Colorspace == PixelColorspace.sRgb && Format.Colorspace == PixelColorspace.LinearRgb && Format.NumericRepresentation == PixelNumericRepresentation.Fixed)
 					{
-						fixed (ushort* igtstart = &SourceProfile.InverseGammaUQ15[0])
+						var lut = SourceProfile.IsLinear ? LookupTables.AlphaUQ15 : SourceProfile.InverseGammaUQ15;
+						fixed (ushort* igtstart = &lut[0])
 						{
 							if (InFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
 								mapValuesByteToUQ15LinearWithAlpha(bstart, op, igtstart, cb);
@@ -94,7 +95,7 @@ namespace PhotoSauce.MagicScaler
 								mapValuesByteToUQ15Linear(bstart, op, igtstart, cb);
 						}
 					}
-					else if (InFormat.Colorspace == PixelColorspace.LinearRgb && Format.Colorspace == PixelColorspace.sRgb && InFormat.NumericRepresentation == PixelNumericRepresentation.Fixed)
+					else if (InFormat.Colorspace == PixelColorspace.LinearRgb && Format.Colorspace == PixelColorspace.sRgb && InFormat.NumericRepresentation == PixelNumericRepresentation.Fixed && !DestProfile.IsLinear)
 					{
 						fixed (byte* gtstart = &DestProfile.Gamma[0])
 						{
@@ -108,7 +109,8 @@ namespace PhotoSauce.MagicScaler
 					}
 					else if (InFormat.Colorspace == PixelColorspace.sRgb && Format.Colorspace == PixelColorspace.LinearRgb && Format.NumericRepresentation == PixelNumericRepresentation.Float)
 					{
-						fixed (float* igtstart = &SourceProfile.InverseGammaFloat[0])
+						var lut = SourceProfile.IsLinear ? LookupTables.AlphaFloat : SourceProfile.InverseGammaFloat;
+						fixed (float* igtstart = &lut[0])
 						{
 							if (InFormat.AlphaRepresentation == PixelAlphaRepresentation.Associated)
 								mapValuesByteToFloatLinearWithAssociatedAlpha(bstart, op, igtstart, cb);
@@ -120,7 +122,7 @@ namespace PhotoSauce.MagicScaler
 								mapValuesByteToFloatLinear(bstart, op, igtstart, cb);
 						}
 					}
-					else if (InFormat.Colorspace == PixelColorspace.LinearRgb && Format.Colorspace == PixelColorspace.sRgb && InFormat.NumericRepresentation == PixelNumericRepresentation.Float)
+					else if (InFormat.Colorspace == PixelColorspace.LinearRgb && Format.Colorspace == PixelColorspace.sRgb && InFormat.NumericRepresentation == PixelNumericRepresentation.Float && !DestProfile.IsLinear)
 					{
 						fixed (byte* gtstart = &DestProfile.Gamma[0])
 						{
@@ -136,7 +138,7 @@ namespace PhotoSauce.MagicScaler
 					}
 					else if (Format.NumericRepresentation == PixelNumericRepresentation.Float)
 					{
-						if (InFormat.AlphaRepresentation == PixelAlphaRepresentation.Unassociated)
+						if (InFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
 							mapValuesByteToFloatWithAlpha(bstart, op, cb);
 						else if (InFormat.AlphaRepresentation == PixelAlphaRepresentation.None && InFormat.ChannelCount == 3 && Format.ChannelCount == 4)
 							mapValuesByteToFloatWithNullAlpha(bstart, op, cb);
@@ -145,7 +147,7 @@ namespace PhotoSauce.MagicScaler
 					}
 					else if (InFormat.NumericRepresentation == PixelNumericRepresentation.Float)
 					{
-						if (Format.AlphaRepresentation == PixelAlphaRepresentation.Unassociated)
+						if (Format.AlphaRepresentation != PixelAlphaRepresentation.None)
 							mapValuesFloatToByteWithAlpha(bstart, op, cb);
 						else if (InFormat.AlphaRepresentation == PixelAlphaRepresentation.None && InFormat.ChannelCount == 4 && Format.ChannelCount == 3)
 							mapValuesFloatWithNullAlphaToByte(bstart, op, cb);

@@ -156,6 +156,7 @@ namespace PhotoSauce.MagicScaler
 
 		private static void createBrokenImage(Stream ostm, ProcessImageSettings s)
 		{
+			s = s.Clone();
 			if (s.Width == 0 && s.Height == 0)
 				s.Height = s.Width = 100;
 

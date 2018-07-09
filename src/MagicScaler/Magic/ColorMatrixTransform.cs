@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -10,42 +9,41 @@ namespace PhotoSauce.MagicScaler
 {
 	public static class ColorMatrix
 	{
-		public static readonly Matrix4x4 Grey     = new Matrix4x4(0.114f, 0.114f, 0.114f, 0f,
-		                                                          0.587f, 0.587f, 0.587f, 0f,
-		                                                          0.299f, 0.299f, 0.299f, 0f,
-		                                                          0f,     0f,     0f,     1f);
+		public static readonly Matrix4x4 Grey = new Matrix4x4(
+			0.114f, 0.114f, 0.114f, 0f,
+			0.587f, 0.587f, 0.587f, 0f,
+			0.299f, 0.299f, 0.299f, 0f,
+			0f,     0f,     0f,     1f
+		);
 
-		public static readonly Matrix4x4 Sepia    = new Matrix4x4(0.131f, 0.168f, 0.189f, 0f,
-		                                                          0.534f, 0.686f, 0.769f, 0f,
-		                                                          0.272f, 0.349f, 0.393f, 0f,
-		                                                          0f,     0f,     0f,     1f);
+		public static readonly Matrix4x4 Sepia = new Matrix4x4(
+			0.131f, 0.168f, 0.189f, 0f,
+			0.534f, 0.686f, 0.769f, 0f,
+			0.272f, 0.349f, 0.393f, 0f,
+			0f,     0f,     0f,     1f
+		);
 
-		public static readonly Matrix4x4 Polaroid = new Matrix4x4( 1.483f, -0.016f, -0.016f, 0f,
-		                                                          -0.122f,  1.378f, -0.122f, 0f,
-		                                                          -0.062f, -0.062f,  1.438f, 0f,
-		                                                          -0.020f,  0.050f, -0.030f, 1f);
+		public static readonly Matrix4x4 Polaroid = new Matrix4x4(
+			 1.483f, -0.016f, -0.016f, 0f,
+			-0.122f,  1.378f, -0.122f, 0f,
+			-0.062f, -0.062f,  1.438f, 0f,
+			-0.020f,  0.050f, -0.030f, 1f
+		);
 
-		public static readonly Matrix4x4 Negative = new Matrix4x4(-1f,  0f,  0f, 0f,
-		                                                           0f, -1f,  0f, 0f,
-		                                                           0f,  0f, -1f, 0f,
-		                                                           1f,  1f,  1f, 1f);
+		public static readonly Matrix4x4 Negative = new Matrix4x4(
+			-1f,  0f,  0f, 0f,
+			 0f, -1f,  0f, 0f,
+			 0f,  0f, -1f, 0f,
+			 1f,  1f,  1f, 1f
+		);
 	}
 
-	public sealed class ColorMatrixTransform : IPixelTransform
+	internal class ColorMatrixTransformInternal: PixelSource
 	{
 		private readonly Vector4 vec0, vec1, vec2, vec3;
 		private readonly int[] matrixFixed;
 
-		private IPixelSource source;
-		private PixelFormat format;
-
-		public Guid Format => source.Format;
-
-		public int Width => source.Width;
-
-		public int Height => source.Height;
-
-		public ColorMatrixTransform(Matrix4x4 matrix)
+		public ColorMatrixTransformInternal(PixelSource source, Matrix4x4 matrix) : base(source)
 		{
 			vec0 = new Vector4(matrix.M11, matrix.M21, matrix.M31, matrix.M41);
 			vec1 = new Vector4(matrix.M12, matrix.M22, matrix.M32, matrix.M42);
@@ -60,28 +58,29 @@ namespace PhotoSauce.MagicScaler
 			};
 		}
 
-		unsafe public void CopyPixels(Rectangle sourceArea, long cbStride, long cbBufferSize, IntPtr pbBuffer)
+		unsafe protected override void CopyPixelsInternal(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
+			Timer.Stop();
+			Source.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
+			Timer.Start();
 
-			source.CopyPixels(sourceArea, cbStride, cbBufferSize, pbBuffer);
-
-			if (format.NumericRepresentation == PixelNumericRepresentation.Float)
-				copyPixelsFloat(sourceArea, cbStride, cbBufferSize, pbBuffer);
-			else if (format.NumericRepresentation == PixelNumericRepresentation.Fixed)
-				copyPixelsFixed(sourceArea, cbStride, cbBufferSize, pbBuffer);
+			if (Format.NumericRepresentation == PixelNumericRepresentation.Float)
+				copyPixelsFloat(prc, cbStride, cbBufferSize, pbBuffer);
+			else if (Format.NumericRepresentation == PixelNumericRepresentation.Fixed)
+				copyPixelsFixed(prc, cbStride, cbBufferSize, pbBuffer);
 			else
-				copyPixelsByte(sourceArea, cbStride, cbBufferSize, pbBuffer);
+				copyPixelsByte(prc, cbStride, cbBufferSize, pbBuffer);
 		}
 
-		unsafe private void copyPixelsByte(Rectangle sourceArea, long cbStride, long cbBufferSize, IntPtr pbBuffer)
+		unsafe private void copyPixelsByte(WICRect prc, long cbStride, long cbBufferSize, IntPtr pbBuffer)
 		{
-			int chan = format.ChannelCount;
+			int chan = Format.ChannelCount;
 			bool alpha = chan == 4 && matrixFixed[15] != UQ15One;
 
 			fixed (int* pm = &matrixFixed[0])
-			for (int y = 0; y < sourceArea.Height; y++)
+			for (int y = 0; y < prc.Height; y++)
 			{
-				byte* ip = (byte*)pbBuffer + y * cbStride, ipe = ip + sourceArea.Width * chan;
+				byte* ip = (byte*)pbBuffer + y * cbStride, ipe = ip + prc.Width * chan;
 				while (ip < ipe)
 				{
 					int i0 = ip[0];
@@ -104,15 +103,15 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private void copyPixelsFixed(Rectangle sourceArea, long cbStride, long cbBufferSize, IntPtr pbBuffer)
+		unsafe private void copyPixelsFixed(WICRect prc, long cbStride, long cbBufferSize, IntPtr pbBuffer)
 		{
-			int chan = format.ChannelCount;
+			int chan = Format.ChannelCount;
 			bool alpha = chan == 4 && matrixFixed[15] != UQ15One;
 
 			fixed (int* pm = &matrixFixed[0])
-			for (int y = 0; y < sourceArea.Height; y++)
+			for (int y = 0; y < prc.Height; y++)
 			{
-				ushort* ip = (ushort*)((byte*)pbBuffer + y * cbStride), ipe = ip + sourceArea.Width * chan;
+				ushort* ip = (ushort*)((byte*)pbBuffer + y * cbStride), ipe = ip + prc.Width * chan;
 				while (ip < ipe)
 				{
 					int i0 = ip[0];
@@ -135,16 +134,16 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private void copyPixelsFloat(Rectangle sourceArea, long cbStride, long cbBufferSize, IntPtr pbBuffer)
+		unsafe private void copyPixelsFloat(WICRect prc, long cbStride, long cbBufferSize, IntPtr pbBuffer)
 		{
 			Vector4 vb = vec0, vg = vec1, vr = vec2, va = vec3;
 			float falpha = va.W, fone = Vector4.One.X;
-			int chan = format.ChannelCount;
-			bool alpha = format.AlphaRepresentation != PixelAlphaRepresentation.None;
+			int chan = Format.ChannelCount;
+			bool alpha = Format.AlphaRepresentation != PixelAlphaRepresentation.None;
 
-			for (int y = 0; y < sourceArea.Height; y++)
+			for (int y = 0; y < prc.Height; y++)
 			{
-				float* ip = (float*)((byte*)pbBuffer + y * cbStride), ipe = ip + sourceArea.Width * chan;
+				float* ip = (float*)((byte*)pbBuffer + y * cbStride), ipe = ip + prc.Width * chan;
 				while (ip < ipe)
 				{
 					var v = Unsafe.Read<Vector4>(ip);
@@ -165,17 +164,24 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 		}
+	}
 
-		public void Init(IPixelSource source)
+	public sealed class ColorMatrixTransform : PixelTransform, IPixelTransformInternal
+	{
+		private readonly Matrix4x4 matrix;
+
+		public ColorMatrixTransform(Matrix4x4 matrix) => this.matrix = matrix;
+
+		void IPixelTransformInternal.Init(WicProcessingContext ctx)
 		{
-			if (source.Format != Consts.GUID_WICPixelFormat24bppBGR && source.Format != Consts.GUID_WICPixelFormat32bppBGRA && source.Format != Consts.GUID_WICPixelFormat32bppPBGRA
-				&& source.Format != PixelFormat.Bgr48BppLinearUQ15.FormatGuid && source.Format != PixelFormat.Bgra64BppLinearUQ15.FormatGuid && source.Format != PixelFormat.Pbgra64BppLinearUQ15.FormatGuid
-				&& source.Format != PixelFormat.Bgrx128BppFloat.FormatGuid && source.Format != PixelFormat.Bgrx128BppLinearFloat.FormatGuid
-				&& source.Format != PixelFormat.Pbgra128BppFloat.FormatGuid && source.Format != PixelFormat.Bgra128BppLinearFloat.FormatGuid && source.Format != PixelFormat.Pbgra128BppLinearFloat.FormatGuid
-			) throw new NotSupportedException("Pixel format must be BGR or BGRA");
+			var fmt = ctx.Source.Format;
+			if (fmt.ColorRepresentation != PixelColorRepresentation.Bgr || (fmt.NumericRepresentation == PixelNumericRepresentation.Float && fmt.ChannelCount != 4))
+				throw new NotSupportedException("Pixel format must be BGR or BGRA");
 
-			this.source = source;
-			format = PixelFormat.Cache[source.Format];
+			if (matrix != default && !matrix.IsIdentity)
+				ctx.Source = new ColorMatrixTransformInternal(ctx.Source, matrix);
+
+			Source = ctx.Source;
 		}
 	}
 }
