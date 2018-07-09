@@ -161,6 +161,8 @@ namespace PhotoSauce.MagicScaler
 			if (ctx.Settings.InnerRect == ctx.Settings.OuterRect)
 				return;
 
+			AddExternalFormatConverter(ctx);
+
 			ctx.Source = new PadTransform(ctx.Source, ctx.Settings.MatteColor, ctx.Settings.InnerRect, ctx.Settings.OuterRect);
 		}
 

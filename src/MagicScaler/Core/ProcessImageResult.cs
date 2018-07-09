@@ -28,7 +28,11 @@ namespace PhotoSauce.MagicScaler
 		internal ProcessingPipeline(WicProcessingContext ctx)
 		{
 			Context = ctx;
-			source = new Lazy<IPixelSource>(() => Context.Source.AsIPixelSource());
+			source = new Lazy<IPixelSource>(() => {
+				MagicTransforms.AddExternalFormatConverter(Context);
+
+				return Context.Source.AsIPixelSource();
+			});
 		}
 
 		public IPixelSource PixelSource => source.Value;
@@ -45,6 +49,8 @@ namespace PhotoSauce.MagicScaler
 				tint.Init(Context);
 				return;
 			}
+
+			MagicTransforms.AddExternalFormatConverter(Context);
 
 			transform.Init(Context.Source.AsIPixelSource());
 			Context.Source = transform.AsPixelSource();

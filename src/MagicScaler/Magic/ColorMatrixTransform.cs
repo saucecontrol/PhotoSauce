@@ -174,6 +174,8 @@ namespace PhotoSauce.MagicScaler
 
 		void IPixelTransformInternal.Init(WicProcessingContext ctx)
 		{
+			MagicTransforms.AddExternalFormatConverter(ctx);
+
 			var fmt = ctx.Source.Format;
 			if (fmt.ColorRepresentation != PixelColorRepresentation.Bgr || (fmt.NumericRepresentation == PixelNumericRepresentation.Float && fmt.ChannelCount != 4))
 				throw new NotSupportedException("Pixel format must be BGR or BGRA");

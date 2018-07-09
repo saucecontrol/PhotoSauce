@@ -167,7 +167,6 @@ namespace PhotoSauce.MagicScaler
 				{
 					WicTransforms.AddPlanarConverter(ctx);
 					MagicTransforms.AddColorspaceConverter(ctx);
-					MagicTransforms.AddExternalFormatConverter(ctx);
 					MagicTransforms.AddPad(ctx);
 				}
 			}
@@ -184,13 +183,13 @@ namespace PhotoSauce.MagicScaler
 				MagicTransforms.AddColorspaceConverter(ctx);
 				MagicTransforms.AddMatte(ctx);
 				MagicTransforms.AddUnsharpMask(ctx);
-				MagicTransforms.AddExternalFormatConverter(ctx);
 				MagicTransforms.AddPad(ctx);
 			}
 		}
 
 		private static ProcessImageResult executePipeline(WicProcessingContext ctx, Stream ostm)
 		{
+			MagicTransforms.AddExternalFormatConverter(ctx);
 			WicTransforms.AddIndexedColorConverter(ctx);
 
 			var enc = new WicEncoder(ctx, ostm.AsIStream());
