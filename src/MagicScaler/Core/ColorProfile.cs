@@ -128,7 +128,7 @@ namespace PhotoSauce.MagicScaler
 			setLuts(gt, igtf, igtq);
 		}
 
-		private void lutsFromPoints(ReadOnlySpan<ushort> points)
+		private void lutsFromPoints(Span<ushort> points, bool inverse)
 		{
 			float div = 1f / ushort.MaxValue;
 			int buffLen = points.Length * sizeof(float);
@@ -166,6 +166,9 @@ namespace PhotoSauce.MagicScaler
 				return;
 			}
 
+			if (inverse)
+				points.Reverse();
+
 			float scale = (float)ushort.MaxValue / UQ15One;
 			var gt = new byte[UQ15One + 1];
 
@@ -194,6 +197,9 @@ namespace PhotoSauce.MagicScaler
 
 				gt[i] = FixToByte(pos / (points.Length - 1));
 			}
+
+			if (inverse)
+				Array.Reverse(gt);
 
 			setLuts(gt, igtf, igtq);
 		}
@@ -283,17 +289,17 @@ namespace PhotoSauce.MagicScaler
 			if (tag != IccTypes.XYZ || !hdr.SequenceEqual(gXYZ.Slice(0, 8)) || !hdr.SequenceEqual(rXYZ.Slice(0, 8)))
 				return false;
 
-			uint bx = ReadUInt32BigEndian(bXYZ.Slice(8));
-			uint gx = ReadUInt32BigEndian(gXYZ.Slice(8));
-			uint rx = ReadUInt32BigEndian(rXYZ.Slice(8));
+			int bx = ReadInt32BigEndian(bXYZ.Slice(8));
+			int gx = ReadInt32BigEndian(gXYZ.Slice(8));
+			int rx = ReadInt32BigEndian(rXYZ.Slice(8));
 
-			uint by = ReadUInt32BigEndian(bXYZ.Slice(12));
-			uint gy = ReadUInt32BigEndian(gXYZ.Slice(12));
-			uint ry = ReadUInt32BigEndian(rXYZ.Slice(12));
+			int by = ReadInt32BigEndian(bXYZ.Slice(12));
+			int gy = ReadInt32BigEndian(gXYZ.Slice(12));
+			int ry = ReadInt32BigEndian(rXYZ.Slice(12));
 
-			uint bz = ReadUInt32BigEndian(bXYZ.Slice(16));
-			uint gz = ReadUInt32BigEndian(gXYZ.Slice(16));
-			uint rz = ReadUInt32BigEndian(rXYZ.Slice(16));
+			int bz = ReadInt32BigEndian(bXYZ.Slice(16));
+			int gz = ReadInt32BigEndian(gXYZ.Slice(16));
+			int rz = ReadInt32BigEndian(rXYZ.Slice(16));
 
 			float div = 1f / 65536f;
 			Matrix = new Matrix4x4(
@@ -369,10 +375,23 @@ namespace PhotoSauce.MagicScaler
 					var buff = ArrayPool<byte>.Shared.Rent(buffLen);
 					var points = MemoryMarshal.Cast<byte, ushort>(new Span<byte>(buff, 0, buffLen));
 
+					ushort pp = 0;
+					bool inc = true, dec = true;
 					for (int i = 0; i < points.Length; i++)
-						points[i] = ReadUInt16BigEndian(trc.Slice(12 + i * sizeof(ushort)));
+					{
+						ushort p = ReadUInt16BigEndian(trc.Slice(12 + i * sizeof(ushort)));
 
-					lutsFromPoints(points);
+						if (i > 0 && p < pp)
+							inc = false;
+						if (i > 0 && p > pp)
+							dec = false;
+						if (!inc && !dec)
+							return false;
+
+						points[i] = pp = p;
+					}
+
+					lutsFromPoints(points, dec);
 					ArrayPool<byte>.Shared.Return(buff);
 				}
 			}
