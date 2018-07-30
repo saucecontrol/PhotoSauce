@@ -116,7 +116,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				float f = PowF((float)i / byte.MaxValue, gamma);
 				igtf[i] = f;
-				igtq[i] = FixToUQ15(f);
+				igtq[i] = FixToUQ15One(f);
 			}
 
 			gamma = 1f / gamma;
@@ -156,7 +156,7 @@ namespace PhotoSauce.MagicScaler
 					val = Lerp(val, curve[idx + 1], rem * cscal);
 
 				igtf[i] = val;
-				igtq[i] = FixToUQ15(val);
+				igtq[i] = FixToUQ15One(val);
 			}
 
 			ArrayPool<byte>.Shared.Return(buff);
@@ -229,7 +229,7 @@ namespace PhotoSauce.MagicScaler
 					val = val * c + f;
 
 				igtf[i] = val;
-				igtq[i] = FixToUQ15(val);
+				igtq[i] = FixToUQ15One(val);
 			}
 
 			g = 1f / g;

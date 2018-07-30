@@ -23,9 +23,9 @@ namespace PhotoSauce.MagicScaler
 				else if (ifmt == Consts.GUID_WICPixelFormat24bppBGR)
 					ofmt = linear ? PixelFormat.Bgrx128BppLinearFloat.FormatGuid : PixelFormat.Bgrx128BppFloat.FormatGuid;
 				else if (ifmt == Consts.GUID_WICPixelFormat32bppBGRA)
-					ofmt = linear ? PixelFormat.Bgra128BppLinearFloat.FormatGuid : PixelFormat.Pbgra128BppFloat.FormatGuid;
-				else if (ifmt == Consts.GUID_WICPixelFormat32bppPBGRA)
 					ofmt = linear ? PixelFormat.Pbgra128BppLinearFloat.FormatGuid : PixelFormat.Pbgra128BppFloat.FormatGuid;
+				else if (ifmt == Consts.GUID_WICPixelFormat32bppPBGRA)
+					ofmt = PixelFormat.Pbgra128BppFloat.FormatGuid;
 				else if (ifmt == Consts.GUID_WICPixelFormat16bppCbCr)
 					ofmt = PixelFormat.CbCr64BppFloat.FormatGuid;
 			}
@@ -38,8 +38,6 @@ namespace PhotoSauce.MagicScaler
 				else if (ifmt == Consts.GUID_WICPixelFormat24bppBGR)
 					ofmt = PixelFormat.Bgr48BppLinearUQ15.FormatGuid;
 				else if (ifmt == Consts.GUID_WICPixelFormat32bppBGRA)
-					ofmt = PixelFormat.Bgra64BppLinearUQ15.FormatGuid;
-				else if (ifmt == Consts.GUID_WICPixelFormat32bppPBGRA)
 					ofmt = PixelFormat.Pbgra64BppLinearUQ15.FormatGuid;
 			}
 
@@ -62,7 +60,7 @@ namespace PhotoSauce.MagicScaler
 				ofmt = Consts.GUID_WICPixelFormat8bppY;
 			else if (ifmt == PixelFormat.Bgrx128BppFloat.FormatGuid || ifmt == PixelFormat.Bgrx128BppLinearFloat.FormatGuid || ifmt == PixelFormat.Bgr96BppFloat.FormatGuid || ifmt == PixelFormat.Bgr96BppLinearFloat.FormatGuid || ifmt == PixelFormat.Bgr48BppLinearUQ15.FormatGuid)
 				ofmt = Consts.GUID_WICPixelFormat24bppBGR;
-			else if (ifmt == PixelFormat.Pbgra128BppFloat.FormatGuid || ifmt == PixelFormat.Bgra128BppLinearFloat.FormatGuid || ifmt == PixelFormat.Pbgra128BppLinearFloat.FormatGuid || ifmt == PixelFormat.Bgra64BppLinearUQ15.FormatGuid || ifmt == PixelFormat.Pbgra64BppLinearUQ15.FormatGuid)
+			else if (ifmt == PixelFormat.Pbgra128BppFloat.FormatGuid || ifmt == PixelFormat.Pbgra128BppLinearFloat.FormatGuid || ifmt == PixelFormat.Pbgra64BppLinearUQ15.FormatGuid)
 				ofmt = Consts.GUID_WICPixelFormat32bppBGRA;
 			else if (ifmt == PixelFormat.CbCr64BppFloat.FormatGuid)
 				ofmt = Consts.GUID_WICPixelFormat16bppCbCr;

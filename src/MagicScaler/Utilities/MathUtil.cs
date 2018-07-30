@@ -53,7 +53,13 @@ namespace PhotoSauce.MagicScaler
 		public static Vector<T> Clamp<T>(this Vector<T> x, Vector<T> min, Vector<T> max) where T : unmanaged => Vector.Min(Vector.Max(min, x), max);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ushort ClampToUQ15(int x) => (ushort)Min(Max(0, x), UQ15One);
+		public static ushort ClampToUQ15(int x) => (ushort)Min(Max(0, x), UQ15Max);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ushort ClampToUQ15One(int x) => (ushort)Min(Max(0, x), UQ15One);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ushort ClampToUQ15One(ushort x) => Min(x, UQ15One);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte ClampToByte(int x) => (byte)Min(Max(0, x), byte.MaxValue);
@@ -69,10 +75,10 @@ namespace PhotoSauce.MagicScaler
 #endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ushort FixToUQ15(double x) => ClampToUQ15((int)(x * dscale + dround));
+		public static ushort FixToUQ15One(double x) => ClampToUQ15One((int)(x * dscale + dround));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ushort FixToUQ15(float x) => ClampToUQ15((int)(x * fscale + fround));
+		public static ushort FixToUQ15One(float x) => ClampToUQ15One((int)(x * fscale + fround));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte FixToByte(double x) => ClampToByte((int)(x * byte.MaxValue + dround));
@@ -91,6 +97,9 @@ namespace PhotoSauce.MagicScaler
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ushort UnFixToUQ15(int x) => ClampToUQ15(UnFix15(x));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ushort UnFixToUQ15One(int x) => ClampToUQ15One(UnFix15(x));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte UnFix15ToByte(int x) => ClampToByte(UnFix15(x));

@@ -235,7 +235,7 @@ namespace PhotoSauce.MagicScaler
 				ctx.Source = trans.AsPixelSource(nameof(IWICColorTransform));
 		}
 
-		public static void AddPixelFormatConverter(WicProcessingContext ctx)
+		public static void AddPixelFormatConverter(WicProcessingContext ctx, bool allowPbgra = true)
 		{
 			var curFormat = ctx.Source.Format;
 			if (curFormat.ColorRepresentation == PixelColorRepresentation.Cmyk)
@@ -259,8 +259,10 @@ namespace PhotoSauce.MagicScaler
 			}
 
 			var newFormat = PixelFormat.Cache[Consts.GUID_WICPixelFormat24bppBGR];
-			if (curFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
-				newFormat = curFormat.AlphaRepresentation == PixelAlphaRepresentation.Associated ? PixelFormat.Cache[Consts.GUID_WICPixelFormat32bppPBGRA] : PixelFormat.Cache[Consts.GUID_WICPixelFormat32bppBGRA];
+			if (curFormat.AlphaRepresentation == PixelAlphaRepresentation.Associated && allowPbgra && ctx.Settings.BlendingMode != GammaMode.Linear && ctx.Settings.MatteColor.IsEmpty)
+				newFormat = PixelFormat.Cache[Consts.GUID_WICPixelFormat32bppPBGRA];
+			else if (curFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
+				newFormat = PixelFormat.Cache[Consts.GUID_WICPixelFormat32bppBGRA];
 			else if (curFormat.ColorRepresentation == PixelColorRepresentation.Grey)
 				newFormat = PixelFormat.Cache[Consts.GUID_WICPixelFormat8bppGray];
 

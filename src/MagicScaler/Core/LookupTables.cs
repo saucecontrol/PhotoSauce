@@ -16,7 +16,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				double d = i * ascale;
 				atf[i] = (float)d;
-				atq[i] = FixToUQ15(d);
+				atq[i] = FixToUQ15One(d);
 			}
 
 			return Tuple.Create(atf, atq);
@@ -52,7 +52,7 @@ namespace PhotoSauce.MagicScaler
 					d = Pow(((d + 0.055) / 1.055), 2.4);
 
 				igtf[i] = (float)d;
-				igtq[i] = FixToUQ15(d);
+				igtq[i] = FixToUQ15One(d);
 			}
 
 			return Tuple.Create(igtf, igtq);

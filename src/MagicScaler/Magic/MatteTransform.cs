@@ -10,20 +10,46 @@ using System.Drawing.Temp;
 using PhotoSauce.MagicScaler.Interop;
 using static PhotoSauce.MagicScaler.MathUtil;
 
+using VectorF = System.Numerics.Vector<float>;
+
 namespace PhotoSauce.MagicScaler
 {
 	internal class MatteTransform : PixelSource
 	{
-		private readonly byte maskRed, maskGreen, maskBlue;
+		private readonly ushort maskB, maskG, maskR, maskA;
+		private readonly uint maskValue32;
+		private readonly ulong maskValue64;
+		private readonly VectorF vmatte;
+		private readonly Vector<int> vmask0, vmask1;
 
-		public MatteTransform(PixelSource source, Color color) : base(source)
+		unsafe public MatteTransform(PixelSource source, Color color) : base(source)
 		{
 			if (Format.ColorRepresentation != PixelColorRepresentation.Bgr || Format.AlphaRepresentation == PixelAlphaRepresentation.None)
 				throw new NotSupportedException("Pixel format not supported.  Must be BGRA");
 
-			maskRed = color.R;
-			maskGreen = color.G;
-			maskBlue = color.B;
+			var igtq = LookupTables.SrgbInverseGammaUQ15;
+			var atq = LookupTables.AlphaUQ15;
+
+			maskB = igtq[color.B];
+			maskG = igtq[color.G];
+			maskR = igtq[color.R];
+			maskA = atq[color.A];
+
+			maskValue32 = (uint)color.ToArgb();
+			maskValue64 = ((ulong)maskA << 48) | ((ulong)UnFix15(maskR * maskA) << 32) | ((ulong)UnFix15(maskG * maskA) << 16) | (ushort)UnFix15(maskB * maskA);
+
+			var igtf = LookupTables.SrgbInverseGammaFloat;
+			var atf = LookupTables.AlphaFloat;
+
+			float mr = igtf[color.R], mg = igtf[color.G], mb = igtf[color.B], maa = atf[color.A];
+
+			int* m0 = stackalloc int[] { -1, -1, -1, -1, 0, 0, 0, 0 };
+			int* m1 = stackalloc int[] { -1, -1, -1, 0, -1, -1, -1, 0 };
+			float* mat = stackalloc float[] { mb, mg, mr, 1f, mb, mg, mr, 1f };
+
+			vmask0 = Unsafe.Read<Vector<int>>(m0);
+			vmask1 = Unsafe.Read<Vector<int>>(m1);
+			vmatte = Unsafe.Read<VectorF>(mat) * new VectorF(maa);
 		}
 
 		unsafe protected override void CopyPixelsInternal(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
@@ -32,33 +58,33 @@ namespace PhotoSauce.MagicScaler
 			Source.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
 			Timer.Start();
 
-			if (Format == PixelFormat.Bgra128BppLinearFloat || Format == PixelFormat.Pbgra128BppLinearFloat)
+			if (Format == PixelFormat.Pbgra128BppLinearFloat)
 				applyMatteLinearFloat(prc, (float*)pbBuffer, (int)(cbStride / sizeof(float)));
-			else if (Format == PixelFormat.Bgra64BppLinearUQ15 || Format == PixelFormat.Pbgra64BppLinearUQ15)
-				applyMatteLinear(prc, (ushort*)pbBuffer, (int)(cbStride / sizeof(ushort)), Format.AlphaRepresentation == PixelAlphaRepresentation.Associated);
-			else if (Format.FormatGuid == Consts.GUID_WICPixelFormat32bppBGRA || Format.FormatGuid == Consts.GUID_WICPixelFormat32bppPBGRA)
-				applyMatteCompressed(prc, (byte*)pbBuffer, (int)cbStride, Format.AlphaRepresentation == PixelAlphaRepresentation.Associated);
+			else if (Format == PixelFormat.Pbgra64BppLinearUQ15)
+				applyMatteLinear(prc, (ushort*)pbBuffer, (int)(cbStride / sizeof(ushort)));
+			else if (Format.FormatGuid == Consts.GUID_WICPixelFormat32bppBGRA)
+				applyMatteCompanded(prc, (byte*)pbBuffer, (int)cbStride);
+			else
+				throw new NotSupportedException("Pixel format not supported.");
 		}
 
 		unsafe private void applyMatteLinearFloat(WICRect prc, float* pixels, int stride)
 		{
-			var igt = LookupTables.SrgbInverseGammaFloat;
-			float mrl = igt[maskRed], mgl = igt[maskGreen], mbl = igt[maskBlue];
-
-			var v1 = new Vector<float>(1f);
-			var vmat = new Vector<float>(new[] { mbl, mgl, mrl, 1f, mbl, mgl, mrl, 1f });
-			var vm0 = new Vector<int>(new[] { -1, -1, -1, -1,  0,  0,  0,  0 });
-			var vm1 = new Vector<int>(new[] { -1, -1, -1,  0, -1, -1, -1,  0 });
+			var v1 = VectorF.One;
+			var vm0 = vmask0;
+			var vm1 = vmask1;
+			var vmat = vmatte;
+			float fb = vmat[0], fg = vmat[1], fr = vmat[2], fa = vmat[3];
 
 			for (int y = 0; y < prc.Height; y++)
 			{
 				float* ip = pixels + y * stride;
-				float* ipe = ip + prc.Width * 4 - Vector<float>.Count;
+				float* ipe = ip + prc.Width * 4 - VectorF.Count;
 
 				while (ip <= ipe)
 				{
-					var vi = Unsafe.Read<Vector<float>>(ip);
-					float ia0 = vi[3], ia1 = Vector<float>.Count == 8 ? vi[7] : ia0;
+					var vi = Unsafe.Read<VectorF>(ip);
+					float ia0 = vi[3], ia1 = VectorF.Count == 8 ? vi[7] : ia0;
 
 					if (ia0 == 0 && ia1 == 0)
 					{
@@ -66,41 +92,43 @@ namespace PhotoSauce.MagicScaler
 					}
 					else if (ia0 < 1f || ia1 < 1f)
 					{
-						var vpa = Vector.ConditionalSelect(vm0, new Vector<float>(ia0), new Vector<float>(ia1));
-						var vma = v1 - vpa;
+						var vpa = new VectorF(ia0);
+						if (VectorF.Count == 8)
+							vpa = Vector.ConditionalSelect(vm0, vpa, new VectorF(ia1));
 
-						var vr = vi + vmat * vma;
-						var vo = Vector.ConditionalSelect(vm1, vr, v1);
+						var vma = vmat * (v1 - vpa);
+
+						var vr = vi + vma;
+						var vo = Vector.ConditionalSelect(vm1, vr, vma + vpa);
 						Unsafe.Write(ip, vo);
 					}
 
-					ip += Vector<float>.Count;
+					ip += VectorF.Count;
 				}
 
-				ipe += Vector<float>.Count;
+				ipe += VectorF.Count;
 				while (ip < ipe)
 				{
-					float ib = ip[0], ig = ip[1], ir = ip[2], ia = ip[3], ma = 1f - ia;
+					float ib = ip[0], ig = ip[1], ir = ip[2], ia = ip[3], ma = fa * (1f - ia);
 
-					ib += mbl * ma;
-					ig += mgl * ma;
-					ir += mrl * ma;
+					ib += fb * ma;
+					ig += fg * ma;
+					ir += fr * ma;
+					ia += ma;
 
 					ip[0] = ib;
 					ip[1] = ig;
 					ip[2] = ir;
-					ip[3] = 1f;
+					ip[3] = ia;
 
 					ip += 4;
 				}
 			}
 		}
 
-		unsafe private void applyMatteLinear(WICRect prc, ushort* pixels, int stride, bool premul)
+		unsafe private void applyMatteLinear(WICRect prc, ushort* pixels, int stride)
 		{
 			const ushort maxalpha = UQ15One;
-			var igt = LookupTables.SrgbInverseGammaUQ15;
-			ushort mrl = igt[maskRed], mgl = igt[maskGreen], mbl = igt[maskBlue];
 
 			for (int y = 0; y < prc.Height; y++)
 			{
@@ -112,27 +140,24 @@ namespace PhotoSauce.MagicScaler
 					int alpha = ip[3];
 					if (alpha == 0)
 					{
-						ip[0] = mbl;
-						ip[1] = mgl;
-						ip[2] = mrl;
-						ip[3] = maxalpha;
+						*(ulong*)ip = maskValue64;
 					}
 					else if (alpha < maxalpha)
 					{
-						int ia = alpha, ma = maxalpha - ia;
-						ushort ib = ip[0];
-						ushort ig = ip[1];
-						ushort ir = ip[2];
-						if (premul) ia = UQ15One;
+						int ia = alpha, ma = UnFix15(maskA * (UQ15One - ia));
+						int ib = ip[0];
+						int ig = ip[1];
+						int ir = ip[2];
 
-						ib = UnFixToUQ15(ib * ia + mbl * ma);
-						ig = UnFixToUQ15(ig * ia + mgl * ma);
-						ir = UnFixToUQ15(ir * ia + mrl * ma);
+						ib += UnFix15(maskB * ma);
+						ig += UnFix15(maskG * ma);
+						ir += UnFix15(maskR * ma);
+						ia += ma;
 
-						ip[0] = ib;
-						ip[1] = ig;
-						ip[2] = ir;
-						ip[3] = maxalpha;
+						ip[0] = ClampToUQ15(ib);
+						ip[1] = ClampToUQ15(ig);
+						ip[2] = ClampToUQ15(ir);
+						ip[3] = ClampToUQ15(ia);
 					}
 
 					ip += 4;
@@ -140,7 +165,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private void applyMatteCompressed(WICRect prc, byte* pixels, int stride, bool premul)
+		unsafe private void applyMatteCompanded(WICRect prc, byte* pixels, int stride)
 		{
 			const byte maxalpha = byte.MaxValue;
 
@@ -149,7 +174,6 @@ namespace PhotoSauce.MagicScaler
 			{
 				byte* gt = gtstart;
 				ushort* igt = igtstart, at = atstart;
-				ushort mrl = igt[maskRed], mgl = igt[maskGreen], mbl = igt[maskBlue];
 
 				for (int y = 0; y < prc.Height; y++)
 				{
@@ -161,27 +185,34 @@ namespace PhotoSauce.MagicScaler
 						int alpha = ip[3];
 						if (alpha == 0)
 						{
-							ip[0] = maskBlue;
-							ip[1] = maskGreen;
-							ip[2] = maskRed;
-							ip[3] = maxalpha;
+							*(uint*)ip = maskValue32;
 						}
 						else if (alpha < maxalpha)
 						{
-							int ia = at[alpha], ma = UQ15One - ia;
+							int ia =  at[alpha];
 							int ib = igt[ip[0]];
 							int ig = igt[ip[1]];
 							int ir = igt[ip[2]];
-							if (premul) ia = UQ15One;
 
-							ib = UnFixToUQ15(ib * ia + mbl * ma);
-							ig = UnFixToUQ15(ig * ia + mgl * ma);
-							ir = UnFixToUQ15(ir * ia + mrl * ma);
+							int ma = UnFix15(maskA * (UQ15One - ia));
+							ib = UnFix15(ib * ia + maskB * ma);
+							ig = UnFix15(ig * ia + maskG * ma);
+							ir = UnFix15(ir * ia + maskR * ma);
+							ia += ma;
+
+							int fa = (UQ15One << 15) / ia;
+							ib = UnFix15(ib * fa);
+							ig = UnFix15(ig * fa);
+							ir = UnFix15(ir * fa);
+
+							ib = ClampToUQ15One(ib);
+							ig = ClampToUQ15One(ig);
+							ir = ClampToUQ15One(ir);
 
 							ip[0] = gt[ib];
 							ip[1] = gt[ig];
 							ip[2] = gt[ir];
-							ip[3] = maxalpha;
+							ip[3] = UnFix15ToByte(ia * maxalpha);
 						}
 
 						ip += 4;

@@ -168,7 +168,7 @@ namespace PhotoSauce.MagicScaler
 			float* ipe = ip + ow * Channels;
 
 			var vmin = Vector4.Zero;
-			var vamt = new Vector4(famt, famt, famt, 0f);
+			var vamt = new Vector4(famt);
 
 			while (ip < ipe)
 			{

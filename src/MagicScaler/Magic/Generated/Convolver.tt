@@ -18,18 +18,6 @@ procDef[] ta = {
 		yUnroll = 2
 	},
 	new procDef {
-		name = "Bgra",
-		suffix = "UQ15",
-		channels = 4,
-		alpha = true,
-		sharpen = true,
-		pixelType = "ushort",
-		interType = "int",
-		weighType = "int",
-		xUnroll = 4,
-		yUnroll = 2
-	},
-	new procDef {
 		name = "4Chan",
 		suffix = "Byte",
 		channels = 4,
@@ -483,11 +471,21 @@ WriteLine(null);
 				<#= t.pixelType #><# for (int j = 0; j < t.channels; j++) { #><#= j > 0 ? "," : "" #> c<#= j #> = ip[<#= j #>]<# } #>;
 				if (threshold == 0 || Math.Abs(dif) > threshold)
 				{
+<#
+if (t.pixelType == "ushort") {
+	for (int j = 0; j < t.channels - (t.alpha || t.channels == 4 ? 1 : 0); j++) {
+#>
+					c<#= j #> = gt[ClampToUQ15One(c<#= j #>)];
+<#
+	}
+	WriteLine(null);
+}
+#>
 					dif = UnFix15(dif * iamt);
 <#
 for (int j = 0; j < t.channels - (t.alpha || t.channels == 4 ? 1 : 0); j++) {
 #>
-					op[<#= j #>] = <#= t.pixelType == "ushort" ? "igt[" : "" #>ClampToByte(<#= t.pixelType == "ushort" ? "gt[" : "" #>c<#= j #><#= t.pixelType == "ushort" ? "]" : "" #> + dif)<#= t.pixelType == "ushort" ? "]" : "" #>;
+					op[<#= j #>] = <#= t.pixelType == "ushort" ? "igt[" : "" #>ClampToByte(c<#= j #> + dif)<#= t.pixelType == "ushort" ? "]" : "" #>;
 <#
 }
 if (t.alpha || t.channels == 4) {

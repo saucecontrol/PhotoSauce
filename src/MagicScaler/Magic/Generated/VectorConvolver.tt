@@ -338,7 +338,7 @@ if (t.channels == 1) {
 }
 if (t.colors == 4) {
 #>
-			var vamt = new Vector4(famt, famt, famt, 0f);
+			var vamt = new Vector4(famt);
 <#
 }
 #>

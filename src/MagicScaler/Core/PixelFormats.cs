@@ -144,17 +144,6 @@ namespace PhotoSauce.MagicScaler
 			Colorspace = PixelColorspace.LinearRgb
 		};
 
-		public static readonly PixelFormat Bgra64BppLinearUQ15 = new PixelFormat {
-			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA5),
-			Name = "64bpp BGRA UQ15 Linear",
-			BitsPerPixel = 64,
-			ChannelCount = 4,
-			NumericRepresentation = PixelNumericRepresentation.Fixed,
-			ColorRepresentation = PixelColorRepresentation.Bgr,
-			AlphaRepresentation = PixelAlphaRepresentation.Unassociated,
-			Colorspace = PixelColorspace.LinearRgb
-		};
-
 		public static readonly PixelFormat Pbgra64BppLinearUQ15 = new PixelFormat {
 			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA6),
 			Name = "64bpp pBGRA UQ15 Linear",
@@ -248,17 +237,6 @@ namespace PhotoSauce.MagicScaler
 			Colorspace = PixelColorspace.LinearRgb
 		};
 
-		public static readonly PixelFormat Bgra128BppLinearFloat = new PixelFormat {
-			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xAF),
-			Name = "128bpp BGRA Float Linear",
-			BitsPerPixel = 128,
-			ChannelCount = 4,
-			NumericRepresentation = PixelNumericRepresentation.Float,
-			ColorRepresentation = PixelColorRepresentation.Bgr,
-			AlphaRepresentation = PixelAlphaRepresentation.Unassociated,
-			Colorspace = PixelColorspace.LinearRgb
-		};
-
 		public static ReadOnlyDictionary<Guid, PixelFormat> Cache;
 
 		static PixelFormat()
@@ -271,7 +249,6 @@ namespace PhotoSauce.MagicScaler
 				[Bgr48BppLinearUQ15.FormatGuid]     = Bgr48BppLinearUQ15,
 				[Bgr96BppFloat.FormatGuid]          = Bgr96BppFloat,
 				[Bgr96BppLinearFloat.FormatGuid]    = Bgr96BppLinearFloat,
-				[Bgra64BppLinearUQ15.FormatGuid]    = Bgra64BppLinearUQ15,
 				[Pbgra64BppLinearUQ15.FormatGuid]   = Pbgra64BppLinearUQ15,
 				[Pbgra128BppFloat.FormatGuid]       = Pbgra128BppFloat,
 				[Pbgra128BppLinearFloat.FormatGuid] = Pbgra128BppLinearFloat,
@@ -280,8 +257,7 @@ namespace PhotoSauce.MagicScaler
 				[Y32BppLinearFloat.FormatGuid]      = Y32BppLinearFloat,
 				[CbCr64BppFloat.FormatGuid]         = CbCr64BppFloat,
 				[Bgrx128BppFloat.FormatGuid]        = Bgrx128BppFloat,
-				[Bgrx128BppLinearFloat.FormatGuid]  = Bgrx128BppLinearFloat,
-				[Bgra128BppLinearFloat.FormatGuid]  = Bgra128BppLinearFloat,
+				[Bgrx128BppLinearFloat.FormatGuid]  = Bgrx128BppLinearFloat
 			};
 
 			uint fet = 10u;
