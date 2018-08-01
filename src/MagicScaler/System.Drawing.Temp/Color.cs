@@ -2,11 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#if DRAWING_SHIM
+#pragma warning disable IDE1006 // Naming Styles
+
+#if DRAWING_SHIM_COLOR
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
-namespace System.Drawing.Temp
+namespace System.Drawing.ColorShim
 {
     [DebuggerDisplay("{NameAndARGBValue}")]
     public readonly struct Color : IEquatable<Color>
@@ -456,8 +458,7 @@ namespace System.Drawing.Temp
         public static Color FromName(string name)
         {
             // try to get a known color first
-            Color color;
-            if (ColorTable.TryGetNamedColor(name, out color))
+            if (ColorTable.TryGetNamedColor(name, out var color))
             {
                 return color;
             }
@@ -497,7 +498,7 @@ namespace System.Drawing.Temp
         }
 
 
-        public Single GetHue()
+        public float GetHue()
         {
             if (R == G && G == B)
                 return 0; // 0 makes as good an UNDEFINED value as any

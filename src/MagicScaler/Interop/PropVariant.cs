@@ -18,9 +18,11 @@ using System.Linq;
 using System.Collections;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
+using System.Diagnostics.CodeAnalysis;
 
 namespace PhotoSauce.MagicScaler.Interop
 {
+	[SuppressMessage("Style", "IDE1006:Naming Styles")]
 	[StructLayout(LayoutKind.Explicit)]
 	internal struct UnmanagedPropVariant
 	{

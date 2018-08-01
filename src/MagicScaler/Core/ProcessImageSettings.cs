@@ -7,8 +7,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
 
-#if DRAWING_SHIM
-using System.Drawing.Temp;
+#if DRAWING_SHIM_COLOR || DRAWING_SHIM_COLORCONVERTER
+using System.Drawing.ColorShim;
 #endif
 
 using PhotoSauce.MagicScaler.Interpolators;

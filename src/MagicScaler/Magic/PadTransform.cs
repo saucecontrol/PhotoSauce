@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Drawing;
 
-#if DRAWING_SHIM
-using System.Drawing.Temp;
+#if DRAWING_SHIM_COLOR
+using System.Drawing.ColorShim;
 #endif
 
 using PhotoSauce.MagicScaler.Interop;

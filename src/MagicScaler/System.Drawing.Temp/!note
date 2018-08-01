@@ -1,9 +1,10 @@
-﻿This folder contains copies of classes from upcoming versions of the following packages:
+﻿This folder contains copies of classes that are included in recent in-box versions of the following assemblies
+but missing from their NuGet-distributed equivalents for older runtimes:
 	System.Drawing.Primitives
 	System.ComponentModel.TypeConverter
 
-They are copied here temporarily from the corefx repo to allow testing with .NET Core
-but will be removed and replaced with the proper versions when they become available.
+They are copied here temporarily from the corefx repo until the older netcoreapp and netstandard versions
+that need them are no longer supported.
 
 See:
 https://github.com/dotnet/corefx/tree/master/src/Common/src/System/Drawing

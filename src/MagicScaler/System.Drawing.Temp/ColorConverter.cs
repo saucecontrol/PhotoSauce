@@ -2,14 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#if DRAWING_SHIM
+#if DRAWING_SHIM_COLORCONVERTER
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 
-namespace System.Drawing.Temp
+namespace System.Drawing.ColorShim
 {
     internal class ColorConverter : TypeConverter
     {

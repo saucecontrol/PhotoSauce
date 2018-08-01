@@ -2,10 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#if DRAWING_SHIM
+#if DRAWING_SHIM_COLOR
 using System.Diagnostics.CodeAnalysis;
 
-namespace System.Drawing.Temp
+namespace System.Drawing.ColorShim
 {
     [SuppressMessage("Microsoft.Design", "CA1008:EnumsShouldHaveZeroValue")]
     internal enum KnownColor

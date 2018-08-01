@@ -2,10 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#if DRAWING_SHIM
+#pragma warning disable IDE1006 // Naming Styles
+
+#if DRAWING_SHIM_COLORCONVERTER
+using System.Reflection;
 using System.Collections.Generic;
 
-namespace System.Drawing.Temp
+namespace System.Drawing.ColorShim
 {
     internal static class ColorTable
     {
@@ -14,16 +17,40 @@ namespace System.Drawing.Temp
         private static Dictionary<string, Color> GetColors()
         {
             var dict = new Dictionary<string, Color>(StringComparer.OrdinalIgnoreCase);
-            FillConstants(dict, typeof(Color));
+            FillConstants(dict);
             return dict;
         }
 
         internal static Dictionary<string, Color> Colors => s_colorConstants.Value;
 
-        private static void FillConstants(Dictionary<string, Color> colors, Type enumType)
+        private static void FillConstants(Dictionary<string, Color> colors)
         {
-            for (int i = (int)KnownColor.Transparent; i <= (int)KnownColor.YellowGreen; i++)
+#if DRAWING_SHIM_COLOR
+            int kcfirst = (int)KnownColor.Transparent;
+            int kclast = (int)KnownColor.YellowGreen;
+#else
+            var ctype = typeof(Color);
+            var kctype = ctype.Assembly.GetType("System.Drawing.KnownColor");
+            var kcttype = ctype.Assembly.GetType("System.Drawing.KnownColorTable");
+
+            var cconst = ctype.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic, null, new[] { kctype }, null);
+            var kctoname = kcttype.GetMethod("KnownColorToName", BindingFlags.Static | BindingFlags.Public);
+            var kcvals = Enum.GetValues(kctype);
+
+            int kcfirst = 26; //KnownColor.Transparent - 1
+            int kclast = 166; //KnownColor.YellowGreen - 1
+#endif
+
+            for (int i = kcfirst; i <= kclast; i++)
+            {
+#if DRAWING_SHIM_COLOR
                 colors[KnownColorTable.KnownColorToName((KnownColor)i)] = new Color((KnownColor)i);
+#else
+                var cinst = cconst.Invoke(new[] { kcvals.GetValue(i) });
+                var kcname = kctoname.Invoke(null, new[] { kcvals.GetValue(i) });
+                colors[(string)kcname] = (Color)cinst;
+#endif
+            }
         }
 
         internal static bool TryGetNamedColor(string name, out Color result) =>
@@ -31,8 +58,7 @@ namespace System.Drawing.Temp
 
         internal static bool IsKnownNamedColor(string name)
         {
-            Color result;
-            return Colors.TryGetValue(name, out result);
+            return Colors.TryGetValue(name, out _);
         }
     }
 }

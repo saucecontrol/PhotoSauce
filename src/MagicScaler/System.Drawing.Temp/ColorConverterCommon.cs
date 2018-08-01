@@ -2,11 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#if DRAWING_SHIM
+#pragma warning disable IDE1006 // Naming Styles
+
+#if DRAWING_SHIM_COLORCONVERTER
 using System.Diagnostics;
 using System.Globalization;
 
-namespace System.Drawing.Temp
+namespace System.Drawing.ColorShim
 {
     // Minimal color conversion functionality, without a dependency on TypeConverter itself.
     internal static class ColorConverterCommon
@@ -23,10 +25,9 @@ namespace System.Drawing.Temp
             }
 
             {
-                Color c;
                 // First, check to see if this is a standard name.
                 //
-                if (ColorTable.TryGetNamedColor(text, out c))
+                if (ColorTable.TryGetNamedColor(text, out var c))
                 {
                     return c;
                 }
@@ -139,7 +140,7 @@ namespace System.Drawing.Temp
 
         private static int IntFromString(string value, NumberFormatInfo formatInfo)
         {
-            return Int32.Parse(value, NumberStyles.Integer, formatInfo);
+            return int.Parse(value, NumberStyles.Integer, formatInfo);
         }
     }
 }

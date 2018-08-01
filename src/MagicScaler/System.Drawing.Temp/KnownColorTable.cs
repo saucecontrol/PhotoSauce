@@ -2,8 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#if DRAWING_SHIM
-namespace System.Drawing.Temp
+#pragma warning disable IDE1006 // Naming Styles
+
+#if DRAWING_SHIM_COLOR
+namespace System.Drawing.ColorShim
 {
     internal static class KnownColorTable
     {
