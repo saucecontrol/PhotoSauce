@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.Runtime.InteropServices;
 
 namespace PhotoSauce.MagicScaler
 {
@@ -101,9 +102,12 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe public void CopyPixels(Rectangle sourceArea, long cbStride, long cbBufferSize, IntPtr pbBuffer)
+		unsafe public void CopyPixels(Rectangle sourceArea, int cbStride, Span<byte> buffer)
 		{
 			long cb = sourceArea.Width * chans;
+
+			if (buffer == default)
+				throw new ArgumentNullException(nameof(buffer));
 
 			if (sourceArea.X < 0 || sourceArea.Y < 0 || sourceArea.Width < 0 || sourceArea.Height < 0 || sourceArea.X + sourceArea.Width > width || sourceArea.Y + sourceArea.Height > height)
 				throw new ArgumentOutOfRangeException(nameof(sourceArea), "Requested area does not fall within the image bounds");
@@ -111,18 +115,15 @@ namespace PhotoSauce.MagicScaler
 			if (cb > cbStride)
 				throw new ArgumentOutOfRangeException(nameof(cbStride), "Stride is too small for the requested area");
 
-			if ((sourceArea.Height - 1) * cbStride + cb > cbBufferSize)
-				throw new ArgumentOutOfRangeException(nameof(cbBufferSize), "Buffer is to small for the requested area");
+			if ((sourceArea.Height - 1) * cbStride + cb > buffer.Length)
+				throw new ArgumentOutOfRangeException(nameof(buffer), "Buffer is too small for the requested area");
 
-			if (pbBuffer == IntPtr.Zero)
-				throw new ArgumentOutOfRangeException(nameof(pbBuffer), "Buffer pointer is invalid");
-
-			fixed (byte* pstart = &pixels.Value[0])
+			fixed (byte* pstart = &pixels.Value[0], pbBuffer = &MemoryMarshal.GetReference(buffer))
 			for (int y = 0; y < sourceArea.Height; y++)
 			{
 				int row = Math.Min((int)((sourceArea.Y + y) * rheight), rows - 1);
 
-				byte* pb = (byte*)pbBuffer + y * cbStride;
+				byte* pb = pbBuffer + y * cbStride;
 				byte* pp = pstart + row * stride + sourceArea.X * chans;
 				Buffer.MemoryCopy(pp, pb, cb, cb);
 			}

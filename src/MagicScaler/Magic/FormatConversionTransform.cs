@@ -58,8 +58,8 @@ namespace PhotoSauce.MagicScaler
 		{
 			InFormat = source.Format;
 			Format = PixelFormat.Cache[destFormat];
-			SourceProfile = sourceProfile;
-			DestProfile = destProfile;
+			SourceProfile = sourceProfile ?? ColorProfile.sRGB;
+			DestProfile = destProfile ?? ColorProfile.sRGB;
 			LineBuff = ArrayPool<byte>.Shared.Rent((int)BufferStride);
 		}
 

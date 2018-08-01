@@ -37,9 +37,9 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		public static ProcessImageResult ProcessImage(ArraySegment<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
+		public static ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
-			if (imgBuffer == null) throw new ArgumentNullException(nameof(imgBuffer));
+			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
 			checkOutStream(outStream);
 
 			using (var ctx = new WicProcessingContext(settings))
@@ -86,10 +86,9 @@ namespace PhotoSauce.MagicScaler
 			return new ProcessingPipeline(ctx);
 		}
 
-		public static ProcessingPipeline BuildPipeline(ArraySegment<byte> imgBuffer, ProcessImageSettings settings)
+		public static ProcessingPipeline BuildPipeline(ReadOnlySpan<byte> imgBuffer, ProcessImageSettings settings)
 		{
-			if (imgBuffer == null) throw new ArgumentNullException(nameof(imgBuffer));
-			if (imgBuffer.Offset != 0) throw new ArgumentException($"{nameof(imgBuffer.Offset)} must be 0", nameof(imgBuffer));
+			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
 
 			var ctx = new WicProcessingContext(settings);
 			var dec = new WicDecoder(imgBuffer, ctx);

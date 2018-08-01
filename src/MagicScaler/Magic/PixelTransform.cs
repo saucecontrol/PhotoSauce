@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.Runtime.InteropServices;
 
 namespace PhotoSauce.MagicScaler
 {
@@ -23,7 +24,11 @@ namespace PhotoSauce.MagicScaler
 
 		public int Height => (int)Source.Height;
 
-		public void CopyPixels(Rectangle sourceArea, long cbStride, long cbBufferSize, IntPtr pbBuffer) => Source.CopyPixels(sourceArea.ToWicRect(), (uint)cbStride, (uint)cbBufferSize, pbBuffer);
+		unsafe public void CopyPixels(Rectangle sourceArea, int cbStride, Span<byte> buffer)
+		{
+			fixed (byte* pbBuffer = &MemoryMarshal.GetReference(buffer))
+				Source.CopyPixels(sourceArea.ToWicRect(), (uint)cbStride, (uint)buffer.Length, (IntPtr)pbBuffer);
+		}
 
 		void IPixelTransform.Init(IPixelSource source) => throw new NotImplementedException();
 	}

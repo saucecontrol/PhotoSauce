@@ -45,16 +45,16 @@ namespace PhotoSauce.MagicScaler
 			FileDate = fi.LastWriteTimeUtc;
 		}
 
-		public ImageFileInfo(ArraySegment<byte> imgBuffer) : this(imgBuffer, DateTime.MinValue) { }
+		public ImageFileInfo(ReadOnlySpan<byte> imgBuffer) : this(imgBuffer, DateTime.MinValue) { }
 
-		public ImageFileInfo(ArraySegment<byte> imgBuffer, DateTime lastModified)
+		public ImageFileInfo(ReadOnlySpan<byte> imgBuffer, DateTime lastModified)
 		{
-			if (imgBuffer == null) throw new ArgumentNullException(nameof(imgBuffer));
+			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
 
 			using (var ctx = new WicProcessingContext(new ProcessImageSettings()))
 				loadInfo(new WicDecoder(imgBuffer, ctx), ctx);
 
-			FileSize = imgBuffer.Count;
+			FileSize = imgBuffer.Length;
 			FileDate = lastModified;
 		}
 

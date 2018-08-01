@@ -1095,8 +1095,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		);
 
 		void InitializeFromMemory(
-			[MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)]
-			byte[] pbBuffer,
+			IntPtr pbBuffer,
 			uint cbBufferSize
 		);
 

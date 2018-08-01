@@ -72,7 +72,7 @@ namespace PhotoSauce.MagicScaler
 				copyPixelsByte(prc, cbStride, cbBufferSize, pbBuffer);
 		}
 
-		unsafe private void copyPixelsByte(WICRect prc, long cbStride, long cbBufferSize, IntPtr pbBuffer)
+		unsafe private void copyPixelsByte(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
 			int chan = Format.ChannelCount;
 			bool alpha = chan == 4 && matrixFixed[15] != UQ15One;
@@ -103,7 +103,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private void copyPixelsFixed(WICRect prc, long cbStride, long cbBufferSize, IntPtr pbBuffer)
+		unsafe private void copyPixelsFixed(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
 			int chan = Format.ChannelCount;
 			bool alpha = chan == 4 && matrixFixed[15] != UQ15One;
@@ -134,7 +134,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private void copyPixelsFloat(WICRect prc, long cbStride, long cbBufferSize, IntPtr pbBuffer)
+		unsafe private void copyPixelsFloat(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
 			Vector4 vb = vec0, vg = vec1, vr = vec2, va = vec3;
 			float falpha = va.W, fone = Vector4.One.X;

@@ -5,6 +5,7 @@ using PhotoSauce.MagicScaler.Interop;
 
 namespace PhotoSauce.MagicScaler
 {
+	[Obsolete("This class is meant only for testing/benchmarking and will be removed in a future version")]
 	public static class WicImageProcessor
 	{
 		public static ProcessImageResult ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
@@ -13,7 +14,7 @@ namespace PhotoSauce.MagicScaler
 				return processImage(new WicDecoder(imgPath, ctx), ctx, outStream);
 		}
 
-		public static ProcessImageResult ProcessImage(ArraySegment<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
+		public static ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
 			using (var ctx = new WicProcessingContext(settings))
 				return processImage(new WicDecoder(imgBuffer, ctx), ctx, outStream);

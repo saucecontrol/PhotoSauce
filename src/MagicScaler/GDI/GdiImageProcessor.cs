@@ -5,11 +5,13 @@ using System.Linq;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Drawing.Drawing2D;
+using System.Runtime.InteropServices;
 
 using GdiPixelFormat = System.Drawing.Imaging.PixelFormat;
 
 namespace PhotoSauce.MagicScaler
 {
+	[Obsolete("This class is meant only for testing/benchmarking and will be removed in a future version")]
 	public static class GdiImageProcessor
 	{
 		private const int exifOrientationID = 274;
@@ -46,9 +48,10 @@ namespace PhotoSauce.MagicScaler
 				return ProcessImage(fs, outStream, settings);
 		}
 
-		public static ProcessImageResult ProcessImage(ArraySegment<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
+		unsafe public static ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
-			using (var ms = new MemoryStream(imgBuffer.Array, imgBuffer.Offset, imgBuffer.Count, false))
+			fixed (byte* pbBuffer = &MemoryMarshal.GetReference(imgBuffer))
+			using (var ms = new UnmanagedMemoryStream(pbBuffer, imgBuffer.Length, imgBuffer.Length, FileAccess.Read))
 				return ProcessImage(ms, outStream, settings);
 		}
 

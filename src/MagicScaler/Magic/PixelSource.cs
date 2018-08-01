@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Drawing;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 using PhotoSauce.MagicScaler.Interop;
 
@@ -12,7 +13,7 @@ namespace PhotoSauce.MagicScaler
 		int Width { get; }
 		int Height { get; }
 
-		void CopyPixels(Rectangle sourceArea, long cbStride, long cbBufferSize, IntPtr pbBuffer);
+		void CopyPixels(Rectangle sourceArea, int cbStride, Span<byte> buffer);
 	}
 
 	internal abstract class PixelSource
@@ -49,16 +50,16 @@ namespace PhotoSauce.MagicScaler
 
 		public void CopyPixels(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
-			int cbLine = (prc.Width * Format.BitsPerPixel + 7) / 8;
+			uint cbLine = (uint)(prc.Width * Format.BitsPerPixel + 7) / 8u;
 
 			if (prc.X < 0 || prc.Y < 0 || prc.Width < 0 || prc.Height < 0 || prc.X + prc.Width > (int)Width || prc.Y + prc.Height > (int)Height)
 				throw new ArgumentOutOfRangeException(nameof(prc), "Requested area does not fall within the image bounds");
 
-			if (cbLine > (int)cbStride)
+			if (cbLine > cbStride)
 				throw new ArgumentOutOfRangeException(nameof(cbStride), "Stride is too small for the requested area");
 
-			if ((prc.Height - 1) * (int)cbStride + cbLine > (int)cbBufferSize)
-				throw new ArgumentOutOfRangeException(nameof(cbBufferSize), "Buffer is to small for the requested area");
+			if (((uint)prc.Height - 1u) * cbStride + cbLine > cbBufferSize)
+				throw new ArgumentOutOfRangeException(nameof(cbBufferSize), "Buffer is too small for the requested area");
 
 			if (pbBuffer == IntPtr.Zero)
 				throw new ArgumentOutOfRangeException(nameof(pbBuffer), "Buffer pointer is invalid");
@@ -131,7 +132,7 @@ namespace PhotoSauce.MagicScaler
 				Height = (uint)source.Height;
 			}
 
-			protected override void CopyPixelsInternal(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) => realSource.CopyPixels(prc.ToGdiRect(), cbStride, cbBufferSize, pbBuffer);
+			unsafe protected override void CopyPixelsInternal(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) => realSource.CopyPixels(prc.ToGdiRect(), (int)cbStride, new Span<byte>(pbBuffer.ToPointer(), (int)cbBufferSize));
 
 			public override string ToString() => realSource.ToString();
 		}
@@ -146,7 +147,11 @@ namespace PhotoSauce.MagicScaler
 			public int Width => (int)source.Width;
 			public int Height => (int)source.Height;
 
-			public void CopyPixels(Rectangle prc, long cbStride, long cbBufferSize, IntPtr pbBuffer) => source.CopyPixels(prc.ToWicRect(), (uint)cbStride, (uint)cbBufferSize, pbBuffer);
+			unsafe public void CopyPixels(Rectangle prc, int cbStride, Span<byte> buffer)
+			{
+				fixed (byte* pbBuffer = &MemoryMarshal.GetReference(buffer))
+					source.CopyPixels(prc.ToWicRect(), (uint)cbStride, (uint)buffer.Length, (IntPtr)pbBuffer);
+			}
 		}
 
 		public static PixelSource AsPixelSource(this IWICBitmapSource source, string name, bool profile = true) => new PixelSourceFromIWICBitmapSource(source, name, profile);

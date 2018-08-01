@@ -62,11 +62,14 @@ namespace PhotoSauce.MagicScaler
 			init(checkDecoder(() => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand)), ctx);
 		}
 
-		public WicDecoder(ArraySegment<byte> inBuffer, WicProcessingContext ctx)
+		unsafe public WicDecoder(ReadOnlySpan<byte> inBuffer, WicProcessingContext ctx)
 		{
-			var stm = ctx.AddRef(Wic.Factory.CreateStream());
-			stm.InitializeFromMemory(inBuffer.Array, (uint)inBuffer.Count);
-			init(checkDecoder(() => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand)), ctx);
+			fixed (byte* pbBuffer = &MemoryMarshal.GetReference(inBuffer))
+			{
+				var stm = ctx.AddRef(Wic.Factory.CreateStream());
+				stm.InitializeFromMemory((IntPtr)pbBuffer, (uint)inBuffer.Length);
+				init(checkDecoder(() => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand)), ctx);
+			}
 		}
 
 		public WicDecoder(IPixelSource imgSource, WicProcessingContext ctx)
