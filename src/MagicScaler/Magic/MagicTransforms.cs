@@ -152,6 +152,16 @@ namespace PhotoSauce.MagicScaler
 				ctx.Source = ctx.AddDispose(new FormatConversionTransform(ctx.Source, ctx.SourceColorProfile, ctx.SourceColorProfile, Consts.GUID_WICPixelFormat32bppBGRA));
 
 			ctx.Source = new MatteTransform(ctx.Source, ctx.Settings.MatteColor);
+
+			if (ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None && ctx.Settings.MatteColor.A == byte.MaxValue)
+			{
+				var oldFmt = ctx.Source.Format;
+				var newFmt = oldFmt == PixelFormat.Pbgra64BppLinearUQ15 ? PixelFormat.Bgr48BppLinearUQ15
+					: oldFmt.FormatGuid == Consts.GUID_WICPixelFormat32bppBGRA ? PixelFormat.Cache[Consts.GUID_WICPixelFormat24bppBGR]
+					: throw new NotSupportedException("Unsupported pixel format");
+
+				ctx.Source = new FormatConversionTransform(ctx.Source, ctx.SourceColorProfile, ctx.DestColorProfile, newFmt.FormatGuid);
+			}
 		}
 
 		public static void AddPad(WicProcessingContext ctx)

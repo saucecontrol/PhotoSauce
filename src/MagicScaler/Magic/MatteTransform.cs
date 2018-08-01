@@ -16,9 +16,9 @@ namespace PhotoSauce.MagicScaler
 {
 	internal class MatteTransform : PixelSource
 	{
-		private readonly ushort maskB, maskG, maskR, maskA;
-		private readonly uint maskValue32;
-		private readonly ulong maskValue64;
+		private readonly ushort matteB, matteG, matteR, matteA;
+		private readonly uint matteValue32;
+		private readonly ulong matteValue64;
 		private readonly VectorF vmatte;
 		private readonly Vector<int> vmask0, vmask1;
 
@@ -27,16 +27,19 @@ namespace PhotoSauce.MagicScaler
 			if (Format.ColorRepresentation != PixelColorRepresentation.Bgr || Format.AlphaRepresentation == PixelAlphaRepresentation.None)
 				throw new NotSupportedException("Pixel format not supported.  Must be BGRA");
 
+			if (Format == PixelFormat.Pbgra128BppLinearFloat && color.A == byte.MaxValue)
+				Format = PixelFormat.Bgrx128BppLinearFloat;
+
 			var igtq = LookupTables.SrgbInverseGammaUQ15;
 			var atq = LookupTables.AlphaUQ15;
 
-			maskB = igtq[color.B];
-			maskG = igtq[color.G];
-			maskR = igtq[color.R];
-			maskA = atq[color.A];
+			matteB = igtq[color.B];
+			matteG = igtq[color.G];
+			matteR = igtq[color.R];
+			matteA = atq[color.A];
 
-			maskValue32 = (uint)color.ToArgb();
-			maskValue64 = ((ulong)maskA << 48) | ((ulong)UnFix15(maskR * maskA) << 32) | ((ulong)UnFix15(maskG * maskA) << 16) | (ushort)UnFix15(maskB * maskA);
+			matteValue32 = (uint)color.ToArgb();
+			matteValue64 = ((ulong)matteA << 48) | ((ulong)UnFix15(matteR * matteA) << 32) | ((ulong)UnFix15(matteG * matteA) << 16) | (ushort)UnFix15(matteB * matteA);
 
 			var igtf = LookupTables.SrgbInverseGammaFloat;
 			var atf = LookupTables.AlphaFloat;
@@ -58,7 +61,7 @@ namespace PhotoSauce.MagicScaler
 			Source.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
 			Timer.Start();
 
-			if (Format == PixelFormat.Pbgra128BppLinearFloat)
+			if (Format == PixelFormat.Pbgra128BppLinearFloat || Format == PixelFormat.Bgrx128BppLinearFloat)
 				applyMatteLinearFloat(prc, (float*)pbBuffer, (int)(cbStride / sizeof(float)));
 			else if (Format == PixelFormat.Pbgra64BppLinearUQ15)
 				applyMatteLinear(prc, (ushort*)pbBuffer, (int)(cbStride / sizeof(ushort)));
@@ -140,18 +143,18 @@ namespace PhotoSauce.MagicScaler
 					int alpha = ip[3];
 					if (alpha == 0)
 					{
-						*(ulong*)ip = maskValue64;
+						*(ulong*)ip = matteValue64;
 					}
 					else if (alpha < maxalpha)
 					{
-						int ia = alpha, ma = UnFix15(maskA * (UQ15One - ia));
+						int ia = alpha, ma = UnFix15(matteA * (UQ15One - ia));
 						int ib = ip[0];
 						int ig = ip[1];
 						int ir = ip[2];
 
-						ib += UnFix15(maskB * ma);
-						ig += UnFix15(maskG * ma);
-						ir += UnFix15(maskR * ma);
+						ib += UnFix15(matteB * ma);
+						ig += UnFix15(matteG * ma);
+						ir += UnFix15(matteR * ma);
 						ia += ma;
 
 						ip[0] = ClampToUQ15(ib);
@@ -185,7 +188,7 @@ namespace PhotoSauce.MagicScaler
 						int alpha = ip[3];
 						if (alpha == 0)
 						{
-							*(uint*)ip = maskValue32;
+							*(uint*)ip = matteValue32;
 						}
 						else if (alpha < maxalpha)
 						{
@@ -194,10 +197,10 @@ namespace PhotoSauce.MagicScaler
 							int ig = igt[ip[1]];
 							int ir = igt[ip[2]];
 
-							int ma = UnFix15(maskA * (UQ15One - ia));
-							ib = UnFix15(ib * ia + maskB * ma);
-							ig = UnFix15(ig * ia + maskG * ma);
-							ir = UnFix15(ir * ia + maskR * ma);
+							int ma = UnFix15(matteA * (UQ15One - ia));
+							ib = UnFix15(ib * ia + matteB * ma);
+							ig = UnFix15(ig * ia + matteG * ma);
+							ir = UnFix15(ir * ia + matteR * ma);
 							ia += ma;
 
 							int fa = (UQ15One << 15) / ia;

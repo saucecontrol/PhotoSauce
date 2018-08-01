@@ -1,10 +1,11 @@
 ﻿using System;
+using System.Buffers;
 using System.Drawing;
 using System.Runtime.InteropServices;
 
 namespace PhotoSauce.MagicScaler
 {
-	public class TestPatternPixelSource : IPixelSource
+	public class TestPatternPixelSource : IPixelSource, IDisposable
 	{
 		private static readonly Guid[] formats = new[] { Guid.Empty, PixelFormats.Grey8bpp, Guid.Empty, PixelFormats.Bgr24bpp, PixelFormats.Bgra32bpp };
 
@@ -36,7 +37,7 @@ namespace PhotoSauce.MagicScaler
 
 			stride = width * chans + (IntPtr.Size - 1) & ~(IntPtr.Size - 1);
 			pixels = new Lazy<byte[]>(() => {
-				var buff = new byte[stride * rows];
+				var buff = ArrayPool<byte>.Shared.Rent(stride * rows);
 				drawPattern(buff);
 				return buff;
 			});
@@ -127,6 +128,12 @@ namespace PhotoSauce.MagicScaler
 				byte* pp = pstart + row * stride + sourceArea.X * chans;
 				Buffer.MemoryCopy(pp, pb, cb, cb);
 			}
+		}
+
+		public void Dispose()
+		{
+			if (pixels.IsValueCreated)
+				ArrayPool<byte>.Shared.Return(pixels.Value);
 		}
 	}
 }

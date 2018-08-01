@@ -79,6 +79,7 @@ namespace PhotoSauce.MagicScaler
 				s.Fixup(img.Width, img.Height);
 
 				bool alpha = ((ImageFlags)img.Flags).HasFlag(ImageFlags.HasAlpha);
+				var pixelFormat = alpha && s.MatteColor.A < byte.MaxValue ? GdiPixelFormat.Format32bppArgb : GdiPixelFormat.Format24bppRgb;
 				var mode = s.Interpolation.WeightingFunction.Support < 0.1 ? InterpolationMode.NearestNeighbor :
 				           s.Interpolation.WeightingFunction.Support < 1.0 ? s.ScaleRatio > 1.0 ? InterpolationMode.Bilinear : InterpolationMode.NearestNeighbor :
 				           s.Interpolation.WeightingFunction.Support > 1.0 ? s.ScaleRatio > 1.0 || s.Interpolation.Blur > 1.0 ? InterpolationMode.HighQualityBicubic : InterpolationMode.Bicubic :
@@ -106,7 +107,7 @@ namespace PhotoSauce.MagicScaler
 
 				using (src)
 				using (var iat = new ImageAttributes())
-				using (var bmp = new Bitmap(s.Width, s.Height, alpha ? GdiPixelFormat.Format32bppArgb : GdiPixelFormat.Format24bppRgb))
+				using (var bmp = new Bitmap(s.Width, s.Height, pixelFormat))
 				using (var gfx = Graphics.FromImage(bmp))
 				{
 					iat.SetWrapMode(WrapMode.TileFlipXY);

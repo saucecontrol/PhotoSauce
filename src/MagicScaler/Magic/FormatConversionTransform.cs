@@ -130,7 +130,7 @@ namespace PhotoSauce.MagicScaler
 								mapValuesFloatLinearToByte(bstart, op, gtstart, cb);
 						}
 					}
-					else if (Format.NumericRepresentation == PixelNumericRepresentation.Float)
+					else if (InFormat.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger && Format.NumericRepresentation == PixelNumericRepresentation.Float)
 					{
 						if (InFormat.AlphaRepresentation == PixelAlphaRepresentation.Unassociated)
 							mapValuesByteToFloatWithAlpha(bstart, op, cb);
@@ -139,7 +139,7 @@ namespace PhotoSauce.MagicScaler
 						else
 							mapValuesByteToFloat(bstart, op, cb);
 					}
-					else if (InFormat.NumericRepresentation == PixelNumericRepresentation.Float)
+					else if (InFormat.NumericRepresentation == PixelNumericRepresentation.Float && Format.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger)
 					{
 						if (Format.AlphaRepresentation != PixelAlphaRepresentation.None)
 							mapValuesFloatToByteWithAlpha(bstart, op, cb);
@@ -147,6 +147,15 @@ namespace PhotoSauce.MagicScaler
 							mapValuesFloatWithNullAlphaToByte(bstart, op, cb);
 						else
 							mapValuesFloatToByte(bstart, op, cb);
+					}
+					else if (InFormat.NumericRepresentation == Format.NumericRepresentation && InFormat.ChannelCount == 4 && Format.ChannelCount == 3)
+					{
+						if (InFormat.NumericRepresentation == PixelNumericRepresentation.Float)
+							mapValues4to3Chan<float>(bstart, op, cb);
+						else if (InFormat.NumericRepresentation == PixelNumericRepresentation.Fixed)
+							mapValues4to3Chan<ushort>(bstart, op, cb);
+						else
+							mapValues4to3Chan<byte>(bstart, op, cb);
 					}
 					else
 						throw new NotSupportedException("Unsupported pixel format");
@@ -722,6 +731,21 @@ namespace PhotoSauce.MagicScaler
 				op[0] = FixToByte(ip[0]);
 				op[1] = FixToByte(ip[1]);
 				op[2] = FixToByte(ip[2]);
+
+				ip += 4;
+				op += 3;
+			}
+		}
+
+		unsafe private static void mapValues4to3Chan<T>(byte* ipstart, byte* opstart, int cb) where T : unmanaged
+		{
+			T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb) - 4, op = (T*)opstart;
+
+			while (ip <= ipe)
+			{
+				op[0] = ip[0];
+				op[1] = ip[1];
+				op[2] = ip[2];
 
 				ip += 4;
 				op += 3;
