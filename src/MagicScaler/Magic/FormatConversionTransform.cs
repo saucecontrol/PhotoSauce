@@ -165,19 +165,19 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private static void mapValuesShortToByte(byte* ipstart, byte* opstart, int cb)
 		{
-			ushort* ip = (ushort*)ipstart + 4, ipe = (ushort*)(ipstart + cb);
-			byte* op = opstart + 4;
+			ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb) - 4;
+			byte* op = opstart;
 
 			while (ip <= ipe)
 			{
-				byte o0 = (byte)(ip[-4] >> 8);
-				byte o1 = (byte)(ip[-3] >> 8);
-				byte o2 = (byte)(ip[-2] >> 8);
-				byte o3 = (byte)(ip[-1] >> 8);
-				op[-4] = o0;
-				op[-3] = o1;
-				op[-2] = o2;
-				op[-1] = o3;
+				byte o0 = (byte)(ip[0] >> 8);
+				byte o1 = (byte)(ip[1] >> 8);
+				byte o2 = (byte)(ip[2] >> 8);
+				byte o3 = (byte)(ip[3] >> 8);
+				op[0] = o0;
+				op[1] = o1;
+				op[2] = o2;
+				op[3] = o3;
 
 				ip += 4;
 				op += 4;
@@ -186,38 +186,37 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private static void mapValuesByteToUQ15Linear(byte* ipstart, byte* opstart, ushort* igtstart, int cb)
 		{
-			byte* ip = ipstart + 8, ipe = ipstart + cb;
-			ushort* op = (ushort*)opstart + 8, igt = igtstart;
+			byte* ip = ipstart, ipe = ipstart + cb - 8;
+			ushort* op = (ushort*)opstart, igt = igtstart;
 
 			while (ip <= ipe)
 			{
-				ushort o0 = igt[(uint)ip[-8]];
-				ushort o1 = igt[(uint)ip[-7]];
-				ushort o2 = igt[(uint)ip[-6]];
-				ushort o3 = igt[(uint)ip[-5]];
-				op[-8] = o0;
-				op[-7] = o1;
-				op[-6] = o2;
-				op[-5] = o3;
+				ushort o0 = igt[(uint)ip[0]];
+				ushort o1 = igt[(uint)ip[1]];
+				ushort o2 = igt[(uint)ip[2]];
+				ushort o3 = igt[(uint)ip[3]];
+				op[0] = o0;
+				op[1] = o1;
+				op[2] = o2;
+				op[3] = o3;
 
-				o0 = igt[(uint)ip[-4]];
-				o1 = igt[(uint)ip[-3]];
-				o2 = igt[(uint)ip[-2]];
-				o3 = igt[(uint)ip[-1]];
-				op[-4] = o0;
-				op[-3] = o1;
-				op[-2] = o2;
-				op[-1] = o3;
+				o0 = igt[(uint)ip[4]];
+				o1 = igt[(uint)ip[5]];
+				o2 = igt[(uint)ip[6]];
+				o3 = igt[(uint)ip[7]];
+				op[4] = o0;
+				op[5] = o1;
+				op[6] = o2;
+				op[7] = o3;
 
 				ip += 8;
 				op += 8;
 			}
 
-			ip -= 8;
-			op -= 8;
+			ipe += 8;
 			while (ip < ipe)
 			{
-				op[0] = igt[ip[0]];
+				op[0] = igt[(uint)ip[0]];
 				ip++;
 				op++;
 			}
@@ -227,24 +226,24 @@ namespace PhotoSauce.MagicScaler
 		{
 			fixed (ushort* atstart = &LookupTables.AlphaUQ15[0])
 			{
-				byte* ip = ipstart + 4, ipe = ipstart + cb;
-				ushort* op = (ushort*)opstart + 4, igt = igtstart, at = atstart;
+				byte* ip = ipstart, ipe = ipstart + cb - 4;
+				ushort* op = (ushort*)opstart, igt = igtstart, at = atstart;
 
 				while (ip <= ipe)
 				{
-					int i0 = igt[(uint)ip[-4]];
-					int i1 = igt[(uint)ip[-3]];
-					int i2 = igt[(uint)ip[-2]];
-					int i3 =  at[(uint)ip[-1]];
+					int i0 = igt[(uint)ip[0]];
+					int i1 = igt[(uint)ip[1]];
+					int i2 = igt[(uint)ip[2]];
+					int i3 =  at[(uint)ip[3]];
 
 					i0 = UnFix15(i0 * i3);
 					i1 = UnFix15(i1 * i3);
 					i2 = UnFix15(i2 * i3);
 
-					op[-4] = (ushort)i0;
-					op[-3] = (ushort)i1;
-					op[-2] = (ushort)i2;
-					op[-1] = (ushort)i3;
+					op[0] = (ushort)i0;
+					op[1] = (ushort)i1;
+					op[2] = (ushort)i2;
+					op[3] = (ushort)i3;
 
 					ip += 4;
 					op += 4;
@@ -254,26 +253,25 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private static void mapValuesUQ15LinearToByte(byte* ipstart, byte* opstart, byte* gtstart, int cb)
 		{
-			ushort* ip = (ushort*)ipstart + 4, ipe = (ushort*)(ipstart + cb);
-			byte* op = opstart + 4, gt = gtstart;
+			ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb) - 4;
+			byte* op = opstart, gt = gtstart;
 
 			while (ip <= ipe)
 			{
-				uint i0 = ClampToUQ15One(ip[-4]);
-				uint i1 = ClampToUQ15One(ip[-3]);
-				uint i2 = ClampToUQ15One(ip[-2]);
-				uint i3 = ClampToUQ15One(ip[-1]);
-				op[-4] = gt[i0];
-				op[-3] = gt[i1];
-				op[-2] = gt[i2];
-				op[-1] = gt[i3];
+				uint i0 = ClampToUQ15One(ip[0]);
+				uint i1 = ClampToUQ15One(ip[1]);
+				uint i2 = ClampToUQ15One(ip[2]);
+				uint i3 = ClampToUQ15One(ip[3]);
+				op[0] = gt[i0];
+				op[1] = gt[i1];
+				op[2] = gt[i2];
+				op[3] = gt[i3];
 
 				ip += 4;
 				op += 4;
 			}
 
-			ip -= 4;
-			op -= 4;
+			ipe += 4;
 			while (ip < ipe)
 			{
 				op[0] = gt[ClampToUQ15One(ip[0])];
@@ -284,35 +282,32 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private static void mapValuesUQ15LinearToByteWithAlpha(byte* ipstart, byte* opstart, byte* gtstart, int cb)
 		{
-			ushort* ip = (ushort*)ipstart + 4, ipe = (ushort*)(ipstart + cb);
-			byte* op = opstart + 4, gt = gtstart;
+			ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb) - 4;
+			byte* op = opstart, gt = gtstart;
 
 			while (ip <= ipe)
 			{
-				ushort i3 = ip[-1];
+				ushort i3 = ip[3];
 				byte o3 = UnFix15ToByte(i3 * byte.MaxValue);
 				if (o3 == 0)
 				{
-					op[-4] = 0;
-					op[-3] = 0;
-					op[-2] = 0;
-					op[-1] = 0;
+					*(uint*)op = 0;
 				}
 				else
 				{
 					int o3i = (UQ15One << 15) / i3;
-					int i0 = ip[-4];
-					int i1 = ip[-3];
-					int i2 = ip[-2];
+					int i0 = ip[0];
+					int i1 = ip[1];
+					int i2 = ip[2];
 
 					byte o0 = gt[UnFixToUQ15One(i0 * o3i)];
 					byte o1 = gt[UnFixToUQ15One(i1 * o3i)];
 					byte o2 = gt[UnFixToUQ15One(i2 * o3i)];
 
-					op[-4] = o0;
-					op[-3] = o1;
-					op[-2] = o2;
-					op[-1] = o3;
+					op[0] = o0;
+					op[1] = o1;
+					op[2] = o2;
+					op[3] = o3;
 				}
 
 				ip += 4;
@@ -322,38 +317,37 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private static void mapValuesByteToFloatLinear(byte* ipstart, byte* opstart, float* igtstart, int cb)
 		{
-			byte* ip = ipstart + 8, ipe = ipstart + cb;
-			float* op = (float*)opstart + 8, igt = igtstart;
+			byte* ip = ipstart, ipe = ipstart + cb - 8;
+			float* op = (float*)opstart, igt = igtstart;
 
 			while (ip <= ipe)
 			{
-				float o0 = igt[(uint)ip[-8]];
-				float o1 = igt[(uint)ip[-7]];
-				float o2 = igt[(uint)ip[-6]];
-				float o3 = igt[(uint)ip[-5]];
-				float o4 = igt[(uint)ip[-4]];
-				float o5 = igt[(uint)ip[-3]];
-				float o6 = igt[(uint)ip[-2]];
-				float o7 = igt[(uint)ip[-1]];
+				float o0 = igt[(uint)ip[0]];
+				float o1 = igt[(uint)ip[1]];
+				float o2 = igt[(uint)ip[2]];
+				float o3 = igt[(uint)ip[3]];
+				float o4 = igt[(uint)ip[4]];
+				float o5 = igt[(uint)ip[5]];
+				float o6 = igt[(uint)ip[6]];
+				float o7 = igt[(uint)ip[7]];
 
-				op[-8] = o0;
-				op[-7] = o1;
-				op[-6] = o2;
-				op[-5] = o3;
-				op[-4] = o4;
-				op[-3] = o5;
-				op[-2] = o6;
-				op[-1] = o7;
+				op[0] = o0;
+				op[1] = o1;
+				op[2] = o2;
+				op[3] = o3;
+				op[4] = o4;
+				op[5] = o5;
+				op[6] = o6;
+				op[7] = o7;
 
 				ip += 8;
 				op += 8;
 			}
 
-			ip -= 8;
-			op -= 8;
+			ipe += 8;
 			while (ip < ipe)
 			{
-				op[0] = igt[ip[0]];
+				op[0] = igt[(uint)ip[0]];
 				ip++;
 				op++;
 			}
@@ -363,19 +357,19 @@ namespace PhotoSauce.MagicScaler
 		{
 			fixed (float* atstart = &LookupTables.AlphaFloat[0])
 			{
-				byte* ip = ipstart + 4, ipe = ipstart + cb;
-				float* op = (float*)opstart + 4, igt = igtstart, at = atstart;
+				byte* ip = ipstart, ipe = ipstart + cb - 4;
+				float* op = (float*)opstart, igt = igtstart, at = atstart;
 
 				while (ip <= ipe)
 				{
-					float o0 = igt[(uint)ip[-4]];
-					float o1 = igt[(uint)ip[-3]];
-					float o2 = igt[(uint)ip[-2]];
-					float o3 =  at[(uint)ip[-1]];
-					op[-4] = o0 * o3;
-					op[-3] = o1 * o3;
-					op[-2] = o2 * o3;
-					op[-1] = o3;
+					float o0 = igt[(uint)ip[0]];
+					float o1 = igt[(uint)ip[1]];
+					float o2 = igt[(uint)ip[2]];
+					float o3 =  at[(uint)ip[3]];
+					op[0] = o0 * o3;
+					op[1] = o1 * o3;
+					op[2] = o2 * o3;
+					op[3] = o3;
 
 					ip += 4;
 					op += 4;
@@ -385,17 +379,17 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private static void mapValuesByteToFloatLinearWithNullAlpha(byte* ipstart, byte* opstart, float* igtstart, int cb)
 		{
-			byte* ip = ipstart + 3, ipe = ipstart + cb;
-			float* op = (float*)opstart + 4, igt = igtstart;
+			byte* ip = ipstart, ipe = ipstart + cb - 3;
+			float* op = (float*)opstart, igt = igtstart;
 
 			while (ip <= ipe)
 			{
-				float o0 = igt[(uint)ip[-3]];
-				float o1 = igt[(uint)ip[-2]];
-				float o2 = igt[(uint)ip[-1]];
-				op[-4] = o0;
-				op[-3] = o1;
-				op[-2] = o2;
+				float o0 = igt[(uint)ip[0]];
+				float o1 = igt[(uint)ip[1]];
+				float o2 = igt[(uint)ip[2]];
+				op[0] = o0;
+				op[1] = o1;
+				op[2] = o2;
 
 				ip += 3;
 				op += 4;
@@ -454,31 +448,28 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private static void mapValuesFloatLinearToByteWithAlpha(byte* ipstart, byte* opstart, byte* gtstart, int cb)
 		{
-			float* ip = (float*)ipstart + 4, ipe = (float*)(ipstart + cb);
-			byte* op = opstart + 4, gt = gtstart;
+			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - 4;
+			byte* op = opstart, gt = gtstart;
 			float fmax = new Vector4(byte.MaxValue).X, fround = new Vector4(FloatRound).X, fmin = fround / fmax;
 
 			while (ip <= ipe)
 			{
-				float f3 = ip[-1];
+				float f3 = ip[3];
 				if (f3 < fmin)
 				{
-					op[-4] = 0;
-					op[-3] = 0;
-					op[-2] = 0;
-					op[-1] = 0;
+					*(uint*)op = 0;
 				}
 				else
 				{
 					float f3i = FloatScale / f3;
-					byte o0 = gt[ClampToUQ15One((int)(ip[-4] * f3i + fround))];
-					byte o1 = gt[ClampToUQ15One((int)(ip[-3] * f3i + fround))];
-					byte o2 = gt[ClampToUQ15One((int)(ip[-2] * f3i + fround))];
+					byte o0 = gt[ClampToUQ15One((int)(ip[0] * f3i + fround))];
+					byte o1 = gt[ClampToUQ15One((int)(ip[1] * f3i + fround))];
+					byte o2 = gt[ClampToUQ15One((int)(ip[2] * f3i + fround))];
 					byte o3 = ClampToByte((int)(f3 * fmax + fround));
-					op[-4] = o0;
-					op[-3] = o1;
-					op[-2] = o2;
-					op[-1] = o3;
+					op[0] = o0;
+					op[1] = o1;
+					op[2] = o2;
+					op[3] = o3;
 				}
 
 				ip += 4;
@@ -538,38 +529,37 @@ namespace PhotoSauce.MagicScaler
 		{
 			fixed (float* atstart = &LookupTables.AlphaFloat[0])
 			{
-				byte* ip = ipstart + 8, ipe = ipstart + cb;
-				float* op = (float*)opstart + 8, at = atstart;
+				byte* ip = ipstart, ipe = ipstart + cb - 8;
+				float* op = (float*)opstart, at = atstart;
 
 				while (ip <= ipe)
 				{
-					float o0 = at[(uint)ip[-8]];
-					float o1 = at[(uint)ip[-7]];
-					float o2 = at[(uint)ip[-6]];
-					float o3 = at[(uint)ip[-5]];
-					float o4 = at[(uint)ip[-4]];
-					float o5 = at[(uint)ip[-3]];
-					float o6 = at[(uint)ip[-2]];
-					float o7 = at[(uint)ip[-1]];
+					float o0 = at[(uint)ip[0]];
+					float o1 = at[(uint)ip[1]];
+					float o2 = at[(uint)ip[2]];
+					float o3 = at[(uint)ip[3]];
+					float o4 = at[(uint)ip[4]];
+					float o5 = at[(uint)ip[5]];
+					float o6 = at[(uint)ip[6]];
+					float o7 = at[(uint)ip[7]];
 
-					op[-8] = o0;
-					op[-7] = o1;
-					op[-6] = o2;
-					op[-5] = o3;
-					op[-4] = o4;
-					op[-3] = o5;
-					op[-2] = o6;
-					op[-1] = o7;
+					op[0] = o0;
+					op[1] = o1;
+					op[2] = o2;
+					op[3] = o3;
+					op[4] = o4;
+					op[5] = o5;
+					op[6] = o6;
+					op[7] = o7;
 
 					ip += 8;
 					op += 8;
 				}
 
-				ip -= 8;
-				op -= 8;
+				ipe += 8;
 				while (ip < ipe)
 				{
-					op[0] = at[ip[0]];
+					op[0] = at[(uint)ip[0]];
 					ip++;
 					op++;
 				}
@@ -580,19 +570,19 @@ namespace PhotoSauce.MagicScaler
 		{
 			fixed (float* atstart = &LookupTables.AlphaFloat[0])
 			{
-				byte* ip = ipstart + 4, ipe = ipstart + cb;
-				float* op = (float*)opstart + 4, at = atstart;
+				byte* ip = ipstart, ipe = ipstart + cb - 4;
+				float* op = (float*)opstart, at = atstart;
 
 				while (ip <= ipe)
 				{
-					float o0 = at[(uint)ip[-4]];
-					float o1 = at[(uint)ip[-3]];
-					float o2 = at[(uint)ip[-2]];
-					float o3 = at[(uint)ip[-1]];
-					op[-4] = o0 * o3;
-					op[-3] = o1 * o3;
-					op[-2] = o2 * o3;
-					op[-1] = o3;
+					float o0 = at[(uint)ip[0]];
+					float o1 = at[(uint)ip[1]];
+					float o2 = at[(uint)ip[2]];
+					float o3 = at[(uint)ip[3]];
+					op[0] = o0 * o3;
+					op[1] = o1 * o3;
+					op[2] = o2 * o3;
+					op[3] = o3;
 
 					ip += 4;
 					op += 4;
@@ -604,17 +594,17 @@ namespace PhotoSauce.MagicScaler
 		{
 			fixed (float* atstart = &LookupTables.AlphaFloat[0])
 			{
-				byte* ip = ipstart + 3, ipe = ipstart + cb;
-				float* op = (float*)opstart + 4, at = atstart;
+				byte* ip = ipstart, ipe = ipstart + cb - 3;
+				float* op = (float*)opstart, at = atstart;
 
 				while (ip <= ipe)
 				{
-					float o0 = at[(uint)ip[-3]];
-					float o1 = at[(uint)ip[-2]];
-					float o2 = at[(uint)ip[-1]];
-					op[-4] = o0;
-					op[-3] = o1;
-					op[-2] = o2;
+					float o0 = at[(uint)ip[0]];
+					float o1 = at[(uint)ip[1]];
+					float o2 = at[(uint)ip[2]];
+					op[0] = o0;
+					op[1] = o1;
+					op[2] = o2;
 
 					ip += 3;
 					op += 4;
@@ -664,31 +654,28 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private static void mapValuesFloatToByteWithAlpha(byte* ipstart, byte* opstart, int cb)
 		{
-			float* ip = (float*)ipstart + 4, ipe = (float*)(ipstart + cb);
-			byte* op = opstart + 4;
+			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - 4;
+			byte* op = opstart;
 			float fmax = new Vector4(byte.MaxValue).X, fround = new Vector4(FloatRound).X, fmin = fround / fmax;
 
 			while (ip <= ipe)
 			{
-				float f3 = ip[-1];
+				float f3 = ip[3];
 				if (f3 < fmin)
 				{
-					op[-4] = 0;
-					op[-3] = 0;
-					op[-2] = 0;
-					op[-1] = 0;
+					*(uint*)op = 0;
 				}
 				else
 				{
 					float f3i = fmax / f3;
-					byte o0 = ClampToByte((int)(ip[-4] * f3i + fround));
-					byte o1 = ClampToByte((int)(ip[-3] * f3i + fround));
-					byte o2 = ClampToByte((int)(ip[-2] * f3i + fround));
+					byte o0 = ClampToByte((int)(ip[0] * f3i + fround));
+					byte o1 = ClampToByte((int)(ip[1] * f3i + fround));
+					byte o2 = ClampToByte((int)(ip[2] * f3i + fround));
 					byte o3 = ClampToByte((int)(f3 * fmax + fround));
-					op[-4] = o0;
-					op[-3] = o1;
-					op[-2] = o2;
-					op[-1] = o3;
+					op[0] = o0;
+					op[1] = o1;
+					op[2] = o2;
+					op[3] = o3;
 				}
 
 				ip += 4;
@@ -754,12 +741,12 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe public static void ConvertBgrToGreyByte(byte* ipstart, byte* opstart, int cb)
 		{
-			byte* ip = ipstart + 3, ipe = ipstart + cb, op = opstart + 1;
+			byte* ip = ipstart, ipe = ipstart + cb - 3, op = opstart;
 
 			while (ip <= ipe)
 			{
-				byte y = Rec601.LumaFromBgr(ip[-3], ip[-2], ip[-1]);
-				op[-1] = y;
+				byte y = Rec601.LumaFromBgr(ip[0], ip[1], ip[2]);
+				op[0] = y;
 
 				ip += 3;
 				op++;
@@ -770,13 +757,13 @@ namespace PhotoSauce.MagicScaler
 		{
 			fixed (byte* gtstart = &LookupTables.SrgbGamma[0])
 			{
-				ushort* ip = (ushort*)ipstart + 3, ipe = (ushort*)(ipstart + cb), op = (ushort*)opstart + 1;
+				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb) - 3, op = (ushort*)opstart;
 				byte* gt = gtstart;
 
 				while (ip <= ipe)
 				{
-					uint y = Rec709.LumaFromBgr(ip[-3], ip[-2], ip[-1]);
-					op[-1] = gt[y];
+					uint y = Rec709.LumaFromBgr(ip[0], ip[1], ip[2]);
+					op[0] = gt[y];
 
 					ip += 3;
 					op++;
@@ -786,11 +773,11 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe public static void ConvertBgrToGreyFloat(byte* ipstart, byte* opstart, int cb, bool linear)
 		{
-			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb), op = (float*)opstart;
+			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - 3, op = (float*)opstart;
 			var clum = linear ? Rec709.Coefficients : Rec601.Coefficients;
 			float cbl = clum.X, cgl = clum.Y, crl = clum.Z;
 
-			while (ip < ipe)
+			while (ip <= ipe)
 			{
 				float c0 = ip[0] * cbl, c1 = ip[1] * cgl, c2 = ip[2] * crl;
 				op[0] = c0 + c1 + c2;
@@ -802,12 +789,12 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe public static void ConvertBgrxToGreyByte(byte* ipstart, byte* opstart, int cb)
 		{
-			byte* ip = ipstart + 4, ipe = ipstart + cb, op = opstart + 1;
+			byte* ip = ipstart, ipe = ipstart + cb - 4, op = opstart;
 
 			while (ip <= ipe)
 			{
-				byte y = Rec601.LumaFromBgr(ip[-4], ip[-3], ip[-2]);
-				op[-1] = y;
+				byte y = Rec601.LumaFromBgr(ip[0], ip[1], ip[2]);
+				op[0] = y;
 
 				ip += 4;
 				op++;
@@ -818,13 +805,13 @@ namespace PhotoSauce.MagicScaler
 		{
 			fixed (byte* gtstart = &LookupTables.SrgbGamma[0])
 			{
-				ushort* ip = (ushort*)ipstart + 4, ipe = (ushort*)(ipstart + cb), op = (ushort*)opstart + 1;
+				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb) - 4, op = (ushort*)opstart;
 				byte* gt = gtstart;
 
 				while (ip <= ipe)
 				{
-					uint y = Rec709.LumaFromBgr(ip[-4], ip[-3], ip[-2]);
-					op[-1] = gt[y];
+					uint y = Rec709.LumaFromBgr(ip[0], ip[1], ip[2]);
+					op[0] = gt[y];
 
 					ip += 4;
 					op++;
@@ -834,10 +821,10 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe public static void ConvertBgrxToGreyFloat(byte* ipstart, byte* opstart, int cb, bool linear)
 		{
-			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb), op = (float*)opstart;
+			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - 4, op = (float*)opstart;
 			var clum = new Vector4(linear ? Rec709.Coefficients : Rec601.Coefficients, 0f);
 
-			while (ip < ipe)
+			while (ip <= ipe)
 			{
 				*op++ = Vector4.Dot(Unsafe.Read<Vector4>(ip), clum);
 				ip += 4;

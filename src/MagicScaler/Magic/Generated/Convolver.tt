@@ -131,29 +131,29 @@ foreach (var t in ta) {
 				<#= t.interType #><# for (int j = 0; j < t.channels - (t.alpha ? 1 : 0); j++) {#><#= j > 0 ? "," : "" #> a<#= j #> = 0<# } if (t.alpha) { #>, aa = 0, aw = 0<# } #>;
 
 				int ix = *<#= t.weighType == "int" ? "" : "(int*)" #>pmapx++;
-				<#= t.pixelType #>* ip = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>istart + ix * Channels + <#= t.xUnroll #> * Channels;
-				<#= t.pixelType #>* ipe = ip + smapx * Channels - <#= t.xUnroll > 2 ? $"{(t.xUnroll - 1)} * " : "" #>Channels;
-				<#= t.weighType #>* mp = pmapx + <#= t.xUnroll #>;
+				<#= t.pixelType #>* ip = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>istart + ix * Channels;
+				<#= t.pixelType #>* ipe = ip + smapx * Channels - <#= t.xUnroll > 1 ? $"{t.xUnroll} * " : "" #>Channels;
+				<#= t.weighType #>* mp = pmapx;
 				pmapx += smapx;
 
-				while (ip < ipe)
+				while (ip <= ipe)
 				{
 <#
 for (int i = 0; i < t.xUnroll; i++) {
 	if (t.channels == 1) {
 #>
-					a0 += ip[<#= i - t.xUnroll #>] * mp[<#= i - t.xUnroll #>];
+					a0 += ip[<#= i #>] * mp[<#= i #>];
 <#
 	} else {
 		if (t.alpha) {
 #>
-					<#= i == 0 ? "int " : "" #>alpha = ip[<#= (i - t.xUnroll) * t.channels + t.channels - 1 #>];
-					<#= i == 0 ? "int " : "" #>w = mp[<#= (i - t.xUnroll) #>];
+					<#= i == 0 ? "int " : "" #>alpha = ip[<#= i * t.channels + t.channels - 1 #>];
+					<#= i == 0 ? "int " : "" #>w = mp[<#= i #>];
 
 					aa += alpha * w;
-					if (alpha < <#= t.suffix == "UQ15" ? "UQ15One" : "255" #>)
+					if (alpha < <#= t.suffix == "UQ15" ? "UQ15One" : "byte.MaxValue" #>)
 					{
-						int pw = UnFix15(w * alpha<#= t.suffix == "UQ15" ? "" : " << 7" #>);
+						int pw = UnFix<#= t.pixelType == "byte" ? "8" : "15" #>(w * alpha);
 						aw += w - pw;
 						w = pw;
 					}
@@ -165,12 +165,12 @@ for (int i = 0; i < t.xUnroll; i++) {
 		}
 		if (!t.alpha) {
 #>
-					<#= i == 0 ? "int " : "" #>w = mp[<#= (i - t.xUnroll) #>];
+					<#= i == 0 ? "int " : "" #>w = mp[<#= i #>];
 <#
 		}
 		for (int j = 0; j < t.channels - (t.alpha ? 1 : 0); j++) {
 #>
-					a<#= j #> += ip[<#= (i - t.xUnroll) * t.channels + j #>] * w;
+					a<#= j #> += ip[<#= i * t.channels + j #>] * w;
 <#
 		}
 		if (t.alpha) {
@@ -190,25 +190,24 @@ for (int i = 0; i < t.xUnroll; i++) {
 <#
 if (t.xUnroll > 1) {
 #>
-				ip -= <#= t.xUnroll > 2 ? $"{(t.xUnroll - 1)} * " : "" #>Channels;
-				mp<#= t.xUnroll > 2 ? $" -= {(t.xUnroll - 1)}" : "--" #>;
+				ipe += <#= t.xUnroll > 1 ? $"{t.xUnroll} * " : "" #>Channels;
 				while (ip < ipe)
 				{
 <#
 	if (t.channels == 1) {
 #>
-					a0 += ip[-1] * mp[-1];
+					a0 += ip[0] * mp[0];
 <#
 	} else {
 		if (t.alpha) {
 #>
-					int alpha = ip[<#= -t.channels + t.channels - 1 #>];
-					int w = mp[-1];
+					int alpha = ip[<#= t.channels - 1 #>];
+					int w = mp[0];
 
 					aa += alpha * w;
-					if (alpha < <#= t.suffix == "UQ15" ? "UQ15One" : "255" #>)
+					if (alpha < <#= t.suffix == "UQ15" ? "UQ15One" : "byte.MaxValue" #>)
 					{
-						int pw = UnFix15(w * alpha<#= t.suffix == "UQ15" ? "" : " << 7" #>);
+						int pw = UnFix<#= t.pixelType == "byte" ? "8" : "15" #>(w * alpha);
 						aw += w - pw;
 						w = pw;
 					}
@@ -220,12 +219,12 @@ if (t.xUnroll > 1) {
 		}
 		if (!t.alpha) {
 #>
-					int w = mp[-1];
+					int w = mp[0];
 <#
 		}
 		for (int j = 0; j < t.channels - (t.alpha ? 1 : 0); j++) {
 #>
-					a<#= j #> += ip[<#= -t.channels + j #>] * w;
+					a<#= j #> += ip[<#= j #>] * w;
 <#
 		}
 		if (t.alpha) {
@@ -261,7 +260,7 @@ if (t.xUnroll > 1) {
 }
 for (int j = 0; j < t.channels - (t.alpha ? 1 : 0); j++) {
 #>
-				tp[<#= j #>] = UnFix15(a<#= j #>);
+				tp[<#= j #>] = UnFix<#= t.pixelType == "byte" ? "8" : "15" #>(a<#= j #>);
 <#
 }
 if (t.alpha) {
@@ -283,28 +282,28 @@ if (t.alpha) {
 			{
 				<#= t.interType #><# for (int j = 0; j < t.channels - (t.alpha ? 1 : 0); j++) {#><#= j > 0 ? "," : "" #> a<#= j #> = 0<# } if (t.alpha) { #>, aa = 0, aw = 0<# } #>;
 
-				<#= t.interType #>* tp = (<#= t.interType #>*)tstart + ox * tstride + <#= t.yUnroll #> * Channels;
-				<#= t.interType #>* tpe = tp + tstride - <#= t.yUnroll > 2 ? $"{(t.yUnroll - 1)} * " : "" #>Channels;
-				<#= t.weighType #>* mp = (<#= t.weighType #>*)pmapy + <#= t.yUnroll #>;
+				<#= t.interType #>* tp = (<#= t.interType #>*)tstart + ox * tstride;
+				<#= t.interType #>* tpe = tp + tstride - <#= t.yUnroll > 1 ? $"{t.yUnroll} * " : "" #>Channels;
+				<#= t.weighType #>* mp = (<#= t.weighType #>*)pmapy;
 
-				while (tp < tpe)
+				while (tp <= tpe)
 				{
 <#
 for (int i = 0; i < t.yUnroll; i++) {
 	if (t.channels == 1) {
 #>
-					a0 += tp[<#= i - t.yUnroll #>] * mp[<#= i - t.yUnroll #>];
+					a0 += tp[<#= i #>] * mp[<#= i #>];
 <#
 	} else {
 		if (t.alpha) {
 #>
-					<#= i == 0 ? "int " : "" #>alpha = tp[<#= (i - t.yUnroll) * t.channels + t.channels - 1 #>];
-					<#= i == 0 ? "int " : "" #>w = mp[<#= (i - t.yUnroll) #>];
+					<#= i == 0 ? "int " : "" #>alpha = tp[<#= i * t.channels + t.channels - 1 #>];
+					<#= i == 0 ? "int " : "" #>w = mp[<#= i #>];
 
 					aa += alpha * w;
-					if (alpha < <#= t.suffix == "UQ15" ? "UQ15One" : "255" #>)
+					if (alpha < <#= t.suffix == "UQ15" ? "UQ15One" : "byte.MaxValue" #>)
 					{
-						int pw = UnFix15(w * alpha<#= t.suffix == "UQ15" ? "" : " << 7" #>);
+						int pw = UnFix<#= t.pixelType == "byte" ? "8" : "15" #>(w * alpha);
 						aw += w - pw;
 						w = pw;
 					}
@@ -316,12 +315,12 @@ for (int i = 0; i < t.yUnroll; i++) {
 		}
 		if (!t.alpha) {
 #>
-					<#= i == 0 ? "int " : "" #>w = mp[<#= (i - t.yUnroll) #>];
+					<#= i == 0 ? "int " : "" #>w = mp[<#= i #>];
 <#
 		}
 		for (int j = 0; j < t.channels - (t.alpha ? 1 : 0); j++) {
 #>
-					a<#= j #> += tp[<#= (i - t.yUnroll) * t.channels + j #>] * w;
+					a<#= j #> += tp[<#= i * t.channels + j #>] * w;
 <#
 		}
 		if (t.alpha) {
@@ -341,25 +340,24 @@ for (int i = 0; i < t.yUnroll; i++) {
 <#
 if (t.yUnroll > 1) {
 #>
-				tp -= <#= t.yUnroll > 2 ? $"{(t.yUnroll - 1)} * " : "" #>Channels;
-				mp<#= t.yUnroll > 2 ? $" -= {(t.yUnroll - 1)}" : "--" #>;
+				tpe += <#= t.yUnroll > 1 ? $"{t.yUnroll} * " : "" #>Channels;
 				while (tp < tpe)
 				{
 <#
 	if (t.channels == 1) {
 #>
-					a0 += tp[-1] * mp[-1];
+					a0 += tp[0] * mp[0];
 <#
 	} else {
 		if (t.alpha) {
 #>
-					int alpha = tp[<#= -t.channels + t.channels - 1 #>];
-					int w = mp[-1];
+					int alpha = tp[<#= t.channels - 1 #>];
+					int w = mp[0];
 
 					aa += alpha * w;
-					if (alpha < <#= t.suffix == "UQ15" ? "UQ15One" : "255" #>)
+					if (alpha < <#= t.suffix == "UQ15" ? "UQ15One" : "byte.MaxValue" #>)
 					{
-						int pw = UnFix15(w * alpha<#= t.suffix == "UQ15" ? "" : " << 7" #>);
+						int pw = UnFix<#= t.pixelType == "byte" ? "8" : "15" #>(w * alpha);
 						aw += w - pw;
 						w = pw;
 					}
@@ -371,12 +369,12 @@ if (t.yUnroll > 1) {
 		}
 		if (!t.alpha) {
 #>
-					int w = mp[-1];
+					int w = mp[0];
 <#
 		}
 		for (int j = 0; j < t.channels - (t.alpha ? 1 : 0); j++) {
 #>
-					a<#= j #> += tp[<#= -t.channels + j #>] * w;
+					a<#= j #> += tp[<#= j #>] * w;
 <#
 		}
 		if (t.alpha) {
@@ -417,7 +415,7 @@ if (t.alpha)
 }
 for (int j = 0; j < t.channels - (t.alpha ? 1 : 0); j++) {
 #>
-				op[<#= j #>] = UnFix<#= t.pixelType == "byte" ? "15" : "" #>To<#= t.suffix #>(a<#= j #>);
+				op[<#= j #>] = UnFix<#= t.pixelType == "byte" ? "22" : "" #>To<#= t.suffix #>(a<#= j #>);
 <#
 }
 if (t.alpha) {

@@ -30,109 +30,108 @@ namespace PhotoSauce.MagicScaler
 				int a0 = 0, a1 = 0, a2 = 0, aa = 0, aw = 0;
 
 				int ix = *pmapx++;
-				byte* ip = istart + ix * Channels + 4 * Channels;
-				byte* ipe = ip + smapx * Channels - 3 * Channels;
-				int* mp = pmapx + 4;
+				byte* ip = istart + ix * Channels;
+				byte* ipe = ip + smapx * Channels - 4 * Channels;
+				int* mp = pmapx;
 				pmapx += smapx;
 
-				while (ip < ipe)
+				while (ip <= ipe)
 				{
-					int alpha = ip[-13];
-					int w = mp[-4];
+					int alpha = ip[3];
+					int w = mp[0];
 
 					aa += alpha * w;
-					if (alpha < 255)
+					if (alpha < byte.MaxValue)
 					{
-						int pw = UnFix15(w * alpha << 7);
+						int pw = UnFix8(w * alpha);
 						aw += w - pw;
 						w = pw;
 					}
 
 					if (w != 0)
 					{
-						a0 += ip[-16] * w;
-						a1 += ip[-15] * w;
-						a2 += ip[-14] * w;
+						a0 += ip[0] * w;
+						a1 += ip[1] * w;
+						a2 += ip[2] * w;
 					}
 
-					alpha = ip[-9];
-					w = mp[-3];
+					alpha = ip[7];
+					w = mp[1];
 
 					aa += alpha * w;
-					if (alpha < 255)
+					if (alpha < byte.MaxValue)
 					{
-						int pw = UnFix15(w * alpha << 7);
+						int pw = UnFix8(w * alpha);
 						aw += w - pw;
 						w = pw;
 					}
 
 					if (w != 0)
 					{
-						a0 += ip[-12] * w;
-						a1 += ip[-11] * w;
-						a2 += ip[-10] * w;
+						a0 += ip[4] * w;
+						a1 += ip[5] * w;
+						a2 += ip[6] * w;
 					}
 
-					alpha = ip[-5];
-					w = mp[-2];
+					alpha = ip[11];
+					w = mp[2];
 
 					aa += alpha * w;
-					if (alpha < 255)
+					if (alpha < byte.MaxValue)
 					{
-						int pw = UnFix15(w * alpha << 7);
+						int pw = UnFix8(w * alpha);
 						aw += w - pw;
 						w = pw;
 					}
 
 					if (w != 0)
 					{
-						a0 += ip[-8] * w;
-						a1 += ip[-7] * w;
-						a2 += ip[-6] * w;
+						a0 += ip[8] * w;
+						a1 += ip[9] * w;
+						a2 += ip[10] * w;
 					}
 
-					alpha = ip[-1];
-					w = mp[-1];
+					alpha = ip[15];
+					w = mp[3];
 
 					aa += alpha * w;
-					if (alpha < 255)
+					if (alpha < byte.MaxValue)
 					{
-						int pw = UnFix15(w * alpha << 7);
+						int pw = UnFix8(w * alpha);
 						aw += w - pw;
 						w = pw;
 					}
 
 					if (w != 0)
 					{
-						a0 += ip[-4] * w;
-						a1 += ip[-3] * w;
-						a2 += ip[-2] * w;
+						a0 += ip[12] * w;
+						a1 += ip[13] * w;
+						a2 += ip[14] * w;
 					}
 
 					ip += 4 * Channels;
 					mp += 4;
 				}
 
-				ip -= 3 * Channels;
-				mp -= 3;
+				ipe += 4 * Channels;
 				while (ip < ipe)
 				{
-					int alpha = ip[-1];
-					int w = mp[-1];
+					int alpha = ip[3];
+					int w = mp[0];
 
 					aa += alpha * w;
-					if (alpha < 255)
+					if (alpha < byte.MaxValue)
 					{
-						int pw = UnFix15(w * alpha << 7);
+						int pw = UnFix8(w * alpha);
 						aw += w - pw;
 						w = pw;
 					}
 
 					if (w != 0)
 					{
-						a0 += ip[-4] * w;
-						a1 += ip[-3] * w;
-						a2 += ip[-2] * w;
+						a0 += ip[0] * w;
+						a1 += ip[1] * w;
+						a2 += ip[2] * w;
 					}
 
 					ip += Channels;
@@ -147,9 +146,9 @@ namespace PhotoSauce.MagicScaler
 					a2 = UnFix15(a2) * wf;
 				}
 
-				tp[0] = UnFix15(a0);
-				tp[1] = UnFix15(a1);
-				tp[2] = UnFix15(a2);
+				tp[0] = UnFix8(a0);
+				tp[1] = UnFix8(a1);
+				tp[2] = UnFix8(a2);
 				tp[3] = UnFix15(aa);
 				tp += tstride;
 			}
@@ -164,72 +163,71 @@ namespace PhotoSauce.MagicScaler
 			{
 				int a0 = 0, a1 = 0, a2 = 0, aa = 0, aw = 0;
 
-				int* tp = (int*)tstart + ox * tstride + 2 * Channels;
-				int* tpe = tp + tstride - Channels;
-				int* mp = (int*)pmapy + 2;
+				int* tp = (int*)tstart + ox * tstride;
+				int* tpe = tp + tstride - 2 * Channels;
+				int* mp = (int*)pmapy;
 
-				while (tp < tpe)
+				while (tp <= tpe)
 				{
-					int alpha = tp[-5];
-					int w = mp[-2];
+					int alpha = tp[3];
+					int w = mp[0];
 
 					aa += alpha * w;
-					if (alpha < 255)
+					if (alpha < byte.MaxValue)
 					{
-						int pw = UnFix15(w * alpha << 7);
+						int pw = UnFix8(w * alpha);
 						aw += w - pw;
 						w = pw;
 					}
 
 					if (w != 0)
 					{
-						a0 += tp[-8] * w;
-						a1 += tp[-7] * w;
-						a2 += tp[-6] * w;
+						a0 += tp[0] * w;
+						a1 += tp[1] * w;
+						a2 += tp[2] * w;
 					}
 
-					alpha = tp[-1];
-					w = mp[-1];
+					alpha = tp[7];
+					w = mp[1];
 
 					aa += alpha * w;
-					if (alpha < 255)
+					if (alpha < byte.MaxValue)
 					{
-						int pw = UnFix15(w * alpha << 7);
+						int pw = UnFix8(w * alpha);
 						aw += w - pw;
 						w = pw;
 					}
 
 					if (w != 0)
 					{
-						a0 += tp[-4] * w;
-						a1 += tp[-3] * w;
-						a2 += tp[-2] * w;
+						a0 += tp[4] * w;
+						a1 += tp[5] * w;
+						a2 += tp[6] * w;
 					}
 
 					tp += 2 * Channels;
 					mp += 2;
 				}
 
-				tp -= Channels;
-				mp--;
+				tpe += 2 * Channels;
 				while (tp < tpe)
 				{
-					int alpha = tp[-1];
-					int w = mp[-1];
+					int alpha = tp[3];
+					int w = mp[0];
 
 					aa += alpha * w;
-					if (alpha < 255)
+					if (alpha < byte.MaxValue)
 					{
-						int pw = UnFix15(w * alpha << 7);
+						int pw = UnFix8(w * alpha);
 						aw += w - pw;
 						w = pw;
 					}
 
 					if (w != 0)
 					{
-						a0 += tp[-4] * w;
-						a1 += tp[-3] * w;
-						a2 += tp[-2] * w;
+						a0 += tp[0] * w;
+						a1 += tp[1] * w;
+						a2 += tp[2] * w;
 					}
 
 					tp += Channels;
@@ -248,9 +246,9 @@ namespace PhotoSauce.MagicScaler
 					a2 = UnFix15(a2) * wf;
 				}
 
-				op[0] = UnFix15ToByte(a0);
-				op[1] = UnFix15ToByte(a1);
-				op[2] = UnFix15ToByte(a2);
+				op[0] = UnFix22ToByte(a0);
+				op[1] = UnFix22ToByte(a1);
+				op[2] = UnFix22ToByte(a2);
 				op[3] = UnFix15ToByte(aa);
 				op += Channels;
 				ox++;
@@ -308,59 +306,58 @@ namespace PhotoSauce.MagicScaler
 				int a0 = 0, a1 = 0, a2 = 0, a3 = 0;
 
 				int ix = *pmapx++;
-				byte* ip = istart + ix * Channels + 4 * Channels;
-				byte* ipe = ip + smapx * Channels - 3 * Channels;
-				int* mp = pmapx + 4;
+				byte* ip = istart + ix * Channels;
+				byte* ipe = ip + smapx * Channels - 4 * Channels;
+				int* mp = pmapx;
 				pmapx += smapx;
 
-				while (ip < ipe)
+				while (ip <= ipe)
 				{
-					int w = mp[-4];
-					a0 += ip[-16] * w;
-					a1 += ip[-15] * w;
-					a2 += ip[-14] * w;
-					a3 += ip[-13] * w;
+					int w = mp[0];
+					a0 += ip[0] * w;
+					a1 += ip[1] * w;
+					a2 += ip[2] * w;
+					a3 += ip[3] * w;
 
-					w = mp[-3];
-					a0 += ip[-12] * w;
-					a1 += ip[-11] * w;
-					a2 += ip[-10] * w;
-					a3 += ip[-9] * w;
+					w = mp[1];
+					a0 += ip[4] * w;
+					a1 += ip[5] * w;
+					a2 += ip[6] * w;
+					a3 += ip[7] * w;
 
-					w = mp[-2];
-					a0 += ip[-8] * w;
-					a1 += ip[-7] * w;
-					a2 += ip[-6] * w;
-					a3 += ip[-5] * w;
+					w = mp[2];
+					a0 += ip[8] * w;
+					a1 += ip[9] * w;
+					a2 += ip[10] * w;
+					a3 += ip[11] * w;
 
-					w = mp[-1];
-					a0 += ip[-4] * w;
-					a1 += ip[-3] * w;
-					a2 += ip[-2] * w;
-					a3 += ip[-1] * w;
+					w = mp[3];
+					a0 += ip[12] * w;
+					a1 += ip[13] * w;
+					a2 += ip[14] * w;
+					a3 += ip[15] * w;
 
 					ip += 4 * Channels;
 					mp += 4;
 				}
 
-				ip -= 3 * Channels;
-				mp -= 3;
+				ipe += 4 * Channels;
 				while (ip < ipe)
 				{
-					int w = mp[-1];
-					a0 += ip[-4] * w;
-					a1 += ip[-3] * w;
-					a2 += ip[-2] * w;
-					a3 += ip[-1] * w;
+					int w = mp[0];
+					a0 += ip[0] * w;
+					a1 += ip[1] * w;
+					a2 += ip[2] * w;
+					a3 += ip[3] * w;
 
 					ip += Channels;
 					mp++;
 				}
 
-				tp[0] = UnFix15(a0);
-				tp[1] = UnFix15(a1);
-				tp[2] = UnFix15(a2);
-				tp[3] = UnFix15(a3);
+				tp[0] = UnFix8(a0);
+				tp[1] = UnFix8(a1);
+				tp[2] = UnFix8(a2);
+				tp[3] = UnFix8(a3);
 				tp += tstride;
 			}
 		}
@@ -374,46 +371,45 @@ namespace PhotoSauce.MagicScaler
 			{
 				int a0 = 0, a1 = 0, a2 = 0, a3 = 0;
 
-				int* tp = (int*)tstart + ox * tstride + 2 * Channels;
-				int* tpe = tp + tstride - Channels;
-				int* mp = (int*)pmapy + 2;
+				int* tp = (int*)tstart + ox * tstride;
+				int* tpe = tp + tstride - 2 * Channels;
+				int* mp = (int*)pmapy;
 
-				while (tp < tpe)
+				while (tp <= tpe)
 				{
-					int w = mp[-2];
-					a0 += tp[-8] * w;
-					a1 += tp[-7] * w;
-					a2 += tp[-6] * w;
-					a3 += tp[-5] * w;
+					int w = mp[0];
+					a0 += tp[0] * w;
+					a1 += tp[1] * w;
+					a2 += tp[2] * w;
+					a3 += tp[3] * w;
 
-					w = mp[-1];
-					a0 += tp[-4] * w;
-					a1 += tp[-3] * w;
-					a2 += tp[-2] * w;
-					a3 += tp[-1] * w;
+					w = mp[1];
+					a0 += tp[4] * w;
+					a1 += tp[5] * w;
+					a2 += tp[6] * w;
+					a3 += tp[7] * w;
 
 					tp += 2 * Channels;
 					mp += 2;
 				}
 
-				tp -= Channels;
-				mp--;
+				tpe += 2 * Channels;
 				while (tp < tpe)
 				{
-					int w = mp[-1];
-					a0 += tp[-4] * w;
-					a1 += tp[-3] * w;
-					a2 += tp[-2] * w;
-					a3 += tp[-1] * w;
+					int w = mp[0];
+					a0 += tp[0] * w;
+					a1 += tp[1] * w;
+					a2 += tp[2] * w;
+					a3 += tp[3] * w;
 
 					tp += Channels;
 					mp++;
 				}
 
-				op[0] = UnFix15ToByte(a0);
-				op[1] = UnFix15ToByte(a1);
-				op[2] = UnFix15ToByte(a2);
-				op[3] = UnFix15ToByte(a3);
+				op[0] = UnFix22ToByte(a0);
+				op[1] = UnFix22ToByte(a1);
+				op[2] = UnFix22ToByte(a2);
+				op[3] = UnFix22ToByte(a3);
 				op += Channels;
 				ox++;
 			}
@@ -470,50 +466,49 @@ namespace PhotoSauce.MagicScaler
 				int a0 = 0, a1 = 0, a2 = 0, a3 = 0;
 
 				int ix = *pmapx++;
-				ushort* ip = (ushort*)istart + ix * Channels + 4 * Channels;
-				ushort* ipe = ip + smapx * Channels - 3 * Channels;
-				int* mp = pmapx + 4;
+				ushort* ip = (ushort*)istart + ix * Channels;
+				ushort* ipe = ip + smapx * Channels - 4 * Channels;
+				int* mp = pmapx;
 				pmapx += smapx;
 
-				while (ip < ipe)
+				while (ip <= ipe)
 				{
-					int w = mp[-4];
-					a0 += ip[-16] * w;
-					a1 += ip[-15] * w;
-					a2 += ip[-14] * w;
-					a3 += ip[-13] * w;
+					int w = mp[0];
+					a0 += ip[0] * w;
+					a1 += ip[1] * w;
+					a2 += ip[2] * w;
+					a3 += ip[3] * w;
 
-					w = mp[-3];
-					a0 += ip[-12] * w;
-					a1 += ip[-11] * w;
-					a2 += ip[-10] * w;
-					a3 += ip[-9] * w;
+					w = mp[1];
+					a0 += ip[4] * w;
+					a1 += ip[5] * w;
+					a2 += ip[6] * w;
+					a3 += ip[7] * w;
 
-					w = mp[-2];
-					a0 += ip[-8] * w;
-					a1 += ip[-7] * w;
-					a2 += ip[-6] * w;
-					a3 += ip[-5] * w;
+					w = mp[2];
+					a0 += ip[8] * w;
+					a1 += ip[9] * w;
+					a2 += ip[10] * w;
+					a3 += ip[11] * w;
 
-					w = mp[-1];
-					a0 += ip[-4] * w;
-					a1 += ip[-3] * w;
-					a2 += ip[-2] * w;
-					a3 += ip[-1] * w;
+					w = mp[3];
+					a0 += ip[12] * w;
+					a1 += ip[13] * w;
+					a2 += ip[14] * w;
+					a3 += ip[15] * w;
 
 					ip += 4 * Channels;
 					mp += 4;
 				}
 
-				ip -= 3 * Channels;
-				mp -= 3;
+				ipe += 4 * Channels;
 				while (ip < ipe)
 				{
-					int w = mp[-1];
-					a0 += ip[-4] * w;
-					a1 += ip[-3] * w;
-					a2 += ip[-2] * w;
-					a3 += ip[-1] * w;
+					int w = mp[0];
+					a0 += ip[0] * w;
+					a1 += ip[1] * w;
+					a2 += ip[2] * w;
+					a3 += ip[3] * w;
 
 					ip += Channels;
 					mp++;
@@ -536,37 +531,36 @@ namespace PhotoSauce.MagicScaler
 			{
 				int a0 = 0, a1 = 0, a2 = 0, a3 = 0;
 
-				int* tp = (int*)tstart + ox * tstride + 2 * Channels;
-				int* tpe = tp + tstride - Channels;
-				int* mp = (int*)pmapy + 2;
+				int* tp = (int*)tstart + ox * tstride;
+				int* tpe = tp + tstride - 2 * Channels;
+				int* mp = (int*)pmapy;
 
-				while (tp < tpe)
+				while (tp <= tpe)
 				{
-					int w = mp[-2];
-					a0 += tp[-8] * w;
-					a1 += tp[-7] * w;
-					a2 += tp[-6] * w;
-					a3 += tp[-5] * w;
+					int w = mp[0];
+					a0 += tp[0] * w;
+					a1 += tp[1] * w;
+					a2 += tp[2] * w;
+					a3 += tp[3] * w;
 
-					w = mp[-1];
-					a0 += tp[-4] * w;
-					a1 += tp[-3] * w;
-					a2 += tp[-2] * w;
-					a3 += tp[-1] * w;
+					w = mp[1];
+					a0 += tp[4] * w;
+					a1 += tp[5] * w;
+					a2 += tp[6] * w;
+					a3 += tp[7] * w;
 
 					tp += 2 * Channels;
 					mp += 2;
 				}
 
-				tp -= Channels;
-				mp--;
+				tpe += 2 * Channels;
 				while (tp < tpe)
 				{
-					int w = mp[-1];
-					a0 += tp[-4] * w;
-					a1 += tp[-3] * w;
-					a2 += tp[-2] * w;
-					a3 += tp[-1] * w;
+					int w = mp[0];
+					a0 += tp[0] * w;
+					a1 += tp[1] * w;
+					a2 += tp[2] * w;
+					a3 += tp[3] * w;
 
 					tp += Channels;
 					mp++;
@@ -641,58 +635,57 @@ namespace PhotoSauce.MagicScaler
 				int a0 = 0, a1 = 0, a2 = 0;
 
 				int ix = *pmapx++;
-				byte* ip = istart + ix * Channels + 5 * Channels;
-				byte* ipe = ip + smapx * Channels - 4 * Channels;
-				int* mp = pmapx + 5;
+				byte* ip = istart + ix * Channels;
+				byte* ipe = ip + smapx * Channels - 5 * Channels;
+				int* mp = pmapx;
 				pmapx += smapx;
 
-				while (ip < ipe)
+				while (ip <= ipe)
 				{
-					int w = mp[-5];
-					a0 += ip[-15] * w;
-					a1 += ip[-14] * w;
-					a2 += ip[-13] * w;
+					int w = mp[0];
+					a0 += ip[0] * w;
+					a1 += ip[1] * w;
+					a2 += ip[2] * w;
 
-					w = mp[-4];
-					a0 += ip[-12] * w;
-					a1 += ip[-11] * w;
-					a2 += ip[-10] * w;
+					w = mp[1];
+					a0 += ip[3] * w;
+					a1 += ip[4] * w;
+					a2 += ip[5] * w;
 
-					w = mp[-3];
-					a0 += ip[-9] * w;
-					a1 += ip[-8] * w;
-					a2 += ip[-7] * w;
+					w = mp[2];
+					a0 += ip[6] * w;
+					a1 += ip[7] * w;
+					a2 += ip[8] * w;
 
-					w = mp[-2];
-					a0 += ip[-6] * w;
-					a1 += ip[-5] * w;
-					a2 += ip[-4] * w;
+					w = mp[3];
+					a0 += ip[9] * w;
+					a1 += ip[10] * w;
+					a2 += ip[11] * w;
 
-					w = mp[-1];
-					a0 += ip[-3] * w;
-					a1 += ip[-2] * w;
-					a2 += ip[-1] * w;
+					w = mp[4];
+					a0 += ip[12] * w;
+					a1 += ip[13] * w;
+					a2 += ip[14] * w;
 
 					ip += 5 * Channels;
 					mp += 5;
 				}
 
-				ip -= 4 * Channels;
-				mp -= 4;
+				ipe += 5 * Channels;
 				while (ip < ipe)
 				{
-					int w = mp[-1];
-					a0 += ip[-3] * w;
-					a1 += ip[-2] * w;
-					a2 += ip[-1] * w;
+					int w = mp[0];
+					a0 += ip[0] * w;
+					a1 += ip[1] * w;
+					a2 += ip[2] * w;
 
 					ip += Channels;
 					mp++;
 				}
 
-				tp[0] = UnFix15(a0);
-				tp[1] = UnFix15(a1);
-				tp[2] = UnFix15(a2);
+				tp[0] = UnFix8(a0);
+				tp[1] = UnFix8(a1);
+				tp[2] = UnFix8(a2);
 				tp += tstride;
 			}
 		}
@@ -706,42 +699,41 @@ namespace PhotoSauce.MagicScaler
 			{
 				int a0 = 0, a1 = 0, a2 = 0;
 
-				int* tp = (int*)tstart + ox * tstride + 2 * Channels;
-				int* tpe = tp + tstride - Channels;
-				int* mp = (int*)pmapy + 2;
+				int* tp = (int*)tstart + ox * tstride;
+				int* tpe = tp + tstride - 2 * Channels;
+				int* mp = (int*)pmapy;
 
-				while (tp < tpe)
+				while (tp <= tpe)
 				{
-					int w = mp[-2];
-					a0 += tp[-6] * w;
-					a1 += tp[-5] * w;
-					a2 += tp[-4] * w;
+					int w = mp[0];
+					a0 += tp[0] * w;
+					a1 += tp[1] * w;
+					a2 += tp[2] * w;
 
-					w = mp[-1];
-					a0 += tp[-3] * w;
-					a1 += tp[-2] * w;
-					a2 += tp[-1] * w;
+					w = mp[1];
+					a0 += tp[3] * w;
+					a1 += tp[4] * w;
+					a2 += tp[5] * w;
 
 					tp += 2 * Channels;
 					mp += 2;
 				}
 
-				tp -= Channels;
-				mp--;
+				tpe += 2 * Channels;
 				while (tp < tpe)
 				{
-					int w = mp[-1];
-					a0 += tp[-3] * w;
-					a1 += tp[-2] * w;
-					a2 += tp[-1] * w;
+					int w = mp[0];
+					a0 += tp[0] * w;
+					a1 += tp[1] * w;
+					a2 += tp[2] * w;
 
 					tp += Channels;
 					mp++;
 				}
 
-				op[0] = UnFix15ToByte(a0);
-				op[1] = UnFix15ToByte(a1);
-				op[2] = UnFix15ToByte(a2);
+				op[0] = UnFix22ToByte(a0);
+				op[1] = UnFix22ToByte(a1);
+				op[2] = UnFix22ToByte(a2);
 				op += Channels;
 				ox++;
 			}
@@ -796,50 +788,49 @@ namespace PhotoSauce.MagicScaler
 				int a0 = 0, a1 = 0, a2 = 0;
 
 				int ix = *pmapx++;
-				ushort* ip = (ushort*)istart + ix * Channels + 5 * Channels;
-				ushort* ipe = ip + smapx * Channels - 4 * Channels;
-				int* mp = pmapx + 5;
+				ushort* ip = (ushort*)istart + ix * Channels;
+				ushort* ipe = ip + smapx * Channels - 5 * Channels;
+				int* mp = pmapx;
 				pmapx += smapx;
 
-				while (ip < ipe)
+				while (ip <= ipe)
 				{
-					int w = mp[-5];
-					a0 += ip[-15] * w;
-					a1 += ip[-14] * w;
-					a2 += ip[-13] * w;
+					int w = mp[0];
+					a0 += ip[0] * w;
+					a1 += ip[1] * w;
+					a2 += ip[2] * w;
 
-					w = mp[-4];
-					a0 += ip[-12] * w;
-					a1 += ip[-11] * w;
-					a2 += ip[-10] * w;
+					w = mp[1];
+					a0 += ip[3] * w;
+					a1 += ip[4] * w;
+					a2 += ip[5] * w;
 
-					w = mp[-3];
-					a0 += ip[-9] * w;
-					a1 += ip[-8] * w;
-					a2 += ip[-7] * w;
+					w = mp[2];
+					a0 += ip[6] * w;
+					a1 += ip[7] * w;
+					a2 += ip[8] * w;
 
-					w = mp[-2];
-					a0 += ip[-6] * w;
-					a1 += ip[-5] * w;
-					a2 += ip[-4] * w;
+					w = mp[3];
+					a0 += ip[9] * w;
+					a1 += ip[10] * w;
+					a2 += ip[11] * w;
 
-					w = mp[-1];
-					a0 += ip[-3] * w;
-					a1 += ip[-2] * w;
-					a2 += ip[-1] * w;
+					w = mp[4];
+					a0 += ip[12] * w;
+					a1 += ip[13] * w;
+					a2 += ip[14] * w;
 
 					ip += 5 * Channels;
 					mp += 5;
 				}
 
-				ip -= 4 * Channels;
-				mp -= 4;
+				ipe += 5 * Channels;
 				while (ip < ipe)
 				{
-					int w = mp[-1];
-					a0 += ip[-3] * w;
-					a1 += ip[-2] * w;
-					a2 += ip[-1] * w;
+					int w = mp[0];
+					a0 += ip[0] * w;
+					a1 += ip[1] * w;
+					a2 += ip[2] * w;
 
 					ip += Channels;
 					mp++;
@@ -861,34 +852,33 @@ namespace PhotoSauce.MagicScaler
 			{
 				int a0 = 0, a1 = 0, a2 = 0;
 
-				int* tp = (int*)tstart + ox * tstride + 2 * Channels;
-				int* tpe = tp + tstride - Channels;
-				int* mp = (int*)pmapy + 2;
+				int* tp = (int*)tstart + ox * tstride;
+				int* tpe = tp + tstride - 2 * Channels;
+				int* mp = (int*)pmapy;
 
-				while (tp < tpe)
+				while (tp <= tpe)
 				{
-					int w = mp[-2];
-					a0 += tp[-6] * w;
-					a1 += tp[-5] * w;
-					a2 += tp[-4] * w;
+					int w = mp[0];
+					a0 += tp[0] * w;
+					a1 += tp[1] * w;
+					a2 += tp[2] * w;
 
-					w = mp[-1];
-					a0 += tp[-3] * w;
-					a1 += tp[-2] * w;
-					a2 += tp[-1] * w;
+					w = mp[1];
+					a0 += tp[3] * w;
+					a1 += tp[4] * w;
+					a2 += tp[5] * w;
 
 					tp += 2 * Channels;
 					mp += 2;
 				}
 
-				tp -= Channels;
-				mp--;
+				tpe += 2 * Channels;
 				while (tp < tpe)
 				{
-					int w = mp[-1];
-					a0 += tp[-3] * w;
-					a1 += tp[-2] * w;
-					a2 += tp[-1] * w;
+					int w = mp[0];
+					a0 += tp[0] * w;
+					a1 += tp[1] * w;
+					a2 += tp[2] * w;
 
 					tp += Channels;
 					mp++;
@@ -960,63 +950,62 @@ namespace PhotoSauce.MagicScaler
 				int a0 = 0, a1 = 0;
 
 				int ix = *pmapx++;
-				byte* ip = istart + ix * Channels + 8 * Channels;
-				byte* ipe = ip + smapx * Channels - 7 * Channels;
-				int* mp = pmapx + 8;
+				byte* ip = istart + ix * Channels;
+				byte* ipe = ip + smapx * Channels - 8 * Channels;
+				int* mp = pmapx;
 				pmapx += smapx;
 
-				while (ip < ipe)
+				while (ip <= ipe)
 				{
-					int w = mp[-8];
-					a0 += ip[-16] * w;
-					a1 += ip[-15] * w;
+					int w = mp[0];
+					a0 += ip[0] * w;
+					a1 += ip[1] * w;
 
-					w = mp[-7];
-					a0 += ip[-14] * w;
-					a1 += ip[-13] * w;
+					w = mp[1];
+					a0 += ip[2] * w;
+					a1 += ip[3] * w;
 
-					w = mp[-6];
-					a0 += ip[-12] * w;
-					a1 += ip[-11] * w;
+					w = mp[2];
+					a0 += ip[4] * w;
+					a1 += ip[5] * w;
 
-					w = mp[-5];
-					a0 += ip[-10] * w;
-					a1 += ip[-9] * w;
+					w = mp[3];
+					a0 += ip[6] * w;
+					a1 += ip[7] * w;
 
-					w = mp[-4];
-					a0 += ip[-8] * w;
-					a1 += ip[-7] * w;
+					w = mp[4];
+					a0 += ip[8] * w;
+					a1 += ip[9] * w;
 
-					w = mp[-3];
-					a0 += ip[-6] * w;
-					a1 += ip[-5] * w;
+					w = mp[5];
+					a0 += ip[10] * w;
+					a1 += ip[11] * w;
 
-					w = mp[-2];
-					a0 += ip[-4] * w;
-					a1 += ip[-3] * w;
+					w = mp[6];
+					a0 += ip[12] * w;
+					a1 += ip[13] * w;
 
-					w = mp[-1];
-					a0 += ip[-2] * w;
-					a1 += ip[-1] * w;
+					w = mp[7];
+					a0 += ip[14] * w;
+					a1 += ip[15] * w;
 
 					ip += 8 * Channels;
 					mp += 8;
 				}
 
-				ip -= 7 * Channels;
-				mp -= 7;
+				ipe += 8 * Channels;
 				while (ip < ipe)
 				{
-					int w = mp[-1];
-					a0 += ip[-2] * w;
-					a1 += ip[-1] * w;
+					int w = mp[0];
+					a0 += ip[0] * w;
+					a1 += ip[1] * w;
 
 					ip += Channels;
 					mp++;
 				}
 
-				tp[0] = UnFix15(a0);
-				tp[1] = UnFix15(a1);
+				tp[0] = UnFix8(a0);
+				tp[1] = UnFix8(a1);
 				tp += tstride;
 			}
 		}
@@ -1030,46 +1019,45 @@ namespace PhotoSauce.MagicScaler
 			{
 				int a0 = 0, a1 = 0;
 
-				int* tp = (int*)tstart + ox * tstride + 4 * Channels;
-				int* tpe = tp + tstride - 3 * Channels;
-				int* mp = (int*)pmapy + 4;
+				int* tp = (int*)tstart + ox * tstride;
+				int* tpe = tp + tstride - 4 * Channels;
+				int* mp = (int*)pmapy;
 
-				while (tp < tpe)
+				while (tp <= tpe)
 				{
-					int w = mp[-4];
-					a0 += tp[-8] * w;
-					a1 += tp[-7] * w;
+					int w = mp[0];
+					a0 += tp[0] * w;
+					a1 += tp[1] * w;
 
-					w = mp[-3];
-					a0 += tp[-6] * w;
-					a1 += tp[-5] * w;
+					w = mp[1];
+					a0 += tp[2] * w;
+					a1 += tp[3] * w;
 
-					w = mp[-2];
-					a0 += tp[-4] * w;
-					a1 += tp[-3] * w;
+					w = mp[2];
+					a0 += tp[4] * w;
+					a1 += tp[5] * w;
 
-					w = mp[-1];
-					a0 += tp[-2] * w;
-					a1 += tp[-1] * w;
+					w = mp[3];
+					a0 += tp[6] * w;
+					a1 += tp[7] * w;
 
 					tp += 4 * Channels;
 					mp += 4;
 				}
 
-				tp -= 3 * Channels;
-				mp -= 3;
+				tpe += 4 * Channels;
 				while (tp < tpe)
 				{
-					int w = mp[-1];
-					a0 += tp[-2] * w;
-					a1 += tp[-1] * w;
+					int w = mp[0];
+					a0 += tp[0] * w;
+					a1 += tp[1] * w;
 
 					tp += Channels;
 					mp++;
 				}
 
-				op[0] = UnFix15ToByte(a0);
-				op[1] = UnFix15ToByte(a1);
+				op[0] = UnFix22ToByte(a0);
+				op[1] = UnFix22ToByte(a1);
 				op += Channels;
 				ox++;
 			}
@@ -1097,36 +1085,35 @@ namespace PhotoSauce.MagicScaler
 				int a0 = 0;
 
 				int ix = *pmapx++;
-				byte* ip = istart + ix * Channels + 8 * Channels;
-				byte* ipe = ip + smapx * Channels - 7 * Channels;
-				int* mp = pmapx + 8;
+				byte* ip = istart + ix * Channels;
+				byte* ipe = ip + smapx * Channels - 8 * Channels;
+				int* mp = pmapx;
 				pmapx += smapx;
 
-				while (ip < ipe)
+				while (ip <= ipe)
 				{
-					a0 += ip[-8] * mp[-8];
-					a0 += ip[-7] * mp[-7];
-					a0 += ip[-6] * mp[-6];
-					a0 += ip[-5] * mp[-5];
-					a0 += ip[-4] * mp[-4];
-					a0 += ip[-3] * mp[-3];
-					a0 += ip[-2] * mp[-2];
-					a0 += ip[-1] * mp[-1];
+					a0 += ip[0] * mp[0];
+					a0 += ip[1] * mp[1];
+					a0 += ip[2] * mp[2];
+					a0 += ip[3] * mp[3];
+					a0 += ip[4] * mp[4];
+					a0 += ip[5] * mp[5];
+					a0 += ip[6] * mp[6];
+					a0 += ip[7] * mp[7];
 					ip += 8 * Channels;
 					mp += 8;
 				}
 
-				ip -= 7 * Channels;
-				mp -= 7;
+				ipe += 8 * Channels;
 				while (ip < ipe)
 				{
-					a0 += ip[-1] * mp[-1];
+					a0 += ip[0] * mp[0];
 
 					ip += Channels;
 					mp++;
 				}
 
-				tp[0] = UnFix15(a0);
+				tp[0] = UnFix8(a0);
 				tp += tstride;
 			}
 		}
@@ -1140,31 +1127,30 @@ namespace PhotoSauce.MagicScaler
 			{
 				int a0 = 0;
 
-				int* tp = (int*)tstart + ox * tstride + 4 * Channels;
-				int* tpe = tp + tstride - 3 * Channels;
-				int* mp = (int*)pmapy + 4;
+				int* tp = (int*)tstart + ox * tstride;
+				int* tpe = tp + tstride - 4 * Channels;
+				int* mp = (int*)pmapy;
 
-				while (tp < tpe)
+				while (tp <= tpe)
 				{
-					a0 += tp[-4] * mp[-4];
-					a0 += tp[-3] * mp[-3];
-					a0 += tp[-2] * mp[-2];
-					a0 += tp[-1] * mp[-1];
+					a0 += tp[0] * mp[0];
+					a0 += tp[1] * mp[1];
+					a0 += tp[2] * mp[2];
+					a0 += tp[3] * mp[3];
 					tp += 4 * Channels;
 					mp += 4;
 				}
 
-				tp -= 3 * Channels;
-				mp -= 3;
+				tpe += 4 * Channels;
 				while (tp < tpe)
 				{
-					a0 += tp[-1] * mp[-1];
+					a0 += tp[0] * mp[0];
 
 					tp += Channels;
 					mp++;
 				}
 
-				op[0] = UnFix15ToByte(a0);
+				op[0] = UnFix22ToByte(a0);
 				op += Channels;
 				ox++;
 			}
@@ -1215,30 +1201,29 @@ namespace PhotoSauce.MagicScaler
 				int a0 = 0;
 
 				int ix = *pmapx++;
-				ushort* ip = (ushort*)istart + ix * Channels + 8 * Channels;
-				ushort* ipe = ip + smapx * Channels - 7 * Channels;
-				int* mp = pmapx + 8;
+				ushort* ip = (ushort*)istart + ix * Channels;
+				ushort* ipe = ip + smapx * Channels - 8 * Channels;
+				int* mp = pmapx;
 				pmapx += smapx;
 
-				while (ip < ipe)
+				while (ip <= ipe)
 				{
-					a0 += ip[-8] * mp[-8];
-					a0 += ip[-7] * mp[-7];
-					a0 += ip[-6] * mp[-6];
-					a0 += ip[-5] * mp[-5];
-					a0 += ip[-4] * mp[-4];
-					a0 += ip[-3] * mp[-3];
-					a0 += ip[-2] * mp[-2];
-					a0 += ip[-1] * mp[-1];
+					a0 += ip[0] * mp[0];
+					a0 += ip[1] * mp[1];
+					a0 += ip[2] * mp[2];
+					a0 += ip[3] * mp[3];
+					a0 += ip[4] * mp[4];
+					a0 += ip[5] * mp[5];
+					a0 += ip[6] * mp[6];
+					a0 += ip[7] * mp[7];
 					ip += 8 * Channels;
 					mp += 8;
 				}
 
-				ip -= 7 * Channels;
-				mp -= 7;
+				ipe += 8 * Channels;
 				while (ip < ipe)
 				{
-					a0 += ip[-1] * mp[-1];
+					a0 += ip[0] * mp[0];
 
 					ip += Channels;
 					mp++;
@@ -1258,25 +1243,24 @@ namespace PhotoSauce.MagicScaler
 			{
 				int a0 = 0;
 
-				int* tp = (int*)tstart + ox * tstride + 4 * Channels;
-				int* tpe = tp + tstride - 3 * Channels;
-				int* mp = (int*)pmapy + 4;
+				int* tp = (int*)tstart + ox * tstride;
+				int* tpe = tp + tstride - 4 * Channels;
+				int* mp = (int*)pmapy;
 
-				while (tp < tpe)
+				while (tp <= tpe)
 				{
-					a0 += tp[-4] * mp[-4];
-					a0 += tp[-3] * mp[-3];
-					a0 += tp[-2] * mp[-2];
-					a0 += tp[-1] * mp[-1];
+					a0 += tp[0] * mp[0];
+					a0 += tp[1] * mp[1];
+					a0 += tp[2] * mp[2];
+					a0 += tp[3] * mp[3];
 					tp += 4 * Channels;
 					mp += 4;
 				}
 
-				tp -= 3 * Channels;
-				mp -= 3;
+				tpe += 4 * Channels;
 				while (tp < tpe)
 				{
-					a0 += tp[-1] * mp[-1];
+					a0 += tp[0] * mp[0];
 
 					tp += Channels;
 					mp++;

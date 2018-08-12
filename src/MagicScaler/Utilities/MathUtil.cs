@@ -93,7 +93,13 @@ namespace PhotoSauce.MagicScaler
 		public static float UnFix15ToFloat(int x) => x * ifscale;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static int UnFix8(int x) => x + (iround >> 7) >> 8;
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int UnFix15(int x) => x + iround >> ishift;
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static int UnFix22(int x) => x + (iround << 7) >> 22;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ushort UnFixToUQ15(int x) => ClampToUQ15(UnFix15(x));
@@ -103,6 +109,9 @@ namespace PhotoSauce.MagicScaler
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte UnFix15ToByte(int x) => ClampToByte(UnFix15(x));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static byte UnFix22ToByte(int x) => ClampToByte(UnFix22(x));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if MATHF
@@ -140,10 +149,7 @@ namespace PhotoSauce.MagicScaler
 #endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static float Lerp(float l, float h, float d)
-		{
-			return h * d + l * (1f - d);
-		}
+		public static float Lerp(float l, float h, float d) => h * d + l * (1f - d);
 
 		public static bool IsRouglyEqualTo(this in Matrix4x4 m1, in Matrix4x4 m2)
 		{
