@@ -411,11 +411,16 @@ namespace PhotoSauce.MagicScaler
 				var v = Unsafe.Read<VectorF>(ip) * vscale + vround;
 				v = v.Clamp(vmin, vmax);
 
-				//TODO future JIT versions will auto-unroll loops over vector elements
-				byte o0 = gt[(uint)v[0]];
-				byte o1 = gt[(uint)v[1]];
-				byte o2 = gt[(uint)v[2]];
-				byte o3 = gt[(uint)v[3]];
+#if VECTOR_CONVERT
+				var vi = Vector.ConvertToInt32(v);
+#else
+				var vi = v;
+#endif
+
+				byte o0 = gt[(uint)vi[0]];
+				byte o1 = gt[(uint)vi[1]];
+				byte o2 = gt[(uint)vi[2]];
+				byte o3 = gt[(uint)vi[3]];
 				op[0] = o0;
 				op[1] = o1;
 				op[2] = o2;
@@ -423,10 +428,10 @@ namespace PhotoSauce.MagicScaler
 
 				if (VectorF.Count == 8)
 				{
-					o0 = gt[(uint)v[4]];
-					o1 = gt[(uint)v[5]];
-					o2 = gt[(uint)v[6]];
-					o3 = gt[(uint)v[7]];
+					o0 = gt[(uint)vi[4]];
+					o1 = gt[(uint)vi[5]];
+					o2 = gt[(uint)vi[6]];
+					o3 = gt[(uint)vi[7]];
 					op[4] = o0;
 					op[5] = o1;
 					op[6] = o2;
@@ -492,18 +497,24 @@ namespace PhotoSauce.MagicScaler
 				var v = Unsafe.Read<VectorF>(ip) * vscale + vround;
 				v = v.Clamp(vmin, vmax);
 
-				byte o0 = gt[(uint)v[0]];
-				byte o1 = gt[(uint)v[1]];
-				byte o2 = gt[(uint)v[2]];
+#if VECTOR_CONVERT
+				var vi = Vector.ConvertToInt32(v);
+#else
+				var vi = v;
+#endif
+
+				byte o0 = gt[(uint)vi[0]];
+				byte o1 = gt[(uint)vi[1]];
+				byte o2 = gt[(uint)vi[2]];
 				op[0] = o0;
 				op[1] = o1;
 				op[2] = o2;
 
 				if (VectorF.Count == 8)
 				{
-					o0 = gt[(uint)v[4]];
-					o1 = gt[(uint)v[5]];
-					o2 = gt[(uint)v[6]];
+					o0 = gt[(uint)vi[4]];
+					o1 = gt[(uint)vi[5]];
+					o2 = gt[(uint)vi[6]];
 					op[3] = o0;
 					op[4] = o1;
 					op[5] = o2;
@@ -527,13 +538,41 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private static void mapValuesByteToFloat(byte* ipstart, byte* opstart, int cb)
 		{
+#if VECTOR_CONVERT
+			int UnrollCount = Vector<byte>.Count;
+			var vscale = new VectorF(1f / byte.MaxValue);
+#else
+			const int UnrollCount = 8;
+#endif
+
 			fixed (float* atstart = &LookupTables.AlphaFloat[0])
 			{
-				byte* ip = ipstart, ipe = ipstart + cb - 8;
+				byte* ip = ipstart, ipe = ipstart + cb - UnrollCount;
 				float* op = (float*)opstart, at = atstart;
 
 				while (ip <= ipe)
 				{
+#if VECTOR_CONVERT
+					var vb = Unsafe.Read<Vector<byte>>(ip);
+					Vector.Widen(vb, out var vs0, out var vs1);
+					Vector.Widen(vs0, out var vi0, out var vi1);
+					Vector.Widen(vs1, out var vi2, out var vi3);
+
+					var vf0 = Vector.ConvertToSingle(Vector.AsVectorInt32(vi0));
+					var vf1 = Vector.ConvertToSingle(Vector.AsVectorInt32(vi1));
+					var vf2 = Vector.ConvertToSingle(Vector.AsVectorInt32(vi2));
+					var vf3 = Vector.ConvertToSingle(Vector.AsVectorInt32(vi3));
+
+					vf0 *= vscale;
+					vf1 *= vscale;
+					vf2 *= vscale;
+					vf3 *= vscale;
+
+					Unsafe.Write(op, vf0);
+					Unsafe.Write(op + VectorF.Count, vf1);
+					Unsafe.Write(op + VectorF.Count * 2, vf2);
+					Unsafe.Write(op + VectorF.Count * 3, vf3);
+#else
 					float o0 = at[(uint)ip[0]];
 					float o1 = at[(uint)ip[1]];
 					float o2 = at[(uint)ip[2]];
@@ -551,12 +590,13 @@ namespace PhotoSauce.MagicScaler
 					op[5] = o5;
 					op[6] = o6;
 					op[7] = o7;
+#endif
 
-					ip += 8;
-					op += 8;
+					ip += UnrollCount;
+					op += UnrollCount;
 				}
 
-				ipe += 8;
+				ipe += UnrollCount;
 				while (ip < ipe)
 				{
 					op[0] = at[(uint)ip[0]];
@@ -614,7 +654,13 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private static void mapValuesFloatToByte(byte* ipstart, byte* opstart, int cb)
 		{
-			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - VectorF.Count;
+#if VECTOR_CONVERT
+			int UnrollCount = Vector<byte>.Count;
+#else
+			int UnrollCount = VectorF.Count;
+#endif
+
+			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - UnrollCount;
 			byte* op = opstart;
 
 			var vmin = new VectorF(byte.MinValue);
@@ -623,6 +669,32 @@ namespace PhotoSauce.MagicScaler
 
 			while (ip <= ipe)
 			{
+#if VECTOR_CONVERT
+				var vf0 = Unsafe.Read<VectorF>(ip);
+				var vf1 = Unsafe.Read<VectorF>(ip + VectorF.Count);
+				var vf2 = Unsafe.Read<VectorF>(ip + VectorF.Count * 2);
+				var vf3 = Unsafe.Read<VectorF>(ip + VectorF.Count * 3);
+
+				vf0 = vf0 * vmax + vround;
+				vf1 = vf1 * vmax + vround;
+				vf2 = vf2 * vmax + vround;
+				vf3 = vf3 * vmax + vround;
+
+				vf0 = vf0.Clamp(vmin, vmax);
+				vf1 = vf1.Clamp(vmin, vmax);
+				vf2 = vf2.Clamp(vmin, vmax);
+				vf3 = vf3.Clamp(vmin, vmax);
+
+				var vi0 = Vector.AsVectorUInt32(Vector.ConvertToInt32(vf0));
+				var vi1 = Vector.AsVectorUInt32(Vector.ConvertToInt32(vf1));
+				var vi2 = Vector.AsVectorUInt32(Vector.ConvertToInt32(vf2));
+				var vi3 = Vector.AsVectorUInt32(Vector.ConvertToInt32(vf3));
+
+				var vs0 = Vector.Narrow(vi0, vi1);
+				var vs1 = Vector.Narrow(vi2, vi3);
+				var vb = Vector.Narrow(vs0, vs1);
+				Unsafe.Write(op, vb);
+#else
 				var v = Unsafe.Read<VectorF>(ip) * vmax + vround;
 				v = v.Clamp(vmin, vmax);
 
@@ -638,12 +710,13 @@ namespace PhotoSauce.MagicScaler
 					op[6] = (byte)v[6];
 					op[7] = (byte)v[7];
 				}
+#endif
 
-				ip += VectorF.Count;
-				op += VectorF.Count;
+				ip += UnrollCount;
+				op += UnrollCount;
 			}
 
-			ipe += VectorF.Count;
+			ipe += UnrollCount;
 			while (ip < ipe)
 			{
 				op[0] = FixToByte(ip[0]);
