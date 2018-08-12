@@ -107,6 +107,16 @@ namespace PhotoSauce.MagicScaler
 			};
 		});
 
+		private static readonly Lazy<ColorProfile> sgrey = new Lazy<ColorProfile>(() => 
+			new ColorProfile {
+				Matrix = Matrix4x4.Identity,
+				InverseMatrix = Matrix4x4.Identity,
+				Gamma = LookupTables.SrgbGamma,
+				InverseGammaFloat = LookupTables.SrgbInverseGammaFloat,
+				InverseGammaUQ15 = LookupTables.SrgbInverseGammaUQ15
+			}
+		);
+
 		private void lutsFromPower(float gamma)
 		{
 			var igtf = new float[256];
@@ -133,7 +143,7 @@ namespace PhotoSauce.MagicScaler
 			float div = 1f / ushort.MaxValue;
 			int buffLen = points.Length * sizeof(float);
 			var buff = ArrayPool<byte>.Shared.Rent(buffLen);
-			var curve = MemoryMarshal.Cast<byte, float>(new Span<byte>(buff, 0, buffLen));
+			var curve = MemoryMarshal.Cast<byte, float>(buff.AsSpan(0, buffLen));
 
 			for (int i = 0; i < curve.Length; i++)
 				curve[i] = points[i] * div;
@@ -373,7 +383,7 @@ namespace PhotoSauce.MagicScaler
 
 					int buffLen = (int)pcnt * sizeof(ushort);
 					var buff = ArrayPool<byte>.Shared.Rent(buffLen);
-					var points = MemoryMarshal.Cast<byte, ushort>(new Span<byte>(buff, 0, buffLen));
+					var points = MemoryMarshal.Cast<byte, ushort>(buff.AsSpan(0, buffLen));
 
 					ushort pp = 0;
 					bool inc = true, dec = true;
@@ -475,7 +485,7 @@ namespace PhotoSauce.MagicScaler
 			if (len != prof.Length)
 				return; //throw new InvalidDataException("Invalid ICC profile.  Internal length doesn't match data length.");
 
-			var acsp = ReadUInt32BigEndian(prof.Slice(36));
+			uint acsp = ReadUInt32BigEndian(prof.Slice(36));
 			var ver = prof.Slice(8, 4);
 			IsValid = (ver[0] == 2 || ver[0] == 4) && acsp == IccStrings.acsp;
 			if (!IsValid)
@@ -551,6 +561,7 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		public static ColorProfile sRGB => srgb.Value;
+		public static ColorProfile sGrey => sgrey.Value;
 
 		public ProfileColorSpace DataColorSpace { get; private set; }
 		public ProfileColorSpace PcsColorSpace { get; private set; }
@@ -559,7 +570,8 @@ namespace PhotoSauce.MagicScaler
 		public bool IsGreyTrc { get; private set; }
 		public bool IsRgbMatrix { get; private set; }
 		public bool IsLinear { get; private set; }
-		public bool IsSrgb => Gamma == sRGB.Gamma && Matrix == sRGB.Matrix;
+		public bool IsSrgbCurve => Gamma == sRGB.Gamma;
+		public bool IsSrgb => IsSrgbCurve && Matrix == sRGB.Matrix;
 
 		public Matrix4x4 Matrix { get; private set; } = Matrix4x4.Identity;
 		public Matrix4x4 InverseMatrix { get; private set; } = Matrix4x4.Identity;

@@ -90,7 +90,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Resources\sGrey-v2-micro.icc" />
     <EmbeddedResource Include="Resources\sGrey-v4.icc" />
+    <EmbeddedResource Include="Resources\sRGB-v2-micro.icc" />
     <EmbeddedResource Include="Resources\sRGB-v4.icc" />
   </ItemGroup>
 

@@ -10,10 +10,10 @@ namespace PhotoSauce.MagicScaler
 	public static class ColorMatrix
 	{
 		public static readonly Matrix4x4 Grey = new Matrix4x4(
-			0.114f, 0.114f, 0.114f, 0f,
-			0.587f, 0.587f, 0.587f, 0f,
-			0.299f, 0.299f, 0.299f, 0f,
-			0f,     0f,     0f,     1f
+			Rec601.B, Rec601.B, Rec601.B, 0f,
+			Rec601.G, Rec601.G, Rec601.G, 0f,
+			Rec601.R, Rec601.R, Rec601.R, 0f,
+			0f,       0f,       0f,       1f
 		);
 
 		public static readonly Matrix4x4 Sepia = new Matrix4x4(
@@ -176,12 +176,14 @@ namespace PhotoSauce.MagicScaler
 		{
 			MagicTransforms.AddExternalFormatConverter(ctx);
 
-			var fmt = ctx.Source.Format;
-			if (fmt.ColorRepresentation != PixelColorRepresentation.Bgr || (fmt.NumericRepresentation == PixelNumericRepresentation.Float && fmt.ChannelCount != 4))
-				throw new NotSupportedException("Pixel format must be BGR or BGRA");
-
 			if (matrix != default && !matrix.IsIdentity)
+			{
+				var fmt = matrix.M44 < 1f || ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None ? Consts.GUID_WICPixelFormat32bppBGRA : Consts.GUID_WICPixelFormat24bppBGR;
+				if (ctx.Source.Format.FormatGuid != fmt)
+					ctx.Source = ctx.AddDispose(new FormatConversionTransformInternal(ctx.Source, null, null, fmt));
+
 				ctx.Source = new ColorMatrixTransformInternal(ctx.Source, matrix);
+			}
 
 			Source = ctx.Source;
 		}

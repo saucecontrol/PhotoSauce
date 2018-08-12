@@ -1,4 +1,4 @@
-﻿#if NET46
+﻿#if NETFRAMEWORK
 using System;
 using System.IO;
 using System.Linq;

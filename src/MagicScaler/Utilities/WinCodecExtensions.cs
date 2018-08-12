@@ -1,16 +1,51 @@
 ﻿using System;
+using System.Buffers;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 namespace PhotoSauce.MagicScaler.Interop
 {
 	internal static class Wic
 	{
+		private static IWICColorContext getDefaultColorContext(Guid pixelFormat)
+		{
+			var pfi = Factory.CreateComponentInfo(pixelFormat) as IWICPixelFormatInfo;
+			var cc = pfi.GetColorContext();
+			Marshal.ReleaseComObject(pfi);
+
+			return cc;
+		}
+
+		private static IWICColorContext getResourceColorContext(string name)
+		{
+			string resName = nameof(PhotoSauce) + "." + nameof(MagicScaler) + ".Resources." + name;
+			var asm = typeof(IWICColorContext).GetTypeInfo().Assembly;
+			using (var stm = asm.GetManifestResourceStream(resName))
+			{
+				var cc = Factory.CreateColorContext();
+
+				byte[] prof = ArrayPool<byte>.Shared.Rent((int)stm.Length);
+				stm.Read(prof, 0, (int)stm.Length);
+				cc.InitializeFromMemory(prof, (uint)stm.Length);
+				ArrayPool<byte>.Shared.Return(prof);
+
+				return cc;
+			}
+		}
+
 		public static readonly IWICImagingFactory Factory = new WICImagingFactory2() as IWICImagingFactory;
+
+		public static readonly Lazy<IWICColorContext> CmykContext = new Lazy<IWICColorContext>(() => getDefaultColorContext(Consts.GUID_WICPixelFormat32bppCMYK));
+		public static readonly Lazy<IWICColorContext> SrgbContext = new Lazy<IWICColorContext>(() => getResourceColorContext("sRGB-v4.icc"));
+		public static readonly Lazy<IWICColorContext> GreyContext = new Lazy<IWICColorContext>(() => getResourceColorContext("sGrey-v4.icc"));
+		public static readonly Lazy<IWICColorContext> SrgbCompactContext = new Lazy<IWICColorContext>(() => getResourceColorContext("sRGB-v2-micro.icc"));
+		public static readonly Lazy<IWICColorContext> GreyCompactContext = new Lazy<IWICColorContext>(() => getResourceColorContext("sGrey-v2-micro.icc"));
 	}
 
 	internal static class WinCodecExtensions
 	{
-		public static bool RequiresCache(this WICBitmapTransformOptions opt) => opt != WICBitmapTransformOptions.WICBitmapTransformRotate0 && opt != WICBitmapTransformOptions.WICBitmapTransformFlipHorizontal;
+		public static bool RequiresCache(this WICBitmapTransformOptions opt) =>
+			opt != WICBitmapTransformOptions.WICBitmapTransformRotate0 && opt != WICBitmapTransformOptions.WICBitmapTransformFlipHorizontal;
 
 		public static bool TryGetPreview(this IWICBitmapDecoder dec, out IWICBitmapSource pvw)
 		{

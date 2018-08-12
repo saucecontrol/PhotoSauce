@@ -167,30 +167,30 @@ namespace PhotoSauce.MagicScaler
 				if (BufferSource)
 				{
 					if (Format == PixelFormat.Grey32BppLinearFloat || Format == PixelFormat.Y32BppLinearFloat)
-						FormatConversionTransform.ConvertGreyLinearToGreyFloat(bline, wline, (int)BufferStride);
+						GreyConverter.ConvertGreyLinearToGreyFloat(bline, wline, (int)BufferStride);
 					else if (Format == PixelFormat.Grey16BppLinearUQ15 || Format == PixelFormat.Y16BppLinearUQ15)
-						FormatConversionTransform.ConvertGreyLinearToGreyUQ15(bline, wline, (int)BufferStride);
+						GreyConverter.ConvertGreyLinearToGreyUQ15(bline, wline, (int)BufferStride);
 					else if (Format.FormatGuid == Consts.GUID_WICPixelFormat24bppBGR)
-						FormatConversionTransform.ConvertBgrToGreyByte(bline, wline, (int)BufferStride);
+						GreyConverter.ConvertBgrToGreyByte(bline, wline, (int)BufferStride);
 					else if (Format == PixelFormat.Bgr48BppLinearUQ15)
-						FormatConversionTransform.ConvertBgrToGreyUQ15(bline, wline, (int)BufferStride);
+						GreyConverter.ConvertBgrToGreyUQ15(bline, wline, (int)BufferStride);
 					else if (Format.FormatGuid == Consts.GUID_WICPixelFormat32bppBGR || Format.FormatGuid == Consts.GUID_WICPixelFormat32bppBGRA || Format.FormatGuid == Consts.GUID_WICPixelFormat32bppPBGRA)
-						FormatConversionTransform.ConvertBgrxToGreyByte(bline, wline, (int)BufferStride);
+						GreyConverter.ConvertBgrxToGreyByte(bline, wline, (int)BufferStride);
 					else if (Format == PixelFormat.Pbgra64BppLinearUQ15)
-						FormatConversionTransform.ConvertBgrxToGreyUQ15(bline, wline, (int)BufferStride);
+						GreyConverter.ConvertBgrxToGreyUQ15(bline, wline, (int)BufferStride);
 					else if (Format == PixelFormat.Bgr96BppFloat)
-						FormatConversionTransform.ConvertBgrToGreyFloat(bline, wline, (int)BufferStride, false);
+						GreyConverter.ConvertBgrToGreyFloat(bline, wline, (int)BufferStride, false);
 					else if (Format == PixelFormat.Bgrx128BppFloat || Format == PixelFormat.Pbgra128BppFloat)
-						FormatConversionTransform.ConvertBgrxToGreyFloat(bline, wline, (int)BufferStride, false);
+						GreyConverter.ConvertBgrxToGreyFloat(bline, wline, (int)BufferStride, false);
 					else if (Format == PixelFormat.Bgr96BppLinearFloat)
 					{
-						FormatConversionTransform.ConvertBgrToGreyFloat(bline, wline, (int)BufferStride, true);
-						FormatConversionTransform.ConvertGreyLinearToGreyFloat(wline, wline, WorkStride);
+						GreyConverter.ConvertBgrToGreyFloat(bline, wline, (int)BufferStride, true);
+						GreyConverter.ConvertGreyLinearToGreyFloat(wline, wline, WorkStride);
 					}
 					else if (Format == PixelFormat.Bgrx128BppLinearFloat || Format == PixelFormat.Pbgra128BppLinearFloat)
 					{
-						FormatConversionTransform.ConvertBgrxToGreyFloat(bline, wline, (int)BufferStride, true);
-						FormatConversionTransform.ConvertGreyLinearToGreyFloat(wline, wline, WorkStride);
+						GreyConverter.ConvertBgrxToGreyFloat(bline, wline, (int)BufferStride, true);
+						GreyConverter.ConvertGreyLinearToGreyFloat(wline, wline, WorkStride);
 					}
 				}
 

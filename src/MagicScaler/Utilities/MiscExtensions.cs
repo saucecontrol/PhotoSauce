@@ -4,7 +4,7 @@ using System.Drawing;
 using System.Diagnostics;
 using System.Collections.Generic;
 
-#if NET46
+#if NETFRAMEWORK
 using System.Configuration;
 using System.Collections.Specialized;
 #endif
@@ -72,7 +72,7 @@ namespace PhotoSauce.MagicScaler
 			return dic.TryGetValue(key, out var value) ? value : valueFactory == null ? default : valueFactory();
 		}
 
-#if NET46
+#if NETFRAMEWORK
 		public static IDictionary<string, string> ToDictionary(this NameValueCollection nv)
 		{
 			return nv.AllKeys.Where(k => !string.IsNullOrEmpty(k)).ToDictionary(k => k, k => nv.GetValues(k).LastOrDefault(), StringComparer.OrdinalIgnoreCase);

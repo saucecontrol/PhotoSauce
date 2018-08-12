@@ -81,33 +81,6 @@ namespace PhotoSauce.MagicScaler
 
 	internal static class WicTransforms
 	{
-		private static IWICColorContext getDefaultColorContext(Guid pixelFormat)
-		{
-			var pfi = Wic.Factory.CreateComponentInfo(pixelFormat) as IWICPixelFormatInfo;
-			var cc = pfi.GetColorContext();
-			Marshal.ReleaseComObject(pfi);
-			return cc;
-		}
-
-		private static IWICColorContext getResourceColorContext(string name)
-		{
-			string resName = nameof(PhotoSauce) + "." + nameof(MagicScaler) + ".Resources." + name;
-			var asm = typeof(IWICColorContext).GetTypeInfo().Assembly;
-			using (var stm = asm.GetManifestResourceStream(resName))
-			{
-				var cc = Wic.Factory.CreateColorContext();
-				var prof = ArrayPool<byte>.Shared.Rent((int)stm.Length);
-				stm.Read(prof, 0, (int)stm.Length);
-				cc.InitializeFromMemory(prof, (uint)stm.Length);
-				ArrayPool<byte>.Shared.Return(prof);
-				return cc;
-			}
-		}
-
-		private static readonly Lazy<IWICColorContext> cmykProfile = new Lazy<IWICColorContext>(() => getDefaultColorContext(Consts.GUID_WICPixelFormat32bppCMYK));
-		private static readonly Lazy<IWICColorContext> srgbProfile = new Lazy<IWICColorContext>(() => getResourceColorContext("sRGB-v4.icc"));
-		private static readonly Lazy<IWICColorContext> greyProfile = new Lazy<IWICColorContext>(() => getResourceColorContext("sGrey-v4.icc"));
-
 		public static void AddMetadataReader(WicProcessingContext ctx, bool basicOnly = false)
 		{
 			if (ctx.DecoderFrame.Frame == null)
@@ -159,6 +132,7 @@ namespace PhotoSauce.MagicScaler
 			// ICC profiles
 			//http://ninedegreesbelow.com/photography/embedded-color-space-information.html
 			uint ccc = ctx.DecoderFrame.Frame.GetColorContextCount();
+			var fmt = ctx.Source.Format;
 			var profiles = new IWICColorContext[ccc];
 			var profile = default(IWICColorContext);
 
@@ -187,10 +161,11 @@ namespace PhotoSauce.MagicScaler
 					ArrayPool<byte>.Shared.Return(ccb);
 
 					// match only color profiles that match our intended use. if we have a standard sRGB profile, don't save it; we don't need to convert
-					if (cpi.IsValid &&
-						((cpi.DataColorSpace == ColorProfile.ProfileColorSpace.Rgb && (ctx.Source.Format.ColorRepresentation == PixelColorRepresentation.Bgr || ctx.Source.Format.ColorRepresentation == PixelColorRepresentation.Rgb) && !cpi.IsSrgb)
-						|| (cpi.DataColorSpace == ColorProfile.ProfileColorSpace.Cmyk && ctx.Source.Format.ColorRepresentation == PixelColorRepresentation.Cmyk)
-						|| (cpi.DataColorSpace == ColorProfile.ProfileColorSpace.Grey && ctx.Source.Format.ColorRepresentation == PixelColorRepresentation.Grey)))
+					if (cpi.IsValid && (
+						   (cpi.DataColorSpace == ColorProfile.ProfileColorSpace.Rgb && (fmt.ColorRepresentation == PixelColorRepresentation.Bgr || fmt.ColorRepresentation == PixelColorRepresentation.Rgb) && !cpi.IsSrgb)
+						|| (cpi.DataColorSpace == ColorProfile.ProfileColorSpace.Grey && fmt.ColorRepresentation == PixelColorRepresentation.Grey && !cpi.IsSrgbCurve)
+						|| (cpi.DataColorSpace == ColorProfile.ProfileColorSpace.Cmyk && fmt.ColorRepresentation == PixelColorRepresentation.Cmyk)
+					))
 					{
 						profile = cc;
 						if (cpi.IsRgbMatrix || cpi.IsGreyTrc)
@@ -205,12 +180,13 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			var defaultColorContext = ctx.Source.Format.ColorRepresentation == PixelColorRepresentation.Grey ? greyProfile.Value : srgbProfile.Value;
-			ctx.SourceColorContext = profile ?? (ctx.Source.Format.ColorRepresentation == PixelColorRepresentation.Cmyk ? cmykProfile.Value : null);
-			ctx.DestColorContext = ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed || ctx.SourceColorContext == null ? defaultColorContext : ctx.SourceColorContext;
+			var defaultColorContext = fmt.ColorRepresentation == PixelColorRepresentation.Grey ? Wic.GreyContext.Value : Wic.SrgbContext.Value;
+			ctx.SourceColorContext = profile ?? (fmt.ColorRepresentation == PixelColorRepresentation.Cmyk ? Wic.CmykContext.Value : null);
+			ctx.DestColorContext = ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed || ctx.SourceColorContext is null ? defaultColorContext : ctx.SourceColorContext;
 
-			ctx.SourceColorProfile = ctx.SourceColorProfile ?? ColorProfile.sRGB;
-			ctx.DestColorProfile = ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed ? ColorProfile.sRGB : ctx.SourceColorProfile;
+			var defaultColorProfile = fmt.ColorRepresentation == PixelColorRepresentation.Grey ? ColorProfile.sGrey : ColorProfile.sRGB;
+			ctx.SourceColorProfile = ctx.SourceColorProfile ?? defaultColorProfile;
+			ctx.DestColorProfile = ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed ? defaultColorProfile : ctx.SourceColorProfile;
 		}
 
 		public static void AddConditionalCache(WicProcessingContext ctx)
@@ -245,7 +221,7 @@ namespace PhotoSauce.MagicScaler
 				{
 					// WIC doesn't support 16bpc CMYK conversion with color profile
 					if (curFormat.BitsPerPixel == 64)
-						ctx.Source = ctx.AddDispose(new FormatConversionTransform(ctx.Source, ctx.SourceColorProfile, ctx.SourceColorProfile, Consts.GUID_WICPixelFormat32bppCMYK));
+						ctx.Source = ctx.AddDispose(new FormatConversionTransformInternal(ctx.Source, null, null, Consts.GUID_WICPixelFormat32bppCMYK));
 
 					var trans = ctx.AddRef(Wic.Factory.CreateColorTransform());
 					if (trans.TryInitialize(ctx.Source.WicSource, ctx.SourceColorContext, ctx.DestColorContext, Consts.GUID_WICPixelFormat24bppBGR))

@@ -10,43 +10,7 @@ using VectorF = System.Numerics.Vector<float>;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal static class Rec601
-	{
-		public const float R = 0.299f;
-		public const float G = 0.587f;
-		public const float B = 0.114f;
-		public static Vector3 Coefficients = new Vector3(B, G, R);
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte LumaFromBgr(byte b, byte g, byte r)
-		{
-			const int rY = (ushort)(R * DoubleScale + DoubleRound);
-			const int gY = (ushort)(G * DoubleScale + DoubleRound);
-			const int bY = (ushort)(B * DoubleScale + DoubleRound);
-
-			return UnFix15ToByte(r * rY + g * gY + b * bY);
-		}
-	}
-
-	internal static class Rec709
-	{
-		public const float R = 0.2126f;
-		public const float G = 0.7152f;
-		public const float B = 0.0722f;
-		public static Vector3 Coefficients = new Vector3(B, G, R);
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ushort LumaFromBgr(ushort b, ushort g, ushort r)
-		{
-			const int rY = (ushort)(R * DoubleScale + DoubleRound);
-			const int gY = (ushort)(G * DoubleScale + DoubleRound);
-			const int bY = (ushort)(B * DoubleScale + DoubleRound);
-
-			return UnFixToUQ15One(r * rY + g * gY + b * bY);
-		}
-	}
-
-	internal class FormatConversionTransform : PixelSource, IDisposable
+	internal class FormatConversionTransformInternal : PixelSource, IDisposable
 	{
 		protected readonly PixelFormat InFormat;
 		protected readonly ColorProfile SourceProfile;
@@ -54,7 +18,7 @@ namespace PhotoSauce.MagicScaler
 
 		protected byte[] LineBuff;
 
-		public FormatConversionTransform(PixelSource source, ColorProfile sourceProfile, ColorProfile destProfile, Guid destFormat) : base(source)
+		public FormatConversionTransformInternal(PixelSource source, ColorProfile sourceProfile, ColorProfile destProfile, Guid destFormat) : base(source)
 		{
 			InFormat = source.Format;
 			Format = PixelFormat.Cache[destFormat];
@@ -86,7 +50,7 @@ namespace PhotoSauce.MagicScaler
 					}
 					else if (InFormat.Colorspace == PixelColorspace.sRgb && Format.Colorspace == PixelColorspace.LinearRgb && Format.NumericRepresentation == PixelNumericRepresentation.Fixed)
 					{
-						var lut = SourceProfile.IsLinear ? LookupTables.AlphaUQ15 : SourceProfile.InverseGammaUQ15;
+						ushort[] lut = SourceProfile.IsLinear ? LookupTables.AlphaUQ15 : SourceProfile.InverseGammaUQ15;
 						fixed (ushort* igtstart = &lut[0])
 						{
 							if (InFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
@@ -107,7 +71,7 @@ namespace PhotoSauce.MagicScaler
 					}
 					else if (InFormat.Colorspace == PixelColorspace.sRgb && Format.Colorspace == PixelColorspace.LinearRgb && Format.NumericRepresentation == PixelNumericRepresentation.Float)
 					{
-						var lut = SourceProfile.IsLinear ? LookupTables.AlphaFloat : SourceProfile.InverseGammaFloat;
+						float[] lut = SourceProfile.IsLinear ? LookupTables.AlphaFloat : SourceProfile.InverseGammaFloat;
 						fixed (float* igtstart = &lut[0])
 						{
 							if (InFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
@@ -148,14 +112,14 @@ namespace PhotoSauce.MagicScaler
 						else
 							mapValuesFloatToByte(bstart, op, cb);
 					}
-					else if (InFormat.NumericRepresentation == Format.NumericRepresentation && InFormat.ChannelCount == 4 && Format.ChannelCount == 3)
+					else if (InFormat.NumericRepresentation == Format.NumericRepresentation && InFormat.ChannelCount != Format.ChannelCount)
 					{
 						if (InFormat.NumericRepresentation == PixelNumericRepresentation.Float)
-							mapValues4to3Chan<float>(bstart, op, cb);
+							mapChannels<float>(bstart, op, cb, InFormat.ChannelCount, Format.ChannelCount);
 						else if (InFormat.NumericRepresentation == PixelNumericRepresentation.Fixed)
-							mapValues4to3Chan<ushort>(bstart, op, cb);
+							mapChannels<ushort>(bstart, op, cb, InFormat.ChannelCount, Format.ChannelCount);
 						else
-							mapValues4to3Chan<byte>(bstart, op, cb);
+							mapChannels<byte>(bstart, op, cb, InFormat.ChannelCount, Format.ChannelCount);
 					}
 					else
 						throw new NotSupportedException("Unsupported pixel format");
@@ -770,15 +734,21 @@ namespace PhotoSauce.MagicScaler
 				var v = Unsafe.Read<VectorF>(ip) * vmax + vround;
 				v = v.Clamp(vmin, vmax);
 
-				op[0] = (byte)v[0];
-				op[1] = (byte)v[1];
-				op[2] = (byte)v[2];
+#if VECTOR_CONVERT
+				var vi = Vector.ConvertToInt32(v);
+#else
+				var vi = v;
+#endif
+
+				op[0] = (byte)vi[0];
+				op[1] = (byte)vi[1];
+				op[2] = (byte)vi[2];
 
 				if (VectorF.Count == 8)
 				{
-					op[3] = (byte)v[4];
-					op[4] = (byte)v[5];
-					op[5] = (byte)v[6];
+					op[3] = (byte)vi[4];
+					op[4] = (byte)vi[5];
+					op[5] = (byte)vi[6];
 				}
 
 				ip += VectorF.Count;
@@ -797,143 +767,22 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private static void mapValues4to3Chan<T>(byte* ipstart, byte* opstart, int cb) where T : unmanaged
+		unsafe private static void mapChannels<T>(byte* ipstart, byte* opstart, int cb, int channelsIn, int channelsOut) where T : unmanaged
 		{
-			T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb) - 4, op = (T*)opstart;
-
-			while (ip <= ipe)
-			{
-				op[0] = ip[0];
-				op[1] = ip[1];
-				op[2] = ip[2];
-
-				ip += 4;
-				op += 3;
-			}
-		}
-
-		unsafe public static void ConvertBgrToGreyByte(byte* ipstart, byte* opstart, int cb)
-		{
-			byte* ip = ipstart, ipe = ipstart + cb - 3, op = opstart;
-
-			while (ip <= ipe)
-			{
-				byte y = Rec601.LumaFromBgr(ip[0], ip[1], ip[2]);
-				op[0] = y;
-
-				ip += 3;
-				op++;
-			}
-		}
-
-		unsafe public static void ConvertBgrToGreyUQ15(byte* ipstart, byte* opstart, int cb)
-		{
-			fixed (byte* gtstart = &LookupTables.SrgbGamma[0])
-			{
-				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb) - 3, op = (ushort*)opstart;
-				byte* gt = gtstart;
-
-				while (ip <= ipe)
-				{
-					uint y = Rec709.LumaFromBgr(ip[0], ip[1], ip[2]);
-					op[0] = gt[y];
-
-					ip += 3;
-					op++;
-				}
-			}
-		}
-
-		unsafe public static void ConvertBgrToGreyFloat(byte* ipstart, byte* opstart, int cb, bool linear)
-		{
-			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - 3, op = (float*)opstart;
-			var clum = linear ? Rec709.Coefficients : Rec601.Coefficients;
-			float cbl = clum.X, cgl = clum.Y, crl = clum.Z;
-
-			while (ip <= ipe)
-			{
-				float c0 = ip[0] * cbl, c1 = ip[1] * cgl, c2 = ip[2] * crl;
-				op[0] = c0 + c1 + c2;
-
-				ip += 3;
-				op++;
-			}
-		}
-
-		unsafe public static void ConvertBgrxToGreyByte(byte* ipstart, byte* opstart, int cb)
-		{
-			byte* ip = ipstart, ipe = ipstart + cb - 4, op = opstart;
-
-			while (ip <= ipe)
-			{
-				byte y = Rec601.LumaFromBgr(ip[0], ip[1], ip[2]);
-				op[0] = y;
-
-				ip += 4;
-				op++;
-			}
-		}
-
-		unsafe public static void ConvertBgrxToGreyUQ15(byte* ipstart, byte* opstart, int cb)
-		{
-			fixed (byte* gtstart = &LookupTables.SrgbGamma[0])
-			{
-				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb) - 4, op = (ushort*)opstart;
-				byte* gt = gtstart;
-
-				while (ip <= ipe)
-				{
-					uint y = Rec709.LumaFromBgr(ip[0], ip[1], ip[2]);
-					op[0] = gt[y];
-
-					ip += 4;
-					op++;
-				}
-			}
-		}
-
-		unsafe public static void ConvertBgrxToGreyFloat(byte* ipstart, byte* opstart, int cb, bool linear)
-		{
-			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - 4, op = (float*)opstart;
-			var clum = new Vector4(linear ? Rec709.Coefficients : Rec601.Coefficients, 0f);
-
-			while (ip <= ipe)
-			{
-				*op++ = Vector4.Dot(Unsafe.Read<Vector4>(ip), clum);
-				ip += 4;
-			}
-		}
-
-		unsafe public static void ConvertGreyLinearToGreyUQ15(byte* ipstart, byte* opstart, int cb)
-		{
-			fixed (byte* gtstart = &LookupTables.SrgbGamma[0])
-			{
-				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb), op = (ushort*)opstart;
-				byte* gt = gtstart;
-
-				while (ip < ipe)
-					*op++ = gt[ClampToUQ15One(*ip++)];
-			}
-		}
-
-		unsafe public static void ConvertGreyLinearToGreyFloat(byte* ipstart, byte* opstart, int cb)
-		{
-			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - VectorF.Count, op = (float*)opstart;
-			var vmin = Vector<float>.Zero;
-			float fmin = vmin[0];
-
-			while (ip <= ipe)
-			{
-				var v = Unsafe.Read<VectorF>(ip);
-				Unsafe.Write(op, Vector.SquareRoot(Vector.Max(v, vmin)));
-
-				ip += VectorF.Count;
-				op += VectorF.Count;
-			}
-
-			ipe += VectorF.Count;
-			while (ip < ipe)
-				*op++ = MaxF(*ip++, fmin).Sqrt();
+			if (channelsIn == 1 && channelsOut == 3)
+				ChannelChanger<T>.Change1to3Chan(ipstart, opstart, cb);
+			else if (channelsIn == 1 && channelsOut == 4)
+				ChannelChanger<T>.Change1to4Chan(ipstart, opstart, cb);
+			else if (channelsIn == 3 && channelsOut == 1)
+				ChannelChanger<T>.Change3to1Chan(ipstart, opstart, cb);
+			else if (channelsIn == 3 && channelsOut == 4)
+				ChannelChanger<T>.Change3to4Chan(ipstart, opstart, cb);
+			else if (channelsIn == 4 && channelsOut == 1)
+				ChannelChanger<T>.Change4to1Chan(ipstart, opstart, cb);
+			else if (channelsIn == 4 && channelsOut == 3)
+				ChannelChanger<T>.Change4to3Chan(ipstart, opstart, cb);
+			else
+				throw new NotSupportedException("Unsupported pixel format");
 		}
 
 		public void Dispose()
@@ -943,5 +792,22 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		public override string ToString() => $"{base.ToString()}: {InFormat.Name}->{Format.Name}";
+	}
+
+	public sealed class FormatConversionTransform : PixelTransform, IPixelTransformInternal
+	{
+		private readonly Guid outFormat;
+
+		public FormatConversionTransform(Guid outFormat) => this.outFormat = outFormat;
+
+		void IPixelTransformInternal.Init(WicProcessingContext ctx)
+		{
+			MagicTransforms.AddExternalFormatConverter(ctx);
+
+			if (ctx.Source.Format.FormatGuid != outFormat)
+				ctx.Source = ctx.AddDispose(new FormatConversionTransformInternal(ctx.Source, null, null, outFormat));
+
+			Source = ctx.Source;
+		}
 	}
 }
