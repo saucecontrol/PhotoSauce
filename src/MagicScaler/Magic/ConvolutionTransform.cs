@@ -123,10 +123,8 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe protected virtual void ConvolveLine(byte* bstart, byte* wstart, byte* tstart, byte* ostart, byte* pmapy, int smapy, int ox, int oy, int ow)
-		{
+		unsafe protected virtual void ConvolveLine(byte* bstart, byte* wstart, byte* tstart, byte* ostart, byte* pmapy, int smapy, int ox, int oy, int ow) =>
 			YProcessor.WriteDestLine(tstart, ostart, ox, ow, pmapy, smapy);
-		}
 
 		unsafe protected void LoadBuffer(byte* bstart, byte* wstart, byte* tstart, byte* mapxstart, int iy)
 		{

@@ -11,7 +11,7 @@ namespace PhotoSauce.MagicScaler
 {
 	internal class PadTransform : PixelSource
 	{
-		private readonly int Bpp;
+		private readonly int bytesPerPixel;
 		private readonly uint bgra;
 		private readonly byte fillB;
 		private readonly byte fillG;
@@ -20,9 +20,9 @@ namespace PhotoSauce.MagicScaler
 
 		public PadTransform(PixelSource source, Color color, Rectangle innerRect, Rectangle outerRect) : base(source)
 		{
-			Bpp = Format.BitsPerPixel / 8;
+			bytesPerPixel = Format.BitsPerPixel / 8;
 
-			if (Format.NumericRepresentation != PixelNumericRepresentation.UnsignedInteger || Format.ChannelCount != Bpp)
+			if (Format.NumericRepresentation != PixelNumericRepresentation.UnsignedInteger || Format.ChannelCount != bytesPerPixel)
 				throw new NotSupportedException("Pixel format not supported.");
 
 			bgra = (uint)color.ToArgb();
@@ -49,9 +49,9 @@ namespace PhotoSauce.MagicScaler
 
 				if (trect.Width < prc.Width || cy < irect.Y || cy >= irect.Bottom)
 				{
-					if (Bpp == 1)
+					if (bytesPerPixel == 1)
 						new Span<byte>(pb, prc.Width).Fill(fillB);
-					else if (Bpp == 4)
+					else if (bytesPerPixel == 4)
 						new Span<uint>(pb, prc.Width).Fill(bgra);
 					else
 					{
@@ -70,7 +70,7 @@ namespace PhotoSauce.MagicScaler
 				{
 					trect.Y = cy - irect.Y;
 					Timer.Stop();
-					Source.CopyPixels(trect, cbStride, cbBufferSize, (IntPtr)(pb + cx * Bpp));
+					Source.CopyPixels(trect, cbStride, cbBufferSize, (IntPtr)(pb + cx * bytesPerPixel));
 					Timer.Start();
 				}
 			}

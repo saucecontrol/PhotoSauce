@@ -23,13 +23,12 @@ namespace PhotoSauce.WebRSize
 		{
 			var ctx = ((HttpApplication)sender).Context;
 			var vpp = HostingEnvironment.VirtualPathProvider;
-			var vppAsync = vpp as CachingAsyncVirtualPathProvider;
 
 			string path = ctx.Request.Path;
-			bool exists = vppAsync != null ? await vppAsync.FileExistsAsync(path) : vpp.FileExists(path);
+			bool exists = vpp is CachingAsyncVirtualPathProvider vppAsync ? await vppAsync.FileExistsAsync(path) : vpp.FileExists(path);
 
 			var folderConfig = imageFolders.FirstOrDefault(f => ctx.Request.Path.StartsWith(f.Path, StringComparison.OrdinalIgnoreCase));
-			if (folderConfig == null)
+			if (folderConfig is null)
 				return;
 
 			var dic = ctx.Request.QueryString.ToDictionary();

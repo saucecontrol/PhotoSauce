@@ -22,16 +22,16 @@ namespace PhotoSauce.WebRSize
 			if (HttpRuntime.Cache[cacheKey] is Task<T> val)
 				return val;
 
-			if (getValue == null)
+			if (getValue is null)
 				return CompletedTask<T>.Default;
 
 			lock (cacheItemLocks.GetOrAdd(cacheKey, __ => new object()))
 			{
 				val = HttpRuntime.Cache[cacheKey] as Task<T>;
-				if (val == null)
+				if (val is null)
 				{
 					val = getValue();
-					var dependency = getDepedency != null ? getDepedency() : null;
+					var dependency = getDepedency is null ? null : getDepedency();
 
 					HttpRuntime.Cache.Insert(cacheKey, val, dependency, DateTime.UtcNow.AddSeconds(60), Cache.NoSlidingExpiration);
 					val.ContinueWith(_ => HttpRuntime.Cache.Remove(cacheKey), TaskContinuationOptions.NotOnRanToCompletion);
@@ -46,9 +46,8 @@ namespace PhotoSauce.WebRSize
 		{
 			return GetOrAddAsync(string.Concat("wrfi_", path), async () => {
 				var vpp = HostingEnvironment.VirtualPathProvider;
-				var vppAsync = vpp as CachingAsyncVirtualPathProvider;
 
-				var file = vppAsync != null ? await vppAsync.GetFileAsync(path).ConfigureAwait(false) : vpp.GetFile(path);
+				var file = vpp is CachingAsyncVirtualPathProvider vppAsync ? await vppAsync.GetFileAsync(path).ConfigureAwait(false) : vpp.GetFile(path);
 				var afile = file as AsyncVirtualFile;
 				using (var stream = afile != null ? await afile.OpenAsync().ConfigureAwait(false) : file.Open())
 					return new ImageFileInfo(stream, afile != null ? afile.LastModified : DateTime.MinValue);

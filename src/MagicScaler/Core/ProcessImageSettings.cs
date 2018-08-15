@@ -19,7 +19,7 @@ namespace PhotoSauce.MagicScaler
 	public enum CropAnchor { Center = 0, Top = 1, Bottom = 2, Left = 4, Right = 8 }
 	public enum CropScaleMode { Crop, Max, Stretch, Pad }
 	public enum HybridScaleMode { FavorQuality, FavorSpeed, Turbo, Off }
-	public enum GammaMode { Linear, sRGB }
+	public enum GammaMode { Linear, Companded, [Obsolete]sRGB = 1 }
 	public enum ChromaSubsampleMode { Default = 0, Subsample420 = 1, Subsample422 = 2, Subsample444 = 3 }
 	public enum FileFormat { Auto, Jpeg, Png, Png8, Gif, Bmp, Tiff, Unknown = Auto }
 	public enum OrientationMode { Normalize, Preserve, Ignore = 0xff }
@@ -56,7 +56,7 @@ namespace PhotoSauce.MagicScaler
 		public static readonly InterpolationSettings Spline36 = new InterpolationSettings(new Spline36Interpolator());
 
 		private readonly double blur;
-		public double Blur => WeightingFunction == null ? default : WeightingFunction.Support * blur < 0.5 ? 1d : blur;
+		public double Blur => WeightingFunction is null ? default : WeightingFunction.Support * blur < 0.5 ? 1d : blur;
 
 		public IInterpolator WeightingFunction { get; }
 
@@ -182,10 +182,7 @@ namespace PhotoSauce.MagicScaler
 
 				return JpegQuality >= 95 ? ChromaSubsampleMode.Subsample444 : JpegQuality >= 91 ? ChromaSubsampleMode.Subsample422 : ChromaSubsampleMode.Subsample420;
 			}
-			set
-			{
-				jpegSubsampling = value;
-			}
+			set => jpegSubsampling = value;
 		}
 
 		public InterpolationSettings Interpolation
@@ -207,10 +204,7 @@ namespace PhotoSauce.MagicScaler
 
 				return interpolator;
 			}
-			set
-			{
-				interpolation = value;
-			}
+			set => interpolation = value;
 		}
 
 		public UnsharpMaskSettings UnsharpMask
@@ -240,10 +234,7 @@ namespace PhotoSauce.MagicScaler
 				else
 					return new UnsharpMaskSettings(150, 0.5, 0);
 			}
-			set
-			{
-				unsharpMask = value;
-			}
+			set => unsharpMask = value;
 		}
 
 		public static ProcessImageSettings FromDictionary(IDictionary<string, string> dic)
@@ -280,7 +271,7 @@ namespace PhotoSauce.MagicScaler
 				s.JpegSubsampleMode = Enum.TryParse(string.Concat("Subsample", cap.Value), true, out ChromaSubsampleMode csub) ? csub : s.JpegSubsampleMode;
 
 			string color = dic.GetValueOrDefault("bgcolor") ?? dic.GetValueOrDefault("bg");
-			if (color != null)
+			if (!string.IsNullOrWhiteSpace(color))
 			{
 				if (hexColorExpression.Value.IsMatch(color))
 					color = string.Concat('#', color);
@@ -427,7 +418,7 @@ namespace PhotoSauce.MagicScaler
 
 			var frame = img.Frames[FrameIndex];
 
-			Fixup(frame.Width, frame.Height, OrientationMode != OrientationMode.Normalize && frame.ExifOrientation.SwapDimensions());
+			Fixup(frame.Width, frame.Height, OrientationMode != OrientationMode.Normalize && frame.ExifOrientation.RequiresDimensionSwap());
 
 			if (SaveFormat == FileFormat.Auto)
 				SetSaveFormat(img.ContainerType, frame.HasAlpha);

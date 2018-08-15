@@ -4,8 +4,9 @@
     <RootNamespace>PhotoSauce.WebRSize</RootNamespace>
     <AssemblyName>PhotoSauce.WebRSize</AssemblyName>
     <AssemblyTitle>WebRSize</AssemblyTitle>
-    <TargetFramework>net46</TargetFramework>
+    <TargetFrameworks>net46;net472</TargetFrameworks>
     <LangVersion>latest</LangVersion>
+    <Features>strict</Features>
     <VersionPrefix>0.3.2</VersionPrefix>
     <Authors>Clinton Ingram</Authors>
     <Description>Web extensions for the MagicScaler library, inlcluding an HTTP request intercept module for automatic image processing.</Description>
@@ -15,22 +16,23 @@
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/saucecontrol/PhotoSauce</RepositoryUrl>
     <PackageReleaseNotes>See https://github.com/saucecontrol/PhotoSauce/releases</PackageReleaseNotes>
-    <PackageIconUrl>http://photosauce.net/icon64x64.png</PackageIconUrl>
-    <PackageProjectUrl>http://photosauce.net/</PackageProjectUrl>
+    <PackageIconUrl>https://photosauce.net/icon64x64.png</PackageIconUrl>
+    <PackageProjectUrl>https://photosauce.net/</PackageProjectUrl>
     <PackageLicenseUrl>https://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
-    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
   </PropertyGroup>
 
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>True</DebugSymbols>
-  </PropertyGroup>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+	</PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="GitLink" Version="3.1.0" PrivateAssets="all" />
   </ItemGroup>
 
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net46' ">
+  <ItemGroup Condition="'$(TargetFramework)'=='net46' Or '$(TargetFramework)'=='net472'">
     <Reference Include="System.Configuration" />
     <Reference Include="System.Web" />
   </ItemGroup>

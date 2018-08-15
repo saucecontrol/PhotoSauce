@@ -64,15 +64,13 @@ namespace PhotoSauce.MagicScaler
 		public override bool Equals(object o) => o is PixelFormat pf ? Equals(pf) : false;
 		public override int GetHashCode() => FormatGuid.GetHashCode();
 
-		public bool IsBinaryCompatibleWith(PixelFormat other)
-		{
-			return BitsPerPixel == other.BitsPerPixel &&
-			       ChannelCount == other.ChannelCount &&
-			       NumericRepresentation == other.NumericRepresentation &&
-			       ColorRepresentation == other.ColorRepresentation &&
-			       AlphaRepresentation == other.AlphaRepresentation &&
-			       Colorspace == other.Colorspace;
-		}
+		public bool IsBinaryCompatibleWith(PixelFormat other) =>
+			BitsPerPixel == other.BitsPerPixel &&
+			ChannelCount == other.ChannelCount &&
+			NumericRepresentation == other.NumericRepresentation &&
+			ColorRepresentation == other.ColorRepresentation &&
+			AlphaRepresentation == other.AlphaRepresentation &&
+			Colorspace == other.Colorspace;
 
 		public static readonly PixelFormat Grey16BppUQ15 = new PixelFormat {
 			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0x9F),
@@ -272,7 +270,7 @@ namespace PhotoSauce.MagicScaler
 					uint cch = pix.GetFriendlyName(0, null);
 					var sbn = new StringBuilder((int)cch);
 					pix.GetFriendlyName(cch, sbn);
-					var pfn = sbn.ToString();
+					string pfn = sbn.ToString();
 
 					var fmt = new PixelFormat {
 						FormatGuid = pix.GetFormatGUID(),

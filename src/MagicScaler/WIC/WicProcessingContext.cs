@@ -66,7 +66,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			if (!Settings.Normalized)
 			{
-				Settings.Fixup((int)Source.Width, (int)Source.Height, DecoderFrame.ExifOrientation.SwapDimensions());
+				Settings.Fixup((int)Source.Width, (int)Source.Height, DecoderFrame.ExifOrientation.RequiresDimensionSwap());
 
 				if (Settings.SaveFormat == FileFormat.Auto)
 					Settings.SetSaveFormat(Decoder.ContainerFormat, Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None);

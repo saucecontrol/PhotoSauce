@@ -21,18 +21,16 @@ namespace PhotoSauce.WebRSize
 
 		protected virtual bool IsPathCaptured(string virtualPath) => false;
 
-		protected virtual bool FileExistsInternal(string virtualPath) => FileExistsAsyncInternal(virtualPath).Result;
+		protected virtual bool FileExistsInternal(string virtualPath) => FileExistsAsyncInternal(virtualPath).GetAwaiter().GetResult();
 
-		protected virtual bool DirectoryExistsInternal(string virtualDir) => DirectoryExistsAsyncInternal(virtualDir).Result;
+		protected virtual bool DirectoryExistsInternal(string virtualDir) => DirectoryExistsAsyncInternal(virtualDir).GetAwaiter().GetResult();
 
-		protected virtual VirtualFile GetFileInternal(string virtualPath) => GetFileAsyncInternal(virtualPath).Result;
+		protected virtual VirtualFile GetFileInternal(string virtualPath) => GetFileAsyncInternal(virtualPath).GetAwaiter().GetResult();
 
-		protected virtual VirtualDirectory GetDirectoryInternal(string virtualDir) => GetDirectoryAsyncInternal(virtualDir).Result;
+		protected virtual VirtualDirectory GetDirectoryInternal(string virtualDir) => GetDirectoryAsyncInternal(virtualDir).GetAwaiter().GetResult();
 
-		protected virtual CacheDependency GetCacheDependencyInternal(string virtualPath, IEnumerable virtualPathDependencies, DateTime utcStart)
-		{
-			return new CacheDependency(new[] { virtualPath }, virtualPathDependencies.Cast<string>().ToArray(), utcStart);
-		}
+		protected virtual CacheDependency GetCacheDependencyInternal(string virtualPath, IEnumerable virtualPathDependencies, DateTime utcStart) =>
+			new CacheDependency(new[] { virtualPath }, virtualPathDependencies.Cast<string>().ToArray(), utcStart);
 
 		protected virtual Task<bool> FileExistsAsyncInternal(string virtualPath) => False;
 
@@ -93,7 +91,7 @@ namespace PhotoSauce.WebRSize
 
 	public class DiskCachedVirtualFile : VirtualFile
 	{
-		private string cachePath;
+		private readonly string cachePath;
 
 		public DiskCachedVirtualFile(string virtualPath, string cachePath) : base(virtualPath) => this.cachePath = cachePath;
 
@@ -102,7 +100,7 @@ namespace PhotoSauce.WebRSize
 
 	public class MemoryCachedVirtualFile : VirtualFile
 	{
-		private byte[] data;
+		private readonly byte[] data;
 
 		public MemoryCachedVirtualFile(string virtualPath, byte[] data) : base(virtualPath) => this.data = data;
 
@@ -117,6 +115,6 @@ namespace PhotoSauce.WebRSize
 
 		public abstract Task<Stream> OpenAsync();
 
-		public override Stream Open() => OpenAsync().Result;
+		public override Stream Open() => OpenAsync().GetAwaiter().GetResult();
 	}
 }

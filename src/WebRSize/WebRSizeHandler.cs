@@ -61,7 +61,9 @@ namespace PhotoSauce.WebRSize
 					using (await enterWorkQueueAsync())
 					using (var oimg = new MemoryStream(8192))
 					{
+#pragma warning disable 0618 // obsolete
 						GdiImageProcessor.CreateBrokenImage(oimg, s);
+#pragma warning restore 0618
 						oimg.Position = 0;
 						saveResult(tcs, oimg, cachePath, DateTime.MinValue);
 						return;
@@ -69,9 +71,8 @@ namespace PhotoSauce.WebRSize
 				}
 
 				var vpp = HostingEnvironment.VirtualPathProvider;
-				var vppAsync = vpp as CachingAsyncVirtualPathProvider;
 
-				var file = vppAsync != null ? await vppAsync.GetFileAsync(reqPath) : vpp.GetFile(reqPath);
+				var file = vpp is CachingAsyncVirtualPathProvider vppAsync ? await vppAsync.GetFileAsync(reqPath) : vpp.GetFile(reqPath);
 				var afile = file as AsyncVirtualFile;
 
 				var lastWrite = afile?.LastModified ?? DateTime.MinValue;
@@ -97,8 +98,8 @@ namespace PhotoSauce.WebRSize
 
 		public override async Task ProcessRequestAsync(HttpContext ctx)
 		{
+			string cachePath = ctx.Items[WebRSizeModule.CachePathKey] as string;
 			var s = ctx.Items[WebRSizeModule.ProcessImageSettingsKey] as ProcessImageSettings;
-			var cachePath = ctx.Items[WebRSizeModule.CachePathKey] as string;
 
 			var tsource = default(TaskCompletionSource<ArraySegment<byte>>);
 			var task = tdic.GetOrAdd(cachePath, _ => {

@@ -798,7 +798,13 @@ namespace PhotoSauce.MagicScaler
 	{
 		private readonly Guid outFormat;
 
-		public FormatConversionTransform(Guid outFormat) => this.outFormat = outFormat;
+		public FormatConversionTransform(Guid outFormat)
+		{
+			if (outFormat != PixelFormats.Grey8bpp && outFormat != PixelFormats.Bgr24bpp && outFormat != PixelFormats.Bgra32bpp)
+				throw new NotSupportedException("Unsupported pixel format");
+
+			this.outFormat = outFormat;
+		}
 
 		void IPixelTransformInternal.Init(WicProcessingContext ctx)
 		{

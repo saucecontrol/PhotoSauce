@@ -28,7 +28,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			ctx.Decoder = this;
 
-			if (dec == null)
+			if (dec is null)
 				return;
 
 			Decoder = ctx.AddRef(dec);
@@ -50,10 +50,8 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		public WicDecoder(string fileName, WicProcessingContext ctx)
-		{
+		public WicDecoder(string fileName, WicProcessingContext ctx) =>
 			init(checkDecoder(() => Wic.Factory.CreateDecoderFromFilename(fileName, null, GenericAccessRights.GENERIC_READ, WICDecodeOptions.WICDecodeMetadataCacheOnDemand)), ctx);
-		}
 
 		public WicDecoder(Stream inFile, WicProcessingContext ctx)
 		{

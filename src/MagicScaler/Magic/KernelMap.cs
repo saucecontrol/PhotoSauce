@@ -26,21 +26,20 @@ namespace PhotoSauce.MagicScaler
 		{
 			var w = default(T);
 			if (typeof(T) == typeof(int))
-				Unsafe.Write(Unsafe.AsPointer(ref w), MathUtil.Fix15(d));
+				Unsafe.Write(&w, MathUtil.Fix15(d));
 			else if (typeof(T) == typeof(float))
-				Unsafe.Write(Unsafe.AsPointer(ref w), (float)d);
+				Unsafe.Write(&w, (float)d);
 
 			return w;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		unsafe private static void addWeight(ref T a, void* b)
+		unsafe private static void addWeight(T* a, void* b)
 		{
-			void* ap = Unsafe.AsPointer(ref a);
 			if (typeof(T) == typeof(int))
-				Unsafe.Write(ap, Unsafe.Read<int>(ap) + Unsafe.Read<int>(b));
+				Unsafe.Write(a, Unsafe.Read<int>(a) + Unsafe.Read<int>(b));
 			else if (typeof(T) == typeof(float))
-				Unsafe.Write(ap, Unsafe.Read<float>(ap) + Unsafe.Read<float>(b));
+				Unsafe.Write(a, Unsafe.Read<float>(a) + Unsafe.Read<float>(b));
 		}
 
 		unsafe private static void fillKernelWeights(IInterpolator interpolator, double* kernel, int ksize, double start, double center, double scale)
@@ -99,7 +98,7 @@ namespace PhotoSauce.MagicScaler
 						{
 							var a = default(T);
 							for (int j = 0; j <= o; j++)
-								addWeight(ref a, mpw + j * chan + k);
+								addWeight(&a, mpw + j * chan + k);
 
 							Unsafe.Write(mpw + k, a);
 
@@ -117,7 +116,7 @@ namespace PhotoSauce.MagicScaler
 						{
 							var a = default(T);
 							for (int j = 0; j <= o; j++)
-								addWeight(ref a, mpw + last * chan - j * chan + k);
+								addWeight(&a, mpw + last * chan - j * chan + k);
 
 							Unsafe.Write(mpw + last * chan + k, a);
 

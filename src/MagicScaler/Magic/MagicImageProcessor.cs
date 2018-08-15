@@ -13,20 +13,20 @@ namespace PhotoSauce.MagicScaler
 
 		private static void checkInStream(Stream imgStream)
 		{
-			if (imgStream == null) throw new ArgumentNullException(nameof(imgStream));
+			if (imgStream is null) throw new ArgumentNullException(nameof(imgStream));
 			if (!imgStream.CanSeek || !imgStream.CanRead) throw new ArgumentException("Input Stream must allow Seek and Read", nameof(imgStream));
 			if (imgStream.Length <= 0 || imgStream.Position >= imgStream.Length) throw new ArgumentException("Input Stream is empty or positioned at its end", nameof(imgStream));
 		}
 
 		private static void checkOutStream(Stream outStream)
 		{
-			if (outStream == null) throw new ArgumentNullException(nameof(outStream));
+			if (outStream is null) throw new ArgumentNullException(nameof(outStream));
 			if (!outStream.CanSeek || !outStream.CanWrite) throw new ArgumentException("Output Stream must allow Seek and Write", nameof(outStream));
 		}
 
 		public static ProcessImageResult ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
 		{
-			if (imgPath == null) throw new ArgumentNullException(nameof(imgPath));
+			if (imgPath is null) throw new ArgumentNullException(nameof(imgPath));
 			checkOutStream(outStream);
 
 			using (var ctx = new WicProcessingContext(settings))
@@ -65,7 +65,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static ProcessImageResult ProcessImage(IPixelSource imgSource, Stream outStream, ProcessImageSettings settings)
 		{
-			if (imgSource == null) throw new ArgumentNullException(nameof(imgSource));
+			if (imgSource is null) throw new ArgumentNullException(nameof(imgSource));
 			checkOutStream(outStream);
 
 			using (var ctx = new WicProcessingContext(settings))
@@ -78,7 +78,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static ProcessingPipeline BuildPipeline(string imgPath, ProcessImageSettings settings)
 		{
-			if (imgPath == null) throw new ArgumentNullException(nameof(imgPath));
+			if (imgPath is null) throw new ArgumentNullException(nameof(imgPath));
 
 			var ctx = new WicProcessingContext(settings);
 			var dec = new WicDecoder(imgPath, ctx);
@@ -108,7 +108,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static ProcessingPipeline BuildPipeline(IPixelSource imgSource, ProcessImageSettings settings)
 		{
-			if (imgSource == null) throw new ArgumentNullException(nameof(imgSource));
+			if (imgSource is null) throw new ArgumentNullException(nameof(imgSource));
 
 			var ctx = new WicProcessingContext(settings);
 			var dec = new WicDecoder(imgSource, ctx);
@@ -116,10 +116,8 @@ namespace PhotoSauce.MagicScaler
 			return new ProcessingPipeline(ctx);
 		}
 
-		public static ProcessImageResult ExecutePipeline(this ProcessingPipeline pipeline, Stream outStream)
-		{
-			return executePipeline(pipeline.Context, outStream);
-		}
+		public static ProcessImageResult ExecutePipeline(this ProcessingPipeline pipeline, Stream outStream) =>
+			executePipeline(pipeline.Context, outStream);
 
 		private static void buildPipeline(WicProcessingContext ctx, bool outputPlanar = true)
 		{
@@ -136,7 +134,7 @@ namespace PhotoSauce.MagicScaler
 				bool savePlanar = outputPlanar
 					&& ctx.Settings.SaveFormat == FileFormat.Jpeg
 					&& ctx.Settings.InnerRect == ctx.Settings.OuterRect
-					&& ctx.SourceColorContext == null;
+					&& ctx.SourceColorContext is null;
 
 				WicTransforms.AddExifRotator(ctx);
 				WicTransforms.AddPlanarCache(ctx);

@@ -71,7 +71,7 @@ namespace PhotoSauce.WebRSize
 	{
 		public override object ConvertFrom(ITypeDescriptorContext ctx, CultureInfo ci, object data) => BuildManager.GetType(data.ToString(), true);
 
-		public override object ConvertTo(ITypeDescriptorContext ctx, CultureInfo ci, object value, Type type) => value != null ? ((Type)value).AssemblyQualifiedName : null;
+		public override object ConvertTo(ITypeDescriptorContext ctx, CultureInfo ci, object value, Type type) => value is null ? null : ((Type)value).AssemblyQualifiedName;
 	}
 
 	public static class WebRSizeConfig

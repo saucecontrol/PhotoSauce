@@ -66,7 +66,7 @@ namespace PhotoSauce.MagicScaler.Interop
 
 		private static VarEnum getUnmanagedType(object o, PropVariantMarshalType marshalType)
 		{
-			if (o == null) return VarEnum.VT_EMPTY;
+			if (o is null) return VarEnum.VT_EMPTY;
 			if (Marshal.IsComObject(o)) return VarEnum.VT_UNKNOWN;
 			if (o is PropVariant pv) return pv.UnmanagedType;
 
@@ -182,7 +182,7 @@ namespace PhotoSauce.MagicScaler.Interop
 
 			unsafe public IntPtr MarshalManagedToNative(object o)
 			{
-				if (o == null)
+				if (o is null)
 					return IntPtr.Zero;
 
 				var marshalType = PropVariantMarshalType.Automatic;
@@ -198,7 +198,7 @@ namespace PhotoSauce.MagicScaler.Interop
 				var pNativeData = Marshal.AllocCoTaskMem(cbNative);
 				Unsafe.InitBlock(pNativeData.ToPointer(), default, (uint)cbNative);
 
-				if (o == null)
+				if (o is null)
 					return pNativeData;
 
 				if (!(o is Array))
@@ -262,7 +262,7 @@ namespace PhotoSauce.MagicScaler.Interop
 
 			public object MarshalNativeToManaged(IntPtr pNativeData)
 			{
-				if ((pNativeData == IntPtr.Zero) || (pv == null))
+				if ((pNativeData == IntPtr.Zero) || (pv is null))
 					return null;
 
 				var upv = Marshal.PtrToStructure<UnmanagedPropVariant>(pNativeData);

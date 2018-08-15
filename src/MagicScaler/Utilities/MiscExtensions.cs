@@ -37,7 +37,7 @@ namespace PhotoSauce.MagicScaler
 			return opt;
 		}
 
-		public static bool SwapDimensions(this Orientation o) => o > Orientation.FlipVertical;
+		public static bool RequiresDimensionSwap(this Orientation o) => o > Orientation.FlipVertical;
 
 		public static bool RequiresCache(this Orientation o) => o > Orientation.FlipHorizontal;
 
@@ -67,26 +67,22 @@ namespace PhotoSauce.MagicScaler
 			return a;
 		}
 
-		public static TValue GetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dic, TKey key, Func<TValue> valueFactory = null)
-		{
-			return dic.TryGetValue(key, out var value) ? value : valueFactory == null ? default : valueFactory();
-		}
+		public static TValue GetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dic, TKey key, Func<TValue> valueFactory = null) =>
+			dic.TryGetValue(key, out var value) ? value : valueFactory is null ? default : valueFactory();
 
 #if NETFRAMEWORK
-		public static IDictionary<string, string> ToDictionary(this NameValueCollection nv)
-		{
-			return nv.AllKeys.Where(k => !string.IsNullOrEmpty(k)).ToDictionary(k => k, k => nv.GetValues(k).LastOrDefault(), StringComparer.OrdinalIgnoreCase);
-		}
+		public static IDictionary<string, string> ToDictionary(this NameValueCollection nv) =>
+			nv.AllKeys.Where(k => !string.IsNullOrEmpty(k)).ToDictionary(k => k, k => nv.GetValues(k).LastOrDefault(), StringComparer.OrdinalIgnoreCase);
 
-		public static IDictionary<string, string> ToDictionary(this KeyValueConfigurationCollection kv)
-		{
-			return kv.AllKeys.Where(k => !string.IsNullOrEmpty(k)).ToDictionary(k => k, k => kv[k].Value, StringComparer.OrdinalIgnoreCase);
-		}
+		public static IDictionary<string, string> ToDictionary(this KeyValueConfigurationCollection kv) =>
+			kv.AllKeys.Where(k => !string.IsNullOrEmpty(k)).ToDictionary(k => k, k => kv[k].Value, StringComparer.OrdinalIgnoreCase);
 #endif
 
 		public static IDictionary<TKey, TValue> Coalesce<TKey, TValue>(this IDictionary<TKey, TValue> dic1, IDictionary<TKey, TValue> dic2)
 		{
-			dic2.ToList().ForEach(i => dic1[i.Key] = i.Value);
+			foreach (var kv in dic2)
+				dic1[kv.Key] = kv.Value;
+
 			return dic1;
 		}
 

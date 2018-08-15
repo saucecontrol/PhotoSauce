@@ -25,7 +25,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			ctx.DecoderFrame = this;
 
-			if(ctx.Decoder.Decoder == null)
+			if(ctx.Decoder.Decoder is null)
 			{
 				DpiX = DpiY = 96d;
 				return;
@@ -83,7 +83,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		public static void AddMetadataReader(WicProcessingContext ctx, bool basicOnly = false)
 		{
-			if (ctx.DecoderFrame.Frame == null)
+			if (ctx.DecoderFrame.Frame is null)
 				return;
 
 			if (ctx.DecoderFrame.Frame.TryGetMetadataQueryReader(out var metareader))
@@ -203,7 +203,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddColorspaceConverter(WicProcessingContext ctx)
 		{
-			if (ctx.SourceColorContext == null || ctx.SourceColorContext == ctx.DestColorContext)
+			if (ctx.SourceColorContext is null || ctx.SourceColorContext == ctx.DestColorContext)
 				return;
 
 			var trans = ctx.AddRef(Wic.Factory.CreateColorTransform());
@@ -338,7 +338,7 @@ namespace PhotoSauce.MagicScaler
 			if (cw == ow && ch == oh)
 				return;
 
-			bool swap = ctx.DecoderFrame.ExifOrientation.SwapDimensions();
+			bool swap = ctx.DecoderFrame.ExifOrientation.RequiresDimensionSwap();
 			double wrat = swap ? (double)oh / ch : (double)ow / cw;
 			double hrat = swap ? (double)ow / cw : (double)oh / ch;
 

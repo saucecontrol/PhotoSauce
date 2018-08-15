@@ -62,7 +62,7 @@ namespace PhotoSauce.MagicScaler
 
 		public ImageFileInfo(Stream imgStream, DateTime lastModified)
 		{
-			if (imgStream == null) throw new ArgumentNullException(nameof(imgStream));
+			if (imgStream is null) throw new ArgumentNullException(nameof(imgStream));
 			if (!imgStream.CanSeek || !imgStream.CanRead) throw new ArgumentException("Input Stream must allow Seek and Read", nameof(imgStream));
 			if (imgStream.Length <= 0 || imgStream.Position >= imgStream.Length) throw new ArgumentException("Input Stream is empty or positioned at its end", nameof(imgStream));
 
@@ -83,8 +83,8 @@ namespace PhotoSauce.MagicScaler
 				var frm = new WicFrameReader(ctx);
 				WicTransforms.AddMetadataReader(ctx, basicOnly: true);
 
-				int width = (int)(frm.ExifOrientation.SwapDimensions() ? ctx.Source.Height : ctx.Source.Width);
-				int height = (int)(frm.ExifOrientation.SwapDimensions() ? ctx.Source.Width : ctx.Source.Height);
+				int width = (int)(frm.ExifOrientation.RequiresDimensionSwap() ? ctx.Source.Height : ctx.Source.Width);
+				int height = (int)(frm.ExifOrientation.RequiresDimensionSwap() ? ctx.Source.Width : ctx.Source.Height);
 				Frames[i] = new FrameInfo(width, height, ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None, frm.ExifOrientation);
 			}
 		}
