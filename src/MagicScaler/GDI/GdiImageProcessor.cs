@@ -1,4 +1,6 @@
-﻿#if NETFRAMEWORK
+﻿#pragma warning disable CS1591 // XML Comments
+
+#if NETFRAMEWORK
 using System;
 using System.IO;
 using System.Linq;

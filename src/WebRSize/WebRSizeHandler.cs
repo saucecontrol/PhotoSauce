@@ -12,6 +12,7 @@ using PhotoSauce.MagicScaler;
 
 namespace PhotoSauce.WebRSize
 {
+	/// <summary>An <see cref="IHttpHandler" /> implementation that performs a dynamic image processing operation, returns the result to the client, and queues caching the result.</summary>
 	public class WebRSizeHandler : HttpTaskAsyncHandler
 	{
 		private struct QueueReleaser : IDisposable { public void Dispose() => sem.Release(); }
@@ -96,6 +97,7 @@ namespace PhotoSauce.WebRSize
 			}
 		}
 
+		/// <inheritdoc />
 		public override async Task ProcessRequestAsync(HttpContext ctx)
 		{
 			string cachePath = ctx.Items[WebRSizeModule.CachePathKey] as string;
@@ -134,6 +136,7 @@ namespace PhotoSauce.WebRSize
 			}
 		}
 
+		/// <inheritdoc />
 		public override bool IsReusable => true;
 	}
 }

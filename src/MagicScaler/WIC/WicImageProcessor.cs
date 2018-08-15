@@ -1,4 +1,6 @@
-﻿using System;
+﻿#pragma warning disable CS1591 // XML Comments
+
+using System;
 using System.IO;
 
 using PhotoSauce.MagicScaler.Interop;

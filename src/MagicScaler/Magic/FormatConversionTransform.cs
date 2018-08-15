@@ -794,10 +794,13 @@ namespace PhotoSauce.MagicScaler
 		public override string ToString() => $"{base.ToString()}: {InFormat.Name}->{Format.Name}";
 	}
 
+	/// <summary>Converts an image to an alternate pixel format.</summary>
 	public sealed class FormatConversionTransform : PixelTransform, IPixelTransformInternal
 	{
 		private readonly Guid outFormat;
 
+		/// <summary>Constructs a new <see cref="FormatConversionTransform" /> using the specified <paramref name="outFormat" />.</summary>
+		/// <param name="outFormat">The desired output format.  Must be a member of <see cref="PixelFormats" />.</param>
 		public FormatConversionTransform(Guid outFormat)
 		{
 			if (outFormat != PixelFormats.Grey8bpp && outFormat != PixelFormats.Bgr24bpp && outFormat != PixelFormats.Bgra32bpp)

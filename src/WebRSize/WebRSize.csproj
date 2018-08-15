@@ -7,7 +7,7 @@
     <TargetFrameworks>net46;net472</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <Features>strict</Features>
-    <VersionPrefix>0.3.2</VersionPrefix>
+    <VersionPrefix>0.3.3</VersionPrefix>
     <Authors>Clinton Ingram</Authors>
     <Description>Web extensions for the MagicScaler library, inlcluding an HTTP request intercept module for automatic image processing.</Description>
     <Company>PhotoSauce</Company>
@@ -26,6 +26,8 @@
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>True</DebugSymbols>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
+    <NoWarn>1701;1702;1591</NoWarn>
 	</PropertyGroup>
 
   <ItemGroup>

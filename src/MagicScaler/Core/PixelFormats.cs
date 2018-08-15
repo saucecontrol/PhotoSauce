@@ -304,10 +304,14 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
+	/// <summary>Contains standard pixel formats available as output from an <see cref="IPixelSource" />.</summary>
 	public static class PixelFormats
 	{
+		/// <summary>Greyscale data with 1 byte per pixel.</summary>
 		public static readonly Guid Grey8bpp = Consts.GUID_WICPixelFormat8bppGray;
+		/// <summary>RGB data with 1 byte per channel in BGR byte order.</summary>
 		public static readonly Guid Bgr24bpp = Consts.GUID_WICPixelFormat24bppBGR;
+		/// <summary>RGBA data with 1 byte per channel in BGRA byte order.</summary>
 		public static readonly Guid Bgra32bpp = Consts.GUID_WICPixelFormat32bppBGRA;
 	}
 }

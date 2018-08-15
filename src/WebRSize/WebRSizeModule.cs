@@ -9,6 +9,7 @@ using PhotoSauce.MagicScaler;
 
 namespace PhotoSauce.WebRSize
 {
+	/// <summary>An <see cref="IHttpModule" /> implementation that intercepts image processing requests and either rewrites them to the cached location or dispatches them to the dynamic processing handler.</summary>
 	public class WebRSizeModule : IHttpModule
 	{
 		internal const string ProcessImageSettingsKey = "wsmssettings";
@@ -112,6 +113,7 @@ namespace PhotoSauce.WebRSize
 			ctx.RemapHandler(handler);
 		}
 
+		/// <inheritdoc />
 		public void Init(HttpApplication app)
 		{
 			// Init() may be called multiple times by IIS and needs to bind the same handlers on each call.
@@ -129,6 +131,7 @@ namespace PhotoSauce.WebRSize
 			app.AddOnPostAuthorizeRequestAsync(mapHelper.BeginEventHandler, mapHelper.EndEventHandler);
 		}
 
+		/// <inheritdoc />
 		public void Dispose() { }
 	}
 }

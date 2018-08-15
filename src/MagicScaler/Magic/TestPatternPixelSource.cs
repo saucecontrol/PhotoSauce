@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 
 namespace PhotoSauce.MagicScaler
 {
+	/// <summary>An <see cref="IPixelSource" /> implementation that creates a test pattern.</summary>
 	public class TestPatternPixelSource : IPixelSource, IDisposable
 	{
 		private static readonly Guid[] formats = new[] { Guid.Empty, PixelFormats.Grey8bpp, Guid.Empty, PixelFormats.Bgr24bpp, PixelFormats.Bgra32bpp };
@@ -18,10 +19,17 @@ namespace PhotoSauce.MagicScaler
 		private readonly int stride;
 		private readonly double rheight;
 
+		/// <inheritdoc />
 		public Guid Format => formats[chans];
+		/// <inheritdoc />
 		public int Width => width;
+		/// <inheritdoc />
 		public int Height => height;
 
+		/// <summary>Constructs a new <see cref="TestPatternPixelSource" /> using the specified settings.</summary>
+		/// <param name="width">The image width in pixels.  Values up to 65535 are supported.</param>
+		/// <param name="height">The image height in pixels.  Values up to 65535 are supported.</param>
+		/// <param name="pixelFormat">The pixel format of the image.  Must be a member of <see cref="PixelFormats" />.</param>
 		public TestPatternPixelSource(int width, int height, Guid pixelFormat)
 		{
 			chans = Array.IndexOf(formats, pixelFormat);
@@ -103,6 +111,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
+		/// <inheritdoc />
 		unsafe public void CopyPixels(Rectangle sourceArea, int cbStride, Span<byte> buffer)
 		{
 			long cb = sourceArea.Width * chans;
@@ -130,6 +139,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
+		/// <inheritdoc />
 		public void Dispose()
 		{
 			if (pixels.IsValueCreated)

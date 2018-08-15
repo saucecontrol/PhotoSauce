@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#pragma warning disable IDE1006 // Naming Styles
+#pragma warning disable IDE1006, CS1591 // Naming Styles, XML Comments
 
 #if DRAWING_SHIM_COLOR
 using System.Diagnostics;

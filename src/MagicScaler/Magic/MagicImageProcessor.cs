@@ -6,9 +6,13 @@ using PhotoSauce.MagicScaler.Interop;
 
 namespace PhotoSauce.MagicScaler
 {
+	/// <summary>Provides a set of methods for constructing or executing a MagicScaler processing pipeline.</summary>
 	public static class MagicImageProcessor
 	{
+		/// <summary>True to allow <a href="https://en.wikipedia.org/wiki/YCbCr">Y'CbCr</a> images to be processed in their native planar format, false to force RGB conversion before processing.</summary>
 		public static bool EnablePlanarPipeline { get; set; } = true;
+
+		/// <summary>Overrides the default <a href="https://en.wikipedia.org/wiki/SIMD">SIMD</a> support detection to force floating point processing on or off.</summary>
 		public static bool EnableSimd { get; set; } = Vector.IsHardwareAccelerated && (Vector<float>.Count == 4 || Vector<float>.Count == 8);
 
 		private static void checkInStream(Stream imgStream)
@@ -24,6 +28,11 @@ namespace PhotoSauce.MagicScaler
 			if (!outStream.CanSeek || !outStream.CanWrite) throw new ArgumentException("Output Stream must allow Seek and Write", nameof(outStream));
 		}
 
+		/// <summary>All-in-one processing of an image according to the specified <paramref name="settings" />.</summary>
+		/// <param name="imgPath">The path to a file containing the input image.</param>
+		/// <param name="outStream">The stream to which the output image will be written.</param>
+		/// <param name="settings">The settings for this processing operation.</param>
+		/// <returns>A <see cref="ProcessImageResult" /> containing the settings used and basic instrumentation for the pipeline.</returns>
 		public static ProcessImageResult ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
 		{
 			if (imgPath is null) throw new ArgumentNullException(nameof(imgPath));
@@ -37,6 +46,11 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
+		/// <summary>All-in-one processing of an image according to the specified <paramref name="settings" />.</summary>
+		/// <param name="imgBuffer">A buffer containing a supported input image container.</param>
+		/// <param name="outStream">The stream to which the output image will be written.</param>
+		/// <param name="settings">The settings for this processing operation.</param>
+		/// <returns>A <see cref="ProcessImageResult" /> containing the settings used and basic instrumentation for the pipeline.</returns>
 		public static ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
 			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
@@ -50,6 +64,11 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
+		/// <summary>All-in-one processing of an image according to the specified <paramref name="settings" />.</summary>
+		/// <param name="imgStream">A stream containing a supported input image container.</param>
+		/// <param name="outStream">The stream to which the output image will be written.</param>
+		/// <param name="settings">The settings for this processing operation.</param>
+		/// <returns>A <see cref="ProcessImageResult" /> containing the settings used and basic instrumentation for the pipeline.</returns>
 		public static ProcessImageResult ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings)
 		{
 			checkInStream(imgStream);
@@ -63,6 +82,11 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
+		/// <summary>All-in-one processing of an image according to the specified <paramref name="settings" />.</summary>
+		/// <param name="imgSource">A custom pixel source to use as input.</param>
+		/// <param name="outStream">The stream to which the output image will be written.</param>
+		/// <param name="settings">The settings for this processing operation.</param>
+		/// <returns>A <see cref="ProcessImageResult" /> containing the settings used and basic instrumentation for the pipeline.</returns>
 		public static ProcessImageResult ProcessImage(IPixelSource imgSource, Stream outStream, ProcessImageSettings settings)
 		{
 			if (imgSource is null) throw new ArgumentNullException(nameof(imgSource));
@@ -76,6 +100,10 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
+		/// <summary>Constructs a new processing pipeline from which pixels can be retrieved.</summary>
+		/// <param name="imgPath">The path to a file containing the input image.</param>
+		/// <param name="settings">The settings for this processing operation.</param>
+		/// <returns>A <see cref="ProcessingPipeline" /> containing the <see cref="IPixelSource" />, settings used, and basic instrumentation for the pipeline.</returns>
 		public static ProcessingPipeline BuildPipeline(string imgPath, ProcessImageSettings settings)
 		{
 			if (imgPath is null) throw new ArgumentNullException(nameof(imgPath));
@@ -86,6 +114,10 @@ namespace PhotoSauce.MagicScaler
 			return new ProcessingPipeline(ctx);
 		}
 
+		/// <summary>Constructs a new processing pipeline from which pixels can be retrieved.</summary>
+		/// <param name="imgBuffer">A buffer containing a supported input image container.</param>
+		/// <param name="settings">The settings for this processing operation.</param>
+		/// <returns>A <see cref="ProcessingPipeline" /> containing the <see cref="IPixelSource" />, settings used, and basic instrumentation for the pipeline.</returns>
 		public static ProcessingPipeline BuildPipeline(ReadOnlySpan<byte> imgBuffer, ProcessImageSettings settings)
 		{
 			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
@@ -96,6 +128,10 @@ namespace PhotoSauce.MagicScaler
 			return new ProcessingPipeline(ctx);
 		}
 
+		/// <summary>Constructs a new processing pipeline from which pixels can be retrieved.</summary>
+		/// <param name="imgStream">A stream containing a supported input image container.</param>
+		/// <param name="settings">The settings for this processing operation.</param>
+		/// <returns>A <see cref="ProcessingPipeline" /> containing the <see cref="IPixelSource" />, settings used, and basic instrumentation for the pipeline.</returns>
 		public static ProcessingPipeline BuildPipeline(Stream imgStream, ProcessImageSettings settings)
 		{
 			checkInStream(imgStream);
@@ -106,6 +142,10 @@ namespace PhotoSauce.MagicScaler
 			return new ProcessingPipeline(ctx);
 		}
 
+		/// <summary>Constructs a new processing pipeline from which pixels can be retrieved.</summary>
+		/// <param name="imgSource">A custom pixel source to use as input.</param>
+		/// <param name="settings">The settings for this processing operation.</param>
+		/// <returns>A <see cref="ProcessingPipeline" /> containing the <see cref="IPixelSource" />, settings used, and basic instrumentation for the pipeline.</returns>
 		public static ProcessingPipeline BuildPipeline(IPixelSource imgSource, ProcessImageSettings settings)
 		{
 			if (imgSource is null) throw new ArgumentNullException(nameof(imgSource));
@@ -116,6 +156,10 @@ namespace PhotoSauce.MagicScaler
 			return new ProcessingPipeline(ctx);
 		}
 
+		/// <summary>Completes processing of a <see cref="ProcessingPipeline" />, saving the output to <paramref name="outStream" />.</summary>
+		/// <param name="pipeline">The processing pipeline attached to a pixel source.</param>
+		/// <param name="outStream">The stream to which the output image will be written.</param>
+		/// <returns>A <see cref="ProcessImageResult" /> containing the settings used and basic instrumentation for the pipeline.</returns>
 		public static ProcessImageResult ExecutePipeline(this ProcessingPipeline pipeline, Stream outStream) =>
 			executePipeline(pipeline.Context, outStream);
 

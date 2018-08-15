@@ -8,7 +8,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <Features>strict</Features>
-    <VersionPrefix>0.8.5</VersionPrefix>
+    <VersionPrefix>0.9.0</VersionPrefix>
     <Authors>Clinton Ingram</Authors>
     <Company>PhotoSauce</Company>
     <Product>MagicScaler</Product>
@@ -34,6 +34,7 @@
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>true</DebugSymbols>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>

@@ -7,8 +7,10 @@ using static PhotoSauce.MagicScaler.MathUtil;
 
 namespace PhotoSauce.MagicScaler
 {
+	/// <summary>Contains standard 4x4 matrices for use with the <see cref="ColorMatrixTransform" /> filter.</summary>
 	public static class ColorMatrix
 	{
+		/// <summary>Converts a color image to greyscale using the <a href="https://en.wikipedia.org/wiki/Rec._601">Rec. 601</a> luma coefficients.</summary>
 		public static readonly Matrix4x4 Grey = new Matrix4x4(
 			Rec601.B, Rec601.B, Rec601.B, 0f,
 			Rec601.G, Rec601.G, Rec601.G, 0f,
@@ -16,6 +18,7 @@ namespace PhotoSauce.MagicScaler
 			0f,       0f,       0f,       1f
 		);
 
+		/// <summary>Applies <a href="https://en.wikipedia.org/wiki/Photographic_print_toning#Sepia_toning">sepia toning</a> to an image.</summary>
 		public static readonly Matrix4x4 Sepia = new Matrix4x4(
 			0.131f, 0.168f, 0.189f, 0f,
 			0.534f, 0.686f, 0.769f, 0f,
@@ -23,6 +26,7 @@ namespace PhotoSauce.MagicScaler
 			0f,     0f,     0f,     1f
 		);
 
+		/// <summary>An example of a stylized matrix, with a teal tint, increased contrast, and overblown highlights.</summary>
 		public static readonly Matrix4x4 Polaroid = new Matrix4x4(
 			 1.483f, -0.016f, -0.016f, 0f,
 			-0.122f,  1.378f, -0.122f, 0f,
@@ -30,6 +34,7 @@ namespace PhotoSauce.MagicScaler
 			-0.020f,  0.050f, -0.030f, 1f
 		);
 
+		/// <summary>Inverts the channel values of an image, producing a color or greyscale negative.</summary>
 		public static readonly Matrix4x4 Negative = new Matrix4x4(
 			-1f,  0f,  0f, 0f,
 			 0f, -1f,  0f, 0f,
@@ -166,10 +171,13 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
+	/// <summary>Transforms an image according to coefficients in a <see cref="Matrix4x4" />.</summary>
 	public sealed class ColorMatrixTransform : PixelTransform, IPixelTransformInternal
 	{
 		private readonly Matrix4x4 matrix;
 
+		/// <summary>Constructs a new <see cref="ColorMatrixTransform" /> using the specified <paramref name="matrix" />.</summary>
+		/// <param name="matrix">A 4x4 matrix of coefficients.  The channel order is BGRA.</param>
 		public ColorMatrixTransform(Matrix4x4 matrix) => this.matrix = matrix;
 
 		void IPixelTransformInternal.Init(WicProcessingContext ctx)

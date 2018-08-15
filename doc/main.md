@@ -9,8 +9,8 @@ Enables MagicImageProcessor's planar format pipeline for images stored in planar
 Most image processing software will convert YCbCr JPEG input to RGB for processing and then convert back to YCbCr for JPEG output.  In addition to saving the processing time spent on this unnecessary conversion, planar processing allows for other work savings.
 
 * [Chroma subsampled](https://en.wikipedia.org/wiki/Chroma_subsampling) images do not need to have their chroma planes upsampled to the luma size, only to have them rescaled again.  MagicScaler can scale the subsampled chroma plane directly to its final size.
-* When saving in a chroma subsampled format, the final chroma scaling is done with a high-quality resampler rather than the Linear resampler used by the encoder.
-* When processing in [linear light](http://web.archive.org/web/20160826144709/http://www.4p8.com/eric.brasseur/gamma.html), gamma correction needs only be performed on the luma plane.
+* When saving in a chroma subsampled format, the final chroma scaling is done with a high-quality resampler rather than the default resampler used by the encoder.
+* When processing in [linear light](http://www.ericbrasseur.org/gamma.html), gamma correction needs only be performed on the luma plane.
 * When sharpening is applied, it also needs only be performed on the luma plane.
 
 This feature is only available if WIC supports it (Windows 8.1/Windows Server 2012 and above) and the input image format is YCbCr.  The output results will be slightly different than those produced with RGB processing but no less correct or visually appealing.
@@ -19,11 +19,11 @@ Default Value: true
 
 ### EnableSimd : static bool
 
-Enables [SIMD](https://en.wikipedia.org/wiki/SIMD) versions of MagicScaler's image convolution and matting/compositing algorithms.  For high-quality resampling, SIMD processing yields significant performance improvements.  This is most notable with linear light processing, which now has no performance penalty compared with sRGB processing.
-
-If processing predominately with low-quality resampling or in sRGB blending mode, there can be a slight performance penalty for SIMD processing.  You can disable this if your use cases do not follow the high-quality MagicScaler defaults. 
+Enables [SIMD](https://en.wikipedia.org/wiki/SIMD) versions of many of MagicScaler's algorithms.  For high-quality resampling, SIMD processing yields significant performance improvements.
 
 Note that the SIMD processing is done in floating point whereas the standard processing is done in fixed point math.  This will result in very slight output differences due to rounding.  Differences will not be visually significant but can be detected with a binary compare.
+
+This property should only be used for testing/troubleshooting.  Forcing floating point processing on incompatible hardware or runtimes will result in very poor performance, and disabling it when supported will sacrifice much of MagicScaler's current and future optimization.
 
 Default Value: true if the runtime/JIT and hardware support hardware-accelerated System.Numerics.Vectors, otherwise false
 
@@ -31,9 +31,9 @@ Default Value: true if the runtime/JIT and hardware support hardware-accelerated
 
 Accepts a file path for the input image, a stream for the output image, and a [ProcessImageSettings](#processimagesettings) object for settings.  The output stream must allow Seek and Write.  Returns a [ProcessImageResult](#processimageresult).
 
-### ProcessImage(ArraySegment&lt;byte&gt;, Stream, ProcessImageSettings)
+### ProcessImage(ReadOnlySpan&lt;byte&gt;, Stream, ProcessImageSettings)
 
-Accepts a byte ArraySegment for the input image, a stream for the output image, and a [ProcessImageSettings](#processimagesettings) object for settings.  The output stream must allow Seek and Write.  Returns a [ProcessImageResult](#processimageresult).
+Accepts a ReadOnlySpan for the input image, a stream for the output image, and a [ProcessImageSettings](#processimagesettings) object for settings.  The output stream must allow Seek and Write.  Returns a [ProcessImageResult](#processimageresult).
 
 ### ProcessImage(Stream, Stream, ProcessImageSettings)
 
@@ -47,9 +47,9 @@ Accepts an [IPixelSource](#ipixelsource) input, a stream for the output image, a
 
 Accepts a file path for the input image and a [ProcessImageSettings](#processimagesettings) object for settings.  Returns a [ProcessingPipeline](#processingpipeline) for custom processing.
 
-### BuildPipeline(ArraySegment&lt;byte&gt;, ProcessImageSettings)
+### BuildPipeline(ReadOnlySpan&lt;byte&gt;, ProcessImageSettings)
 
-Accepts a byte ArraySegment for the input image and a [ProcessImageSettings](#processimagesettings) object for settings.  Returns a [ProcessingPipeline](#processingpipeline) for custom processing.
+Accepts a ReadOnlySpan for the input image and a [ProcessImageSettings](#processimagesettings) object for settings.  Returns a [ProcessingPipeline](#processingpipeline) for custom processing.
 
 ### BuildPipeline(Stream, ProcessImageSettings)
 
@@ -187,6 +187,18 @@ An [UnsharpMaskSettings](#unsharpmasksettings) object specifying sharpening sett
 
 Default value: unset
 
+### ColorProfileMode : ColorProfileMode
+
+A [ColorProfileMode](#colorprofilemode) value indicating how embedded [ICC Color Profiles](https://en.wikipedia.org/wiki/ICC_profile) are handled during processing.
+
+Default value: Normalize
+
+### OrientationMode : OrientationMode
+
+An [OrientationMode](#orientationmode) value indicating how [Exif Orientation](https://magnushoff.com/jpeg-orientation.html) correction is handled during processing.
+
+Default value: Normalize
+
 ## CropAnchor 
 
 A flags enumeration for specifying auto-crop anchor.
@@ -255,11 +267,11 @@ An enumeration for specifying the light blending mode used for high-quality scal
 
 ### Linear
 
-Perform the high-quality scaling in [linear light](http://web.archive.org/web/20160826144709/http://www.4p8.com/eric.brasseur/gamma.html) colorspace.  This will give better results in most cases but at a performance cost.
+Convert values to linear RGB before blending.  This is more [mathematically correct](http://blog.johnnovak.net/2016/09/21/what-every-coder-should-know-about-gamma/) and more visually pleasing in most cases.
 
-### sRGB
+### Companded
 
-Perform the high-quality scaling in gamma-corrected sRGB colorspace.  This will yield output more similar to other scaling software but will be less correct in most cases.
+Blend companded R'G'B' values directly.  This is usually a poor choice but may be used for compatibility with other software or where speed is more important than image quality.
 
 ## ChromaSubsampleMode
 
@@ -312,6 +324,42 @@ JPEG.  Use JpegQuality and JpegSubsampleMode settings to control output.
 ### Tiff
 
 Uncompressed 24-bit or 32-bit TIFF, depending on whether or not the input image contains an alpha channel.
+
+## ColorProfileMode
+
+An enumeration for indicating how embedded [ICC Color Profiles](https://en.wikipedia.org/wiki/ICC_profile) are handled.
+
+### Normalize
+
+Convert the input image to the [sRGB color space](https://en.wikipedia.org/wiki/SRGB) during processing.  Output an untagged sRGB image.
+
+### NormalizeAndEmbed
+
+Convert the input image to the sRGB color space during processing.  Embed a [compact sRGB profile](https://github.com/saucecontrol/Compact-ICC-Profiles) in the output.  This option ensures maximum compatibility with web browsers and other software but results slightly larger (+456 bytes) output files.
+
+### Preserve
+
+Preserve the input image color space during processing.  Embed the ICC profile in the output image.  If the output format does not support embedded profiles, it will be discarded.  Use this option only if the output format and viewing software support color management.
+
+### Ignore
+
+Ignore any embedded profiles and treat the image as sRGB data.  Do not tag the output image.  This option may result in significant changes to output color and should only be used if the embedded profile is known to be incorrect.
+
+## OrientationMode
+
+An enumeration for indicating how [Exif Orientation](https://magnushoff.com/jpeg-orientation.html) is handled.
+
+### Normalize
+
+Correct the image orientation according to the Exif tag on load.  Save the output in normal orientation.  This option ensures maximum compatibility with viewer software.
+
+### Preserve
+
+Preserve the orientation of the input image and tag the output image to reflect the orientation.  If the output format does not support orientation tagging, it will be discarded.  Use this option only if the output format and viewing software support orientation correction.
+
+### Ignore
+
+Ignore any orientation tag and treat the image as if its stored orientation is normal.  Do not tag the output image.  This option should only be used if the Exif orientation of the input image is known to be incorrect.
 
 ## UnsharpMaskSettings
 
@@ -505,4 +553,4 @@ True if the image frame has a separate alpha channel or if it is in an indexed f
 
 ### ExifOrientation: Orientation
 
-The [Exif Orientation](http://www.impulseadventure.com/photo/exif-orientation.html) value stored for this image frame.  The Width and Height values are pre-corrected according to this value, so you can ignore it if you are using MagicScaler to process the image, as it performs orientation correction automatically.  The integer values defined in the Orientation enumeration match the stored Exif values.
+The [Exif Orientation](https://magnushoff.com/jpeg-orientation.html) value stored for this image frame.  The Width and Height values are pre-corrected according to this value, so you can ignore it if you are using MagicScaler to process the image, as it performs orientation correction automatically.  The integer values defined in the Orientation enumeration match the stored Exif values.
