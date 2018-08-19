@@ -36,9 +36,9 @@ namespace PhotoSauce.MagicScaler
 			Height = (uint)outerRect.Height;
 		}
 
-		unsafe protected override void CopyPixelsInternal(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		unsafe protected override void CopyPixelsInternal(in Rectangle prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
-			var trect = new WICRect { X = Math.Max(prc.X - irect.X, 0), Height = 1 };
+			var trect = new Rectangle { X = Math.Max(prc.X - irect.X, 0), Height = 1 };
 			trect.Width = Math.Min(prc.Width, Math.Min(Math.Max(prc.X + prc.Width - irect.X, 0), irect.Width - trect.X));
 			int cx = Math.Max(irect.X - prc.X, 0);
 

@@ -77,6 +77,10 @@ This class is included only for testing/benchmarking purposes.  It will be remov
 
 Settings for the ProcessImage operation
 
+### Calculate(ProcessImageSettings, ImageFileInfo)
+
+Given a settings instance and an image, will calculate the final settings to be used, including any default or auto calculated properties.
+
 ### FrameIndex: int
 
 The frame number (starting from 0) to read from a multi-frame file, such as a multi-page TIFF or animated GIF.  For single-frame images, 0 is the only valid value.
@@ -227,12 +231,17 @@ Auto-size the output image to a maximum of the values given for Width and Height
 
 Allow the output image Width and Height to change the aspect ratio of the input image.  This may result in stretching or distortion of the image.
 
+### Pad
+
+Maintain the image aspect ratio of the input image, but fill the given Width and Height.  Borders will be added if necessary and filled with the `MatteColor`.
+
 ### Examples
 
 Suppose you have an input image with dimensions of 640x480 and you set the Width and Height of the output image to 100x100.
 `Crop` will produce an output image of 100x100, preserving the aspect ratio of the input image by cropping from the sides of the image.  By default, this will crop evenly from the left and right.  You can change that behavior by changing the [Anchor](#anchor-cropanchor) value.
 `Max` will produce an output image of 100x75, preserving the aspect ratio of the input image by constraining the dimensions of the output image.
 `Stretch` will produce an output image of 100x100 that is squished horizontally.
+`Pad` will produce an output image of 100x100, with top and bottom borders surrounding the resized input.
 
 When using `Crop` mode, you may also choose to specify only one of the Width or Height.  In this case, the undefined dimension will be set automatically to preserve the source image's aspect ratio after taking the Crop setting into account.
 Again, using a 640x480 input image as an example, you can expect the following:
@@ -335,7 +344,7 @@ Convert the input image to the [sRGB color space](https://en.wikipedia.org/wiki/
 
 ### NormalizeAndEmbed
 
-Convert the input image to the sRGB color space during processing.  Embed a [compact sRGB profile](https://github.com/saucecontrol/Compact-ICC-Profiles) in the output.  This option ensures maximum compatibility with web browsers and other software but results slightly larger (+456 bytes) output files.
+Convert the input image to the sRGB color space during processing.  Embed a [compact sRGB profile](https://github.com/saucecontrol/Compact-ICC-Profiles) in the output.  This option ensures maximum compatibility with web browsers and other software but results in slightly larger (+456 bytes) output files.
 
 ### Preserve
 

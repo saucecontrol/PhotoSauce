@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -27,13 +28,13 @@ namespace PhotoSauce.MagicScaler
 			LineBuff = ArrayPool<byte>.Shared.Rent((int)BufferStride);
 		}
 
-		unsafe protected override void CopyPixelsInternal(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		unsafe protected override void CopyPixelsInternal(in Rectangle prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
 			fixed (byte* bstart = &LineBuff[0])
 			{
 				int oh = prc.Height, oy = prc.Y;
 
-				var irc = new WICRect { X = prc.X, Width = prc.Width, Height = 1 };
+				var irc = new Rectangle { X = prc.X, Width = prc.Width, Height = 1 };
 				int cb = (irc.Width * InFormat.BitsPerPixel + 7) / 8;
 				for (int y = 0; y < oh; y++)
 				{

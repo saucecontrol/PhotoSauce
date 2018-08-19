@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Drawing;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
@@ -52,7 +53,7 @@ namespace PhotoSauce.MagicScaler
 		protected int IntBpp;
 		protected int IntStride, WorkStride;
 		protected int IntStartLine;
-		protected WICRect SourceRect;
+		protected Rectangle SourceRect;
 		protected ArraySegment<byte> LineBuff, WorkBuff, IntBuff;
 
 		public ConvolutionTransform(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, bool lumaMode = false) : base(source)
@@ -85,7 +86,7 @@ namespace PhotoSauce.MagicScaler
 				throw new NotSupportedException("Map and Processor channel counts don't match");
 
 			BufferSource = lumaMode;
-			SourceRect = new WICRect { Width = (int)Width, Height = 1 };
+			SourceRect = new Rectangle { Width = (int)Width, Height = 1 };
 			IntStartLine = -mapy.Samples;
 
 			IntBpp = fmt.BitsPerPixel / 8 / Unsafe.SizeOf<TPixel>() * Unsafe.SizeOf<TWeight>();
@@ -103,7 +104,7 @@ namespace PhotoSauce.MagicScaler
 			Height = (uint)mapy.OutPixels;
 		}
 
-		unsafe protected override void CopyPixelsInternal(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		unsafe protected override void CopyPixelsInternal(in Rectangle prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
 			fixed (byte* bstart = &LineBuff.Array[0], wstart = &WorkBuff.Array[0], tstart = &IntBuff.Array[0])
 			fixed (byte* mapxstart = &XMap.Map.Array[0], mapystart = &YMap.Map.Array[0])

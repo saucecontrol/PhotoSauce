@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Drawing;
 
 using PhotoSauce.MagicScaler.Interop;
 
@@ -80,7 +81,7 @@ namespace PhotoSauce.MagicScaler
 			sourceC = new PlanarPixelSource(this, WicPlane.Chroma, descC);
 		}
 
-		unsafe private void loadBuffer(WicPlane plane, WICRect prc)
+		unsafe private void loadBuffer(WicPlane plane, in Rectangle prc)
 		{
 			if (lineBuffY.Array == null || ((startY >= 0 || startC >= 0) && (nextY < buffHeightY / 4 || nextC < buffHeightC / 4)))
 			{
@@ -164,7 +165,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe public void CopyPixels(WicPlane plane, WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		unsafe public void CopyPixels(WicPlane plane, in Rectangle prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
 			if ((plane == WicPlane.Luma && (prc.Y < startY || prc.Y > (startY + buffHeightY))) || (plane == WicPlane.Chroma && (prc.Y < startC || prc.Y > (startC + buffHeightC))))
 			{
@@ -219,7 +220,8 @@ namespace PhotoSauce.MagicScaler
 			cachePlane = plane;
 		}
 
-		protected override void CopyPixelsInternal(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) => cacheSource.CopyPixels(cachePlane, prc, cbStride, cbBufferSize, pbBuffer);
+		protected override void CopyPixelsInternal(in Rectangle prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) =>
+			cacheSource.CopyPixels(cachePlane, prc, cbStride, cbBufferSize, pbBuffer);
 
 		public override string ToString() => $"{base.ToString()}: {cachePlane}";
 	}

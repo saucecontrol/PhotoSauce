@@ -39,10 +39,8 @@ namespace PhotoSauce.MagicScaler
 
 		public PixelSourceStats Stats => stats.Value;
 
-		protected PixelSource()
-		{
+		protected PixelSource() =>
 			stats = new Lazy<PixelSourceStats>(() => new PixelSourceStats { SourceName = ToString().Replace($"{nameof(PhotoSauce)}.{nameof(MagicScaler)}.", string.Empty) });
-		}
 
 		protected PixelSource(PixelSource source) : this()
 		{
@@ -54,9 +52,9 @@ namespace PhotoSauce.MagicScaler
 			BufferStride = (Width * (uint)Format.BitsPerPixel + 7u) / 8u + ((uint)IntPtr.Size - 1u) & ~((uint)IntPtr.Size - 1u);
 		}
 
-		protected abstract void CopyPixelsInternal(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer);
+		protected abstract void CopyPixelsInternal(in Rectangle prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer);
 
-		public void CopyPixels(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		public void CopyPixels(in Rectangle prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
 			uint cbLine = (uint)(prc.Width * Format.BitsPerPixel + 7) / 8u;
 
@@ -88,11 +86,13 @@ namespace PhotoSauce.MagicScaler
 		private class PixelSourceFromIWICBitmapSource : PixelSource
 		{
 			private readonly IWICBitmapSource realSource;
+			private readonly WICRect sourceRect;
 			private readonly string sourceName;
 
 			public PixelSourceFromIWICBitmapSource(IWICBitmapSource source, string name, bool profile = true) : base()
 			{
 				realSource = source;
+				sourceRect = new WICRect();
 				sourceName = profile ? name : $"{name} (nonprofiling)";
 				WicSource = profile ? this.AsIWICBitmapSource() : source;
 				Format = PixelFormat.Cache[source.GetPixelFormat()];
@@ -101,7 +101,8 @@ namespace PhotoSauce.MagicScaler
 				Height = height;
 			}
 
-			protected override void CopyPixelsInternal(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) => realSource.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
+			protected override void CopyPixelsInternal(in Rectangle prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) =>
+				realSource.CopyPixels(prc.ToWicRect(sourceRect), cbStride, cbBufferSize, pbBuffer);
 
 			public override string ToString() => sourceName;
 		}
@@ -124,7 +125,8 @@ namespace PhotoSauce.MagicScaler
 
 			public void CopyPalette(IWICPalette pIPalette) => throw new NotImplementedException();
 
-			public void CopyPixels(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) => source.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
+			public void CopyPixels(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) =>
+				source.CopyPixels(prc.ToGdiRect(), cbStride, cbBufferSize, pbBuffer);
 		}
 
 		private class PixelSourceFromIPixelSource : PixelSource
@@ -140,7 +142,8 @@ namespace PhotoSauce.MagicScaler
 				Height = (uint)source.Height;
 			}
 
-			unsafe protected override void CopyPixelsInternal(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) => realSource.CopyPixels(prc.ToGdiRect(), (int)cbStride, new Span<byte>(pbBuffer.ToPointer(), (int)cbBufferSize));
+			unsafe protected override void CopyPixelsInternal(in Rectangle prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) =>
+				realSource.CopyPixels(prc, (int)cbStride, new Span<byte>(pbBuffer.ToPointer(), (int)cbBufferSize));
 
 			public override string ToString() => realSource.ToString();
 		}
@@ -158,7 +161,7 @@ namespace PhotoSauce.MagicScaler
 			unsafe public void CopyPixels(Rectangle prc, int cbStride, Span<byte> buffer)
 			{
 				fixed (byte* pbBuffer = &MemoryMarshal.GetReference(buffer))
-					source.CopyPixels(prc.ToWicRect(), (uint)cbStride, (uint)buffer.Length, (IntPtr)pbBuffer);
+					source.CopyPixels(prc, (uint)cbStride, (uint)buffer.Length, (IntPtr)pbBuffer);
 			}
 		}
 
