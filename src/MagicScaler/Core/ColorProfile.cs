@@ -27,7 +27,7 @@ namespace PhotoSauce.MagicScaler
 					if (dic.TryGetValue(guid, out var wref) && wref.TryGetTarget(out var prof))
 						return prof;
 
-					prof = new ColorProfile(bytes.AsSpan());
+					prof = new ColorProfile(bytes);
 					dic.AddOrUpdate(guid, (g) => new WeakReference<ColorProfile>(prof), (g, r) => { r.SetTarget(prof); return r; });
 
 					return prof;
@@ -140,36 +140,38 @@ namespace PhotoSauce.MagicScaler
 
 		private void lutsFromPoints(Span<ushort> points, bool inverse)
 		{
-			float div = 1f / ushort.MaxValue;
-			int buffLen = points.Length * sizeof(float);
-			var buff = ArrayPool<byte>.Shared.Rent(buffLen);
-			var curve = MemoryMarshal.Cast<byte, float>(buff.AsSpan(0, buffLen));
-
-			for (int i = 0; i < curve.Length; i++)
-				curve[i] = points[i] * div;
-
 			var igtf = new float[256];
 			var igtq = new ushort[256];
-			float cscal = curve.Length - 1;
-			float cstep = 1f / cscal;
-			float vstep = 1f / (igtf.Length - 1);
 
-			for (int i = 0; i < igtf.Length; i++)
+			int buffLen = points.Length * sizeof(float);
+			using (var buff = MemoryPool<byte>.Shared.Rent(buffLen))
 			{
-				float val = i * vstep;
-				float pos = (val * cscal).Floor();
-				float rem = val - (pos * cstep);
-				int idx = (int)pos;
+				var curve = MemoryMarshal.Cast<byte, float>(buff.Memory.Slice(0, buffLen).Span);
 
-				val = curve[idx];
-				if (rem > 0.000001f)
-					val = Lerp(val, curve[idx + 1], rem * cscal);
+				const float div = 1f / ushort.MaxValue;
+				for (int i = 0; i < curve.Length; i++)
+					curve[i] = points[i] * div;
 
-				igtf[i] = val;
-				igtq[i] = FixToUQ15One(val);
+				float cscal = curve.Length - 1;
+				float cstep = 1f / cscal;
+				float vstep = 1f / (igtf.Length - 1);
+
+				for (int i = 0; i < igtf.Length; i++)
+				{
+					float val = i * vstep;
+					float pos = (val * cscal).Floor();
+					float rem = val - (pos * cstep);
+					int idx = (int)pos;
+
+					val = curve[idx];
+					if (rem > 0.000001f)
+						val = Lerp(val, curve[idx + 1], rem * cscal);
+
+					igtf[i] = val;
+					igtq[i] = FixToUQ15One(val);
+				}
 			}
 
-			ArrayPool<byte>.Shared.Return(buff);
 			if (lutInvertsTo(igtq, LookupTables.SrgbGamma))
 			{
 				setSrgbLuts();
@@ -179,9 +181,9 @@ namespace PhotoSauce.MagicScaler
 			if (inverse)
 				points.Reverse();
 
-			float scale = (float)ushort.MaxValue / UQ15One;
 			var gt = new byte[UQ15One + 1];
 
+			const float scale = (float)ushort.MaxValue / UQ15One;
 			for (int i = 0; i < gt.Length; i++)
 			{
 				ushort val = (ushort)(i * scale + FloatRound);
@@ -192,7 +194,9 @@ namespace PhotoSauce.MagicScaler
 				else
 				{
 					idx = ~idx;
-					if (idx == points.Length)
+					if (idx == 0)
+						pos = 0;
+					else if (idx == points.Length)
 						pos = points.Length - 1;
 					else
 					{
@@ -382,27 +386,28 @@ namespace PhotoSauce.MagicScaler
 					}
 
 					int buffLen = (int)pcnt * sizeof(ushort);
-					var buff = ArrayPool<byte>.Shared.Rent(buffLen);
-					var points = MemoryMarshal.Cast<byte, ushort>(buff.AsSpan(0, buffLen));
-
-					ushort pp = 0;
-					bool inc = true, dec = true;
-					for (int i = 0; i < points.Length; i++)
+					using (var buff = MemoryPool<byte>.Shared.Rent(buffLen))
 					{
-						ushort p = ReadUInt16BigEndian(trc.Slice(12 + i * sizeof(ushort)));
+						var points = MemoryMarshal.Cast<byte, ushort>(buff.Memory.Slice(0, buffLen).Span);
 
-						if (i > 0 && p < pp)
-							inc = false;
-						if (i > 0 && p > pp)
-							dec = false;
-						if (!inc && !dec)
-							return false;
+						ushort pp = 0;
+						bool inc = true, dec = true;
+						for (int i = 0; i < points.Length; i++)
+						{
+							ushort p = ReadUInt16BigEndian(trc.Slice(12 + i * sizeof(ushort)));
 
-						points[i] = pp = p;
+							if (i > 0 && p < pp)
+								inc = false;
+							if (i > 0 && p > pp)
+								dec = false;
+							if (!inc && !dec)
+								return false;
+
+							points[i] = pp = p;
+						}
+
+						lutsFromPoints(points, dec);
 					}
-
-					lutsFromPoints(points, dec);
-					ArrayPool<byte>.Shared.Return(buff);
 				}
 			}
 
