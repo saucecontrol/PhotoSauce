@@ -5,9 +5,9 @@
 #pragma warning disable IDE1006 // Naming Styles
 
 #if DRAWING_SHIM_COLORCONVERTER
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Collections.Generic;
 
 namespace System.Drawing.ColorShim
 {
@@ -17,20 +17,17 @@ namespace System.Drawing.ColorShim
 
         private static Dictionary<string, Color> GetColors()
         {
-            var dict = new Dictionary<string, Color>(StringComparer.OrdinalIgnoreCase);
-            FillConstants(dict);
-            return dict;
-        }
+            var colors = new Dictionary<string, Color>(StringComparer.OrdinalIgnoreCase);
 
-        private static void FillConstants(Dictionary<string, Color> colors)
-        {
 #if DRAWING_SHIM_COLOR
             for (int i = (int)KnownColor.Transparent; i <= (int)KnownColor.YellowGreen; i++)
                 colors[KnownColorTable.KnownColorToName((KnownColor)i)] = new Color((KnownColor)i);
 #else
-            foreach (var prop in typeof(Color).GetProperties(BindingFlags.Static | BindingFlags.Public).Where(p => p.PropertyType == typeof(Color)))
+            foreach (var prop in typeof(Color).GetProperties(BindingFlags.Public | BindingFlags.Static).Where(p => p.PropertyType == typeof(Color)))
                 colors[prop.Name] = (Color)prop.GetValue(null);
 #endif
+
+            return colors;
         }
 
         internal static Dictionary<string, Color> Colors => s_colorConstants.Value;
