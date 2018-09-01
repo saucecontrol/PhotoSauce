@@ -18,13 +18,15 @@ namespace PhotoSauce.MagicScaler
 		private readonly WICBitmapTransformOptions sourceTransformOptions;
 		private readonly PlanarPixelSource sourceY, sourceC;
 		private readonly WICRect scaledCrop;
+		private readonly WICRect sourceRect;
+		private readonly WICBitmapPlane[] sourcePlanes;
 
 		private int buffHeightY, buffHeightC;
 		private int startY = -1, loadedY = -1, nextY = 0;
 		private int startC = -1, loadedC = -1, nextC = 0;
 		private ArraySegment<byte> lineBuffY, lineBuffC;
 
-		public WicPlanarCache(IWICPlanarBitmapSourceTransform source, WICBitmapPlaneDescription descY, WICBitmapPlaneDescription descC, WICRect crop, WICBitmapTransformOptions transformOptions, uint width, uint height, double ratio)
+		public WicPlanarCache(IWICPlanarBitmapSourceTransform source, WICBitmapPlaneDescription descY, WICBitmapPlaneDescription descC, in Rectangle crop, WICBitmapTransformOptions transformOptions, uint width, uint height, double ratio)
 		{
 			subsampleRatioX = Math.Ceiling((double)descY.Width / descC.Width);
 			subsampleRatioY = Math.Ceiling((double)descY.Height / descC.Height);
@@ -79,6 +81,11 @@ namespace PhotoSauce.MagicScaler
 
 			sourceY = new PlanarPixelSource(this, WicPlane.Luma, descY);
 			sourceC = new PlanarPixelSource(this, WicPlane.Chroma, descC);
+			sourceRect = new WICRect { X = scaledCrop.X, Width = scaledCrop.Width };
+			sourcePlanes = new[] {
+				new WICBitmapPlane { Format = sourceY.Format.FormatGuid, cbStride = (uint)strideY },
+				new WICBitmapPlane { Format = sourceC.Format.FormatGuid, cbStride = (uint)strideC }
+			};
 		}
 
 		unsafe private void loadBuffer(WicPlane plane, in Rectangle prc)
@@ -147,20 +154,16 @@ namespace PhotoSauce.MagicScaler
 					startC += buffHeightC;
 				}
 
-				var rect = new WICRect {
-					X = scaledCrop.X,
-					Y = Math.Max(Math.Max(0, scaledCrop.Y + startY + offsY), loadedY),
-					Width = scaledCrop.Width,
-					Height = Math.Min(buffHeightY - offsY, scaledCrop.Height - prcY)
-				};
+				sourceRect.Y = Math.Max(Math.Max(0, scaledCrop.Y + startY + offsY), loadedY);
+				sourceRect.Height = Math.Min(buffHeightY - offsY, scaledCrop.Height - prcY);
 
-				var planes = new[] {
-					new WICBitmapPlane { Format = sourceY.Format.FormatGuid, pbBuffer = (IntPtr)(pBuffY + offsY * strideY), cbStride = (uint)strideY, cbBufferSize = (uint)lineBuffY.Count },
-					new WICBitmapPlane { Format = sourceC.Format.FormatGuid, pbBuffer = (IntPtr)(pBuffC + offsC * strideC), cbStride = (uint)strideC, cbBufferSize = (uint)lineBuffC.Count }
-				};
+				sourcePlanes[0].pbBuffer = (IntPtr)(pBuffY + offsY * strideY);
+				sourcePlanes[1].pbBuffer = (IntPtr)(pBuffC + offsC * strideC);
+				sourcePlanes[0].cbBufferSize = (uint)lineBuffY.Count;
+				sourcePlanes[1].cbBufferSize = (uint)lineBuffC.Count;
 
-				sourceTransform.CopyPixels(rect, scaledWidth, scaledHeight, sourceTransformOptions, WICPlanarOptions.WICPlanarOptionsDefault, planes, (uint)planes.Length);
-				loadedY = rect.Y + rect.Height - scaledCrop.Y;
+				sourceTransform.CopyPixels(sourceRect, scaledWidth, scaledHeight, sourceTransformOptions, WICPlanarOptions.WICPlanarOptionsDefault, sourcePlanes, (uint)sourcePlanes.Length);
+				loadedY = sourceRect.Y + sourceRect.Height - scaledCrop.Y;
 				loadedC = (int)Math.Ceiling(loadedY / subsampleRatioY);
 			}
 		}

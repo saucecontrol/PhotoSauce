@@ -15,7 +15,7 @@ namespace PhotoSauce.MagicScaler
 {
 	internal static class MiscExtensions
 	{
-		public static WICRect ToWicRect(this Rectangle r, WICRect wr)
+		public static WICRect FromGdiRect(this WICRect wr, in Rectangle r)
 		{
 			wr.X = r.X;
 			wr.Y = r.Y;

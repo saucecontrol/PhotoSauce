@@ -102,7 +102,7 @@ namespace PhotoSauce.MagicScaler
 			}
 
 			protected override void CopyPixelsInternal(in Rectangle prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) =>
-				realSource.CopyPixels(prc.ToWicRect(sourceRect), cbStride, cbBufferSize, pbBuffer);
+				realSource.CopyPixels(sourceRect.FromGdiRect(prc), cbStride, cbBufferSize, pbBuffer);
 
 			public override string ToString() => sourceName;
 		}

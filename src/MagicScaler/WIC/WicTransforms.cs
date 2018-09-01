@@ -81,6 +81,8 @@ namespace PhotoSauce.MagicScaler
 
 	internal static class WicTransforms
 	{
+		private static readonly Guid[] planarPixelFormats = new[] { Consts.GUID_WICPixelFormat8bppY, Consts.GUID_WICPixelFormat16bppCbCr };
+
 		public static void AddMetadataReader(WicProcessingContext ctx, bool basicOnly = false)
 		{
 			if (ctx.DecoderFrame.Frame is null)
@@ -103,9 +105,8 @@ namespace PhotoSauce.MagicScaler
 					if (ctx.DecoderFrame.SupportsPlanarPipeline && opt != WICBitmapTransformOptions.WICBitmapTransformRotate0 && ctx.DecoderFrame.Frame is IWICPlanarBitmapSourceTransform ptrans)
 					{
 						uint pw = 1, ph = 1;
-						var pdesc = new WICBitmapPlaneDescription[2];
-						var pfmts = new[] { Consts.GUID_WICPixelFormat8bppY, Consts.GUID_WICPixelFormat16bppCbCr };
-						ctx.DecoderFrame.SupportsPlanarPipeline = ptrans.DoesSupportTransform(ref pw, ref ph, opt, WICPlanarOptions.WICPlanarOptionsDefault, pfmts, pdesc, 2);
+						var desc = new WICBitmapPlaneDescription[2];
+						ctx.DecoderFrame.SupportsPlanarPipeline = ptrans.DoesSupportTransform(ref pw, ref ph, opt, WICPlanarOptions.WICPlanarOptionsDefault, planarPixelFormats, desc, 2);
 					}
 				}
 
@@ -315,7 +316,8 @@ namespace PhotoSauce.MagicScaler
 			           ctx.Settings.Interpolation.WeightingFunction.Support < 0.1 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeNearestNeighbor :
 			           ctx.Settings.Interpolation.WeightingFunction.Support < 1.0 ? ctx.Settings.ScaleRatio > 1.0 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeFant : WICBitmapInterpolationMode.WICBitmapInterpolationModeNearestNeighbor :
 			           ctx.Settings.Interpolation.WeightingFunction.Support > 1.0 ? ctx.Settings.ScaleRatio > 1.0 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeHighQualityCubic :WICBitmapInterpolationMode.WICBitmapInterpolationModeCubic :
-			           ctx.Settings.ScaleRatio > 1.0 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeFant : WICBitmapInterpolationMode.WICBitmapInterpolationModeLinear;
+			           ctx.Settings.ScaleRatio > 1.0 ? WICBitmapInterpolationMode.WICBitmapInterpolationModeFant :
+			           WICBitmapInterpolationMode.WICBitmapInterpolationModeLinear;
 
 			if (ctx.Source.WicSource is IWICBitmapSourceTransform)
 				ctx.Source = ctx.Source.WicSource.AsPixelSource(nameof(IWICBitmapFrameDecode));
@@ -364,14 +366,12 @@ namespace PhotoSauce.MagicScaler
 			uint width = (uint)Math.Ceiling(ctx.Source.Width / rat);
 			uint height = (uint)Math.Ceiling(ctx.Source.Height / rat);
 
-			var fmts = new[] { Consts.GUID_WICPixelFormat8bppY, Consts.GUID_WICPixelFormat16bppCbCr };
-			var desc = new WICBitmapPlaneDescription[2];
-
 			var opt = ctx.DecoderFrame.ExifOrientation.ToWicTransformOptions();
-			if (!trans.DoesSupportTransform(ref width, ref height, opt, WICPlanarOptions.WICPlanarOptionsDefault, fmts, desc, 2))
+			var desc = new WICBitmapPlaneDescription[2];
+			if (!trans.DoesSupportTransform(ref width, ref height, opt, WICPlanarOptions.WICPlanarOptionsDefault, planarPixelFormats, desc, 2))
 				throw new NotSupportedException("Requested planar transform not supported");
 
-			var cacheSource = ctx.AddDispose(new WicPlanarCache(trans, desc[0], desc[1], ctx.Settings.Crop.ToWicRect(), opt, width, height, rat));
+			var cacheSource = ctx.AddDispose(new WicPlanarCache(trans, desc[0], desc[1], ctx.Settings.Crop, opt, width, height, rat));
 
 			ctx.PlanarChromaSource = cacheSource.GetPlane(WicPlane.Chroma);
 			ctx.PlanarLumaSource = cacheSource.GetPlane(WicPlane.Luma);
