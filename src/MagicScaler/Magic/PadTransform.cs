@@ -5,11 +5,9 @@ using System.Drawing;
 using System.Drawing.ColorShim;
 #endif
 
-using PhotoSauce.MagicScaler.Interop;
-
 namespace PhotoSauce.MagicScaler
 {
-	internal class PadTransform : PixelSource
+	internal class PadTransformInternal : PixelSource
 	{
 		private readonly int bytesPerPixel;
 		private readonly uint bgra;
@@ -18,7 +16,7 @@ namespace PhotoSauce.MagicScaler
 		private readonly byte fillR;
 		private readonly Rectangle irect;
 
-		public PadTransform(PixelSource source, Color color, Rectangle innerRect, Rectangle outerRect) : base(source)
+		public PadTransformInternal(PixelSource source, Color color, Rectangle innerRect, Rectangle outerRect) : base(source)
 		{
 			bytesPerPixel = Format.BitsPerPixel / 8;
 
@@ -31,7 +29,6 @@ namespace PhotoSauce.MagicScaler
 			fillR = color.R;
 
 			irect = innerRect;
-
 			Width = (uint)outerRect.Width;
 			Height = (uint)outerRect.Height;
 		}
@@ -74,6 +71,45 @@ namespace PhotoSauce.MagicScaler
 					Timer.Start();
 				}
 			}
+		}
+	}
+
+	/// <summary>Adds solid-colored padding pixels to an image.</summary>
+	public sealed class PadTransform : PixelTransform, IPixelTransformInternal
+	{
+		private readonly Color padColor;
+		private readonly Rectangle padRect;
+
+		/// <summary>Constructs a new <see cref="PadTransform" /> using the specified <see cref="Color"/> and sizes.</summary>
+		/// <param name="color">The <see cref="Color" /> of the padding pixels.</param>
+		/// <param name="top">The number of pixels to add to the image top.</param>
+		/// <param name="right">The number of pixels to add to the image right.</param>
+		/// <param name="bottom">The number of pixels to add to the image bottom.</param>
+		/// <param name="left">The number of pixels to add to the image left.</param>
+		public PadTransform(Color color, int top, int right, int bottom, int left)
+		{
+			void throwOutOfRange(string name) =>
+				throw new ArgumentOutOfRangeException(nameof(left), $"Value must be between 0 and {short.MaxValue}");
+
+			if ((uint)top > short.MaxValue) throwOutOfRange(nameof(top));
+			if ((uint)right > short.MaxValue) throwOutOfRange(nameof(right));
+			if ((uint)bottom > short.MaxValue) throwOutOfRange(nameof(bottom));
+			if ((uint)left > short.MaxValue) throwOutOfRange(nameof(left));
+
+			padColor = color;
+			padRect = Rectangle.FromLTRB(left, top, right, bottom);
+		}
+
+		void IPixelTransformInternal.Init(WicProcessingContext ctx)
+		{
+			if (!padRect.IsEmpty)
+			{
+				var innerRect = new Rectangle(padRect.Left, padRect.Top, (int)ctx.Source.Width, (int)ctx.Source.Height);
+				var outerRect = Rectangle.FromLTRB(0, 0, innerRect.Right + padRect.Right, innerRect.Bottom + padRect.Bottom);
+				ctx.Source = new PadTransformInternal(ctx.Source, padColor, innerRect, outerRect);
+			}
+
+			Source = ctx.Source;
 		}
 	}
 }

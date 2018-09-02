@@ -171,7 +171,7 @@ namespace PhotoSauce.MagicScaler
 
 			AddExternalFormatConverter(ctx);
 
-			ctx.Source = new PadTransform(ctx.Source, ctx.Settings.MatteColor, ctx.Settings.InnerRect, ctx.Settings.OuterRect);
+			ctx.Source = new PadTransformInternal(ctx.Source, ctx.Settings.MatteColor, ctx.Settings.InnerRect, ctx.Settings.OuterRect);
 		}
 
 		public static void AddColorspaceConverter(WicProcessingContext ctx)
