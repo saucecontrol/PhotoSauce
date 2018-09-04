@@ -12,15 +12,10 @@ namespace PhotoSauce.MagicScaler.Interop
 		{
 			private readonly Stream stream;
 
-			internal StreamAsIStream(Stream backingStream)
-			{
+			internal StreamAsIStream(Stream backingStream) =>
 				stream = backingStream ?? throw new ArgumentNullException(nameof(backingStream));
-			}
 
-			void IStream.Read(byte[] pv, int cb, IntPtr pcbRead)
-			{
-				Marshal.WriteInt32(pcbRead, stream.Read(pv, 0, cb));
-			}
+			void IStream.Read(byte[] pv, int cb, IntPtr pcbRead) => 	Marshal.WriteInt32(pcbRead, stream.Read(pv, 0, cb));
 
 			void IStream.Write(byte[] pv, int cb, IntPtr pcbWritten)
 			{
@@ -38,10 +33,8 @@ namespace PhotoSauce.MagicScaler.Interop
 					Marshal.WriteInt64(plibNewPosition, pos);
 			}
 
-			void IStream.Stat(out STATSTG pstatstg, int grfStatFlag)
-			{
+			void IStream.Stat(out STATSTG pstatstg, int grfStatFlag) =>
 				pstatstg = new STATSTG { cbSize = stream.Length, type = 2 /*STGTY_STREAM*/ };
-			}
 
 			void IStream.SetSize(long libNewSize) => stream.SetLength(libNewSize);
 

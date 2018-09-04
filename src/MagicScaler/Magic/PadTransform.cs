@@ -104,6 +104,8 @@ namespace PhotoSauce.MagicScaler
 		{
 			if (!padRect.IsEmpty)
 			{
+				MagicTransforms.AddExternalFormatConverter(ctx);
+
 				var innerRect = new Rectangle(padRect.Left, padRect.Top, (int)ctx.Source.Width, (int)ctx.Source.Height);
 				var outerRect = Rectangle.FromLTRB(0, 0, innerRect.Right + padRect.Right, innerRect.Bottom + padRect.Bottom);
 				ctx.Source = new PadTransformInternal(ctx.Source, padColor, innerRect, outerRect);

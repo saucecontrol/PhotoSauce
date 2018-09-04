@@ -9,31 +9,26 @@ namespace PhotoSauce.MagicScaler.Interop
 	{
 		private static IWICColorContext getDefaultColorContext(Guid pixelFormat)
 		{
-			var pfi = Factory.CreateComponentInfo(pixelFormat) as IWICPixelFormatInfo;
-			var cc = pfi.GetColorContext();
-			Marshal.ReleaseComObject(pfi);
-
-			return cc;
+			using (var pfi = new ComHandle<IWICPixelFormatInfo>(Factory.CreateComponentInfo(pixelFormat)))
+				return pfi.ComObject.GetColorContext();
 		}
 
 		private static IWICColorContext getResourceColorContext(string name)
 		{
 			string resName = nameof(PhotoSauce) + "." + nameof(MagicScaler) + ".Resources." + name;
-			var asm = typeof(IWICColorContext).GetTypeInfo().Assembly;
-			using (var stm = asm.GetManifestResourceStream(resName))
+			using (var stm = typeof(Wic).GetTypeInfo().Assembly.GetManifestResourceStream(resName))
+			using (var buff = MemoryPool<byte>.Shared.Rent((int)stm.Length))
 			{
+				MemoryMarshal.TryGetArray(buff.Memory.Slice(0, (int)stm.Length), out ArraySegment<byte> cca);
+				stm.Read(cca.Array, cca.Offset, cca.Count);
+
 				var cc = Factory.CreateColorContext();
-
-				byte[] prof = ArrayPool<byte>.Shared.Rent((int)stm.Length);
-				stm.Read(prof, 0, (int)stm.Length);
-				cc.InitializeFromMemory(prof, (uint)stm.Length);
-				ArrayPool<byte>.Shared.Return(prof);
-
+				cc.InitializeFromMemory(cca.Array, (uint)cca.Count);
 				return cc;
 			}
 		}
 
-		public static readonly IWICImagingFactory Factory = new WICImagingFactory2() as IWICImagingFactory;
+		public static readonly IWICImagingFactory Factory = new WICImagingFactory2() as IWICImagingFactory ?? throw new PlatformNotSupportedException();
 
 		public static readonly Lazy<IWICColorContext> CmykContext = new Lazy<IWICColorContext>(() => getDefaultColorContext(Consts.GUID_WICPixelFormat32bppCMYK));
 		public static readonly Lazy<IWICColorContext> SrgbContext = new Lazy<IWICColorContext>(() => getResourceColorContext("sRGB-v4.icc"));

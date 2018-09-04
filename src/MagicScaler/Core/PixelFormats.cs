@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
 using PhotoSauce.MagicScaler.Interop;
-using System.Runtime.InteropServices;
 
 namespace PhotoSauce.MagicScaler
 {
@@ -258,15 +257,17 @@ namespace PhotoSauce.MagicScaler
 				[Bgrx128BppLinearFloat.FormatGuid]  = Bgrx128BppLinearFloat
 			};
 
-			uint fet = 10u;
-			var oar = new object[fet];
-			var cen = Wic.Factory.CreateComponentEnumerator(WICComponentType.WICPixelFormat, WICComponentEnumerateOptions.WICComponentEnumerateDefault);
+			uint count = 10u;
+			var formats = new object[count];
+
+			using (var cenum = new ComHandle<IEnumUnknown>(Wic.Factory.CreateComponentEnumerator(WICComponentType.WICPixelFormat, WICComponentEnumerateOptions.WICComponentEnumerateDefault)))
 			do
 			{
-				fet = cen.Next(fet, oar);
-				for (int i = 0; i < fet; i++)
+				count = cenum.ComObject.Next(count, formats);
+				for (int i = 0; i < count; i++)
+				using (var pixh = new ComHandle<IWICPixelFormatInfo2>(formats[i]))
 				{
-					var pix = oar[i] as IWICPixelFormatInfo2;
+					var pix = pixh.ComObject;
 					uint cch = pix.GetFriendlyName(0, null);
 					var sbn = new StringBuilder((int)cch);
 					pix.GetFriendlyName(cch, sbn);
@@ -289,16 +290,12 @@ namespace PhotoSauce.MagicScaler
 						                      PixelAlphaRepresentation.None
 					};
 
-					Marshal.ReleaseComObject(pix);
-
 					if (fmt.ColorRepresentation == PixelColorRepresentation.Grey || fmt.ColorRepresentation == PixelColorRepresentation.Bgr || fmt.ColorRepresentation == PixelColorRepresentation.Rgb)
 						fmt.Colorspace = fmt.NumericRepresentation == PixelNumericRepresentation.Fixed || fmt.NumericRepresentation == PixelNumericRepresentation.Float ? PixelColorspace.scRgb : PixelColorspace.sRgb;
 
 					dic.Add(fmt.FormatGuid, fmt);
 				}
-			} while (fet > 0);
-
-			Marshal.ReleaseComObject(cen);
+			} while (count > 0);
 
 			Cache = new ReadOnlyDictionary<Guid, PixelFormat>(dic);
 		}

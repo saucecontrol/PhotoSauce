@@ -150,28 +150,30 @@ namespace PhotoSauce.MagicScaler
 				var cct = cc.GetType();
 				if (cct == WICColorContextType.WICColorContextProfile)
 				{
-					uint ccs = cc.GetProfileBytes(0, null);
+					int ccs = (int)cc.GetProfileBytes(0, null);
 
 					// don't try to read giant profiles. 4MiB is more than enough
-					if (ccs > (1024 * 1024 * 4))
+					if ((uint)ccs > (1024 * 1024 * 4))
 						continue;
 
-					var ccb = ArrayPool<byte>.Shared.Rent((int)ccs);
-					cc.GetProfileBytes(ccs, ccb);
-					var cpi = ColorProfile.Cache.GetOrAdd(new ArraySegment<byte>(ccb, 0, (int)ccs));
-					ArrayPool<byte>.Shared.Return(ccb);
-
-					// match only color profiles that match our intended use. if we have a standard sRGB profile, don't save it; we don't need to convert
-					if (cpi.IsValid && (
-						   (cpi.DataColorSpace == ColorProfile.ProfileColorSpace.Rgb && (fmt.ColorRepresentation == PixelColorRepresentation.Bgr || fmt.ColorRepresentation == PixelColorRepresentation.Rgb) && !cpi.IsSrgb)
-						|| (cpi.DataColorSpace == ColorProfile.ProfileColorSpace.Grey && fmt.ColorRepresentation == PixelColorRepresentation.Grey && !cpi.IsSrgbCurve)
-						|| (cpi.DataColorSpace == ColorProfile.ProfileColorSpace.Cmyk && fmt.ColorRepresentation == PixelColorRepresentation.Cmyk)
-					))
+					using (var ccb = MemoryPool<byte>.Shared.Rent(ccs))
 					{
-						profile = cc;
-						if (cpi.IsRgbMatrix || cpi.IsGreyTrc)
-							ctx.SourceColorProfile = cpi;
-						break;
+						MemoryMarshal.TryGetArray(ccb.Memory.Slice(0, ccs), out ArraySegment<byte> cca);
+						cc.GetProfileBytes((uint)cca.Count, cca.Array);
+						var cpi = ColorProfile.Cache.GetOrAdd(cca);
+
+						// match only color profiles that match our intended use. if we have a standard sRGB profile, don't save it; we don't need to convert
+						if (cpi.IsValid && (
+							   (cpi.DataColorSpace == ColorProfile.ProfileColorSpace.Rgb && (fmt.ColorRepresentation == PixelColorRepresentation.Bgr || fmt.ColorRepresentation == PixelColorRepresentation.Rgb) && !cpi.IsSrgb)
+							|| (cpi.DataColorSpace == ColorProfile.ProfileColorSpace.Grey && fmt.ColorRepresentation == PixelColorRepresentation.Grey && !cpi.IsSrgbCurve)
+							|| (cpi.DataColorSpace == ColorProfile.ProfileColorSpace.Cmyk && fmt.ColorRepresentation == PixelColorRepresentation.Cmyk)
+						))
+						{
+							profile = cc;
+							if (cpi.IsRgbMatrix || cpi.IsGreyTrc)
+								ctx.SourceColorProfile = cpi;
+							break;
+						}
 					}
 				}
 				else if (cct == WICColorContextType.WICColorContextExifColorSpace && cc.GetExifColorSpace() == ExifColorSpace.AdobeRGB)

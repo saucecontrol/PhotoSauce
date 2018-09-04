@@ -15,6 +15,7 @@
 
 using System;
 using System.Linq;
+using System.Buffers;
 using System.Collections;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
@@ -136,7 +137,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			if ((Value is Array) != (other.Value is Array))
 				return false;
 
-			if ((Value is Array))
+			if (Value is Array)
 				return ((IEnumerable)Value).Cast<object>().SequenceEqual(((IEnumerable)other.Value).Cast<object>());
 
 			return Equals(Value, other.Value);
@@ -145,9 +146,9 @@ namespace PhotoSauce.MagicScaler.Interop
 		public static bool operator ==(PropVariant left, PropVariant right) => left?.Equals(right) ?? ReferenceEquals(left, right);
 		public static bool operator !=(PropVariant left, PropVariant right) => !(left == right);
 
-		public override bool Equals(object o) => Equals(o as PropVariant);
+		public override bool Equals(object o) => o is PropVariant other && Equals(other);
 		public override int GetHashCode() => Value?.GetHashCode() ?? 0;
-		public override string ToString() => $"{(UnmanagedType & ~VarEnum.VT_VECTOR)}: {(Value is Array ? string.Join(" ", (Array)Value) : Value)}";
+		public override string ToString() => $"{UnmanagedType & ~VarEnum.VT_VECTOR}: {(Value is Array ? string.Join(" ", (Array)Value) : Value)}";
 
 		internal sealed class Marshaler : ICustomMarshaler
 		{
@@ -244,8 +245,8 @@ namespace PhotoSauce.MagicScaler.Interop
 					else
 					{
 						var gch = GCHandle.Alloc(a, GCHandleType.Pinned);
-						Unsafe.CopyBlockUnaligned(pNativeBuffer.ToPointer(), Marshal.UnsafeAddrOfPinnedArrayElement(a, 0).ToPointer(), (uint)bufflen);
-						gch.Free();
+						using (var mh = new MemoryHandle(Marshal.UnsafeAddrOfPinnedArrayElement(a, 0).ToPointer(), gch))
+							Unsafe.CopyBlock(pNativeBuffer.ToPointer(), mh.Pointer, (uint)bufflen);
 					}
 
 					var upv = new UnmanagedPropVariant { vt = unmanagedType };

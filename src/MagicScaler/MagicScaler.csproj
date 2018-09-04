@@ -8,15 +8,15 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <Features>strict</Features>
-    <VersionPrefix>0.9.0</VersionPrefix>
+    <VersionPrefix>0.9.1</VersionPrefix>
     <Authors>Clinton Ingram</Authors>
     <Company>PhotoSauce</Company>
     <Product>MagicScaler</Product>
     <Copyright>Copyright © 2015-2018 Clinton Ingram</Copyright>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/saucecontrol/PhotoSauce</RepositoryUrl>
-    <PackageIconUrl>http://photosauce.net/icon64x64.png</PackageIconUrl>
-    <PackageProjectUrl>http://photosauce.net/</PackageProjectUrl>
+    <PackageIconUrl>https://photosauce.net/icon64x64.png</PackageIconUrl>
+    <PackageProjectUrl>https://photosauce.net/</PackageProjectUrl>
     <PackageLicenseUrl>https://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
     <PackageReleaseNotes>See https://github.com/saucecontrol/PhotoSauce/releases</PackageReleaseNotes>
     <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
