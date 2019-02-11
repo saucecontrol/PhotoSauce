@@ -3,10 +3,34 @@ MagicScaler
 
 High-performance image processing pipeline for .NET.  Implements best-of-breed algorithms, linear light processing, and sharpening for the best image resizing quality available.  Speed and efficiency are unmatched by anything else on the .NET platform.
 
+Benchmark results from the tests used in https://blogs.msdn.microsoft.com/dotnet/2017/01/19/net-core-image-processing/ updated to use current (Feb 2019) versions of the libraries.
+
+``` ini
+
+BenchmarkDotNet=v0.10.14, OS=Windows 10.0.17134
+Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
+.NET Core SDK=3.0.100-preview-010184
+  [Host]     : .NET Core 2.1.7 (CoreCLR 4.6.27129.04, CoreFX 4.6.27129.04), 64bit RyuJIT
+  DefaultJob : .NET Core 2.1.7 (CoreCLR 4.6.27129.04, CoreFX 4.6.27129.04), 64bit RyuJIT
+
+
+```
+|                              Method |      Mean |     Error |    StdDev | Scaled |     Gen 0 |    Gen 1 |  Allocated |
+|------------------------------------ |----------:|----------:|----------:|-------:|----------:|---------:|-----------:|
+|   System.Drawing Load, Resize, Save | 407.89 ms | 1.2496 ms | 1.1688 ms |   1.00 |         - |        - |   79.21 KB |
+|       ImageSharp Load, Resize, Save | 228.25 ms | 0.5695 ms | 0.5328 ms |   0.56 |  250.0000 |        - | 1203.47 KB |
+|      ImageMagick Load, Resize, Save | 436.11 ms | 1.6663 ms | 1.5586 ms |   1.07 |         - |        - |   54.17 KB |
+|        ImageFree Load, Resize, Save | 336.68 ms | 1.1203 ms | 1.0479 ms |   0.83 | 6000.0000 | 625.0000 |   90.62 KB |
+|      MagicScaler Load, Resize, Save |  **91.09 ms** | 0.5992 ms | 0.5312 ms |   0.22 |   62.5000 |        - |  342.16 KB |
+| SkiaSharp Canvas Load, Resize, Save | 164.30 ms | 0.8212 ms | 0.6857 ms |   0.40 |  937.5000 |        - | 3995.12 KB |
+| SkiaSharp Bitmap Load, Resize, Save | 195.72 ms | 1.4354 ms | 1.3427 ms |   0.48 |  937.5000 |        - | 3972.68 KB |
+
+Note that the image output is not the same between the tested libraries.  Not only is MagicScaler significantly faster, it also produces dramatically higher quality images.
+
 Requirements
 ------------
 
-Windows 7* or later with .NET 4.6+ or .NET Core 1.0+
+Windows 7* or later with .NET 4.6+ or .NET Core 1.0+.  Although MagicScaler is compatible with (and optimized for) .NET Core, it requires the Windows Imaging Component to function.  There is currently no compatability for Linux, OS X, or other supported .NET Core platforms.
 
 *Windows 7 and Windows Sever 2008 R2 are supported only with the [Platform Update](https://support.microsoft.com/en-us/kb/2670838) installed.
 
@@ -25,9 +49,13 @@ Usage
 Basic usage looks something like this:
 
 ```C#
-using (var outStream = new FileStream(@"c:\smallimage.jpg", FileMode.Create))
+string inPath = @"c:\img\bigimage.jpg";
+string outPath = @"c:\img\smallimage.jpg";
+var settings = new ProcessImageSettings { Width = 400 };
+
+using (var outStream = new FileStream(outPath, FileMode.Create))
 {
-  MagicImageProcessor.ProcessImage(@"c:\bigimage.jpg", outStream, new ProcessImageSettings { Width = 400 });
+  MagicImageProcessor.ProcessImage(inPath, outStream, settings);
 }
 ``` 
 
