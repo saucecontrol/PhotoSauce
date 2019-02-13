@@ -3,7 +3,7 @@ MagicScaler
 
 High-performance image processing pipeline for .NET.  Implements best-of-breed algorithms, linear light processing, and sharpening for the best image resizing quality available.  Speed and efficiency are unmatched by anything else on the .NET platform.
 
-Benchmark results from the tests used in https://blogs.msdn.microsoft.com/dotnet/2017/01/19/net-core-image-processing/ updated to use current (Feb 2019) versions of the libraries.
+Benchmark results from the tests used in https://blogs.msdn.microsoft.com/dotnet/2017/01/19/net-core-image-processing/ updated to use current (Feb 2019) versions of the libraries.  Benchmark code is [here](https://github.com/saucecontrol/core-imaging-playground).
 
 ``` ini
 
@@ -30,7 +30,7 @@ Note that the image output is not the same between the tested libraries.  Not on
 Requirements
 ------------
 
-Windows 7* or later with .NET 4.6+ or .NET Core 1.0+.  Although MagicScaler is compatible with (and optimized for) .NET Core, it requires the Windows Imaging Component to function.  There is currently no compatability for Linux, OS X, or other supported .NET Core platforms.
+Windows 7* or later with .NET 4.6+ or .NET Core 1.0+.  Although MagicScaler is compatible with (and optimized for) .NET Core, it requires the [Windows Imaging Component](https://docs.microsoft.com/en-us/windows/desktop/wic/-wic-about-windows-imaging-codec) to function.  There is currently no compatibility for Linux, OS X, or other supported .NET Core platforms.
 
 *Windows 7 and Windows Sever 2008 R2 are supported only with the [Platform Update](https://support.microsoft.com/en-us/kb/2670838) installed.
 
