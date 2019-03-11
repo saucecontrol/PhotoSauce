@@ -1,46 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <RootNamespace>PhotoSauce.WebRSize</RootNamespace>
-    <AssemblyName>PhotoSauce.WebRSize</AssemblyName>
-    <AssemblyTitle>WebRSize</AssemblyTitle>
-    <TargetFrameworks>net46;net472</TargetFrameworks>
-    <LangVersion>latest</LangVersion>
-    <Features>strict</Features>
-    <VersionPrefix>0.3.3</VersionPrefix>
-    <Authors>Clinton Ingram</Authors>
-    <Description>Web extensions for the MagicScaler library, inlcluding an HTTP request intercept module for automatic image processing.</Description>
-    <Company>PhotoSauce</Company>
-    <Product>WebRSize</Product>
-    <Copyright>Copyright © 2015-2018 Clinton Ingram</Copyright>
-    <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/saucecontrol/PhotoSauce</RepositoryUrl>
-    <PackageReleaseNotes>See https://github.com/saucecontrol/PhotoSauce/releases</PackageReleaseNotes>
-    <PackageIconUrl>https://photosauce.net/icon64x64.png</PackageIconUrl>
-    <PackageProjectUrl>https://photosauce.net/</PackageProjectUrl>
-    <PackageLicenseUrl>https://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
-    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)'=='Release'">
-    <DebugType>pdbonly</DebugType>
-    <DebugSymbols>True</DebugSymbols>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
-    <NoWarn>1701;1702;1591</NoWarn>
+	<PropertyGroup>
+		<VersionPrefix>0.4.0</VersionPrefix>
+		<TargetFrameworks>net46;net472</TargetFrameworks>
 	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="GitLink" Version="3.1.0" PrivateAssets="all" />
-  </ItemGroup>
+	<PropertyGroup>
+		<NoWarn>$(NoWarn);1591</NoWarn> <!-- Missing XML comments -->
+	</PropertyGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)'=='net46' Or '$(TargetFramework)'=='net472'">
-    <Reference Include="System.Configuration" />
-    <Reference Include="System.Web" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\MagicScaler\MagicScaler.csproj" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\MagicScaler\MagicScaler.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<Reference Include="System.Configuration" />
+		<Reference Include="System.Drawing" />
+		<Reference Include="System.Web" />
+	</ItemGroup>
 
 </Project>

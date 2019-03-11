@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace PhotoSauce.MagicScaler.Interop
@@ -9,7 +10,7 @@ namespace PhotoSauce.MagicScaler.Interop
 
 		public ComHandle(object obj)
 		{
-			if (!Marshal.IsComObject(obj)) throw new ArgumentException("Must be a COM object", nameof(obj));
+			Debug.Assert(Marshal.IsComObject(obj), "Not a COM object");
 			if (!(obj is T com)) throw new ArgumentException("Interface not supported: " + typeof(T).Name, nameof(obj));
 
 			ComObject = com;

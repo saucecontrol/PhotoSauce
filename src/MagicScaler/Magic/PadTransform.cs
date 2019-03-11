@@ -80,7 +80,7 @@ namespace PhotoSauce.MagicScaler
 		private readonly Color padColor;
 		private readonly Rectangle padRect;
 
-		/// <summary>Constructs a new <see cref="PadTransform" /> using the specified <see cref="Color"/> and sizes.</summary>
+		/// <summary>Constructs a new <see cref="PadTransform" /> using the specified <see cref="Color" /> and sizes.</summary>
 		/// <param name="color">The <see cref="Color" /> of the padding pixels.</param>
 		/// <param name="top">The number of pixels to add to the image top.</param>
 		/// <param name="right">The number of pixels to add to the image right.</param>

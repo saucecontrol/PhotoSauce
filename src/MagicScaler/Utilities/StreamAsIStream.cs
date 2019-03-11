@@ -2,6 +2,7 @@
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
+
 using STATSTG = System.Runtime.InteropServices.ComTypes.STATSTG;
 
 namespace PhotoSauce.MagicScaler.Interop
@@ -15,7 +16,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			internal StreamAsIStream(Stream backingStream) =>
 				stream = backingStream ?? throw new ArgumentNullException(nameof(backingStream));
 
-			void IStream.Read(byte[] pv, int cb, IntPtr pcbRead) => 	Marshal.WriteInt32(pcbRead, stream.Read(pv, 0, cb));
+			void IStream.Read(byte[] pv, int cb, IntPtr pcbRead) => Marshal.WriteInt32(pcbRead, stream.Read(pv, 0, cb));
 
 			void IStream.Write(byte[] pv, int cb, IntPtr pcbWritten)
 			{

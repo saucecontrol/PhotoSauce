@@ -1,6 +1,6 @@
 ﻿#pragma warning disable CS1591 // XML Comments
 
-#if NETFRAMEWORK
+#if SYSTEM_DRAWING
 using System;
 using System.IO;
 using System.Linq;

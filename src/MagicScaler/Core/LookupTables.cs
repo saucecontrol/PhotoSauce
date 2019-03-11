@@ -25,6 +25,7 @@ namespace PhotoSauce.MagicScaler
 		//http://www.w3.org/Graphics/Color/srgb
 		private static readonly Lazy<byte[]> gammaTable = new Lazy<byte[]>(() => {
 			var gt = new byte[UQ15One + 1];
+
 			for (int i = 0; i < gt.Length; i++)
 			{
 				double d = UnFix15ToDouble(i);

@@ -93,7 +93,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			while (comHandles.Count > 0)
 			{
-				var h = comHandles.Pop();
+				object h = comHandles.Pop();
 				if (h != null && Marshal.IsComObject(h))
 					Marshal.ReleaseComObject(h);
 			}

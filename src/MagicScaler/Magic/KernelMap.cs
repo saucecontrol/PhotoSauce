@@ -9,10 +9,10 @@ namespace PhotoSauce.MagicScaler
 {
 	internal class KernelMap<T> : IDisposable where T : unmanaged
 	{
-		public int InPixels { get; private set; }
-		public int OutPixels { get; private set; }
-		public int Samples { get; private set; }
-		public int Channels { get; private set; }
+		public int InPixels { get; }
+		public int OutPixels { get; }
+		public int Samples { get; }
+		public int Channels { get; }
 		public ArraySegment<byte> Map { get; private set; }
 
 		static KernelMap()

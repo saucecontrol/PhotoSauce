@@ -414,7 +414,7 @@ namespace PhotoSauce.MagicScaler
 
 			if (cropExpression.Value.IsMatch(dic.GetValueOrDefault("crop") ?? string.Empty))
 			{
-				string[] ps = dic["crop"].Split(',');
+				var ps = dic["crop"].Split(',');
 				s.Crop = new Rectangle(int.Parse(ps[0]), int.Parse(ps[1]), int.Parse(ps[2]), int.Parse(ps[3]));
 			}
 
