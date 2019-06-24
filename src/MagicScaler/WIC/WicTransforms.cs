@@ -208,7 +208,7 @@ namespace PhotoSauce.MagicScaler
 			if (ctx.SourceColorContext is null || ctx.SourceColorContext == ctx.DestColorContext)
 				return;
 
-			var trans = ctx.AddRef(Wic.Factory.CreateColorTransform());
+			var trans = ctx.AddRef(Wic.Factory.CreateColorTransformer());
 			if (trans.TryInitialize(ctx.Source.WicSource, ctx.SourceColorContext, ctx.DestColorContext, ctx.Source.Format.FormatGuid))
 				ctx.Source = trans.AsPixelSource(nameof(IWICColorTransform));
 		}
@@ -225,7 +225,7 @@ namespace PhotoSauce.MagicScaler
 					if (curFormat.BitsPerPixel == 64)
 						ctx.Source = ctx.AddDispose(new FormatConversionTransformInternal(ctx.Source, null, null, Consts.GUID_WICPixelFormat32bppCMYK));
 
-					var trans = ctx.AddRef(Wic.Factory.CreateColorTransform());
+					var trans = ctx.AddRef(Wic.Factory.CreateColorTransformer());
 					if (trans.TryInitialize(ctx.Source.WicSource, ctx.SourceColorContext, ctx.DestColorContext, Consts.GUID_WICPixelFormat24bppBGR))
 					{
 						ctx.Source = trans.AsPixelSource(nameof(IWICColorTransform));

@@ -34,7 +34,7 @@ namespace PhotoSauce.MagicScaler
 			Decoder = ctx.AddRef(dec);
 
 			WicContainerFormat = dec.GetContainerFormat();
-			ContainerFormat = formatMap.GetValueOrDefault(WicContainerFormat, () => FileFormat.Unknown);
+			ContainerFormat = formatMap.GetValueOrDefault(WicContainerFormat, FileFormat.Unknown);
 			FrameCount = dec.GetFrameCount();
 		}
 
@@ -95,7 +95,7 @@ namespace PhotoSauce.MagicScaler
 
 		public WicEncoder(WicProcessingContext ctx, IStream stm)
 		{
-			Encoder = ctx.AddRef(Wic.Factory.CreateEncoder(formatMap.GetValueOrDefault(ctx.Settings.SaveFormat, () => Consts.GUID_ContainerFormatPng), null));
+			Encoder = ctx.AddRef(Wic.Factory.CreateEncoder(formatMap.GetValueOrDefault(ctx.Settings.SaveFormat, Consts.GUID_ContainerFormatPng), null));
 			Encoder.Initialize(stm, WICBitmapEncoderCacheOption.WICBitmapEncoderNoCache);
 
 			var props = new Dictionary<string, object>();

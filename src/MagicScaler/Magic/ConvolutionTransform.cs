@@ -58,27 +58,28 @@ namespace PhotoSauce.MagicScaler
 
 		public ConvolutionTransform(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, bool lumaMode = false) : base(source)
 		{
-			var fmt = Format;
+			var infmt = Format;
+			var workfmt = infmt;
 			if (lumaMode)
 			{
-				if (fmt.ColorRepresentation == PixelColorRepresentation.Bgr || fmt.ColorRepresentation == PixelColorRepresentation.Grey)
-					fmt = fmt.NumericRepresentation == PixelNumericRepresentation.Float ? PixelFormat.Grey32BppFloat :
-					      fmt.NumericRepresentation == PixelNumericRepresentation.Fixed ? PixelFormat.Grey16BppUQ15 :
-					      fmt.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger ? PixelFormat.Cache[Consts.GUID_WICPixelFormat8bppGray] :
-					      throw new NotSupportedException("Unsupported pixel format");
-				else
+				if (infmt.ColorRepresentation != PixelColorRepresentation.Grey && infmt.ColorRepresentation != PixelColorRepresentation.Bgr)
 					throw new NotSupportedException("Unsupported pixel format");
+
+				workfmt = infmt.NumericRepresentation == PixelNumericRepresentation.Float ? PixelFormat.Grey32BppFloat :
+				          infmt.NumericRepresentation == PixelNumericRepresentation.Fixed ? PixelFormat.Grey16BppUQ15 :
+				          infmt.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger ? PixelFormat.Cache[Consts.GUID_WICPixelFormat8bppGray] :
+				          throw new NotSupportedException("Unsupported pixel format");
 			}
 
-			if (!ProcessorMap.TryGetValue(fmt.FormatGuid, out XProcessor))
+			if (!ProcessorMap.TryGetValue(workfmt.FormatGuid, out XProcessor))
 				throw new NotSupportedException("Unsupported pixel format");
 
-			if (fmt == PixelFormat.Bgr96BppLinearFloat)
-				Format = fmt = PixelFormat.Bgrx128BppLinearFloat;
-			else if (fmt == PixelFormat.Bgr96BppFloat)
-				Format = fmt = PixelFormat.Bgrx128BppFloat;
+			if (workfmt == PixelFormat.Bgr96BppLinearFloat)
+				Format = workfmt = PixelFormat.Bgrx128BppLinearFloat;
+			else if (workfmt == PixelFormat.Bgr96BppFloat)
+				Format = workfmt = PixelFormat.Bgrx128BppFloat;
 
-			YProcessor = ProcessorMap[fmt.FormatGuid];
+			YProcessor = ProcessorMap[workfmt.FormatGuid];
 			XMap = mapx;
 			YMap = mapy;
 
@@ -89,16 +90,16 @@ namespace PhotoSauce.MagicScaler
 			SourceRect = new Rectangle { Width = (int)Width, Height = 1 };
 			IntStartLine = -mapy.Samples;
 
-			IntBpp = fmt.BitsPerPixel / 8 / Unsafe.SizeOf<TPixel>() * Unsafe.SizeOf<TWeight>();
+			IntBpp = workfmt.BitsPerPixel / 8 / Unsafe.SizeOf<TPixel>() * Unsafe.SizeOf<TWeight>();
 			IntStride = mapy.Samples * IntBpp;
-			WorkStride = fmt.BitsPerPixel / 8 * (int)Width + (IntPtr.Size - 1) & ~(IntPtr.Size - 1);
+			WorkStride = workfmt.BitsPerPixel / 8 * (int)Width + (IntPtr.Size - 1) & ~(IntPtr.Size - 1);
 
 			int lineBuffLen = (BufferSource ? mapy.Samples : 1) * (int)BufferStride;
 			int intBuffLen = mapx.OutPixels * IntStride;
 			int workBuffLen = mapy.Samples * WorkStride;
-			LineBuff = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(lineBuffLen), 0, lineBuffLen).Zero();
-			IntBuff = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(intBuffLen), 0, intBuffLen).Zero();
-			WorkBuff = lumaMode && !Format.IsBinaryCompatibleWith(fmt) ? new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(workBuffLen), 0, workBuffLen).Zero() : LineBuff;
+			LineBuff = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(lineBuffLen), 0, lineBuffLen).Clear();
+			IntBuff = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(intBuffLen), 0, intBuffLen).Clear();
+			WorkBuff = BufferSource && !workfmt.IsBinaryCompatibleWith(infmt) ? new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(workBuffLen), 0, workBuffLen).Clear() : LineBuff;
 
 			Width = (uint)mapx.OutPixels;
 			Height = (uint)mapy.OutPixels;
@@ -116,7 +117,7 @@ namespace PhotoSauce.MagicScaler
 				{
 					int* pmapy = (int*)mapystart + ((oy + y) * (smapy * chan + 1));
 					int iy = *pmapy++;
-					LoadBuffer(bstart, wstart, tstart, mapxstart, iy);
+					loadBuffer(bstart, wstart, tstart, mapxstart, iy);
 
 					byte* op = (byte*)pbBuffer + y * cbStride;
 					ConvolveLine(bstart, wstart, tstart, op, (byte*)pmapy, smapy, ox, oy + y, ow);
@@ -127,7 +128,7 @@ namespace PhotoSauce.MagicScaler
 		unsafe protected virtual void ConvolveLine(byte* bstart, byte* wstart, byte* tstart, byte* ostart, byte* pmapy, int smapy, int ox, int oy, int ow) =>
 			YProcessor.WriteDestLine(tstart, ostart, ox, ow, pmapy, smapy);
 
-		unsafe protected void LoadBuffer(byte* bstart, byte* wstart, byte* tstart, byte* mapxstart, int iy)
+		unsafe private void loadBuffer(byte* bstart, byte* wstart, byte* tstart, byte* mapxstart, int iy)
 		{
 			int smapy = YMap.Samples;
 
@@ -164,37 +165,40 @@ namespace PhotoSauce.MagicScaler
 				Timer.Start();
 
 				if (BufferSource)
-				{
-					if (Format == PixelFormat.Grey32BppLinearFloat || Format == PixelFormat.Y32BppLinearFloat)
-						GreyConverter.ConvertGreyLinearToGreyFloat(bline, wline, (int)BufferStride);
-					else if (Format == PixelFormat.Grey16BppLinearUQ15 || Format == PixelFormat.Y16BppLinearUQ15)
-						GreyConverter.ConvertGreyLinearToGreyUQ15(bline, wline, (int)BufferStride);
-					else if (Format.FormatGuid == Consts.GUID_WICPixelFormat24bppBGR)
-						GreyConverter.ConvertBgrToGreyByte(bline, wline, (int)BufferStride);
-					else if (Format == PixelFormat.Bgr48BppLinearUQ15)
-						GreyConverter.ConvertBgrToGreyUQ15(bline, wline, (int)BufferStride);
-					else if (Format.FormatGuid == Consts.GUID_WICPixelFormat32bppBGR || Format.FormatGuid == Consts.GUID_WICPixelFormat32bppBGRA || Format.FormatGuid == Consts.GUID_WICPixelFormat32bppPBGRA)
-						GreyConverter.ConvertBgrxToGreyByte(bline, wline, (int)BufferStride);
-					else if (Format == PixelFormat.Pbgra64BppLinearUQ15)
-						GreyConverter.ConvertBgrxToGreyUQ15(bline, wline, (int)BufferStride);
-					else if (Format == PixelFormat.Bgr96BppFloat)
-						GreyConverter.ConvertBgrToGreyFloat(bline, wline, (int)BufferStride, false);
-					else if (Format == PixelFormat.Bgrx128BppFloat || Format == PixelFormat.Pbgra128BppFloat)
-						GreyConverter.ConvertBgrxToGreyFloat(bline, wline, (int)BufferStride, false);
-					else if (Format == PixelFormat.Bgr96BppLinearFloat)
-					{
-						GreyConverter.ConvertBgrToGreyFloat(bline, wline, (int)BufferStride, true);
-						GreyConverter.ConvertGreyLinearToGreyFloat(wline, wline, WorkStride);
-					}
-					else if (Format == PixelFormat.Bgrx128BppLinearFloat || Format == PixelFormat.Pbgra128BppLinearFloat)
-					{
-						GreyConverter.ConvertBgrxToGreyFloat(bline, wline, (int)BufferStride, true);
-						GreyConverter.ConvertGreyLinearToGreyFloat(wline, wline, WorkStride);
-					}
-				}
+					convertToWorking(bline, wline, (int)BufferStride, WorkStride);
 
 				byte* tline = tstart + ty * IntBpp;
 				XProcessor.ConvolveSourceLine(wline, tline, IntBuff.Count, mapxstart, XMap.Samples, smapy);
+			}
+		}
+
+		unsafe private void convertToWorking(byte* bline, byte* wline, int bstride, int wstride)
+		{
+			if (Format == PixelFormat.Grey32BppLinearFloat || Format == PixelFormat.Y32BppLinearFloat)
+				GreyConverter.ConvertGreyLinearToGreyFloat(bline, wline, bstride);
+			else if (Format == PixelFormat.Grey16BppLinearUQ15 || Format == PixelFormat.Y16BppLinearUQ15)
+				GreyConverter.ConvertGreyLinearToGreyUQ15(bline, wline, bstride);
+			else if (Format.FormatGuid == Consts.GUID_WICPixelFormat24bppBGR)
+				GreyConverter.ConvertBgrToGreyByte(bline, wline, bstride);
+			else if (Format == PixelFormat.Bgr48BppLinearUQ15)
+				GreyConverter.ConvertBgrToGreyUQ15(bline, wline, bstride);
+			else if (Format.FormatGuid == Consts.GUID_WICPixelFormat32bppBGR || Format.FormatGuid == Consts.GUID_WICPixelFormat32bppBGRA || Format.FormatGuid == Consts.GUID_WICPixelFormat32bppPBGRA)
+				GreyConverter.ConvertBgrxToGreyByte(bline, wline, bstride);
+			else if (Format == PixelFormat.Pbgra64BppLinearUQ15)
+				GreyConverter.ConvertBgrxToGreyUQ15(bline, wline, bstride);
+			else if (Format == PixelFormat.Bgr96BppFloat)
+				GreyConverter.ConvertBgrToGreyFloat(bline, wline, bstride, false);
+			else if (Format == PixelFormat.Bgrx128BppFloat || Format == PixelFormat.Pbgra128BppFloat)
+				GreyConverter.ConvertBgrxToGreyFloat(bline, wline, bstride, false);
+			else if (Format == PixelFormat.Bgr96BppLinearFloat)
+			{
+				GreyConverter.ConvertBgrToGreyFloat(bline, wline, bstride, true);
+				GreyConverter.ConvertGreyLinearToGreyFloat(wline, wline, wstride);
+			}
+			else if (Format == PixelFormat.Bgrx128BppLinearFloat || Format == PixelFormat.Pbgra128BppLinearFloat)
+			{
+				GreyConverter.ConvertBgrxToGreyFloat(bline, wline, bstride, true);
+				GreyConverter.ConvertGreyLinearToGreyFloat(wline, wline, wstride);
 			}
 		}
 
@@ -213,9 +217,10 @@ namespace PhotoSauce.MagicScaler
 
 	internal class UnsharpMaskTransform<TPixel, TWeight> : ConvolutionTransform<TPixel, TWeight> where TPixel : unmanaged where TWeight : unmanaged
 	{
-		private UnsharpMaskSettings sharpenSettings;
+		private readonly UnsharpMaskSettings sharpenSettings;
+		private readonly IConvolver processor;
+
 		private ArraySegment<byte> blurBuff;
-		private IConvolver processor;
 
 		public UnsharpMaskTransform(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, UnsharpMaskSettings ss) : base(source, mapx, mapy, true)
 		{

@@ -20,7 +20,7 @@ procDef[] ta = {
 		channels = 3,
 		colors = 3,
 		xUnroll = 3,
-		yUnroll = 3
+		yUnroll = 0
 	},
 	new procDef {
 		name = "3XChan",
@@ -197,6 +197,9 @@ for (int j = 0; j < t.colors; j++) {
 			}
 		}
 
+<#
+if (t.yUnroll > 0) {
+#>
 		void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			float* op = (float*)ostart;
@@ -314,6 +317,13 @@ for (int j = 0; j < t.colors; j++) {
 				ox++;
 			}
 		}
+<#
+} else {
+#>
+		void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy) => throw new NotImplementedException();
+<#
+}
+#>
 
 <#
 //http://en.wikipedia.org/wiki/Unsharp_masking

@@ -74,7 +74,7 @@ namespace PhotoSauce.MagicScaler
 			Channels = channels;
 
 			int mapLen = OutPixels * (Samples * Channels * Unsafe.SizeOf<T>() + sizeof(int));
-			Map = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(mapLen), 0, mapLen).Zero();
+			Map = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(mapLen), 0, mapLen).Clear();
 		}
 
 		unsafe private KernelMap<T> clamp()

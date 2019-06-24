@@ -1914,7 +1914,7 @@ namespace PhotoSauce.MagicScaler.Interop
 
 		IWICColorContext CreateColorContext();
 
-		IWICColorTransform CreateColorTransform();
+		IWICColorTransform CreateColorTransformer();
 
 		IWICBitmap CreateBitmap(
 			uint uiWidth,
@@ -2620,21 +2620,21 @@ namespace PhotoSauce.MagicScaler.Interop
 	}
 
 	[StructLayout(LayoutKind.Sequential)]
-	internal unsafe struct WICJpegAcHuffmanTable
+	unsafe internal struct WICJpegAcHuffmanTable
 	{
 		public fixed byte CodeCounts[16];
 		public fixed byte CodeValues[162];
 	}
 
 	[StructLayout(LayoutKind.Sequential)]
-	internal unsafe struct WICJpegDcHuffmanTable
+	unsafe internal struct WICJpegDcHuffmanTable
 	{
 		public fixed byte CodeCounts[12];
 		public fixed byte CodeValues[12];
 	}
 
 	[StructLayout(LayoutKind.Sequential)]
-	internal unsafe struct WICJpegQuantizationTable
+	unsafe internal struct WICJpegQuantizationTable
 	{
 		public fixed byte Elements[64];
 	}

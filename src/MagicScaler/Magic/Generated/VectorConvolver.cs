@@ -263,59 +263,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
-		{
-			float* op = (float*)ostart;
-			int xc = ox + ow, tstride = smapy * Channels;
-
-			while (ox < xc)
-			{
-				float* tp = (float*)tstart + ox * tstride;
-				float* tpe = tp + tstride - 3 * 4;
-				float* mp = (float*)pmapy;
-
-				Vector4 av0 = Vector4.Zero, av1 = av0, av2 = av0;
-
-				while (tp <= tpe)
-				{
-					var tv0 = Unsafe.Read<Vector4>(tp);
-					var tv1 = Unsafe.Read<Vector4>(tp + 4);
-					var tv2 = Unsafe.Read<Vector4>(tp + 4 * 2);
-
-					var mv0 = Unsafe.Read<Vector4>(mp);
-					var mv1 = Unsafe.Read<Vector4>(mp + 4);
-					var mv2 = Unsafe.Read<Vector4>(mp + 4 * 2);
-
-					av0 += tv0 * mv0;
-					av1 += tv1 * mv1;
-					av2 += tv2 * mv2;
-
-					tp += 3 * 4;
-					mp += 3 * 4;
-				}
-
-				float a0 = av0.X + av0.W + av1.Z + av2.Y;
-				float a1 = av0.Y + av1.X + av1.W + av2.Z;
-				float a2 = av0.Z + av1.Y + av2.X + av2.W;
-
-				tpe += 3 * 4;
-				while (tp < tpe)
-				{
-					a0 += tp[0] * mp[0];
-					a1 += tp[1] * mp[1];
-					a2 += tp[2] * mp[2];
-
-					tp += Channels;
-					mp += Channels;
-				}
-
-				op[0] = a0;
-				op[1] = a1;
-				op[2] = a2;
-				op += Channels;
-				ox++;
-			}
-		}
+		void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy) => throw new NotImplementedException();
 
 		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma) => throw new NotImplementedException();
 	}

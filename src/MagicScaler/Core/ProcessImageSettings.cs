@@ -476,7 +476,7 @@ namespace PhotoSauce.MagicScaler
 
 		/// <summary>Create a new <see cref="ProcessImageSettings" /> instance with settings calculated for a specific input image.</summary>
 		/// <param name="settings">The input settings.</param>
-		/// <param name="imageInfo">The input image on which the new settings should be calculated.</param>
+		/// <param name="imageInfo">The input image for which the new settings should be calculated.</param>
 		/// <returns>The calculated settings for the input image.</returns>
 		public static ProcessImageSettings Calculate(ProcessImageSettings settings, ImageFileInfo imageInfo)
 		{

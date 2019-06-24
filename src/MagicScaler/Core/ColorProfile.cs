@@ -16,7 +16,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		internal static class Cache
 		{
-			private static ConcurrentDictionary<Guid, WeakReference<ColorProfile>> dic = new ConcurrentDictionary<Guid, WeakReference<ColorProfile>>();
+			private static readonly ConcurrentDictionary<Guid, WeakReference<ColorProfile>> dic = new ConcurrentDictionary<Guid, WeakReference<ColorProfile>>();
 
 			public static ColorProfile GetOrAdd(ArraySegment<byte> bytes)
 			{
@@ -315,7 +315,7 @@ namespace PhotoSauce.MagicScaler
 			int gz = ReadInt32BigEndian(gXYZ.Slice(16));
 			int rz = ReadInt32BigEndian(rXYZ.Slice(16));
 
-			float div = 1f / 65536f;
+			float div = 1 / 65536f;
 			Matrix = new Matrix4x4(
 				bz * div, by * div, bx * div, 0f,
 				gz * div, gy * div, gx * div, 0f,
@@ -455,7 +455,7 @@ namespace PhotoSauce.MagicScaler
 					((uint)e > 0x10000u && (func == 4))
 				) return false;
 
-				float div = 1f / 65536;
+				float div = 1 / 65536f;
 				float fa = a * div, fb = b * div, fc = c * div, fd = d * div, fe = e * div, ff = f * div, fg = g * div;
 				switch (func)
 				{
@@ -481,7 +481,7 @@ namespace PhotoSauce.MagicScaler
 			return true;
 		}
 
-		unsafe private void parse(ReadOnlySpan<byte> prof)
+		private void parse(ReadOnlySpan<byte> prof)
 		{
 			if (prof.Length < 132)
 				return; //throw new InvalidDataException("Invalid ICC profile.  Header is incomplete.");

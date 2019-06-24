@@ -502,7 +502,7 @@ namespace PhotoSauce.MagicScaler.Interop
 
 		new IWICColorContext CreateColorContext();
 
-		new IWICColorTransform CreateColorTransform();
+		new IWICColorTransform CreateColorTransformer();
 
 		new IWICBitmap CreateBitmap(
 			uint uiWidth,

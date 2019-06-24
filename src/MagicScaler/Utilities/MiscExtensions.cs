@@ -71,11 +71,14 @@ namespace PhotoSauce.MagicScaler
 			return ext;
 		}
 
-		public static ArraySegment<T> Zero<T>(this ArraySegment<T> a)
+		public static ArraySegment<T> Clear<T>(this ArraySegment<T> a)
 		{
 			Array.Clear(a.Array, a.Offset, a.Count);
 			return a;
 		}
+
+		public static TValue GetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dic, TKey key, TValue defaultValue) =>
+			dic.TryGetValue(key, out var value) ? value : defaultValue;
 
 		public static TValue GetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dic, TKey key, Func<TValue> valueFactory = null) =>
 			dic.TryGetValue(key, out var value) ? value : valueFactory is null ? default : valueFactory();
