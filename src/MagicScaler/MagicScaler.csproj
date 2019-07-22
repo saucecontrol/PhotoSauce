@@ -14,10 +14,6 @@
 		<DefineConstants Condition="'$(TargetFramework)'=='net46' Or '$(TargetFramework)'=='net472'">$(DefineConstants);SYSTEM_DRAWING</DefineConstants>
 	</PropertyGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)'=='net46' Or '$(TargetFramework)'=='net472' Or '$(TargetFramework)'=='netstandard1.3' Or '$(TargetFramework)'=='netstandard2.0'">
-		<PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
-	</ItemGroup>
-
 	<ItemGroup Condition="'$(TargetFramework)'=='netstandard1.3'">
 		<PackageReference Include="System.ComponentModel.Primitives" Version="4.3.0" />
 		<PackageReference Include="System.ComponentModel.TypeConverter" Version="4.3.0" />
@@ -26,6 +22,7 @@
 
 	<ItemGroup Condition="'$(TargetFramework)'!='netcoreapp2.1' And '$(TargetFramework)'!='netcoreapp3.0'">
 		<PackageReference Include="System.Memory" Version="4.5.3" />
+		<PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
 	</ItemGroup>
 
 	<ItemGroup>

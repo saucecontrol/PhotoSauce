@@ -7,7 +7,6 @@ using System.Linq;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Drawing.Drawing2D;
-using System.Runtime.InteropServices;
 
 using GdiPixelFormat = System.Drawing.Imaging.PixelFormat;
 
@@ -52,7 +51,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe public static ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
-			fixed (byte* pbBuffer = &MemoryMarshal.GetReference(imgBuffer))
+			fixed (byte* pbBuffer = imgBuffer)
 			using (var ms = new UnmanagedMemoryStream(pbBuffer, imgBuffer.Length, imgBuffer.Length, FileAccess.Read))
 				return ProcessImage(ms, outStream, settings);
 		}

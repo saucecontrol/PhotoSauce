@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Drawing;
-using System.Runtime.InteropServices;
 
 namespace PhotoSauce.MagicScaler
 {
@@ -34,7 +33,7 @@ namespace PhotoSauce.MagicScaler
 		/// <inheritdoc />
 		unsafe public void CopyPixels(Rectangle sourceArea, int cbStride, Span<byte> buffer)
 		{
-			fixed (byte* pbBuffer = &MemoryMarshal.GetReference(buffer))
+			fixed (byte* pbBuffer = buffer)
 				Source.CopyPixels(sourceArea, (uint)cbStride, (uint)buffer.Length, (IntPtr)pbBuffer);
 		}
 

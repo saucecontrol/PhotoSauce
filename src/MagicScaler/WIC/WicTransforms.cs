@@ -372,7 +372,7 @@ namespace PhotoSauce.MagicScaler
 			if (!trans.DoesSupportTransform(ref width, ref height, opt, WICPlanarOptions.WICPlanarOptionsDefault, planarPixelFormats, desc, 2))
 				throw new NotSupportedException("Requested planar transform not supported");
 
-			var cacheSource = ctx.AddDispose(new WicPlanarCache(trans, desc[0], desc[1], ctx.Settings.Crop, opt, width, height, rat));
+			var cacheSource = ctx.AddDispose(new WicPlanarCache(trans, desc[0], desc[1], ctx.Settings.Crop, opt, width, height, (int)rat));
 
 			ctx.PlanarChromaSource = cacheSource.GetPlane(WicPlane.Chroma);
 			ctx.PlanarLumaSource = cacheSource.GetPlane(WicPlane.Luma);

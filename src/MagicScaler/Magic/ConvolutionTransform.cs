@@ -48,13 +48,11 @@ namespace PhotoSauce.MagicScaler
 
 		protected readonly KernelMap<TWeight> XMap, YMap;
 		protected readonly IConvolver XProcessor, YProcessor;
+		protected readonly PixelBuffer IntBuff, SrcBuff, WorkBuff;
 
-		protected bool BufferSource;
-		protected int IntBpp;
-		protected int IntStride, WorkStride;
-		protected int IntStartLine;
-		protected Rectangle SourceRect;
-		protected ArraySegment<byte> LineBuff, WorkBuff, IntBuff;
+		private readonly IMemoryOwner<byte> lineBuff;
+		private readonly bool bufferSource;
+		private readonly int inWidth;
 
 		public ConvolutionTransform(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, bool lumaMode = false) : base(source)
 		{
@@ -86,28 +84,30 @@ namespace PhotoSauce.MagicScaler
 			if (XMap.Channels != XProcessor.MapChannels || YMap.Channels != YProcessor.MapChannels)
 				throw new NotSupportedException("Map and Processor channel counts don't match");
 
-			BufferSource = lumaMode;
-			SourceRect = new Rectangle { Width = (int)Width, Height = 1 };
-			IntStartLine = -mapy.Samples;
-
-			IntBpp = workfmt.BitsPerPixel / 8 / Unsafe.SizeOf<TPixel>() * Unsafe.SizeOf<TWeight>();
-			IntStride = mapy.Samples * IntBpp;
-			WorkStride = workfmt.BitsPerPixel / 8 * (int)Width + (IntPtr.Size - 1) & ~(IntPtr.Size - 1);
-
-			int lineBuffLen = (BufferSource ? mapy.Samples : 1) * (int)BufferStride;
-			int intBuffLen = mapx.OutPixels * IntStride;
-			int workBuffLen = mapy.Samples * WorkStride;
-			LineBuff = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(lineBuffLen), 0, lineBuffLen).Clear();
-			IntBuff = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(intBuffLen), 0, intBuffLen).Clear();
-			WorkBuff = BufferSource && !workfmt.IsBinaryCompatibleWith(infmt) ? new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(workBuffLen), 0, workBuffLen).Clear() : LineBuff;
-
+			inWidth = (int)Width;
 			Width = (uint)mapx.OutPixels;
 			Height = (uint)mapy.OutPixels;
+
+			int bpp = workfmt.BitsPerPixel / 8 / Unsafe.SizeOf<TPixel>() * Unsafe.SizeOf<TWeight>();
+			IntBuff = new PixelBuffer(mapy.Samples, bpp, mapy.Samples * mapx.OutPixels * bpp);
+
+			if (bufferSource = lumaMode)
+			{
+				SrcBuff = new PixelBuffer(mapy.Samples, (int)BufferStride);
+
+				if (workfmt.IsBinaryCompatibleWith(infmt))
+					WorkBuff = SrcBuff;
+				else
+					WorkBuff = new PixelBuffer(mapy.Samples, MathUtil.PowerOf2Ceiling(workfmt.BitsPerPixel / 8 * inWidth, IntPtr.Size));
+			}
+			else
+			{
+				lineBuff = MemoryPool<byte>.Shared.Rent((int)BufferStride);
+			}
 		}
 
 		unsafe protected override void CopyPixelsInternal(in Rectangle prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
-			fixed (byte* bstart = &LineBuff.Array[0], wstart = &WorkBuff.Array[0], tstart = &IntBuff.Array[0])
 			fixed (byte* mapxstart = &XMap.Map.Array[0], mapystart = &YMap.Map.Array[0])
 			{
 				int oh = prc.Height, ow = prc.Width, ox = prc.X, oy = prc.Y;
@@ -117,59 +117,44 @@ namespace PhotoSauce.MagicScaler
 				{
 					int* pmapy = (int*)mapystart + ((oy + y) * (smapy * chan + 1));
 					int iy = *pmapy++;
-					loadBuffer(bstart, wstart, tstart, mapxstart, iy);
 
-					byte* op = (byte*)pbBuffer + y * cbStride;
-					ConvolveLine(bstart, wstart, tstart, op, (byte*)pmapy, smapy, ox, oy + y, ow);
+					int first = iy;
+					int lines = smapy;
+					var ispan = IntBuff.PrepareLoad(ref first, ref lines, true);
+
+					if (lines > 0)
+					{
+						for (int ly = 0; ly < lines; ly++)
+						{
+							int lf = first + ly;
+							int ll = 1;
+							var bspan = bufferSource ? SrcBuff.PrepareLoad(ref lf, ref ll, true) : lineBuff.Memory.Span;
+							var wspan = bufferSource && WorkBuff != SrcBuff ? WorkBuff.PrepareLoad(ref lf, ref ll, true) : bspan;
+							var tspan = ispan.Slice(ly * IntBuff.Stride);
+
+							fixed (byte* bline = bspan, wline = wspan, tline = tspan)
+							{
+								Timer.Stop();
+								Source.CopyPixels(new Rectangle(0, first + ly, inWidth, 1), BufferStride, BufferStride, (IntPtr)bline);
+								Timer.Start();
+
+								if (bline != wline)
+									convertToWorking(bline, wline, SrcBuff.Stride, WorkBuff.Stride);
+
+								XProcessor.ConvolveSourceLine(wline, tline, tspan.Length, mapxstart, XMap.Samples, smapy);
+							}
+						}
+					}
+
+					ConvolveLine((byte*)pbBuffer + y * cbStride, (byte*)pmapy, smapy, iy, oy, ox, ow);
 				}
 			}
 		}
 
-		unsafe protected virtual void ConvolveLine(byte* bstart, byte* wstart, byte* tstart, byte* ostart, byte* pmapy, int smapy, int ox, int oy, int ow) =>
-			YProcessor.WriteDestLine(tstart, ostart, ox, ow, pmapy, smapy);
-
-		unsafe private void loadBuffer(byte* bstart, byte* wstart, byte* tstart, byte* mapxstart, int iy)
+		unsafe protected virtual void ConvolveLine(byte* ostart, byte* pmapy, int smapy, int iy, int oy, int ox, int ow)
 		{
-			int smapy = YMap.Samples;
-
-			if (iy < IntStartLine)
-				IntStartLine = iy - smapy;
-
-			int tc = Math.Min(iy - IntStartLine, smapy);
-			if (tc <= 0)
-				return;
-
-			IntStartLine = iy;
-
-			int tk = smapy - tc;
-			if (tk > 0)
-			{
-				if (BufferSource)
-				{
-					Buffer.MemoryCopy(bstart + tc * BufferStride, bstart, LineBuff.Array.Length, tk * BufferStride);
-					if (WorkBuff.Array != LineBuff.Array)
-						Buffer.MemoryCopy(wstart + tc * WorkStride, wstart, WorkBuff.Array.Length, tk * WorkStride);
-				}
-
-				Buffer.MemoryCopy(tstart + tc * IntBpp, tstart, IntBuff.Array.Length, IntBuff.Count - tc * IntBpp);
-			}
-
-			for (int ty = tk; ty < smapy; ty++)
-			{
-				byte* bline = BufferSource ? bstart + ty * BufferStride : bstart;
-				byte* wline = BufferSource ? wstart + ty * WorkStride : bstart;
-
-				SourceRect.Y = iy + ty;
-				Timer.Stop();
-				Source.CopyPixels(SourceRect, BufferStride, BufferStride, (IntPtr)bline);
-				Timer.Start();
-
-				if (BufferSource)
-					convertToWorking(bline, wline, (int)BufferStride, WorkStride);
-
-				byte* tline = tstart + ty * IntBpp;
-				XProcessor.ConvolveSourceLine(wline, tline, IntBuff.Count, mapxstart, XMap.Samples, smapy);
-			}
+			fixed (byte* tstart = IntBuff.PrepareRead(iy, smapy))
+				YProcessor.WriteDestLine(tstart, ostart, ox, ow, pmapy, smapy);
 		}
 
 		unsafe private void convertToWorking(byte* bline, byte* wline, int bstride, int wstride)
@@ -204,12 +189,10 @@ namespace PhotoSauce.MagicScaler
 
 		public virtual void Dispose()
 		{
-			ArrayPool<byte>.Shared.Return(LineBuff.Array ?? Array.Empty<byte>());
-			ArrayPool<byte>.Shared.Return(IntBuff.Array ?? Array.Empty<byte>());
-			if (WorkBuff.Array != LineBuff.Array)
-				ArrayPool<byte>.Shared.Return(WorkBuff.Array ?? Array.Empty<byte>());
-
-			LineBuff = WorkBuff = IntBuff = default;
+			IntBuff.Dispose();
+			SrcBuff?.Dispose();
+			WorkBuff?.Dispose();
+			lineBuff?.Dispose();
 		}
 
 		public override string ToString() => XProcessor?.ToString() ?? base.ToString();
@@ -220,34 +203,32 @@ namespace PhotoSauce.MagicScaler
 		private readonly UnsharpMaskSettings sharpenSettings;
 		private readonly IConvolver processor;
 
-		private ArraySegment<byte> blurBuff;
+		private readonly IMemoryOwner<byte> blurBuff;
 
 		public UnsharpMaskTransform(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, UnsharpMaskSettings ss) : base(source, mapx, mapy, true)
 		{
 			sharpenSettings = ss;
 			processor = ProcessorMap[Format.FormatGuid];
-			blurBuff = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(WorkStride), 0, WorkStride);
+			blurBuff = MemoryPool<byte>.Shared.Rent(WorkBuff.Stride);
 		}
 
-		unsafe protected override void ConvolveLine(byte* bstart, byte* wstart, byte* tstart, byte* ostart, byte* pmapy, int smapy, int ox, int oy, int ow)
+		unsafe protected override void ConvolveLine(byte* ostart, byte* pmapy, int smapy, int iy,int oy, int ox, int ow)
 		{
-			fixed (byte* blurstart = &blurBuff.Array[0])
-			{
-				int cy = oy - IntStartLine;
-				byte* bp = bstart + cy * BufferStride;
-				byte* wp = wstart + cy * WorkStride;
+			var bspan = SrcBuff.PrepareRead(oy, 1);
+			var wspan = WorkBuff != SrcBuff ? WorkBuff.PrepareRead(oy, 1) : bspan;
+			var tspan = IntBuff.PrepareRead(iy, smapy);
 
+			fixed (byte* bstart = bspan, wstart = wspan, tstart = tspan, blurstart = blurBuff.Memory.Span)
+			{
 				YProcessor.WriteDestLine(tstart, blurstart, ox, ow, pmapy, smapy);
-				processor.SharpenLine(bp, wp, blurstart, ostart, ox, ow, sharpenSettings.Amount, sharpenSettings.Threshold, Format.Colorspace == PixelColorspace.LinearRgb);
+				processor.SharpenLine(bstart, wstart, blurstart, ostart, ox, ow, sharpenSettings.Amount, sharpenSettings.Threshold, Format.Colorspace == PixelColorspace.LinearRgb);
 			}
 		}
 
 		public override void Dispose()
 		{
 			base.Dispose();
-
-			ArrayPool<byte>.Shared.Return(blurBuff.Array ?? Array.Empty<byte>());
-			blurBuff = default;
+			blurBuff.Dispose();
 		}
 
 		public override string ToString() => $"{processor?.ToString() ?? base.ToString()}: Sharpen";

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Buffers;
 using System.Drawing;
-using System.Runtime.InteropServices;
 
 namespace PhotoSauce.MagicScaler
 {
@@ -43,7 +42,7 @@ namespace PhotoSauce.MagicScaler
 			rows = Math.Min(height, cols);
 			rheight = ((double)rows / height);
 
-			stride = width * chans + (IntPtr.Size - 1) & ~(IntPtr.Size - 1);
+			stride = MathUtil.PowerOf2Ceiling(width * chans, IntPtr.Size);
 			pixels = new Lazy<byte[]>(() => {
 				var buff = ArrayPool<byte>.Shared.Rent(stride * rows);
 				drawPattern(buff);
@@ -128,7 +127,7 @@ namespace PhotoSauce.MagicScaler
 			if ((sourceArea.Height - 1) * cbStride + cb > buffer.Length)
 				throw new ArgumentOutOfRangeException(nameof(buffer), "Buffer is too small for the requested area");
 
-			fixed (byte* pstart = &pixels.Value[0], pbBuffer = &MemoryMarshal.GetReference(buffer))
+			fixed (byte* pstart = &pixels.Value[0], pbBuffer = buffer)
 			for (int y = 0; y < sourceArea.Height; y++)
 			{
 				int row = Math.Min((int)((sourceArea.Y + y) * rheight), rows - 1);

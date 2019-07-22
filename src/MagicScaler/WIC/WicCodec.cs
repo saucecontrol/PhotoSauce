@@ -62,7 +62,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe public WicDecoder(ReadOnlySpan<byte> inBuffer, WicProcessingContext ctx)
 		{
-			fixed (byte* pbBuffer = &MemoryMarshal.GetReference(inBuffer))
+			fixed (byte* pbBuffer = inBuffer)
 			{
 				var stm = ctx.AddRef(Wic.Factory.CreateStream());
 				stm.InitializeFromMemory((IntPtr)pbBuffer, (uint)inBuffer.Length);

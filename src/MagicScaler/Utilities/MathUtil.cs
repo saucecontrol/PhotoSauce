@@ -114,6 +114,15 @@ namespace PhotoSauce.MagicScaler
 		public static byte UnFix22ToByte(int x) => ClampToByte(UnFix22(x));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static int DivCeiling(int x, int y) => (x + (y - 1)) / y;
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static int PowerOf2Floor(int x, int powerOfTwo) => x & ~(powerOfTwo - 1);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static int PowerOf2Ceiling(int x, int powerOfTwo) => x + (powerOfTwo - 1) & ~(powerOfTwo - 1);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if MATHF
 		public static float Sqrt(this float x) => MathF.Sqrt(x);
 #else

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Drawing;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 
 using PhotoSauce.MagicScaler.Interop;
 
@@ -49,14 +48,14 @@ namespace PhotoSauce.MagicScaler
 			Format = Source.Format;
 			Width = Source.Width;
 			Height = Source.Height;
-			BufferStride = (Width * (uint)Format.BitsPerPixel + 7u) / 8u + ((uint)IntPtr.Size - 1u) & ~((uint)IntPtr.Size - 1u);
+			BufferStride = (uint)MathUtil.PowerOf2Ceiling(MathUtil.DivCeiling((int)Width * Format.BitsPerPixel, 8), IntPtr.Size);
 		}
 
 		protected abstract void CopyPixelsInternal(in Rectangle prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer);
 
 		public void CopyPixels(in Rectangle prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
-			uint cbLine = (uint)(prc.Width * Format.BitsPerPixel + 7) / 8u;
+			uint cbLine = (uint)MathUtil.DivCeiling(prc.Width * Format.BitsPerPixel, 8);
 
 			if (prc.X < 0 || prc.Y < 0 || prc.Width < 0 || prc.Height < 0 || prc.X + prc.Width > (int)Width || prc.Y + prc.Height > (int)Height)
 				throw new ArgumentOutOfRangeException(nameof(prc), "Requested area does not fall within the image bounds");
@@ -160,7 +159,7 @@ namespace PhotoSauce.MagicScaler
 
 			unsafe public void CopyPixels(Rectangle prc, int cbStride, Span<byte> buffer)
 			{
-				fixed (byte* pbBuffer = &MemoryMarshal.GetReference(buffer))
+				fixed (byte* pbBuffer = buffer)
 					source.CopyPixels(prc, (uint)cbStride, (uint)buffer.Length, (IntPtr)pbBuffer);
 			}
 		}

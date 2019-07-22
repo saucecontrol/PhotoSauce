@@ -61,7 +61,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			int kpad = 0, inc = channels == 2 || channels == 3 ? 4 : Vector<T>.Count;
 			if (ksize * channels % (inc * channels) > 1)
-				kpad = (ksize * channels + (inc * channels - 1)) / (inc * channels) * inc - ksize;
+				kpad = MathUtil.DivCeiling(ksize * channels, inc * channels) * inc - ksize;
 
 			return ksize + kpad > isize ? 0 : kpad;
 		}
