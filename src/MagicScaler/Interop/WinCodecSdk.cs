@@ -11,7 +11,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //----------------------------------------------------------------------------------------
 
-#if CUSTOM_MARSHAL
 using System;
 using System.Text;
 using System.Runtime.InteropServices;
@@ -620,4 +619,3 @@ namespace PhotoSauce.MagicScaler.Interop
 		);
 	}
 }
-#endif

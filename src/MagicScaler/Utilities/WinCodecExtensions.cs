@@ -70,16 +70,11 @@ namespace PhotoSauce.MagicScaler.Interop
 		{
 			value = null;
 
-			int hr = ProxyFunctions.GetMetadataByName(meta, name, IntPtr.Zero);
+			int hr = ProxyFunctions.GetMetadataByName(meta, name, null);
 			if (hr >= 0)
 			{
 				value = new PropVariant();
-
-				var pvMarshal = new PropVariant.Marshaler();
-				var pvNative = pvMarshal.MarshalManagedToNative(value);
-				hr = ProxyFunctions.GetMetadataByName(meta, name, pvNative);
-				pvMarshal.MarshalNativeToManaged(pvNative);
-				pvMarshal.CleanUpNativeData(pvNative);
+				hr = ProxyFunctions.GetMetadataByName(meta, name, value);
 			}
 
 			return hr >= 0;
@@ -87,11 +82,7 @@ namespace PhotoSauce.MagicScaler.Interop
 
 		public static bool TrySetMetadataByName(this IWICMetadataQueryWriter meta, string name, PropVariant value)
 		{
-			var pvMarshal = new PropVariant.Marshaler();
-			var pvNative = pvMarshal.MarshalManagedToNative(value);
-			int hr = ProxyFunctions.SetMetadataByName(meta, name, pvNative);
-			pvMarshal.CleanUpNativeData(pvNative);
-
+			int hr = ProxyFunctions.SetMetadataByName(meta, name, value);
 			return hr >= 0;
 		}
 

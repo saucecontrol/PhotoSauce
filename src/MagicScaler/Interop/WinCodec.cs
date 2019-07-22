@@ -1106,7 +1106,6 @@ namespace PhotoSauce.MagicScaler.Interop
 		);
 	}
 
-#if CUSTOM_MARSHAL
 	[ComImport, Guid("DC2BB46D-3F07-481E-8625-220C4AEDBB33"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICEnumMetadataItem
 	{
@@ -1128,7 +1127,6 @@ namespace PhotoSauce.MagicScaler.Interop
 
 		IWICEnumMetadataItem Clone();
 	}
-#endif
 
 	[ComImport, Guid("30989668-E1C9-4597-B395-458EEDB808DF"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICMetadataQueryReader
@@ -1144,12 +1142,8 @@ namespace PhotoSauce.MagicScaler.Interop
 		void GetMetadataByName(
 			[MarshalAs(UnmanagedType.LPWStr)]
 			string wzName,
-#if CUSTOM_MARSHAL
 			[In, Out, MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(PropVariant.Marshaler))]
 			PropVariant pvarValue
-#else
-			IntPtr pvarValue
-#endif
 		);
 
 		IEnumString GetEnumerator();
@@ -1170,12 +1164,8 @@ namespace PhotoSauce.MagicScaler.Interop
 		new void GetMetadataByName(
 			[MarshalAs(UnmanagedType.LPWStr)]
 			string wzName,
-#if CUSTOM_MARSHAL
 			[In, Out, MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(PropVariant.Marshaler))]
 			PropVariant pvarValue
-#else
-			IntPtr pvarValue
-#endif
 		);
 
 		new IEnumString GetEnumerator();
@@ -1184,12 +1174,8 @@ namespace PhotoSauce.MagicScaler.Interop
 		void SetMetadataByName(
 			[MarshalAs(UnmanagedType.LPWStr)]
 			string wzName,
-#if CUSTOM_MARSHAL
 			[In, MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(PropVariant.Marshaler))]
 			PropVariant pvarValue
-#else
-			IntPtr pvarValue
-#endif
 		);
 
 		void RemoveMetadataByName(
@@ -2755,7 +2741,8 @@ namespace PhotoSauce.MagicScaler.Interop
 			IWICMetadataQueryReader THIS_PTR,
 			[MarshalAs(UnmanagedType.LPWStr)]
 			string wzName,
-			IntPtr pvarValue
+			[In, Out, MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(PropVariant.Marshaler))]
+			PropVariant pvarValue
 		);
 
 		[DllImport("WindowsCodecs", EntryPoint = "IWICMetadataQueryWriter_SetMetadataByName_Proxy")]
@@ -2763,7 +2750,8 @@ namespace PhotoSauce.MagicScaler.Interop
 			IWICMetadataQueryWriter THIS_PTR,
 			[MarshalAs(UnmanagedType.LPWStr)]
 			string wzName,
-			IntPtr pvarValue
+			[In, MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(PropVariant.Marshaler))]
+			PropVariant pvarValue
 		);
 
 		[DllImport("WindowsCodecsExt", EntryPoint = "IWICColorTransform_Initialize_Proxy")]

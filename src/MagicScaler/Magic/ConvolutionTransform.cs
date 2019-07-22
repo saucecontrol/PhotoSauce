@@ -122,27 +122,24 @@ namespace PhotoSauce.MagicScaler
 					int lines = smapy;
 					var ispan = IntBuff.PrepareLoad(ref first, ref lines, true);
 
-					if (lines > 0)
+					for (int ly = 0; ly < lines; ly++)
 					{
-						for (int ly = 0; ly < lines; ly++)
+						int lf = first + ly;
+						int ll = 1;
+						var bspan = bufferSource ? SrcBuff.PrepareLoad(ref lf, ref ll, true) : lineBuff.Memory.Span;
+						var wspan = bufferSource && WorkBuff != SrcBuff ? WorkBuff.PrepareLoad(ref lf, ref ll, true) : bspan;
+						var tspan = ispan.Slice(ly * IntBuff.Stride);
+
+						fixed (byte* bline = bspan, wline = wspan, tline = tspan)
 						{
-							int lf = first + ly;
-							int ll = 1;
-							var bspan = bufferSource ? SrcBuff.PrepareLoad(ref lf, ref ll, true) : lineBuff.Memory.Span;
-							var wspan = bufferSource && WorkBuff != SrcBuff ? WorkBuff.PrepareLoad(ref lf, ref ll, true) : bspan;
-							var tspan = ispan.Slice(ly * IntBuff.Stride);
+							Timer.Stop();
+							Source.CopyPixels(new Rectangle(0, first + ly, inWidth, 1), BufferStride, BufferStride, (IntPtr)bline);
+							Timer.Start();
 
-							fixed (byte* bline = bspan, wline = wspan, tline = tspan)
-							{
-								Timer.Stop();
-								Source.CopyPixels(new Rectangle(0, first + ly, inWidth, 1), BufferStride, BufferStride, (IntPtr)bline);
-								Timer.Start();
+							if (bline != wline)
+								convertToWorking(bline, wline, SrcBuff.Stride, WorkBuff.Stride);
 
-								if (bline != wline)
-									convertToWorking(bline, wline, SrcBuff.Stride, WorkBuff.Stride);
-
-								XProcessor.ConvolveSourceLine(wline, tline, tspan.Length, mapxstart, XMap.Samples, smapy);
-							}
+							XProcessor.ConvolveSourceLine(wline, tline, tspan.Length, mapxstart, XMap.Samples, smapy);
 						}
 					}
 

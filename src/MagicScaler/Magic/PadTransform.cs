@@ -1,10 +1,6 @@
 ﻿using System;
 using System.Drawing;
 
-#if DRAWING_SHIM_COLOR
-using System.Drawing.ColorShim;
-#endif
-
 namespace PhotoSauce.MagicScaler
 {
 	internal class PadTransformInternal : PixelSource

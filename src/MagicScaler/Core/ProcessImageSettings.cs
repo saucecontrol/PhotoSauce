@@ -7,7 +7,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
 
-#if DRAWING_SHIM_COLOR || DRAWING_SHIM_COLORCONVERTER
+#if DRAWING_SHIM_COLORCONVERTER
 using System.Drawing.ColorShim;
 #endif
 

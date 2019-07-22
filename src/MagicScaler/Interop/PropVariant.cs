@@ -59,10 +59,6 @@ namespace PhotoSauce.MagicScaler.Interop
 
 	internal sealed class PropVariant : IEquatable<PropVariant>
 	{
-#if !CUSTOM_MARSHAL
-		public interface ICustomMarshaler { }
-#endif
-
 		public enum PropVariantMarshalType { Automatic, Ascii, Blob }
 
 		private static VarEnum getUnmanagedType(object o, PropVariantMarshalType marshalType)
@@ -338,10 +334,10 @@ namespace PhotoSauce.MagicScaler.Interop
 						break;
 					case VarEnum.VT_LPSTR:
 						pv.MarshalType = PropVariantMarshalType.Ascii;
-						pv.Value = toArrayOf<IntPtr>(upv).ConvertAll(Marshal.PtrToStringAnsi);
+						pv.Value = Array.ConvertAll(toArrayOf<IntPtr>(upv), Marshal.PtrToStringAnsi);
 						break;
 					case VarEnum.VT_LPWSTR:
-						pv.Value = toArrayOf<IntPtr>(upv).ConvertAll(Marshal.PtrToStringUni);
+						pv.Value = Array.ConvertAll(toArrayOf<IntPtr>(upv), Marshal.PtrToStringUni);
 						break;
 					default: throw new NotImplementedException();
 				}

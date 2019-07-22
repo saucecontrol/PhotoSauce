@@ -3,10 +3,6 @@ using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
-#if DRAWING_SHIM_COLOR
-using System.Drawing.ColorShim;
-#endif
-
 using PhotoSauce.MagicScaler.Interop;
 using static PhotoSauce.MagicScaler.MathUtil;
 

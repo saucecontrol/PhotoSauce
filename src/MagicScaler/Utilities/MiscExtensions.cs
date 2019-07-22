@@ -99,19 +99,6 @@ namespace PhotoSauce.MagicScaler
 			return dic1;
 		}
 
-#if CUSTOM_MARSHAL
-		public static TOut[] ConvertAll<TIn, TOut>(this TIn[] array, Converter<TIn, TOut> converter) => Array.ConvertAll(array, converter);
-#else
-		public static TOut[] ConvertAll<TIn, TOut>(this TIn[] array, Func<TIn, TOut> converter)
-		{
-			var res = new TOut[array.Length];
-			for (int i = 0; i < array.Length; i++)
-				res[i] = converter(array[i]);
-
-			return res;
-		}
-#endif
-
 		public static double ElapsedMilliseconds(this Stopwatch s) => (double)s.ElapsedTicks / Stopwatch.Frequency * 1000;
 	}
 }
