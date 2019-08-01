@@ -71,12 +71,6 @@ namespace PhotoSauce.MagicScaler
 			return ext;
 		}
 
-		public static ArraySegment<T> Clear<T>(this ArraySegment<T> a)
-		{
-			Array.Clear(a.Array, a.Offset, a.Count);
-			return a;
-		}
-
 		public static TValue GetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dic, TKey key, TValue defaultValue) =>
 			dic.TryGetValue(key, out var value) ? value : defaultValue;
 
@@ -98,7 +92,5 @@ namespace PhotoSauce.MagicScaler
 
 			return dic1;
 		}
-
-		public static double ElapsedMilliseconds(this Stopwatch s) => (double)s.ElapsedTicks / Stopwatch.Frequency * 1000;
 	}
 }

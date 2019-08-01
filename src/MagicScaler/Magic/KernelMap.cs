@@ -9,11 +9,14 @@ namespace PhotoSauce.MagicScaler
 {
 	internal class KernelMap<T> : IDisposable where T : unmanaged
 	{
+		private readonly int mapLen;
+		private readonly IMemoryOwner<byte> map;
+
 		public int InPixels { get; }
 		public int OutPixels { get; }
 		public int Samples { get; }
 		public int Channels { get; }
-		public ArraySegment<byte> Map { get; private set; }
+		public ReadOnlySpan<byte> Map => map.Memory.Span.Slice(0, mapLen);
 
 		static KernelMap()
 		{
@@ -73,18 +76,19 @@ namespace PhotoSauce.MagicScaler
 			Samples = samples;
 			Channels = channels;
 
-			int mapLen = OutPixels * (Samples * Channels * Unsafe.SizeOf<T>() + sizeof(int));
-			Map = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(mapLen), 0, mapLen).Clear();
+			mapLen = OutPixels * (Samples * Channels * Unsafe.SizeOf<T>() + sizeof(int));
+			map = MemoryPool<byte>.Shared.Rent(mapLen);
+			map.Memory.Span.Slice(0, mapLen).Clear();
 		}
 
 		unsafe private KernelMap<T> clamp()
 		{
-			fixed (byte* mstart = &Map.Array[0])
+			fixed (byte* mstart = Map)
 			{
 				int samp = Samples, ipix = InPixels, chan = Channels;
 
 				int* mp = (int*)mstart;
-				int* mpe = (int*)(mstart + Map.Count);
+				int* mpe = (int*)(mstart + mapLen);
 				while (mp < mpe)
 				{
 					int start = *mp;
@@ -132,19 +136,19 @@ namespace PhotoSauce.MagicScaler
 			return this;
 		}
 
-		unsafe public static KernelMap<T> MakeScaleMap(uint isize, uint osize, int colorChannels, bool alphaChannel, bool vectored, InterpolationSettings interpolator)
+		unsafe public static KernelMap<T> MakeScaleMap(uint isize, uint osize, InterpolationSettings interpolator, int ichannels, bool vectored)
 		{
 			double offs = interpolator.WeightingFunction.Support < 0.1 ? 0.5 : 0.0;
 			double ratio = Math.Min((double)osize / isize, 1d);
 			double cscale = ratio / interpolator.Blur;
 			double support = Math.Min(interpolator.WeightingFunction.Support / cscale, isize / 2d);
 
-			int channels = colorChannels + (alphaChannel ? 1 : 0);
+			int channels = vectored ? ichannels : 1;
 			int ksize = (int)Math.Ceiling(support * 2d);
 			int kpad = vectored ? getKernelPadding((int)isize, ksize, channels) : 0;
 
 			var map = new KernelMap<T>((int)isize, (int)osize, ksize + kpad, channels);
-			fixed (byte* mstart = &map.Map.Array[0])
+			fixed (byte* mstart = map.Map)
 			{
 				int* mp = (int*)mstart;
 				double* kp = stackalloc double[ksize];
@@ -173,17 +177,17 @@ namespace PhotoSauce.MagicScaler
 			return map.clamp();
 		}
 
-		unsafe public static KernelMap<T> MakeBlurMap(uint size, double radius, int colorChannels, bool alphaChannel, bool vectored)
+		unsafe public static KernelMap<T> MakeBlurMap(uint size, double radius, int ichannels, bool vectored)
 		{
 			var interpolator = new GaussianInterpolator(radius);
 
-			int channels = colorChannels + (alphaChannel ? 1 : 0);
+			int channels = vectored ? ichannels : 1;
 			int dist = (int)Math.Ceiling(interpolator.Support);
 			int ksize = Math.Min(dist * 2 + 1, (int)size);
 			int kpad = vectored ? getKernelPadding((int)size, ksize, channels) : 0;
 
 			var map = new KernelMap<T>((int)size, (int)size, ksize + kpad, channels);
-			fixed (byte* mstart = &map.Map.Array[0])
+			fixed (byte* mstart = map.Map)
 			{
 				int* mp = (int*)mstart;
 				double* kp = stackalloc double[ksize];
@@ -210,8 +214,7 @@ namespace PhotoSauce.MagicScaler
 
 		public void Dispose()
 		{
-			ArrayPool<byte>.Shared.Return(Map.Array ?? Array.Empty<byte>());
-			Map = default;
+			map.Dispose();
 		}
 	}
 }

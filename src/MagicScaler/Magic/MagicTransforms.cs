@@ -99,22 +99,11 @@ namespace PhotoSauce.MagicScaler
 			var interpolatory = height == ctx.Source.Height ? InterpolationSettings.NearestNeighbor : hybrid ? InterpolationSettings.Average : interpolator;
 
 			if (fmt.NumericRepresentation == PixelNumericRepresentation.Float)
-			{
-				var mx = ctx.AddDispose(KernelMap<float>.MakeScaleMap(ctx.Source.Width, width, fmt.ColorChannelCount, fmt.AlphaRepresentation != PixelAlphaRepresentation.None, true, interpolatorx));
-				var my = ctx.AddDispose(KernelMap<float>.MakeScaleMap(ctx.Source.Height, height, fmt.ChannelCount == 3 ? 4 : fmt.ColorChannelCount, fmt.AlphaRepresentation != PixelAlphaRepresentation.None, true, interpolatory));
-
-				ctx.Source = ctx.AddDispose(new ConvolutionTransform<float, float>(ctx.Source, mx, my));
-			}
+				ctx.Source = ctx.AddDispose(ConvolutionTransform<float, float>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory));
+			else if (fmt.NumericRepresentation == PixelNumericRepresentation.Fixed)
+				ctx.Source = ctx.AddDispose(ConvolutionTransform<ushort, int>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory));
 			else
-			{
-				var mx = ctx.AddDispose(KernelMap<int>.MakeScaleMap(ctx.Source.Width, width, 1, false, false, interpolatorx));
-				var my = ctx.AddDispose(KernelMap<int>.MakeScaleMap(ctx.Source.Height, height, 1, false, false, interpolatory));
-
-				if (fmt.NumericRepresentation == PixelNumericRepresentation.Fixed)
-					ctx.Source = ctx.AddDispose(new ConvolutionTransform<ushort, int>(ctx.Source, mx, my));
-				else
-					ctx.Source = ctx.AddDispose(new ConvolutionTransform<byte, int>(ctx.Source, mx, my));
-			}
+				ctx.Source = ctx.AddDispose(ConvolutionTransform<byte, int>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory));
 		}
 
 		public static void AddUnsharpMask(WicProcessingContext ctx)
@@ -125,22 +114,11 @@ namespace PhotoSauce.MagicScaler
 
 			var fmt = ctx.Source.Format;
 			if (fmt.NumericRepresentation == PixelNumericRepresentation.Float)
-			{
-				var mapx = ctx.AddDispose(KernelMap<float>.MakeBlurMap(ctx.Source.Width, ss.Radius, 1, false, true));
-				var mapy = ctx.AddDispose(KernelMap<float>.MakeBlurMap(ctx.Source.Height, ss.Radius, 1, false, true));
-
-				ctx.Source = ctx.AddDispose(new UnsharpMaskTransform<float, float>(ctx.Source, mapx, mapy, ss));
-			}
+				ctx.Source = ctx.AddDispose(UnsharpMaskTransform<float, float>.CreateSharpen(ctx.Source, ss));
+			else if (fmt.NumericRepresentation == PixelNumericRepresentation.Fixed)
+				ctx.Source = ctx.AddDispose(UnsharpMaskTransform<ushort, int>.CreateSharpen(ctx.Source, ss));
 			else
-			{
-				var mapx = ctx.AddDispose(KernelMap<int>.MakeBlurMap(ctx.Source.Width, ss.Radius, 1, false, false));
-				var mapy = ctx.AddDispose(KernelMap<int>.MakeBlurMap(ctx.Source.Height, ss.Radius, 1, false, false));
-
-				if (fmt.NumericRepresentation == PixelNumericRepresentation.Fixed)
-					ctx.Source = ctx.AddDispose(new UnsharpMaskTransform<ushort, int>(ctx.Source, mapx, mapy, ss));
-				else
-					ctx.Source = ctx.AddDispose(new UnsharpMaskTransform<byte, int>(ctx.Source, mapx, mapy, ss));
-			}
+				ctx.Source = ctx.AddDispose(UnsharpMaskTransform<byte, int>.CreateSharpen(ctx.Source, ss));
 		}
 
 		public static void AddMatte(WicProcessingContext ctx)

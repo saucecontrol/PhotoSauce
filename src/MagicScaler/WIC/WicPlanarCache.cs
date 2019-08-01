@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Drawing;
+using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 using PhotoSauce.MagicScaler.Interop;
 
@@ -66,15 +68,16 @@ namespace PhotoSauce.MagicScaler
 		unsafe public void CopyPixels(WicPlane plane, in Rectangle prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
 			var buff = plane == WicPlane.Luma ? buffY : buffC;
+			int bpp = plane == WicPlane.Luma ? 1 : 2;
+
 			for (int y = 0; y < prc.Height; y++)
 			{
 				int line = prc.Y + y;
 				if (!buff.ContainsLine(line))
 					loadBuffer(plane, line);
 
-				int bpp = plane == WicPlane.Luma ? 1 : 2;
-				fixed (byte* pline = buff.PrepareRead(line, 1))
-					Buffer.MemoryCopy(pline + prc.X * bpp, (byte*)pbBuffer + y * cbStride, cbStride, prc.Width * bpp);
+				var lspan = buff.PrepareRead(line, 1).Slice(prc.X * bpp, prc.Width * bpp);
+				Unsafe.CopyBlockUnaligned(ref Unsafe.AsRef<byte>((byte*)pbBuffer  + y * cbStride), ref MemoryMarshal.GetReference(lspan), (uint)lspan.Length);
 			}
 		}
 

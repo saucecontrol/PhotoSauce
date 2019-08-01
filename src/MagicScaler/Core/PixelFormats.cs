@@ -53,8 +53,6 @@ namespace PhotoSauce.MagicScaler
 		public PixelAlphaRepresentation AlphaRepresentation;
 		public PixelColorspace Colorspace;
 
-		public int ColorChannelCount => ChannelCount - (AlphaRepresentation == PixelAlphaRepresentation.None ? 0 : 1);
-
 		public bool Equals(PixelFormat other) => FormatGuid == other.FormatGuid;
 
 		public static bool operator ==(PixelFormat left, PixelFormat right) => left.Equals(right);

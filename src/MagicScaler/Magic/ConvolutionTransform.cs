@@ -54,7 +54,25 @@ namespace PhotoSauce.MagicScaler
 		private readonly bool bufferSource;
 		private readonly int inWidth;
 
-		public ConvolutionTransform(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, bool lumaMode = false) : base(source)
+		public static ConvolutionTransform<TPixel, TWeight> CreateResize(PixelSource src, uint width, uint height, InterpolationSettings interpolatorx, InterpolationSettings interpolatory)
+		{
+			var fmt = src.Format;
+			var mx = KernelMap<TWeight>.MakeScaleMap(src.Width, width, interpolatorx, fmt.ChannelCount, typeof(TPixel) == typeof(float));
+			var my = KernelMap<TWeight>.MakeScaleMap(src.Height, height, interpolatory, fmt.ChannelCount == 3 ? 4 : fmt.ChannelCount, typeof(TPixel) == typeof(float));
+
+			return new ConvolutionTransform<TPixel, TWeight>(src, mx, my);
+		}
+
+		public static ConvolutionTransform<TPixel, TWeight> CreateBlur(PixelSource src, double radius)
+		{
+			var fmt = src.Format;
+			var mx = KernelMap<TWeight>.MakeBlurMap(src.Width, radius, fmt.ChannelCount, typeof(TPixel) == typeof(float));
+			var my = KernelMap<TWeight>.MakeBlurMap(src.Height, radius, fmt.ChannelCount == 3 ? 4 : fmt.ChannelCount, typeof(TPixel) == typeof(float));
+
+			return new ConvolutionTransform<TPixel, TWeight>(src, mx, my);
+		}
+
+		protected ConvolutionTransform(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, bool lumaMode = false) : base(source)
 		{
 			var infmt = Format;
 			var workfmt = infmt;
@@ -89,16 +107,16 @@ namespace PhotoSauce.MagicScaler
 			Height = (uint)mapy.OutPixels;
 
 			int bpp = workfmt.BitsPerPixel / 8 / Unsafe.SizeOf<TPixel>() * Unsafe.SizeOf<TWeight>();
-			IntBuff = new PixelBuffer(mapy.Samples, bpp, mapy.Samples * mapx.OutPixels * bpp);
+			IntBuff = new PixelBuffer(mapy.Samples, bpp, true, mapy.Samples * mapx.OutPixels * bpp);
 
 			if (bufferSource = lumaMode)
 			{
-				SrcBuff = new PixelBuffer(mapy.Samples, (int)BufferStride);
+				SrcBuff = new PixelBuffer(mapy.Samples, (int)BufferStride, true);
 
 				if (workfmt.IsBinaryCompatibleWith(infmt))
 					WorkBuff = SrcBuff;
 				else
-					WorkBuff = new PixelBuffer(mapy.Samples, MathUtil.PowerOf2Ceiling(workfmt.BitsPerPixel / 8 * inWidth, IntPtr.Size));
+					WorkBuff = new PixelBuffer(mapy.Samples, MathUtil.PowerOf2Ceiling(workfmt.BitsPerPixel / 8 * inWidth, IntPtr.Size), true);
 			}
 			else
 			{
@@ -108,7 +126,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe protected override void CopyPixelsInternal(in Rectangle prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
-			fixed (byte* mapxstart = &XMap.Map.Array[0], mapystart = &YMap.Map.Array[0])
+			fixed (byte* mapxstart = XMap.Map, mapystart = YMap.Map)
 			{
 				int oh = prc.Height, ow = prc.Width, ox = prc.X, oy = prc.Y;
 				int smapy = YMap.Samples, chan = YMap.Channels;
@@ -120,14 +138,14 @@ namespace PhotoSauce.MagicScaler
 
 					int first = iy;
 					int lines = smapy;
-					var ispan = IntBuff.PrepareLoad(ref first, ref lines, true);
+					var ispan = IntBuff.PrepareLoad(ref first, ref lines);
 
 					for (int ly = 0; ly < lines; ly++)
 					{
 						int lf = first + ly;
 						int ll = 1;
-						var bspan = bufferSource ? SrcBuff.PrepareLoad(ref lf, ref ll, true) : lineBuff.Memory.Span;
-						var wspan = bufferSource && WorkBuff != SrcBuff ? WorkBuff.PrepareLoad(ref lf, ref ll, true) : bspan;
+						var bspan = bufferSource ? SrcBuff.PrepareLoad(ref lf, ref ll) : lineBuff.Memory.Span;
+						var wspan = bufferSource && WorkBuff != SrcBuff ? WorkBuff.PrepareLoad(ref lf, ref ll) : bspan;
 						var tspan = ispan.Slice(ly * IntBuff.Stride);
 
 						fixed (byte* bline = bspan, wline = wspan, tline = tspan)
@@ -137,7 +155,7 @@ namespace PhotoSauce.MagicScaler
 							Timer.Start();
 
 							if (bline != wline)
-								convertToWorking(bline, wline, SrcBuff.Stride, WorkBuff.Stride);
+								GreyConverter.ConvertLine(Format.FormatGuid, bline, wline, SrcBuff.Stride, WorkBuff.Stride);
 
 							XProcessor.ConvolveSourceLine(wline, tline, tspan.Length, mapxstart, XMap.Samples, smapy);
 						}
@@ -154,38 +172,10 @@ namespace PhotoSauce.MagicScaler
 				YProcessor.WriteDestLine(tstart, ostart, ox, ow, pmapy, smapy);
 		}
 
-		unsafe private void convertToWorking(byte* bline, byte* wline, int bstride, int wstride)
-		{
-			if (Format == PixelFormat.Grey32BppLinearFloat || Format == PixelFormat.Y32BppLinearFloat)
-				GreyConverter.ConvertGreyLinearToGreyFloat(bline, wline, bstride);
-			else if (Format == PixelFormat.Grey16BppLinearUQ15 || Format == PixelFormat.Y16BppLinearUQ15)
-				GreyConverter.ConvertGreyLinearToGreyUQ15(bline, wline, bstride);
-			else if (Format.FormatGuid == Consts.GUID_WICPixelFormat24bppBGR)
-				GreyConverter.ConvertBgrToGreyByte(bline, wline, bstride);
-			else if (Format == PixelFormat.Bgr48BppLinearUQ15)
-				GreyConverter.ConvertBgrToGreyUQ15(bline, wline, bstride);
-			else if (Format.FormatGuid == Consts.GUID_WICPixelFormat32bppBGR || Format.FormatGuid == Consts.GUID_WICPixelFormat32bppBGRA || Format.FormatGuid == Consts.GUID_WICPixelFormat32bppPBGRA)
-				GreyConverter.ConvertBgrxToGreyByte(bline, wline, bstride);
-			else if (Format == PixelFormat.Pbgra64BppLinearUQ15)
-				GreyConverter.ConvertBgrxToGreyUQ15(bline, wline, bstride);
-			else if (Format == PixelFormat.Bgr96BppFloat)
-				GreyConverter.ConvertBgrToGreyFloat(bline, wline, bstride, false);
-			else if (Format == PixelFormat.Bgrx128BppFloat || Format == PixelFormat.Pbgra128BppFloat)
-				GreyConverter.ConvertBgrxToGreyFloat(bline, wline, bstride, false);
-			else if (Format == PixelFormat.Bgr96BppLinearFloat)
-			{
-				GreyConverter.ConvertBgrToGreyFloat(bline, wline, bstride, true);
-				GreyConverter.ConvertGreyLinearToGreyFloat(wline, wline, wstride);
-			}
-			else if (Format == PixelFormat.Bgrx128BppLinearFloat || Format == PixelFormat.Pbgra128BppLinearFloat)
-			{
-				GreyConverter.ConvertBgrxToGreyFloat(bline, wline, bstride, true);
-				GreyConverter.ConvertGreyLinearToGreyFloat(wline, wline, wstride);
-			}
-		}
-
 		public virtual void Dispose()
 		{
+			XMap.Dispose();
+			YMap.Dispose();
 			IntBuff.Dispose();
 			SrcBuff?.Dispose();
 			WorkBuff?.Dispose();
@@ -202,7 +192,15 @@ namespace PhotoSauce.MagicScaler
 
 		private readonly IMemoryOwner<byte> blurBuff;
 
-		public UnsharpMaskTransform(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, UnsharpMaskSettings ss) : base(source, mapx, mapy, true)
+		public static UnsharpMaskTransform<TPixel, TWeight> CreateSharpen(PixelSource src, UnsharpMaskSettings sharp)
+		{
+			var mx = KernelMap<TWeight>.MakeBlurMap(src.Width, sharp.Radius, 1, typeof(TPixel) == typeof(float));
+			var my = KernelMap<TWeight>.MakeBlurMap(src.Height, sharp.Radius, 1, typeof(TPixel) == typeof(float));
+
+			return new UnsharpMaskTransform<TPixel, TWeight>(src, mx, my, sharp);
+		}
+
+		private UnsharpMaskTransform(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, UnsharpMaskSettings ss) : base(source, mapx, mapy, true)
 		{
 			sharpenSettings = ss;
 			processor = ProcessorMap[Format.FormatGuid];

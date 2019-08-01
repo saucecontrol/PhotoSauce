@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Collections.Generic;
 
 namespace PhotoSauce.MagicScaler
@@ -6,14 +7,17 @@ namespace PhotoSauce.MagicScaler
 	/// <summary>Represents basic instrumentation information for a single pipeline step.</summary>
 	public sealed class PixelSourceStats
 	{
+		internal long TimerTicks;
+
 		/// <summary>A friendly name for the <see cref="IPixelSource" />.</summary>
 		public string SourceName { get; internal set; }
 		/// <summary>The number of times <see cref="IPixelSource.CopyPixels" /> was invoked.</summary>
 		public int CallCount { get; internal set; }
 		/// <summary>The total number of pixels retrieved from the <see cref="IPixelSource" />.</summary>
 		public int PixelCount { get; internal set; }
+
 		/// <summary>The total processing time of the <see cref="IPixelSource" /> in milliseconds.  Note that WIC-based pixel sources will report times inclusive of upstream sources.</summary>
-		public double ProcessingTime { get; internal set; }
+		public double ProcessingTime => (double)TimerTicks / Stopwatch.Frequency * 1000;
 
 		/// <inheritdoc />
 		public override string ToString() => $"{SourceName}: Calls={CallCount}, Pixels={PixelCount}, Time={ProcessingTime:f2}ms";

@@ -1,45 +1,75 @@
 ﻿using System;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler
 {
 	internal class PixelBuffer : IDisposable
 	{
-		public readonly int Stride;
-
 		private readonly int minCapacity;
 		private readonly int window;
+		private readonly bool clear;
+
 		private int capacity;
 		private int start;
 		private int loaded;
 		private int consumed;
-		private byte[] buffer;
+		private byte[]? buffer;
 
-		public PixelBuffer(int minLines, int stride, int windowSize = 0)
+		public readonly int Stride;
+
+		public PixelBuffer(int minLines, int stride, bool clearNew = false, int windowSize = 0)
 		{
 			minCapacity = minLines;
 			window = windowSize;
+			clear = clearNew;
 			Stride = stride;
 		}
 
-		unsafe public Span<byte> PrepareLoad(ref int first, ref int lines, bool clear = false)
+		private Span<byte> init(int first, int lines)
+		{
+			if (buffer is null)
+			{
+				buffer = ArrayPool<byte>.Shared.Rent(window != 0 ? window : Math.Max(minCapacity, lines) * Stride);
+				capacity = (buffer.Length - window) / Stride;
+
+				if (clear)
+					Unsafe.InitBlock(ref buffer[0], 0, (uint)buffer.Length);
+			}
+
+			start = first;
+			loaded = lines;
+			consumed = 0;
+
+			return new Span<byte>(buffer, 0, window != 0 ? window : lines * Stride);
+		}
+
+		private void grow(int cbKeep, int cbKill)
+		{
+			var tbuff = ArrayPool<byte>.Shared.Rent(buffer!.Length * 2);
+
+			if (cbKeep > 0)
+				Unsafe.CopyBlockUnaligned(ref tbuff[0], ref buffer[cbKill], (uint)cbKeep);
+
+			ArrayPool<byte>.Shared.Return(buffer);
+
+			buffer = tbuff;
+			capacity = (buffer.Length - window) / Stride;
+
+			if (clear)
+				Unsafe.InitBlockUnaligned(ref buffer[cbKeep], 0, (uint)(buffer.Length - cbKeep));
+		}
+
+		unsafe private void shift(int cbKeep, int cbKill)
+		{
+			fixed (byte* pb = &buffer![0])
+				Buffer.MemoryCopy(pb + cbKill, pb, buffer.Length, cbKeep);
+		}
+
+		public Span<byte> PrepareLoad(ref int first, ref int lines)
 		{
 			if (buffer is null || first < start || first > (start + loaded))
-			{
-				if (buffer is null)
-				{
-					buffer = ArrayPool<byte>.Shared.Rent(window != 0 ? window : Math.Max(minCapacity, lines) * Stride);
-					capacity = (buffer.Length - window) / Stride;
-
-					if (clear)
-						buffer.AsSpan().Fill(0);
-				}
-
-				start = first;
-				loaded = lines;
-				consumed = 0;
-				return new Span<byte>(buffer, 0, window != 0 ? window : lines * Stride);
-			}
+				return init(first, lines);
 
 			int toLoad;
 			int toKeep;
@@ -59,39 +89,26 @@ namespace PhotoSauce.MagicScaler
 				toLoad = (first + lines) - (newStart + toKeep);
 				first += lines - toLoad;
 				int toKill = loaded - toKeep;
-				int twKill = window == 0 ? 0 : Math.Min(minCapacity, loaded) - toKeep;
 
-				if (capacity - toKeep < toLoad)
+				if (toKeep != 0)
 				{
-					var tbuff = ArrayPool<byte>.Shared.Rent(buffer.Length * 2);
+					int cbKeep = window == 0 ? toKeep * Stride : window - (Math.Min(minCapacity, loaded) - toKeep) * Stride;
+					int cbKill = toKill * Stride;
 
-					if (toKeep > 0)
-					fixed (byte* pb = &buffer[0], pt = &tbuff[0])
-						Buffer.MemoryCopy(pb + toKill * Stride, pt, tbuff.Length, window != 0 ? window - twKill * Stride : toKeep * Stride);
-
-					ArrayPool<byte>.Shared.Return(buffer);
-
-					buffer = tbuff;
-					capacity = (buffer.Length - window) / Stride;
-
-					if (clear)
-						buffer.AsSpan().Slice(toKeep * Stride).Fill(0);
-				}
-				else if (toKeep > 0)
-				{
-					fixed (byte* pb = &buffer[0])
-						Buffer.MemoryCopy(pb + toKill * Stride, pb, buffer.Length, window != 0 ? window - twKill * Stride : toKeep * Stride);
+					if (capacity - toKeep < toLoad)
+						grow(cbKeep, cbKill);
+					else
+						shift(cbKeep, cbKill);
 				}
 
 				start = newStart;
 				consumed -= toKill;
 			}
 
-			int swindow = window == 0 ? 0 : window - (lines - toLoad) * Stride;
-			int offset = first - start;
 			lines = toLoad;
 			loaded = toKeep + toLoad;
-			return new Span<byte>(buffer, offset * Stride, window != 0 ? swindow : lines * Stride);
+
+			return buffer.AsSpan((first - start) * Stride, window == 0 ? lines * Stride : window - (lines - toLoad) * Stride);
 		}
 
 		unsafe public ReadOnlySpan<byte> PrepareRead(int first, int lines)
