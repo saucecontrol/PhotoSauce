@@ -2,6 +2,11 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
+#if HWINTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
+
 using static System.Math;
 
 namespace PhotoSauce.MagicScaler
@@ -30,24 +35,9 @@ namespace PhotoSauce.MagicScaler
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int Clamp(this int x, int min, int max) => Min(Max(min, x), max);
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ushort Clamp(this ushort x, ushort min, ushort max) => Min(Max(min, x), max);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static double Clamp(this double x, double min, double max) => Min(Max(min, x), max);
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if MATHF
-		public static float Clamp(this float x, float min, float max) => MathF.Min(MathF.Max(min, x), max);
-#else
-		public static float Clamp(this float x, float min, float max) => x < min ? min : x > max ? max : x;
-#endif
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Vector3 Clamp(this Vector3 x, Vector3 min, Vector3 max) => Vector3.Min(Vector3.Max(min, x), max);
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Vector4 Clamp(this Vector4 x, Vector4 min, Vector4 max) => Vector4.Min(Vector4.Max(min, x), max);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Vector<T> Clamp<T>(this Vector<T> x, Vector<T> min, Vector<T> max) where T : unmanaged => Vector.Min(Vector.Max(min, x), max);
@@ -160,9 +150,26 @@ namespace PhotoSauce.MagicScaler
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static float Lerp(float l, float h, float d) => h * d + l * (1f - d);
 
-		public static bool IsRouglyEqualTo(this in Matrix4x4 m1, in Matrix4x4 m2)
+		public static bool IsRoughlyEqualTo(this float x, float y) => (x - y).Abs() < 0.0001f;
+
+		unsafe public static bool IsRouglyEqualTo(this Matrix4x4 m1, Matrix4x4 m2)
 		{
 			const float epsilon = 0.001f;
+
+#if HWINTRINSICS
+			if (Sse.IsSupported)
+			{
+				var veps = Vector128.Create(epsilon);
+				var vmsk = Vector128.Create(0x7fffffff).AsSingle();
+
+				return
+					Sse.MoveMask(Sse.CompareNotLessThan(Sse.And(Sse.Subtract(Sse.LoadVector128(&m1.M11), Sse.LoadVector128(&m2.M11)), vmsk), veps)) == 0 &&
+					Sse.MoveMask(Sse.CompareNotLessThan(Sse.And(Sse.Subtract(Sse.LoadVector128(&m1.M21), Sse.LoadVector128(&m2.M21)), vmsk), veps)) == 0 &&
+					Sse.MoveMask(Sse.CompareNotLessThan(Sse.And(Sse.Subtract(Sse.LoadVector128(&m1.M31), Sse.LoadVector128(&m2.M31)), vmsk), veps)) == 0 &&
+					Sse.MoveMask(Sse.CompareNotLessThan(Sse.And(Sse.Subtract(Sse.LoadVector128(&m1.M41), Sse.LoadVector128(&m2.M41)), vmsk), veps)) == 0;
+			}
+#endif
+
 			var md = m1 - m2;
 
 			return
@@ -172,6 +179,5 @@ namespace PhotoSauce.MagicScaler
 				md.M41.Abs() < epsilon && md.M42.Abs() < epsilon && md.M43.Abs() < epsilon && md.M44.Abs() < epsilon;
 		}
 
-		public static bool IsRoughlyEqualTo(this float x, float y) => (x - y).Abs() < 0.0001f;
 	}
 }

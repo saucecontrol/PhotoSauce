@@ -11,6 +11,8 @@ using static System.Buffers.Binary.BinaryPrimitives;
 
 namespace PhotoSauce.MagicScaler
 {
+	internal enum ColorProfileType { Unknown, Curve, Matrix, Table }
+
 	//http://www.color.org/specification/ICC1v43_2010-12.pdf
 	internal class ColorProfile
 	{
@@ -533,14 +535,21 @@ namespace PhotoSauce.MagicScaler
 
 				// not handling these yet, so we'll hand off to WCS
 				if (tag == IccTags.A2B0 || tag == IccTags.B2A0)
+				{
+					ProfileType = ColorProfileType.Table;
 					return;
+				}
 
 				tagEntries[i] = new TagEntry(tag, (int)pos, (int)cb);
 			}
 
-			IsGreyTrc = DataColorSpace == ProfileColorSpace.Grey
+			if (DataColorSpace == ProfileColorSpace.Grey
 				&& tryGetTagEntry(tagEntries, IccTags.kTRC, out var kTRC)
-				&& tryGetCurve(prof.Slice(kTRC.pos, kTRC.cb));
+				&& tryGetCurve(prof.Slice(kTRC.pos, kTRC.cb))
+			)
+			{
+				ProfileType = ColorProfileType.Curve;
+			}
 
 			if (DataColorSpace == ProfileColorSpace.Rgb
 				&& tryGetTagEntry(tagEntries, IccTags.bTRC, out var bTRC)
@@ -555,11 +564,14 @@ namespace PhotoSauce.MagicScaler
 				var gTRCData = prof.Slice(gTRC.pos, gTRC.cb);
 				var rTRCData = prof.Slice(rTRC.pos, rTRC.cb);
 
-				IsRgbMatrix = bTRCData.SequenceEqual(gTRCData) && bTRCData.SequenceEqual(rTRCData)
+				if (bTRCData.SequenceEqual(gTRCData) && bTRCData.SequenceEqual(rTRCData)
 					&& tryGetCurve(bTRCData)
-					&& tryGetMatrix(prof.Slice(bXYZ.pos, bXYZ.cb), prof.Slice(gXYZ.pos, gXYZ.cb), prof.Slice(rXYZ.pos, rXYZ.cb));
+					&& tryGetMatrix(prof.Slice(bXYZ.pos, bXYZ.cb), prof.Slice(gXYZ.pos, gXYZ.cb), prof.Slice(rXYZ.pos, rXYZ.cb))
+				)
+				{
+					ProfileType = ColorProfileType.Matrix;
+				}
 			}
-
 		}
 
 		public static ColorProfile sRGB => srgb.Value;
@@ -568,12 +580,11 @@ namespace PhotoSauce.MagicScaler
 		public ProfileColorSpace DataColorSpace { get; private set; }
 		public ProfileColorSpace PcsColorSpace { get; private set; }
 
+		public ColorProfileType ProfileType { get; private set; }
 		public bool IsValid { get; private set; }
-		public bool IsGreyTrc { get; private set; }
-		public bool IsRgbMatrix { get; private set; }
+
 		public bool IsLinear { get; private set; }
-		public bool IsSrgbCurve => Gamma == sRGB.Gamma;
-		public bool IsSrgb => IsSrgbCurve && Matrix == sRGB.Matrix;
+		public bool IsSrgb => Gamma == sRGB.Gamma && (ProfileType == ColorProfileType.Curve || Matrix == sRGB.Matrix);
 
 		public Matrix4x4 Matrix { get; private set; } = Matrix4x4.Identity;
 		public Matrix4x4 InverseMatrix { get; private set; } = Matrix4x4.Identity;

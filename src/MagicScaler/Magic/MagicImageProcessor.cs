@@ -12,6 +12,9 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>True to allow <a href="https://en.wikipedia.org/wiki/YCbCr">Y'CbCr</a> images to be processed in their native planar format, false to force RGB conversion before processing.</summary>
 		public static bool EnablePlanarPipeline { get; set; } = true;
 
+		/// <summary>True to check for Orientation tag in Xmp metadata in addition to the default Exif metadata location, false to check Exif only.</summary>
+		public static bool EnableXmpOrientation { get; set; } = false;
+
 		/// <summary>Overrides the default <a href="https://en.wikipedia.org/wiki/SIMD">SIMD</a> support detection to force floating point processing on or off.</summary>
 		public static bool EnableSimd { get; set; } = Vector.IsHardwareAccelerated && (Vector<float>.Count == 4 || Vector<float>.Count == 8);
 

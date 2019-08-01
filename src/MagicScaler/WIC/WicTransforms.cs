@@ -92,12 +92,13 @@ namespace PhotoSauce.MagicScaler
 				ctx.AddRef(metareader);
 
 				// Exif orientation
+				string orientationPath = MagicImageProcessor.EnableXmpOrientation ? "System.Photo.Orientation" : "/app1/ifd/{ushort=274}";
 				var pvorient = default(PropVariant);
-				if (ctx.Settings.OrientationMode != OrientationMode.Ignore && metareader.TryGetMetadataByName("System.Photo.Orientation", out pvorient))
+				if (ctx.Settings.OrientationMode != OrientationMode.Ignore && metareader.TryGetMetadataByName(orientationPath, out pvorient))
 				{
 #pragma warning disable 0618 // VarEnum is obsolete
 					if (ctx.Settings.OrientationMode == OrientationMode.Normalize && pvorient.UnmanagedType == VarEnum.VT_UI2)
-						ctx.DecoderFrame.ExifOrientation = (Orientation)Math.Min(Math.Max((ushort)Orientation.Normal, (ushort)pvorient.Value), (ushort)Orientation.Rotate270);
+						ctx.DecoderFrame.ExifOrientation = (Orientation)Math.Min(Math.Max((ushort)Orientation.Normal, (ushort)pvorient.Value!), (ushort)Orientation.Rotate270);
 #pragma warning restore 0618
 
 					var opt = ctx.DecoderFrame.ExifOrientation.ToWicTransformOptions();
@@ -121,7 +122,7 @@ namespace PhotoSauce.MagicScaler
 				}
 
 				if (ctx.Settings.OrientationMode == OrientationMode.Preserve && pvorient != null)
-					propdic["System.Photo.Orientation"] = pvorient;
+					propdic[orientationPath] = pvorient;
 
 				ctx.DecoderFrame.Metadata = propdic;
 			}
@@ -164,12 +165,12 @@ namespace PhotoSauce.MagicScaler
 						// match only color profiles that match our intended use. if we have a standard sRGB profile, don't save it; we don't need to convert
 						if (cpi.IsValid && (
 							   (cpi.DataColorSpace == ColorProfile.ProfileColorSpace.Rgb && (fmt.ColorRepresentation == PixelColorRepresentation.Bgr || fmt.ColorRepresentation == PixelColorRepresentation.Rgb) && !cpi.IsSrgb)
-							|| (cpi.DataColorSpace == ColorProfile.ProfileColorSpace.Grey && fmt.ColorRepresentation == PixelColorRepresentation.Grey && !cpi.IsSrgbCurve)
+							|| (cpi.DataColorSpace == ColorProfile.ProfileColorSpace.Grey && fmt.ColorRepresentation == PixelColorRepresentation.Grey && !cpi.IsSrgb)
 							|| (cpi.DataColorSpace == ColorProfile.ProfileColorSpace.Cmyk && fmt.ColorRepresentation == PixelColorRepresentation.Cmyk)
 						))
 						{
 							profile = cc;
-							if (cpi.IsRgbMatrix || cpi.IsGreyTrc)
+							if (cpi.ProfileType == ColorProfileType.Matrix || cpi.ProfileType == ColorProfileType.Curve)
 								ctx.SourceColorProfile = cpi;
 							break;
 						}
