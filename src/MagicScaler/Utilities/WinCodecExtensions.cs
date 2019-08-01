@@ -9,23 +9,22 @@ namespace PhotoSauce.MagicScaler.Interop
 	{
 		private static IWICColorContext getDefaultColorContext(Guid pixelFormat)
 		{
-			using (var pfi = new ComHandle<IWICPixelFormatInfo>(Factory.CreateComponentInfo(pixelFormat)))
-				return pfi.ComObject.GetColorContext();
+			using var pfi = new ComHandle<IWICPixelFormatInfo>(Factory.CreateComponentInfo(pixelFormat));
+			return pfi.ComObject.GetColorContext();
 		}
 
 		private static IWICColorContext getResourceColorContext(string name)
 		{
 			string resName = nameof(PhotoSauce) + "." + nameof(MagicScaler) + ".Resources." + name;
-			using (var stm = typeof(Wic).GetTypeInfo().Assembly.GetManifestResourceStream(resName))
-			using (var buff = MemoryPool<byte>.Shared.Rent((int)stm.Length))
-			{
-				MemoryMarshal.TryGetArray(buff.Memory.Slice(0, (int)stm.Length), out ArraySegment<byte> cca);
-				stm.Read(cca.Array, cca.Offset, cca.Count);
+			using var stm = typeof(Wic).GetTypeInfo().Assembly.GetManifestResourceStream(resName);
+			using var buff = MemoryPool<byte>.Shared.Rent((int)stm.Length);
 
-				var cc = Factory.CreateColorContext();
-				cc.InitializeFromMemory(cca.Array, (uint)cca.Count);
-				return cc;
-			}
+			MemoryMarshal.TryGetArray(buff.Memory.Slice(0, (int)stm.Length), out ArraySegment<byte> cca);
+			stm.Read(cca.Array, cca.Offset, cca.Count);
+
+			var cc = Factory.CreateColorContext();
+			cc.InitializeFromMemory(cca.Array, (uint)cca.Count);
+			return cc;
 		}
 
 		public static readonly IWICImagingFactory Factory = new WICImagingFactory2() as IWICImagingFactory ?? throw new PlatformNotSupportedException();
@@ -66,7 +65,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			return hr >= 0;
 		}
 
-		public static bool TryGetMetadataByName(this IWICMetadataQueryReader meta, string name, out PropVariant value)
+		public static bool TryGetMetadataByName(this IWICMetadataQueryReader meta, string name, out PropVariant? value)
 		{
 			value = null;
 

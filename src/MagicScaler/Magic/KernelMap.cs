@@ -17,8 +17,8 @@ namespace PhotoSauce.MagicScaler
 
 		static KernelMap()
 		{
-			if (typeof(T) != typeof(int) && typeof(T) != typeof(float)) throw new NotSupportedException($"{nameof(T)} must be int or float");
-			if (Unsafe.SizeOf<T>() != sizeof(int)) throw new NotSupportedException($"sizeof({nameof(T)}) and sizeof(int) must be equal");
+			if (typeof(T) != typeof(int) && typeof(T) != typeof(float)) throw new NotSupportedException(nameof(T) + " must be int or float");
+			if (Unsafe.SizeOf<T>() != sizeof(int)) throw new NotSupportedException("sizeof(" + nameof(T) + ") and sizeof(int) must be equal");
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

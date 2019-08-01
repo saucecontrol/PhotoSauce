@@ -214,7 +214,7 @@ namespace PhotoSauce.MagicScaler
 		private UnsharpMaskSettings unsharpMask;
 		private int jpegQuality;
 		private ChromaSubsampleMode jpegSubsampling;
-		private ImageFileInfo imageInfo;
+		private ImageFileInfo? imageInfo;
 		internal Rectangle InnerRect;
 		internal Rectangle OuterRect;
 
@@ -436,7 +436,7 @@ namespace PhotoSauce.MagicScaler
 				try { s.MatteColor = (Color)(new ColorConverter()).ConvertFromString(color); } catch { }
 			}
 
-			string filter = dic.GetValueOrDefault("filter")?.ToLower();
+			string? filter = dic.GetValueOrDefault("filter")?.ToLower();
 			switch (filter)
 			{
 				case "point":
@@ -482,7 +482,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			var clone = settings.Clone();
 			clone.NormalizeFrom(imageInfo);
-			clone.imageInfo = null;
+			clone.imageInfo = default;
 
 			return clone;
 		}

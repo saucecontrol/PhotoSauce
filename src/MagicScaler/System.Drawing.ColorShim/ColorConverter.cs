@@ -13,14 +13,12 @@ namespace System.Drawing.ColorShim
 {
     internal class ColorConverter : TypeConverter
     {
-#if !NETSTANDARD1_3
         private static readonly Lazy<StandardValuesCollection> s_valuesLazy = new Lazy<StandardValuesCollection>(() =>
         {
             // We must take the value from each hashtable and combine them.
             var set = new HashSet<Color>(ColorTable.Colors.Values);
             return new StandardValuesCollection(set.OrderBy(c => c, new ColorComparer()).ToList());
         });
-#endif
 
         public ColorConverter()
         {
@@ -105,14 +103,14 @@ namespace System.Drawing.ColorShim
 
             return base.ConvertTo(context, culture, value, destinationType);
         }
-#if !NETSTANDARD1_3
+
         public override StandardValuesCollection GetStandardValues(ITypeDescriptorContext context)
         {
             return s_valuesLazy.Value;
         }
 
         public override bool GetStandardValuesSupported(ITypeDescriptorContext context) => true;
-#endif
+
         private class ColorComparer : IComparer<Color>
         {
             public int Compare(Color left, Color right) => string.CompareOrdinal(left.Name, right.Name);

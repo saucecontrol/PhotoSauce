@@ -192,7 +192,7 @@ namespace PhotoSauce.MagicScaler
 			lineBuff?.Dispose();
 		}
 
-		public override string ToString() => XProcessor?.ToString() ?? base.ToString();
+		public override string ToString() => XProcessor.ToString();
 	}
 
 	internal class UnsharpMaskTransform<TPixel, TWeight> : ConvolutionTransform<TPixel, TWeight> where TPixel : unmanaged where TWeight : unmanaged
@@ -228,6 +228,6 @@ namespace PhotoSauce.MagicScaler
 			blurBuff.Dispose();
 		}
 
-		public override string ToString() => $"{processor?.ToString() ?? base.ToString()}: Sharpen";
+		public override string ToString() => $"{processor.ToString()}: Sharpen";
 	}
 }

@@ -206,7 +206,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetAuthor(
 			uint cchAuthor,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)] 
-			StringBuilder wzAuthor
+			StringBuilder? wzAuthor
 		);
 
 		new Guid GetVendorGUID();
@@ -214,19 +214,19 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetVersion(
 			uint cchVersion,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)] 
-			StringBuilder wzVersion
+			StringBuilder? wzVersion
 		);
 
 		new uint GetSpecVersion(
 			uint cchSpecVersion,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)] 
-			StringBuilder wzSpecVersion
+			StringBuilder? wzSpecVersion
 		);
 
 		new uint GetFriendlyName(
 			uint cchFriendlyName,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)] 
-			StringBuilder wzFriendlyName
+			StringBuilder? wzFriendlyName
 		);
 		#endregion
 
@@ -235,19 +235,19 @@ namespace PhotoSauce.MagicScaler.Interop
 		uint GetContainerFormats(
 			uint cContainerFormats,
 			[Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)] 
-			Guid[] pguidContainerFormats
+			Guid[]? pguidContainerFormats
 		);
 
 		uint GetDeviceManufacturer(
 			uint cchDeviceManufacturer,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)] 
-			StringBuilder wzDeviceManufacturer
+			StringBuilder? wzDeviceManufacturer
 		);
 
 		uint GetDeviceModels(
 			uint cchDeviceModels,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]  
-			StringBuilder wzDeviceModels
+			StringBuilder? wzDeviceModels
 		);
 
 		[return: MarshalAs(UnmanagedType.Bool)]
@@ -283,7 +283,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetAuthor(
 			uint cchAuthor,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)] 
-			StringBuilder wzAuthor
+			StringBuilder? wzAuthor
 		);
 
 		new Guid GetVendorGUID();
@@ -291,19 +291,19 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetVersion(
 			uint cchVersion,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)] 
-			StringBuilder wzVersion
+			StringBuilder? wzVersion
 		);
 
 		new uint GetSpecVersion(
 			uint cchSpecVersion,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)] 
-			StringBuilder wzSpecVersion
+			StringBuilder? wzSpecVersion
 		);
 
 		new uint GetFriendlyName(
 			uint cchFriendlyName,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)] 
-			StringBuilder wzFriendlyName
+			StringBuilder? wzFriendlyName
 		);
 		#endregion
 
@@ -312,19 +312,19 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetContainerFormats(
 			uint cContainerFormats,
 			[Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)]
-			Guid[] pguidContainerFormats
+			Guid[]? pguidContainerFormats
 		);
 
 		new uint GetDeviceManufacturer(
 			uint cchDeviceManufacturer,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzDeviceManufacturer
+			StringBuilder? wzDeviceManufacturer
 		);
 
 		new uint GetDeviceModels(
 			uint cchDeviceModels,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzDeviceModels
+			StringBuilder? wzDeviceModels
 		);
 
 		[return: MarshalAs(UnmanagedType.Bool)]
@@ -377,7 +377,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetAuthor(
 			uint cchAuthor,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)] 
-			StringBuilder wzAuthor
+			StringBuilder? wzAuthor
 		);
 
 		new Guid GetVendorGUID();
@@ -385,19 +385,19 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetVersion(
 			uint cchVersion,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)] 
-			StringBuilder wzVersion
+			StringBuilder? wzVersion
 		);
 
 		new uint GetSpecVersion(
 			uint cchSpecVersion,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)] 
-			StringBuilder wzSpecVersion
+			StringBuilder? wzSpecVersion
 		);
 
 		new uint GetFriendlyName(
 			uint cchFriendlyName,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)] 
-			StringBuilder wzFriendlyName
+			StringBuilder? wzFriendlyName
 		);
 		#endregion
 
@@ -406,19 +406,19 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetContainerFormats(
 			uint cContainerFormats,
 			[Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)]
-			Guid[] pguidContainerFormats
+			Guid[]? pguidContainerFormats
 		);
 
 		new uint GetDeviceManufacturer(
 			uint cchDeviceManufacturer,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzDeviceManufacturer
+			StringBuilder? wzDeviceManufacturer
 		);
 
 		new uint GetDeviceModels(
 			uint cchDeviceModels,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzDeviceModels
+			StringBuilder? wzDeviceModels
 		);
 
 		[return: MarshalAs(UnmanagedType.Bool)]
@@ -449,7 +449,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPWStr)]
 			string wzFilename,
 			[MarshalAs(UnmanagedType.LPArray, SizeConst = 1)]
-			Guid[] pguidVendor,
+			Guid[]? pguidVendor,
 			GenericAccessRights dwDesiredAccess,
 			WICDecodeOptions metadataOptions
 		);
@@ -457,14 +457,14 @@ namespace PhotoSauce.MagicScaler.Interop
 		new IWICBitmapDecoder CreateDecoderFromStream(
 			IStream pIStream,
 			[MarshalAs(UnmanagedType.LPArray, SizeConst = 1)]
-			Guid[] pguidVendor,
+			Guid[]? pguidVendor,
 			WICDecodeOptions metadataOptions
 		);
 
 		new IWICBitmapDecoder CreateDecoderFromFileHandle(
 			IntPtr hFile,
 			[MarshalAs(UnmanagedType.LPArray, SizeConst = 1)]
-			Guid[] pguidVendor,
+			Guid[]? pguidVendor,
 			WICDecodeOptions metadataOptions
 		);
 
@@ -477,14 +477,14 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPStruct)]
 			Guid guidContainerFormat,
 			[MarshalAs(UnmanagedType.LPArray, SizeConst = 1)]
-			Guid[] pguidVendor
+			Guid[]? pguidVendor
 		);
 
 		new IWICBitmapEncoder CreateEncoder(
 			[MarshalAs(UnmanagedType.LPStruct)]
 			Guid guidContainerFormat,
 			[MarshalAs(UnmanagedType.LPArray, SizeConst = 1)]
-			Guid[] pguidVendor
+			Guid[]? pguidVendor
 		);
 
 		new IWICPalette CreatePalette();
@@ -562,13 +562,13 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPStruct)]
 			Guid guidMetadataFormat,
 			[MarshalAs(UnmanagedType.LPArray, SizeConst = 1)]
-			Guid[] pguidVendor
+			Guid[]? pguidVendor
 		);
 
 		new IWICMetadataQueryWriter CreateQueryWriterFromReader(
 			IWICMetadataQueryReader pIQueryReader,
 			[MarshalAs(UnmanagedType.LPArray, SizeConst = 1)]
-			Guid[] pguidVendor
+			Guid[]? pguidVendor
 		);
 		#endregion
 
@@ -576,7 +576,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPStruct)] 
 			Guid guidMetadataFormat,
 			[MarshalAs(UnmanagedType.LPArray, SizeConst = 1)]
-			Guid[] pguidVendor,
+			Guid[]? pguidVendor,
 			uint dwOptions,
 			IStream pIStream
 		);
@@ -585,7 +585,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPStruct)]
 			Guid guidContainerFormat,
 			[MarshalAs(UnmanagedType.LPArray, SizeConst = 1)]
-			Guid[] pguidVendor,
+			Guid[]? pguidVendor,
 			uint dwOptions,
 			IStream pIStream
 		);
@@ -594,14 +594,14 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPStruct)] 
 			Guid guidMetadataFormat,
 			[MarshalAs(UnmanagedType.LPArray, SizeConst = 1)]
-			Guid[] pguidVendor,
+			Guid[]? pguidVendor,
 			uint dwMetadataOptions
 		);
 
 		IWICMetadataWriter CreateMetadataWriterFromReader(
 			IWICMetadataReader pIReader,
 			[MarshalAs(UnmanagedType.LPArray, SizeConst = 1)]
-			Guid[] pguidVendor
+			Guid[]? pguidVendor
 		);
 
 		IWICMetadataQueryReader CreateQueryReaderFromBlockReader(

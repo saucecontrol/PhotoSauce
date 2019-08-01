@@ -155,9 +155,9 @@ namespace PhotoSauce.MagicScaler
 					if ((uint)ccs > (1024 * 1024 * 4))
 						continue;
 
-					using (var ccb = MemoryPool<byte>.Shared.Rent(ccs))
+					using var ccb = MemoryPool<byte>.Shared.Rent(ccs);
+					if (MemoryMarshal.TryGetArray(ccb.Memory.Slice(0, ccs), out ArraySegment<byte> cca))
 					{
-						MemoryMarshal.TryGetArray(ccb.Memory.Slice(0, ccs), out ArraySegment<byte> cca);
 						cc.GetProfileBytes((uint)cca.Count, cca.Array);
 						var cpi = ColorProfile.Cache.GetOrAdd(cca);
 
@@ -187,7 +187,7 @@ namespace PhotoSauce.MagicScaler
 			ctx.DestColorContext = ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed || ctx.SourceColorContext is null ? defaultColorContext : ctx.SourceColorContext;
 
 			var defaultColorProfile = fmt.ColorRepresentation == PixelColorRepresentation.Grey ? ColorProfile.sGrey : ColorProfile.sRGB;
-			ctx.SourceColorProfile = ctx.SourceColorProfile ?? defaultColorProfile;
+			ctx.SourceColorProfile ??= defaultColorProfile;
 			ctx.DestColorProfile = ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed ? defaultColorProfile : ctx.SourceColorProfile;
 		}
 

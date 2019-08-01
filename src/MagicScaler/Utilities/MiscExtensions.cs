@@ -53,7 +53,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static bool InsensitiveEquals(this string s1, string s2) => string.Equals(s1, s2, StringComparison.OrdinalIgnoreCase);
 
-		public static string GetFileExtension(this FileFormat fmt, string preferredExtension = null)
+		public static string GetFileExtension(this FileFormat fmt, string? preferredExtension = null)
 		{
 			if (fmt == FileFormat.Png8)
 				fmt = FileFormat.Png;

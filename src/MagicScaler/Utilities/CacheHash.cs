@@ -28,8 +28,8 @@ namespace PhotoSauce.MagicScaler
 
 		public static string Create(ArraySegment<byte> data)
 		{
-			using (var alg = SHA256.Create())
-				return encode(alg.ComputeHash(data.Array, data.Offset, data.Count));
+			using var alg = SHA256.Create();
+			return encode(alg.ComputeHash(data.Array, data.Offset, data.Count));
 		}
 
 		public static string Create(string data) => Create(new ArraySegment<byte>(Encoding.UTF8.GetBytes(data)));

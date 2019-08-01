@@ -12,20 +12,20 @@ namespace PhotoSauce.MagicScaler
 	{
 		public static ProcessImageResult ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
 		{
-			using (var ctx = new WicProcessingContext(settings))
-				return processImage(new WicDecoder(imgPath, ctx), ctx, outStream);
+			using var ctx = new WicProcessingContext(settings);
+			return processImage(new WicDecoder(imgPath, ctx), ctx, outStream);
 		}
 
 		public static ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
-			using (var ctx = new WicProcessingContext(settings))
-				return processImage(new WicDecoder(imgBuffer, ctx), ctx, outStream);
+			using var ctx = new WicProcessingContext(settings);
+			return processImage(new WicDecoder(imgBuffer, ctx), ctx, outStream);
 		}
 
 		public static ProcessImageResult ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings)
 		{
-			using (var ctx = new WicProcessingContext(settings))
-				return processImage(new WicDecoder(imgStream, ctx), ctx, outStream);
+			using var ctx = new WicProcessingContext(settings);
+			return processImage(new WicDecoder(imgStream, ctx), ctx, outStream);
 		}
 
 		private static ProcessImageResult processImage(WicDecoder dec, WicProcessingContext ctx, Stream ostm)

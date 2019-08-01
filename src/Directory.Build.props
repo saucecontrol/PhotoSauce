@@ -8,6 +8,7 @@
 		<PackageIconUrl>$(PackageProjectUrl)/icon64x64.png</PackageIconUrl>
 		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
 		<Copyright>Copyright © 2015-$([System.DateTime]::Today.Year) $(Authors)</Copyright>
+		<Title>High-Quality, High-Performance Image Processing for .NET</Title>
 		<Description>High-Quality, High-Performance Image Processing for .NET</Description>
 		<PackageReleaseNotes>See $(RepositoryUrl)/releases for release-specific notes.</PackageReleaseNotes>
 
@@ -16,8 +17,9 @@
 		<AssemblyTitle>$(MSBuildProjectName)</AssemblyTitle>
 		<Product>$(MSBuildProjectName)</Product>
 
-		<LangVersion>latest</LangVersion>
+		<LangVersion>8</LangVersion>
 		<Features>strict</Features>
+		<Nullable>annotations</Nullable>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<SignAssembly>true</SignAssembly>
 		<AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)$(Company).snk</AssemblyOriginatorKeyFile>
@@ -32,15 +34,16 @@
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)'=='Release'">
-		<DebugType>pdbonly</DebugType>
+		<DebugType>portable</DebugType>
 		<DebugSymbols>true</DebugSymbols>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<DocumentationFile>$(OutDir)$(AssemblyName).xml</DocumentationFile>
-		<AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(Configuration)'=='Release'">
-		<PackageReference Include="GitLink" Version="3.1.0" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0-beta2-19367-01" PrivateAssets="all"/>
 	</ItemGroup>
 
 </Project>

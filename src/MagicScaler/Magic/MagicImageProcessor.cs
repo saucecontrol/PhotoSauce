@@ -38,12 +38,11 @@ namespace PhotoSauce.MagicScaler
 			if (imgPath is null) throw new ArgumentNullException(nameof(imgPath));
 			checkOutStream(outStream);
 
-			using (var ctx = new WicProcessingContext(settings))
-			{
-				var dec = new WicDecoder(imgPath, ctx);
-				buildPipeline(ctx);
-				return executePipeline(ctx, outStream);
-			}
+			using var ctx = new WicProcessingContext(settings);
+			var dec = new WicDecoder(imgPath, ctx);
+
+			buildPipeline(ctx);
+			return executePipeline(ctx, outStream);
 		}
 
 		/// <summary>All-in-one processing of an image according to the specified <paramref name="settings" />.</summary>
@@ -56,12 +55,11 @@ namespace PhotoSauce.MagicScaler
 			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
 			checkOutStream(outStream);
 
-			using (var ctx = new WicProcessingContext(settings))
-			{
-				var dec = new WicDecoder(imgBuffer, ctx);
-				buildPipeline(ctx);
-				return executePipeline(ctx, outStream);
-			}
+			using var ctx = new WicProcessingContext(settings);
+			var dec = new WicDecoder(imgBuffer, ctx);
+
+			buildPipeline(ctx);
+			return executePipeline(ctx, outStream);
 		}
 
 		/// <summary>All-in-one processing of an image according to the specified <paramref name="settings" />.</summary>
@@ -74,12 +72,11 @@ namespace PhotoSauce.MagicScaler
 			checkInStream(imgStream);
 			checkOutStream(outStream);
 
-			using (var ctx = new WicProcessingContext(settings))
-			{
-				var dec = new WicDecoder(imgStream, ctx);
-				buildPipeline(ctx);
-				return executePipeline(ctx, outStream);
-			}
+			using var ctx = new WicProcessingContext(settings);
+			var dec = new WicDecoder(imgStream, ctx);
+
+			buildPipeline(ctx);
+			return executePipeline(ctx, outStream);
 		}
 
 		/// <summary>All-in-one processing of an image according to the specified <paramref name="settings" />.</summary>
@@ -92,12 +89,11 @@ namespace PhotoSauce.MagicScaler
 			if (imgSource is null) throw new ArgumentNullException(nameof(imgSource));
 			checkOutStream(outStream);
 
-			using (var ctx = new WicProcessingContext(settings))
-			{
-				var dec = new WicDecoder(imgSource, ctx);
-				buildPipeline(ctx);
-				return executePipeline(ctx, outStream);
-			}
+			using var ctx = new WicProcessingContext(settings);
+			var dec = new WicDecoder(imgSource, ctx);
+
+			buildPipeline(ctx);
+			return executePipeline(ctx, outStream);
 		}
 
 		/// <summary>Constructs a new processing pipeline from which pixels can be retrieved.</summary>

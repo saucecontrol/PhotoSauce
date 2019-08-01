@@ -39,7 +39,7 @@ namespace PhotoSauce.MagicScaler
 		public PixelSourceStats Stats => stats.Value;
 
 		protected PixelSource() =>
-			stats = new Lazy<PixelSourceStats>(() => new PixelSourceStats { SourceName = ToString().Replace($"{nameof(PhotoSauce)}.{nameof(MagicScaler)}.", string.Empty) });
+			stats = new Lazy<PixelSourceStats>(() => new PixelSourceStats { SourceName = ToString().Replace(nameof(PhotoSauce) + "." + nameof(MagicScaler) + ".", null) });
 
 		protected PixelSource(PixelSource source) : this()
 		{

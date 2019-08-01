@@ -20,18 +20,17 @@ namespace PhotoSauce.MagicScaler
 
 			public static ColorProfile GetOrAdd(ArraySegment<byte> bytes)
 			{
-				using (var md5 = MD5.Create())
-				{
-					var hash = md5.ComputeHash(bytes.Array, bytes.Offset, bytes.Count);
-					var guid = new Guid(hash);
-					if (dic.TryGetValue(guid, out var wref) && wref.TryGetTarget(out var prof))
-						return prof;
+				using var md5 = MD5.Create();
+				var hash = md5.ComputeHash(bytes.Array, bytes.Offset, bytes.Count);
 
-					prof = new ColorProfile(bytes);
-					dic.AddOrUpdate(guid, (g) => new WeakReference<ColorProfile>(prof), (g, r) => { r.SetTarget(prof); return r; });
-
+				var guid = new Guid(hash);
+				if (dic.TryGetValue(guid, out var wref) && wref.TryGetTarget(out var prof))
 					return prof;
-				}
+
+				prof = new ColorProfile(bytes);
+				dic.AddOrUpdate(guid, (g) => new WeakReference<ColorProfile>(prof), (g, r) => { r.SetTarget(prof); return r; });
+
+				return prof;
 			}
 		}
 
@@ -107,7 +106,7 @@ namespace PhotoSauce.MagicScaler
 			};
 		});
 
-		private static readonly Lazy<ColorProfile> sgrey = new Lazy<ColorProfile>(() => 
+		private static readonly Lazy<ColorProfile> sgrey = new Lazy<ColorProfile>(() =>
 			new ColorProfile {
 				Matrix = Matrix4x4.Identity,
 				InverseMatrix = Matrix4x4.Identity,
@@ -187,8 +186,8 @@ namespace PhotoSauce.MagicScaler
 			for (int i = 0; i < gt.Length; i++)
 			{
 				ushort val = (ushort)(i * scale + FloatRound);
-				float pos = 0f;
 				int idx = points.BinarySearch(val);
+				float pos;
 				if (idx >= 0)
 					pos = idx;
 				else
@@ -356,7 +355,7 @@ namespace PhotoSauce.MagicScaler
 				if (pcnt == 1)
 				{
 					ushort gi = ReadUInt16BigEndian(trc.Slice(12));
-					float gf = 0f;
+					float gf;
 					switch (gi)
 					{
 						case 0:
@@ -386,28 +385,26 @@ namespace PhotoSauce.MagicScaler
 					}
 
 					int buffLen = (int)pcnt * sizeof(ushort);
-					using (var buff = MemoryPool<byte>.Shared.Rent(buffLen))
+					using var buff = MemoryPool<byte>.Shared.Rent(buffLen);
+					var points = MemoryMarshal.Cast<byte, ushort>(buff.Memory.Slice(0, buffLen).Span);
+
+					ushort pp = 0;
+					bool inc = true, dec = true;
+					for (int i = 0; i < points.Length; i++)
 					{
-						var points = MemoryMarshal.Cast<byte, ushort>(buff.Memory.Slice(0, buffLen).Span);
+						ushort p = ReadUInt16BigEndian(trc.Slice(12 + i * sizeof(ushort)));
 
-						ushort pp = 0;
-						bool inc = true, dec = true;
-						for (int i = 0; i < points.Length; i++)
-						{
-							ushort p = ReadUInt16BigEndian(trc.Slice(12 + i * sizeof(ushort)));
+						if (i > 0 && p < pp)
+							inc = false;
+						if (i > 0 && p > pp)
+							dec = false;
+						if (!inc && !dec)
+							return false;
 
-							if (i > 0 && p < pp)
-								inc = false;
-							if (i > 0 && p > pp)
-								dec = false;
-							if (!inc && !dec)
-								return false;
-
-							points[i] = pp = p;
-						}
-
-						lutsFromPoints(points, dec);
+						points[i] = pp = p;
 					}
+
+					lutsFromPoints(points, dec);
 				}
 			}
 

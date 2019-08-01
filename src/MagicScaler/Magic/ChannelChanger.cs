@@ -17,7 +17,7 @@ namespace PhotoSauce.MagicScaler
 			else if (typeof(T) == typeof(byte))
 				Unsafe.Write(&one, byte.MaxValue);
 			else
-				throw new NotSupportedException($"{nameof(T)} must be float, ushort, or byte");
+				throw new NotSupportedException(nameof(T) + " must be float, ushort, or byte");
 
 			maxalpha = one;
 		}

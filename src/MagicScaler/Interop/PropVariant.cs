@@ -61,7 +61,7 @@ namespace PhotoSauce.MagicScaler.Interop
 	{
 		public enum PropVariantMarshalType { Automatic, Ascii, Blob }
 
-		private static VarEnum getUnmanagedType(object o, PropVariantMarshalType marshalType)
+		private static VarEnum getUnmanagedType(object? o, PropVariantMarshalType marshalType)
 		{
 			if (o is null) return VarEnum.VT_EMPTY;
 			if (Marshal.IsComObject(o)) return VarEnum.VT_UNKNOWN;
@@ -97,18 +97,18 @@ namespace PhotoSauce.MagicScaler.Interop
 			if (type.Equals(typeof(string[]))) return VarEnum.VT_LPWSTR | VarEnum.VT_VECTOR;
 			if (type.Equals(typeof(DateTime))) return VarEnum.VT_FILETIME;
 
-			throw new ArgumentException($"Value is not supported by {nameof(PropVariant)}", nameof(o));
+			throw new ArgumentException("Value is not supported by " + nameof(PropVariant), nameof(o));
 		}
 
-		public object Value { get; private set; }
+		public object? Value { get; private set; }
 		public PropVariantMarshalType MarshalType { get; private set; }
 		public VarEnum UnmanagedType { get; private set; }
 
 		public PropVariant() : this (null) { }
 
-		public PropVariant(object value) : this(value, PropVariantMarshalType.Automatic) { }
+		public PropVariant(object? value) : this(value, PropVariantMarshalType.Automatic) { }
 
-		public PropVariant(object value, PropVariantMarshalType marshalType)
+		public PropVariant(object? value, PropVariantMarshalType marshalType)
 		{
 			Value = value;
 			MarshalType = marshalType;
@@ -134,7 +134,7 @@ namespace PhotoSauce.MagicScaler.Interop
 				return false;
 
 			if (Value is Array)
-				return ((IEnumerable)Value).Cast<object>().SequenceEqual(((IEnumerable)other.Value).Cast<object>());
+				return ((IEnumerable)Value).Cast<object>().SequenceEqual(((IEnumerable)other.Value!).Cast<object>());
 
 			return Equals(Value, other.Value);
 		}
@@ -142,7 +142,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		public static bool operator ==(PropVariant left, PropVariant right) => left?.Equals(right) ?? ReferenceEquals(left, right);
 		public static bool operator !=(PropVariant left, PropVariant right) => !(left == right);
 
-		public override bool Equals(object o) => o is PropVariant other && Equals(other);
+		public override bool Equals(object? o) => o is PropVariant other && Equals(other);
 		public override int GetHashCode() => Value?.GetHashCode() ?? 0;
 		public override string ToString() => $"{UnmanagedType & ~VarEnum.VT_VECTOR}: {(Value is Array ? string.Join(" ", (Array)Value) : Value)}";
 
@@ -163,9 +163,9 @@ namespace PhotoSauce.MagicScaler.Interop
 				return res;
 			}
 
-			public static ICustomMarshaler GetInstance(string str) => new Marshaler();
+			public static ICustomMarshaler GetInstance(string _) => new Marshaler();
 
-			private PropVariant pv;
+			private PropVariant? pv;
 
 			public void CleanUpManagedData(object obj) { }
 
@@ -177,7 +177,7 @@ namespace PhotoSauce.MagicScaler.Interop
 
 			public int GetNativeDataSize() => -1;
 
-			unsafe public IntPtr MarshalManagedToNative(object o)
+			unsafe public IntPtr MarshalManagedToNative(object? o)
 			{
 				if (o is null)
 					return IntPtr.Zero;
@@ -241,8 +241,8 @@ namespace PhotoSauce.MagicScaler.Interop
 					else
 					{
 						var gch = GCHandle.Alloc(a, GCHandleType.Pinned);
-						using (var mh = new MemoryHandle(Marshal.UnsafeAddrOfPinnedArrayElement(a, 0).ToPointer(), gch))
-							Unsafe.CopyBlock(pNativeBuffer.ToPointer(), mh.Pointer, (uint)bufflen);
+						using var mh = new MemoryHandle(Marshal.UnsafeAddrOfPinnedArrayElement(a, 0).ToPointer(), gch);
+						Unsafe.CopyBlock(pNativeBuffer.ToPointer(), mh.Pointer, (uint)bufflen);
 					}
 
 					var upv = new UnmanagedPropVariant { vt = unmanagedType };
@@ -260,7 +260,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			public object MarshalNativeToManaged(IntPtr pNativeData)
 			{
 				if ((pNativeData == IntPtr.Zero) || (pv is null))
-					return null;
+					return null!;
 
 				var upv = Marshal.PtrToStructure<UnmanagedPropVariant>(pNativeData);
 				pv.MarshalType = PropVariantMarshalType.Automatic;

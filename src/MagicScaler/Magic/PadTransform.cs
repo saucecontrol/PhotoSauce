@@ -84,8 +84,8 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="left">The number of pixels to add to the image left.</param>
 		public PadTransform(Color color, int top, int right, int bottom, int left)
 		{
-			void throwOutOfRange(string name) =>
-				throw new ArgumentOutOfRangeException(nameof(left), $"Value must be between 0 and {short.MaxValue}");
+			static void throwOutOfRange(string name) =>
+				throw new ArgumentOutOfRangeException(name, $"Value must be between 0 and {short.MaxValue}");
 
 			if ((uint)top > short.MaxValue) throwOutOfRange(nameof(top));
 			if ((uint)right > short.MaxValue) throwOutOfRange(nameof(right));

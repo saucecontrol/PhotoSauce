@@ -761,7 +761,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPStruct)]
 			Guid dstFormat,
 			WICBitmapDitherType dither,
-			IWICPalette pIPalette,
+			IWICPalette? pIPalette,
 			double alphaThresholdPercent,
 			WICBitmapPaletteType paletteTranslate
 		);
@@ -970,7 +970,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		uint GetProfileBytes(
 			uint cbBuffer,
 			[In, Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)] 
-			byte[] pbBuffer
+			byte[]? pbBuffer
 		);
 
 		ExifColorSpace GetExifColorSpace();
@@ -1136,14 +1136,14 @@ namespace PhotoSauce.MagicScaler.Interop
 		uint GetLocation(
 			uint cchMaxLength,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzNamespace
+			StringBuilder? wzNamespace
 		);
 
 		void GetMetadataByName(
 			[MarshalAs(UnmanagedType.LPWStr)]
 			string wzName,
 			[In, Out, MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(PropVariant.Marshaler))]
-			PropVariant pvarValue
+			PropVariant? pvarValue
 		);
 
 		IEnumString GetEnumerator();
@@ -1158,7 +1158,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetLocation(
 			uint cchMaxLength,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzNamespace
+			StringBuilder? wzNamespace
 		);
 
 		new void GetMetadataByName(
@@ -1216,7 +1216,7 @@ namespace PhotoSauce.MagicScaler.Interop
 
 		void CreateNewFrame(
 			out IWICBitmapFrameEncode ppIFrameEncode,
-			ref IPropertyBag2 ppIEncoderOptions
+			ref IPropertyBag2? ppIEncoderOptions
 		);
 
 		void Commit();
@@ -1269,7 +1269,7 @@ namespace PhotoSauce.MagicScaler.Interop
 
 		void WriteSource(
 			IWICBitmapSource pIBitmapSource,
-			WICRect prc
+			WICRect? prc
 		);
 
 		void Commit();
@@ -1304,7 +1304,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		uint GetColorContexts(
 			uint cCount,
 			[In, Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)]
-			IWICColorContext[] ppIColorContexts
+			IWICColorContext[]? ppIColorContexts
 		);
 
 		IWICBitmapSource GetThumbnail();
@@ -1379,7 +1379,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		uint GetColorContexts(
 			uint cCount,
 			[In, Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)]
-			IWICColorContext[] pIColorContexts
+			IWICColorContext[]? pIColorContexts
 		);
 
 		IWICBitmapSource GetThumbnail();
@@ -1417,7 +1417,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		uint GetAuthor(
 			uint cchAuthor,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzAuthor
+			StringBuilder? wzAuthor
 		);
 
 		Guid GetVendorGUID();
@@ -1425,19 +1425,19 @@ namespace PhotoSauce.MagicScaler.Interop
 		uint GetVersion(
 			uint cchVersion,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzVersion
+			StringBuilder? wzVersion
 		);
 
 		uint GetSpecVersion(
 			uint cchSpecVersion,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzSpecVersion
+			StringBuilder? wzSpecVersion
 		);
 
 		uint GetFriendlyName(
 			uint cchFriendlyName,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzFriendlyName
+			StringBuilder? wzFriendlyName
 		);
 	}
 
@@ -1454,7 +1454,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetAuthor(
 			uint cchAuthor,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzAuthor
+			StringBuilder? wzAuthor
 		);
 
 		new Guid GetVendorGUID();
@@ -1462,26 +1462,26 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetVersion(
 			uint cchVersion,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzVersion
+			StringBuilder? wzVersion
 		);
 
 		new uint GetSpecVersion(
 			uint cchSpecVersion,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzSpecVersion
+			StringBuilder? wzSpecVersion
 		);
 
 		new uint GetFriendlyName(
 			uint cchFriendlyName,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzFriendlyName
+			StringBuilder? wzFriendlyName
 		);
 		#endregion IWICComponentInfo
 
 		uint GetPixelFormats(
 			uint cFormats,
 			[In, Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)]
-			Guid[] pPixelFormatGUIDs
+			Guid[]? pPixelFormatGUIDs
 		);
 
 		IWICFormatConverter CreateInstance();
@@ -1500,7 +1500,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetAuthor(
 			uint cchAuthor,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzAuthor
+			StringBuilder? wzAuthor
 		);
 
 		new Guid GetVendorGUID();
@@ -1508,19 +1508,19 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetVersion(
 			uint cchVersion,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzVersion
+			StringBuilder? wzVersion
 		);
 
 		new uint GetSpecVersion(
 			uint cchSpecVersion,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzSpecVersion
+			StringBuilder? wzSpecVersion
 		);
 
 		new uint GetFriendlyName(
 			uint cchFriendlyName,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzFriendlyName
+			StringBuilder? wzFriendlyName
 		);
 		#endregion IWICComponentInfo
 
@@ -1529,37 +1529,37 @@ namespace PhotoSauce.MagicScaler.Interop
 		uint GetPixelFormats(
 			uint cFormats,
 			[In, Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)]
-			Guid[] pguidPixelFormats
+			Guid[]? pguidPixelFormats
 		);
 
 		uint GetColorManagementVersion(
 			uint cchColorManagementVersion,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzColorManagementVersion
+			StringBuilder? wzColorManagementVersion
 		);
 
 		uint GetDeviceManufacturer(
 			uint cchDeviceManufacturer,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzDeviceManufacturer
+			StringBuilder? wzDeviceManufacturer
 		);
 
 		uint GetDeviceModels(
 			uint cchDeviceModels,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzDeviceModels
+			StringBuilder? wzDeviceModels
 		);
 
 		uint GetMimeTypes(
 			uint cchMimeTypes,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzMimeTypes
+			StringBuilder? wzMimeTypes
 		);
 
 		uint GetFileExtensions(
 			uint cchFileExtensions,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzFileExtensions
+			StringBuilder? wzFileExtensions
 		);
 
 		[return: MarshalAs(UnmanagedType.Bool)]
@@ -1595,7 +1595,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetAuthor(
 			uint cchAuthor,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzAuthor
+			StringBuilder? wzAuthor
 		);
 
 		new Guid GetVendorGUID();
@@ -1603,19 +1603,19 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetVersion(
 			uint cchVersion,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzVersion
+			StringBuilder? wzVersion
 		);
 
 		new uint GetSpecVersion(
 			uint cchSpecVersion,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzSpecVersion
+			StringBuilder? wzSpecVersion
 		);
 
 		new uint GetFriendlyName(
 			uint cchFriendlyName,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzFriendlyName
+			StringBuilder? wzFriendlyName
 		);
 		#endregion IWICComponentInfo
 
@@ -1624,37 +1624,37 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetPixelFormats(
 			uint cFormats,
 			[In, Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)]
-			Guid[] pguidPixelFormats
+			Guid[]? pguidPixelFormats
 		);
 
 		new uint GetColorManagementVersion(
 			uint cchColorManagementVersion,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzColorManagementVersion
+			StringBuilder? wzColorManagementVersion
 		);
 
 		new uint GetDeviceManufacturer(
 			uint cchDeviceManufacturer,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzDeviceManufacturer
+			StringBuilder? wzDeviceManufacturer
 		);
 
 		new uint GetDeviceModels(
 			uint cchDeviceModels,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzDeviceModels
+			StringBuilder? wzDeviceModels
 		);
 
 		new uint GetMimeTypes(
 			uint cchMimeTypes,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzMimeTypes
+			StringBuilder? wzMimeTypes
 		);
 
 		new uint GetFileExtensions(
 			uint cchFileExtensions,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzFileExtensions
+			StringBuilder? wzFileExtensions
 		);
 
 		[return: MarshalAs(UnmanagedType.Bool)]
@@ -1693,7 +1693,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetAuthor(
 			uint cchAuthor,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzAuthor
+			StringBuilder? wzAuthor
 		);
 
 		new Guid GetVendorGUID();
@@ -1701,19 +1701,19 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetVersion(
 			uint cchVersion,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzVersion
+			StringBuilder? wzVersion
 		);
 
 		new uint GetSpecVersion(
 			uint cchSpecVersion,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzSpecVersion
+			StringBuilder? wzSpecVersion
 		);
 
 		new uint GetFriendlyName(
 			uint cchFriendlyName,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzFriendlyName
+			StringBuilder? wzFriendlyName
 		);
 		#endregion IWICComponentInfo
 
@@ -1722,37 +1722,37 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetPixelFormats(
 			uint cFormats,
 			[In, Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)]
-			Guid[] pguidPixelFormats
+			Guid[]? pguidPixelFormats
 		);
 
 		new uint GetColorManagementVersion(
 			uint cchColorManagementVersion,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzColorManagementVersion
+			StringBuilder? wzColorManagementVersion
 		);
 
 		new uint GetDeviceManufacturer(
 			uint cchDeviceManufacturer,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzDeviceManufacturer
+			StringBuilder? wzDeviceManufacturer
 		);
 
 		new uint GetDeviceModels(
 			uint cchDeviceModels,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzDeviceModels
+			StringBuilder? wzDeviceModels
 		);
 
 		new uint GetMimeTypes(
 			uint cchMimeTypes,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzMimeTypes
+			StringBuilder? wzMimeTypes
 		);
 
 		new uint GetFileExtensions(
 			uint cchFileExtensions,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzFileExtensions
+			StringBuilder? wzFileExtensions
 		);
 
 		[return: MarshalAs(UnmanagedType.Bool)]
@@ -1801,7 +1801,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetAuthor(
 			uint cchAuthor,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzAuthor
+			StringBuilder? wzAuthor
 		);
 
 		new Guid GetVendorGUID();
@@ -1809,19 +1809,19 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetVersion(
 			uint cchVersion,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzVersion
+			StringBuilder? wzVersion
 		);
 
 		new uint GetSpecVersion(
 			uint cchSpecVersion,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzSpecVersion
+			StringBuilder? wzSpecVersion
 		);
 
 		new uint GetFriendlyName(
 			uint cchFriendlyName,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzFriendlyName
+			StringBuilder? wzFriendlyName
 		);
 		#endregion IWICComponentInfo
 
@@ -1848,7 +1848,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPWStr)]
 			string wzFilename,
 			[MarshalAs(UnmanagedType.LPArray, SizeConst = 1)]
-			Guid[] pguidVendor,
+			Guid[]? pguidVendor,
 			GenericAccessRights dwDesiredAccess,
 			WICDecodeOptions metadataOptions
 		);
@@ -1856,14 +1856,14 @@ namespace PhotoSauce.MagicScaler.Interop
 		IWICBitmapDecoder CreateDecoderFromStream(
 			IStream pIStream,
 			[MarshalAs(UnmanagedType.LPArray, SizeConst = 1)]
-			Guid[] pguidVendor,
+			Guid[]? pguidVendor,
 			WICDecodeOptions metadataOptions
 		);
 
 		IWICBitmapDecoder CreateDecoderFromFileHandle(
 			IntPtr hFile,
 			[MarshalAs(UnmanagedType.LPArray, SizeConst = 1)]
-			Guid[] pguidVendor,
+			Guid[]? pguidVendor,
 			WICDecodeOptions metadataOptions
 		);
 
@@ -1876,14 +1876,14 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPStruct)]
 			Guid guidContainerFormat,
 			[MarshalAs(UnmanagedType.LPArray, SizeConst = 1)]
-			Guid[] pguidVendor
+			Guid[]? pguidVendor
 		);
 
 		IWICBitmapEncoder CreateEncoder(
 			[MarshalAs(UnmanagedType.LPStruct)]
 			Guid guidContainerFormat,
 			[MarshalAs(UnmanagedType.LPArray, SizeConst = 1)]
-			Guid[] pguidVendor
+			Guid[]? pguidVendor
 		);
 
 		IWICPalette CreatePalette();
@@ -1961,13 +1961,13 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPStruct)]
 			Guid guidMetadataFormat,
 			[MarshalAs(UnmanagedType.LPArray, SizeConst = 1)]
-			Guid[] pguidVendor
+			Guid[]? pguidVendor
 		);
 
 		IWICMetadataQueryWriter CreateQueryWriterFromReader(
 			IWICMetadataQueryReader pIQueryReader,
 			[MarshalAs(UnmanagedType.LPArray, SizeConst = 1)]
-			Guid[] pguidVendor
+			Guid[]? pguidVendor
 		);
 	}
 
@@ -2130,7 +2130,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetColorContexts(
 			uint cCount,
 			[In, Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)]
-			IWICColorContext[] pIColorContexts
+			IWICColorContext[]? pIColorContexts
 		);
 
 		new IWICBitmapSource GetThumbnail();
@@ -2365,7 +2365,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetAuthor(
 			uint cchAuthor,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzAuthor
+			StringBuilder? wzAuthor
 		);
 
 		new Guid GetVendorGUID();
@@ -2373,19 +2373,19 @@ namespace PhotoSauce.MagicScaler.Interop
 		new uint GetVersion(
 			uint cchVersion,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzVersion
+			StringBuilder? wzVersion
 		);
 
 		new uint GetSpecVersion(
 			uint cchSpecVersion,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzSpecVersion
+			StringBuilder? wzSpecVersion
 		);
 
 		new uint GetFriendlyName(
 			uint cchFriendlyName,
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
-			StringBuilder wzFriendlyName
+			StringBuilder? wzFriendlyName
 		);
 		#endregion IWICComponentInfo
 
@@ -2469,7 +2469,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPStruct)]
 			Guid dstFormat,
 			WICBitmapDitherType dither,
-			IWICPalette pIPalette,
+			IWICPalette? pIPalette,
 			double alphaThresholdPercent,
 			WICBitmapPaletteType paletteTranslate
 		);
@@ -2498,7 +2498,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)]
 			IWICBitmapSource[] ppPlanes,
 			uint cPlanes,
-			WICRect prcSource
+			WICRect? prcSource
 		);
 	}
 
@@ -2712,7 +2712,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		public extern static int GetColorContexts(
 			IWICBitmapFrameDecode THIS_PTR,
 			uint cCount,
-			IntPtr[] ppIColorContexts,
+			IntPtr[]? ppIColorContexts,
 			out uint pcActualCount
 		);
 
@@ -2742,7 +2742,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPWStr)]
 			string wzName,
 			[In, Out, MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(PropVariant.Marshaler))]
-			PropVariant pvarValue
+			PropVariant? pvarValue
 		);
 
 		[DllImport("WindowsCodecs", EntryPoint = "IWICMetadataQueryWriter_SetMetadataByName_Proxy")]

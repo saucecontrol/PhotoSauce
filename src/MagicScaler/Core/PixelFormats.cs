@@ -60,7 +60,7 @@ namespace PhotoSauce.MagicScaler
 		public static bool operator ==(PixelFormat left, PixelFormat right) => left.Equals(right);
 		public static bool operator !=(PixelFormat left, PixelFormat right) => !left.Equals(right);
 
-		public override bool Equals(object o) => o is PixelFormat pf ? Equals(pf) : false;
+		public override bool Equals(object? o) => o is PixelFormat pf ? Equals(pf) : false;
 		public override int GetHashCode() => FormatGuid.GetHashCode();
 
 		public bool IsBinaryCompatibleWith(PixelFormat other) =>
@@ -259,15 +259,16 @@ namespace PhotoSauce.MagicScaler
 
 			uint count = 10u;
 			var formats = new object[count];
+			using var cenum = new ComHandle<IEnumUnknown>(Wic.Factory.CreateComponentEnumerator(WICComponentType.WICPixelFormat, WICComponentEnumerateOptions.WICComponentEnumerateDefault));
 
-			using (var cenum = new ComHandle<IEnumUnknown>(Wic.Factory.CreateComponentEnumerator(WICComponentType.WICPixelFormat, WICComponentEnumerateOptions.WICComponentEnumerateDefault)))
 			do
 			{
 				count = cenum.ComObject.Next(count, formats);
 				for (int i = 0; i < count; i++)
-				using (var pixh = new ComHandle<IWICPixelFormatInfo2>(formats[i]))
 				{
+					using var pixh = new ComHandle<IWICPixelFormatInfo2>(formats[i]);
 					var pix = pixh.ComObject;
+
 					uint cch = pix.GetFriendlyName(0, null);
 					var sbn = new StringBuilder((int)cch);
 					pix.GetFriendlyName(cch, sbn);
