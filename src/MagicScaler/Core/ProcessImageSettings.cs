@@ -1,11 +1,9 @@
 ﻿using System;
-using System.IO;
 using System.Linq;
 using System.Drawing;
 using System.Diagnostics;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 #if DRAWING_SHIM_COLORCONVERTER
 using System.Drawing.ColorShim;
@@ -603,39 +601,38 @@ namespace PhotoSauce.MagicScaler
 		{
 			Debug.Assert(Normalized, "Hash is only valid for normalized settings.");
 
-			using (var bw = new BinaryWriter(new MemoryStream(256), Encoding.UTF8))
-			{
-				bw.Write(imageInfo?.FileSize ?? 0L);
-				bw.Write(imageInfo?.FileDate.Ticks ?? 0L);
-				bw.Write(FrameIndex);
-				bw.Write(Width);
-				bw.Write(Height);
-				bw.Write((int)SaveFormat);
-				bw.Write((int)BlendingMode | ((int)OrientationMode << 8) | ((int)ColorProfileMode << 16));
-				bw.Write((int)ResizeMode);
-				bw.Write((int)Anchor);
-				bw.Write(Crop.X);
-				bw.Write(Crop.Y);
-				bw.Write(Crop.Width);
-				bw.Write(Crop.Height);
-				bw.Write(MatteColor.A);
-				bw.Write(MatteColor.R);
-				bw.Write(MatteColor.G);
-				bw.Write(MatteColor.B);
-				bw.Write(HybridScaleRatio);
-				bw.Write(Interpolation.WeightingFunction.ToString());
-				bw.Write(Interpolation.Blur);
-				bw.Write(UnsharpMask.Amount);
-				bw.Write(UnsharpMask.Radius);
-				bw.Write(UnsharpMask.Threshold);
-				bw.Write(JpegQuality);
-				bw.Write((int)JpegSubsampleMode);
-				foreach (string m in MetadataNames ?? Enumerable.Empty<string>())
-					bw.Write(m);
+			var hash = Blake2b.CreateIncrementalHasher(CacheHash.DigestLength);
+			hash.Update(imageInfo?.FileSize ?? 0L);
+			hash.Update(imageInfo?.FileDate.Ticks ?? 0L);
+			hash.Update(FrameIndex);
+			hash.Update(Width);
+			hash.Update(Height);
+			hash.Update(Crop.X);
+			hash.Update(Crop.Y);
+			hash.Update(Crop.Width);
+			hash.Update(Crop.Height);
+			hash.Update(MatteColor.ToArgb());
+			hash.Update((int)Anchor);
+			hash.Update((int)SaveFormat);
+			hash.Update((int)BlendingMode);
+			hash.Update((int)ResizeMode);
+			hash.Update((int)OrientationMode);
+			hash.Update((int)ColorProfileMode);
+			hash.Update((int)JpegSubsampleMode);
+			hash.Update(JpegQuality);
+			hash.Update(HybridScaleRatio);
+			hash.Update(Interpolation.WeightingFunction.ToString().AsSpan());
+			hash.Update(Interpolation.Blur);
+			hash.Update(UnsharpMask.Amount);
+			hash.Update(UnsharpMask.Radius);
+			hash.Update(UnsharpMask.Threshold);
+			foreach (string m in MetadataNames ?? Enumerable.Empty<string>())
+				hash.Update(m.AsSpan());
 
-				((MemoryStream)bw.BaseStream).TryGetBuffer(out var buff);
-				return CacheHash.Create(buff);
-			}
+			Span<byte> hbuff = stackalloc byte[hash.DigestLength];
+			hash.TryFinish(hbuff, out _);
+
+			return CacheHash.Encode(hbuff);
 		}
 
 		internal ProcessImageSettings Clone() => (ProcessImageSettings)MemberwiseClone();

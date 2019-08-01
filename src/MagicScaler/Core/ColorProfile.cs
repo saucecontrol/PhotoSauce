@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Buffers;
 using System.Numerics;
-using System.Security.Cryptography;
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
@@ -22,8 +21,12 @@ namespace PhotoSauce.MagicScaler
 
 			public static ColorProfile GetOrAdd(ArraySegment<byte> bytes)
 			{
-				using var md5 = MD5.Create();
-				var hash = md5.ComputeHash(bytes.Array, bytes.Offset, bytes.Count);
+#if FAST_SPAN
+				Span<byte> hash = stackalloc byte[16];
+				Blake2b.ComputeAndWriteHash(16, bytes, hash);
+#else
+				var hash = Blake2b.ComputeHash(16, bytes);
+#endif
 
 				var guid = new Guid(hash);
 				if (dic.TryGetValue(guid, out var wref) && wref.TryGetTarget(out var prof))
