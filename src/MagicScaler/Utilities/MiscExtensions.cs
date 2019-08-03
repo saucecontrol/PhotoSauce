@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Linq;
 using System.Drawing;
-using System.Diagnostics;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 #if NETFRAMEWORK
 using System.Configuration;
@@ -15,7 +15,7 @@ namespace PhotoSauce.MagicScaler
 {
 	internal static class MiscExtensions
 	{
-		public static WICRect FromGdiRect(this WICRect wr, in Rectangle r)
+		public static WICRect FromPixelArea(this WICRect wr, in PixelArea r)
 		{
 			wr.X = r.X;
 			wr.Y = r.Y;
@@ -27,7 +27,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static WICRect ToWicRect(this Rectangle r) => new WICRect { X = r.X, Y = r.Y, Width = r.Width, Height = r.Height };
 
-		public static Rectangle ToGdiRect(this WICRect r) => new Rectangle(r.X, r.Y, r.Width, r.Height);
+		public static PixelArea ToPixelArea(this WICRect r) => new PixelArea(r.X, r.Y, r.Width, r.Height);
 
 		public static WICBitmapTransformOptions ToWicTransformOptions(this Orientation o)
 		{
@@ -71,11 +71,13 @@ namespace PhotoSauce.MagicScaler
 			return ext;
 		}
 
-		public static TValue GetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dic, TKey key, TValue defaultValue) =>
+		[return: MaybeNull]
+		public static TValue GetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dic, TKey key, TValue defaultValue = default) where TKey : notnull =>
 			dic.TryGetValue(key, out var value) ? value : defaultValue;
 
-		public static TValue GetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dic, TKey key, Func<TValue> valueFactory = null) =>
-			dic.TryGetValue(key, out var value) ? value : valueFactory is null ? default : valueFactory();
+		[return: MaybeNull]
+		public static TValue GetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dic, TKey key, Func<TValue> valueFactory) where TKey : notnull =>
+			dic.TryGetValue(key, out var value) ? value : valueFactory();
 
 #if NETFRAMEWORK
 		public static IDictionary<string, string> ToDictionary(this NameValueCollection nv) =>
@@ -85,7 +87,7 @@ namespace PhotoSauce.MagicScaler
 			kv.AllKeys.Where(k => !string.IsNullOrEmpty(k)).ToDictionary(k => k, k => kv[k].Value, StringComparer.OrdinalIgnoreCase);
 #endif
 
-		public static IDictionary<TKey, TValue> Coalesce<TKey, TValue>(this IDictionary<TKey, TValue> dic1, IDictionary<TKey, TValue> dic2)
+		public static IDictionary<TKey, TValue> Coalesce<TKey, TValue>(this IDictionary<TKey, TValue> dic1, IDictionary<TKey, TValue> dic2) where TKey : notnull
 		{
 			foreach (var kv in dic2)
 				dic1[kv.Key] = kv.Value;

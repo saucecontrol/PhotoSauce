@@ -80,8 +80,6 @@ namespace PhotoSauce.MagicScaler
 					pin += inc;
 				} while (pin < end);
 			}
-
-			c = 0;
 		}
 
 		public void Init(int digestLength = HashBytes, ReadOnlySpan<byte> key = default)
@@ -99,7 +97,7 @@ namespace PhotoSauce.MagicScaler
 
 			if (keylen != 0)
 			{
-				Unsafe.CopyBlock(ref b[0], ref MemoryMarshal.GetReference(key), keylen);
+				Unsafe.CopyBlockUnaligned(ref b[0], ref MemoryMarshal.GetReference(key), keylen);
 				c = BlockBytes;
 			}
 		}
@@ -118,6 +116,7 @@ namespace PhotoSauce.MagicScaler
 				if (blockrem != 0)
 					Unsafe.CopyBlockUnaligned(ref b[c], ref rinput, blockrem);
 
+				c = 0;
 				compress(ref b[0], 0, BlockBytes);
 				consumed += blockrem;
 				remaining -= blockrem;
@@ -172,7 +171,7 @@ namespace PhotoSauce.MagicScaler
 			f[0] = ~0ul;
 			compress(ref b[0], 0, c);
 
-			Unsafe.CopyBlock(ref hash[0], ref Unsafe.As<ulong, byte>(ref h[0]), outlen);
+			Unsafe.CopyBlockUnaligned(ref hash[0], ref Unsafe.As<ulong, byte>(ref h[0]), outlen);
 		}
 
 		public byte[] Finish()

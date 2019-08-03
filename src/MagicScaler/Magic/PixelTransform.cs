@@ -34,7 +34,7 @@ namespace PhotoSauce.MagicScaler
 		unsafe public void CopyPixels(Rectangle sourceArea, int cbStride, Span<byte> buffer)
 		{
 			fixed (byte* pbBuffer = buffer)
-				Source.CopyPixels(sourceArea, (uint)cbStride, (uint)buffer.Length, (IntPtr)pbBuffer);
+				Source.CopyPixels(PixelArea.FromGdiRect(sourceArea), (uint)cbStride, (uint)buffer.Length, (IntPtr)pbBuffer);
 		}
 
 		void IPixelTransform.Init(IPixelSource source) => throw new NotImplementedException();

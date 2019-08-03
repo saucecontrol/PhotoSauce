@@ -29,10 +29,10 @@ namespace PhotoSauce.MagicScaler
 			Height = (uint)outerRect.Height;
 		}
 
-		unsafe protected override void CopyPixelsInternal(in Rectangle prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		unsafe protected override void CopyPixelsInternal(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
-			var trect = new Rectangle { X = Math.Max(prc.X - irect.X, 0), Height = 1 };
-			trect.Width = Math.Min(prc.Width, Math.Min(Math.Max(prc.X + prc.Width - irect.X, 0), irect.Width - trect.X));
+			int tx = Math.Max(prc.X - irect.X, 0);
+			int tw = Math.Min(prc.Width, Math.Min(Math.Max(prc.X + prc.Width - irect.X, 0), irect.Width - tx));
 			int cx = Math.Max(irect.X - prc.X, 0);
 
 			for (int y = 0; y < prc.Height; y++)
@@ -40,7 +40,7 @@ namespace PhotoSauce.MagicScaler
 				int cy = prc.Y + y;
 				byte* pb = (byte*)(pbBuffer + y * (int)cbStride);
 
-				if (trect.Width < prc.Width || cy < irect.Y || cy >= irect.Bottom)
+				if (tw < prc.Width || cy < irect.Y || cy >= irect.Bottom)
 				{
 					if (bytesPerPixel == 1)
 						new Span<byte>(pb, prc.Width).Fill(fillB);
@@ -59,11 +59,10 @@ namespace PhotoSauce.MagicScaler
 					}
 				}
 
-				if (trect.Width > 0 && cy >= irect.Y && cy < irect.Bottom)
+				if (tw > 0 && cy >= irect.Y && cy < irect.Bottom)
 				{
-					trect.Y = cy - irect.Y;
 					Timer.Stop();
-					Source.CopyPixels(trect, cbStride, cbBufferSize, (IntPtr)(pb + cx * bytesPerPixel));
+					Source.CopyPixels(new PixelArea(tx, cy - irect.Y, tw, 1), cbStride, cbBufferSize, (IntPtr)(pb + cx * bytesPerPixel));
 					Timer.Start();
 				}
 			}

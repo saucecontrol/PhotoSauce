@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Diagnostics.CodeAnalysis;
 
 namespace PhotoSauce.MagicScaler.Interop
 {
@@ -41,7 +42,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		public static bool RequiresCache(this WICBitmapTransformOptions opt) =>
 			opt != WICBitmapTransformOptions.WICBitmapTransformRotate0 && opt != WICBitmapTransformOptions.WICBitmapTransformFlipHorizontal;
 
-		public static bool TryGetPreview(this IWICBitmapDecoder dec, out IWICBitmapSource pvw)
+		public static bool TryGetPreview(this IWICBitmapDecoder dec, [NotNullWhen(true)] out IWICBitmapSource? pvw)
 		{
 			int hr = ProxyFunctions.GetPreview(dec, out pvw);
 			return hr >= 0;
@@ -53,19 +54,19 @@ namespace PhotoSauce.MagicScaler.Interop
 			return hr >= 0 ? ccc : 0u;
 		}
 
-		public static bool TryGetMetadataQueryReader(this IWICBitmapFrameDecode frame, out IWICMetadataQueryReader rdr)
+		public static bool TryGetMetadataQueryReader(this IWICBitmapFrameDecode frame, [NotNullWhen(true)] out IWICMetadataQueryReader? rdr)
 		{
 			int hr = ProxyFunctions.GetMetadataQueryReader(frame, out rdr);
 			return hr >= 0;
 		}
 
-		public static bool TryGetMetadataQueryWriter(this IWICBitmapFrameEncode frame, out IWICMetadataQueryWriter wri)
+		public static bool TryGetMetadataQueryWriter(this IWICBitmapFrameEncode frame, [NotNullWhen(true)] out IWICMetadataQueryWriter? wri)
 		{
 			int hr = ProxyFunctions.GetMetadataQueryWriter(frame, out wri);
 			return hr >= 0;
 		}
 
-		public static bool TryGetMetadataByName(this IWICMetadataQueryReader meta, string name, out PropVariant? value)
+		public static bool TryGetMetadataByName(this IWICMetadataQueryReader meta, string name, [NotNullWhen(true)] out PropVariant? value)
 		{
 			value = null;
 

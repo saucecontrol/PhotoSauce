@@ -121,7 +121,7 @@ namespace PhotoSauce.MagicScaler
 						propdic[prop] = pvar;
 				}
 
-				if (ctx.Settings.OrientationMode == OrientationMode.Preserve && pvorient != null)
+				if (ctx.Settings.OrientationMode == OrientationMode.Preserve && !(pvorient is null))
 					propdic[orientationPath] = pvorient;
 
 				ctx.DecoderFrame.Metadata = propdic;
@@ -373,7 +373,7 @@ namespace PhotoSauce.MagicScaler
 			if (!trans.DoesSupportTransform(ref width, ref height, opt, WICPlanarOptions.WICPlanarOptionsDefault, planarPixelFormats, desc, 2))
 				throw new NotSupportedException("Requested planar transform not supported");
 
-			var cacheSource = ctx.AddDispose(new WicPlanarCache(trans, desc[0], desc[1], ctx.Settings.Crop, opt, width, height, (int)rat));
+			var cacheSource = ctx.AddDispose(new WicPlanarCache(trans, desc[0], desc[1], PixelArea.FromGdiRect(ctx.Settings.Crop), opt, width, height, (int)rat));
 
 			ctx.PlanarChromaSource = cacheSource.GetPlane(WicPlane.Chroma);
 			ctx.PlanarLumaSource = cacheSource.GetPlane(WicPlane.Luma);
@@ -383,7 +383,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddPlanarConverter(WicProcessingContext ctx)
 		{
-			var conv = ctx.AddRef(Wic.Factory.CreateFormatConverter()) as IWICPlanarFormatConverter;
+			var conv = (IWICPlanarFormatConverter)ctx.AddRef(Wic.Factory.CreateFormatConverter());
 			conv.Initialize(new[] { ctx.PlanarLumaSource.WicSource, ctx.PlanarChromaSource.WicSource }, 2, Consts.GUID_WICPixelFormat24bppBGR, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
 			ctx.Source = conv.AsPixelSource(nameof(IWICPlanarFormatConverter));
 			ctx.PlanarChromaSource = ctx.PlanarLumaSource = null;

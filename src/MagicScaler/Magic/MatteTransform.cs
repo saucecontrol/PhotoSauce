@@ -51,7 +51,7 @@ namespace PhotoSauce.MagicScaler
 			vmatte = Unsafe.Read<VectorF>(mat) * new VectorF(maa);
 		}
 
-		unsafe protected override void CopyPixelsInternal(in Rectangle prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		unsafe protected override void CopyPixelsInternal(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
 			Timer.Stop();
 			Source.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
@@ -67,7 +67,7 @@ namespace PhotoSauce.MagicScaler
 				throw new NotSupportedException("Pixel format not supported.");
 		}
 
-		unsafe private void applyMatteLinearFloat(in Rectangle prc, float* pixels, int stride)
+		unsafe private void applyMatteLinearFloat(in PixelArea prc, float* pixels, int stride)
 		{
 			var v1 = VectorF.One;
 			var vm0 = vmask0;
@@ -125,7 +125,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private void applyMatteLinear(in Rectangle prc, ushort* pixels, int stride)
+		unsafe private void applyMatteLinear(in PixelArea prc, ushort* pixels, int stride)
 		{
 			const ushort maxalpha = UQ15One;
 
@@ -164,7 +164,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private void applyMatteCompanded(in Rectangle prc, byte* pixels, int stride)
+		unsafe private void applyMatteCompanded(in PixelArea prc, byte* pixels, int stride)
 		{
 			const byte maxalpha = byte.MaxValue;
 

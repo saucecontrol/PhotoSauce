@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Buffers;
-using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -18,7 +17,7 @@ namespace PhotoSauce.MagicScaler
 
 		protected byte[] LineBuff;
 
-		public FormatConversionTransformInternal(PixelSource source, ColorProfile sourceProfile, ColorProfile destProfile, Guid destFormat) : base(source)
+		public FormatConversionTransformInternal(PixelSource source, ColorProfile? sourceProfile, ColorProfile? destProfile, Guid destFormat) : base(source)
 		{
 			InFormat = source.Format;
 			Format = PixelFormat.Cache[destFormat];
@@ -27,19 +26,17 @@ namespace PhotoSauce.MagicScaler
 			LineBuff = ArrayPool<byte>.Shared.Rent((int)BufferStride);
 		}
 
-		unsafe protected override void CopyPixelsInternal(in Rectangle prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		unsafe protected override void CopyPixelsInternal(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
 			fixed (byte* bstart = &LineBuff[0])
 			{
 				int oh = prc.Height, oy = prc.Y;
+				int cb = DivCeiling(prc.Width * InFormat.BitsPerPixel, 8);
 
-				var irc = new Rectangle { X = prc.X, Width = prc.Width, Height = 1 };
-				int cb = (irc.Width * InFormat.BitsPerPixel + 7) / 8;
 				for (int y = 0; y < oh; y++)
 				{
-					irc.Y = oy + y;
 					Timer.Stop();
-					Source.CopyPixels(irc, BufferStride, BufferStride, (IntPtr)bstart);
+					Source.CopyPixels(new PixelArea(prc.X, oy + y, prc.Width, 1), BufferStride, BufferStride, (IntPtr)bstart);
 					Timer.Start();
 
 					byte* op = (byte*)pbBuffer + y * cbStride;

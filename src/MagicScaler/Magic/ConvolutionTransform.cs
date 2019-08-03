@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Buffers;
-using System.Drawing;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
@@ -124,7 +123,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe protected override void CopyPixelsInternal(in Rectangle prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		unsafe protected override void CopyPixelsInternal(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
 			fixed (byte* mapxstart = XMap.Map, mapystart = YMap.Map)
 			{
@@ -151,7 +150,7 @@ namespace PhotoSauce.MagicScaler
 						fixed (byte* bline = bspan, wline = wspan, tline = tspan)
 						{
 							Timer.Stop();
-							Source.CopyPixels(new Rectangle(0, first + ly, inWidth, 1), BufferStride, BufferStride, (IntPtr)bline);
+							Source.CopyPixels(new PixelArea(0, first + ly, inWidth, 1), BufferStride, BufferStride, (IntPtr)bline);
 							Timer.Start();
 
 							if (bline != wline)
