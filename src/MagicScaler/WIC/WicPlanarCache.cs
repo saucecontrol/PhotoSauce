@@ -76,7 +76,7 @@ namespace PhotoSauce.MagicScaler
 					loadBuffer(plane, line);
 
 				var lspan = buff.PrepareRead(line, 1).Slice(prc.X * bpp, prc.Width * bpp);
-				Unsafe.CopyBlockUnaligned(ref Unsafe.AsRef<byte>((byte*)pbBuffer  + y * cbStride), ref MemoryMarshal.GetReference(lspan), (uint)lspan.Length);
+				Unsafe.CopyBlockUnaligned(ref Unsafe.AsRef<byte>((byte*)pbBuffer + y * cbStride), ref MemoryMarshal.GetReference(lspan), (uint)lspan.Length);
 			}
 		}
 
@@ -89,10 +89,12 @@ namespace PhotoSauce.MagicScaler
 			sourceRect.Y = scaledCrop.Y + prcY;
 			sourceRect.Height = Math.Min(buffHeight, scaledCrop.Height - prcY);
 
-			int lineC = sourceRect.Y / subsampleRatioY;
-			int heightC = MathUtil.DivCeiling(sourceRect.Height, subsampleRatioY);
+			int lineY = prcY;
+			int lineC = lineY / subsampleRatioY;
+			int heightY = sourceRect.Height;
+			int heightC = MathUtil.DivCeiling(heightY, subsampleRatioY);
 
-			var spanY = buffY.PrepareLoad(ref sourceRect.Y, ref sourceRect.Height);
+			var spanY = buffY.PrepareLoad(ref lineY, ref heightY);
 			var spanC = buffC.PrepareLoad(ref lineC, ref heightC);
 
 			fixed (byte* pBuffY = spanY, pBuffC = spanC)

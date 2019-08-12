@@ -30,7 +30,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			if (buffer is null)
 			{
-				buffer = ArrayPool<byte>.Shared.Rent(window != 0 ? window : Math.Max(minCapacity, lines) * Stride);
+				buffer = ArrayPool<byte>.Shared.Rent(window != 0 ? window + Math.Max(minCapacity, lines) * Stride : Math.Max(minCapacity, lines) * Stride);
 				capacity = (buffer.Length - window) / Stride;
 
 				if (clear)
@@ -60,7 +60,7 @@ namespace PhotoSauce.MagicScaler
 				Unsafe.InitBlockUnaligned(ref buffer[cbKeep], 0, (uint)(buffer.Length - cbKeep));
 		}
 
-		unsafe private void shift(int cbKeep, int cbKill)
+		unsafe private void slide(int cbKeep, int cbKill)
 		{
 			fixed (byte* pb = &buffer![0])
 				Buffer.MemoryCopy(pb + cbKill, pb, buffer.Length, cbKeep);
@@ -81,10 +81,7 @@ namespace PhotoSauce.MagicScaler
 			}
 			else
 			{
-				int newStart = first;
-				if (consumed < loaded)
-					newStart -= loaded - consumed;
-
+				int newStart = Math.Min(start + consumed, first);
 				toKeep = Math.Max(start + loaded - newStart, 0);
 				toLoad = (first + lines) - (newStart + toKeep);
 				first += lines - toLoad;
@@ -98,7 +95,7 @@ namespace PhotoSauce.MagicScaler
 					if (capacity - toKeep < toLoad)
 						grow(cbKeep, cbKill);
 					else
-						shift(cbKeep, cbKill);
+						slide(cbKeep, cbKill);
 				}
 
 				start = newStart;
@@ -120,6 +117,8 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		public bool ContainsLine(int line) => line >= start && line < start + loaded;
+
+		public bool ContainsRange(int first, int lines) => first >= start && first + lines <= start + loaded;
 
 		public void Dispose()
 		{

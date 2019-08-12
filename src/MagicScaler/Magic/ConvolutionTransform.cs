@@ -125,7 +125,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe protected override void CopyPixelsInternal(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
-			fixed (byte* mapxstart = XMap.Map, mapystart = YMap.Map)
+			fixed (byte* mapystart = YMap.Map)
 			{
 				int oh = prc.Height, ow = prc.Width, ox = prc.X, oy = prc.Y;
 				int smapy = YMap.Samples, chan = YMap.Channels;
@@ -135,32 +135,49 @@ namespace PhotoSauce.MagicScaler
 					int* pmapy = (int*)mapystart + ((oy + y) * (smapy * chan + 1));
 					int iy = *pmapy++;
 
-					int first = iy;
-					int lines = smapy;
-					var ispan = IntBuff.PrepareLoad(ref first, ref lines);
+					if (!IntBuff.ContainsRange(iy, smapy))
+						loadBuffer(iy, smapy);
 
-					for (int ly = 0; ly < lines; ly++)
+					ConvolveLine((byte*)pbBuffer + (uint)y * cbStride, (byte*)pmapy, smapy, iy, oy + y, ox, ow);
+				}
+			}
+		}
+
+		unsafe private void loadBuffer(int first, int lines)
+		{
+			fixed (byte* mapxstart = XMap.Map)
+			{
+				int fli = first, cli = lines;
+				var ispan = IntBuff.PrepareLoad(ref fli, ref cli);
+
+				int flb = first, clb = lines;
+				var bspan = bufferSource ? SrcBuff.PrepareLoad(ref flb, ref clb) : lineBuff.Memory.Span;
+
+				int flw = first, clw = lines;
+				var wspan = bufferSource && WorkBuff != SrcBuff ? WorkBuff.PrepareLoad(ref flw, ref clw) : bspan;
+
+				fixed (byte* bline = bspan, wline = wspan, tline = ispan)
+				{
+					byte* bp = bline, wp = wline, tp = tline;
+					for (int ly = 0; ly < cli; ly++)
 					{
-						int lf = first + ly;
-						int ll = 1;
-						var bspan = bufferSource ? SrcBuff.PrepareLoad(ref lf, ref ll) : lineBuff.Memory.Span;
-						var wspan = bufferSource && WorkBuff != SrcBuff ? WorkBuff.PrepareLoad(ref lf, ref ll) : bspan;
-						var tspan = ispan.Slice(ly * IntBuff.Stride);
+						Timer.Stop();
+						Source.CopyPixels(new PixelArea(0, fli + ly, inWidth, 1), BufferStride, BufferStride, (IntPtr)bp);
+						Timer.Start();
 
-						fixed (byte* bline = bspan, wline = wspan, tline = tspan)
+						if (bp != wp)
+							GreyConverter.ConvertLine(Format.FormatGuid, bp, wp, SrcBuff.Stride, WorkBuff.Stride);
+
+						XProcessor.ConvolveSourceLine(wp, tp, ispan.Length - ly * IntBuff.Stride, mapxstart, XMap.Samples, lines);
+
+						tp += IntBuff.Stride;
+
+						if (bufferSource)
 						{
-							Timer.Stop();
-							Source.CopyPixels(new PixelArea(0, first + ly, inWidth, 1), BufferStride, BufferStride, (IntPtr)bline);
-							Timer.Start();
-
-							if (bline != wline)
-								GreyConverter.ConvertLine(Format.FormatGuid, bline, wline, SrcBuff.Stride, WorkBuff.Stride);
-
-							XProcessor.ConvolveSourceLine(wline, tline, tspan.Length, mapxstart, XMap.Samples, smapy);
+							wp += WorkBuff.Stride;
+							bp += SrcBuff.Stride;
 						}
 					}
-
-					ConvolveLine((byte*)pbBuffer + y * cbStride, (byte*)pmapy, smapy, iy, oy, ox, ow);
 				}
 			}
 		}
@@ -206,7 +223,7 @@ namespace PhotoSauce.MagicScaler
 			blurBuff = MemoryPool<byte>.Shared.Rent(WorkBuff.Stride);
 		}
 
-		unsafe protected override void ConvolveLine(byte* ostart, byte* pmapy, int smapy, int iy,int oy, int ox, int ow)
+		unsafe protected override void ConvolveLine(byte* ostart, byte* pmapy, int smapy, int iy, int oy, int ox, int ow)
 		{
 			var bspan = SrcBuff.PrepareRead(oy, 1);
 			var wspan = WorkBuff != SrcBuff ? WorkBuff.PrepareRead(oy, 1) : bspan;
