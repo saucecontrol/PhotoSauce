@@ -9,7 +9,7 @@
 		/// <param name="radius">The blur radius (sigma value).</param>
 		public GaussianBlurTransform(double radius) => this.radius = radius;
 
-		void IPixelTransformInternal.Init(WicProcessingContext ctx)
+		void IPixelTransformInternal.Init(PipelineContext ctx)
 		{
 			MagicTransforms.AddInternalFormatConverter(ctx, allow96bppFloat: true);
 

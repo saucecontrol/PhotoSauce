@@ -35,11 +35,11 @@ namespace PhotoSauce.MagicScaler
 	/// <summary>Represents an image processing pipeline from which computed pixels can be retrieved.</summary>
 	public sealed class ProcessingPipeline : IDisposable
 	{
-		internal readonly WicProcessingContext Context;
+		internal readonly PipelineContext Context;
 
 		private readonly Lazy<IPixelSource> source;
 
-		internal ProcessingPipeline(WicProcessingContext ctx)
+		internal ProcessingPipeline(PipelineContext ctx)
 		{
 			Context = ctx;
 			source = new Lazy<IPixelSource>(() => {

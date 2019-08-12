@@ -13,7 +13,7 @@ namespace PhotoSauce.MagicScaler
 
 	internal interface IPixelTransformInternal : IPixelTransform
 	{
-		void Init(WicProcessingContext ctx);
+		void Init(PipelineContext ctx);
 	}
 
 	/// <summary>Provides a minimal base implementation of <see cref="IPixelTransform" />, which simply passes calls through to the upstream source.</summary>

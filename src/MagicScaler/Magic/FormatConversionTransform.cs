@@ -806,7 +806,7 @@ namespace PhotoSauce.MagicScaler
 			this.outFormat = outFormat;
 		}
 
-		void IPixelTransformInternal.Init(WicProcessingContext ctx)
+		void IPixelTransformInternal.Init(PipelineContext ctx)
 		{
 			MagicTransforms.AddExternalFormatConverter(ctx);
 

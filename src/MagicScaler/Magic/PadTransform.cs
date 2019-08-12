@@ -6,9 +6,8 @@ namespace PhotoSauce.MagicScaler
 	internal class PadTransformInternal : PixelSource
 	{
 		private readonly int bytesPerPixel;
-		private readonly uint bgra;
-		private readonly byte fillB;
-		private readonly byte fillG;
+		private readonly uint fillBGRA;
+		private readonly ushort fillBG;
 		private readonly byte fillR;
 		private readonly Rectangle irect;
 
@@ -19,9 +18,8 @@ namespace PhotoSauce.MagicScaler
 			if (Format.NumericRepresentation != PixelNumericRepresentation.UnsignedInteger || Format.ChannelCount != bytesPerPixel)
 				throw new NotSupportedException("Pixel format not supported.");
 
-			bgra = (uint)color.ToArgb();
-			fillB = color.B;
-			fillG = color.G;
+			fillBGRA = (uint)color.ToArgb();
+			fillBG = (ushort)((color.B << 8) | color.G);
 			fillR = color.R;
 
 			irect = innerRect;
@@ -34,28 +32,32 @@ namespace PhotoSauce.MagicScaler
 			int tx = Math.Max(prc.X - irect.X, 0);
 			int tw = Math.Min(prc.Width, Math.Min(Math.Max(prc.X + prc.Width - irect.X, 0), irect.Width - tx));
 			int cx = Math.Max(irect.X - prc.X, 0);
+			byte* pb = (byte*)pbBuffer;
 
 			for (int y = 0; y < prc.Height; y++)
 			{
 				int cy = prc.Y + y;
-				byte* pb = (byte*)(pbBuffer + y * (int)cbStride);
 
 				if (tw < prc.Width || cy < irect.Y || cy >= irect.Bottom)
 				{
-					if (bytesPerPixel == 1)
-						new Span<byte>(pb, prc.Width).Fill(fillB);
-					else if (bytesPerPixel == 4)
-						new Span<uint>(pb, prc.Width).Fill(bgra);
-					else
+					switch (bytesPerPixel)
 					{
-						byte* pp = pb, pe = pb + prc.Width * 3;
-						while (pp < pe)
-						{
-							pp[0] = fillB;
-							pp[1] = fillG;
-							pp[2] = fillR;
-							pp += 3;
-						}
+						case 1:
+							new Span<byte>(pb, prc.Width).Fill(fillR);
+							break;
+						case 4:
+							new Span<uint>(pb, prc.Width).Fill(fillBGRA);
+							break;
+						default:
+							byte* pp = pb, pe = pb + prc.Width * 3;
+							while (pp < pe)
+							{
+								*(ushort*)pp = fillBG;
+								pp[2] = fillR;
+
+								pp += 3;
+							}
+							break;
 					}
 				}
 
@@ -65,6 +67,8 @@ namespace PhotoSauce.MagicScaler
 					Source.CopyPixels(new PixelArea(tx, cy - irect.Y, tw, 1), cbStride, cbBufferSize, (IntPtr)(pb + cx * bytesPerPixel));
 					Timer.Start();
 				}
+
+				pb += cbStride;
 			}
 		}
 	}
@@ -95,7 +99,7 @@ namespace PhotoSauce.MagicScaler
 			padRect = Rectangle.FromLTRB(left, top, right, bottom);
 		}
 
-		void IPixelTransformInternal.Init(WicProcessingContext ctx)
+		void IPixelTransformInternal.Init(PipelineContext ctx)
 		{
 			if (!padRect.IsEmpty)
 			{

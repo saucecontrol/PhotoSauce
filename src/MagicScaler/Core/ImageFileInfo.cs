@@ -61,7 +61,7 @@ namespace PhotoSauce.MagicScaler
 			if (!fi.Exists)
 				throw new FileNotFoundException("File not found", imgPath);
 
-			using (var ctx = new WicProcessingContext(new ProcessImageSettings()))
+			using (var ctx = new PipelineContext(new ProcessImageSettings()))
 				loadInfo(new WicDecoder(imgPath, ctx), ctx);
 
 			FileSize = fi.Length;
@@ -78,7 +78,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
 
-			using (var ctx = new WicProcessingContext(new ProcessImageSettings()))
+			using (var ctx = new PipelineContext(new ProcessImageSettings()))
 				loadInfo(new WicDecoder(imgBuffer, ctx), ctx);
 
 			FileSize = imgBuffer.Length;
@@ -97,14 +97,14 @@ namespace PhotoSauce.MagicScaler
 			if (!imgStream.CanSeek || !imgStream.CanRead) throw new ArgumentException("Input Stream must allow Seek and Read", nameof(imgStream));
 			if (imgStream.Length <= 0 || imgStream.Position >= imgStream.Length) throw new ArgumentException("Input Stream is empty or positioned at its end", nameof(imgStream));
 
-			using (var ctx = new WicProcessingContext(new ProcessImageSettings()))
+			using (var ctx = new PipelineContext(new ProcessImageSettings()))
 				loadInfo(new WicDecoder(imgStream, ctx), ctx);
 
 			FileSize = imgStream.Length;
 			FileDate = lastModified;
 		}
 
-		private void loadInfo(WicDecoder dec, WicProcessingContext ctx)
+		private void loadInfo(WicDecoder dec, PipelineContext ctx)
 		{
 			ContainerType = ctx.Decoder.ContainerFormat;
 			Frames = new FrameInfo[ctx.Decoder.FrameCount];

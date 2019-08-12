@@ -180,7 +180,7 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="matrix">A 4x4 matrix of coefficients.  The channel order is BGRA.</param>
 		public ColorMatrixTransform(Matrix4x4 matrix) => this.matrix = matrix;
 
-		void IPixelTransformInternal.Init(WicProcessingContext ctx)
+		void IPixelTransformInternal.Init(PipelineContext ctx)
 		{
 			MagicTransforms.AddExternalFormatConverter(ctx);
 

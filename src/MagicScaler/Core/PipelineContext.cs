@@ -1,22 +1,18 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
-
-using PhotoSauce.MagicScaler.Interop;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal class WicProcessingContext : IDisposable
+	internal class PipelineContext : IDisposable
 	{
-		private readonly Stack<object> comHandles = new Stack<object>();
 		private readonly Stack<IDisposable> disposeHandles = new Stack<IDisposable>();
+		private readonly HashSet<PixelSourceStats> stats;
 
 		private PixelSource source;
 
-		public ProcessImageSettings Settings { get; private set; }
+		public WicPipelineContext WicContext { get; }
+		public ProcessImageSettings Settings { get; }
 		public ProcessImageSettings UsedSettings { get; private set; }
-		public IList<PixelSourceStats> Stats { get; private set; }
 
 		public WicDecoder Decoder { get; set; }
 		public WicFrameReader DecoderFrame { get; set; }
@@ -26,9 +22,7 @@ namespace PhotoSauce.MagicScaler
 		public ColorProfile SourceColorProfile { get; set; }
 		public ColorProfile DestColorProfile { get; set; }
 
-		public IWICColorContext SourceColorContext { get; set; }
-		public IWICColorContext DestColorContext { get; set; }
-		public IWICPalette DestPalette { get; set; }
+		public IReadOnlyCollection<PixelSourceStats> Stats => stats;
 
 		public PixelSource Source
 		{
@@ -36,14 +30,16 @@ namespace PhotoSauce.MagicScaler
 			set
 			{
 				source = value;
-				Stats.Add(source.Stats);
+				if (!stats.Contains(source.Stats))
+					stats.Add(source.Stats);
 			}
 		}
 
-		public WicProcessingContext(ProcessImageSettings settings)
+		public PipelineContext(ProcessImageSettings settings)
 		{
 			Settings = settings.Clone();
-			Stats = new List<PixelSourceStats>();
+			WicContext = new WicPipelineContext();
+			stats = new HashSet<PixelSourceStats>();
 		}
 
 		public T AddDispose<T>(T disposeHandle) where T : IDisposable
@@ -51,15 +47,6 @@ namespace PhotoSauce.MagicScaler
 			disposeHandles.Push(disposeHandle);
 
 			return disposeHandle;
-		}
-
-		public T AddRef<T>(T comHandle) where T : class
-		{
-			Debug.Assert(Marshal.IsComObject(comHandle), "Not a COM object");
-
-			comHandles.Push(comHandle);
-
-			return comHandle;
 		}
 
 		public void FinalizeSettings()
@@ -75,31 +62,12 @@ namespace PhotoSauce.MagicScaler
 			UsedSettings = Settings.Clone();
 		}
 
-		public void SwitchPlanarSource(WicPlane plane)
-		{
-			if (plane == WicPlane.Chroma)
-			{
-				PlanarLumaSource = source;
-				source = PlanarChromaSource;
-			}
-			else
-			{
-				PlanarChromaSource = source;
-				source = PlanarLumaSource;
-			}
-		}
-
 		public void Dispose()
 		{
-			while (comHandles.Count > 0)
-			{
-				object h = comHandles.Pop();
-				if (h != null && Marshal.IsComObject(h))
-					Marshal.ReleaseComObject(h);
-			}
-
 			while (disposeHandles.Count > 0)
 				disposeHandles.Pop()?.Dispose();
+
+			WicContext.Dispose();
 		}
 	}
 }

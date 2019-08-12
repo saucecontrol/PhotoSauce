@@ -23,7 +23,7 @@ namespace PhotoSauce.MagicScaler
 		void CopyPixels(Rectangle sourceArea, int cbStride, Span<byte> buffer);
 	}
 
-	internal readonly struct PixelArea
+	internal readonly struct PixelArea : IEquatable<PixelArea>
 	{
 		public readonly int X;
 		public readonly int Y;
@@ -41,6 +41,18 @@ namespace PhotoSauce.MagicScaler
 		public Rectangle ToGdiRect() => new Rectangle(X, Y, Width, Height);
 
 		public static PixelArea FromGdiRect(Rectangle r) => new PixelArea(r.X, r.Y, r.Width, r.Height);
+
+		public bool Equals(PixelArea other) => X == other.X && Y == other.Y && Width == other.Width && Height == other.Height;
+		public override bool Equals(object? obj) => obj is PixelArea other && Equals(other);
+
+#if FAST_SPAN
+		public override int GetHashCode() => HashCode.Combine(X, Y, Width, Height);
+#else
+		public override int GetHashCode() => ((X << 5) + Y) ^ ((Width << 5) + Height);
+#endif
+
+		public static bool operator ==(PixelArea left, PixelArea right) => left.Equals(right);
+		public static bool operator !=(PixelArea left, PixelArea right) => !left.Equals(right);
 	}
 
 	internal abstract class PixelSource

@@ -41,7 +41,7 @@ namespace PhotoSauce.MagicScaler
 			if (imgPath is null) throw new ArgumentNullException(nameof(imgPath));
 			checkOutStream(outStream);
 
-			using var ctx = new WicProcessingContext(settings);
+			using var ctx = new PipelineContext(settings);
 			var dec = new WicDecoder(imgPath, ctx);
 
 			buildPipeline(ctx);
@@ -58,7 +58,7 @@ namespace PhotoSauce.MagicScaler
 			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
 			checkOutStream(outStream);
 
-			using var ctx = new WicProcessingContext(settings);
+			using var ctx = new PipelineContext(settings);
 			var dec = new WicDecoder(imgBuffer, ctx);
 
 			buildPipeline(ctx);
@@ -75,7 +75,7 @@ namespace PhotoSauce.MagicScaler
 			checkInStream(imgStream);
 			checkOutStream(outStream);
 
-			using var ctx = new WicProcessingContext(settings);
+			using var ctx = new PipelineContext(settings);
 			var dec = new WicDecoder(imgStream, ctx);
 
 			buildPipeline(ctx);
@@ -92,7 +92,7 @@ namespace PhotoSauce.MagicScaler
 			if (imgSource is null) throw new ArgumentNullException(nameof(imgSource));
 			checkOutStream(outStream);
 
-			using var ctx = new WicProcessingContext(settings);
+			using var ctx = new PipelineContext(settings);
 			var dec = new WicDecoder(imgSource, ctx);
 
 			buildPipeline(ctx);
@@ -107,7 +107,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			if (imgPath is null) throw new ArgumentNullException(nameof(imgPath));
 
-			var ctx = new WicProcessingContext(settings);
+			var ctx = new PipelineContext(settings);
 			var dec = new WicDecoder(imgPath, ctx);
 			buildPipeline(ctx, false);
 			return new ProcessingPipeline(ctx);
@@ -121,7 +121,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
 
-			var ctx = new WicProcessingContext(settings);
+			var ctx = new PipelineContext(settings);
 			var dec = new WicDecoder(imgBuffer, ctx);
 			buildPipeline(ctx, false);
 			return new ProcessingPipeline(ctx);
@@ -135,7 +135,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			checkInStream(imgStream);
 
-			var ctx = new WicProcessingContext(settings);
+			var ctx = new PipelineContext(settings);
 			var dec = new WicDecoder(imgStream, ctx);
 			buildPipeline(ctx, false);
 			return new ProcessingPipeline(ctx);
@@ -149,7 +149,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			if (imgSource is null) throw new ArgumentNullException(nameof(imgSource));
 
-			var ctx = new WicProcessingContext(settings);
+			var ctx = new PipelineContext(settings);
 			var dec = new WicDecoder(imgSource, ctx);
 			buildPipeline(ctx, false);
 			return new ProcessingPipeline(ctx);
@@ -162,7 +162,7 @@ namespace PhotoSauce.MagicScaler
 		public static ProcessImageResult ExecutePipeline(this ProcessingPipeline pipeline, Stream outStream) =>
 			executePipeline(pipeline.Context, outStream);
 
-		private static void buildPipeline(WicProcessingContext ctx, bool outputPlanar = true)
+		private static void buildPipeline(PipelineContext ctx, bool outputPlanar = true)
 		{
 			var frm = new WicFrameReader(ctx, EnablePlanarPipeline);
 			WicTransforms.AddMetadataReader(ctx);
@@ -177,31 +177,32 @@ namespace PhotoSauce.MagicScaler
 				bool savePlanar = outputPlanar
 					&& ctx.Settings.SaveFormat == FileFormat.Jpeg
 					&& ctx.Settings.InnerRect == ctx.Settings.OuterRect
-					&& ctx.SourceColorContext is null;
+					&& ctx.WicContext.SourceColorContext is null;
 
-				WicTransforms.AddExifRotator(ctx);
 				WicTransforms.AddPlanarCache(ctx);
 
 				MagicTransforms.AddHighQualityScaler(ctx);
 				MagicTransforms.AddUnsharpMask(ctx);
 				MagicTransforms.AddExternalFormatConverter(ctx);
 
-				ctx.SwitchPlanarSource(WicPlane.Chroma);
+				ctx.PlanarLumaSource = ctx.Source;
+				ctx.Source = ctx.WicContext.PlanarCache.GetPlane(WicPlane.Chroma);
 
 				if (savePlanar)
 				{
 					var subsample = ctx.Settings.JpegSubsampleMode;
 					if (subsample == ChromaSubsampleMode.Subsample420)
-						ctx.Settings.InnerRect.Height = (int)Math.Ceiling(ctx.Settings.InnerRect.Height / 2d);
+						ctx.Settings.InnerRect.Height = MathUtil.DivCeiling(ctx.Settings.InnerRect.Height, 2);
 
 					if (subsample == ChromaSubsampleMode.Subsample420 || subsample == ChromaSubsampleMode.Subsample422)
-						ctx.Settings.InnerRect.Width = (int)Math.Ceiling(ctx.Settings.InnerRect.Width / 2d);
+						ctx.Settings.InnerRect.Width = MathUtil.DivCeiling(ctx.Settings.InnerRect.Width, 2);
 				}
 
 				MagicTransforms.AddHighQualityScaler(ctx);
 				MagicTransforms.AddExternalFormatConverter(ctx);
 
-				ctx.SwitchPlanarSource(WicPlane.Luma);
+				ctx.PlanarChromaSource = ctx.Source;
+				ctx.Source = ctx.PlanarLumaSource;
 
 				if (!savePlanar)
 				{
@@ -213,9 +214,10 @@ namespace PhotoSauce.MagicScaler
 			else
 			{
 				WicTransforms.AddNativeScaler(ctx);
-				WicTransforms.AddExifRotator(ctx);
-				WicTransforms.AddConditionalCache(ctx);
-				WicTransforms.AddCropper(ctx);
+				WicTransforms.AddNativeExifRotator(ctx);
+
+				MagicTransforms.AddExifRotator(ctx);
+				MagicTransforms.AddCropper(ctx);
 				MagicTransforms.AddHighQualityScaler(ctx, true);
 				WicTransforms.AddPixelFormatConverter(ctx);
 				WicTransforms.AddScaler(ctx, true);
@@ -227,7 +229,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private static ProcessImageResult executePipeline(WicProcessingContext ctx, Stream ostm)
+		private static ProcessImageResult executePipeline(PipelineContext ctx, Stream ostm)
 		{
 			MagicTransforms.AddExternalFormatConverter(ctx);
 			WicTransforms.AddIndexedColorConverter(ctx);

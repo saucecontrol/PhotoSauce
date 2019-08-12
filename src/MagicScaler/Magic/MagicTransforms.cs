@@ -6,7 +6,7 @@ namespace PhotoSauce.MagicScaler
 {
 	internal static class MagicTransforms
 	{
-		public static void AddInternalFormatConverter(WicProcessingContext ctx, bool allow96bppFloat = false, bool forceLinear = false)
+		public static void AddInternalFormatConverter(PipelineContext ctx, bool allow96bppFloat = false, bool forceLinear = false)
 		{
 			var ifmt = ctx.Source.Format.FormatGuid;
 			var ofmt = ifmt;
@@ -49,7 +49,7 @@ namespace PhotoSauce.MagicScaler
 			ctx.Source = ctx.AddDispose(new FormatConversionTransformInternal(ctx.Source, forceSrgb ? ColorProfile.sRGB : ctx.SourceColorProfile, forceSrgb ? ColorProfile.sRGB : ctx.DestColorProfile, ofmt));
 		}
 
-		public static void AddExternalFormatConverter(WicProcessingContext ctx)
+		public static void AddExternalFormatConverter(PipelineContext ctx)
 		{
 			var ifmt = ctx.Source.Format.FormatGuid;
 			var ofmt = ifmt;
@@ -73,7 +73,7 @@ namespace PhotoSauce.MagicScaler
 			ctx.Source = ctx.AddDispose(new FormatConversionTransformInternal(ctx.Source, forceSrgb ? ColorProfile.sRGB : ctx.SourceColorProfile, forceSrgb ? ColorProfile.sRGB : ctx.DestColorProfile, ofmt));
 		}
 
-		public static void AddHighQualityScaler(WicProcessingContext ctx, bool hybrid = false)
+		public static void AddHighQualityScaler(PipelineContext ctx, bool hybrid = false)
 		{
 			uint width = (uint)ctx.Settings.InnerRect.Width, height = (uint)ctx.Settings.InnerRect.Height;
 			double rat = ctx.Settings.HybridScaleRatio;
@@ -106,7 +106,7 @@ namespace PhotoSauce.MagicScaler
 				ctx.Source = ctx.AddDispose(ConvolutionTransform<byte, int>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory));
 		}
 
-		public static void AddUnsharpMask(WicProcessingContext ctx)
+		public static void AddUnsharpMask(PipelineContext ctx)
 		{
 			var ss = ctx.Settings.UnsharpMask;
 			if (!ctx.Settings.Sharpen || ss.Radius <= 0d || ss.Amount <= 0)
@@ -121,7 +121,7 @@ namespace PhotoSauce.MagicScaler
 				ctx.Source = ctx.AddDispose(UnsharpMaskTransform<byte, int>.CreateSharpen(ctx.Source, ss));
 		}
 
-		public static void AddMatte(WicProcessingContext ctx)
+		public static void AddMatte(PipelineContext ctx)
 		{
 			if (ctx.Settings.MatteColor.IsEmpty || ctx.Source.Format.ColorRepresentation != PixelColorRepresentation.Bgr || ctx.Source.Format.AlphaRepresentation == PixelAlphaRepresentation.None)
 				return;
@@ -142,7 +142,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		public static void AddPad(WicProcessingContext ctx)
+		public static void AddPad(PipelineContext ctx)
 		{
 			if (ctx.Settings.InnerRect == ctx.Settings.OuterRect)
 				return;
@@ -152,11 +152,45 @@ namespace PhotoSauce.MagicScaler
 			ctx.Source = new PadTransformInternal(ctx.Source, ctx.Settings.MatteColor, ctx.Settings.InnerRect, ctx.Settings.OuterRect);
 		}
 
-		public static void AddColorspaceConverter(WicProcessingContext ctx)
+		public static void AddCropper(PipelineContext ctx)
+		{
+			var crop = PixelArea.FromGdiRect(ctx.Settings.Crop);
+			if (crop == new PixelArea(0, 0, (int)ctx.Source.Width, (int)ctx.Source.Height))
+				return;
+
+			ctx.Source = new CropTransform(ctx.Source, crop);
+		}
+
+		public static void AddRotator(PipelineContext ctx, Orientation orient)
+		{
+			if (orient == Orientation.Normal)
+				return;
+
+			AddExternalFormatConverter(ctx);
+
+			var crop = PixelArea.FromGdiRect(ctx.Settings.Crop);
+			if (orient.RequiresDimensionSwap())
+				crop = new PixelArea(crop.Y, crop.X, crop.Height, crop.Width);
+
+			ctx.Source = new OrientationTransformInternal(ctx.Source, orient, orient.RequiresCache() ? crop : default);
+
+			if (orient.RequiresCache())
+				ctx.Settings.Crop = new PixelArea(0, 0, (int)ctx.Source.Width, (int)ctx.Source.Height).ToGdiRect();
+		}
+
+		public static void AddExifRotator(PipelineContext ctx)
+		{
+			if (ctx.DecoderFrame.SupportsNativeTransform)
+				return;
+
+			AddRotator(ctx, ctx.DecoderFrame.ExifOrientation);
+		}
+
+		public static void AddColorspaceConverter(PipelineContext ctx)
 		{
 			if (ctx.SourceColorProfile == ctx.DestColorProfile)
 			{
-				if ((ctx.SourceColorProfile == ColorProfile.sRGB || ctx.SourceColorProfile == ColorProfile.sGrey) && ctx.SourceColorContext != null)
+				if ((ctx.SourceColorProfile == ColorProfile.sRGB || ctx.SourceColorProfile == ColorProfile.sGrey) && ctx.WicContext.SourceColorContext != null)
 				{
 					AddExternalFormatConverter(ctx);
 					WicTransforms.AddColorspaceConverter(ctx);
