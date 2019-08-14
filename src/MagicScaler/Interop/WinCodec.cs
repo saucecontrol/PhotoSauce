@@ -11,7 +11,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //----------------------------------------------------------------------------------------
 
-#pragma warning disable 0618    // VarEnum is obsolete
 #pragma warning disable IDE1006 // Naming Styles
 
 using System;

@@ -5,6 +5,10 @@
 		<TargetFrameworks>net46;net472;netcoreapp2.1;netcoreapp3.0;netstandard2.0</TargetFrameworks>
 	</PropertyGroup>
 
+	<PropertyGroup Condition="'$(TargetFramework)'=='netcoreapp2.1'">
+		<NoWarn>$(NoWarn);0618</NoWarn> <!-- netcoreapp2.1 has VarEnum spuriously marked obsolete -->
+	</PropertyGroup>
+
 	<PropertyGroup>
 		<DefineConstants Condition="'$(TargetFramework)'=='netstandard2.0'">$(DefineConstants);DRAWING_SHIM_COLORCONVERTER</DefineConstants>
 		<DefineConstants Condition="'$(TargetFramework)'=='netcoreapp2.1' Or '$(TargetFramework)'=='netcoreapp3.0'">$(DefineConstants);MATHF;FAST_SPAN</DefineConstants>
@@ -24,6 +28,10 @@
 
 	<ItemGroup Condition="'$(TargetFramework)'!='netcoreapp3.0'">
 		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.2" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)'=='net46'">
+		<PackageReference Include="System.ValueTuple" Version="4.5.0" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)'=='net46' Or '$(TargetFramework)'=='net472'">

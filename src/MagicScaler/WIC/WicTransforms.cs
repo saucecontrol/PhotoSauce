@@ -96,10 +96,8 @@ namespace PhotoSauce.MagicScaler
 				var pvorient = default(PropVariant);
 				if (ctx.Settings.OrientationMode != OrientationMode.Ignore && metareader.TryGetMetadataByName(orientationPath, out pvorient))
 				{
-#pragma warning disable 0618 // VarEnum is obsolete
 					if (ctx.Settings.OrientationMode == OrientationMode.Normalize && pvorient.UnmanagedType == VarEnum.VT_UI2)
 						ctx.DecoderFrame.ExifOrientation = (Orientation)Math.Min(Math.Max((ushort)Orientation.Normal, (ushort)pvorient.Value!), (ushort)Orientation.Rotate270);
-#pragma warning restore 0618
 
 					var opt = ctx.DecoderFrame.ExifOrientation.ToWicTransformOptions();
 					if (ctx.DecoderFrame.SupportsPlanarPipeline && opt != WICBitmapTransformOptions.WICBitmapTransformRotate0 && ctx.DecoderFrame.Frame is IWICPlanarBitmapSourceTransform ptrans)

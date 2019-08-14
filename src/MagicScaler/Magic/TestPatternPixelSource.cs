@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Drawing;
+using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler
 {
@@ -9,7 +10,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		private static readonly Guid[] formats = new[] { Guid.Empty, PixelFormats.Grey8bpp, Guid.Empty, PixelFormats.Bgr24bpp, PixelFormats.Bgra32bpp };
 
-		private readonly Lazy<byte[]> pixels;
+		private readonly Lazy<IMemoryOwner<byte>> pixels;
 		private readonly int chans;
 		private readonly int width;
 		private readonly int height;
@@ -42,17 +43,17 @@ namespace PhotoSauce.MagicScaler
 			rows = Math.Min(height, cols);
 			rheight = ((double)rows / height);
 
-			stride = MathUtil.PowerOf2Ceiling(width * chans, IntPtr.Size);
-			pixels = new Lazy<byte[]>(() => {
-				var buff = ArrayPool<byte>.Shared.Rent(stride * rows);
-				drawPattern(buff);
+			stride = MathUtil.PowerOfTwoCeiling(width * chans, IntPtr.Size);
+			pixels = new Lazy<IMemoryOwner<byte>>(() => {
+				var buff = MemoryPool<byte>.Shared.Rent(stride * rows);
+				drawPattern(buff.Memory.Span);
 				return buff;
 			});
 		}
 
-		unsafe private void drawPattern(byte[] buff)
+		unsafe private void drawPattern(Span<byte> buff)
 		{
-			fixed(byte* bstart = buff)
+			fixed (byte* bstart = buff)
 			{
 				int chan = chans;
 				uint cv = ~0u;
@@ -61,7 +62,7 @@ namespace PhotoSauce.MagicScaler
 				for (int i = 0; i < cols; i++)
 				{
 					if (chan == 1)
-						cv = (byte)((cols - i - 1) * byte.MaxValue / Math.Max((cols - 1), 1));
+						cv = (byte)((cols - i - 1) * byte.MaxValue / Math.Max(cols - 1, 1));
 					else if ((i & 1) == 1)
 						cv &= ~0xffu;
 					else if (i == 2)
@@ -95,25 +96,23 @@ namespace PhotoSauce.MagicScaler
 					}
 				}
 
-				cv = chan > 3 ? 0u : 0xa0a0a0a0u;
+				byte bcv = chan > 3 ? (byte)0 : (byte)0xa0;
 				for (int i = 1; i < rows; i++)
 				{
-					Buffer.MemoryCopy(bstart, bstart + i * stride, stride, stride);
+					Unsafe.CopyBlock(bstart + i * stride, bstart, (uint)stride);
 
 					int cs = (int)Math.Round((cols - i) * cw);
-
-					uint* ip = (uint*)(bstart + i * stride + cs * chan);
-					uint* ie = (uint*)(bstart + (i + 1) * stride);
-					while (ip < ie)
-						*ip++ = cv;
+					int os = i * stride + cs * chan;
+					int cb = (i + 1) * stride - os;
+					Unsafe.InitBlockUnaligned(bstart + os, bcv, (uint)cb);
 				}
 			}
 		}
 
 		/// <inheritdoc />
-		unsafe public void CopyPixels(Rectangle sourceArea, int cbStride, Span<byte> buffer)
+		public void CopyPixels(Rectangle sourceArea, int cbStride, Span<byte> buffer)
 		{
-			long cb = sourceArea.Width * chans;
+			int cb = sourceArea.Width * chans;
 
 			if (buffer == default)
 				throw new ArgumentNullException(nameof(buffer));
@@ -127,14 +126,11 @@ namespace PhotoSauce.MagicScaler
 			if ((sourceArea.Height - 1) * cbStride + cb > buffer.Length)
 				throw new ArgumentOutOfRangeException(nameof(buffer), "Buffer is too small for the requested area");
 
-			fixed (byte* pstart = &pixels.Value[0], pbBuffer = buffer)
+			var pixspan = pixels.Value.Memory.Span;
 			for (int y = 0; y < sourceArea.Height; y++)
 			{
 				int row = Math.Min((int)((sourceArea.Y + y) * rheight), rows - 1);
-
-				byte* pb = pbBuffer + y * cbStride;
-				byte* pp = pstart + row * stride + sourceArea.X * chans;
-				Buffer.MemoryCopy(pp, pb, cb, cb);
+				Unsafe.CopyBlockUnaligned(ref buffer[y * cbStride], ref pixspan[row * stride + sourceArea.X * chans], (uint)cb);
 			}
 		}
 
@@ -142,7 +138,7 @@ namespace PhotoSauce.MagicScaler
 		public void Dispose()
 		{
 			if (pixels.IsValueCreated)
-				ArrayPool<byte>.Shared.Return(pixels.Value);
+				pixels.Value.Dispose();
 		}
 	}
 }

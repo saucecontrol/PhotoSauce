@@ -107,10 +107,10 @@ namespace PhotoSauce.MagicScaler
 		public static int DivCeiling(int x, int y) => (x + (y - 1)) / y;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int PowerOf2Floor(int x, int powerOfTwo) => x & ~(powerOfTwo - 1);
+		public static int PowerOfTwoFloor(int x, int powerOfTwo) => x & ~(powerOfTwo - 1);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int PowerOf2Ceiling(int x, int powerOfTwo) => x + (powerOfTwo - 1) & ~(powerOfTwo - 1);
+		public static int PowerOfTwoCeiling(int x, int powerOfTwo) => x + (powerOfTwo - 1) & ~(powerOfTwo - 1);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if MATHF

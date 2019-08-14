@@ -30,11 +30,11 @@ namespace PhotoSauce.MagicScaler
 			subsampleRatioY = (int)((descY.Height + 1u) / descC.Height);
 
 			var scrop = new WICRect {
-				X = MathUtil.PowerOf2Floor(crop.X / scaleRatio, subsampleRatioX),
-				Y = MathUtil.PowerOf2Floor(crop.Y / scaleRatio, subsampleRatioY),
+				X = MathUtil.PowerOfTwoFloor(crop.X / scaleRatio, subsampleRatioX),
+				Y = MathUtil.PowerOfTwoFloor(crop.Y / scaleRatio, subsampleRatioY),
 			};
-			scrop.Width = Math.Min(MathUtil.PowerOf2Ceiling(MathUtil.DivCeiling(crop.Width, scaleRatio), subsampleRatioX), (int)descY.Width - scrop.X);
-			scrop.Height = Math.Min(MathUtil.PowerOf2Ceiling(MathUtil.DivCeiling(crop.Height, scaleRatio), subsampleRatioY), (int)descY.Height - scrop.Y);
+			scrop.Width = Math.Min(MathUtil.PowerOfTwoCeiling(MathUtil.DivCeiling(crop.Width, scaleRatio), subsampleRatioX), (int)descY.Width - scrop.X);
+			scrop.Height = Math.Min(MathUtil.PowerOfTwoCeiling(MathUtil.DivCeiling(crop.Height, scaleRatio), subsampleRatioY), (int)descY.Height - scrop.Y);
 
 			descC.Width = Math.Min((uint)MathUtil.DivCeiling(scrop.Width, subsampleRatioX), descC.Width);
 			descC.Height = Math.Min((uint)MathUtil.DivCeiling(scrop.Height, subsampleRatioY), descC.Height);
@@ -48,8 +48,8 @@ namespace PhotoSauce.MagicScaler
 			scaledWidth = width;
 			scaledHeight = height;
 
-			strideY = MathUtil.PowerOf2Ceiling((int)descY.Width, IntPtr.Size);
-			strideC = MathUtil.PowerOf2Ceiling((int)descC.Width * 2, IntPtr.Size);
+			strideY = MathUtil.PowerOfTwoCeiling((int)descY.Width, IntPtr.Size);
+			strideC = MathUtil.PowerOfTwoCeiling((int)descC.Width * 2, IntPtr.Size);
 
 			buffHeight = Math.Min(scrop.Height, transformOptions.RequiresCache() ? (int)descY.Height : 16);
 			buffY = new PixelBuffer(buffHeight, strideY);
@@ -84,7 +84,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private void loadBuffer(WicPlane plane, int line)
 		{
-			int prcY = MathUtil.PowerOf2Floor(plane == WicPlane.Luma ? line : line * subsampleRatioY, subsampleRatioY);
+			int prcY = MathUtil.PowerOfTwoFloor(plane == WicPlane.Luma ? line : line * subsampleRatioY, subsampleRatioY);
 
 			sourceRect.Y = scaledCrop.Y + prcY;
 			sourceRect.Height = Math.Min(buffHeight, scaledCrop.Height - prcY);

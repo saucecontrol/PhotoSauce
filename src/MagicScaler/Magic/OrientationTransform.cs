@@ -49,7 +49,7 @@ namespace PhotoSauce.MagicScaler
 			if (orient.RequiresDimensionSwap())
 			{
 				lineBuff = MemoryPool<byte>.Shared.Rent((int)BufferStride);
-				BufferStride = (uint)MathUtil.PowerOf2Ceiling(MathUtil.DivCeiling((int)Width * Format.BitsPerPixel, 8), IntPtr.Size);
+				BufferStride = (uint)MathUtil.PowerOfTwoCeiling(MathUtil.DivCeiling((int)Width * Format.BitsPerPixel, 8), IntPtr.Size);
 			}
 
 			if (orient.RequiresCache())

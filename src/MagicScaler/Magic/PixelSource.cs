@@ -23,38 +23,6 @@ namespace PhotoSauce.MagicScaler
 		void CopyPixels(Rectangle sourceArea, int cbStride, Span<byte> buffer);
 	}
 
-	internal readonly struct PixelArea : IEquatable<PixelArea>
-	{
-		public readonly int X;
-		public readonly int Y;
-		public readonly int Width;
-		public readonly int Height;
-
-		public PixelArea(int x, int y, int width, int height)
-		{
-			X = x;
-			Y = y;
-			Width = width;
-			Height = height;
-		}
-
-		public Rectangle ToGdiRect() => new Rectangle(X, Y, Width, Height);
-
-		public static PixelArea FromGdiRect(Rectangle r) => new PixelArea(r.X, r.Y, r.Width, r.Height);
-
-		public bool Equals(PixelArea other) => X == other.X && Y == other.Y && Width == other.Width && Height == other.Height;
-		public override bool Equals(object? obj) => obj is PixelArea other && Equals(other);
-
-#if FAST_SPAN
-		public override int GetHashCode() => HashCode.Combine(X, Y, Width, Height);
-#else
-		public override int GetHashCode() => ((X << 5) + Y) ^ ((Width << 5) + Height);
-#endif
-
-		public static bool operator ==(PixelArea left, PixelArea right) => left.Equals(right);
-		public static bool operator !=(PixelArea left, PixelArea right) => !left.Equals(right);
-	}
-
 	internal abstract class PixelSource
 	{
 		private readonly Lazy<PixelSourceStats> stats;
@@ -80,7 +48,7 @@ namespace PhotoSauce.MagicScaler
 			Format = Source.Format;
 			Width = Source.Width;
 			Height = Source.Height;
-			BufferStride = (uint)MathUtil.PowerOf2Ceiling(MathUtil.DivCeiling((int)Width * Format.BitsPerPixel, 8), IntPtr.Size);
+			BufferStride = (uint)MathUtil.PowerOfTwoCeiling(MathUtil.DivCeiling((int)Width * Format.BitsPerPixel, 8), IntPtr.Size);
 		}
 
 		protected abstract void CopyPixelsInternal(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer);

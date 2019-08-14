@@ -153,27 +153,27 @@ namespace PhotoSauce.MagicScaler
 	/// <summary>Defines settings for resampling interpolation.</summary>
 	public readonly struct InterpolationSettings
 	{
-		/// <summary>A predefined Nearest Neighbor interpolator.</summary>
+		/// <summary>A predefined <see cref="PointInterpolator"/>.</summary>
 		public static readonly InterpolationSettings NearestNeighbor = new InterpolationSettings(new PointInterpolator());
-		/// <summary>A predefined Averaging (Box) interpolator.</summary>
+		/// <summary>A predefined <see cref="BoxInterpolator"/>.</summary>
 		public static readonly InterpolationSettings Average = new InterpolationSettings(new BoxInterpolator());
-		/// <summary>A predefined Linear (Bilinear) interpolator.</summary>
+		/// <summary>A predefined <see cref="LinearInterpolator"/>.  Also known as Bilinear in some software.</summary>
 		public static readonly InterpolationSettings Linear = new InterpolationSettings(new LinearInterpolator());
-		/// <summary>A predefined Hermite (b=0, c=0) Cubic interpolator.</summary>
+		/// <summary>A predefined Hermite (b=0, c=0) <see cref="CubicInterpolator"/>.</summary>
 		public static readonly InterpolationSettings Hermite = new InterpolationSettings(new CubicInterpolator(0d, 0d));
-		/// <summary>A predefined Quadratic interpolator with properties similar to a Catmull-Rom Cubic.</summary>
+		/// <summary>A predefined <see cref="QuadraticInterpolator"/> with properties similar to a Catmull-Rom Cubic.</summary>
 		public static readonly InterpolationSettings Quadratic = new InterpolationSettings(new QuadraticInterpolator());
 		/// <summary>A predefined Mitchell-Netravali (b=1/3, c=1/3) Cubic interpolator.</summary>
 		public static readonly InterpolationSettings Mitchell = new InterpolationSettings(new CubicInterpolator(1d/3d, 1d/3d));
-		/// <summary>A predefined Catmull-Rom (b=0, c=1/2) Cubic interpolator.</summary>
+		/// <summary>A predefined Catmull-Rom (b=0, c=1/2) <see cref="CubicInterpolator"/>.</summary>
 		public static readonly InterpolationSettings CatmullRom = new InterpolationSettings(new CubicInterpolator());
-		/// <summary>A predefined Cardinal (b=0, c=1) Cubic interpolator.</summary>
+		/// <summary>A predefined Cardinal (b=0, c=1) <see cref="CubicInterpolator"/>.  Also known as Bicubic in some software.</summary>
 		public static readonly InterpolationSettings Cubic = new InterpolationSettings(new CubicInterpolator(0d, 1d));
-		/// <summary>A predefined smoothing Cubic interpolator.  Similar to Photoshop's "Bicubic Smoother".</summary>
+		/// <summary>A predefined smoothing <see cref="CubicInterpolator"/>.  Similar to Photoshop's "Bicubic Smoother".</summary>
 		public static readonly InterpolationSettings CubicSmoother = new InterpolationSettings(new CubicInterpolator(0d, 0.625), 1.15);
-		/// <summary>A predefined 3-lobed Lanczos interpolator.</summary>
+		/// <summary>A predefined 3-lobed <see cref="LanczosInterpolator"/>.</summary>
 		public static readonly InterpolationSettings Lanczos = new InterpolationSettings(new LanczosInterpolator());
-		/// <summary>A predefined Spline 36 interpolator.</summary>
+		/// <summary>A predefined <see cref="Spline36Interpolator" />.</summary>
 		public static readonly InterpolationSettings Spline36 = new InterpolationSettings(new Spline36Interpolator());
 
 		private readonly double blur;

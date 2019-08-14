@@ -115,7 +115,7 @@ namespace PhotoSauce.MagicScaler
 				if (workfmt.IsBinaryCompatibleWith(infmt))
 					WorkBuff = SrcBuff;
 				else
-					WorkBuff = new PixelBuffer(mapy.Samples, MathUtil.PowerOf2Ceiling(workfmt.BitsPerPixel / 8 * inWidth, IntPtr.Size), true);
+					WorkBuff = new PixelBuffer(mapy.Samples, MathUtil.PowerOfTwoCeiling(workfmt.BitsPerPixel / 8 * inWidth, IntPtr.Size), true);
 			}
 			else
 			{
