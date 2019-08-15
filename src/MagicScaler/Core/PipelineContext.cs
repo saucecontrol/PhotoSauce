@@ -16,6 +16,8 @@ namespace PhotoSauce.MagicScaler
 
 		public WicDecoder Decoder { get; set; }
 		public WicFrameReader DecoderFrame { get; set; }
+
+		public bool SupportsPlanarProcessing { get; set; }
 		public PixelSource PlanarLumaSource { get; set; }
 		public PixelSource PlanarChromaSource { get; set; }
 
@@ -53,7 +55,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			if (!Settings.Normalized)
 			{
-				Settings.Fixup((int)Source.Width, (int)Source.Height, DecoderFrame.ExifOrientation.RequiresDimensionSwap());
+				Settings.Fixup((int)Source.Width, (int)Source.Height, DecoderFrame.ExifOrientation.SwapsDimensions());
 
 				if (Settings.SaveFormat == FileFormat.Auto)
 					Settings.SetSaveFormat(Decoder.ContainerFormat, Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None);

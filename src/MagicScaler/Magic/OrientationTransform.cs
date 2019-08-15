@@ -34,22 +34,26 @@ namespace PhotoSauce.MagicScaler
 		private readonly IMemoryOwner<byte> lineBuff;
 		private readonly int bytesPerPixel;
 
-		public OrientationTransformInternal(PixelSource source, Orientation orientation, PixelArea crop = default) : base(source)
+		public OrientationTransformInternal(PixelSource source, Orientation orientation, PixelArea crop) : base(source)
 		{
-			if (!(Format.BitsPerPixel == 8 || Format.BitsPerPixel == 16 || Format.BitsPerPixel == 24 || Format.BitsPerPixel == 32))
+			int bpp = Format.BitsPerPixel;
+			if (!(bpp == 8 || bpp == 16 || bpp == 24 || bpp == 32))
 				throw new NotSupportedException("Pixel format not supported.");
 
-			bytesPerPixel = Format.BitsPerPixel / 8;
+			srcArea = crop.Orient(orientation, Source.Width, Source.Height);
+			if ((uint)(srcArea.X + srcArea.Width) > Source.Width || (uint)(srcArea.Y + srcArea.Height) > Source.Height)
+				throw new ArgumentOutOfRangeException(nameof(crop));
+
+			bytesPerPixel = bpp / 8;
 			orient = orientation;
-			srcArea = crop == default ? new PixelArea(0, 0, (int)Source.Width, (int)Source.Height) : crop;
 
-			Width = orient.RequiresDimensionSwap() ? (uint)srcArea.Height : (uint)srcArea.Width;
-			Height = orient.RequiresDimensionSwap() ? (uint)srcArea.Width : (uint)srcArea.Height;
+			Width = (uint)crop.Width;
+			Height = (uint)crop.Height;
 
-			if (orient.RequiresDimensionSwap())
+			if (orient.SwapsDimensions())
 			{
 				lineBuff = MemoryPool<byte>.Shared.Rent((int)BufferStride);
-				BufferStride = (uint)MathUtil.PowerOfTwoCeiling(MathUtil.DivCeiling((int)Width * Format.BitsPerPixel, 8), IntPtr.Size);
+				BufferStride = (uint)MathUtil.PowerOfTwoCeiling((int)Width * bytesPerPixel, IntPtr.Size);
 			}
 
 			if (orient.RequiresCache())
@@ -66,10 +70,8 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private void copyPixelsDirect(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
-			int cx = orient == Orientation.Normal ? srcArea.X + prc.X : srcArea.Width - prc.Width - srcArea.X - prc.X;
-
 			Timer.Stop();
-			Source.CopyPixels(new PixelArea(cx, srcArea.Y + prc.Y, prc.Width, prc.Height), cbStride, cbBufferSize, pbBuffer);
+			Source.CopyPixels(new PixelArea(srcArea.X + prc.X, srcArea.Y + prc.Y, prc.Width, prc.Height), cbStride, cbBufferSize, pbBuffer);
 			Timer.Start();
 
 			if (orient == Orientation.FlipHorizontal)
@@ -92,10 +94,10 @@ namespace PhotoSauce.MagicScaler
 				int fl = 0, lc = (int)Height;
 				fixed (byte* bstart = srcBuff.PrepareLoad(ref fl, ref lc))
 				{
-					if (!orient.RequiresDimensionSwap())
-						loadBufferFlipped(bstart);
+					if (!orient.SwapsDimensions())
+						loadBufferReversed(bstart);
 					else
-						loadBufferRotated(bstart);
+						loadBufferTransposed(bstart);
 				}
 			}
 
@@ -108,17 +110,14 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private void loadBufferFlipped(byte* bstart)
+		unsafe private void loadBufferReversed(byte* bstart)
 		{
-			int cx = orient == Orientation.FlipVertical ? srcArea.X : (int)Source.Width - srcArea.Width - srcArea.X;
-			int cy = (int)Source.Height - srcArea.Height - srcArea.Y;
-
 			byte* pb = bstart + (Height - 1) * (uint)srcBuff.Stride;
 
 			for (int y = 0; y < (int)Height; y++)
 			{
 				Timer.Stop();
-				Source.CopyPixels(new PixelArea(cx, cy + y, srcArea.Width, 1), BufferStride, BufferStride, (IntPtr)pb);
+				Source.CopyPixels(new PixelArea(srcArea.X, srcArea.Y + y, srcArea.Width, 1), BufferStride, BufferStride, (IntPtr)pb);
 				Timer.Start();
 
 				if (orient == Orientation.Rotate180)
@@ -128,33 +127,22 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private void loadBufferRotated(byte* bstart)
+		unsafe private void loadBufferTransposed(byte* bstart)
 		{
 			byte* bp = bstart;
 			int colStride = (int)BufferStride;
 			int rowStride = bytesPerPixel;
-			int cx = srcArea.X;
-			int cy = srcArea.Y;
 
-			switch (orient)
+			if (orient == Orientation.Transverse || orient == Orientation.Rotate270)
 			{
-				case Orientation.Rotate90:
-					bp += ((uint)srcArea.Height - 1) * (uint)bytesPerPixel;
-					rowStride = -rowStride;
-					cy = (int)Source.Height - srcArea.Height - srcArea.Y;
-					break;
-				case Orientation.Rotate270:
-					bp += ((uint)srcArea.Width - 1) * BufferStride;
-					colStride = -colStride;
-					cx = (int)Source.Width - srcArea.Width - srcArea.X;
-					break;
-				case Orientation.Transverse:
-					bp += ((uint)srcArea.Width - 1) * BufferStride + ((uint)srcArea.Height - 1) * (uint)bytesPerPixel;
-					colStride = -colStride;
-					rowStride = -rowStride;
-					cx = (int)Source.Width - srcArea.Width - srcArea.X;
-					cy = (int)Source.Height - srcArea.Height - srcArea.Y;
-					break;
+				bp += ((uint)srcArea.Width - 1) * BufferStride;
+				colStride = -colStride;
+			}
+
+			if (orient == Orientation.Transverse || orient == Orientation.Rotate90)
+			{
+				bp += ((uint)srcArea.Height - 1) * (uint)bytesPerPixel;
+				rowStride = -rowStride;
 			}
 
 			uint cb = (uint)srcArea.Width * (uint)bytesPerPixel;
@@ -164,7 +152,7 @@ namespace PhotoSauce.MagicScaler
 				for (int y = 0; y < srcArea.Height; y++)
 				{
 					Timer.Stop();
-					Source.CopyPixels(new PixelArea(cx, cy + y, srcArea.Width, 1), cb, cb, (IntPtr)lp);
+					Source.CopyPixels(new PixelArea(srcArea.X, srcArea.Y + y, srcArea.Width, 1), cb, cb, (IntPtr)lp);
 					Timer.Start();
 
 					byte* ip = lp, ipe = lp + cb;
@@ -291,7 +279,7 @@ namespace PhotoSauce.MagicScaler
 
 		void IPixelTransformInternal.Init(PipelineContext ctx)
 		{
-			MagicTransforms.AddRotator(ctx, orientation);
+			MagicTransforms.AddFlipRotator(ctx, orientation);
 
 			Source = ctx.Source;
 		}

@@ -23,18 +23,18 @@ namespace PhotoSauce.MagicScaler
 		private readonly WICRect sourceRect;
 		private readonly WICBitmapPlane[] sourcePlanes;
 
-		public WicPlanarCache(IWICPlanarBitmapSourceTransform source, WICBitmapPlaneDescription descY, WICBitmapPlaneDescription descC, in PixelArea crop, WICBitmapTransformOptions transformOptions, uint width, uint height, int scaleRatio)
+		public WicPlanarCache(IWICPlanarBitmapSourceTransform source, WICBitmapPlaneDescription descY, WICBitmapPlaneDescription descC, WICBitmapTransformOptions transformOptions, uint width, uint height, in PixelArea crop)
 		{
-			// IWICPlanarBitmapSourceTransform only supports 4:2:0, 4:2:2, and 4:4:4 subsampling, so ratios will always be 1 or 2
+			// IWICPlanarBitmapSourceTransform only supports 4:2:0, 4:4:0, 4:2:2, and 4:4:4 subsampling, so ratios will always be 1 or 2
 			subsampleRatioX = (int)((descY.Width + 1u) / descC.Width);
 			subsampleRatioY = (int)((descY.Height + 1u) / descC.Height);
 
 			var scrop = new WICRect {
-				X = MathUtil.PowerOfTwoFloor(crop.X / scaleRatio, subsampleRatioX),
-				Y = MathUtil.PowerOfTwoFloor(crop.Y / scaleRatio, subsampleRatioY),
+				X = MathUtil.PowerOfTwoFloor(crop.X, subsampleRatioX),
+				Y = MathUtil.PowerOfTwoFloor(crop.Y, subsampleRatioY),
 			};
-			scrop.Width = Math.Min(MathUtil.PowerOfTwoCeiling(MathUtil.DivCeiling(crop.Width, scaleRatio), subsampleRatioX), (int)descY.Width - scrop.X);
-			scrop.Height = Math.Min(MathUtil.PowerOfTwoCeiling(MathUtil.DivCeiling(crop.Height, scaleRatio), subsampleRatioY), (int)descY.Height - scrop.Y);
+			scrop.Width = Math.Min(MathUtil.PowerOfTwoCeiling(crop.Width, subsampleRatioX), (int)descY.Width - scrop.X);
+			scrop.Height = Math.Min(MathUtil.PowerOfTwoCeiling(crop.Height, subsampleRatioY), (int)descY.Height - scrop.Y);
 
 			descC.Width = Math.Min((uint)MathUtil.DivCeiling(scrop.Width, subsampleRatioX), descC.Width);
 			descC.Height = Math.Min((uint)MathUtil.DivCeiling(scrop.Height, subsampleRatioY), descC.Height);

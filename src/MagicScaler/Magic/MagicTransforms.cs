@@ -75,10 +75,13 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddHighQualityScaler(PipelineContext ctx, bool hybrid = false)
 		{
-			uint width = (uint)ctx.Settings.InnerRect.Width, height = (uint)ctx.Settings.InnerRect.Height;
-			double rat = ctx.Settings.HybridScaleRatio;
+			bool swap = ctx.DecoderFrame.ExifOrientation.SwapsDimensions();
+			var srect = ctx.Settings.InnerRect;
 
-			if ((ctx.Source.Width == width && ctx.Source.Height == height) || (hybrid && rat == 1d))
+			int width = swap ? srect.Height : srect.Width, height = swap ? srect.Width : srect.Height;
+			int ratio = (int)ctx.Settings.HybridScaleRatio;
+
+			if ((ctx.Source.Width == width && ctx.Source.Height == height) || (hybrid && ratio == 1))
 				return;
 
 			if (hybrid)
@@ -86,8 +89,8 @@ namespace PhotoSauce.MagicScaler
 				if (ctx.Source.Format.FormatGuid != Consts.GUID_WICPixelFormat32bppCMYK)
 					return;
 
-				width = (uint)Math.Ceiling(ctx.Source.Width / rat);
-				height = (uint)Math.Ceiling(ctx.Source.Height / rat);
+				width = MathUtil.DivCeiling((int)ctx.Source.Width, ratio);
+				height = MathUtil.DivCeiling((int)ctx.Source.Height, ratio);
 				ctx.Settings.HybridMode = HybridScaleMode.Off;
 			}
 
@@ -99,11 +102,13 @@ namespace PhotoSauce.MagicScaler
 			var interpolatory = height == ctx.Source.Height ? InterpolationSettings.NearestNeighbor : hybrid ? InterpolationSettings.Average : interpolator;
 
 			if (fmt.NumericRepresentation == PixelNumericRepresentation.Float)
-				ctx.Source = ctx.AddDispose(ConvolutionTransform<float, float>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory));
+				ctx.Source = ctx.AddDispose(ConvolutionTransform<float, float>.CreateResize(ctx.Source, (uint)width, (uint)height, interpolatorx, interpolatory));
 			else if (fmt.NumericRepresentation == PixelNumericRepresentation.Fixed)
-				ctx.Source = ctx.AddDispose(ConvolutionTransform<ushort, int>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory));
+				ctx.Source = ctx.AddDispose(ConvolutionTransform<ushort, int>.CreateResize(ctx.Source, (uint)width, (uint)height, interpolatorx, interpolatory));
 			else
-				ctx.Source = ctx.AddDispose(ConvolutionTransform<byte, int>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory));
+				ctx.Source = ctx.AddDispose(ConvolutionTransform<byte, int>.CreateResize(ctx.Source, (uint)width, (uint)height, interpolatorx, interpolatory));
+
+			ctx.Settings.Crop = ctx.Source.Area.UnOrient(ctx.DecoderFrame.ExifOrientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
 		}
 
 		public static void AddUnsharpMask(PipelineContext ctx)
@@ -154,37 +159,27 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddCropper(PipelineContext ctx)
 		{
-			var crop = PixelArea.FromGdiRect(ctx.Settings.Crop);
-			if (crop == new PixelArea(0, 0, (int)ctx.Source.Width, (int)ctx.Source.Height))
+			var crop = PixelArea.FromGdiRect(ctx.Settings.Crop).Orient(ctx.DecoderFrame.ExifOrientation, ctx.Source.Width, ctx.Source.Height);
+			if (crop == ctx.Source.Area)
 				return;
 
 			ctx.Source = new CropTransform(ctx.Source, crop);
+			ctx.Settings.Crop = ctx.Source.Area.UnOrient(ctx.DecoderFrame.ExifOrientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
 		}
 
-		public static void AddRotator(PipelineContext ctx, Orientation orient)
+		public static void AddFlipRotator(PipelineContext ctx, Orientation orientation)
 		{
-			if (orient == Orientation.Normal)
+			if (orientation == Orientation.Normal)
 				return;
 
 			AddExternalFormatConverter(ctx);
 
-			var crop = PixelArea.FromGdiRect(ctx.Settings.Crop);
-			if (orient.RequiresDimensionSwap())
-				crop = new PixelArea(crop.Y, crop.X, crop.Height, crop.Width);
-
-			ctx.Source = new OrientationTransformInternal(ctx.Source, orient, orient.RequiresCache() ? crop : default);
-
-			if (orient.RequiresCache())
-				ctx.Settings.Crop = new PixelArea(0, 0, (int)ctx.Source.Width, (int)ctx.Source.Height).ToGdiRect();
+			ctx.Source = new OrientationTransformInternal(ctx.Source, orientation, PixelArea.FromGdiRect(ctx.Settings.Crop));
+			ctx.Settings.Crop = ctx.Source.Area.ToGdiRect();
+			ctx.DecoderFrame.ExifOrientation = Orientation.Normal;
 		}
 
-		public static void AddExifRotator(PipelineContext ctx)
-		{
-			if (ctx.DecoderFrame.SupportsNativeTransform)
-				return;
-
-			AddRotator(ctx, ctx.DecoderFrame.ExifOrientation);
-		}
+		public static void AddExifFlipRotator(PipelineContext ctx) => AddFlipRotator(ctx, ctx.DecoderFrame.ExifOrientation);
 
 		public static void AddColorspaceConverter(PipelineContext ctx)
 		{

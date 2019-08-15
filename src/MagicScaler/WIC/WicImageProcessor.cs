@@ -36,7 +36,7 @@ namespace PhotoSauce.MagicScaler
 			ctx.FinalizeSettings();
 
 			WicTransforms.AddNativeScaler(ctx);
-			WicTransforms.AddExifRotator(ctx);
+			WicTransforms.AddExifFlipRotator(ctx);
 			WicTransforms.AddCropper(ctx);
 			WicTransforms.AddPixelFormatConverter(ctx);
 			WicTransforms.AddScaler(ctx);

@@ -215,6 +215,7 @@ namespace PhotoSauce.MagicScaler
 		private ImageFileInfo? imageInfo;
 		internal Rectangle InnerRect;
 		internal Rectangle OuterRect;
+		internal bool AutoCrop;
 
 		/// <summary>The 0-based index of the image frame to process from within the container.</summary>
 		public int FrameIndex { get; set; }
@@ -293,12 +294,12 @@ namespace PhotoSauce.MagicScaler
 		{
 			get
 			{
-				if (HybridMode == HybridScaleMode.Off || ScaleRatio < 2d)
+				if (HybridMode == HybridScaleMode.Off)
 					return 1d;
 
 				double sr = ScaleRatio / (HybridMode == HybridScaleMode.FavorQuality ? 3d : HybridMode == HybridScaleMode.FavorSpeed ? 2d : 1d);
 
-				return Math.Pow(2d, Math.Floor(Math.Log(sr, 2d)));
+				return Math.Max(Math.Pow(2d, Math.Floor(Math.Log(sr, 2d))), 1d);
 			}
 		}
 
@@ -330,7 +331,7 @@ namespace PhotoSauce.MagicScaler
 				if (jpegSubsampling != ChromaSubsampleMode.Default)
 					return jpegSubsampling;
 
-				return JpegQuality >= 95 ? ChromaSubsampleMode.Subsample444 : JpegQuality >= 91 ? ChromaSubsampleMode.Subsample422 : ChromaSubsampleMode.Subsample420;
+				return JpegQuality >= 95 ? ChromaSubsampleMode.Subsample444 : JpegQuality >= 90 ? ChromaSubsampleMode.Subsample422 : ChromaSubsampleMode.Subsample420;
 			}
 			set => jpegSubsampling = value;
 		}
@@ -491,19 +492,19 @@ namespace PhotoSauce.MagicScaler
 			int imgHeight = swapDimensions ? inWidth : inHeight;
 
 			var whole = new Rectangle(0, 0, imgWidth, imgHeight);
-			bool needsCrop = Crop.IsEmpty || Crop != Rectangle.Intersect(whole, Crop);
+			AutoCrop = Crop.IsEmpty || Crop != Rectangle.Intersect(whole, Crop);
 
 			if (Width == 0 || Height == 0)
 				ResizeMode = CropScaleMode.Crop;
 
 			if (Width == 0 && Height == 0)
 			{
-				Crop = needsCrop ? whole : Crop;
+				Crop = AutoCrop ? whole : Crop;
 				OuterRect = InnerRect = new Rectangle(0, 0, Crop.Width, Crop.Height);
 				return;
 			}
 
-			if (!needsCrop || ResizeMode != CropScaleMode.Crop)
+			if (!AutoCrop || ResizeMode != CropScaleMode.Crop)
 				Anchor = CropAnchor.Center;
 
 			int wwin = imgWidth, hwin = imgHeight;
@@ -511,7 +512,7 @@ namespace PhotoSauce.MagicScaler
 			double wrat = width > 0 ? (double)wwin / width : (double)hwin / height;
 			double hrat = height > 0 ? (double)hwin / height : wrat;
 
-			if (needsCrop)
+			if (AutoCrop)
 			{
 				if (ResizeMode == CropScaleMode.Crop)
 				{
@@ -577,7 +578,7 @@ namespace PhotoSauce.MagicScaler
 
 			var frame = img.Frames[FrameIndex];
 
-			Fixup(frame.Width, frame.Height, OrientationMode != OrientationMode.Normalize && frame.ExifOrientation.RequiresDimensionSwap());
+			Fixup(frame.Width, frame.Height, OrientationMode != OrientationMode.Normalize && frame.ExifOrientation.SwapsDimensions());
 
 			if (SaveFormat == FileFormat.Auto)
 				SetSaveFormat(img.ContainerType, frame.HasAlpha);

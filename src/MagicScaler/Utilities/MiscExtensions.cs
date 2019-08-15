@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Linq;
-using System.Drawing;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
 #if NETFRAMEWORK
+using System.Linq;
 using System.Configuration;
 using System.Collections.Specialized;
 #endif
@@ -15,20 +14,6 @@ namespace PhotoSauce.MagicScaler
 {
 	internal static class MiscExtensions
 	{
-		public static WICRect FromPixelArea(this WICRect wr, in PixelArea r)
-		{
-			wr.X = r.X;
-			wr.Y = r.Y;
-			wr.Width = r.Width;
-			wr.Height = r.Height;
-
-			return wr;
-		}
-
-		public static WICRect ToWicRect(this Rectangle r) => new WICRect { X = r.X, Y = r.Y, Width = r.Width, Height = r.Height };
-
-		public static PixelArea ToPixelArea(this WICRect r) => new PixelArea(r.X, r.Y, r.Width, r.Height);
-
 		public static WICBitmapTransformOptions ToWicTransformOptions(this Orientation o)
 		{
 			int orientation = (int)o;
@@ -47,9 +32,19 @@ namespace PhotoSauce.MagicScaler
 			return opt;
 		}
 
-		public static bool RequiresDimensionSwap(this Orientation o) => o > Orientation.FlipVertical;
+		public static bool SwapsDimensions(this Orientation o) => o > Orientation.FlipVertical;
 
 		public static bool RequiresCache(this Orientation o) => o > Orientation.FlipHorizontal;
+
+		public static bool FlipsX(this Orientation o) => o == Orientation.FlipHorizontal || o == Orientation.Rotate180 || o == Orientation.Rotate270 || o == Orientation.Transverse;
+
+		public static bool FlipsY(this Orientation o) => o == Orientation.FlipVertical || o == Orientation.Rotate180 || o == Orientation.Rotate90 || o == Orientation.Transverse;
+
+		public static Orientation Invert(this Orientation o) => o == Orientation.Rotate270 ? Orientation.Rotate90 : o == Orientation.Rotate90 ? Orientation.Rotate270 : o;
+
+		public static bool IsSubsampledX(this WICJpegYCrCbSubsamplingOption o) => o == WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling420 || o == WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling422;
+
+		public static bool IsSubsampledY(this WICJpegYCrCbSubsamplingOption o) => o == WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling420 || o == WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling440;
 
 		public static bool InsensitiveEquals(this string s1, string s2) => string.Equals(s1, s2, StringComparison.OrdinalIgnoreCase);
 

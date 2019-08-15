@@ -105,7 +105,7 @@ namespace PhotoSauce.MagicScaler
 			lines = toLoad;
 			loaded = toKeep + toLoad;
 
-			return buffer.AsSpan((first - start) * Stride, window == 0 ? lines * Stride : window - (lines - toLoad) * Stride);
+			return buffer.AsSpan((first - start) * Stride, window == 0 ? lines * Stride : window - (minCapacity - toLoad) * Stride);
 		}
 
 		unsafe public ReadOnlySpan<byte> PrepareRead(int first, int lines)

@@ -172,8 +172,31 @@ namespace PhotoSauce.MagicScaler
 			ctx.Settings.JpegQuality = ctx.UsedSettings.JpegQuality;
 			ctx.Settings.JpegSubsampleMode = ctx.UsedSettings.JpegSubsampleMode;
 
-			if (ctx.DecoderFrame.SupportsPlanarPipeline)
+			bool processPlanar = ctx.SupportsPlanarProcessing;
+			var subsample = (WICJpegYCrCbSubsamplingOption)ctx.Settings.JpegSubsampleMode;
+
+			if (processPlanar)
 			{
+				if (!ctx.Settings.AutoCrop && (int)ctx.Settings.HybridScaleRatio == 1)
+				{
+					if (ctx.DecoderFrame.ChromaSubsampling.IsSubsampledX() && ((ctx.Settings.Crop.X & 1) != 0 || (ctx.Settings.Crop.Width & 1) != 0))
+						processPlanar = false;
+					if (ctx.DecoderFrame.ChromaSubsampling.IsSubsampledY() && ((ctx.Settings.Crop.Y & 1) != 0 || (ctx.Settings.Crop.Height & 1) != 0))
+						processPlanar = false;
+				}
+
+				if (ctx.Settings.SaveFormat == FileFormat.Jpeg && ctx.DecoderFrame.ExifOrientation.SwapsDimensions())
+				{
+					if (subsample.IsSubsampledX() && (ctx.Settings.InnerRect.Width & 1) != 0)
+						outputPlanar = false;
+					if (subsample.IsSubsampledY() && (ctx.Settings.InnerRect.Height & 1) != 0)
+						outputPlanar = false;
+				}
+			}
+
+			if (processPlanar)
+			{
+				var orient = ctx.DecoderFrame.ExifOrientation;
 				bool savePlanar = outputPlanar
 					&& ctx.Settings.SaveFormat == FileFormat.Jpeg
 					&& ctx.Settings.InnerRect == ctx.Settings.OuterRect
@@ -184,22 +207,24 @@ namespace PhotoSauce.MagicScaler
 				MagicTransforms.AddHighQualityScaler(ctx);
 				MagicTransforms.AddUnsharpMask(ctx);
 				MagicTransforms.AddExternalFormatConverter(ctx);
+				MagicTransforms.AddExifFlipRotator(ctx);
 
 				ctx.PlanarLumaSource = ctx.Source;
 				ctx.Source = ctx.WicContext.PlanarCache.GetPlane(WicPlane.Chroma);
+				ctx.DecoderFrame.ExifOrientation = orient;
+				ctx.Settings.Crop = ctx.Source.Area.UnOrient(orient, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
 
 				if (savePlanar)
 				{
-					var subsample = ctx.Settings.JpegSubsampleMode;
-					if (subsample == ChromaSubsampleMode.Subsample420)
-						ctx.Settings.InnerRect.Height = MathUtil.DivCeiling(ctx.Settings.InnerRect.Height, 2);
-
-					if (subsample == ChromaSubsampleMode.Subsample420 || subsample == ChromaSubsampleMode.Subsample422)
+					if (subsample.IsSubsampledX())
 						ctx.Settings.InnerRect.Width = MathUtil.DivCeiling(ctx.Settings.InnerRect.Width, 2);
+					if (subsample.IsSubsampledY())
+						ctx.Settings.InnerRect.Height = MathUtil.DivCeiling(ctx.Settings.InnerRect.Height, 2);
 				}
 
 				MagicTransforms.AddHighQualityScaler(ctx);
 				MagicTransforms.AddExternalFormatConverter(ctx);
+				MagicTransforms.AddExifFlipRotator(ctx);
 
 				ctx.PlanarChromaSource = ctx.Source;
 				ctx.Source = ctx.PlanarLumaSource;
@@ -214,9 +239,6 @@ namespace PhotoSauce.MagicScaler
 			else
 			{
 				WicTransforms.AddNativeScaler(ctx);
-				WicTransforms.AddNativeExifRotator(ctx);
-
-				MagicTransforms.AddExifRotator(ctx);
 				MagicTransforms.AddCropper(ctx);
 				MagicTransforms.AddHighQualityScaler(ctx, true);
 				WicTransforms.AddPixelFormatConverter(ctx);
@@ -225,6 +247,7 @@ namespace PhotoSauce.MagicScaler
 				MagicTransforms.AddColorspaceConverter(ctx);
 				MagicTransforms.AddMatte(ctx);
 				MagicTransforms.AddUnsharpMask(ctx);
+				MagicTransforms.AddExifFlipRotator(ctx);
 				MagicTransforms.AddPad(ctx);
 			}
 		}

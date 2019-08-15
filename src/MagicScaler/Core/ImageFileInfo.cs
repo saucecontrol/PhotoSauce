@@ -114,8 +114,8 @@ namespace PhotoSauce.MagicScaler
 				var frm = new WicFrameReader(ctx);
 				WicTransforms.AddMetadataReader(ctx, basicOnly: true);
 
-				int width = (int)(frm.ExifOrientation.RequiresDimensionSwap() ? ctx.Source.Height : ctx.Source.Width);
-				int height = (int)(frm.ExifOrientation.RequiresDimensionSwap() ? ctx.Source.Width : ctx.Source.Height);
+				int width = (int)(frm.ExifOrientation.SwapsDimensions() ? ctx.Source.Height : ctx.Source.Width);
+				int height = (int)(frm.ExifOrientation.SwapsDimensions() ? ctx.Source.Width : ctx.Source.Height);
 				Frames[i] = new FrameInfo(width, height, ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None, frm.ExifOrientation);
 			}
 		}
