@@ -6,10 +6,6 @@ using System.ComponentModel;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-#if DRAWING_SHIM_COLORCONVERTER
-using System.Drawing.ColorShim;
-#endif
-
 using PhotoSauce.MagicScaler.Interpolators;
 
 namespace PhotoSauce.MagicScaler
@@ -206,7 +202,6 @@ namespace PhotoSauce.MagicScaler
 		private static readonly Lazy<Regex> cropExpression = new Lazy<Regex>(() => new Regex(@"^(\d+,){3}\d+$", RegexOptions.Compiled));
 		private static readonly Lazy<Regex> anchorExpression = new Lazy<Regex>(() => new Regex(@"^(top|middle|bottom)?\-?(left|center|right)?$", RegexOptions.Compiled | RegexOptions.IgnoreCase));
 		private static readonly Lazy<Regex> subsampleExpression = new Lazy<Regex>(() => new Regex(@"^4(20|22|44)$", RegexOptions.Compiled));
-		private static readonly Lazy<Regex> hexColorExpression = new Lazy<Regex>(() => new Regex(@"^[0-9A-Fa-f]{6}$", RegexOptions.Compiled));
 		private static readonly ProcessImageSettings empty = new ProcessImageSettings();
 
 		private InterpolationSettings interpolation;
@@ -427,14 +422,9 @@ namespace PhotoSauce.MagicScaler
 			foreach (var cap in subsampleExpression.Value.Match(dic.GetValueOrDefault("subsample") ?? string.Empty).Captures.Cast<Capture>())
 				s.JpegSubsampleMode = Enum.TryParse(string.Concat("Subsample", cap.Value), true, out ChromaSubsampleMode csub) ? csub : s.JpegSubsampleMode;
 
-			string color = dic.GetValueOrDefault("bgcolor") ?? dic.GetValueOrDefault("bg");
-			if (!string.IsNullOrWhiteSpace(color))
-			{
-				if (hexColorExpression.Value.IsMatch(color))
-					color = string.Concat('#', color);
-
-				try { s.MatteColor = (Color)(new ColorConverter()).ConvertFromString(color); } catch { }
-			}
+			string colorName = dic.GetValueOrDefault("bgcolor") ?? dic.GetValueOrDefault("bg");
+			if (!string.IsNullOrWhiteSpace(colorName) && ColorParser.TryParse(colorName, out var color))
+				s.MatteColor = color;
 
 			string? filter = dic.GetValueOrDefault("filter")?.ToLower();
 			switch (filter)

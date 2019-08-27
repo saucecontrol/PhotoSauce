@@ -18,26 +18,17 @@ namespace PhotoSauce.MagicScaler
 
 		public PixelArea(int x, int y, int width, int height)
 		{
+			static void throwArgException(string name) => throw new ArgumentOutOfRangeException(name, "Value cannot be negative");
+
 			if (x < 0) throwArgException(nameof(x));
 			if (y < 0) throwArgException(nameof(y));
 			if (width < 0) throwArgException(nameof(width));
 			if (height < 0) throwArgException(nameof(height));
 
-			X = x;
-			Y = y;
-			Width = width;
-			Height = height;
-
-			static void throwArgException(string name) => throw new ArgumentOutOfRangeException(name, "Value cannot be negative");
+			(X, Y, Width, Height) = (x, y, width, height);
 		}
 
-		public void Deconstruct(out int x, out int y, out int width, out int height)
-		{
-			x = X;
-			y = Y;
-			width = Width;
-			height = Height;
-		}
+		public void Deconstruct(out int x, out int y, out int w, out int h) => (x, y, w, h) = (X, Y, Width, Height);
 
 		public PixelArea DeOrient(Orientation orientation, uint targetWidth, uint targetHeight)
 		{
