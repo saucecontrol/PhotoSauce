@@ -20,7 +20,7 @@ namespace PhotoSauce.MagicScaler
 		public FormatConversionTransformInternal(PixelSource source, ColorProfile? sourceProfile, ColorProfile? destProfile, Guid destFormat) : base(source)
 		{
 			InFormat = source.Format;
-			Format = PixelFormat.Cache[destFormat];
+			Format = PixelFormat.FromGuid(destFormat);
 			SourceProfile = sourceProfile ?? ColorProfile.sRGB;
 			DestProfile = destProfile ?? ColorProfile.sRGB;
 			LineBuff = ArrayPool<byte>.Shared.Rent((int)BufferStride);

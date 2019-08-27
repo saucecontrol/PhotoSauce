@@ -108,7 +108,7 @@ namespace PhotoSauce.MagicScaler
 			else
 				ctx.Source = ctx.AddDispose(ConvolutionTransform<byte, int>.CreateResize(ctx.Source, (uint)width, (uint)height, interpolatorx, interpolatory));
 
-			ctx.Settings.Crop = ctx.Source.Area.UnOrient(ctx.DecoderFrame.ExifOrientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
+			ctx.Settings.Crop = ctx.Source.Area.ReOrient(ctx.DecoderFrame.ExifOrientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
 		}
 
 		public static void AddUnsharpMask(PipelineContext ctx)
@@ -140,7 +140,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				var oldFmt = ctx.Source.Format;
 				var newFmt = oldFmt == PixelFormat.Pbgra64BppLinearUQ15 ? PixelFormat.Bgr48BppLinearUQ15
-					: oldFmt.FormatGuid == Consts.GUID_WICPixelFormat32bppBGRA ? PixelFormat.Cache[Consts.GUID_WICPixelFormat24bppBGR]
+					: oldFmt.FormatGuid == Consts.GUID_WICPixelFormat32bppBGRA ? PixelFormat.FromGuid(Consts.GUID_WICPixelFormat24bppBGR)
 					: throw new NotSupportedException("Unsupported pixel format");
 
 				ctx.Source = ctx.AddDispose(new FormatConversionTransformInternal(ctx.Source, null, null, newFmt.FormatGuid));
@@ -159,12 +159,12 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddCropper(PipelineContext ctx)
 		{
-			var crop = PixelArea.FromGdiRect(ctx.Settings.Crop).Orient(ctx.DecoderFrame.ExifOrientation, ctx.Source.Width, ctx.Source.Height);
+			var crop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.DecoderFrame.ExifOrientation, ctx.Source.Width, ctx.Source.Height);
 			if (crop == ctx.Source.Area)
 				return;
 
 			ctx.Source = new CropTransform(ctx.Source, crop);
-			ctx.Settings.Crop = ctx.Source.Area.UnOrient(ctx.DecoderFrame.ExifOrientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
+			ctx.Settings.Crop = ctx.Source.Area.ReOrient(ctx.DecoderFrame.ExifOrientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
 		}
 
 		public static void AddFlipRotator(PipelineContext ctx, Orientation orientation)

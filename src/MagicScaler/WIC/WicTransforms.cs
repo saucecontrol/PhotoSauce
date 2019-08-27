@@ -32,14 +32,14 @@ namespace PhotoSauce.MagicScaler
 			var source = default(IWICBitmapSource);
 			source = Frame = ctx.WicContext.AddRef(ctx.Decoder.Decoder.GetFrame((uint)ctx.Settings.FrameIndex));
 
-			if (ctx.Decoder.WicContainerFormat == Consts.GUID_ContainerFormatRaw && ctx.Settings.FrameIndex == 0 && ctx.Decoder.Decoder.TryGetPreview(out var preview))
+			if (ctx.Decoder.IsRawContainer && ctx.Settings.FrameIndex == 0 && ctx.Decoder.Decoder.TryGetPreview(out var preview))
 				source = ctx.WicContext.AddRef(preview);
 
 			source.GetResolution(out double dpix, out double dpiy);
 			DpiX = dpix;
 			DpiY = dpiy;
 
-			if (PixelFormat.Cache[source.GetPixelFormat()].NumericRepresentation == PixelNumericRepresentation.Indexed)
+			if (PixelFormat.FromGuid(source.GetPixelFormat()).NumericRepresentation == PixelNumericRepresentation.Indexed)
 			{
 				var pal = ctx.WicContext.AddRef(Wic.Factory.CreatePalette());
 				source.CopyPalette(pal);
@@ -107,7 +107,6 @@ namespace PhotoSauce.MagicScaler
 				{
 					if (ctx.Settings.OrientationMode == OrientationMode.Normalize && pvorient.UnmanagedType == VarEnum.VT_UI2)
 						ctx.DecoderFrame.ExifOrientation = (Orientation)Math.Min(Math.Max((ushort)Orientation.Normal, (ushort)pvorient.Value!), (ushort)Orientation.Rotate270);
-
 				}
 
 				if (basicOnly)
@@ -237,13 +236,13 @@ namespace PhotoSauce.MagicScaler
 				ctx.WicContext.SourceColorContext = null;
 			}
 
-			var newFormat = PixelFormat.Cache[Consts.GUID_WICPixelFormat24bppBGR];
+			var newFormat = PixelFormat.FromGuid(Consts.GUID_WICPixelFormat24bppBGR);
 			if (curFormat.AlphaRepresentation == PixelAlphaRepresentation.Associated && allowPbgra && ctx.Settings.BlendingMode != GammaMode.Linear && ctx.Settings.MatteColor.IsEmpty)
-				newFormat = PixelFormat.Cache[Consts.GUID_WICPixelFormat32bppPBGRA];
+				newFormat = PixelFormat.FromGuid(Consts.GUID_WICPixelFormat32bppPBGRA);
 			else if (curFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
-				newFormat = PixelFormat.Cache[Consts.GUID_WICPixelFormat32bppBGRA];
+				newFormat = PixelFormat.FromGuid(Consts.GUID_WICPixelFormat32bppBGRA);
 			else if (curFormat.ColorRepresentation == PixelColorRepresentation.Grey)
-				newFormat = PixelFormat.Cache[Consts.GUID_WICPixelFormat8bppGray];
+				newFormat = PixelFormat.FromGuid(Consts.GUID_WICPixelFormat8bppGray);
 
 			if (curFormat.FormatGuid == newFormat.FormatGuid)
 				return;
@@ -259,7 +258,7 @@ namespace PhotoSauce.MagicScaler
 		public static void AddIndexedColorConverter(PipelineContext ctx)
 		{
 			var curFormat = ctx.Source.Format;
-			var newFormat = PixelFormat.Cache[Consts.GUID_WICPixelFormat8bppIndexed];
+			var newFormat = PixelFormat.FromGuid(Consts.GUID_WICPixelFormat8bppIndexed);
 
 			if (!ctx.Settings.IndexedColor || curFormat.NumericRepresentation == PixelNumericRepresentation.Indexed || curFormat.ColorRepresentation == PixelColorRepresentation.Grey)
 				return;
@@ -336,7 +335,7 @@ namespace PhotoSauce.MagicScaler
 			scaler.Initialize(ctx.Source.WicSource, (uint)width, (uint)height, mode);
 
 			ctx.Source = scaler.AsPixelSource(nameof(IWICBitmapScaler));
-			ctx.Settings.Crop = ctx.Source.Area.UnOrient(ctx.DecoderFrame.ExifOrientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
+			ctx.Settings.Crop = ctx.Source.Area.ReOrient(ctx.DecoderFrame.ExifOrientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
 		}
 
 		public static void AddNativeScaler(PipelineContext ctx)
@@ -353,13 +352,11 @@ namespace PhotoSauce.MagicScaler
 				return;
 
 			var orient = ctx.DecoderFrame.ExifOrientation;
-			bool swap = orient.SwapsDimensions();
-
 			var scaler = ctx.WicContext.AddRef(Wic.Factory.CreateBitmapScaler());
 			scaler.Initialize(ctx.Source.WicSource, cw, ch, WICBitmapInterpolationMode.WICBitmapInterpolationModeFant);
 
 			ctx.Source = scaler.AsPixelSource(nameof(IWICBitmapSourceTransform));
-			ctx.Settings.Crop = PixelArea.FromGdiRect(ctx.Settings.Crop).Orient(orient, ow, oh).ProportionalScale(ow, oh, cw, ch).Orient(orient.Invert(), swap ? ch : cw, swap ? cw : ch).ToGdiRect();
+			ctx.Settings.Crop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(orient, ow, oh).ProportionalScale(ow, oh, cw, ch).ReOrient(orient, cw, ch).ToGdiRect();
 		}
 
 		public static void AddPlanarCache(PipelineContext ctx)
@@ -375,11 +372,11 @@ namespace PhotoSauce.MagicScaler
 			if (!trans.DoesSupportTransform(ref cw, ref ch, WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault, PlanarPixelFormats, desc, (uint)desc.Length))
 				throw new NotSupportedException("Requested planar transform not supported");
 
-			var crop = PixelArea.FromGdiRect(ctx.Settings.Crop).Orient(ctx.DecoderFrame.ExifOrientation, ow, oh).ProportionalScale(ow, oh, cw, ch);
+			var crop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.DecoderFrame.ExifOrientation, ow, oh).ProportionalScale(ow, oh, cw, ch);
 			ctx.WicContext.PlanarCache = ctx.AddDispose(new WicPlanarCache(trans, desc[0], desc[1], WICBitmapTransformOptions.WICBitmapTransformRotate0, cw, ch, crop));
 
 			ctx.Source = ctx.WicContext.PlanarCache.GetPlane(WicPlane.Luma);
-			ctx.Settings.Crop = ctx.Source.Area.UnOrient(ctx.DecoderFrame.ExifOrientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
+			ctx.Settings.Crop = ctx.Source.Area.ReOrient(ctx.DecoderFrame.ExifOrientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
 		}
 
 		public static void AddPlanarConverter(PipelineContext ctx)

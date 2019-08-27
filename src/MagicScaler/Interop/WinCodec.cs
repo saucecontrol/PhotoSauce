@@ -327,6 +327,9 @@ namespace PhotoSauce.MagicScaler.Interop
 		public static readonly Guid CLSID_WICDdsMetadataWriter                         = new Guid(0xfd688bbd, 0x31ed, 0x4db7, 0xa7, 0x23, 0x93, 0x49, 0x27, 0xd3, 0x83, 0x67);
 		public static readonly Guid CLSID_WICAdngDecoder                               = new Guid(0x981d9411, 0x909e, 0x42a7, 0x8f, 0x5d, 0xa7, 0x47, 0xff, 0x05, 0x2e, 0xdb);
 		public static readonly Guid CLSID_WICJpegQualcommPhoneEncoder                  = new Guid(0x68ed5c62, 0xf534, 0x4979, 0xb2, 0xb3, 0x68, 0x6a, 0x12, 0xb2, 0xb3, 0x4c);
+		public static readonly Guid CLSID_WicHeifDecoder                               = new Guid(0xe9a4a80a, 0x44fe, 0x4de4, 0x89, 0x71, 0x71, 0x50, 0xb1, 0x0a, 0x51, 0x99);
+		public static readonly Guid CLSID_WicHeifEncoder                               = new Guid(0x0dbecec1, 0x9eb3, 0x4860, 0x9c, 0x6f, 0xdd, 0xbe, 0x86, 0x63, 0x45, 0x75);
+		public static readonly Guid CLSID_WicWebpDecoder                               = new Guid(0x7693e886, 0x51c9, 0x4070, 0x84, 0x19, 0x9f, 0x70, 0X73, 0X8e, 0Xc8, 0Xfa);
 
 		public static readonly Guid GUID_ContainerFormatBmp                            = new Guid(0x0af1d87e, 0xfcfe, 0x4188, 0xbd, 0xeb, 0xa7, 0x90, 0x64, 0x71, 0xcb, 0xe3);
 		public static readonly Guid GUID_ContainerFormatGif                            = new Guid(0x1f8a5601, 0x7d4d, 0x4cbd, 0x9c, 0x82, 0x1b, 0xc8, 0xd4, 0xee, 0xb9, 0xa5);
@@ -336,8 +339,11 @@ namespace PhotoSauce.MagicScaler.Interop
 		public static readonly Guid GUID_ContainerFormatTiff                           = new Guid(0x163bcc30, 0xe2e9, 0x4f0b, 0x96, 0x1d, 0xa3, 0xe9, 0xfd, 0xb7, 0x88, 0xa3);
 		public static readonly Guid GUID_ContainerFormatWmp                            = new Guid(0x57a37caa, 0x367a, 0x4540, 0x91, 0x6b, 0xf1, 0x83, 0xc5, 0x09, 0x3a, 0x4b);
 		public static readonly Guid GUID_ContainerFormatRaw                            = new Guid(0xc1fc85cb, 0xd64f, 0x478b, 0xa4, 0xec, 0x69, 0xad, 0xc9, 0xee, 0x13, 0x92);
+		public static readonly Guid GUID_ContainerFormatRaw2                           = new Guid(0xfe99ce60, 0xf19c, 0x433c, 0xa3, 0xae, 0x00, 0xac, 0xef, 0xa9, 0xca, 0x21);
 		public static readonly Guid GUID_ContainerFormatDds                            = new Guid(0x9967cb95, 0x2e85, 0x4ac8, 0x8c, 0xa2, 0x83, 0xd7, 0xcc, 0xd4, 0x25, 0xc9);
 		public static readonly Guid GUID_ContainerFormatAdng                           = new Guid(0xf3ff6d0d, 0x38c0, 0x41c4, 0xb1, 0xfe, 0x1f, 0x38, 0x24, 0xf1, 0x7b, 0x84);
+		public static readonly Guid GUID_ContainerFormatHeif                           = new Guid(0xe1e62521, 0x6787, 0x405b, 0xa3, 0x39, 0x50, 0x07, 0x15, 0xb5, 0x76, 0x3f);
+		public static readonly Guid GUID_ContainerFormatWebp                           = new Guid(0xe094b0e2, 0x67f2, 0x45b3, 0xb0, 0xea, 0x11, 0x53, 0x37, 0xca, 0x7c, 0xf3);
 
 		public static readonly Guid GUID_MetadataFormat8BIMIPTC                        = new Guid(0x0010568c, 0x0852, 0x4e6a, 0xb1, 0x91, 0x5c, 0x33, 0xac, 0x5b, 0x04, 0x30);
 		public static readonly Guid GUID_MetadataFormat8BIMResolutionInfo              = new Guid(0x739F305D, 0x81DB, 0x43CB, 0xAC, 0x5E, 0x55, 0x01, 0x3E, 0xF9, 0xF0, 0x03);
@@ -432,6 +438,8 @@ namespace PhotoSauce.MagicScaler.Interop
 		public static readonly Guid GUID_WICPixelFormat32bppRGBA                       = new Guid(0xf5c7ad2d, 0x6a8d, 0x43dd, 0xa7, 0xa8, 0xa2, 0x99, 0x35, 0x26, 0x1a, 0xe9);
 		public static readonly Guid GUID_WICPixelFormat32bppRGBA1010102                = new Guid(0x25238D72, 0xFCF9, 0x4522, 0xb5, 0x14, 0x55, 0x78, 0xe5, 0xad, 0x55, 0xe0);
 		public static readonly Guid GUID_WICPixelFormat32bppRGBA1010102XR              = new Guid(0x00DE6B9A, 0xC101, 0x434b, 0xb5, 0x02, 0xd0, 0x16, 0x5e, 0xe1, 0x12, 0x2c);
+		public static readonly Guid GUID_WICPixelFormat32bppR10G10B10A2                = new Guid(0x604e1bb5, 0x8a3c, 0x4b65, 0xb1, 0x1c, 0xbc, 0x0b, 0x8d, 0xd7, 0x5b, 0x7f);
+		public static readonly Guid GUID_WICPixelFormat32bppR10G10B10A2HDR10           = new Guid(0x9c215c5d, 0x1acc, 0x4f0e, 0xa4, 0xbc, 0x70, 0xfb, 0x3a, 0xe8, 0xfd, 0x28);
 		public static readonly Guid GUID_WICPixelFormat64bppRGBA                       = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x16);
 		public static readonly Guid GUID_WICPixelFormat64bppRGBAFixedPoint             = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x1d);
 		public static readonly Guid GUID_WICPixelFormat64bppRGBAHalf                   = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x3a);
@@ -2292,8 +2300,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		WICGifLogicalScreenDescriptorSortFlag,
 		WICGifLogicalScreenDescriptorGlobalColorTableSize,
 		WICGifLogicalScreenDescriptorBackgroundColorIndex,
-		WICGifLogicalScreenDescriptorPixelAspectRatio,
-		WICGifLogicalScreenDescriptorMax
+		WICGifLogicalScreenDescriptorPixelAspectRatio
 	}
 
 	internal enum WICGifImageDescriptorProperties : uint
@@ -2305,8 +2312,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		WICGifImageDescriptorLocalColorTableFlag,
 		WICGifImageDescriptorInterlaceFlag,
 		WICGifImageDescriptorSortFlag,
-		WICGifImageDescriptorLocalColorTableSize,
-		WICGifImageDescriptorMax
+		WICGifImageDescriptorLocalColorTableSize
 	}
 
 	internal enum WICGifGraphicControlExtensionProperties : uint
@@ -2315,15 +2321,13 @@ namespace PhotoSauce.MagicScaler.Interop
 		WICGifGraphicControlExtensionUserInputFlag,
 		WICGifGraphicControlExtensionTransparencyFlag,
 		WICGifGraphicControlExtensionDelay,
-		WICGifGraphicControlExtensionTransparentColorIndex,
-		WICGifGraphicControlExtensionMax
+		WICGifGraphicControlExtensionTransparentColorIndex
 	}
 
 	internal enum WICGifApplicationExtensionProperties : uint
 	{
 		WICGifApplicationExtensionApplication = 0x0001,
-		WICGifApplciationExtensionData,
-		WICGifApplciationExtensionMax
+		WICGifApplciationExtensionData
 	}
 
 	[ComImport, Guid("DAAC296F-7AA5-4dbf-8D15-225C5976F891"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]

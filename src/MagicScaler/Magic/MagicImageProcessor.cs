@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Numerics;
+using System.ComponentModel;
 
 using PhotoSauce.MagicScaler.Interop;
 
@@ -16,6 +17,7 @@ namespace PhotoSauce.MagicScaler
 		public static bool EnableXmpOrientation { get; set; } = false;
 
 		/// <summary>Overrides the default <a href="https://en.wikipedia.org/wiki/SIMD">SIMD</a> support detection to force floating point processing on or off.</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static bool EnableSimd { get; set; } = Vector.IsHardwareAccelerated && (Vector<float>.Count == 4 || Vector<float>.Count == 8);
 
 		private static void checkInStream(Stream imgStream)
@@ -179,9 +181,11 @@ namespace PhotoSauce.MagicScaler
 			{
 				if (!ctx.Settings.AutoCrop && (int)ctx.Settings.HybridScaleRatio == 1)
 				{
-					if (ctx.DecoderFrame.ChromaSubsampling.IsSubsampledX() && ((ctx.Settings.Crop.X & 1) != 0 || (ctx.Settings.Crop.Width & 1) != 0))
+					var orCrop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.DecoderFrame.ExifOrientation, ctx.Source.Width, ctx.Source.Height);
+
+					if (ctx.DecoderFrame.ChromaSubsampling.IsSubsampledX() && ((orCrop.X & 1) != 0 || (orCrop.Width & 1) != 0))
 						processPlanar = false;
-					if (ctx.DecoderFrame.ChromaSubsampling.IsSubsampledY() && ((ctx.Settings.Crop.Y & 1) != 0 || (ctx.Settings.Crop.Height & 1) != 0))
+					if (ctx.DecoderFrame.ChromaSubsampling.IsSubsampledY() && ((orCrop.Y & 1) != 0 || (orCrop.Height & 1) != 0))
 						processPlanar = false;
 				}
 
@@ -212,7 +216,7 @@ namespace PhotoSauce.MagicScaler
 				ctx.PlanarLumaSource = ctx.Source;
 				ctx.Source = ctx.WicContext.PlanarCache.GetPlane(WicPlane.Chroma);
 				ctx.DecoderFrame.ExifOrientation = orient;
-				ctx.Settings.Crop = ctx.Source.Area.UnOrient(orient, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
+				ctx.Settings.Crop = ctx.Source.Area.ReOrient(orient, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
 
 				if (savePlanar)
 				{

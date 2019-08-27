@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Drawing;
 using System.Diagnostics;
+using System.ComponentModel;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
@@ -63,8 +64,8 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>Blend gamma-companded R'G'B' values directly.</summary>
 		Companded,
 		/// <summary>Same as <see cref="Companded" />.</summary>
-		[Obsolete("Use GammaMode.Companded instead")]
-		sRGB = 1
+		[Obsolete("Replaced by " + nameof(GammaMode) + "." + nameof(Companded)), EditorBrowsable(EditorBrowsableState.Never)]
+		sRGB = Companded
 	}
 
 	/// <summary>Defines the modes that control <a href="https://en.wikipedia.org/wiki/Chroma_subsampling">chroma subsampling</a> for output image formats that support it.</summary>

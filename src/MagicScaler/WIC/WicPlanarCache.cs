@@ -123,7 +123,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				Width = planeDesc.Width;
 				Height = planeDesc.Height;
-				Format = PixelFormat.Cache[planeDesc.Format];
+				Format = PixelFormat.FromGuid(planeDesc.Format);
 				WicSource = this.AsIWICBitmapSource();
 
 				cacheSource = cache;

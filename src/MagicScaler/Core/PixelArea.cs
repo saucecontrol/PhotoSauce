@@ -39,7 +39,7 @@ namespace PhotoSauce.MagicScaler
 			height = Height;
 		}
 
-		public PixelArea Orient(Orientation orientation, uint targetWidth, uint targetHeight)
+		public PixelArea DeOrient(Orientation orientation, uint targetWidth, uint targetHeight)
 		{
 			var (x, y, width, height) = this;
 
@@ -55,24 +55,12 @@ namespace PhotoSauce.MagicScaler
 			return new PixelArea(x, y, width, height);
 		}
 
-		public PixelArea UnOrient(Orientation orientation, uint targetWidth, uint targetHeight)
+		public PixelArea ReOrient(Orientation orientation, uint targetWidth, uint targetHeight)
 		{
-			orientation = orientation.Invert();
-			var (x, y, width, height) = this;
-
 			if (orientation.SwapsDimensions())
-			{
-				(x, y, width, height) = (y, x, height, width);
 				(targetWidth, targetHeight) = (targetHeight, targetWidth);
-			}
 
-			if (orientation.FlipsX())
-				x = (int)targetWidth - width - x;
-
-			if (orientation.FlipsY())
-				y = (int)targetHeight - height - y;
-
-			return new PixelArea(x, y, width, height);
+			return DeOrient(orientation.Invert(), targetWidth, targetHeight);
 		}
 
 		public PixelArea ProportionalScale(uint sourceWidth, uint sourceHeight, uint targetWidth, uint targetHeight)

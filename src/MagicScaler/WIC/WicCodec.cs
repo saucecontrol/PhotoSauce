@@ -24,6 +24,8 @@ namespace PhotoSauce.MagicScaler
 		public FileFormat ContainerFormat { get; private set; }
 		public uint FrameCount { get; private set; }
 
+		public bool IsRawContainer => WicContainerFormat == Consts.GUID_ContainerFormatRaw || WicContainerFormat == Consts.GUID_ContainerFormatRaw2 || WicContainerFormat == Consts.GUID_ContainerFormatAdng;
+
 		private void init(IWICBitmapDecoder dec, PipelineContext ctx)
 		{
 			ctx.Decoder = this;
@@ -95,7 +97,8 @@ namespace PhotoSauce.MagicScaler
 
 		public WicEncoder(PipelineContext ctx, IStream stm)
 		{
-			Encoder = ctx.WicContext.AddRef(Wic.Factory.CreateEncoder(formatMap.GetValueOrDefault(ctx.Settings.SaveFormat, Consts.GUID_ContainerFormatPng), null));
+			var fmt = ctx.Settings.SaveFormat;
+			Encoder = ctx.WicContext.AddRef(Wic.Factory.CreateEncoder(formatMap.GetValueOrDefault(fmt, Consts.GUID_ContainerFormatPng), null));
 			Encoder.Initialize(stm, WICBitmapEncoderCacheOption.WICBitmapEncoderNoCache);
 
 			var props = new Dictionary<string, object>();
@@ -104,16 +107,16 @@ namespace PhotoSauce.MagicScaler
 			ctx.WicContext.AddRef(frame);
 			ctx.WicContext.AddRef(bag);
 
-			if (ctx.Settings.SaveFormat == FileFormat.Jpeg)
+			if (fmt == FileFormat.Jpeg)
 				props.Add("ImageQuality", ctx.Settings.JpegQuality / 100f);
 
-			if (ctx.Settings.SaveFormat == FileFormat.Jpeg && ctx.Settings.JpegSubsampleMode != ChromaSubsampleMode.Default)
+			if (fmt == FileFormat.Jpeg && ctx.Settings.JpegSubsampleMode != ChromaSubsampleMode.Default)
 				props.Add("JpegYCrCbSubsampling", (byte)ctx.Settings.JpegSubsampleMode);
 
-			if (ctx.Settings.SaveFormat == FileFormat.Tiff)
+			if (fmt == FileFormat.Tiff)
 				props.Add("TiffCompressionMethod", (byte)WICTiffCompressionOption.WICTiffCompressionNone);
 
-			if (ctx.Settings.SaveFormat == FileFormat.Bmp && ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None)
+			if (fmt == FileFormat.Bmp && ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None)
 				props.Add("EnableV5Header32bppBGRA", true);
 
 			if (props.Count > 0)
@@ -162,7 +165,7 @@ namespace PhotoSauce.MagicScaler
 				{
 					var pal = default(IWICPalette);
 					var ptt = WICBitmapPaletteType.WICBitmapPaletteTypeCustom;
-					if (PixelFormat.Cache[oformat].NumericRepresentation == PixelNumericRepresentation.Indexed)
+					if (PixelFormat.FromGuid(oformat).NumericRepresentation == PixelNumericRepresentation.Indexed)
 					{
 						pal = ctx.WicContext.AddRef(Wic.Factory.CreatePalette());
 						pal.InitializePredefined(WICBitmapPaletteType.WICBitmapPaletteTypeFixedGray256, false);
@@ -173,7 +176,7 @@ namespace PhotoSauce.MagicScaler
 
 					var conv = ctx.WicContext.AddRef(Wic.Factory.CreateFormatConverter());
 					conv.Initialize(ctx.Source.WicSource, oformat, WICBitmapDitherType.WICBitmapDitherTypeNone, pal, 0.0, ptt);
-					ctx.Source = conv.AsPixelSource($"{nameof(IWICFormatConverter)}: {ctx.Source.Format.Name}->{PixelFormat.Cache[oformat].Name}", false);
+					ctx.Source = conv.AsPixelSource($"{nameof(IWICFormatConverter)}: {ctx.Source.Format.Name}->{PixelFormat.FromGuid(oformat).Name}", false);
 				}
 				else if (oformat == Consts.GUID_WICPixelFormat8bppIndexed)
 				{

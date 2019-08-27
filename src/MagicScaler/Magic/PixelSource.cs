@@ -96,7 +96,7 @@ namespace PhotoSauce.MagicScaler
 				sourceRect = new WICRect();
 				sourceName = profile ? name : $"{name} (nonprofiling)";
 				WicSource = profile ? this.AsIWICBitmapSource() : source;
-				Format = PixelFormat.Cache[source.GetPixelFormat()];
+				Format = PixelFormat.FromGuid(source.GetPixelFormat());
 				source.GetSize(out uint width, out uint height);
 				Width = width;
 				Height = height;
@@ -138,7 +138,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				upstreamSource = source;
 				WicSource = this.AsIWICBitmapSource();
-				Format = PixelFormat.Cache[source.Format];
+				Format = PixelFormat.FromGuid(source.Format);
 				Width = (uint)source.Width;
 				Height = (uint)source.Height;
 			}

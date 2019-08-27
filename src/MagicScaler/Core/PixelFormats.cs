@@ -69,6 +69,8 @@ namespace PhotoSauce.MagicScaler
 			AlphaRepresentation == other.AlphaRepresentation &&
 			Colorspace == other.Colorspace;
 
+		private static readonly ReadOnlyDictionary<Guid, PixelFormat> cache;
+
 		public static readonly PixelFormat Grey16BppUQ15 = new PixelFormat {
 			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0x9F),
 			Name = "16bpp Grey UQ15",
@@ -232,7 +234,7 @@ namespace PhotoSauce.MagicScaler
 			Colorspace = PixelColorspace.LinearRgb
 		};
 
-		public static ReadOnlyDictionary<Guid, PixelFormat> Cache;
+		public static PixelFormat FromGuid(Guid guid) => cache[guid];
 
 		static PixelFormat()
 		{
@@ -296,7 +298,7 @@ namespace PhotoSauce.MagicScaler
 				}
 			} while (count > 0);
 
-			Cache = new ReadOnlyDictionary<Guid, PixelFormat>(dic);
+			cache = new ReadOnlyDictionary<Guid, PixelFormat>(dic);
 		}
 	}
 

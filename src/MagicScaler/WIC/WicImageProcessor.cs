@@ -2,12 +2,13 @@
 
 using System;
 using System.IO;
+using System.ComponentModel;
 
 using PhotoSauce.MagicScaler.Interop;
 
 namespace PhotoSauce.MagicScaler
 {
-	[Obsolete("This class is meant only for testing/benchmarking and will be removed in a future version")]
+	[Obsolete("This class is meant only for testing/benchmarking and will be removed in a future version"), EditorBrowsable(EditorBrowsableState.Never)]
 	public static class WicImageProcessor
 	{
 		public static ProcessImageResult ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
