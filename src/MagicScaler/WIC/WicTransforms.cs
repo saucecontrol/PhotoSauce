@@ -10,30 +10,30 @@ namespace PhotoSauce.MagicScaler
 {
 	internal class WicFrameReader
 	{
-		public IWICBitmapFrameDecode Frame { get; private set; }
-		public double DpiX { get; private set; }
-		public double DpiY { get; private set; }
-		public bool SupportsNativeScale { get; private set; }
-		public bool SupportsNativeTransform { get; private set; }
+		public IWICBitmapFrameDecode Frame { get; }
+		public double DpiX { get; } = 96d;
+		public double DpiY { get; } = 96d;
+
+		public bool SupportsNativeScale { get; }
+		public bool SupportsNativeTransform { get; }
+		public WICJpegYCrCbSubsamplingOption ChromaSubsampling { get; }
+
 		public Orientation ExifOrientation { get; set; } = Orientation.Normal;
-		public WICJpegYCrCbSubsamplingOption ChromaSubsampling { get; set; }
 		public IDictionary<string, PropVariant> Metadata { get; set; }
 
 		public WicFrameReader(PipelineContext ctx, bool planar = false)
 		{
 			ctx.DecoderFrame = this;
 
-			if(ctx.Decoder.Decoder is null)
-			{
-				DpiX = DpiY = 96d;
+			if (!(ctx.ImageContainer is WicDecoder wicDecoder))
 				return;
-			}
 
 			var source = default(IWICBitmapSource);
-			source = Frame = ctx.WicContext.AddRef(ctx.Decoder.Decoder.GetFrame((uint)ctx.Settings.FrameIndex));
-
-			if (ctx.Decoder.IsRawContainer && ctx.Settings.FrameIndex == 0 && ctx.Decoder.Decoder.TryGetPreview(out var preview))
+			if (wicDecoder.IsRawContainer && ctx.Settings.FrameIndex == 0 && wicDecoder.Decoder.TryGetPreview(out var preview)) //TODO must be full res?
 				source = ctx.WicContext.AddRef(preview);
+
+			if (source is null)
+				source = Frame = ctx.WicContext.AddRef(((WicFrame)ctx.ImageContainer.GetFrame(ctx.Settings.FrameIndex)).Frame);
 
 			source.GetResolution(out double dpix, out double dpiy);
 			DpiX = dpix;
@@ -99,7 +99,7 @@ namespace PhotoSauce.MagicScaler
 				ctx.WicContext.AddRef(metareader);
 
 				// Exif orientation
-				string orientationPathIn = MagicImageProcessor.EnableXmpOrientation ? orientationWindowsPolicy : ctx.Decoder?.ContainerFormat == FileFormat.Jpeg ? orientationJpegPath : orientationExifPath;
+				string orientationPathIn = MagicImageProcessor.EnableXmpOrientation ? orientationWindowsPolicy : ctx.ImageContainer.ContainerFormat == FileFormat.Jpeg ? orientationJpegPath : orientationExifPath;
 				string orientationPathOut = ctx.Settings.SaveFormat == FileFormat.Jpeg ? orientationJpegPath : orientationExifPath;
 
 				var pvorient = default(PropVariant);

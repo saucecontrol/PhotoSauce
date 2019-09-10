@@ -44,7 +44,7 @@ namespace PhotoSauce.MagicScaler
 			checkOutStream(outStream);
 
 			using var ctx = new PipelineContext(settings);
-			var dec = new WicDecoder(imgPath, ctx);
+			ctx.ImageContainer = WicDecoder.Create(imgPath, ctx.WicContext);
 
 			buildPipeline(ctx);
 			return executePipeline(ctx, outStream);
@@ -61,7 +61,7 @@ namespace PhotoSauce.MagicScaler
 			checkOutStream(outStream);
 
 			using var ctx = new PipelineContext(settings);
-			var dec = new WicDecoder(imgBuffer, ctx);
+			ctx.ImageContainer = WicDecoder.Create(imgBuffer, ctx.WicContext);
 
 			buildPipeline(ctx);
 			return executePipeline(ctx, outStream);
@@ -78,7 +78,7 @@ namespace PhotoSauce.MagicScaler
 			checkOutStream(outStream);
 
 			using var ctx = new PipelineContext(settings);
-			var dec = new WicDecoder(imgStream, ctx);
+			ctx.ImageContainer = WicDecoder.Create(imgStream, ctx.WicContext);
 
 			buildPipeline(ctx);
 			return executePipeline(ctx, outStream);
@@ -95,7 +95,8 @@ namespace PhotoSauce.MagicScaler
 			checkOutStream(outStream);
 
 			using var ctx = new PipelineContext(settings);
-			var dec = new WicDecoder(imgSource, ctx);
+			ctx.ImageContainer = new PixelSourceContainer(imgSource);
+			ctx.Source = imgSource.AsPixelSource();
 
 			buildPipeline(ctx);
 			return executePipeline(ctx, outStream);
@@ -110,7 +111,8 @@ namespace PhotoSauce.MagicScaler
 			if (imgPath is null) throw new ArgumentNullException(nameof(imgPath));
 
 			var ctx = new PipelineContext(settings);
-			var dec = new WicDecoder(imgPath, ctx);
+			ctx.ImageContainer = WicDecoder.Create(imgPath, ctx.WicContext);
+
 			buildPipeline(ctx, false);
 			return new ProcessingPipeline(ctx);
 		}
@@ -124,7 +126,8 @@ namespace PhotoSauce.MagicScaler
 			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
 
 			var ctx = new PipelineContext(settings);
-			var dec = new WicDecoder(imgBuffer, ctx);
+			ctx.ImageContainer = WicDecoder.Create(imgBuffer, ctx.WicContext);
+
 			buildPipeline(ctx, false);
 			return new ProcessingPipeline(ctx);
 		}
@@ -138,7 +141,8 @@ namespace PhotoSauce.MagicScaler
 			checkInStream(imgStream);
 
 			var ctx = new PipelineContext(settings);
-			var dec = new WicDecoder(imgStream, ctx);
+			ctx.ImageContainer = WicDecoder.Create(imgStream, ctx.WicContext);
+
 			buildPipeline(ctx, false);
 			return new ProcessingPipeline(ctx);
 		}
@@ -152,7 +156,9 @@ namespace PhotoSauce.MagicScaler
 			if (imgSource is null) throw new ArgumentNullException(nameof(imgSource));
 
 			var ctx = new PipelineContext(settings);
-			var dec = new WicDecoder(imgSource, ctx);
+			ctx.ImageContainer = new PixelSourceContainer(imgSource);
+			ctx.Source = imgSource.AsPixelSource();
+
 			buildPipeline(ctx, false);
 			return new ProcessingPipeline(ctx);
 		}

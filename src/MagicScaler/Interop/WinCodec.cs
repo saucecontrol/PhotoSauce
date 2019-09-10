@@ -11,7 +11,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //----------------------------------------------------------------------------------------
 
-#pragma warning disable IDE1006 // Naming Styles
+#pragma warning disable IDE1006, CA1712 // Naming Styles
 
 using System;
 using System.Text;

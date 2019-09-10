@@ -29,8 +29,9 @@
 		<BaseOutputPath>$(MSBuildThisFileDirectory)..\out\bin\$(MSBuildProjectName)\</BaseOutputPath>
 		<IntermediateOutputPath>$(BaseIntermediateOutputPath)$(Configuration)\</IntermediateOutputPath>
 		<OutputPath>$(BaseOutputPath)$(Configuration)\</OutputPath>
+		<IntDir>$(IntermediateOutputPath)$(TargetFramework)\</IntDir>
 		<OutDir>$(OutputPath)$(TargetFramework)\</OutDir>
-		<AssemblyInfoFile>$(IntermediateOutputPath)$(TargetFramework)\_AssemblyInfo.cs</AssemblyInfoFile>
+		<AssemblyInfoFile>$(IntDir)_AssemblyInfo.cs</AssemblyInfoFile>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)'=='Release'">
@@ -39,11 +40,11 @@
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<DocumentationFile>$(OutDir)$(AssemblyName).xml</DocumentationFile>
+		<DocumentationFile>$(IntDir)$(AssemblyName).xml</DocumentationFile>
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(Configuration)'=='Release'">
-		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0-beta2-19367-01" PrivateAssets="all"/>
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0-beta2-19367-01" PrivateAssets="all" />
 	</ItemGroup>
 
 </Project>

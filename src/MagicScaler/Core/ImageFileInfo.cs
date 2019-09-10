@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Collections.Generic;
 
 namespace PhotoSauce.MagicScaler
 {
@@ -42,7 +43,7 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>The format of the image container (e.g. JPEG, PNG).</summary>
 		public FileFormat ContainerType { get; private set; }
 		/// <summary>One or more <see cref="FrameInfo" /> instances describing each image frame in the container.</summary>
-		public FrameInfo[] Frames { get; private set; }
+		public IReadOnlyList<FrameInfo> Frames { get; private set; }
 
 		/// <summary>Constructs a new <see cref="ImageFileInfo" /> instance with a single frame of the specified <paramref name="width" /> and <paramref name="height" />.</summary>
 		/// <param name="width">The width of the image frame in pixels.</param>
@@ -61,8 +62,9 @@ namespace PhotoSauce.MagicScaler
 			if (!fi.Exists)
 				throw new FileNotFoundException("File not found", imgPath);
 
-			using (var ctx = new PipelineContext(new ProcessImageSettings()))
-				loadInfo(new WicDecoder(imgPath, ctx), ctx);
+			using var ctx = new PipelineContext(new ProcessImageSettings());
+			ctx.ImageContainer = WicDecoder.Create(imgPath, ctx.WicContext);
+			loadInfo(ctx);
 
 			FileSize = fi.Length;
 			FileDate = fi.LastWriteTimeUtc;
@@ -78,8 +80,9 @@ namespace PhotoSauce.MagicScaler
 		{
 			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
 
-			using (var ctx = new PipelineContext(new ProcessImageSettings()))
-				loadInfo(new WicDecoder(imgBuffer, ctx), ctx);
+			using var ctx = new PipelineContext(new ProcessImageSettings());
+			ctx.ImageContainer = WicDecoder.Create(imgBuffer, ctx.WicContext);
+			loadInfo(ctx);
 
 			FileSize = imgBuffer.Length;
 			FileDate = lastModified;
@@ -97,18 +100,18 @@ namespace PhotoSauce.MagicScaler
 			if (!imgStream.CanSeek || !imgStream.CanRead) throw new ArgumentException("Input Stream must allow Seek and Read", nameof(imgStream));
 			if (imgStream.Length <= 0 || imgStream.Position >= imgStream.Length) throw new ArgumentException("Input Stream is empty or positioned at its end", nameof(imgStream));
 
-			using (var ctx = new PipelineContext(new ProcessImageSettings()))
-				loadInfo(new WicDecoder(imgStream, ctx), ctx);
+			using var ctx = new PipelineContext(new ProcessImageSettings());
+			ctx.ImageContainer = WicDecoder.Create(imgStream, ctx.WicContext);
+			loadInfo(ctx);
 
 			FileSize = imgStream.Length;
 			FileDate = lastModified;
 		}
 
-		private void loadInfo(WicDecoder dec, PipelineContext ctx)
+		private void loadInfo(PipelineContext ctx)
 		{
-			ContainerType = ctx.Decoder.ContainerFormat;
-			Frames = new FrameInfo[ctx.Decoder.FrameCount];
-			for (int i = 0; i < ctx.Decoder.FrameCount; i++)
+			var frames = new FrameInfo[ctx.ImageContainer.FrameCount];
+			for (int i = 0; i < frames.Length; i++)
 			{
 				ctx.Settings.FrameIndex = i;
 				var frm = new WicFrameReader(ctx);
@@ -116,8 +119,11 @@ namespace PhotoSauce.MagicScaler
 
 				int width = (int)(frm.ExifOrientation.SwapsDimensions() ? ctx.Source.Height : ctx.Source.Width);
 				int height = (int)(frm.ExifOrientation.SwapsDimensions() ? ctx.Source.Width : ctx.Source.Height);
-				Frames[i] = new FrameInfo(width, height, ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None, frm.ExifOrientation);
+				frames[i] = new FrameInfo(width, height, ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None, frm.ExifOrientation);
 			}
+
+			ContainerType = ctx.ImageContainer.ContainerFormat;
+			Frames = frames;
 		}
 	}
 }

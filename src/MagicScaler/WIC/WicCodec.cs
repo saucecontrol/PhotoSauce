@@ -9,7 +9,24 @@ using PhotoSauce.MagicScaler.Interop;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal class WicDecoder
+	internal class WicFrame : IImageFrame
+	{
+		private readonly Lazy<IPixelSource> iSource;
+
+		public IWICBitmapFrameDecode Frame { get; }
+		public PixelSource Source { get; }
+
+		public IPixelSource PixelSource => iSource.Value;
+
+		public WicFrame(IWICBitmapFrameDecode frame)
+		{
+			Frame = frame;
+			Source = frame.AsPixelSource(nameof(IWICBitmapFrameDecode), false);
+			iSource = new Lazy<IPixelSource>(() => Source.AsIPixelSource());
+		}
+	}
+
+	internal class WicDecoder : IImageContainer
 	{
 		private static readonly IDictionary<Guid, FileFormat> formatMap = new Dictionary<Guid, FileFormat> {
 			[Consts.GUID_ContainerFormatBmp] = FileFormat.Bmp,
@@ -19,28 +36,25 @@ namespace PhotoSauce.MagicScaler
 			[Consts.GUID_ContainerFormatTiff] = FileFormat.Tiff
 		};
 
-		public IWICBitmapDecoder Decoder { get; private set; }
-		public Guid WicContainerFormat { get; private set; }
-		public FileFormat ContainerFormat { get; private set; }
-		public uint FrameCount { get; private set; }
+		public IWICBitmapDecoder Decoder { get; }
+		public Guid WicContainerFormat { get; }
+		public FileFormat ContainerFormat { get; }
+		public int FrameCount { get; }
 
 		public bool IsRawContainer => WicContainerFormat == Consts.GUID_ContainerFormatRaw || WicContainerFormat == Consts.GUID_ContainerFormatRaw2 || WicContainerFormat == Consts.GUID_ContainerFormatAdng;
 
-		private void init(IWICBitmapDecoder dec, PipelineContext ctx)
+		public IImageFrame GetFrame(int index) => new WicFrame(Decoder.GetFrame((uint)index));
+
+		private WicDecoder(IWICBitmapDecoder dec, WicPipelineContext ctx)
 		{
-			ctx.Decoder = this;
-
-			if (dec is null)
-				return;
-
-			Decoder = ctx.WicContext.AddRef(dec);
+			Decoder = ctx.AddRef(dec);
 
 			WicContainerFormat = dec.GetContainerFormat();
 			ContainerFormat = formatMap.GetValueOrDefault(WicContainerFormat, FileFormat.Unknown);
-			FrameCount = dec.GetFrameCount();
+			FrameCount = (int)dec.GetFrameCount();
 		}
 
-		private IWICBitmapDecoder checkDecoder(Func<IWICBitmapDecoder> factory)
+		private static IWICBitmapDecoder createDecoder(Func<IWICBitmapDecoder> factory)
 		{
 			try
 			{
@@ -52,32 +66,31 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		public WicDecoder(string fileName, PipelineContext ctx) =>
-			init(checkDecoder(() => Wic.Factory.CreateDecoderFromFilename(fileName, null, GenericAccessRights.GENERIC_READ, WICDecodeOptions.WICDecodeMetadataCacheOnDemand)), ctx);
-
-		public WicDecoder(Stream inFile, PipelineContext ctx)
+		public static WicDecoder Create(string fileName, WicPipelineContext ctx)
 		{
-			var stm = ctx.WicContext.AddRef(Wic.Factory.CreateStream());
-			stm.InitializeFromIStream(inFile.AsIStream());
-			init(checkDecoder(() => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand)), ctx);
+			var dec = createDecoder(() => Wic.Factory.CreateDecoderFromFilename(fileName, null, GenericAccessRights.GENERIC_READ, WICDecodeOptions.WICDecodeMetadataCacheOnDemand));
+			return new WicDecoder(dec, ctx);
 		}
 
-		unsafe public WicDecoder(ReadOnlySpan<byte> inBuffer, PipelineContext ctx)
+		public static WicDecoder Create(Stream inFile, WicPipelineContext ctx)
+		{
+			var stm = ctx.AddRef(Wic.Factory.CreateStream());
+			stm.InitializeFromIStream(inFile.AsIStream());
+
+			var dec = createDecoder(() => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand));
+			return new WicDecoder(dec, ctx);
+		}
+
+		unsafe public static WicDecoder Create(ReadOnlySpan<byte> inBuffer, WicPipelineContext ctx)
 		{
 			fixed (byte* pbBuffer = inBuffer)
 			{
-				var stm = ctx.WicContext.AddRef(Wic.Factory.CreateStream());
+				var stm = ctx.AddRef(Wic.Factory.CreateStream());
 				stm.InitializeFromMemory((IntPtr)pbBuffer, (uint)inBuffer.Length);
-				init(checkDecoder(() => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand)), ctx);
-			}
-		}
 
-		public WicDecoder(IPixelSource imgSource, PipelineContext ctx)
-		{
-			init(null, ctx);
-			ContainerFormat = FileFormat.Unknown;
-			FrameCount = 1;
-			ctx.Source = imgSource.AsPixelSource();
+				var dec = createDecoder(() => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand));
+				return new WicDecoder(dec, ctx);
+			}
 		}
 	}
 

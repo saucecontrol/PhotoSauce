@@ -14,22 +14,28 @@ namespace PhotoSauce.MagicScaler
 		public static ProcessImageResult ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
 		{
 			using var ctx = new PipelineContext(settings);
-			return processImage(new WicDecoder(imgPath, ctx), ctx, outStream);
+			ctx.ImageContainer = WicDecoder.Create(imgPath, ctx.WicContext);
+
+			return processImage(ctx, outStream);
 		}
 
 		public static ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
 			using var ctx = new PipelineContext(settings);
-			return processImage(new WicDecoder(imgBuffer, ctx), ctx, outStream);
+			ctx.ImageContainer = WicDecoder.Create(imgBuffer, ctx.WicContext);
+
+			return processImage(ctx, outStream);
 		}
 
 		public static ProcessImageResult ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings)
 		{
 			using var ctx = new PipelineContext(settings);
-			return processImage(new WicDecoder(imgStream, ctx), ctx, outStream);
+			ctx.ImageContainer = WicDecoder.Create(imgStream, ctx.WicContext);
+
+			return processImage(ctx, outStream);
 		}
 
-		private static ProcessImageResult processImage(WicDecoder dec, PipelineContext ctx, Stream ostm)
+		private static ProcessImageResult processImage(PipelineContext ctx, Stream ostm)
 		{
 			var frm = new WicFrameReader(ctx);
 			WicTransforms.AddMetadataReader(ctx);

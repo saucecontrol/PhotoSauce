@@ -14,7 +14,7 @@ namespace PhotoSauce.MagicScaler
 		public ProcessImageSettings Settings { get; }
 		public ProcessImageSettings UsedSettings { get; private set; }
 
-		public WicDecoder Decoder { get; set; }
+		public IImageContainer ImageContainer { get; set; }
 		public WicFrameReader DecoderFrame { get; set; }
 
 		public bool SupportsPlanarProcessing { get; set; }
@@ -58,7 +58,7 @@ namespace PhotoSauce.MagicScaler
 				Settings.Fixup((int)Source.Width, (int)Source.Height, DecoderFrame.ExifOrientation.SwapsDimensions());
 
 				if (Settings.SaveFormat == FileFormat.Auto)
-					Settings.SetSaveFormat(Decoder.ContainerFormat, Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
+					Settings.SetSaveFormat(ImageContainer.ContainerFormat, Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
 			}
 
 			UsedSettings = Settings.Clone();
