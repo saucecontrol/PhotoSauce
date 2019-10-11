@@ -13,9 +13,10 @@ namespace PhotoSauce.MagicScaler
 		internal static class ThrowHelper
 		{
 			public static void HashFinalized() => throw new InvalidOperationException("Hash has already been finalized.");
-			public static void NoBigEndian() => throw new PlatformNotSupportedException("Big-endian platforms not supported");
-			public static void DigestInvalidLength(int max) => throw new ArgumentOutOfRangeException("digestLength", $"Value must be between 1 and {max}");
-			public static void KeyTooLong(int max) => throw new ArgumentException($"Key must be between 0 and {max} bytes in length", "key");
+			public static void NoBigEndian() => throw new PlatformNotSupportedException("Big-endian platforms not supported.");
+			public static void DigestInvalidLength(int max) => throw new ArgumentOutOfRangeException("digestLength", $"Value must be between 1 and {max}.");
+			public static void KeyTooLong(int max) => throw new ArgumentException($"Key must be between 0 and {max} bytes in length.", "key");
+			public static void NotBlittable() => throw new NotSupportedException("This method may only be used with blittable value types.");
 		}
 
 		public const int WordSize = sizeof(ulong);
@@ -137,12 +138,23 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		public void Update(Span<byte> input) => Update((ReadOnlySpan<byte>)input);
+		public void Update<T>(ReadOnlySpan<T> input) where T : struct
+		{
+#if FAST_SPAN
+			if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+				ThrowHelper.NotBlittable();
+#endif
 
-		public void Update<T>(ReadOnlySpan<T> input) where T : struct => Update(MemoryMarshal.AsBytes(input));
+			Update(MemoryMarshal.AsBytes(input));
+		}
 
 		public void Update<T>(T input) where T : struct
 		{
+#if FAST_SPAN
+			if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+				ThrowHelper.NotBlittable();
+#endif
+
 			if (Unsafe.SizeOf<T>() > BlockBytes - c)
 			{
 #if FAST_SPAN

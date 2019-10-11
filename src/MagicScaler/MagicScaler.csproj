@@ -5,8 +5,9 @@
 		<TargetFrameworks>net46;net472;netcoreapp2.1;netcoreapp3.0;netstandard2.0</TargetFrameworks>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(TargetFramework)'=='netcoreapp2.1'">
-		<NoWarn>$(NoWarn);0618</NoWarn> <!-- netcoreapp2.1 has VarEnum spuriously marked obsolete -->
+	<PropertyGroup>
+		<NoWarn Condition="'$(TargetFramework)'=='netcoreapp2.1'">$(NoWarn);0618</NoWarn><!-- netcoreapp2.1 has VarEnum spuriously marked obsolete -->
+		<Nullable Condition="'$(TargetFramework)'=='netcoreapp3.0'">enable</Nullable>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -22,11 +23,11 @@
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)'=='netcoreapp3.0'">
-		<PackageReference Include="System.Drawing.Common" Version="4.5.1" />
+		<PackageReference Include="System.Drawing.Common" Version="4.6.0" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)'!='netcoreapp3.0'">
-		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.2" />
+		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.6.0" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)'=='net46'">

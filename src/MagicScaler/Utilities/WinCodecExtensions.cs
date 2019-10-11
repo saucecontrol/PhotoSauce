@@ -17,10 +17,12 @@ namespace PhotoSauce.MagicScaler.Interop
 		private static IWICColorContext getResourceColorContext(string name)
 		{
 			string resName = nameof(PhotoSauce) + "." + nameof(MagicScaler) + ".Resources." + name;
-			using var stm = typeof(Wic).GetTypeInfo().Assembly.GetManifestResourceStream(resName);
+			using var stm = typeof(Wic).GetTypeInfo().Assembly.GetManifestResourceStream(resName)!;
 			using var buff = MemoryPool<byte>.Shared.Rent((int)stm.Length);
 
-			MemoryMarshal.TryGetArray(buff.Memory.Slice(0, (int)stm.Length), out ArraySegment<byte> cca);
+			if (!MemoryMarshal.TryGetArray(buff.Memory.Slice(0, (int)stm.Length), out ArraySegment<byte> cca) || cca.Array is null)
+				throw new NotSupportedException("Could not retrieve " + nameof(MemoryPool<byte>) + " array.");
+
 			stm.Read(cca.Array, cca.Offset, cca.Count);
 
 			var cc = Factory.CreateColorContext();
@@ -28,7 +30,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			return cc;
 		}
 
-		public static readonly IWICImagingFactory Factory = new WICImagingFactory2() as IWICImagingFactory ?? throw new PlatformNotSupportedException();
+		public static readonly IWICImagingFactory Factory = new WICImagingFactory2() as IWICImagingFactory ?? throw new PlatformNotSupportedException("Windows Imaging Component (WIC) is not available on this platform.");
 
 		public static readonly Lazy<IWICColorContext> CmykContext = new Lazy<IWICColorContext>(() => getDefaultColorContext(Consts.GUID_WICPixelFormat32bppCMYK));
 		public static readonly Lazy<IWICColorContext> SrgbContext = new Lazy<IWICColorContext>(() => getResourceColorContext("sRGB-v4.icc"));

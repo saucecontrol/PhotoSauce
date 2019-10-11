@@ -9,8 +9,10 @@ namespace PhotoSauce.MagicScaler
 	{
 		internal long TimerTicks;
 
+		internal PixelSourceStats(string sourceName) => SourceName = sourceName;
+
 		/// <summary>A friendly name for the <see cref="IPixelSource" />.</summary>
-		public string SourceName { get; internal set; }
+		public string SourceName { get; }
 		/// <summary>The number of times <see cref="IPixelSource.CopyPixels" /> was invoked.</summary>
 		public int CallCount { get; internal set; }
 		/// <summary>The total number of pixels retrieved from the <see cref="IPixelSource" />.</summary>
@@ -26,10 +28,16 @@ namespace PhotoSauce.MagicScaler
 	/// <summary>Represents the results of a completed pipeline operation.</summary>
 	public sealed class ProcessImageResult
 	{
+		internal ProcessImageResult(ProcessImageSettings settings, IEnumerable<PixelSourceStats> stats)
+		{
+			Settings = settings;
+			Stats = stats;
+		}
+
 		/// <summary>The settings used for the operation.  Any default or auto properties will reflect their final calculated values.</summary>
-		public ProcessImageSettings Settings { get; internal set; }
+		public ProcessImageSettings Settings { get; }
 		/// <summary>Basic instrumentation for the operation.  There will be one <see cref="PixelSourceStats" /> instance for each pipeline step.</summary>
-		public IEnumerable<PixelSourceStats> Stats { get; internal set; }
+		public IEnumerable<PixelSourceStats> Stats { get; }
 	}
 
 	/// <summary>Represents an image processing pipeline from which computed pixels can be retrieved.</summary>

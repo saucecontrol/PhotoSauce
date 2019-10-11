@@ -14,7 +14,7 @@ namespace PhotoSauce.MagicScaler
 				typeof(Color)
 					.GetProperties(BindingFlags.Public | BindingFlags.Static)
 					.Where(p => p.PropertyType == typeof(Color))
-					.ToDictionary(p => p.Name, p => (Color)p.GetValue(null), StringComparer.OrdinalIgnoreCase)
+					.ToDictionary(p => p.Name, p => (Color)p.GetValue(null)!, StringComparer.OrdinalIgnoreCase)
 			)
 		);
 

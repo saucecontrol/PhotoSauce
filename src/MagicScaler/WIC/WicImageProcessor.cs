@@ -37,7 +37,9 @@ namespace PhotoSauce.MagicScaler
 
 		private static ProcessImageResult processImage(PipelineContext ctx, Stream ostm)
 		{
-			var frm = new WicFrameReader(ctx);
+			ctx.DecoderFrame = new WicFrameReader(ctx.ImageContainer, ctx.Settings, ctx.WicContext);
+			ctx.Source = ctx.DecoderFrame.Source!.AsPixelSource(nameof(IWICBitmapFrameDecode));
+
 			WicTransforms.AddMetadataReader(ctx);
 
 			ctx.FinalizeSettings();
@@ -55,7 +57,7 @@ namespace PhotoSauce.MagicScaler
 			var enc = new WicEncoder(ctx, ostm.AsIStream());
 			enc.WriteSource(ctx);
 
-			return new ProcessImageResult { Settings = ctx.UsedSettings, Stats = ctx.Stats };
+			return new ProcessImageResult(ctx.UsedSettings, ctx.Stats);
 		}
 	}
 }

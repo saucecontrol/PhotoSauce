@@ -157,7 +157,7 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			return new ProcessImageResult { Settings = s, Stats = Enumerable.Empty<PixelSourceStats>() };
+			return new ProcessImageResult(s, Enumerable.Empty<PixelSourceStats>());
 		}
 
 		private static void createBrokenImage(Stream ostm, ProcessImageSettings s)

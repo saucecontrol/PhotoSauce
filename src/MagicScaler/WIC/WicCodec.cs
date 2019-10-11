@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Diagnostics;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
@@ -162,12 +163,12 @@ namespace PhotoSauce.MagicScaler
 
 		public void WriteSource(PipelineContext ctx)
 		{
-			if (ctx.PlanarLumaSource != null)
+			if (ctx.PlanarLumaSource != null && ctx.PlanarChromaSource != null)
 			{
 				var oformat = Consts.GUID_WICPixelFormat24bppBGR;
 				Frame.SetPixelFormat(ref oformat);
 
-				var penc = Frame as IWICPlanarBitmapFrameEncode;
+				var penc = (IWICPlanarBitmapFrameEncode)Frame;
 				penc.WriteSource(new[] { ctx.PlanarLumaSource.WicSource, ctx.PlanarChromaSource.WicSource }, 2, null);
 			}
 			else
@@ -193,6 +194,7 @@ namespace PhotoSauce.MagicScaler
 				}
 				else if (oformat == Consts.GUID_WICPixelFormat8bppIndexed)
 				{
+					Debug.Assert(ctx.WicContext.DestPalette != null);
 					Frame.SetPalette(ctx.WicContext.DestPalette);
 				}
 

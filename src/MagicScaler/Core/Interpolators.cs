@@ -110,8 +110,8 @@ namespace PhotoSauce.MagicScaler.Interpolators
 		private readonly double support, b, c, p0, p2, p3, q0, q1, q2, q3;
 
 		/// <summary>Constructs a new <see cref="CubicInterpolator" /> with the specified <paramref name="b" /> and <paramref name="c" /> values.</summary>
-		/// <param name="b">Controls the smoothness of the filter.  Larger values smooth/blur more.  Values > 1.0 are not recommended.</param>
-		/// <param name="c">Controls the sharpness of the filter.  Larger values sharpen more.  Values > 1.0 are not recommended.</param>
+		/// <param name="b">Controls the smoothness of the filter.  Larger values smooth/blur more.  Values &gt; 1.0 are not recommended.</param>
+		/// <param name="c">Controls the sharpness of the filter.  Larger values sharpen more.  Values &gt; 1.0 are not recommended.</param>
 		public CubicInterpolator(double b = 0.0, double c = 0.5)
 		{
 			if (b < 0.0) throw new ArgumentOutOfRangeException(nameof(b), "Value must be greater than or equal to 0");

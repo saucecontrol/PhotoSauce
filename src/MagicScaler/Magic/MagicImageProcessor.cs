@@ -172,7 +172,15 @@ namespace PhotoSauce.MagicScaler
 
 		private static void buildPipeline(PipelineContext ctx, bool outputPlanar = true)
 		{
-			var frm = new WicFrameReader(ctx, EnablePlanarPipeline);
+			bool processPlanar = false;
+			ctx.DecoderFrame = new WicFrameReader(ctx.ImageContainer, ctx.Settings, ctx.WicContext);
+			if (ctx.DecoderFrame.Source != null)
+			{
+				processPlanar = EnablePlanarPipeline && ctx.DecoderFrame.SupportsPlanarProcessing;
+				bool preserveNative = processPlanar || (ctx.DecoderFrame.SupportsNativeScale && ctx.Settings.HybridScaleRatio > 1d);
+				ctx.Source = ctx.DecoderFrame.Source.AsPixelSource(nameof(IWICBitmapFrameDecode), !preserveNative);
+			}
+
 			WicTransforms.AddMetadataReader(ctx);
 
 			ctx.FinalizeSettings();
@@ -180,7 +188,6 @@ namespace PhotoSauce.MagicScaler
 			ctx.Settings.JpegQuality = ctx.UsedSettings.JpegQuality;
 			ctx.Settings.JpegSubsampleMode = ctx.UsedSettings.JpegSubsampleMode;
 
-			bool processPlanar = ctx.SupportsPlanarProcessing;
 			var subsample = (WICJpegYCrCbSubsamplingOption)ctx.Settings.JpegSubsampleMode;
 
 			if (processPlanar)
@@ -220,7 +227,7 @@ namespace PhotoSauce.MagicScaler
 				MagicTransforms.AddExifFlipRotator(ctx);
 
 				ctx.PlanarLumaSource = ctx.Source;
-				ctx.Source = ctx.WicContext.PlanarCache.GetPlane(WicPlane.Chroma);
+				ctx.Source = ctx.WicContext.PlanarCache!.GetPlane(WicPlane.Chroma);
 				ctx.DecoderFrame.ExifOrientation = orient;
 				ctx.Settings.Crop = ctx.Source.Area.ReOrient(orient, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
 
@@ -270,7 +277,7 @@ namespace PhotoSauce.MagicScaler
 			var enc = new WicEncoder(ctx, ostm.AsIStream());
 			enc.WriteSource(ctx);
 
-			return new ProcessImageResult { Settings = ctx.UsedSettings, Stats = ctx.Stats };
+			return new ProcessImageResult(ctx.UsedSettings, ctx.Stats);
 		}
 	}
 }

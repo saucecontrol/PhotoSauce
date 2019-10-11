@@ -199,14 +199,12 @@ namespace PhotoSauce.MagicScaler
 
 			AddInternalFormatConverter(ctx, forceLinear: true);
 
-			if (ctx.Source.Format.ColorRepresentation != PixelColorRepresentation.Bgr)
-				return;
-
-			var matrix = ctx.SourceColorProfile.Matrix * ctx.DestColorProfile.InverseMatrix;
-			if (matrix == default || matrix.IsIdentity)
-				return;
-
-			ctx.Source = new ColorMatrixTransformInternal(ctx.Source, matrix);
+			if (ctx.Source.Format.ColorRepresentation == PixelColorRepresentation.Bgr && ctx.SourceColorProfile is MatrixProfile srcProf && ctx.DestColorProfile is MatrixProfile dstProf)
+			{
+				var matrix = srcProf.Matrix * dstProf.InverseMatrix;
+				if (matrix != default && !matrix.IsIdentity)
+					ctx.Source = new ColorMatrixTransformInternal(ctx.Source, matrix);
+			}
 		}
 	}
 }

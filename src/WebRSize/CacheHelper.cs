@@ -49,8 +49,8 @@ namespace PhotoSauce.WebRSize
 
 				var file = vpp is CachingAsyncVirtualPathProvider vppAsync ? await vppAsync.GetFileAsync(path).ConfigureAwait(false) : vpp.GetFile(path);
 				var afile = file as AsyncVirtualFile;
-				using (var stream = afile != null ? await afile.OpenAsync().ConfigureAwait(false) : file.Open())
-					return new ImageFileInfo(stream, afile != null ? afile.LastModified : DateTime.MinValue);
+				using var stream = afile != null ? await afile.OpenAsync().ConfigureAwait(false) : file.Open();
+				return ImageFileInfo.Load(stream, afile != null ? afile.LastModified : DateTime.MinValue);
 			}, () => MakeVirtualPathDependency(path));
 		}
 	}

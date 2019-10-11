@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.ComponentModel;
 
 namespace PhotoSauce.MagicScaler
 {
@@ -17,9 +18,11 @@ namespace PhotoSauce.MagicScaler
 	}
 
 	/// <summary>Provides a minimal base implementation of <see cref="IPixelTransform" />, which simply passes calls through to the upstream source.</summary>
+	/// <remarks>This class is intended for internal use only.</remarks>
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	public abstract class PixelTransform : IPixelTransform
 	{
-		private protected PixelSource Source;
+		private protected PixelSource Source = NullPixelSource.Instance;
 
 		/// <inheritdoc />
 		public Guid Format => Source.Format.FormatGuid;

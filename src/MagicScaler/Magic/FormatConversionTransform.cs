@@ -12,23 +12,22 @@ namespace PhotoSauce.MagicScaler
 	internal class FormatConversionTransformInternal : PixelSource, IDisposable
 	{
 		protected readonly PixelFormat InFormat;
-		protected readonly ColorProfile SourceProfile;
-		protected readonly ColorProfile DestProfile;
-
-		protected byte[] LineBuff;
+		protected readonly CurveProfile SourceProfile;
+		protected readonly CurveProfile DestProfile;
+		protected readonly IMemoryOwner<byte> LineBuff;
 
 		public FormatConversionTransformInternal(PixelSource source, ColorProfile? sourceProfile, ColorProfile? destProfile, Guid destFormat) : base(source)
 		{
 			InFormat = source.Format;
 			Format = PixelFormat.FromGuid(destFormat);
-			SourceProfile = sourceProfile ?? ColorProfile.sRGB;
-			DestProfile = destProfile ?? ColorProfile.sRGB;
-			LineBuff = ArrayPool<byte>.Shared.Rent((int)BufferStride);
+			SourceProfile = sourceProfile as CurveProfile ?? ColorProfile.sRGB;
+			DestProfile = destProfile as CurveProfile ?? ColorProfile.sRGB;
+			LineBuff = MemoryPool<byte>.Shared.Rent((int)BufferStride);
 		}
 
 		unsafe protected override void CopyPixelsInternal(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
-			fixed (byte* bstart = &LineBuff[0])
+			fixed (byte* bstart = LineBuff.Memory.Span)
 			{
 				int oh = prc.Height, oy = prc.Y;
 				int cb = DivCeiling(prc.Width * InFormat.BitsPerPixel, 8);
@@ -47,7 +46,7 @@ namespace PhotoSauce.MagicScaler
 					}
 					else if (InFormat.Colorspace == PixelColorspace.sRgb && Format.Colorspace == PixelColorspace.LinearRgb && Format.NumericRepresentation == PixelNumericRepresentation.Fixed)
 					{
-						ushort[] lut = SourceProfile.IsLinear ? LookupTables.AlphaUQ15 : SourceProfile.InverseGammaUQ15;
+						ushort[] lut = SourceProfile.IsLinear ? LookupTables.AlphaUQ15 : SourceProfile.Curve!.InverseGammaUQ15;
 						fixed (ushort* igtstart = &lut[0])
 						{
 							if (InFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
@@ -58,7 +57,7 @@ namespace PhotoSauce.MagicScaler
 					}
 					else if (InFormat.Colorspace == PixelColorspace.LinearRgb && Format.Colorspace == PixelColorspace.sRgb && InFormat.NumericRepresentation == PixelNumericRepresentation.Fixed && !DestProfile.IsLinear)
 					{
-						fixed (byte* gtstart = &DestProfile.Gamma[0])
+						fixed (byte* gtstart = &DestProfile.Curve!.Gamma[0])
 						{
 							if (InFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
 								mapValuesUQ15LinearToByteWithAlpha(bstart, op, gtstart, cb);
@@ -68,7 +67,7 @@ namespace PhotoSauce.MagicScaler
 					}
 					else if (InFormat.Colorspace == PixelColorspace.sRgb && Format.Colorspace == PixelColorspace.LinearRgb && Format.NumericRepresentation == PixelNumericRepresentation.Float)
 					{
-						float[] lut = SourceProfile.IsLinear ? LookupTables.AlphaFloat : SourceProfile.InverseGammaFloat;
+						float[] lut = SourceProfile.IsLinear ? LookupTables.AlphaFloat : SourceProfile.Curve!.InverseGammaFloat;
 						fixed (float* igtstart = &lut[0])
 						{
 							if (InFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
@@ -81,7 +80,7 @@ namespace PhotoSauce.MagicScaler
 					}
 					else if (InFormat.Colorspace == PixelColorspace.LinearRgb && Format.Colorspace == PixelColorspace.sRgb && InFormat.NumericRepresentation == PixelNumericRepresentation.Float && !DestProfile.IsLinear)
 					{
-						fixed (byte* gtstart = &DestProfile.Gamma[0])
+						fixed (byte* gtstart = &DestProfile.Curve!.Gamma[0])
 						{
 							if (InFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
 								mapValuesFloatLinearToByteWithAlpha(bstart, op, gtstart, cb);
@@ -784,8 +783,7 @@ namespace PhotoSauce.MagicScaler
 
 		public void Dispose()
 		{
-			ArrayPool<byte>.Shared.Return(LineBuff ?? Array.Empty<byte>());
-			LineBuff = null;
+			LineBuff.Dispose();
 		}
 
 		public override string ToString() => $"{base.ToString()}: {InFormat.Name}->{Format.Name}";

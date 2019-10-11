@@ -18,6 +18,10 @@ using System.Text;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 
+#if NETCOREAPP3_0 || NETSTANDARD2_1
+using System.Diagnostics.CodeAnalysis;
+#endif
+
 using EXCEPINFO = System.Runtime.InteropServices.ComTypes.EXCEPINFO;
 using STATSTG = System.Runtime.InteropServices.ComTypes.STATSTG;
 
@@ -738,7 +742,7 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("00000301-a8f2-4877-ba0a-fd2b6645fb94"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICFormatConverter : IWICBitmapSource
 	{
-		#region IWICBitmapSource
+#region IWICBitmapSource
 		new void GetSize(
 			out uint puiWidth,
 			out uint puiHeight
@@ -761,7 +765,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			uint cbBufferSize,
 			IntPtr pbBuffer
 		);
-		#endregion IWICBitmapSource
+#endregion IWICBitmapSource
 
 		void Initialize(
 			IWICBitmapSource pISource,
@@ -785,7 +789,7 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("00000302-a8f2-4877-ba0a-fd2b6645fb94"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICBitmapScaler : IWICBitmapSource
 	{
-		#region IWICBitmapSource
+#region IWICBitmapSource
 		new void GetSize(
 			out uint puiWidth,
 			out uint puiHeight
@@ -808,7 +812,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			uint cbBufferSize,
 			IntPtr pbBuffer
 		);
-		#endregion IWICBitmapSource
+#endregion IWICBitmapSource
 
 		void Initialize(
 			IWICBitmapSource pISource,
@@ -821,7 +825,7 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("E4FBCF03-223D-4e81-9333-D635556DD1B5"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICBitmapClipper : IWICBitmapSource
 	{
-		#region IWICBitmapSource
+#region IWICBitmapSource
 		new void GetSize(
 			out uint puiWidth,
 			out uint puiHeight
@@ -844,7 +848,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			uint cbBufferSize,
 			IntPtr pbBuffer
 		);
-		#endregion IWICBitmapSource
+#endregion IWICBitmapSource
 
 		void Initialize(
 			IWICBitmapSource pISource,
@@ -855,7 +859,7 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("5009834F-2D6A-41ce-9E1B-17C5AFF7A782"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICBitmapFlipRotator : IWICBitmapSource
 	{
-		#region IWICBitmapSource
+#region IWICBitmapSource
 		new void GetSize(
 			out uint puiWidth,
 			out uint puiHeight
@@ -878,7 +882,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			uint cbBufferSize,
 			IntPtr pbBuffer
 		);
-		#endregion IWICBitmapSource
+#endregion IWICBitmapSource
 
 		void Initialize(
 			IWICBitmapSource pISource,
@@ -907,7 +911,7 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("00000121-a8f2-4877-ba0a-fd2b6645fb94"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICBitmap : IWICBitmapSource
 	{
-		#region IWICBitmapSource
+#region IWICBitmapSource
 		new void GetSize(
 			out uint puiWidth,
 			out uint puiHeight
@@ -930,7 +934,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			uint cbBufferSize,
 			IntPtr pbBuffer
 		);
-		#endregion IWICBitmapSource
+#endregion IWICBitmapSource
 
 		IWICBitmapLock Lock(
 			WICRect prcLock,
@@ -986,7 +990,7 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("B66F034F-D0E2-40ab-B436-6DE39E321A94"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICColorTransform : IWICBitmapSource
 	{
-		#region IWICBitmapSource
+#region IWICBitmapSource
 		new void GetSize(
 			out uint puiWidth,
 			out uint puiHeight
@@ -1009,7 +1013,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			uint cbBufferSize,
 			IntPtr pbBuffer
 		);
-		#endregion IWICBitmapSource
+#endregion IWICBitmapSource
 
 		void Initialize(
 			IWICBitmapSource pIBitmapSource,
@@ -1031,7 +1035,7 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("135FF860-22B7-4ddf-B0F6-218F4F299A43"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICStream : IStream
 	{
-		#region IStream
+#region IStream
 		new void Read(
 			[Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] 
 			byte[] pv, 
@@ -1089,7 +1093,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		new void Clone(
 			out IStream ppstm
 		);
-		#endregion IStream
+#endregion IStream
 
 		void InitializeFromIStream(
 			IStream pIStream
@@ -1159,7 +1163,7 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("A721791A-0DEF-4d06-BD91-2118BF1DB10B"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICMetadataQueryWriter : IWICMetadataQueryReader
 	{
-		#region IWICMetadataQueryReader
+#region IWICMetadataQueryReader
 		new Guid GetContainerFormat();
 
 		new uint GetLocation(
@@ -1176,7 +1180,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		);
 
 		new IEnumString GetEnumerator();
-		#endregion
+#endregion
 
 		void SetMetadataByName(
 			[MarshalAs(UnmanagedType.LPWStr)]
@@ -1223,6 +1227,9 @@ namespace PhotoSauce.MagicScaler.Interop
 
 		void CreateNewFrame(
 			out IWICBitmapFrameEncode ppIFrameEncode,
+#if NETCOREAPP3_0 || NETSTANDARD2_1
+			[NotNull]
+#endif
 			ref IPropertyBag2? ppIEncoderOptions
 		);
 
@@ -1356,7 +1363,7 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("3B16811B-6A43-4ec9-A813-3D930C13B940"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICBitmapFrameDecode : IWICBitmapSource
 	{
-		#region IWICBitmapSource
+#region IWICBitmapSource
 		new void GetSize(
 			out uint puiWidth,
 			out uint puiHeight
@@ -1379,7 +1386,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			uint cbBufferSize,
 			IntPtr pbBuffer
 		);
-		#endregion IWICBitmapSource
+#endregion IWICBitmapSource
 
 		IWICMetadataQueryReader GetMetadataQueryReader();
 
@@ -1451,7 +1458,7 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("9F34FB65-13F4-4f15-BC57-3726B5E53D9F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICFormatConverterInfo : IWICComponentInfo
 	{
-		#region IWICComponentInfo
+#region IWICComponentInfo
 		new WICComponentType GetComponentType();
 
 		new Guid GetCLSID();
@@ -1483,7 +1490,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
 			StringBuilder? wzFriendlyName
 		);
-		#endregion IWICComponentInfo
+#endregion IWICComponentInfo
 
 		uint GetPixelFormats(
 			uint cFormats,
@@ -1497,7 +1504,7 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("E87A44C4-B76E-4c47-8B09-298EB12A2714"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICBitmapCodecInfo : IWICComponentInfo
 	{
-		#region IWICComponentInfo
+#region IWICComponentInfo
 		new WICComponentType GetComponentType();
 
 		new Guid GetCLSID();
@@ -1529,7 +1536,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
 			StringBuilder? wzFriendlyName
 		);
-		#endregion IWICComponentInfo
+#endregion IWICComponentInfo
 
 		Guid GetContainerFormat();
 
@@ -1591,8 +1598,8 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("94C9B4EE-A09F-4f92-8A1E-4A9BCE7E76FB"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICBitmapEncoderInfo : IWICBitmapCodecInfo
 	{
-		#region IWICBitmapCodecInfo
-		#region IWICComponentInfo
+#region IWICBitmapCodecInfo
+#region IWICComponentInfo
 		new WICComponentType GetComponentType();
 
 		new Guid GetCLSID();
@@ -1624,7 +1631,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
 			StringBuilder? wzFriendlyName
 		);
-		#endregion IWICComponentInfo
+#endregion IWICComponentInfo
 
 		new Guid GetContainerFormat();
 
@@ -1681,7 +1688,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPWStr)]
 			string wzMimeType
 		);
-		#endregion IWICBitmapCodecInfo
+#endregion IWICBitmapCodecInfo
 
 		IWICBitmapEncoder CreateInstance();
 	}
@@ -1689,8 +1696,8 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("D8CD007F-D08F-4191-9BFC-236EA7F0E4B5"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICBitmapDecoderInfo : IWICBitmapCodecInfo
 	{
-		#region IWICBitmapCodecInfo
-		#region IWICComponentInfo
+#region IWICBitmapCodecInfo
+#region IWICComponentInfo
 		new WICComponentType GetComponentType();
 
 		new Guid GetCLSID();
@@ -1722,7 +1729,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
 			StringBuilder? wzFriendlyName
 		);
-		#endregion IWICComponentInfo
+#endregion IWICComponentInfo
 
 		new Guid GetContainerFormat();
 
@@ -1779,7 +1786,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPWStr)]
 			string wzMimeType
 		);
-		#endregion IWICBitmapCodecInfo
+#endregion IWICBitmapCodecInfo
 
 		uint GetPatterns(
 			uint cbSizePatterns,
@@ -1798,7 +1805,7 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("E8EDA601-3D48-431a-AB44-69059BE88BBE"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICPixelFormatInfo : IWICComponentInfo
 	{
-		#region IWICComponentInfo
+#region IWICComponentInfo
 		new WICComponentType GetComponentType();
 
 		new Guid GetCLSID();
@@ -1830,7 +1837,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
 			StringBuilder? wzFriendlyName
 		);
-		#endregion IWICComponentInfo
+#endregion IWICComponentInfo
 
 		Guid GetFormatGUID();
 
@@ -2106,8 +2113,8 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("fbec5e44-f7be-4b65-b7f8-c0c81fef026d"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICDevelopRaw : IWICBitmapFrameDecode
 	{
-		#region IWICBitmapFrameDecode
-		#region IWICBitmapSource
+#region IWICBitmapFrameDecode
+#region IWICBitmapSource
 		new void GetSize(
 			out uint puiWidth,
 			out uint puiHeight
@@ -2130,7 +2137,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			uint cbBufferSize,
 			IntPtr pbBuffer
 		);
-		#endregion IWICBitmapSource
+#endregion IWICBitmapSource
 
 		new IWICMetadataQueryReader GetMetadataQueryReader();
 
@@ -2141,7 +2148,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		);
 
 		new IWICBitmapSource GetThumbnail();
-		#endregion  IWICBitmapFrameDecode
+#endregion  IWICBitmapFrameDecode
 
 		void QueryRawCapabilitiesInfo(
 			ref WICRawCapabilitiesInfo pInfo
@@ -2357,8 +2364,8 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("A9DB33A2-AF5F-43C7-B679-74F5984B5AA4"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICPixelFormatInfo2 : IWICPixelFormatInfo
 	{
-		#region IWICPixelFormatInfo
-		#region IWICComponentInfo
+#region IWICPixelFormatInfo
+#region IWICComponentInfo
 		new WICComponentType GetComponentType();
 
 		new Guid GetCLSID();
@@ -2390,7 +2397,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 0)]
 			StringBuilder? wzFriendlyName
 		);
-		#endregion IWICComponentInfo
+#endregion IWICComponentInfo
 
 		new Guid GetFormatGUID();
 
@@ -2406,7 +2413,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			[In, Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)]
 			byte[] pbMaskBuffer
 		);
-		#endregion IWICPixelFormatInfo
+#endregion IWICPixelFormatInfo
 
 		[return: MarshalAs(UnmanagedType.Bool)]
 		bool SupportsTransparency();
@@ -2440,7 +2447,7 @@ namespace PhotoSauce.MagicScaler.Interop
 	[ComImport, Guid("BEBEE9CB-83B0-4DCC-8132-B0AAA55EAC96"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICPlanarFormatConverter : IWICBitmapSource
 	{
-		#region IWICBitmapSource
+#region IWICBitmapSource
 		new void GetSize(
 			out uint puiWidth,
 			out uint puiHeight
@@ -2463,7 +2470,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			uint cbBufferSize,
 			IntPtr pbBuffer
 		);
-		#endregion IWICBitmapSource
+#endregion IWICBitmapSource
 
 		void Initialize( 
 			[MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)]

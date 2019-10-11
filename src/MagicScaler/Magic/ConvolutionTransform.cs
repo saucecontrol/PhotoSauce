@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
@@ -47,9 +48,10 @@ namespace PhotoSauce.MagicScaler
 
 		protected readonly KernelMap<TWeight> XMap, YMap;
 		protected readonly IConvolver XProcessor, YProcessor;
-		protected readonly PixelBuffer IntBuff, SrcBuff, WorkBuff;
+		protected readonly PixelBuffer IntBuff;
+		protected readonly PixelBuffer? SrcBuff, WorkBuff;
 
-		private readonly IMemoryOwner<byte> lineBuff;
+		private readonly IMemoryOwner<byte>? lineBuff;
 		private readonly bool bufferSource;
 		private readonly int inWidth;
 
@@ -145,16 +147,18 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private void loadBuffer(int first, int lines)
 		{
+			Debug.Assert((!bufferSource && lineBuff != null) || (WorkBuff != null && SrcBuff != null));
+
 			fixed (byte* mapxstart = XMap.Map)
 			{
 				int fli = first, cli = lines;
 				var ispan = IntBuff.PrepareLoad(ref fli, ref cli);
 
 				int flb = first, clb = lines;
-				var bspan = bufferSource ? SrcBuff.PrepareLoad(ref flb, ref clb) : lineBuff.Memory.Span;
+				var bspan = bufferSource ? SrcBuff!.PrepareLoad(ref flb, ref clb) : lineBuff!.Memory.Span;
 
 				int flw = first, clw = lines;
-				var wspan = bufferSource && WorkBuff != SrcBuff ? WorkBuff.PrepareLoad(ref flw, ref clw) : bspan;
+				var wspan = bufferSource && WorkBuff != SrcBuff ? WorkBuff!.PrepareLoad(ref flw, ref clw) : bspan;
 
 				fixed (byte* bline = bspan, wline = wspan, tline = ispan)
 				{
@@ -166,7 +170,7 @@ namespace PhotoSauce.MagicScaler
 						Timer.Start();
 
 						if (bp != wp)
-							GreyConverter.ConvertLine(Format.FormatGuid, bp, wp, SrcBuff.Stride, WorkBuff.Stride);
+							GreyConverter.ConvertLine(Format.FormatGuid, bp, wp, SrcBuff!.Stride, WorkBuff!.Stride);
 
 						XProcessor.ConvolveSourceLine(wp, tp, ispan.Length - ly * IntBuff.Stride, mapxstart, XMap.Samples, lines);
 
@@ -174,8 +178,8 @@ namespace PhotoSauce.MagicScaler
 
 						if (bufferSource)
 						{
-							wp += WorkBuff.Stride;
-							bp += SrcBuff.Stride;
+							wp += WorkBuff!.Stride;
+							bp += SrcBuff!.Stride;
 						}
 					}
 				}
@@ -198,7 +202,7 @@ namespace PhotoSauce.MagicScaler
 			lineBuff?.Dispose();
 		}
 
-		public override string ToString() => XProcessor.ToString();
+		public override string? ToString() => XProcessor.ToString();
 	}
 
 	internal class UnsharpMaskTransform<TPixel, TWeight> : ConvolutionTransform<TPixel, TWeight> where TPixel : unmanaged where TWeight : unmanaged
@@ -218,6 +222,8 @@ namespace PhotoSauce.MagicScaler
 
 		private UnsharpMaskTransform(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, UnsharpMaskSettings ss) : base(source, mapx, mapy, true)
 		{
+			Debug.Assert(SrcBuff != null && WorkBuff != null);
+
 			sharpenSettings = ss;
 			processor = ProcessorMap[Format.FormatGuid];
 			blurBuff = MemoryPool<byte>.Shared.Rent(WorkBuff.Stride);
@@ -225,8 +231,8 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe protected override void ConvolveLine(byte* ostart, byte* pmapy, int smapy, int iy, int oy, int ox, int ow)
 		{
-			var bspan = SrcBuff.PrepareRead(oy, 1);
-			var wspan = WorkBuff != SrcBuff ? WorkBuff.PrepareRead(oy, 1) : bspan;
+			var bspan = SrcBuff!.PrepareRead(oy, 1);
+			var wspan = WorkBuff != SrcBuff ? WorkBuff!.PrepareRead(oy, 1) : bspan;
 			var tspan = IntBuff.PrepareRead(iy, smapy);
 
 			fixed (byte* bstart = bspan, wstart = wspan, tstart = tspan, blurstart = blurBuff.Memory.Span)

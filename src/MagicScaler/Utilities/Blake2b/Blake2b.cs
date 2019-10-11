@@ -6,7 +6,6 @@ namespace PhotoSauce.MagicScaler
 	{
 		int DigestLength { get; }
 		void Update(ReadOnlySpan<byte> input);
-		void Update(Span<byte> input);
 		void Update<T>(ReadOnlySpan<T> input) where T : struct;
 		void Update<T>(T input) where T : struct;
 		byte[] Finish();

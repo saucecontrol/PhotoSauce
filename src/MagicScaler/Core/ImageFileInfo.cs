@@ -37,9 +37,9 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		/// <summary>The size of the image container in bytes.</summary>
-		public long FileSize { get; private set; }
+		public long FileSize { get; }
 		/// <summary>The last modified date of the image container, if applicable.</summary>
-		public DateTime FileDate { get; private set; }
+		public DateTime FileDate { get; }
 		/// <summary>The format of the image container (e.g. JPEG, PNG).</summary>
 		public FileFormat ContainerType { get; private set; }
 		/// <summary>One or more <see cref="FrameInfo" /> instances describing each image frame in the container.</summary>
@@ -54,9 +54,17 @@ namespace PhotoSauce.MagicScaler
 			ContainerType = FileFormat.Unknown;
 		}
 
+		private ImageFileInfo(FileFormat containerType, IReadOnlyList<FrameInfo> frames, long fileSize, DateTime fileDate)
+		{
+			ContainerType = containerType;
+			Frames = frames;
+			FileSize = fileSize;
+			FileDate = fileDate;
+		}
+
 		/// <summary>Constructs a new <see cref="ImageFileInfo" /> instance by reading the metadata from an image file header.</summary>
 		/// <param name="imgPath">The path to the image file.</param>
-		public ImageFileInfo(string imgPath)
+		public static ImageFileInfo Load(string imgPath)
 		{
 			var fi = new FileInfo(imgPath);
 			if (!fi.Exists)
@@ -64,37 +72,33 @@ namespace PhotoSauce.MagicScaler
 
 			using var ctx = new PipelineContext(new ProcessImageSettings());
 			ctx.ImageContainer = WicDecoder.Create(imgPath, ctx.WicContext);
-			loadInfo(ctx);
 
-			FileSize = fi.Length;
-			FileDate = fi.LastWriteTimeUtc;
+			return fromImage(ctx, fi.Length, fi.LastWriteTimeUtc);
 		}
 
-		/// <inheritdoc cref="ImageFileInfo(ReadOnlySpan{byte}, DateTime)" />
-		public ImageFileInfo(ReadOnlySpan<byte> imgBuffer) : this(imgBuffer, DateTime.MinValue) { }
+		/// <inheritdoc cref="Load(ReadOnlySpan{byte}, DateTime)" />
+		public static ImageFileInfo Load(ReadOnlySpan<byte> imgBuffer) => Load(imgBuffer, DateTime.MinValue);
 
 		/// <summary>Constructs a new <see cref="ImageFileInfo" /> instance by reading the metadata from an image file contained in a <see cref="ReadOnlySpan{T}" />.</summary>
 		/// <param name="imgBuffer">The buffer containing the image data.</param>
 		/// <param name="lastModified">The last modified date of the image container.</param>
-		public ImageFileInfo(ReadOnlySpan<byte> imgBuffer, DateTime lastModified)
+		public static ImageFileInfo Load(ReadOnlySpan<byte> imgBuffer, DateTime lastModified)
 		{
 			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
 
 			using var ctx = new PipelineContext(new ProcessImageSettings());
 			ctx.ImageContainer = WicDecoder.Create(imgBuffer, ctx.WicContext);
-			loadInfo(ctx);
 
-			FileSize = imgBuffer.Length;
-			FileDate = lastModified;
+			return fromImage(ctx, imgBuffer.Length, lastModified);
 		}
 
-		/// <inheritdoc cref="ImageFileInfo(Stream, DateTime)" />
-		public ImageFileInfo(Stream imgStream) : this(imgStream, DateTime.MinValue) { }
+		/// <inheritdoc cref="Load(Stream, DateTime)" />
+		public static ImageFileInfo Load(Stream imgStream) => Load(imgStream, DateTime.MinValue);
 
 		/// <summary>Constructs a new <see cref="ImageFileInfo" /> instance by reading the metadata from an image file exposed by a <see cref="Stream" />.</summary>
 		/// <param name="imgStream">The stream containing the image data.</param>
 		/// <param name="lastModified">The last modified date of the image container.</param>
-		public ImageFileInfo(Stream imgStream, DateTime lastModified)
+		public static ImageFileInfo Load(Stream imgStream, DateTime lastModified)
 		{
 			if (imgStream is null) throw new ArgumentNullException(nameof(imgStream));
 			if (!imgStream.CanSeek || !imgStream.CanRead) throw new ArgumentException("Input Stream must allow Seek and Read", nameof(imgStream));
@@ -102,28 +106,29 @@ namespace PhotoSauce.MagicScaler
 
 			using var ctx = new PipelineContext(new ProcessImageSettings());
 			ctx.ImageContainer = WicDecoder.Create(imgStream, ctx.WicContext);
-			loadInfo(ctx);
 
-			FileSize = imgStream.Length;
-			FileDate = lastModified;
+			return fromImage(ctx, imgStream.Length, lastModified);
 		}
 
-		private void loadInfo(PipelineContext ctx)
+		private static ImageFileInfo fromImage(PipelineContext ctx, long fileSize, DateTime fileDate)
 		{
 			var frames = new FrameInfo[ctx.ImageContainer.FrameCount];
 			for (int i = 0; i < frames.Length; i++)
 			{
 				ctx.Settings.FrameIndex = i;
-				var frm = new WicFrameReader(ctx);
+				ctx.DecoderFrame = new WicFrameReader(ctx.ImageContainer, ctx.Settings, ctx.WicContext);
+				ctx.Source = ctx.DecoderFrame.Source!.AsPixelSource(nameof(WicFrameReader));
+
 				WicTransforms.AddMetadataReader(ctx, basicOnly: true);
 
-				int width = (int)(frm.ExifOrientation.SwapsDimensions() ? ctx.Source.Height : ctx.Source.Width);
-				int height = (int)(frm.ExifOrientation.SwapsDimensions() ? ctx.Source.Width : ctx.Source.Height);
-				frames[i] = new FrameInfo(width, height, ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None, frm.ExifOrientation);
+				var frm = ctx.DecoderFrame;
+				var src = ctx.Source;
+				int width = (int)(frm.ExifOrientation.SwapsDimensions() ? src.Height : src.Width);
+				int height = (int)(frm.ExifOrientation.SwapsDimensions() ? src.Width : src.Height);
+				frames[i] = new FrameInfo(width, height, src.Format.AlphaRepresentation != PixelAlphaRepresentation.None, frm.ExifOrientation);
 			}
 
-			ContainerType = ctx.ImageContainer.ContainerFormat;
-			Frames = frames;
+			return new ImageFileInfo(ctx.ImageContainer.ContainerFormat, frames, fileSize, fileDate);
 		}
 	}
 }

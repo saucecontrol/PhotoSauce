@@ -165,17 +165,17 @@ namespace PhotoSauce.MagicScaler.Interop
 
 			private PropVariant? pv;
 
-			public void CleanUpManagedData(object obj) { }
+			void ICustomMarshaler.CleanUpManagedData(object _) { }
 
-			public void CleanUpNativeData(IntPtr pNativeData)
+			void ICustomMarshaler.CleanUpNativeData(IntPtr pNativeData)
 			{
 				propVariantClear(pNativeData);
 				Marshal.FreeCoTaskMem(pNativeData);
 			}
 
-			public int GetNativeDataSize() => -1;
+			int ICustomMarshaler.GetNativeDataSize() => -1;
 
-			unsafe public IntPtr MarshalManagedToNative(object? o)
+			unsafe IntPtr ICustomMarshaler.MarshalManagedToNative(object? o)
 			{
 				if (o is null)
 					return IntPtr.Zero;
@@ -222,7 +222,8 @@ namespace PhotoSauce.MagicScaler.Interop
 				    type.Equals(typeof(int   [])) || type.Equals(typeof(uint  [])) ||
 				    type.Equals(typeof(long  [])) || type.Equals(typeof(ulong [])) ||
 				    type.Equals(typeof(float [])) || type.Equals(typeof(double[])) ||
-				    type.Equals(typeof(string[])))
+				    type.Equals(typeof(string[]))
+				)
 				{
 					var a = (Array)o;
 					int bufflen = type.Equals(typeof(string[])) ? IntPtr.Size * a.Length : Buffer.ByteLength(a);
@@ -255,7 +256,7 @@ namespace PhotoSauce.MagicScaler.Interop
 				throw new NotImplementedException();
 			}
 
-			public object MarshalNativeToManaged(IntPtr pNativeData)
+			object ICustomMarshaler.MarshalNativeToManaged(IntPtr pNativeData)
 			{
 				if ((pNativeData == IntPtr.Zero) || (pv is null))
 					return null!;

@@ -30,8 +30,8 @@ namespace PhotoSauce.MagicScaler
 	{
 		private readonly Orientation orient;
 		private readonly PixelArea srcArea;
-		private readonly PixelBuffer srcBuff;
-		private readonly IMemoryOwner<byte> lineBuff;
+		private readonly PixelBuffer? srcBuff;
+		private readonly IMemoryOwner<byte>? lineBuff;
 		private readonly int bytesPerPixel;
 
 		public OrientationTransformInternal(PixelSource source, Orientation orientation, PixelArea crop) : base(source)
@@ -89,7 +89,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private void copyPixelsBuffered(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
 		{
-			if (!srcBuff.ContainsLine(0))
+			if (!srcBuff!.ContainsLine(0))
 			{
 				int fl = 0, lc = (int)Height;
 				fixed (byte* bstart = srcBuff.PrepareLoad(ref fl, ref lc))
@@ -112,7 +112,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private void loadBufferReversed(byte* bstart)
 		{
-			byte* pb = bstart + (Height - 1) * (uint)srcBuff.Stride;
+			byte* pb = bstart + (Height - 1) * BufferStride;
 
 			for (int y = 0; y < (int)Height; y++)
 			{
@@ -147,7 +147,7 @@ namespace PhotoSauce.MagicScaler
 
 			uint cb = (uint)srcArea.Width * (uint)bytesPerPixel;
 
-			fixed (byte* lp = lineBuff.Memory.Span)
+			fixed (byte* lp = lineBuff!.Memory.Span)
 			{
 				for (int y = 0; y < srcArea.Height; y++)
 				{

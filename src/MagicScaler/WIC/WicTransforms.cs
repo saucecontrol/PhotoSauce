@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Buffers;
+using System.Diagnostics;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
@@ -10,39 +11,39 @@ namespace PhotoSauce.MagicScaler
 {
 	internal class WicFrameReader
 	{
-		public IWICBitmapFrameDecode Frame { get; }
 		public double DpiX { get; } = 96d;
 		public double DpiY { get; } = 96d;
+		public Orientation ExifOrientation { get; set; } = Orientation.Normal;
+		public IDictionary<string, PropVariant> Metadata { get; } = new Dictionary<string, PropVariant>();
 
 		public bool SupportsNativeScale { get; }
 		public bool SupportsNativeTransform { get; }
+		public bool SupportsPlanarProcessing { get; }
+
 		public WICJpegYCrCbSubsamplingOption ChromaSubsampling { get; }
 
-		public Orientation ExifOrientation { get; set; } = Orientation.Normal;
-		public IDictionary<string, PropVariant> Metadata { get; set; }
+		public IWICBitmapFrameDecode? Frame { get; }
+		public IWICBitmapSource? Source { get; }
 
-		public WicFrameReader(PipelineContext ctx, bool planar = false)
+		public WicFrameReader(IImageContainer container, ProcessImageSettings settings, WicPipelineContext wicContext)
 		{
-			ctx.DecoderFrame = this;
-
-			if (!(ctx.ImageContainer is WicDecoder wicDecoder))
+			if (!(container is WicDecoder wicDecoder))
 				return;
 
-			var source = default(IWICBitmapSource);
-			if (wicDecoder.IsRawContainer && ctx.Settings.FrameIndex == 0 && wicDecoder.Decoder.TryGetPreview(out var preview)) //TODO must be full res?
-				source = ctx.WicContext.AddRef(preview);
+			if (wicDecoder.IsRawContainer && settings.FrameIndex == 0 && wicDecoder.Decoder.TryGetPreview(out var preview))
+				Source = wicContext.AddRef(preview);
 
-			if (source is null)
-				source = Frame = ctx.WicContext.AddRef(((WicFrame)ctx.ImageContainer.GetFrame(ctx.Settings.FrameIndex)).Frame);
+			if (Source is null)
+				Source = Frame = wicContext.AddRef(((WicFrame)wicDecoder.GetFrame(settings.FrameIndex)).Frame);
 
-			source.GetResolution(out double dpix, out double dpiy);
+			Source.GetResolution(out double dpix, out double dpiy);
 			DpiX = dpix;
 			DpiY = dpiy;
 
-			if (PixelFormat.FromGuid(source.GetPixelFormat()).NumericRepresentation == PixelNumericRepresentation.Indexed)
+			if (PixelFormat.FromGuid(Source.GetPixelFormat()).NumericRepresentation == PixelNumericRepresentation.Indexed)
 			{
-				var pal = ctx.WicContext.AddRef(Wic.Factory.CreatePalette());
-				source.CopyPalette(pal);
+				var pal = wicContext.AddRef(Wic.Factory.CreatePalette());
+				Source.CopyPalette(pal);
 
 				var newFormat = Consts.GUID_WICPixelFormat24bppBGR;
 				if (pal.HasAlpha())
@@ -50,34 +51,31 @@ namespace PhotoSauce.MagicScaler
 				else if (pal.IsGrayscale() || pal.IsBlackWhite())
 					newFormat = Consts.GUID_WICPixelFormat8bppGray;
 
-				var conv = ctx.WicContext.AddRef(Wic.Factory.CreateFormatConverter());
-				conv.Initialize(source, newFormat, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
-				source = conv;
+				var conv = wicContext.AddRef(Wic.Factory.CreateFormatConverter());
+				conv.Initialize(Source, newFormat, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
+				Source = conv;
 			}
 
-			if (source is IWICBitmapSourceTransform trans)
+			if (Source is IWICBitmapSourceTransform trans)
 			{
 				uint pw = 1, ph = 1;
-				source.GetSize(out uint ow, out uint oh);
+				Source.GetSize(out uint ow, out uint oh);
 				trans.GetClosestSize(ref pw, ref ph);
 				SupportsNativeScale = pw < ow || ph < oh;
 				SupportsNativeTransform = trans.DoesSupportTransform(WICBitmapTransformOptions.WICBitmapTransformRotate270);
 			}
 
-			if (planar && source is IWICPlanarBitmapSourceTransform ptrans && ctx.Settings.Interpolation.WeightingFunction.Support >= 0.5d)
+			if (Source is IWICPlanarBitmapSourceTransform ptrans && settings.Interpolation.WeightingFunction.Support >= 0.5d)
 			{
-				source.GetSize(out uint ow, out uint oh);
+				Source.GetSize(out uint ow, out uint oh);
 				var desc = new WICBitmapPlaneDescription[2];
-				ctx.SupportsPlanarProcessing = ptrans.DoesSupportTransform(ref ow, ref oh, WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault, WicTransforms.PlanarPixelFormats, desc, (uint)desc.Length);
+				SupportsPlanarProcessing = ptrans.DoesSupportTransform(ref ow, ref oh, WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault, WicTransforms.PlanarPixelFormats, desc, (uint)desc.Length);
 				ChromaSubsampling =
 					desc[1].Width < desc[0].Width && desc[1].Height < desc[0].Height ? WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling420 :
 					desc[1].Width < desc[0].Width ? WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling422 :
 					desc[1].Height < desc[0].Height ? WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling440 :
 					WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling444;
 			}
-
-			bool preserveNative = ctx.SupportsPlanarProcessing || (SupportsNativeTransform && ctx.DecoderFrame.ExifOrientation != Orientation.Normal) || (SupportsNativeScale && ctx.Settings.HybridScaleRatio > 1d);
-			ctx.Source = source.AsPixelSource(nameof(IWICBitmapFrameDecode), !preserveNative);
 		}
 	}
 
@@ -91,7 +89,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddMetadataReader(PipelineContext ctx, bool basicOnly = false)
 		{
-			if (ctx.DecoderFrame.Frame is null)
+			if (ctx.ImageContainer is null || ctx.DecoderFrame?.Frame is null)
 				return;
 
 			if (ctx.DecoderFrame.Frame.TryGetMetadataQueryReader(out var metareader))
@@ -113,7 +111,7 @@ namespace PhotoSauce.MagicScaler
 					return;
 
 				// other requested properties
-				var propdic = new Dictionary<string, PropVariant>();
+				var propdic = ctx.DecoderFrame.Metadata;
 				foreach (string prop in ctx.Settings.MetadataNames ?? Enumerable.Empty<string>())
 				{
 					if (metareader.TryGetMetadataByName(prop, out var pvar) && pvar.Value != null)
@@ -122,8 +120,6 @@ namespace PhotoSauce.MagicScaler
 
 				if (ctx.Settings.OrientationMode == OrientationMode.Preserve && !(pvorient is null))
 					propdic[orientationPathOut] = pvorient;
-
-				ctx.DecoderFrame.Metadata = propdic;
 			}
 
 			if (basicOnly)
@@ -162,11 +158,7 @@ namespace PhotoSauce.MagicScaler
 						var cpi = ColorProfile.Cache.GetOrAdd(cca);
 
 						// match only color profiles that match our intended use. if we have a standard sRGB profile, don't save it; we don't need to convert
-						if (cpi.IsValid && (
-							   (cpi.DataColorSpace == ColorProfile.ProfileColorSpace.Rgb && (fmt.ColorRepresentation == PixelColorRepresentation.Bgr || fmt.ColorRepresentation == PixelColorRepresentation.Rgb) && !cpi.IsSrgb)
-							|| (cpi.DataColorSpace == ColorProfile.ProfileColorSpace.Grey && fmt.ColorRepresentation == PixelColorRepresentation.Grey && !cpi.IsSrgb)
-							|| (cpi.DataColorSpace == ColorProfile.ProfileColorSpace.Cmyk && fmt.ColorRepresentation == PixelColorRepresentation.Cmyk)
-						))
+						if (cpi.IsValid && cpi.IsCompatibleWith(fmt) && !cpi.IsSrgb)
 						{
 							profile = cc;
 							if (cpi.ProfileType == ColorProfileType.Matrix || cpi.ProfileType == ColorProfileType.Curve)
@@ -205,7 +197,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddColorspaceConverter(PipelineContext ctx)
 		{
-			if (ctx.WicContext.SourceColorContext is null || ctx.WicContext.SourceColorContext == ctx.WicContext.DestColorContext)
+			if (ctx.WicContext.SourceColorContext is null || ctx.WicContext.DestColorContext is null || ctx.WicContext.SourceColorContext == ctx.WicContext.DestColorContext)
 				return;
 
 			var trans = ctx.WicContext.AddRef(Wic.Factory.CreateColorTransformer());
@@ -218,6 +210,8 @@ namespace PhotoSauce.MagicScaler
 			var curFormat = ctx.Source.Format;
 			if (curFormat.ColorRepresentation == PixelColorRepresentation.Cmyk)
 			{
+				Debug.Assert(ctx.WicContext.SourceColorContext != null && ctx.WicContext.DestColorContext != null);
+
 				//TODO WIC doesn't support proper CMYKA conversion with color profile
 				if (curFormat.AlphaRepresentation == PixelAlphaRepresentation.None)
 				{
@@ -381,6 +375,8 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddPlanarConverter(PipelineContext ctx)
 		{
+			Debug.Assert(ctx.PlanarLumaSource != null && ctx.PlanarChromaSource != null);
+
 			var conv = (IWICPlanarFormatConverter)ctx.WicContext.AddRef(Wic.Factory.CreateFormatConverter());
 			conv.Initialize(new[] { ctx.PlanarLumaSource.WicSource, ctx.PlanarChromaSource.WicSource }, 2, Consts.GUID_WICPixelFormat24bppBGR, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
 

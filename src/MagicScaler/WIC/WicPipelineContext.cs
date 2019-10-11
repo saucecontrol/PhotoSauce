@@ -11,11 +11,11 @@ namespace PhotoSauce.MagicScaler
 	{
 		private readonly Stack<object> comHandles = new Stack<object>();
 
-		public WicPlanarCache PlanarCache { get; set; }
+		public WicPlanarCache? PlanarCache { get; set; }
 
-		public IWICColorContext SourceColorContext { get; set; }
-		public IWICColorContext DestColorContext { get; set; }
-		public IWICPalette DestPalette { get; set; }
+		public IWICColorContext? SourceColorContext { get; set; }
+		public IWICColorContext? DestColorContext { get; set; }
+		public IWICPalette? DestPalette { get; set; }
 
 		public T AddRef<T>(T comHandle) where T : class
 		{

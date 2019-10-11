@@ -8,7 +8,7 @@ namespace PhotoSauce.MagicScaler
 		private readonly Stack<IDisposable> disposeHandles = new Stack<IDisposable>();
 		private readonly HashSet<PixelSourceStats> stats;
 
-		private PixelSource source;
+		private PixelSource? source;
 
 		public WicPipelineContext WicContext { get; }
 		public ProcessImageSettings Settings { get; }
@@ -17,18 +17,17 @@ namespace PhotoSauce.MagicScaler
 		public IImageContainer ImageContainer { get; set; }
 		public WicFrameReader DecoderFrame { get; set; }
 
-		public bool SupportsPlanarProcessing { get; set; }
-		public PixelSource PlanarLumaSource { get; set; }
-		public PixelSource PlanarChromaSource { get; set; }
+		public PixelSource? PlanarLumaSource { get; set; }
+		public PixelSource? PlanarChromaSource { get; set; }
 
-		public ColorProfile SourceColorProfile { get; set; }
-		public ColorProfile DestColorProfile { get; set; }
+		public ColorProfile? SourceColorProfile { get; set; }
+		public ColorProfile? DestColorProfile { get; set; }
 
 		public IReadOnlyCollection<PixelSourceStats> Stats => stats;
 
 		public PixelSource Source
 		{
-			get => source;
+			get => source ?? NullPixelSource.Instance;
 			set
 			{
 				source = value;
@@ -42,6 +41,11 @@ namespace PhotoSauce.MagicScaler
 			Settings = settings.Clone();
 			WicContext = new WicPipelineContext();
 			stats = new HashSet<PixelSourceStats>();
+
+			// HACK this quiets the nullable warnings for now but needs refactoring
+			UsedSettings = null!;
+			ImageContainer = null!;
+			DecoderFrame = null!;
 		}
 
 		public T AddDispose<T>(T disposeHandle) where T : IDisposable

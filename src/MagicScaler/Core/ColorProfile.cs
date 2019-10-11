@@ -32,7 +32,7 @@ namespace PhotoSauce.MagicScaler
 				if (dic.TryGetValue(guid, out var wref) && wref.TryGetTarget(out var prof))
 					return prof;
 
-				prof = new ColorProfile(bytes);
+				prof = Parse(bytes);
 				dic.AddOrUpdate(guid, (g) => new WeakReference<ColorProfile>(prof), (g, r) => { r.SetTarget(prof); return r; });
 
 				return prof;
@@ -93,7 +93,9 @@ namespace PhotoSauce.MagicScaler
 			Lab
 		}
 
-		private static readonly Lazy<ColorProfile> srgb = new Lazy<ColorProfile>(() => {
+		private static readonly ColorProfile invalidProfile = new ColorProfile();
+
+		private static readonly Lazy<MatrixProfile> srgb = new Lazy<MatrixProfile>(() => {
 			var m = new Matrix4x4(
 				0.71393112f, 0.06062103f, 0.14307328f, 0f,
 				0.09707674f, 0.71694100f, 0.38510027f, 0f,
@@ -101,27 +103,16 @@ namespace PhotoSauce.MagicScaler
 				0f,          0f,          0f,          1f
 			);
 			Matrix4x4.Invert(m, out var im);
+			var curve = new ProfileCurve(LookupTables.SrgbGamma, LookupTables.SrgbInverseGammaFloat, LookupTables.SrgbInverseGammaUQ15);
 
-			return new ColorProfile {
-				Matrix = m,
-				InverseMatrix = im,
-				Gamma = LookupTables.SrgbGamma,
-				InverseGammaFloat = LookupTables.SrgbInverseGammaFloat,
-				InverseGammaUQ15 = LookupTables.SrgbInverseGammaUQ15
-			};
+			return new MatrixProfile(m, im, curve, ProfileColorSpace.Rgb, ProfileColorSpace.Xyz);
 		});
 
-		private static readonly Lazy<ColorProfile> sgrey = new Lazy<ColorProfile>(() =>
-			new ColorProfile {
-				Matrix = Matrix4x4.Identity,
-				InverseMatrix = Matrix4x4.Identity,
-				Gamma = LookupTables.SrgbGamma,
-				InverseGammaFloat = LookupTables.SrgbInverseGammaFloat,
-				InverseGammaUQ15 = LookupTables.SrgbInverseGammaUQ15
-			}
+		private static readonly Lazy<CurveProfile> sgrey = new Lazy<CurveProfile>(() =>
+			new CurveProfile(srgb.Value.Curve, ProfileColorSpace.Grey, ProfileColorSpace.Xyz)
 		);
 
-		private void lutsFromPower(float gamma)
+		private static ProfileCurve curveFromPower(float gamma)
 		{
 			var igtf = new float[256];
 			var igtq = new ushort[256];
@@ -139,10 +130,10 @@ namespace PhotoSauce.MagicScaler
 			for (int i = 0; i < gt.Length; i++)
 				gt[i] = FixToByte(PowF(UnFix15ToFloat(i), gamma));
 
-			setLuts(gt, igtf, igtq);
+			return new ProfileCurve(gt, igtf, igtq);
 		}
 
-		private void lutsFromPoints(Span<ushort> points, bool inverse)
+		private static ProfileCurve curveFromPoints(Span<ushort> points, bool inverse)
 		{
 			var igtf = new float[256];
 			var igtq = new ushort[256];
@@ -177,10 +168,7 @@ namespace PhotoSauce.MagicScaler
 			}
 
 			if (lutInvertsTo(igtq, LookupTables.SrgbGamma))
-			{
-				setSrgbLuts();
-				return;
-			}
+				return sRGB.Curve!;
 
 			if (inverse)
 				points.Reverse();
@@ -219,10 +207,10 @@ namespace PhotoSauce.MagicScaler
 			if (inverse)
 				Array.Reverse(gt);
 
-			setLuts(gt, igtf, igtq);
+			return new ProfileCurve(gt, igtf, igtq);
 		}
 
-		private void lutsFromParameters(float a, float b, float c, float d, float e, float f, float g)
+		private static ProfileCurve curveFromParameters(float a, float b, float c, float d, float e, float f, float g)
 		{
 			if (g.IsRoughlyEqualTo(2.4f)
 				&& d.IsRoughlyEqualTo(0.04045f)
@@ -231,8 +219,7 @@ namespace PhotoSauce.MagicScaler
 				&& c.IsRoughlyEqualTo(1.000f/12.92f)
 			)
 			{
-				setSrgbLuts();
-				return;
+				return sRGB.Curve!;
 			}
 
 			var igtf = new float[256];
@@ -264,10 +251,10 @@ namespace PhotoSauce.MagicScaler
 				gt[i] = FixToByte(val);
 			}
 
-			setLuts(gt, igtf, igtq);
+			return new ProfileCurve(gt, igtf, igtq);
 		}
 
-		private bool lutInvertsTo(ushort[] igtq, byte[] gt)
+		private static bool lutInvertsTo(ushort[] igtq, byte[] gt)
 		{
 			for (int i = 0; i < igtq.Length; i++)
 			{
@@ -278,16 +265,7 @@ namespace PhotoSauce.MagicScaler
 			return true;
 		}
 
-		private void setLuts(byte[] gt, float[] igtf, ushort[] igtq)
-		{
-			Gamma = gt;
-			InverseGammaFloat = igtf;
-			InverseGammaUQ15 = igtq;
-		}
-
-		private void setSrgbLuts() => setLuts(LookupTables.SrgbGamma, LookupTables.SrgbInverseGammaFloat, LookupTables.SrgbInverseGammaUQ15);
-
-		private bool tryGetTagEntry(TagEntry[] entries, uint tag, out TagEntry entry)
+		private static bool tryGetTagEntry(TagEntry[] entries, uint tag, out TagEntry entry)
 		{
 			for (int i = 0; i < entries.Length; i++)
 			if (entries[i].tag == tag)
@@ -300,8 +278,10 @@ namespace PhotoSauce.MagicScaler
 			return false;
 		}
 
-		private bool tryGetMatrix(ReadOnlySpan<byte> bXYZ, ReadOnlySpan<byte> gXYZ, ReadOnlySpan<byte> rXYZ)
+		private static bool tryGetMatrix(ReadOnlySpan<byte> bXYZ, ReadOnlySpan<byte> gXYZ, ReadOnlySpan<byte> rXYZ, out Matrix4x4 matrix)
 		{
+			matrix = default;
+
 			var hdr = bXYZ.Slice(0, 8);
 			uint tag = ReadUInt32BigEndian(hdr);
 			if (tag != IccTypes.XYZ || !hdr.SequenceEqual(gXYZ.Slice(0, 8)) || !hdr.SequenceEqual(rXYZ.Slice(0, 8)))
@@ -320,27 +300,21 @@ namespace PhotoSauce.MagicScaler
 			int rz = ReadInt32BigEndian(rXYZ.Slice(16));
 
 			float div = 1 / 65536f;
-			Matrix = new Matrix4x4(
+			matrix = new Matrix4x4(
 				bz * div, by * div, bx * div, 0f,
 				gz * div, gy * div, gx * div, 0f,
 				rz * div, ry * div, rx * div, 0f,
 				0f,       0f,       0f,       1f
 			);
 
-			if (Matrix.IsRouglyEqualTo(sRGB.Matrix))
-			{
-				Matrix = sRGB.Matrix;
-				InverseMatrix = sRGB.InverseMatrix;
-				return true;
-			}
-
-			bool invertible = Matrix4x4.Invert(Matrix, out var imatrix);
-			InverseMatrix = imatrix;
-			return invertible;
+			return true;
 		}
 
-		private bool tryGetCurve(ReadOnlySpan<byte> trc)
+		private static bool tryGetCurve(ReadOnlySpan<byte> trc, out ProfileCurve? curve)
 		{
+			// true return with null curve indicates linear curve
+			curve = default;
+
 			uint tag = ReadUInt32BigEndian(trc);
 			if (trc.Length < 12 || (tag != IccTypes.curv && tag != IccTypes.para))
 				return false;
@@ -352,10 +326,7 @@ namespace PhotoSauce.MagicScaler
 					return false;
 
 				if (pcnt == 0)
-				{
-					IsLinear = true;
 					return true;
-				}
 
 				if (pcnt == 1)
 				{
@@ -366,7 +337,6 @@ namespace PhotoSauce.MagicScaler
 						case 0:
 							return false;
 						case 256:
-							IsLinear = true;
 							return true;
 						case 461:
 							gf = 1.8f;
@@ -379,15 +349,13 @@ namespace PhotoSauce.MagicScaler
 							break;
 					}
 
-					lutsFromPower(gf);
+					curve = curveFromPower(gf);
+					return true;
 				}
 				else
 				{
 					if (pcnt == 2 && ReadUInt16BigEndian(trc.Slice(12)) == ushort.MinValue && ReadUInt16BigEndian(trc.Slice(14)) == ushort.MaxValue)
-					{
-						IsLinear = true;
 						return true;
-					}
 
 					int buffLen = (int)pcnt * sizeof(ushort);
 					using var buff = MemoryPool<byte>.Shared.Rent(buffLen);
@@ -409,7 +377,8 @@ namespace PhotoSauce.MagicScaler
 						points[i] = pp = p;
 					}
 
-					lutsFromPoints(points, dec);
+					curve = curveFromPoints(points, dec);
+					return true;
 				}
 			}
 
@@ -475,86 +444,82 @@ namespace PhotoSauce.MagicScaler
 				}
 
 				if (func == 0)
-					lutsFromPower(fg);
+					curve = curveFromPower(fg);
 				else
-					lutsFromParameters(fa, fb, fc, fd, fe, ff, fg);
+					curve = curveFromParameters(fa, fb, fc, fd, fe, ff, fg);
 			}
 
 			return true;
 		}
 
-		private void parse(ReadOnlySpan<byte> prof)
+		public static ColorProfile Parse(ReadOnlySpan<byte> prof)
 		{
-			if (prof.Length < 132)
-				return; //throw new InvalidDataException("Invalid ICC profile.  Header is incomplete.");
+			const int headerLength = 128;
+			const int headerPlusTagCountLength = 132;
+
+			if (prof.Length < headerPlusTagCountLength)
+				return invalidProfile;
 
 			uint len = ReadUInt32BigEndian(prof.Slice(0, sizeof(uint)));
 			if (len != prof.Length)
-				return; //throw new InvalidDataException("Invalid ICC profile.  Internal length doesn't match data length.");
+				return invalidProfile;
 
 			uint acsp = ReadUInt32BigEndian(prof.Slice(36));
 			var ver = prof.Slice(8, 4);
-			IsValid = (ver[0] == 2 || ver[0] == 4) && acsp == IccStrings.acsp;
-			if (!IsValid)
-				return;
+			if ((ver[0] != 2 && ver[0] != 4) || acsp != IccStrings.acsp)
+				return invalidProfile;
 
 			uint dcs = ReadUInt32BigEndian(prof.Slice(16));
-			DataColorSpace =
+			var dataColorSpace =
 				dcs == IccStrings.RGB  ? ProfileColorSpace.Rgb  :
 				dcs == IccStrings.GRAY ? ProfileColorSpace.Grey :
 				dcs == IccStrings.CMYK ? ProfileColorSpace.Cmyk :
 				ProfileColorSpace.Other;
 
 			uint ccs = ReadUInt32BigEndian(prof.Slice(20));
-			PcsColorSpace =
+			var pcsColorSpace =
 				ccs == IccStrings.XYZ ? ProfileColorSpace.Xyz :
 				ccs == IccStrings.Lab ? ProfileColorSpace.Lab :
 				ProfileColorSpace.Other;
 
-			if (PcsColorSpace != ProfileColorSpace.Xyz || (DataColorSpace != ProfileColorSpace.Rgb && DataColorSpace != ProfileColorSpace.Grey))
-				return;
+			if (pcsColorSpace != ProfileColorSpace.Xyz || (dataColorSpace != ProfileColorSpace.Rgb && dataColorSpace != ProfileColorSpace.Grey))
+				return new ColorProfile(dataColorSpace, pcsColorSpace, ColorProfileType.Unknown);
 
-			uint tagCount = ReadUInt32BigEndian(prof.Slice(128));
-			if (len < (132 + tagCount * Unsafe.SizeOf<TagEntry>()))
-			{
-				IsValid = false;
-				return;
-			}
+			uint tagCount = ReadUInt32BigEndian(prof.Slice(headerLength));
+			if (len < (headerPlusTagCountLength + tagCount * Unsafe.SizeOf<TagEntry>()))
+				return invalidProfile;
 
 			var tagEntries = new TagEntry[((int)tagCount)];
 			for (int i = 0; i < tagCount; i++)
 			{
-				int entryStart = 132 + i * Unsafe.SizeOf<TagEntry>();
+				int entryStart = headerPlusTagCountLength + i * Unsafe.SizeOf<TagEntry>();
 
 				uint tag = ReadUInt32BigEndian(prof.Slice(entryStart));
 				uint pos = ReadUInt32BigEndian(prof.Slice(entryStart + 4));
 				uint cb = ReadUInt32BigEndian(prof.Slice(entryStart + 8));
 
 				if (len < (pos + cb))
-				{
-					IsValid = false;
-					return;
-				}
+					return invalidProfile;
 
 				// not handling these yet, so we'll hand off to WCS
 				if (tag == IccTags.A2B0 || tag == IccTags.B2A0)
-				{
-					ProfileType = ColorProfileType.Table;
-					return;
-				}
+					return new ColorProfile(dataColorSpace, pcsColorSpace, ColorProfileType.Table);
 
 				tagEntries[i] = new TagEntry(tag, (int)pos, (int)cb);
 			}
 
-			if (DataColorSpace == ProfileColorSpace.Grey
+			if (dataColorSpace == ProfileColorSpace.Grey
 				&& tryGetTagEntry(tagEntries, IccTags.kTRC, out var kTRC)
-				&& tryGetCurve(prof.Slice(kTRC.pos, kTRC.cb))
+				&& tryGetCurve(prof.Slice(kTRC.pos, kTRC.cb), out var curve)
 			)
 			{
-				ProfileType = ColorProfileType.Curve;
+				if (curve == sRGB.Curve)
+					return sGrey;
+
+				return new CurveProfile(curve, dataColorSpace, pcsColorSpace);
 			}
 
-			if (DataColorSpace == ProfileColorSpace.Rgb
+			if (dataColorSpace == ProfileColorSpace.Rgb
 				&& tryGetTagEntry(tagEntries, IccTags.bTRC, out var bTRC)
 				&& tryGetTagEntry(tagEntries, IccTags.gTRC, out var gTRC)
 				&& tryGetTagEntry(tagEntries, IccTags.rTRC, out var rTRC)
@@ -568,36 +533,84 @@ namespace PhotoSauce.MagicScaler
 				var rTRCData = prof.Slice(rTRC.pos, rTRC.cb);
 
 				if (bTRCData.SequenceEqual(gTRCData) && bTRCData.SequenceEqual(rTRCData)
-					&& tryGetCurve(bTRCData)
-					&& tryGetMatrix(prof.Slice(bXYZ.pos, bXYZ.cb), prof.Slice(gXYZ.pos, gXYZ.cb), prof.Slice(rXYZ.pos, rXYZ.cb))
+					&& tryGetCurve(bTRCData, out var rgbcurve)
+					&& tryGetMatrix(prof.Slice(bXYZ.pos, bXYZ.cb), prof.Slice(gXYZ.pos, gXYZ.cb), prof.Slice(rXYZ.pos, rXYZ.cb), out var matrix)
 				)
 				{
-					ProfileType = ColorProfileType.Matrix;
+					if (matrix.IsRouglyEqualTo(sRGB.Matrix) && rgbcurve == sRGB.Curve)
+						return sRGB;
+
+					if (Matrix4x4.Invert(matrix, out var imatrix))
+						return new MatrixProfile(matrix, imatrix, rgbcurve, dataColorSpace, pcsColorSpace);
 				}
 			}
+
+			return invalidProfile;
 		}
 
-		public static ColorProfile sRGB => srgb.Value;
-		public static ColorProfile sGrey => sgrey.Value;
+		public static MatrixProfile sRGB => srgb.Value;
+		public static CurveProfile sGrey => sgrey.Value;
 
-		public ProfileColorSpace DataColorSpace { get; private set; }
-		public ProfileColorSpace PcsColorSpace { get; private set; }
+		public bool IsValid { get; }
+		public ProfileColorSpace DataColorSpace { get; }
+		public ProfileColorSpace PcsColorSpace { get; }
 
-		public ColorProfileType ProfileType { get; private set; }
-		public bool IsValid { get; private set; }
+		public ColorProfileType ProfileType { get; protected set; }
 
-		public bool IsLinear { get; private set; }
-		public bool IsSrgb => Gamma == sRGB.Gamma && (ProfileType == ColorProfileType.Curve || Matrix == sRGB.Matrix);
+		public bool IsCompatibleWith(PixelFormat fmt) =>
+			(DataColorSpace == ProfileColorSpace.Cmyk && fmt.ColorRepresentation == PixelColorRepresentation.Cmyk)
+			|| (DataColorSpace == ProfileColorSpace.Grey && fmt.ColorRepresentation == PixelColorRepresentation.Grey)
+			|| (DataColorSpace == ProfileColorSpace.Rgb && (fmt.ColorRepresentation == PixelColorRepresentation.Rgb || fmt.ColorRepresentation == PixelColorRepresentation.Bgr));
 
-		public Matrix4x4 Matrix { get; private set; } = Matrix4x4.Identity;
-		public Matrix4x4 InverseMatrix { get; private set; } = Matrix4x4.Identity;
+		public bool IsSrgb => this is CurveProfile cp && cp.Curve == sRGB.Curve && (!(this is MatrixProfile mp) || mp.Matrix == sRGB.Matrix);
 
-		public byte[] Gamma { get; private set; }
-		public float[] InverseGammaFloat { get; private set; }
-		public ushort[] InverseGammaUQ15 { get; private set; }
+		private ColorProfile() => IsValid = false;
 
-		private ColorProfile() { }
+		protected ColorProfile(ProfileColorSpace dataSpace, ProfileColorSpace pcsSpace, ColorProfileType profileType)
+		{
+			IsValid = true;
+			DataColorSpace = dataSpace;
+			PcsColorSpace = pcsSpace;
+			ProfileType = profileType;
+		}
 
-		public ColorProfile(ReadOnlySpan<byte> profileData) => parse(profileData);
+		public class ProfileCurve
+		{
+			public byte[] Gamma { get; }
+			public float[] InverseGammaFloat { get; }
+			public ushort[] InverseGammaUQ15 { get; }
+
+			public ProfileCurve(byte[] gamma, float[] inverseGammaFloat, ushort[] inverseGammaUQ15)
+			{
+				Gamma = gamma;
+				InverseGammaFloat = inverseGammaFloat;
+				InverseGammaUQ15 = inverseGammaUQ15;
+			}
+		}
+	}
+
+	internal class CurveProfile : ColorProfile
+	{
+		public bool IsLinear { get; }
+		public ProfileCurve? Curve { get; }
+
+		public CurveProfile(ProfileCurve? curve, ProfileColorSpace dataSpace, ProfileColorSpace pcsSpace) : base(dataSpace, pcsSpace, ColorProfileType.Curve)
+		{
+			IsLinear = curve is null;
+			Curve = curve;
+		}
+	}
+
+	internal class MatrixProfile : CurveProfile
+	{
+		public Matrix4x4 Matrix { get; }
+		public Matrix4x4 InverseMatrix { get; }
+
+		public MatrixProfile(Matrix4x4 matrix, Matrix4x4 imatrix, ProfileCurve? curve, ProfileColorSpace dataSpace, ProfileColorSpace pcsSpace) : base(curve, dataSpace, pcsSpace)
+		{
+			ProfileType = ColorProfileType.Matrix;
+			Matrix = matrix;
+			InverseMatrix = imatrix;
+		}
 	}
 }

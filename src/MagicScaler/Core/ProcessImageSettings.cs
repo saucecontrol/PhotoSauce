@@ -240,7 +240,7 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>Determines whether automatic colorspace conversion is performed.</summary>
 		public ColorProfileMode ColorProfileMode { get; set; }
 		/// <summary>A list of <a href="https://docs.microsoft.com/en-us/windows/desktop/wic/photo-metadata-policies">Windows Photo Metadata Policy</a> names.  Any values matching the included policies will be copied to the output image if supported.</summary>
-		public IEnumerable<string> MetadataNames { get; set; }
+		public IEnumerable<string> MetadataNames { get; set; } = Enumerable.Empty<string>();
 
 		internal bool Normalized => imageInfo != null;
 
@@ -422,7 +422,7 @@ namespace PhotoSauce.MagicScaler
 			foreach (var cap in subsampleExpression.Value.Match(dic.GetValueOrDefault("subsample") ?? string.Empty).Captures.Cast<Capture>())
 				s.JpegSubsampleMode = Enum.TryParse(string.Concat("Subsample", cap.Value), true, out ChromaSubsampleMode csub) ? csub : s.JpegSubsampleMode;
 
-			string colorName = dic.GetValueOrDefault("bgcolor") ?? dic.GetValueOrDefault("bg");
+			string? colorName = dic.GetValueOrDefault("bgcolor") ?? dic.GetValueOrDefault("bg");
 			if (!string.IsNullOrWhiteSpace(colorName) && ColorParser.TryParse(colorName, out var color))
 				s.MatteColor = color;
 
