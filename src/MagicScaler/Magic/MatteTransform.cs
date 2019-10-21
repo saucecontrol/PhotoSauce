@@ -46,9 +46,9 @@ namespace PhotoSauce.MagicScaler
 			int* m1 = stackalloc int[] { -1, -1, -1, 0, -1, -1, -1, 0 };
 			float* mat = stackalloc float[] { mb, mg, mr, 1f, mb, mg, mr, 1f };
 
-			vmask0 = Unsafe.Read<Vector<int>>(m0);
-			vmask1 = Unsafe.Read<Vector<int>>(m1);
-			vmatte = Unsafe.Read<VectorF>(mat) * new VectorF(maa);
+			vmask0 = Unsafe.ReadUnaligned<Vector<int>>(m0);
+			vmask1 = Unsafe.ReadUnaligned<Vector<int>>(m1);
+			vmatte = Unsafe.ReadUnaligned<VectorF>(mat) * new VectorF(maa);
 		}
 
 		unsafe protected override void CopyPixelsInternal(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
@@ -82,12 +82,12 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip <= ipe)
 				{
-					var vi = Unsafe.Read<VectorF>(ip);
+					var vi = Unsafe.ReadUnaligned<VectorF>(ip);
 					float ia0 = vi[3], ia1 = VectorF.Count == 8 ? vi[7] : ia0;
 
 					if (ia0 == 0 && ia1 == 0)
 					{
-						Unsafe.Write(ip, vmat);
+						Unsafe.WriteUnaligned(ip, vmat);
 					}
 					else if (ia0 < 1f || ia1 < 1f)
 					{
@@ -99,7 +99,7 @@ namespace PhotoSauce.MagicScaler
 
 						var vr = vi + vma;
 						var vo = Vector.ConditionalSelect(vm1, vr, vma + vpa);
-						Unsafe.Write(ip, vo);
+						Unsafe.WriteUnaligned(ip, vo);
 					}
 
 					ip += VectorF.Count;

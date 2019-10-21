@@ -28,6 +28,10 @@ namespace PhotoSauce.MagicScaler
 					ofmt = PixelFormat.Pbgra128BppFloat.FormatGuid;
 				else if (ifmt == Consts.GUID_WICPixelFormat16bppCbCr)
 					ofmt = PixelFormat.CbCr64BppFloat.FormatGuid;
+				else if (ifmt == Consts.GUID_WICPixelFormat8bppCb)
+					ofmt = PixelFormat.Cb32BppFloat.FormatGuid;
+				else if (ifmt == Consts.GUID_WICPixelFormat8bppCr)
+					ofmt = PixelFormat.Cr32BppFloat.FormatGuid;
 			}
 			else if (linear)
 			{
@@ -64,6 +68,10 @@ namespace PhotoSauce.MagicScaler
 				ofmt = Consts.GUID_WICPixelFormat32bppBGRA;
 			else if (ifmt == PixelFormat.CbCr64BppFloat.FormatGuid)
 				ofmt = Consts.GUID_WICPixelFormat16bppCbCr;
+			else if (ifmt == PixelFormat.Cb32BppFloat.FormatGuid)
+				ofmt = Consts.GUID_WICPixelFormat8bppCb;
+			else if (ifmt == PixelFormat.Cr32BppFloat.FormatGuid)
+				ofmt = Consts.GUID_WICPixelFormat8bppCr;
 
 			if (ofmt == ifmt)
 				return;
@@ -97,9 +105,8 @@ namespace PhotoSauce.MagicScaler
 			AddInternalFormatConverter(ctx, allow96bppFloat: true);
 
 			var fmt = ctx.Source.Format;
-			var interpolator = ctx.Settings.Interpolation.WeightingFunction.Support > 1d && fmt.ColorRepresentation == PixelColorRepresentation.Unspecified ? InterpolationSettings.Hermite : ctx.Settings.Interpolation;
-			var interpolatorx = width == ctx.Source.Width ? InterpolationSettings.NearestNeighbor : hybrid ? InterpolationSettings.Average : interpolator;
-			var interpolatory = height == ctx.Source.Height ? InterpolationSettings.NearestNeighbor : hybrid ? InterpolationSettings.Average : interpolator;
+			var interpolatorx = width == ctx.Source.Width ? InterpolationSettings.NearestNeighbor : hybrid ? InterpolationSettings.Average : ctx.Settings.Interpolation;
+			var interpolatory = height == ctx.Source.Height ? InterpolationSettings.NearestNeighbor : hybrid ? InterpolationSettings.Average : ctx.Settings.Interpolation;
 
 			if (fmt.NumericRepresentation == PixelNumericRepresentation.Float)
 				ctx.Source = ctx.AddDispose(ConvolutionTransform<float, float>.CreateResize(ctx.Source, (uint)width, (uint)height, interpolatorx, interpolatory));

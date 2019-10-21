@@ -17,8 +17,8 @@ namespace PhotoSauce.MagicScaler
 		public IImageContainer ImageContainer { get; set; }
 		public WicFrameReader DecoderFrame { get; set; }
 
-		public PixelSource? PlanarLumaSource { get; set; }
-		public PixelSource? PlanarChromaSource { get; set; }
+		public PixelSource? PlanarSourceY { get; set; }
+		public PixelSource? PlanarSourceCbCr { get; set; }
 
 		public ColorProfile? SourceColorProfile { get; set; }
 		public ColorProfile? DestColorProfile { get; set; }

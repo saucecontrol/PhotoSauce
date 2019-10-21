@@ -68,7 +68,7 @@ namespace PhotoSauce.MagicScaler
 			if (Source is IWICPlanarBitmapSourceTransform ptrans && settings.Interpolation.WeightingFunction.Support >= 0.5d)
 			{
 				Source.GetSize(out uint ow, out uint oh);
-				var desc = new WICBitmapPlaneDescription[2];
+				var desc = new WICBitmapPlaneDescription[WicTransforms.PlanarPixelFormats.Length];
 				SupportsPlanarProcessing = ptrans.DoesSupportTransform(ref ow, ref oh, WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault, WicTransforms.PlanarPixelFormats, desc, (uint)desc.Length);
 				ChromaSubsampling =
 					desc[1].Width < desc[0].Width && desc[1].Height < desc[0].Height ? WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling420 :
@@ -114,7 +114,7 @@ namespace PhotoSauce.MagicScaler
 				var propdic = ctx.DecoderFrame.Metadata;
 				foreach (string prop in ctx.Settings.MetadataNames ?? Enumerable.Empty<string>())
 				{
-					if (metareader.TryGetMetadataByName(prop, out var pvar) && pvar.Value != null)
+					if (metareader.TryGetMetadataByName(prop, out var pvar) && !(pvar.Value is null))
 						propdic[prop] = pvar;
 				}
 
@@ -152,19 +152,18 @@ namespace PhotoSauce.MagicScaler
 						continue;
 
 					using var ccb = MemoryPool<byte>.Shared.Rent(ccs);
-					if (MemoryMarshal.TryGetArray(ccb.Memory.Slice(0, ccs), out ArraySegment<byte> cca))
-					{
-						cc.GetProfileBytes((uint)cca.Count, cca.Array);
-						var cpi = ColorProfile.Cache.GetOrAdd(cca);
+					var cca = ccb.GetOwnedArraySegment(ccs);
 
-						// match only color profiles that match our intended use. if we have a standard sRGB profile, don't save it; we don't need to convert
-						if (cpi.IsValid && cpi.IsCompatibleWith(fmt) && !cpi.IsSrgb)
-						{
-							profile = cc;
-							if (cpi.ProfileType == ColorProfileType.Matrix || cpi.ProfileType == ColorProfileType.Curve)
-								ctx.SourceColorProfile = cpi;
-							break;
-						}
+					cc.GetProfileBytes((uint)cca.Count, cca.Array);
+					var cpi = ColorProfile.Cache.GetOrAdd(cca);
+
+					// match only color profiles that match our intended use. if we have a standard sRGB profile, don't save it; we don't need to convert
+					if (cpi.IsValid && cpi.IsCompatibleWith(fmt) && !cpi.IsSrgb)
+					{
+						profile = cc;
+						if (cpi.ProfileType == ColorProfileType.Matrix || cpi.ProfileType == ColorProfileType.Curve)
+							ctx.SourceColorProfile = cpi;
+						break;
 					}
 				}
 				else if (cct == WICColorContextType.WICColorContextExifColorSpace && cc.GetExifColorSpace() == ExifColorSpace.AdobeRGB)
@@ -362,26 +361,27 @@ namespace PhotoSauce.MagicScaler
 			uint ow = ctx.Source.Width, oh = ctx.Source.Height;
 			uint cw = (uint)MathUtil.DivCeiling((int)ow, ratio), ch = (uint)MathUtil.DivCeiling((int)oh, ratio);
 
-			var desc = new WICBitmapPlaneDescription[2];
+			var desc = new WICBitmapPlaneDescription[PlanarPixelFormats.Length];
 			if (!trans.DoesSupportTransform(ref cw, ref ch, WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault, PlanarPixelFormats, desc, (uint)desc.Length))
 				throw new NotSupportedException("Requested planar transform not supported");
 
 			var crop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.DecoderFrame.ExifOrientation, ow, oh).ProportionalScale(ow, oh, cw, ch);
-			ctx.WicContext.PlanarCache = ctx.AddDispose(new WicPlanarCache(trans, desc[0], desc[1], WICBitmapTransformOptions.WICBitmapTransformRotate0, cw, ch, crop));
+			ctx.WicContext.PlanarCache = ctx.AddDispose(new WicPlanarCache(trans, desc, WICBitmapTransformOptions.WICBitmapTransformRotate0, cw, ch, crop));
 
-			ctx.Source = ctx.WicContext.PlanarCache.GetPlane(WicPlane.Luma);
+			ctx.Source = ctx.WicContext.PlanarCache.GetPlane(WicPlane.Y);
 			ctx.Settings.Crop = ctx.Source.Area.ReOrient(ctx.DecoderFrame.ExifOrientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
 		}
 
 		public static void AddPlanarConverter(PipelineContext ctx)
 		{
-			Debug.Assert(ctx.PlanarLumaSource != null && ctx.PlanarChromaSource != null);
+			Debug.Assert(!(ctx.PlanarSourceY is null || ctx.PlanarSourceCbCr is null));
 
+			var planes = new[] { ctx.PlanarSourceY.WicSource, ctx.PlanarSourceCbCr.WicSource };
 			var conv = (IWICPlanarFormatConverter)ctx.WicContext.AddRef(Wic.Factory.CreateFormatConverter());
-			conv.Initialize(new[] { ctx.PlanarLumaSource.WicSource, ctx.PlanarChromaSource.WicSource }, 2, Consts.GUID_WICPixelFormat24bppBGR, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
+			conv.Initialize(planes, (uint)planes.Length, Consts.GUID_WICPixelFormat24bppBGR, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
 
 			ctx.Source = conv.AsPixelSource(nameof(IWICPlanarFormatConverter));
-			ctx.PlanarLumaSource = ctx.PlanarChromaSource = null;
+			ctx.PlanarSourceY = ctx.PlanarSourceCbCr = null;
 		}
 	}
 }

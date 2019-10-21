@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Buffers;
 using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.ComTypes;
 
 using STATSTG = System.Runtime.InteropServices.ComTypes.STATSTG;
 
@@ -16,11 +16,32 @@ namespace PhotoSauce.MagicScaler.Interop
 			internal StreamAsIStream(Stream backingStream) =>
 				stream = backingStream ?? throw new ArgumentNullException(nameof(backingStream));
 
-			void IStream.Read(byte[] pv, int cb, IntPtr pcbRead) => Marshal.WriteInt32(pcbRead, stream.Read(pv, 0, cb));
-
-			void IStream.Write(byte[] pv, int cb, IntPtr pcbWritten)
+			unsafe void IStream.Read(IntPtr pv, int cb, IntPtr pcbRead)
 			{
-				stream.Write(pv, 0, cb);
+#if FAST_SPAN
+				int cbr =stream.Read(new Span<byte>(pv.ToPointer(), cb));
+#else
+				using var buff = MemoryPool<byte>.Shared.Rent(cb);
+				var msa = buff.GetOwnedArraySegment(cb);
+
+				int cbr = stream.Read(msa.Array, msa.Offset, msa.Count);
+				Marshal.Copy(msa.Array, msa.Offset, pv, cbr);
+#endif
+
+				Marshal.WriteInt32(pcbRead, cbr);
+			}
+
+			unsafe void IStream.Write(IntPtr pv, int cb, IntPtr pcbWritten)
+			{
+#if FAST_SPAN
+				stream.Write(new ReadOnlySpan<byte>(pv.ToPointer(), cb));
+#else
+				using var buff = MemoryPool<byte>.Shared.Rent(cb);
+				var msa = buff.GetOwnedArraySegment(cb);
+
+				Marshal.Copy(pv, msa.Array, msa.Offset, cb);
+				stream.Write(msa.Array, msa.Offset, msa.Count);
+#endif
 
 				if (pcbWritten != IntPtr.Zero)
 					Marshal.WriteInt32(pcbWritten, cb);

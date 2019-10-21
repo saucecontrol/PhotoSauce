@@ -4,7 +4,6 @@ using System.Linq;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.ComTypes;
 
 using PhotoSauce.MagicScaler.Interop;
 
@@ -163,13 +162,13 @@ namespace PhotoSauce.MagicScaler
 
 		public void WriteSource(PipelineContext ctx)
 		{
-			if (ctx.PlanarLumaSource != null && ctx.PlanarChromaSource != null)
+			if (!(ctx.PlanarSourceY is null || ctx.PlanarSourceCbCr is null))
 			{
 				var oformat = Consts.GUID_WICPixelFormat24bppBGR;
 				Frame.SetPixelFormat(ref oformat);
 
-				var penc = (IWICPlanarBitmapFrameEncode)Frame;
-				penc.WriteSource(new[] { ctx.PlanarLumaSource.WicSource, ctx.PlanarChromaSource.WicSource }, 2, null);
+				var planes = new[] { ctx.PlanarSourceY.WicSource, ctx.PlanarSourceCbCr.WicSource };
+				((IWICPlanarBitmapFrameEncode)Frame).WriteSource(planes, (uint)planes.Length, WICRect.Null);
 			}
 			else
 			{
@@ -198,7 +197,7 @@ namespace PhotoSauce.MagicScaler
 					Frame.SetPalette(ctx.WicContext.DestPalette);
 				}
 
-				Frame.WriteSource(ctx.Source.WicSource, null);
+				Frame.WriteSource(ctx.Source.WicSource, WICRect.Null);
 			}
 
 			Frame.Commit();

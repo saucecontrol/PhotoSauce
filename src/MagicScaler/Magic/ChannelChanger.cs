@@ -1,25 +1,21 @@
 ﻿using System;
-using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler
 {
 	unsafe internal static class ChannelChanger<T> where T : unmanaged
 	{
-		private static readonly T maxalpha;
+		private static readonly T maxalpha = getOneValue();
 
-		unsafe static ChannelChanger()
+		private static T getOneValue()
 		{
-			var one = default(T);
 			if (typeof(T) == typeof(float))
-				Unsafe.Write(&one, 1.0f);
-			else if (typeof(T) == typeof(ushort))
-				Unsafe.Write(&one, MathUtil.UQ15One);
-			else if (typeof(T) == typeof(byte))
-				Unsafe.Write(&one, byte.MaxValue);
-			else
-				throw new NotSupportedException(nameof(T) + " must be float, ushort, or byte");
+				return (T)(object)1.0f;
+			if (typeof(T) == typeof(ushort))
+				return (T)(object)MathUtil.UQ15One;
+			if (typeof(T) == typeof(byte))
+				return (T)(object)byte.MaxValue;
 
-			maxalpha = one;
+			throw new NotSupportedException(nameof(T) + " must be float, ushort, or byte");
 		}
 
 		public static void Change1to3Chan(byte* ipstart, byte* opstart, int cb)

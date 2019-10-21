@@ -104,13 +104,11 @@ namespace PhotoSauce.MagicScaler
 		private class PixelSourceFromIWICBitmapSource : PixelSource
 		{
 			private readonly IWICBitmapSource upstreamSource;
-			private readonly WICRect sourceRect;
 			private readonly string sourceName;
 
 			public PixelSourceFromIWICBitmapSource(IWICBitmapSource source, string name, bool profile = true) : base(profile ? null : source)
 			{
 				upstreamSource = source;
-				sourceRect = new WICRect();
 				sourceName = profile ? name : $"{name} (nonprofiling)";
 				source.GetSize(out uint width, out uint height);
 				Format = PixelFormat.FromGuid(source.GetPixelFormat());
@@ -119,7 +117,7 @@ namespace PhotoSauce.MagicScaler
 			}
 
 			protected override void CopyPixelsInternal(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) =>
-				upstreamSource.CopyPixels(prc.CopyToWicRect(sourceRect), cbStride, cbBufferSize, pbBuffer);
+				upstreamSource.CopyPixels(prc.ToWicRect(), cbStride, cbBufferSize, pbBuffer);
 
 			public override string ToString() => sourceName;
 		}
@@ -142,7 +140,7 @@ namespace PhotoSauce.MagicScaler
 
 			public void CopyPalette(IWICPalette pIPalette) => throw new NotImplementedException();
 
-			public void CopyPixels(WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) =>
+			public void CopyPixels(in WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) =>
 				source.CopyPixels(PixelArea.FromWicRect(prc), cbStride, cbBufferSize, pbBuffer);
 		}
 

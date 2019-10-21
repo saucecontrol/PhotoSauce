@@ -166,7 +166,7 @@ namespace PhotoSauce.MagicScaler
 
 			while (ip <= ipe)
 			{
-				*op++ = Vector4.Dot(Unsafe.Read<Vector4>(ip), clum);
+				*op++ = Vector4.Dot(Unsafe.ReadUnaligned<Vector4>(ip), clum);
 				ip += 4;
 			}
 		}
@@ -191,8 +191,8 @@ namespace PhotoSauce.MagicScaler
 
 			while (ip <= ipe)
 			{
-				var v = Unsafe.Read<VectorF>(ip);
-				Unsafe.Write(op, Vector.SquareRoot(Vector.Max(v, vmin)));
+				var v = Unsafe.ReadUnaligned<VectorF>(ip);
+				Unsafe.WriteUnaligned(op, Vector.SquareRoot(Vector.Max(v, vmin)));
 
 				ip += VectorF.Count;
 				op += VectorF.Count;

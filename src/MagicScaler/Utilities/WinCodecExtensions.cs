@@ -20,13 +20,11 @@ namespace PhotoSauce.MagicScaler.Interop
 			using var stm = typeof(Wic).GetTypeInfo().Assembly.GetManifestResourceStream(resName)!;
 			using var buff = MemoryPool<byte>.Shared.Rent((int)stm.Length);
 
-			if (!MemoryMarshal.TryGetArray(buff.Memory.Slice(0, (int)stm.Length), out ArraySegment<byte> cca) || cca.Array is null)
-				throw new NotSupportedException("Could not retrieve " + nameof(MemoryPool<byte>) + " array.");
-
-			stm.Read(cca.Array, cca.Offset, cca.Count);
+			var cca = buff.GetOwnedArraySegment((int)stm.Length);
+			stm.Read(cca.Array!, cca.Offset, cca.Count);
 
 			var cc = Factory.CreateColorContext();
-			cc.InitializeFromMemory(cca.Array, (uint)cca.Count);
+			cc.InitializeFromMemory(cca.Array!, (uint)cca.Count);
 			return cc;
 		}
 

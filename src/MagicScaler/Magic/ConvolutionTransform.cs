@@ -28,6 +28,8 @@ namespace PhotoSauce.MagicScaler
 			[Consts.GUID_WICPixelFormat16bppCbCr          ] = new Convolver2ChanByte(),
 			[Consts.GUID_WICPixelFormat8bppGray           ] = new Convolver1ChanByte(),
 			[Consts.GUID_WICPixelFormat8bppY              ] = new Convolver1ChanByte(),
+			[Consts.GUID_WICPixelFormat8bppCb             ] = new Convolver1ChanByte(),
+			[Consts.GUID_WICPixelFormat8bppCr             ] = new Convolver1ChanByte(),
 			[PixelFormat.Pbgra64BppLinearUQ15.FormatGuid  ] = new Convolver4ChanUQ15(),
 			[PixelFormat.Bgr48BppLinearUQ15.FormatGuid    ] = new ConvolverBgrUQ15(),
 			[PixelFormat.Grey16BppLinearUQ15.FormatGuid   ] = new Convolver1ChanUQ15(),
@@ -43,7 +45,9 @@ namespace PhotoSauce.MagicScaler
 			[PixelFormat.Grey32BppLinearFloat.FormatGuid  ] = new Convolver1ChanFloat(),
 			[PixelFormat.Grey32BppFloat.FormatGuid        ] = new Convolver1ChanFloat(),
 			[PixelFormat.Y32BppLinearFloat.FormatGuid     ] = new Convolver1ChanFloat(),
-			[PixelFormat.Y32BppFloat.FormatGuid           ] = new Convolver1ChanFloat()
+			[PixelFormat.Y32BppFloat.FormatGuid           ] = new Convolver1ChanFloat(),
+			[PixelFormat.Cb32BppFloat.FormatGuid          ] = new Convolver1ChanFloat(),
+			[PixelFormat.Cr32BppFloat.FormatGuid          ] = new Convolver1ChanFloat()
 		});
 
 		protected readonly KernelMap<TWeight> XMap, YMap;
@@ -80,16 +84,16 @@ namespace PhotoSauce.MagicScaler
 			if (lumaMode)
 			{
 				if (infmt.ColorRepresentation != PixelColorRepresentation.Grey && infmt.ColorRepresentation != PixelColorRepresentation.Bgr)
-					throw new NotSupportedException("Unsupported pixel format");
+					throw new NotSupportedException("Unsupported pixel format: " + infmt.Name);
 
 				workfmt = infmt.NumericRepresentation == PixelNumericRepresentation.Float ? PixelFormat.Grey32BppFloat :
 				          infmt.NumericRepresentation == PixelNumericRepresentation.Fixed ? PixelFormat.Grey16BppUQ15 :
 				          infmt.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger ? PixelFormat.FromGuid(Consts.GUID_WICPixelFormat8bppGray) :
-				          throw new NotSupportedException("Unsupported pixel format");
+				          throw new NotSupportedException("Unsupported pixel format: " + infmt.Name);
 			}
 
 			if (!ProcessorMap.TryGetValue(workfmt.FormatGuid, out XProcessor))
-				throw new NotSupportedException("Unsupported pixel format");
+				throw new NotSupportedException("Unsupported pixel format: " + workfmt.Name);
 
 			if (workfmt == PixelFormat.Bgr96BppLinearFloat)
 				Format = workfmt = PixelFormat.Bgrx128BppLinearFloat;
@@ -202,7 +206,7 @@ namespace PhotoSauce.MagicScaler
 			lineBuff?.Dispose();
 		}
 
-		public override string? ToString() => XProcessor.ToString();
+		public override string? ToString() => $"{XProcessor.ToString()}: {Format.Name}";
 	}
 
 	internal class UnsharpMaskTransform<TPixel, TWeight> : ConvolutionTransform<TPixel, TWeight> where TPixel : unmanaged where TWeight : unmanaged

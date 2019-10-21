@@ -15,6 +15,7 @@
 
 using System;
 using System.Text;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 
@@ -171,8 +172,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		void AddError(
 			[MarshalAs(UnmanagedType.LPWStr)]
 			string pszPropName, 
-			[In] 
-			ref EXCEPINFO pExcepInfo
+			in EXCEPINFO pExcepInfo
 		);
 	}
 
@@ -501,8 +501,10 @@ namespace PhotoSauce.MagicScaler.Interop
 	}
 
 	[StructLayout(LayoutKind.Sequential)]
-	internal class WICRect
+	internal struct WICRect
 	{
+		unsafe public static ref WICRect Null => ref Unsafe.AsRef<WICRect>(null);
+
 		public int X;
 		public int Y;
 		public int Width;
@@ -732,7 +734,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		);
 
 		void CopyPixels(
-			WICRect prc,
+			in WICRect prc,
 			uint cbStride,
 			uint cbBufferSize,
 			IntPtr pbBuffer
@@ -760,7 +762,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		);
 
 		new void CopyPixels(
-			WICRect prc,
+			in WICRect prc,
 			uint cbStride,
 			uint cbBufferSize,
 			IntPtr pbBuffer
@@ -807,7 +809,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		);
 
 		new void CopyPixels(
-			WICRect prc,
+			in WICRect prc,
 			uint cbStride,
 			uint cbBufferSize,
 			IntPtr pbBuffer
@@ -843,7 +845,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		);
 
 		new void CopyPixels(
-			WICRect prc,
+			in WICRect prc,
 			uint cbStride,
 			uint cbBufferSize,
 			IntPtr pbBuffer
@@ -852,7 +854,7 @@ namespace PhotoSauce.MagicScaler.Interop
 
 		void Initialize(
 			IWICBitmapSource pISource,
-			WICRect prc
+			in WICRect prc
 		);
 	}
 
@@ -877,7 +879,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		);
 
 		new void CopyPixels(
-			WICRect prc,
+			in WICRect prc,
 			uint cbStride,
 			uint cbBufferSize,
 			IntPtr pbBuffer
@@ -929,7 +931,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		);
 
 		new void CopyPixels(
-			WICRect prc,
+			in WICRect prc,
 			uint cbStride,
 			uint cbBufferSize,
 			IntPtr pbBuffer
@@ -937,7 +939,7 @@ namespace PhotoSauce.MagicScaler.Interop
 #endregion IWICBitmapSource
 
 		IWICBitmapLock Lock(
-			WICRect prcLock,
+			in WICRect prcLock,
 			WICBitmapLockFlags flags
 		);
 
@@ -1008,7 +1010,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		);
 
 		new void CopyPixels(
-			WICRect prc,
+			in WICRect prc,
 			uint cbStride,
 			uint cbBufferSize,
 			IntPtr pbBuffer
@@ -1032,20 +1034,80 @@ namespace PhotoSauce.MagicScaler.Interop
 		IWICMetadataQueryWriter GetMetadataQueryWriter();
 	}
 
+	[ComImport, Guid("0000000C-0000-0000-C000-000000000046"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+	internal interface IStream
+	{
+		// ISequentialStream
+		void Read(
+			IntPtr pv,
+			int cb,
+			IntPtr pcbRead
+		);
+
+		void Write(
+			IntPtr pv,
+			int cb,
+			IntPtr pcbWritten
+		);
+
+		// IStream
+		void Seek(
+			long dlibMove,
+			int dwOrigin,
+			IntPtr plibNewPosition
+		);
+
+		void SetSize(
+			long libNewSize
+		);
+
+		void CopyTo(
+			IStream pstm,
+			long cb,
+			IntPtr pcbRead,
+			IntPtr pcbWritten
+		);
+
+		void Commit(
+			int grfCommitFlags
+		);
+
+		void Revert();
+
+		void LockRegion(
+			long libOffset,
+			long cb,
+			int dwLockType
+		);
+
+		void UnlockRegion(
+			long libOffset,
+			long cb,
+			int dwLockType
+		);
+
+		void Stat(
+			out STATSTG pstatstg,
+			int grfStatFlag
+		);
+
+		void Clone(
+			out IStream ppstm
+		);
+	}
+
 	[ComImport, Guid("135FF860-22B7-4ddf-B0F6-218F4F299A43"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	internal interface IWICStream : IStream
 	{
 #region IStream
 		new void Read(
-			[Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] 
-			byte[] pv, 
+			IntPtr pv, 
 			int cb, 
 			IntPtr pcbRead
 		);
 
 		new void Write(
-			[MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] 
-			byte[] pv, 
+			IntPtr pv, 
 			int cb, 
 			IntPtr pcbWritten
 		);
@@ -1176,7 +1238,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPWStr)]
 			string wzName,
 			[In, Out, MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(PropVariant.Marshaler))]
-			PropVariant pvarValue
+			PropVariant? pvarValue
 		);
 
 		new IEnumString GetEnumerator();
@@ -1283,7 +1345,7 @@ namespace PhotoSauce.MagicScaler.Interop
 
 		void WriteSource(
 			IWICBitmapSource pIBitmapSource,
-			WICRect? prc
+			in WICRect prc
 		);
 
 		void Commit();
@@ -1334,7 +1396,7 @@ namespace PhotoSauce.MagicScaler.Interop
 	internal interface IWICBitmapSourceTransform
 	{
 		void CopyPixels(
-			WICRect prcSrc,
+			in WICRect prcSrc,
 			uint uiWidth,
 			uint uiHeight,
 			[MarshalAs(UnmanagedType.LPStruct)]
@@ -1381,7 +1443,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		);
 
 		new void CopyPixels(
-			WICRect prc,
+			in WICRect prc,
 			uint cbStride,
 			uint cbBufferSize,
 			IntPtr pbBuffer
@@ -1851,7 +1913,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			uint uiChannelIndex,
 			uint cbMaskBuffer,
 			[In, Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)]
-			byte[] pbMaskBuffer
+			byte[]? pbMaskBuffer
 		);
 	}
 
@@ -2132,7 +2194,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		);
 
 		new void CopyPixels(
-			WICRect prc,
+			in WICRect prc,
 			uint cbStride,
 			uint cbBufferSize,
 			IntPtr pbBuffer
@@ -2411,7 +2473,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			uint uiChannelIndex,
 			uint cbMaskBuffer,
 			[In, Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)]
-			byte[] pbMaskBuffer
+			byte[]? pbMaskBuffer
 		);
 #endregion IWICPixelFormatInfo
 
@@ -2465,14 +2527,14 @@ namespace PhotoSauce.MagicScaler.Interop
 		);
 
 		new void CopyPixels(
-			WICRect prc,
+			in WICRect prc,
 			uint cbStride,
 			uint cbBufferSize,
 			IntPtr pbBuffer
 		);
 #endregion IWICBitmapSource
 
-		void Initialize( 
+		void Initialize(
 			[MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)]
 			IWICBitmapSource[] ppPlanes,
 			uint cPlanes,
@@ -2508,7 +2570,7 @@ namespace PhotoSauce.MagicScaler.Interop
 			[MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)]
 			IWICBitmapSource[] ppPlanes,
 			uint cPlanes,
-			WICRect? prcSource
+			in WICRect prcSource
 		);
 	}
 
@@ -2529,7 +2591,7 @@ namespace PhotoSauce.MagicScaler.Interop
 		);
 
 		void CopyPixels(
-			WICRect prcSource,
+			in WICRect prcSource,
 			uint uiWidth,
 			uint uiHeight,
 			WICBitmapTransformOptions dstTransform,

@@ -368,7 +368,7 @@ namespace PhotoSauce.MagicScaler
 
 			while (ip <= ipe)
 			{
-				var v = Unsafe.Read<VectorF>(ip) * vscale + vround;
+				var v = Unsafe.ReadUnaligned<VectorF>(ip) * vscale + vround;
 				v = v.Clamp(vmin, vmax);
 
 #if VECTOR_CONVERT
@@ -454,7 +454,7 @@ namespace PhotoSauce.MagicScaler
 
 			while (ip <= ipe)
 			{
-				var v = Unsafe.Read<VectorF>(ip) * vscale + vround;
+				var v = Unsafe.ReadUnaligned<VectorF>(ip) * vscale + vround;
 				v = v.Clamp(vmin, vmax);
 
 #if VECTOR_CONVERT
@@ -513,7 +513,7 @@ namespace PhotoSauce.MagicScaler
 				while (ip <= ipe)
 				{
 #if VECTOR_CONVERT
-					var vb = Unsafe.Read<Vector<byte>>(ip);
+					var vb = Unsafe.ReadUnaligned<Vector<byte>>(ip);
 					Vector.Widen(vb, out var vs0, out var vs1);
 					Vector.Widen(vs0, out var vi0, out var vi1);
 					Vector.Widen(vs1, out var vi2, out var vi3);
@@ -528,10 +528,10 @@ namespace PhotoSauce.MagicScaler
 					vf2 *= vscale;
 					vf3 *= vscale;
 
-					Unsafe.Write(op, vf0);
-					Unsafe.Write(op + VectorF.Count, vf1);
-					Unsafe.Write(op + VectorF.Count * 2, vf2);
-					Unsafe.Write(op + VectorF.Count * 3, vf3);
+					Unsafe.WriteUnaligned(op, vf0);
+					Unsafe.WriteUnaligned(op + VectorF.Count, vf1);
+					Unsafe.WriteUnaligned(op + VectorF.Count * 2, vf2);
+					Unsafe.WriteUnaligned(op + VectorF.Count * 3, vf3);
 #else
 					float o0 = at[(uint)ip[0]];
 					float o1 = at[(uint)ip[1]];
@@ -630,10 +630,10 @@ namespace PhotoSauce.MagicScaler
 			while (ip <= ipe)
 			{
 #if VECTOR_CONVERT
-				var vf0 = Unsafe.Read<VectorF>(ip);
-				var vf1 = Unsafe.Read<VectorF>(ip + VectorF.Count);
-				var vf2 = Unsafe.Read<VectorF>(ip + VectorF.Count * 2);
-				var vf3 = Unsafe.Read<VectorF>(ip + VectorF.Count * 3);
+				var vf0 = Unsafe.ReadUnaligned<VectorF>(ip);
+				var vf1 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count);
+				var vf2 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count * 2);
+				var vf3 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count * 3);
 
 				vf0 = vf0 * vmax + vround;
 				vf1 = vf1 * vmax + vround;
@@ -653,9 +653,9 @@ namespace PhotoSauce.MagicScaler
 				var vs0 = Vector.Narrow(vi0, vi1);
 				var vs1 = Vector.Narrow(vi2, vi3);
 				var vb = Vector.Narrow(vs0, vs1);
-				Unsafe.Write(op, vb);
+				Unsafe.WriteUnaligned(op, vb);
 #else
-				var v = Unsafe.Read<VectorF>(ip) * vmax + vround;
+				var v = Unsafe.ReadUnaligned<VectorF>(ip) * vmax + vround;
 				v = v.Clamp(vmin, vmax);
 
 				op[0] = (byte)v[0];
@@ -727,7 +727,7 @@ namespace PhotoSauce.MagicScaler
 
 			while (ip <= ipe)
 			{
-				var v = Unsafe.Read<VectorF>(ip) * vmax + vround;
+				var v = Unsafe.ReadUnaligned<VectorF>(ip) * vmax + vround;
 				v = v.Clamp(vmin, vmax);
 
 #if VECTOR_CONVERT

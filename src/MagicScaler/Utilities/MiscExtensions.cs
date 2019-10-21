@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Diagnostics.CodeAnalysis;
 
 #if NETFRAMEWORK
@@ -66,13 +68,17 @@ namespace PhotoSauce.MagicScaler
 			return ext;
 		}
 
+		public static ArraySegment<byte> GetOwnedArraySegment(this IMemoryOwner<byte> m, int cb)
+		{
+			if (!MemoryMarshal.TryGetArray(m.Memory.Slice(0, cb), out ArraySegment<byte> msa) || msa.Array is null)
+				throw new NotSupportedException("Could not retrieve " + nameof(MemoryPool<byte>) + " array.");
+
+			return msa;
+		}
+
 		[return: MaybeNull]
 		public static TValue GetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dic, TKey key, TValue defaultValue = default) where TKey : notnull =>
 			dic.TryGetValue(key, out var value) ? value : defaultValue;
-
-		[return: MaybeNull]
-		public static TValue GetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dic, TKey key, Func<TValue> valueFactory) where TKey : notnull =>
-			dic.TryGetValue(key, out var value) ? value : valueFactory();
 
 #if NETFRAMEWORK
 		public static IDictionary<string, string> ToDictionary(this NameValueCollection nv) =>

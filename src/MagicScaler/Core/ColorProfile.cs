@@ -114,8 +114,8 @@ namespace PhotoSauce.MagicScaler
 
 		private static ProfileCurve curveFromPower(float gamma)
 		{
-			var igtf = new float[256];
-			var igtq = new ushort[256];
+			var igtf = new float[LookupTables.InverseGammaLength];
+			var igtq = new ushort[LookupTables.InverseGammaLength];
 
 			for (int i = 0; i < igtf.Length; i++)
 			{
@@ -124,24 +124,29 @@ namespace PhotoSauce.MagicScaler
 				igtq[i] = FixToUQ15One(f);
 			}
 
+			LookupTables.Fixup(igtf, byte.MaxValue);
+			LookupTables.Fixup(igtq, byte.MaxValue);
+
 			gamma = 1f / gamma;
-			var gt = new byte[UQ15One + 1];
+			var gt = new byte[LookupTables.GammaLength];
 
 			for (int i = 0; i < gt.Length; i++)
 				gt[i] = FixToByte(PowF(UnFix15ToFloat(i), gamma));
+
+			LookupTables.Fixup(gt, UQ15One);
 
 			return new ProfileCurve(gt, igtf, igtq);
 		}
 
 		private static ProfileCurve curveFromPoints(Span<ushort> points, bool inverse)
 		{
-			var igtf = new float[256];
-			var igtq = new ushort[256];
+			var igtf = new float[LookupTables.InverseGammaLength];
+			var igtq = new ushort[LookupTables.InverseGammaLength];
 
 			int buffLen = points.Length * sizeof(float);
 			using (var buff = MemoryPool<byte>.Shared.Rent(buffLen))
 			{
-				var curve = MemoryMarshal.Cast<byte, float>(buff.Memory.Slice(0, buffLen).Span);
+				var curve = MemoryMarshal.Cast<byte, float>(buff.Memory.Span.Slice(0, buffLen));
 
 				const float div = 1f / ushort.MaxValue;
 				for (int i = 0; i < curve.Length; i++)
@@ -149,9 +154,9 @@ namespace PhotoSauce.MagicScaler
 
 				float cscal = curve.Length - 1;
 				float cstep = 1f / cscal;
-				float vstep = 1f / (igtf.Length - 1);
+				float vstep = 1f / byte.MaxValue;
 
-				for (int i = 0; i < igtf.Length; i++)
+				for (int i = 0; i <= byte.MaxValue; i++)
 				{
 					float val = i * vstep;
 					float pos = (val * cscal).Floor();
@@ -167,13 +172,16 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
+			LookupTables.Fixup(igtf, byte.MaxValue);
+			LookupTables.Fixup(igtq, byte.MaxValue);
+
 			if (lutInvertsTo(igtq, LookupTables.SrgbGamma))
 				return sRGB.Curve!;
 
 			if (inverse)
 				points.Reverse();
 
-			var gt = new byte[UQ15One + 1];
+			var gt = new byte[LookupTables.GammaLength];
 
 			const float scale = (float)ushort.MaxValue / UQ15One;
 			for (int i = 0; i < gt.Length; i++)
@@ -205,7 +213,9 @@ namespace PhotoSauce.MagicScaler
 			}
 
 			if (inverse)
-				Array.Reverse(gt);
+				Array.Reverse(gt, 0, UQ15One + 1);
+
+			LookupTables.Fixup(gt, UQ15One);
 
 			return new ProfileCurve(gt, igtf, igtq);
 		}
@@ -222,8 +232,8 @@ namespace PhotoSauce.MagicScaler
 				return sRGB.Curve!;
 			}
 
-			var igtf = new float[256];
-			var igtq = new ushort[256];
+			var igtf = new float[LookupTables.InverseGammaLength];
+			var igtq = new ushort[LookupTables.InverseGammaLength];
 
 			for (int i = 0; i < igtf.Length; i++)
 			{
@@ -237,8 +247,11 @@ namespace PhotoSauce.MagicScaler
 				igtq[i] = FixToUQ15One(val);
 			}
 
+			LookupTables.Fixup(igtf, byte.MaxValue);
+			LookupTables.Fixup(igtq, byte.MaxValue);
+
 			g = 1f / g;
-			var gt = new byte[UQ15One + 1];
+			var gt = new byte[LookupTables.GammaLength];
 
 			for (int i = 0; i < gt.Length; i++)
 			{
@@ -251,12 +264,14 @@ namespace PhotoSauce.MagicScaler
 				gt[i] = FixToByte(val);
 			}
 
+			LookupTables.Fixup(gt, UQ15One);
+
 			return new ProfileCurve(gt, igtf, igtq);
 		}
 
 		private static bool lutInvertsTo(ushort[] igtq, byte[] gt)
 		{
-			for (int i = 0; i < igtq.Length; i++)
+			for (int i = 0; i <= byte.MaxValue; i++)
 			{
 				if (gt[igtq[i]] != i)
 					return false;
@@ -359,7 +374,7 @@ namespace PhotoSauce.MagicScaler
 
 					int buffLen = (int)pcnt * sizeof(ushort);
 					using var buff = MemoryPool<byte>.Shared.Rent(buffLen);
-					var points = MemoryMarshal.Cast<byte, ushort>(buff.Memory.Slice(0, buffLen).Span);
+					var points = MemoryMarshal.Cast<byte, ushort>(buff.Memory.Span.Slice(0, buffLen));
 
 					ushort pp = 0;
 					bool inc = true, dec = true;

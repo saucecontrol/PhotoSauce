@@ -71,16 +71,6 @@ namespace PhotoSauce.MagicScaler
 
 		public WICRect ToWicRect() => new WICRect { X = X, Y = Y, Width = Width, Height = Height };
 
-		public WICRect CopyToWicRect(WICRect wr)
-		{
-			wr.X = X;
-			wr.Y = Y;
-			wr.Width = Width;
-			wr.Height = Height;
-
-			return wr;
-		}
-
 		public bool Equals(PixelArea other) => X == other.X && Y == other.Y && Width == other.Width && Height == other.Height;
 		public override bool Equals(object? obj) => obj is PixelArea other && Equals(other);
 

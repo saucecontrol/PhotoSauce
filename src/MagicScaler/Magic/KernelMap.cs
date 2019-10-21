@@ -18,31 +18,28 @@ namespace PhotoSauce.MagicScaler
 		public int Channels { get; }
 		public ReadOnlySpan<byte> Map => map.Memory.Span.Slice(0, mapLen);
 
-		static KernelMap()
-		{
-			if (typeof(T) != typeof(int) && typeof(T) != typeof(float)) throw new NotSupportedException(nameof(T) + " must be int or float");
-			if (Unsafe.SizeOf<T>() != sizeof(int)) throw new NotSupportedException("sizeof(" + nameof(T) + ") and sizeof(int) must be equal");
-		}
+		private static Exception getTypeException() => new NotSupportedException(nameof(T) + " must be int or float");
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		unsafe private static T convertWeight(double d)
 		{
-			var w = default(T);
 			if (typeof(T) == typeof(int))
-				Unsafe.Write(&w, MathUtil.Fix15(d));
-			else if (typeof(T) == typeof(float))
-				Unsafe.Write(&w, (float)d);
+				return (T)(object)MathUtil.Fix15(d);
+			if (typeof(T) == typeof(float))
+				return (T)(object)(float)d;
 
-			return w;
+			throw getTypeException();
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		unsafe private static void addWeight(T* a, void* b)
+		unsafe private static T add(T a, T b)
 		{
 			if (typeof(T) == typeof(int))
-				Unsafe.Write(a, Unsafe.Read<int>(a) + Unsafe.Read<int>(b));
-			else if (typeof(T) == typeof(float))
-				Unsafe.Write(a, Unsafe.Read<float>(a) + Unsafe.Read<float>(b));
+				return (T)(object)((int)(object)a + (int)(object)b);
+			if (typeof(T) == typeof(float))
+				return (T)(object)((float)(object)a + (float)(object)b);
+
+			throw getTypeException();
 		}
 
 		unsafe private static void fillKernelWeights(IInterpolator interpolator, double* kernel, int ksize, double start, double center, double scale)
@@ -102,7 +99,7 @@ namespace PhotoSauce.MagicScaler
 						{
 							var a = default(T);
 							for (int j = 0; j <= o; j++)
-								addWeight(&a, mpw + j * chan + k);
+								a = add(a, Unsafe.Read<T>(mpw + j * chan + k));
 
 							Unsafe.Write(mpw + k, a);
 
@@ -120,7 +117,7 @@ namespace PhotoSauce.MagicScaler
 						{
 							var a = default(T);
 							for (int j = 0; j <= o; j++)
-								addWeight(&a, mpw + last * chan - j * chan + k);
+								a = add(a, Unsafe.Read<T>(mpw + last * chan - j * chan + k));
 
 							Unsafe.Write(mpw + last * chan + k, a);
 

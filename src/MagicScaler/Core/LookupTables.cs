@@ -7,6 +7,10 @@ namespace PhotoSauce.MagicScaler
 {
 	internal static class LookupTables
 	{
+		// These are padded out to allow for overrun when using i32gather or when interpolating
+		public const int GammaLength = UQ15One + 4;
+		public const int InverseGammaLength = byte.MaxValue + 2;
+
 		private static readonly Lazy<Tuple<float[], ushort[]>> alphaTable = new Lazy<Tuple<float[], ushort[]>>(() => {
 			const double ascale = 1d / byte.MaxValue;
 			var atf = new float[256];
@@ -24,7 +28,7 @@ namespace PhotoSauce.MagicScaler
 
 		//http://www.w3.org/Graphics/Color/srgb
 		private static readonly Lazy<byte[]> gammaTable = new Lazy<byte[]>(() => {
-			var gt = new byte[UQ15One + 1];
+			var gt = new byte[GammaLength];
 
 			for (int i = 0; i < gt.Length; i++)
 			{
@@ -41,8 +45,8 @@ namespace PhotoSauce.MagicScaler
 		});
 
 		private static readonly Lazy<Tuple<float[], ushort[]>> inverseGammaTable = new Lazy<Tuple<float[], ushort[]>>(() => {
-			var igtf = new float[256];
-			var igtq = new ushort[256];
+			var igtf = new float[InverseGammaLength];
+			var igtq = new ushort[InverseGammaLength];
 
 			for (int i = 0; i < igtf.Length; i++)
 			{
@@ -50,11 +54,14 @@ namespace PhotoSauce.MagicScaler
 				if (d <= 0.04045)
 					d /= 12.92;
 				else
-					d = Pow(((d + 0.055) / 1.055), 2.4);
+					d = Pow((d + 0.055) / 1.055, 2.4);
 
 				igtf[i] = (float)d;
 				igtq[i] = FixToUQ15One(d);
 			}
+
+			Fixup(igtf, byte.MaxValue);
+			Fixup(igtq, byte.MaxValue);
 
 			return Tuple.Create(igtf, igtq);
 		});
@@ -64,5 +71,11 @@ namespace PhotoSauce.MagicScaler
 		public static byte[] SrgbGamma => gammaTable.Value;
 		public static float[] SrgbInverseGammaFloat => inverseGammaTable.Value.Item1;
 		public static ushort[] SrgbInverseGammaUQ15 => inverseGammaTable.Value.Item2;
+
+		public static void Fixup<T>(T[] t, int maxValid)
+		{
+			for (int i = maxValid + 1; i < t.Length; i++)
+				t[i] = t[maxValid];
+		}
 	}
 }

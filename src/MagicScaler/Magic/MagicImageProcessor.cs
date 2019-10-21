@@ -226,8 +226,9 @@ namespace PhotoSauce.MagicScaler
 				MagicTransforms.AddExternalFormatConverter(ctx);
 				MagicTransforms.AddExifFlipRotator(ctx);
 
-				ctx.PlanarLumaSource = ctx.Source;
-				ctx.Source = ctx.WicContext.PlanarCache!.GetPlane(WicPlane.Chroma);
+				ctx.PlanarSourceY = ctx.Source;
+				ctx.Source = ctx.WicContext.PlanarCache!.GetPlane(WicPlane.CbCr);
+
 				ctx.DecoderFrame.ExifOrientation = orient;
 				ctx.Settings.Crop = ctx.Source.Area.ReOrient(orient, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
 
@@ -243,8 +244,8 @@ namespace PhotoSauce.MagicScaler
 				MagicTransforms.AddExternalFormatConverter(ctx);
 				MagicTransforms.AddExifFlipRotator(ctx);
 
-				ctx.PlanarChromaSource = ctx.Source;
-				ctx.Source = ctx.PlanarLumaSource;
+				ctx.PlanarSourceCbCr = ctx.Source;
+				ctx.Source = ctx.PlanarSourceY;
 
 				if (!savePlanar)
 				{

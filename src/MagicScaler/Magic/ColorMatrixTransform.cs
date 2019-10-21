@@ -151,7 +151,7 @@ namespace PhotoSauce.MagicScaler
 				float* ip = (float*)((byte*)pbBuffer + y * cbStride), ipe = ip + prc.Width * chan;
 				while (ip < ipe)
 				{
-					var v = Unsafe.Read<Vector4>(ip);
+					var v = Unsafe.ReadUnaligned<Vector4>(ip);
 					v.W = fone;
 
 					float f0 = Vector4.Dot(v, vb); 
