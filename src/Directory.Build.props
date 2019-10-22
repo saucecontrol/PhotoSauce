@@ -5,18 +5,20 @@
 		<Authors>Clinton Ingram</Authors>
 		<RepositoryUrl>https://github.com/saucecontrol/PhotoSauce</RepositoryUrl>
 		<PackageProjectUrl>https://photosauce.net</PackageProjectUrl>
-		<PackageIconUrl>$(PackageProjectUrl)/icon64x64.png</PackageIconUrl>
 		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
 		<Copyright>Copyright © 2015-$([System.DateTime]::Today.Year) $(Authors)</Copyright>
 		<Title>High-Quality, High-Performance Image Processing for .NET</Title>
 		<Description>High-Quality, High-Performance Image Processing for .NET</Description>
+		<PackageIcon>package/$(Company).png</PackageIcon>
 		<PackageReleaseNotes>See $(RepositoryUrl)/releases for release-specific notes.</PackageReleaseNotes>
+		<VersionSuffix>preview$([System.DateTime]::UtcNow.ToString("yyMMdd"))</VersionSuffix>
 
 		<RootNamespace>$(Company).$(MSBuildProjectName)</RootNamespace>
 		<AssemblyName>$(Company).$(MSBuildProjectName)</AssemblyName>
 		<AssemblyTitle>$(MSBuildProjectName)</AssemblyTitle>
 		<Product>$(MSBuildProjectName)</Product>
 
+		<Configurations>Debug;Release;Dist</Configurations>
 		<LangVersion>8</LangVersion>
 		<Features>strict</Features>
 		<Nullable>annotations</Nullable>
@@ -34,17 +36,23 @@
 		<AssemblyInfoFile>$(IntDir)_AssemblyInfo.cs</AssemblyInfoFile>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)'=='Release'">
+	<PropertyGroup Condition="'$(Configuration)'!='Debug'">
 		<DebugType>portable</DebugType>
 		<DebugSymbols>true</DebugSymbols>
-		<IncludeSymbols>true</IncludeSymbols>
-		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<Optimize>true</Optimize>
 		<DocumentationFile>$(IntDir)$(AssemblyName).xml</DocumentationFile>
 	</PropertyGroup>
 
-	<ItemGroup Condition="'$(Configuration)'=='Release'">
+	<PropertyGroup Condition="'$(Configuration)'=='Dist'">
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<IncludeSymbols>true</IncludeSymbols>
+	</PropertyGroup>
+
+	<ItemGroup Condition="'$(Configuration)'=='Dist'">
+		<None Include="$(MSBuildThisFileDirectory)$(Company).png" Pack="true" PackagePath="package" />
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0-beta2-19367-01" PrivateAssets="all" />
+		<PackageReference Include="SauceControl.InheritDoc" Version="0.3.0" PrivateAssets="all" />
 	</ItemGroup>
 
 </Project>

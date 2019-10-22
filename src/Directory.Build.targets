@@ -2,15 +2,15 @@
 
 	<Target Name="AddInternalsVisibleToAttributes" BeforeTargets="GetAssemblyAttributes">
 		<PropertyGroup>
-			<PSPublicKey>00240000048000009400000006020000002400005253413100040000010001002551a36626955fc14bf9c290f0af78c2efc12ae0b487b78006cfdbe45c50668ecb5e84a2c4634001823825a3657d5ddec503d2047e8430c904cdac14303514e0fdba77c925c0e5d7aab5ad13e22d2b81c70a3a6b92358b414d9ff45c13e3f1acef16e3ad1f7e582fc590a0796706d446ecf346649db8337b290a5d601e5324c2</PSPublicKey>
+			<SnkPublicKey>00240000048000009400000006020000002400005253413100040000010001002551a36626955fc14bf9c290f0af78c2efc12ae0b487b78006cfdbe45c50668ecb5e84a2c4634001823825a3657d5ddec503d2047e8430c904cdac14303514e0fdba77c925c0e5d7aab5ad13e22d2b81c70a3a6b92358b414d9ff45c13e3f1acef16e3ad1f7e582fc590a0796706d446ecf346649db8337b290a5d601e5324c2</SnkPublicKey>
 		</PropertyGroup>
 		
 		<ItemGroup>
 			<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-				<_Parameter1>$(AssemblyName).Test,PublicKey=$(PSPublicKey)</_Parameter1>
+				<_Parameter1>$(AssemblyName).Test,PublicKey=$(SnkPublicKey)</_Parameter1>
 			</AssemblyAttribute>
 			<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute" Condition="'$(MSBuildProjectName)'!='WebRSize'">
-				<_Parameter1>$(Company).WebRSize,PublicKey=$(PSPublicKey)</_Parameter1>
+				<_Parameter1>$(Company).WebRSize,PublicKey=$(SnkPublicKey)</_Parameter1>
 			</AssemblyAttribute>
 		</ItemGroup>
 	</Target>
