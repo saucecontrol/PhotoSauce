@@ -1,3 +1,5 @@
+[![NuGet](https://buildstats.info/nuget/PhotoSauce.MagicScaler)](https://www.nuget.org/packages/PhotoSauce.MagicScaler/) [![Build Status](https://dev.azure.com/saucecontrol/PhotoSauce/_apis/build/status/saucecontrol.PhotoSauce?branchName=master)](https://dev.azure.com/saucecontrol/PhotoSauce/_build/latest?definitionId=1&branchName=master)
+
 MagicScaler
 ===========
 
@@ -15,15 +17,18 @@ Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
 
 
 ```
+
+```
 |                              Method |      Mean |     Error |    StdDev | Scaled |     Gen 0 |    Gen 1 |  Allocated |
 |------------------------------------ |----------:|----------:|----------:|-------:|----------:|---------:|-----------:|
+|      MagicScaler Load, Resize, Save |  91.09 ms | 0.5992 ms | 0.5312 ms |   0.22 |   62.5000 |        - |  342.16 KB |
 |   System.Drawing Load, Resize, Save | 407.89 ms | 1.2496 ms | 1.1688 ms |   1.00 |         - |        - |   79.21 KB |
 |       ImageSharp Load, Resize, Save | 228.25 ms | 0.5695 ms | 0.5328 ms |   0.56 |  250.0000 |        - | 1203.47 KB |
 |      ImageMagick Load, Resize, Save | 436.11 ms | 1.6663 ms | 1.5586 ms |   1.07 |         - |        - |   54.17 KB |
 |        ImageFree Load, Resize, Save | 336.68 ms | 1.1203 ms | 1.0479 ms |   0.83 | 6000.0000 | 625.0000 |   90.62 KB |
-|      MagicScaler Load, Resize, Save |  **91.09 ms** | 0.5992 ms | 0.5312 ms |   0.22 |   62.5000 |        - |  342.16 KB |
 | SkiaSharp Canvas Load, Resize, Save | 164.30 ms | 0.8212 ms | 0.6857 ms |   0.40 |  937.5000 |        - | 3995.12 KB |
 | SkiaSharp Bitmap Load, Resize, Save | 195.72 ms | 1.4354 ms | 1.3427 ms |   0.48 |  937.5000 |        - | 3972.68 KB |
+```
 
 Note that the image output is not the same between the tested libraries.  Not only is MagicScaler significantly faster, it also produces dramatically higher quality images.
 
