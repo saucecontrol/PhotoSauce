@@ -3,7 +3,7 @@ using System.Text;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
-using PhotoSauce.MagicScaler.Interop;
+using PhotoSauce.Interop.Wic;
 
 namespace PhotoSauce.MagicScaler
 {

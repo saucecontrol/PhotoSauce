@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 
 using STATSTG = System.Runtime.InteropServices.ComTypes.STATSTG;
 
-namespace PhotoSauce.MagicScaler.Interop
+namespace PhotoSauce.Interop.Wic
 {
 	internal static class StreamAsIStreamExtension
 	{
@@ -74,5 +74,13 @@ namespace PhotoSauce.MagicScaler.Interop
 		}
 
 		public static IStream AsIStream(this Stream s) => new StreamAsIStream(s);
+
+		public static ArraySegment<byte> GetOwnedArraySegment(this IMemoryOwner<byte> m, int cb)
+		{
+			if (!MemoryMarshal.TryGetArray(m.Memory.Slice(0, cb), out ArraySegment<byte> msa) || msa.Array is null)
+				throw new NotSupportedException("Could not retrieve " + nameof(MemoryPool<byte>) + " array.");
+
+			return msa;
+		}
 	}
 }

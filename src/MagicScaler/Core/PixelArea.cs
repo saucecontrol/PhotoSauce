@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Drawing;
 
-using PhotoSauce.MagicScaler.Interop;
+using PhotoSauce.Interop.Wic;
 
 namespace PhotoSauce.MagicScaler
 {

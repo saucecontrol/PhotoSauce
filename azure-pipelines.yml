@@ -2,24 +2,29 @@ trigger:
 - master
 
 pool:
-  vmImage: 'windows-latest'
+  vmImage: windows-latest
 
+name: $(Year:yy)$(DayOfYear)$(Rev:r)
 steps:
+- checkout: self
+  submodules: true
+
 - task: UseDotNet@2
+  displayName: Ensure 3.0.x SDK
   inputs:
-    version: '3.0.x'
+    version: 3.0.x
 
 - task: DotNetCoreCLI@2
   displayName: Build
   inputs:
-    command: 'build'
+    command: build
     projects: 'src/**/*.csproj'
-    arguments: '-c Dist'
+    arguments: '-c Dist --version-suffix preview$(Build.BuildNumber)'
 
-- task: NuGetCommand@2
+- task: DotNetCoreCLI@2
+  displayName: Push
   inputs:
-    command: 'push'
-    packagesToPush: 'out/bin/**/*.nupkg;!out/bin/**/*.snupkg'
-    nuGetFeedType: 'internal'
-    publishVstsFeed: 'previews'
-    allowPackageConflicts: true
+    command: push
+    packagesToPush: 'out/bin/**/*.nupkg'
+    nuGetFeedType: internal
+    publishVstsFeed: 9b7fee74-4eb8-4d6c-8fc4-708a85ce29e9/8b515d68-d608-431f-a29a-9dbee561cd62

@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Diagnostics.CodeAnalysis;
 
-namespace PhotoSauce.MagicScaler.Interop
+namespace PhotoSauce.Interop.Wic
 {
 	internal static class Wic
 	{

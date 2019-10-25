@@ -10,7 +10,7 @@ using System.Configuration;
 using System.Collections.Specialized;
 #endif
 
-using PhotoSauce.MagicScaler.Interop;
+using PhotoSauce.Interop.Wic;
 
 namespace PhotoSauce.MagicScaler
 {
@@ -66,14 +66,6 @@ namespace PhotoSauce.MagicScaler
 			}
 
 			return ext;
-		}
-
-		public static ArraySegment<byte> GetOwnedArraySegment(this IMemoryOwner<byte> m, int cb)
-		{
-			if (!MemoryMarshal.TryGetArray(m.Memory.Slice(0, cb), out ArraySegment<byte> msa) || msa.Array is null)
-				throw new NotSupportedException("Could not retrieve " + nameof(MemoryPool<byte>) + " array.");
-
-			return msa;
 		}
 
 		[return: MaybeNull]

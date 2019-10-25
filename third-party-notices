@@ -1,0 +1,22 @@
+PhotoSauce uses third-party libraries or other resources that may be
+distributed under licenses different than the PhotoSauce software.
+
+The attached notices are provided for information only.
+
+License notice for .NET Core
+----------------------------
+
+Copyright (c) .NET Foundation and Contributors. All rights reserved.
+Licensed under the MIT License
+
+Available at
+https://github.com/dotnet/corefx/blob/master/LICENSE.TXT
+
+License notice for WIC Tools
+----------------------------
+
+Copyright (c) Microsoft Corporation. All rights reserved.
+Licensed under the MSDN Code Gallery Licenses
+
+Available at
+https://web.archive.org/web/20101223145710/http://code.msdn.microsoft.com/wictools/Project/License.aspx

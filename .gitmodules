@@ -1,0 +1,3 @@
+[submodule "modules/WicInterop"]
+	path = modules/WicInterop
+	url = https://github.com/saucecontrol/WicInterop.git

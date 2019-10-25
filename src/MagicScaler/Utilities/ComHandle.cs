@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace PhotoSauce.MagicScaler.Interop
+namespace PhotoSauce.Interop.Wic
 {
 	internal readonly struct ComHandle<T> : IDisposable where T : class
 	{
