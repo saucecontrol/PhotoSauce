@@ -21,7 +21,7 @@ namespace PhotoSauce.MagicScaler
 
 			public static ColorProfile GetOrAdd(ArraySegment<byte> bytes)
 			{
-#if FAST_SPAN
+#if BUILTIN_SPAN
 				Span<byte> hash = stackalloc byte[16];
 				Blake2b.ComputeAndWriteHash(16, bytes, hash);
 #else

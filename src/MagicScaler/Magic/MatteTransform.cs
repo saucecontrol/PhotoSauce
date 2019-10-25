@@ -51,18 +51,18 @@ namespace PhotoSauce.MagicScaler
 			vmatte = Unsafe.ReadUnaligned<VectorF>(mat) * new VectorF(maa);
 		}
 
-		unsafe protected override void CopyPixelsInternal(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			Timer.Stop();
 			Source.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
 			Timer.Start();
 
 			if (Format == PixelFormat.Pbgra128BppLinearFloat || Format == PixelFormat.Bgrx128BppLinearFloat)
-				applyMatteLinearFloat(prc, (float*)pbBuffer, (int)(cbStride / sizeof(float)));
+				applyMatteLinearFloat(prc, (float*)pbBuffer, cbStride / sizeof(float));
 			else if (Format == PixelFormat.Pbgra64BppLinearUQ15)
-				applyMatteLinear(prc, (ushort*)pbBuffer, (int)(cbStride / sizeof(ushort)));
+				applyMatteLinear(prc, (ushort*)pbBuffer, cbStride / sizeof(ushort));
 			else if (Format.FormatGuid == Consts.GUID_WICPixelFormat32bppBGRA)
-				applyMatteCompanded(prc, (byte*)pbBuffer, (int)cbStride);
+				applyMatteCompanded(prc, (byte*)pbBuffer, cbStride);
 			else
 				throw new NotSupportedException("Pixel format not supported.");
 		}

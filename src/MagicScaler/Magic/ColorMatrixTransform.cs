@@ -63,7 +63,7 @@ namespace PhotoSauce.MagicScaler
 			};
 		}
 
-		unsafe protected override void CopyPixelsInternal(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			Timer.Stop();
 			Source.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
@@ -77,7 +77,7 @@ namespace PhotoSauce.MagicScaler
 				copyPixelsByte(prc, cbStride, pbBuffer);
 		}
 
-		unsafe private void copyPixelsByte(in PixelArea prc, uint cbStride, IntPtr pbBuffer)
+		unsafe private void copyPixelsByte(in PixelArea prc, int cbStride, IntPtr pbBuffer)
 		{
 			int chan = Format.ChannelCount;
 			bool alpha = chan == 4 && matrixFixed[15] != UQ15One;
@@ -108,7 +108,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private void copyPixelsFixed(in PixelArea prc, uint cbStride, IntPtr pbBuffer)
+		unsafe private void copyPixelsFixed(in PixelArea prc, int cbStride, IntPtr pbBuffer)
 		{
 			int chan = Format.ChannelCount;
 			bool alpha = chan == 4 && matrixFixed[15] != UQ15One;
@@ -139,7 +139,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private void copyPixelsFloat(in PixelArea prc, uint cbStride, IntPtr pbBuffer)
+		unsafe private void copyPixelsFloat(in PixelArea prc, int cbStride, IntPtr pbBuffer)
 		{
 			Vector4 vb = vec0, vg = vec1, vr = vec2, va = vec3;
 			float falpha = va.W, fone = Vector4.One.X;

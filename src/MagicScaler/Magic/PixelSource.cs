@@ -13,15 +13,15 @@ namespace PhotoSauce.MagicScaler
 		private readonly Lazy<PixelSourceStats> stats;
 
 		public PixelFormat Format { get; protected set; }
-		public uint Width { get; protected set; }
-		public uint Height { get; protected set; }
+		public int Width { get; protected set; }
+		public int Height { get; protected set; }
 		public IWICBitmapSource WicSource { get; protected set; }
 
 		protected Stopwatch Timer { get; } = new Stopwatch();
 		protected PixelSource Source { get; set; }
-		protected uint BufferStride { get; set; }
+		protected int BufferStride { get; set; }
 
-		public PixelArea Area => new PixelArea(0, 0, (int)Width, (int)Height);
+		public PixelArea Area => new PixelArea(0, 0, Width, Height);
 
 		public PixelSourceStats Stats => stats.Value;
 
@@ -40,22 +40,22 @@ namespace PhotoSauce.MagicScaler
 			Format = source.Format;
 			Width = source.Width;
 			Height = source.Height;
-			BufferStride = (uint)MathUtil.PowerOfTwoCeiling(MathUtil.DivCeiling((int)Width * Format.BitsPerPixel, 8), IntPtr.Size);
+			BufferStride = MathUtil.PowerOfTwoCeiling(MathUtil.DivCeiling(Width * Format.BitsPerPixel, 8), IntPtr.Size);
 		}
 
-		protected abstract void CopyPixelsInternal(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer);
+		protected abstract void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer);
 
-		public void CopyPixels(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		public void CopyPixels(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
-			uint cbLine = (uint)MathUtil.DivCeiling(prc.Width * Format.BitsPerPixel, 8);
+			int cbLine = MathUtil.DivCeiling(prc.Width * Format.BitsPerPixel, 8);
 
-			if (prc.X < 0 || prc.Y < 0 || prc.Width < 0 || prc.Height < 0 || prc.X + prc.Width > (int)Width || prc.Y + prc.Height > (int)Height)
+			if (prc.X < 0 || prc.Y < 0 || prc.Width < 0 || prc.Height < 0 || prc.X + prc.Width > Width || prc.Y + prc.Height > Height)
 				throw new ArgumentOutOfRangeException(nameof(prc), "Requested area does not fall within the image bounds");
 
-			if (cbLine > cbStride)
+			if ((uint)cbLine > (uint)cbStride)
 				throw new ArgumentOutOfRangeException(nameof(cbStride), "Stride is too small for the requested area");
 
-			if (((uint)prc.Height - 1u) * cbStride + cbLine > cbBufferSize)
+			if ((uint)((prc.Height - 1) * cbStride + cbLine) > (uint)cbBufferSize)
 				throw new ArgumentOutOfRangeException(nameof(cbBufferSize), "Buffer is too small for the requested area");
 
 			if (pbBuffer == IntPtr.Zero)
@@ -96,7 +96,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		public static readonly NullPixelSource Instance = new NullPixelSource();
 
-		protected override void CopyPixelsInternal(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) { }
+		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer) { }
 	}
 
 	internal static class PixelSourceExtensions
@@ -112,12 +112,12 @@ namespace PhotoSauce.MagicScaler
 				sourceName = profile ? name : $"{name} (nonprofiling)";
 				source.GetSize(out uint width, out uint height);
 				Format = PixelFormat.FromGuid(source.GetPixelFormat());
-				Width = width;
-				Height = height;
+				Width = (int)width;
+				Height = (int)height;
 			}
 
-			protected override void CopyPixelsInternal(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) =>
-				upstreamSource.CopyPixels(prc.ToWicRect(), cbStride, cbBufferSize, pbBuffer);
+			protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer) =>
+				upstreamSource.CopyPixels(prc.ToWicRect(), (uint)cbStride, (uint)cbBufferSize, pbBuffer);
 
 			public override string ToString() => sourceName;
 		}
@@ -130,8 +130,8 @@ namespace PhotoSauce.MagicScaler
 
 			public void GetSize(out uint puiWidth, out uint puiHeight)
 			{
-				puiWidth = source.Width;
-				puiHeight = source.Height;
+				puiWidth = (uint)source.Width;
+				puiHeight = (uint)source.Height;
 			}
 
 			public Guid GetPixelFormat() => source.Format.FormatGuid;
@@ -141,7 +141,7 @@ namespace PhotoSauce.MagicScaler
 			public void CopyPalette(IWICPalette pIPalette) => throw new NotImplementedException();
 
 			public void CopyPixels(in WICRect prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) =>
-				source.CopyPixels(PixelArea.FromWicRect(prc), cbStride, cbBufferSize, pbBuffer);
+				source.CopyPixels(PixelArea.FromWicRect(prc), (int)cbStride, (int)cbBufferSize, pbBuffer);
 		}
 
 		private class PixelSourceFromIPixelSource : PixelSource
@@ -152,12 +152,12 @@ namespace PhotoSauce.MagicScaler
 			{
 				upstreamSource = source;
 				Format = PixelFormat.FromGuid(source.Format);
-				Width = (uint)source.Width;
-				Height = (uint)source.Height;
+				Width = source.Width;
+				Height = source.Height;
 			}
 
-			unsafe protected override void CopyPixelsInternal(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) =>
-				upstreamSource.CopyPixels(prc.ToGdiRect(), (int)cbStride, new Span<byte>(pbBuffer.ToPointer(), (int)cbBufferSize));
+			unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer) =>
+				upstreamSource.CopyPixels(prc.ToGdiRect(), cbStride, new Span<byte>(pbBuffer.ToPointer(), (int)cbBufferSize));
 
 			public override string? ToString() => upstreamSource.ToString();
 		}
@@ -169,13 +169,13 @@ namespace PhotoSauce.MagicScaler
 			public PixelSourceAsIPixelSource(PixelSource src) => source = src;
 
 			public Guid Format => source.Format.FormatGuid;
-			public int Width => (int)source.Width;
-			public int Height => (int)source.Height;
+			public int Width => source.Width;
+			public int Height => source.Height;
 
 			unsafe public void CopyPixels(Rectangle sourceArea, int cbStride, Span<byte> buffer)
 			{
 				fixed (byte* pbBuffer = buffer)
-					source.CopyPixels(PixelArea.FromGdiRect(sourceArea), (uint)cbStride, (uint)buffer.Length, (IntPtr)pbBuffer);
+					source.CopyPixels(PixelArea.FromGdiRect(sourceArea), cbStride, buffer.Length, (IntPtr)pbBuffer);
 			}
 		}
 

@@ -87,18 +87,17 @@ namespace PhotoSauce.MagicScaler
 			var srect = ctx.Settings.InnerRect;
 
 			int width = swap ? srect.Height : srect.Width, height = swap ? srect.Width : srect.Height;
-			int ratio = (int)ctx.Settings.HybridScaleRatio;
-
-			if ((ctx.Source.Width == width && ctx.Source.Height == height) || (hybrid && ratio == 1))
+			if (ctx.Source.Width == width && ctx.Source.Height == height)
 				return;
 
 			if (hybrid)
 			{
-				if (ctx.Source.Format.FormatGuid != Consts.GUID_WICPixelFormat32bppCMYK)
+				int ratio = (int)ctx.Settings.HybridScaleRatio;
+				if (ratio == 1 || ctx.Source.Format.FormatGuid != Consts.GUID_WICPixelFormat32bppCMYK)
 					return;
 
-				width = MathUtil.DivCeiling((int)ctx.Source.Width, ratio);
-				height = MathUtil.DivCeiling((int)ctx.Source.Height, ratio);
+				width = MathUtil.DivCeiling(ctx.Source.Width, ratio);
+				height = MathUtil.DivCeiling(ctx.Source.Height, ratio);
 				ctx.Settings.HybridMode = HybridScaleMode.Off;
 			}
 
@@ -109,11 +108,11 @@ namespace PhotoSauce.MagicScaler
 			var interpolatory = height == ctx.Source.Height ? InterpolationSettings.NearestNeighbor : hybrid ? InterpolationSettings.Average : ctx.Settings.Interpolation;
 
 			if (fmt.NumericRepresentation == PixelNumericRepresentation.Float)
-				ctx.Source = ctx.AddDispose(ConvolutionTransform<float, float>.CreateResize(ctx.Source, (uint)width, (uint)height, interpolatorx, interpolatory));
+				ctx.Source = ctx.AddDispose(ConvolutionTransform<float, float>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory));
 			else if (fmt.NumericRepresentation == PixelNumericRepresentation.Fixed)
-				ctx.Source = ctx.AddDispose(ConvolutionTransform<ushort, int>.CreateResize(ctx.Source, (uint)width, (uint)height, interpolatorx, interpolatory));
+				ctx.Source = ctx.AddDispose(ConvolutionTransform<ushort, int>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory));
 			else
-				ctx.Source = ctx.AddDispose(ConvolutionTransform<byte, int>.CreateResize(ctx.Source, (uint)width, (uint)height, interpolatorx, interpolatory));
+				ctx.Source = ctx.AddDispose(ConvolutionTransform<byte, int>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory));
 
 			ctx.Settings.Crop = ctx.Source.Area.ReOrient(ctx.DecoderFrame.ExifOrientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
 		}

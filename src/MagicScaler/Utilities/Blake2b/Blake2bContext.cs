@@ -140,7 +140,7 @@ namespace PhotoSauce.MagicScaler
 
 		public void Update<T>(ReadOnlySpan<T> input) where T : struct
 		{
-#if FAST_SPAN
+#if BUILTIN_SPAN
 			if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
 				ThrowHelper.NotBlittable();
 #endif
@@ -150,14 +150,14 @@ namespace PhotoSauce.MagicScaler
 
 		public void Update<T>(T input) where T : struct
 		{
-#if FAST_SPAN
+#if BUILTIN_SPAN
 			if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
 				ThrowHelper.NotBlittable();
 #endif
 
 			if (Unsafe.SizeOf<T>() > BlockBytes - c)
 			{
-#if FAST_SPAN
+#if BUILTIN_SPAN
 				Update(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, byte>(ref input), Unsafe.SizeOf<T>()));
 #else
 				Span<byte> buff = stackalloc byte[Unsafe.SizeOf<T>()];

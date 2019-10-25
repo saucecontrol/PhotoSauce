@@ -13,11 +13,11 @@ namespace PhotoSauce.MagicScaler
 
 			srcArea = crop;
 
-			Width = (uint)srcArea.Width;
-			Height = (uint)srcArea.Height;
+			Width = srcArea.Width;
+			Height = srcArea.Height;
 		}
 
-		protected override void CopyPixelsInternal(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			Timer.Stop();
 			Source.CopyPixels(new PixelArea(srcArea.X + prc.X, srcArea.Y + prc.Y, prc.Width, prc.Height), cbStride, cbBufferSize, pbBuffer);

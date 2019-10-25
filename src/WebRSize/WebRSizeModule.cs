@@ -63,7 +63,7 @@ namespace PhotoSauce.WebRSize
 				s.SaveFormat = FileFormat.Png;
 			}
 
-			ifi = ifi ?? await CacheHelper.GetImageInfoAsync(path);
+			ifi ??= await CacheHelper.GetImageInfoAsync(path);
 			s.NormalizeFrom(ifi);
 
 			if (!folderConfig.AllowEnlarge)

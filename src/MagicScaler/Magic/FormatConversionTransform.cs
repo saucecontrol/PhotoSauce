@@ -22,10 +22,10 @@ namespace PhotoSauce.MagicScaler
 			Format = PixelFormat.FromGuid(destFormat);
 			SourceProfile = sourceProfile as CurveProfile ?? ColorProfile.sRGB;
 			DestProfile = destProfile as CurveProfile ?? ColorProfile.sRGB;
-			LineBuff = MemoryPool<byte>.Shared.Rent((int)BufferStride);
+			LineBuff = MemoryPool<byte>.Shared.Rent(BufferStride);
 		}
 
-		unsafe protected override void CopyPixelsInternal(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			fixed (byte* bstart = LineBuff.Memory.Span)
 			{

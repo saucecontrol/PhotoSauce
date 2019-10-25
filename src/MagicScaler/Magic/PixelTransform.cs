@@ -28,16 +28,16 @@ namespace PhotoSauce.MagicScaler
 		public Guid Format => Source.Format.FormatGuid;
 
 		/// <inheritdoc />
-		public int Width => (int)Source.Width;
+		public int Width => Source.Width;
 
 		/// <inheritdoc />
-		public int Height => (int)Source.Height;
+		public int Height => Source.Height;
 
 		/// <inheritdoc />
 		unsafe public void CopyPixels(Rectangle sourceArea, int cbStride, Span<byte> buffer)
 		{
 			fixed (byte* pbBuffer = buffer)
-				Source.CopyPixels(PixelArea.FromGdiRect(sourceArea), (uint)cbStride, (uint)buffer.Length, (IntPtr)pbBuffer);
+				Source.CopyPixels(PixelArea.FromGdiRect(sourceArea), cbStride, buffer.Length, (IntPtr)pbBuffer);
 		}
 
 		void IPixelTransform.Init(IPixelSource source) => throw new NotImplementedException();

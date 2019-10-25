@@ -126,7 +126,7 @@ namespace PhotoSauce.MagicScaler
 				return;
 
 			// ICC profiles
-			//http://ninedegreesbelow.com/photography/embedded-color-space-information.html
+			// http://ninedegreesbelow.com/photography/embedded-color-space-information.html
 			uint ccc = ctx.DecoderFrame.Frame.GetColorContextCount();
 			var fmt = ctx.Source.Format;
 			var profiles = new IWICColorContext[ccc];
@@ -309,8 +309,8 @@ namespace PhotoSauce.MagicScaler
 
 			if (hybrid)
 			{
-				width = MathUtil.DivCeiling((int)ctx.Source.Width, ratio);
-				height = MathUtil.DivCeiling((int)ctx.Source.Height, ratio);
+				width = MathUtil.DivCeiling(ctx.Source.Width, ratio);
+				height = MathUtil.DivCeiling(ctx.Source.Height, ratio);
 				ctx.Settings.HybridMode = HybridScaleMode.Off;
 			}
 
@@ -337,7 +337,7 @@ namespace PhotoSauce.MagicScaler
 			if (ratio == 1 || !ctx.DecoderFrame.SupportsNativeScale || !(ctx.Source.WicSource is IWICBitmapSourceTransform trans))
 				return;
 
-			uint ow = ctx.Source.Width, oh = ctx.Source.Height;
+			uint ow = (uint)ctx.Source.Width, oh = (uint)ctx.Source.Height;
 			uint cw = (uint)MathUtil.DivCeiling((int)ow, ratio), ch = (uint)MathUtil.DivCeiling((int)oh, ratio);
 			trans.GetClosestSize(ref cw, ref ch);
 
@@ -349,7 +349,7 @@ namespace PhotoSauce.MagicScaler
 			scaler.Initialize(ctx.Source.WicSource, cw, ch, WICBitmapInterpolationMode.WICBitmapInterpolationModeFant);
 
 			ctx.Source = scaler.AsPixelSource(nameof(IWICBitmapSourceTransform));
-			ctx.Settings.Crop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(orient, ow, oh).ProportionalScale(ow, oh, cw, ch).ReOrient(orient, cw, ch).ToGdiRect();
+			ctx.Settings.Crop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(orient, (int)ow, (int)oh).ProportionalScale((int)ow, (int)oh, (int)cw, (int)ch).ReOrient(orient, (int)cw, (int)ch).ToGdiRect();
 		}
 
 		public static void AddPlanarCache(PipelineContext ctx)
@@ -358,14 +358,14 @@ namespace PhotoSauce.MagicScaler
 				throw new NotSupportedException("Transform chain doesn't support planar mode.  Only JPEG Decoder, Rotator, Scaler, and PixelFormatConverter are allowed");
 
 			int ratio = ((int)ctx.Settings.HybridScaleRatio).Clamp(1, 8);
-			uint ow = ctx.Source.Width, oh = ctx.Source.Height;
+			uint ow = (uint)ctx.Source.Width, oh = (uint)ctx.Source.Height;
 			uint cw = (uint)MathUtil.DivCeiling((int)ow, ratio), ch = (uint)MathUtil.DivCeiling((int)oh, ratio);
 
 			var desc = new WICBitmapPlaneDescription[PlanarPixelFormats.Length];
 			if (!trans.DoesSupportTransform(ref cw, ref ch, WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault, PlanarPixelFormats, desc, (uint)desc.Length))
 				throw new NotSupportedException("Requested planar transform not supported");
 
-			var crop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.DecoderFrame.ExifOrientation, ow, oh).ProportionalScale(ow, oh, cw, ch);
+			var crop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.DecoderFrame.ExifOrientation, (int)ow, (int)oh).ProportionalScale((int)ow, (int)oh, (int)cw, (int)ch);
 			ctx.WicContext.PlanarCache = ctx.AddDispose(new WicPlanarCache(trans, desc, WICBitmapTransformOptions.WICBitmapTransformRotate0, cw, ch, crop));
 
 			ctx.Source = ctx.WicContext.PlanarCache.GetPlane(WicPlane.Y);

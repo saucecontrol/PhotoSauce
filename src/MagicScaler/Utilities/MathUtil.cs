@@ -35,7 +35,6 @@ namespace PhotoSauce.MagicScaler
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int Clamp(this int x, int min, int max) => Min(Max(min, x), max);
 
-
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static double Clamp(this double x, double min, double max) => Min(Max(min, x), max);
 
@@ -58,10 +57,11 @@ namespace PhotoSauce.MagicScaler
 		public static int Fix15(double x) => (int)Round(x * dscale);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if MATHF
-		public static int Fix15(float x) => (int)MathF.Round(x * fscale);
+		public static int Fix15(float x) =>
+#if BUILTIN_MATHF
+			(int)MathF.Round(x * fscale);
 #else
-		public static int Fix15(float x) => (int)Round(x * fscale);
+			(int)Round(x * fscale);
 #endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -113,38 +113,43 @@ namespace PhotoSauce.MagicScaler
 		public static int PowerOfTwoCeiling(int x, int powerOfTwo) => x + (powerOfTwo - 1) & ~(powerOfTwo - 1);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if MATHF
-		public static float Sqrt(this float x) => MathF.Sqrt(x);
+		public static float Sqrt(this float x) =>
+#if BUILTIN_MATHF
+			MathF.Sqrt(x);
 #else
-		public static float Sqrt(this float x) => (float)Math.Sqrt(x);
+			(float)Math.Sqrt(x);
 #endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if MATHF
-		public static float Floor(this float x) => MathF.Floor(x);
+		public static float Floor(this float x) =>
+#if BUILTIN_MATHF
+			MathF.Floor(x);
 #else
-		public static float Floor(this float x) => (float)Math.Floor(x);
+			(float)Math.Floor(x);
 #endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if MATHF
-		public static float Abs(this float x) => MathF.Abs(x);
+		public static float Abs(this float x) =>
+#if BUILTIN_MATHF
+			MathF.Abs(x);
 #else
-		public static float Abs(this float x) => Math.Abs(x);
+			Math.Abs(x);
 #endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if MATHF
-		public static float MaxF(float x, float o) => MathF.Max(x, o);
+		public static float MaxF(float x, float o) =>
+#if BUILTIN_MATHF
+			MathF.Max(x, o);
 #else
-		public static float MaxF(float x, float o) => x < o ? o : x;
+			x < o ? o : x;
 #endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if MATHF
-		public static float PowF(float x, float y) => MathF.Pow(x, y);
+		public static float PowF(float x, float y) =>
+#if BUILTIN_MATHF
+			MathF.Pow(x, y);
 #else
-		public static float PowF(float x, float y) => (float)Pow(x, y);
+			(float)Pow(x, y);
 #endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

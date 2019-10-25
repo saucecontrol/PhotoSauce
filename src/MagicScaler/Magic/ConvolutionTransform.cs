@@ -59,7 +59,7 @@ namespace PhotoSauce.MagicScaler
 		private readonly bool bufferSource;
 		private readonly int inWidth;
 
-		public static ConvolutionTransform<TPixel, TWeight> CreateResize(PixelSource src, uint width, uint height, InterpolationSettings interpolatorx, InterpolationSettings interpolatory)
+		public static ConvolutionTransform<TPixel, TWeight> CreateResize(PixelSource src, int width, int height, InterpolationSettings interpolatorx, InterpolationSettings interpolatory)
 		{
 			var fmt = src.Format;
 			var mx = KernelMap<TWeight>.MakeScaleMap(src.Width, width, interpolatorx, fmt.ChannelCount, typeof(TPixel) == typeof(float));
@@ -107,16 +107,16 @@ namespace PhotoSauce.MagicScaler
 			if (XMap.Channels != XProcessor.MapChannels || YMap.Channels != YProcessor.MapChannels)
 				throw new NotSupportedException("Map and Processor channel counts don't match");
 
-			inWidth = (int)Width;
-			Width = (uint)mapx.OutPixels;
-			Height = (uint)mapy.OutPixels;
+			inWidth = Width;
+			Width = mapx.OutPixels;
+			Height = mapy.OutPixels;
 
 			int bpp = workfmt.BitsPerPixel / 8 / Unsafe.SizeOf<TPixel>() * Unsafe.SizeOf<TWeight>();
 			IntBuff = new PixelBuffer(mapy.Samples, bpp, true, mapy.Samples * mapx.OutPixels * bpp);
 
 			if (bufferSource = lumaMode)
 			{
-				SrcBuff = new PixelBuffer(mapy.Samples, (int)BufferStride, true);
+				SrcBuff = new PixelBuffer(mapy.Samples, BufferStride, true);
 
 				if (workfmt.IsBinaryCompatibleWith(infmt))
 					WorkBuff = SrcBuff;
@@ -125,11 +125,11 @@ namespace PhotoSauce.MagicScaler
 			}
 			else
 			{
-				lineBuff = MemoryPool<byte>.Shared.Rent((int)BufferStride);
+				lineBuff = MemoryPool<byte>.Shared.Rent(BufferStride);
 			}
 		}
 
-		unsafe protected override void CopyPixelsInternal(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			fixed (byte* mapystart = YMap.Map)
 			{
@@ -144,7 +144,7 @@ namespace PhotoSauce.MagicScaler
 					if (!IntBuff.ContainsRange(iy, smapy))
 						loadBuffer(iy, smapy);
 
-					ConvolveLine((byte*)pbBuffer + (uint)y * cbStride, (byte*)pmapy, smapy, iy, oy + y, ox, ow);
+					ConvolveLine((byte*)pbBuffer + y * cbStride, (byte*)pmapy, smapy, iy, oy + y, ox, ow);
 				}
 			}
 		}

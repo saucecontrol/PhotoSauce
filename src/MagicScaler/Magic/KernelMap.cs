@@ -133,7 +133,7 @@ namespace PhotoSauce.MagicScaler
 			return this;
 		}
 
-		unsafe public static KernelMap<T> MakeScaleMap(uint isize, uint osize, InterpolationSettings interpolator, int ichannels, bool vectored)
+		unsafe public static KernelMap<T> MakeScaleMap(int isize, int osize, InterpolationSettings interpolator, int ichannels, bool vectored)
 		{
 			double offs = interpolator.WeightingFunction.Support < 0.1 ? 0.5 : 0.0;
 			double ratio = Math.Min((double)osize / isize, 1d);
@@ -142,9 +142,9 @@ namespace PhotoSauce.MagicScaler
 
 			int channels = vectored ? ichannels : 1;
 			int ksize = (int)Math.Ceiling(support * 2d);
-			int kpad = vectored ? getKernelPadding((int)isize, ksize, channels) : 0;
+			int kpad = vectored ? getKernelPadding(isize, ksize, channels) : 0;
 
-			var map = new KernelMap<T>((int)isize, (int)osize, ksize + kpad, channels);
+			var map = new KernelMap<T>(isize, osize, ksize + kpad, channels);
 			fixed (byte* mstart = map.Map)
 			{
 				int* mp = (int*)mstart;
@@ -174,16 +174,16 @@ namespace PhotoSauce.MagicScaler
 			return map.clamp();
 		}
 
-		unsafe public static KernelMap<T> MakeBlurMap(uint size, double radius, int ichannels, bool vectored)
+		unsafe public static KernelMap<T> MakeBlurMap(int size, double radius, int ichannels, bool vectored)
 		{
 			var interpolator = new GaussianInterpolator(radius);
 
 			int channels = vectored ? ichannels : 1;
 			int dist = (int)Math.Ceiling(interpolator.Support);
-			int ksize = Math.Min(dist * 2 + 1, (int)size);
-			int kpad = vectored ? getKernelPadding((int)size, ksize, channels) : 0;
+			int ksize = Math.Min(dist * 2 + 1, size);
+			int kpad = vectored ? getKernelPadding(size, ksize, channels) : 0;
 
-			var map = new KernelMap<T>((int)size, (int)size, ksize + kpad, channels);
+			var map = new KernelMap<T>(size, size, ksize + kpad, channels);
 			fixed (byte* mstart = map.Map)
 			{
 				int* mp = (int*)mstart;

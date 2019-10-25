@@ -67,15 +67,15 @@ namespace PhotoSauce.MagicScaler
 			};
 		}
 
-		unsafe public void CopyPixels(WicPlane plane, in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		unsafe public void CopyPixels(WicPlane plane, in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			var buff = plane == WicPlane.Y ? buffY : buffCbCr;
 			int bpp = plane == WicPlane.Y ? 1 : 2;
 			int cbLine = prc.Width * bpp;
 			int cbOffs = prc.X * bpp;
 
-			Debug.Assert(cbStride >= cbLine);
-			Debug.Assert(cbBufferSize >= (prc.Height - 1) * cbStride + cbLine);
+			Debug.Assert((uint)cbStride >= (uint)cbLine);
+			Debug.Assert((uint)cbBufferSize >= (uint)((prc.Height - 1) * cbStride + cbLine));
 
 			for (int y = 0; y < prc.Height; y++)
 			{
@@ -133,8 +133,8 @@ namespace PhotoSauce.MagicScaler
 
 			public PlanarPixelSource(WicPlanarCache cache, WicPlane plane, WICBitmapPlaneDescription planeDesc)
 			{
-				Width = planeDesc.Width;
-				Height = planeDesc.Height;
+				Width = (int)planeDesc.Width;
+				Height = (int)planeDesc.Height;
 				Format = PixelFormat.FromGuid(planeDesc.Format);
 				WicSource = this.AsIWICBitmapSource();
 
@@ -142,7 +142,7 @@ namespace PhotoSauce.MagicScaler
 				cachePlane = plane;
 			}
 
-			protected override void CopyPixelsInternal(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer) =>
+			protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer) =>
 				cacheSource.CopyPixels(cachePlane, prc, cbStride, cbBufferSize, pbBuffer);
 
 			public override string ToString() => $"{base.ToString()}: {cachePlane}";

@@ -47,20 +47,20 @@ namespace PhotoSauce.MagicScaler
 			bytesPerPixel = bpp / 8;
 			orient = orientation;
 
-			Width = (uint)crop.Width;
-			Height = (uint)crop.Height;
+			Width = crop.Width;
+			Height = crop.Height;
 
 			if (orient.SwapsDimensions())
 			{
-				lineBuff = MemoryPool<byte>.Shared.Rent((int)BufferStride);
-				BufferStride = (uint)MathUtil.PowerOfTwoCeiling((int)Width * bytesPerPixel, IntPtr.Size);
+				lineBuff = MemoryPool<byte>.Shared.Rent(BufferStride);
+				BufferStride = MathUtil.PowerOfTwoCeiling(Width * bytesPerPixel, IntPtr.Size);
 			}
 
 			if (orient.RequiresCache())
-				srcBuff = new PixelBuffer((int)Height, (int)BufferStride);
+				srcBuff = new PixelBuffer(Height, BufferStride);
 		}
 
-		protected override void CopyPixelsInternal(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			if (!orient.RequiresCache())
 				copyPixelsDirect(prc, cbStride, cbBufferSize, pbBuffer);
@@ -68,7 +68,7 @@ namespace PhotoSauce.MagicScaler
 				copyPixelsBuffered(prc, cbStride, cbBufferSize, pbBuffer);
 		}
 
-		unsafe private void copyPixelsDirect(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		unsafe private void copyPixelsDirect(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			Timer.Stop();
 			Source.CopyPixels(new PixelArea(srcArea.X + prc.X, srcArea.Y + prc.Y, prc.Width, prc.Height), cbStride, cbBufferSize, pbBuffer);
@@ -87,11 +87,11 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private void copyPixelsBuffered(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		unsafe private void copyPixelsBuffered(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			if (!srcBuff!.ContainsLine(0))
 			{
-				int fl = 0, lc = (int)Height;
+				int fl = 0, lc = Height;
 				fixed (byte* bstart = srcBuff.PrepareLoad(ref fl, ref lc))
 				{
 					if (!orient.SwapsDimensions())
@@ -114,7 +114,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			byte* pb = bstart + (Height - 1) * BufferStride;
 
-			for (int y = 0; y < (int)Height; y++)
+			for (int y = 0; y < Height; y++)
 			{
 				Timer.Stop();
 				Source.CopyPixels(new PixelArea(srcArea.X, srcArea.Y + y, srcArea.Width, 1), BufferStride, BufferStride, (IntPtr)pb);
@@ -130,22 +130,22 @@ namespace PhotoSauce.MagicScaler
 		unsafe private void loadBufferTransposed(byte* bstart)
 		{
 			byte* bp = bstart;
-			int colStride = (int)BufferStride;
+			int colStride = BufferStride;
 			int rowStride = bytesPerPixel;
 
 			if (orient == Orientation.Transverse || orient == Orientation.Rotate270)
 			{
-				bp += ((uint)srcArea.Width - 1) * BufferStride;
+				bp += (srcArea.Width - 1) * BufferStride;
 				colStride = -colStride;
 			}
 
 			if (orient == Orientation.Transverse || orient == Orientation.Rotate90)
 			{
-				bp += ((uint)srcArea.Height - 1) * (uint)bytesPerPixel;
+				bp += (srcArea.Height - 1) * bytesPerPixel;
 				rowStride = -rowStride;
 			}
 
-			uint cb = (uint)srcArea.Width * (uint)bytesPerPixel;
+			int cb = srcArea.Width * bytesPerPixel;
 
 			fixed (byte* lp = lineBuff!.Memory.Span)
 			{
@@ -204,7 +204,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private void flipLine(byte* bp, int cb)
 		{
-			byte* pp = bp, pe = pp + cb - (uint)bytesPerPixel;
+			byte* pp = bp, pe = pp + cb - bytesPerPixel;
 
 			switch (bytesPerPixel)
 			{

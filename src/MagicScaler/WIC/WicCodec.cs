@@ -136,7 +136,7 @@ namespace PhotoSauce.MagicScaler
 				bag.Write((uint)props.Count, props.Keys.Select(k => new PROPBAG2 { pstrName = k }).ToArray(), props.Values.ToArray());
 
 			frame.Initialize(bag);
-			frame.SetSize(ctx.Source.Width, ctx.Source.Height);
+			frame.SetSize((uint)ctx.Source.Width, (uint)ctx.Source.Height);
 			frame.SetResolution(ctx.Settings.DpiX > 0d ? ctx.Settings.DpiX : ctx.DecoderFrame.DpiX, ctx.Settings.DpiY > 0d ? ctx.Settings.DpiY : ctx.DecoderFrame.DpiY);
 
 			if (ctx.DecoderFrame.Metadata?.Count > 0 && frame.TryGetMetadataQueryWriter(out var metawriter))

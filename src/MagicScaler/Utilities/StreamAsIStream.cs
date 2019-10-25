@@ -16,32 +16,12 @@ namespace PhotoSauce.Interop.Wic
 			internal StreamAsIStream(Stream backingStream) =>
 				stream = backingStream ?? throw new ArgumentNullException(nameof(backingStream));
 
-			unsafe void IStream.Read(IntPtr pv, int cb, IntPtr pcbRead)
-			{
-#if FAST_SPAN
-				int cbr =stream.Read(new Span<byte>(pv.ToPointer(), cb));
-#else
-				using var buff = MemoryPool<byte>.Shared.Rent(cb);
-				var msa = buff.GetOwnedArraySegment(cb);
-
-				int cbr = stream.Read(msa.Array, msa.Offset, msa.Count);
-				Marshal.Copy(msa.Array, msa.Offset, pv, cbr);
-#endif
-
-				Marshal.WriteInt32(pcbRead, cbr);
-			}
+			unsafe void IStream.Read(IntPtr pv, int cb, IntPtr pcbRead) =>
+				Marshal.WriteInt32(pcbRead, stream.Read(new Span<byte>(pv.ToPointer(), cb)));
 
 			unsafe void IStream.Write(IntPtr pv, int cb, IntPtr pcbWritten)
 			{
-#if FAST_SPAN
 				stream.Write(new ReadOnlySpan<byte>(pv.ToPointer(), cb));
-#else
-				using var buff = MemoryPool<byte>.Shared.Rent(cb);
-				var msa = buff.GetOwnedArraySegment(cb);
-
-				Marshal.Copy(pv, msa.Array, msa.Offset, cb);
-				stream.Write(msa.Array, msa.Offset, msa.Count);
-#endif
 
 				if (pcbWritten != IntPtr.Zero)
 					Marshal.WriteInt32(pcbWritten, cb);
@@ -73,7 +53,7 @@ namespace PhotoSauce.Interop.Wic
 			void IStream.UnlockRegion(long libOffset, long cb, int dwLockType) => throw new NotImplementedException();
 		}
 
-		public static IStream AsIStream(this Stream s) => new StreamAsIStream(s);
+		public static IStream AsIStream(this Stream stream) => new StreamAsIStream(stream);
 
 		public static ArraySegment<byte> GetOwnedArraySegment(this IMemoryOwner<byte> m, int cb)
 		{
@@ -82,5 +62,27 @@ namespace PhotoSauce.Interop.Wic
 
 			return msa;
 		}
+
+#if !BUILTIN_SPAN
+		public static int Read(this Stream stream, Span<byte> buffer)
+		{
+			using var mem = MemoryPool<byte>.Shared.Rent(buffer.Length);
+			var msa = mem.GetOwnedArraySegment(buffer.Length);
+
+			int cb = stream.Read(msa.Array, msa.Offset, msa.Count);
+			msa.AsSpan().CopyTo(buffer);
+
+			return cb;
+		}
+
+		public static void Write(this Stream stream, ReadOnlySpan<byte> buffer)
+		{
+			using var mem = MemoryPool<byte>.Shared.Rent(buffer.Length);
+			var msa = mem.GetOwnedArraySegment(buffer.Length);
+
+			buffer.CopyTo(msa);
+			stream.Write(msa.Array, msa.Offset, msa.Count);
+		}
+#endif
 	}
 }

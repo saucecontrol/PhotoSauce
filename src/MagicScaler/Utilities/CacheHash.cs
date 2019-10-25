@@ -22,7 +22,7 @@ namespace PhotoSauce.MagicScaler
 				throw new ArgumentException($"Hash must be at least {DigestLength} bytes");
 
 			var b32 = base32Table;
-#if FAST_SPAN
+#if BUILTIN_SPAN
 			Span<char> hash = stackalloc char[8];
 #else
 			char* hash = stackalloc char[8];

@@ -795,11 +795,11 @@ namespace PhotoSauce.MagicScaler
 
 			row1 = Avx2.Xor(row1, row3);
 			row2 = Avx2.Xor(row2, row4);
-			row1 = Avx2.Xor(row1, Avx2.LoadVector256(sh));
-			row2 = Avx2.Xor(row2, Avx2.LoadVector256(sh + Vector256<ulong>.Count));
+			row1 = Avx2.Xor(row1, Avx.LoadVector256(sh));
+			row2 = Avx2.Xor(row2, Avx.LoadVector256(sh + Vector256<ulong>.Count));
 
-			Avx2.Store(sh, row1);
-			Avx2.Store(sh + Vector256<ulong>.Count, row2);
+			Avx.Store(sh, row1);
+			Avx.Store(sh + Vector256<ulong>.Count, row2);
 		}
 	}
 }

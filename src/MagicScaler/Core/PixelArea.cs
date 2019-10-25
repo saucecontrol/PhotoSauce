@@ -30,7 +30,7 @@ namespace PhotoSauce.MagicScaler
 
 		public void Deconstruct(out int x, out int y, out int w, out int h) => (x, y, w, h) = (X, Y, Width, Height);
 
-		public PixelArea DeOrient(Orientation orientation, uint targetWidth, uint targetHeight)
+		public PixelArea DeOrient(Orientation orientation, int targetWidth, int targetHeight)
 		{
 			var (x, y, width, height) = this;
 
@@ -38,15 +38,15 @@ namespace PhotoSauce.MagicScaler
 				(x, y, width, height) = (y, x, height, width);
 
 			if (orientation.FlipsX())
-				x = (int)targetWidth - width - x;
+				x = targetWidth - width - x;
 
 			if (orientation.FlipsY())
-				y = (int)targetHeight - height - y;
+				y = targetHeight - height - y;
 
 			return new PixelArea(x, y, width, height);
 		}
 
-		public PixelArea ReOrient(Orientation orientation, uint targetWidth, uint targetHeight)
+		public PixelArea ReOrient(Orientation orientation, int targetWidth, int targetHeight)
 		{
 			if (orientation.SwapsDimensions())
 				(targetWidth, targetHeight) = (targetHeight, targetWidth);
@@ -54,15 +54,15 @@ namespace PhotoSauce.MagicScaler
 			return DeOrient(orientation.Invert(), targetWidth, targetHeight);
 		}
 
-		public PixelArea ProportionalScale(uint sourceWidth, uint sourceHeight, uint targetWidth, uint targetHeight)
+		public PixelArea ProportionalScale(int sourceWidth, int sourceHeight, int targetWidth, int targetHeight)
 		{
 			double xRatio = (double)sourceWidth / targetWidth;
 			double yRatio = (double)sourceHeight / targetHeight;
 
 			int x = (int)Math.Floor(X / xRatio);
 			int y = (int)Math.Floor(Y / yRatio);
-			int width = Math.Min((int)Math.Ceiling(Width / xRatio), (int)targetWidth - x);
-			int height = Math.Min((int)Math.Ceiling(Height / yRatio), (int)targetHeight - y);
+			int width = (int)Math.Min(Math.Ceiling(Width / xRatio), targetWidth - x);
+			int height = (int)Math.Min(Math.Ceiling(Height / yRatio), targetHeight - y);
 
 			return new PixelArea(x, y, width, height);
 		}

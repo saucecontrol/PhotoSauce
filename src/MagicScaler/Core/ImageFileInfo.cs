@@ -123,8 +123,8 @@ namespace PhotoSauce.MagicScaler
 
 				var frm = ctx.DecoderFrame;
 				var src = ctx.Source;
-				int width = (int)(frm.ExifOrientation.SwapsDimensions() ? src.Height : src.Width);
-				int height = (int)(frm.ExifOrientation.SwapsDimensions() ? src.Width : src.Height);
+				int width = frm.ExifOrientation.SwapsDimensions() ? src.Height : src.Width;
+				int height = frm.ExifOrientation.SwapsDimensions() ? src.Width : src.Height;
 				frames[i] = new FrameInfo(width, height, src.Format.AlphaRepresentation != PixelAlphaRepresentation.None, frm.ExifOrientation);
 			}
 

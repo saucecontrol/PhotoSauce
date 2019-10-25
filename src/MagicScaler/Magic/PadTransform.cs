@@ -23,11 +23,11 @@ namespace PhotoSauce.MagicScaler
 			fillR = color.R;
 
 			irect = innerRect;
-			Width = (uint)outerRect.Width;
-			Height = (uint)outerRect.Height;
+			Width = outerRect.Width;
+			Height = outerRect.Height;
 		}
 
-		unsafe protected override void CopyPixelsInternal(in PixelArea prc, uint cbStride, uint cbBufferSize, IntPtr pbBuffer)
+		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			int tx = Math.Max(prc.X - irect.X, 0);
 			int tw = Math.Min(prc.Width, Math.Min(Math.Max(prc.X + prc.Width - irect.X, 0), irect.Width - tx));
@@ -105,7 +105,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				MagicTransforms.AddExternalFormatConverter(ctx);
 
-				var innerRect = new Rectangle(padRect.Left, padRect.Top, (int)ctx.Source.Width, (int)ctx.Source.Height);
+				var innerRect = new Rectangle(padRect.Left, padRect.Top, ctx.Source.Width, ctx.Source.Height);
 				var outerRect = Rectangle.FromLTRB(0, 0, innerRect.Right + padRect.Right, innerRect.Bottom + padRect.Bottom);
 				ctx.Source = new PadTransformInternal(ctx.Source, padColor, innerRect, outerRect);
 			}
