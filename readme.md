@@ -106,9 +106,9 @@ This project is using [semantic versioning](http://semver.org/).  Releases witho
 Contributing
 ------------
 
-Contributions are welcome, but please open a new issue for discussion before submitting any pull requests.  This will hopefully save any wasted or duplicate efforts.
+Contributions are welcome, but please open a new issue for discussion before submitting any significant pull requests.  This will hopefully save any wasted or duplicate efforts.
 
 License
 -------
 
-Apache 2.0, mostly.  See the [license](license) file for details.
+PhotoSauce is licensed under the [MIT](license) license.

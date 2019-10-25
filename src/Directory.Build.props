@@ -5,7 +5,7 @@
 		<Authors>Clinton Ingram</Authors>
 		<RepositoryUrl>https://github.com/saucecontrol/PhotoSauce</RepositoryUrl>
 		<PackageProjectUrl>https://photosauce.net</PackageProjectUrl>
-		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<Copyright>Copyright © 2015-$([System.DateTime]::Today.Year) $(Authors)</Copyright>
 		<Title>High-Quality, High-Performance Image Processing for .NET</Title>
 		<Description>High-Quality, High-Performance Image Processing for .NET</Description>
