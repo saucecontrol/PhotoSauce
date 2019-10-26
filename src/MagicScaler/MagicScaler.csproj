@@ -43,6 +43,9 @@
 
 	<ItemGroup>
 		<Compile Include="$(BaseModulesPath)WicInterop\src\*.cs" />
+		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\Blake2b\*.cs" />
+		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\IBlake2Incremental.cs" />
+		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\ThrowHelper.cs" />
 		<EmbeddedResource Include="Resources\*.icc" />
 	</ItemGroup>
 

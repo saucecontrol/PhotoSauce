@@ -5,6 +5,8 @@ using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
+using Blake2Fast;
+
 using static PhotoSauce.MagicScaler.MathUtil;
 using static System.Buffers.Binary.BinaryPrimitives;
 

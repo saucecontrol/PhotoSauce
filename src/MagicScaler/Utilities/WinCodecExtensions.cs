@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Buffers;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Diagnostics.CodeAnalysis;
 
@@ -17,7 +16,7 @@ namespace PhotoSauce.Interop.Wic
 		private static IWICColorContext getResourceColorContext(string name)
 		{
 			string resName = nameof(PhotoSauce) + "." + nameof(MagicScaler) + ".Resources." + name;
-			using var stm = typeof(Wic).GetTypeInfo().Assembly.GetManifestResourceStream(resName)!;
+			using var stm = typeof(Wic).Assembly.GetManifestResourceStream(resName)!;
 			using var buff = MemoryPool<byte>.Shared.Rent((int)stm.Length);
 
 			var cca = buff.GetOwnedArraySegment((int)stm.Length);

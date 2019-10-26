@@ -10,6 +10,7 @@
 		<Title>High-Quality, High-Performance Image Processing for .NET</Title>
 		<Description>High-Quality, High-Performance Image Processing for .NET</Description>
 		<PackageIcon>package/$(Company).png</PackageIcon>
+		<PackageTags>Image Resize Process Crop Sharpen Rotate Flip WIC JPEG JPG PNG GIF TIFF</PackageTags>
 		<PackageReleaseNotes>See $(RepositoryUrl)/releases for release-specific notes.</PackageReleaseNotes>
 
 		<RootNamespace>$(Company).$(MSBuildProjectName)</RootNamespace>

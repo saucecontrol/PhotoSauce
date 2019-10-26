@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
+using Blake2Fast;
 using PhotoSauce.MagicScaler.Interpolators;
 
 namespace PhotoSauce.MagicScaler

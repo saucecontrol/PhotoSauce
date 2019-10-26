@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
+using Blake2Fast;
+
 namespace PhotoSauce.MagicScaler
 {
 	internal static class CacheHash

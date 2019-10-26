@@ -1,3 +1,6 @@
 [submodule "modules/WicInterop"]
 	path = modules/WicInterop
 	url = https://github.com/saucecontrol/WicInterop.git
+[submodule "modules/Blake2Fast"]
+	path = modules/Blake2Fast
+	url = https://github.com/saucecontrol/Blake2Fast
