@@ -42,39 +42,20 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Compile Include="$(BaseModulesPath)WicInterop\src\*.cs" />
-		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\Blake2b\*.cs" />
-		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\IBlake2Incremental.cs" />
-		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\ThrowHelper.cs" />
 		<EmbeddedResource Include="Resources\*.icc" />
+		<Compile Include="$(BaseModulesPath)WicInterop\src\WinCodec.cs" Link="External\WicInterop\%(FileName).cs" />
+		<Compile Include="$(BaseModulesPath)WicInterop\src\PropVariant.cs" Link="External\WicInterop\%(FileName).cs" />
+		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\Blake2b\*.cs" Link="External\Blake2Fast\Blake2b\%(FileName).cs" />
+		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\IBlake2Incremental.cs" Link="External\Blake2Fast\%(FileName).cs" />
+		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\ThrowHelper.cs" Link="External\Blake2Fast\%(FileName).cs" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<None Update="Magic\Generated\Convolver.tt">
-			<Generator>TextTemplatingFileGenerator</Generator>
-			<LastGenOutput>Convolver.cs</LastGenOutput>
-		</None>
-		<None Update="Magic\Generated\VectorConvolver.tt">
-			<Generator>TextTemplatingFileGenerator</Generator>
-			<LastGenOutput>VectorConvolver.cs</LastGenOutput>
-		</None>
-	</ItemGroup>
-
-	<ItemGroup>
-		<Compile Update="Magic\Generated\Convolver.cs">
-			<DesignTime>True</DesignTime>
-			<AutoGen>True</AutoGen>
-			<DependentUpon>Convolver.tt</DependentUpon>
-		</Compile>
-		<Compile Update="Magic\Generated\VectorConvolver.cs">
-			<DesignTime>True</DesignTime>
-			<AutoGen>True</AutoGen>
-			<DependentUpon>VectorConvolver.tt</DependentUpon>
-		</Compile>
+		<None Update="Magic\Generated\Convolver.tt" LastGenOutput="Convolver.cs" Generator="TextTemplatingFileGenerator" />
+		<None Update="Magic\Generated\VectorConvolver.tt" LastGenOutput="VectorConvolver.cs" Generator="TextTemplatingFileGenerator" />
+		<Compile Update="Magic\Generated\Convolver.cs" DependentUpon="Convolver.tt" DesignTime="True" AutoGen="True" />
+		<Compile Update="Magic\Generated\VectorConvolver.cs" DependentUpon="VectorConvolver.tt" DesignTime="True" AutoGen="True" />
 	</ItemGroup>
 
 </Project>

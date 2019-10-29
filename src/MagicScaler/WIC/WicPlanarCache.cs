@@ -74,8 +74,8 @@ namespace PhotoSauce.MagicScaler
 			int cbLine = prc.Width * bpp;
 			int cbOffs = prc.X * bpp;
 
-			Debug.Assert((uint)cbStride >= (uint)cbLine);
-			Debug.Assert((uint)cbBufferSize >= (uint)((prc.Height - 1) * cbStride + cbLine));
+			Debug.Assert(cbStride >= cbLine);
+			Debug.Assert(cbBufferSize >= (prc.Height - 1) * cbStride + cbLine);
 
 			for (int y = 0; y < prc.Height; y++)
 			{

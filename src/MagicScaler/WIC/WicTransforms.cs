@@ -145,14 +145,14 @@ namespace PhotoSauce.MagicScaler
 				var cct = cc.GetType();
 				if (cct == WICColorContextType.WICColorContextProfile)
 				{
-					int ccs = (int)cc.GetProfileBytes(0, null);
+					uint ccs = cc.GetProfileBytes(0, null);
 
 					// don't try to read giant profiles. 4MiB is more than enough
-					if ((uint)ccs > (1024 * 1024 * 4))
+					if (ccs > (1024 * 1024 * 4))
 						continue;
 
-					using var ccb = MemoryPool<byte>.Shared.Rent(ccs);
-					var cca = ccb.GetOwnedArraySegment(ccs);
+					using var ccb = MemoryPool<byte>.Shared.Rent((int)ccs);
+					var cca = ccb.GetOwnedArraySegment((int)ccs);
 
 					cc.GetProfileBytes((uint)cca.Count, cca.Array);
 					var cpi = ColorProfile.Cache.GetOrAdd(cca);

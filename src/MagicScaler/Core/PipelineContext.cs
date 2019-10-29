@@ -39,7 +39,7 @@ namespace PhotoSauce.MagicScaler
 		public PipelineContext(ProcessImageSettings settings)
 		{
 			Settings = settings.Clone();
-			WicContext = new WicPipelineContext();
+			WicContext = AddDispose(new WicPipelineContext());
 			stats = new HashSet<PixelSourceStats>();
 
 			// HACK this quiets the nullable warnings for now but needs refactoring
@@ -72,8 +72,6 @@ namespace PhotoSauce.MagicScaler
 		{
 			while (disposeHandles.Count > 0)
 				disposeHandles.Pop()?.Dispose();
-
-			WicContext.Dispose();
 		}
 	}
 }

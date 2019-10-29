@@ -61,7 +61,7 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>Blend gamma-companded R'G'B' values directly.</summary>
 		Companded,
 		/// <summary>Same as <see cref="Companded" />.</summary>
-		[Obsolete("Replaced by " + nameof(GammaMode) + "." + nameof(Companded)), EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Replaced by " + nameof(GammaMode) + "." + nameof(Companded), true), EditorBrowsable(EditorBrowsableState.Never)]
 		sRGB = Companded
 	}
 
@@ -605,13 +605,13 @@ namespace PhotoSauce.MagicScaler
 			hash.Update(Crop.Width);
 			hash.Update(Crop.Height);
 			hash.Update(MatteColor.ToArgb());
-			hash.Update((int)Anchor);
-			hash.Update((int)SaveFormat);
-			hash.Update((int)BlendingMode);
-			hash.Update((int)ResizeMode);
-			hash.Update((int)OrientationMode);
-			hash.Update((int)ColorProfileMode);
-			hash.Update((int)JpegSubsampleMode);
+			hash.Update(Anchor);
+			hash.Update(SaveFormat);
+			hash.Update(BlendingMode);
+			hash.Update(ResizeMode);
+			hash.Update(OrientationMode);
+			hash.Update(ColorProfileMode);
+			hash.Update(JpegSubsampleMode);
 			hash.Update(JpegQuality);
 			hash.Update(HybridScaleRatio);
 			hash.Update(Interpolation.WeightingFunction.ToString().AsSpan());

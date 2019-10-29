@@ -9,9 +9,9 @@ namespace PhotoSauce.MagicScaler
 		private readonly uint fillBGRA;
 		private readonly ushort fillBG;
 		private readonly byte fillR;
-		private readonly Rectangle irect;
+		private readonly PixelArea inner;
 
-		public PadTransformInternal(PixelSource source, Color color, Rectangle innerRect, Rectangle outerRect) : base(source)
+		public PadTransformInternal(PixelSource source, Color color, PixelArea innerArea, PixelArea outerArea) : base(source)
 		{
 			bytesPerPixel = Format.BitsPerPixel / 8;
 
@@ -22,23 +22,23 @@ namespace PhotoSauce.MagicScaler
 			fillBG = (ushort)((color.B << 8) | color.G);
 			fillR = color.R;
 
-			irect = innerRect;
-			Width = outerRect.Width;
-			Height = outerRect.Height;
+			inner = innerArea;
+			Width = outerArea.Width;
+			Height = outerArea.Height;
 		}
 
 		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
-			int tx = Math.Max(prc.X - irect.X, 0);
-			int tw = Math.Min(prc.Width, Math.Min(Math.Max(prc.X + prc.Width - irect.X, 0), irect.Width - tx));
-			int cx = Math.Max(irect.X - prc.X, 0);
+			int tx = Math.Max(prc.X - inner.X, 0);
+			int tw = Math.Min(prc.Width, Math.Min(Math.Max(prc.X + prc.Width - inner.X, 0), inner.Width - tx));
+			int cx = Math.Max(inner.X - prc.X, 0);
 			byte* pb = (byte*)pbBuffer;
 
 			for (int y = 0; y < prc.Height; y++)
 			{
 				int cy = prc.Y + y;
 
-				if (tw < prc.Width || cy < irect.Y || cy >= irect.Bottom)
+				if (tw < prc.Width || cy < inner.Y || cy >= inner.Y + inner.Height)
 				{
 					switch (bytesPerPixel)
 					{
@@ -61,10 +61,10 @@ namespace PhotoSauce.MagicScaler
 					}
 				}
 
-				if (tw > 0 && cy >= irect.Y && cy < irect.Bottom)
+				if (tw > 0 && cy >= inner.Y && cy < inner.Y + inner.Height)
 				{
 					Timer.Stop();
-					Source.CopyPixels(new PixelArea(tx, cy - irect.Y, tw, 1), cbStride, cbBufferSize, (IntPtr)(pb + cx * bytesPerPixel));
+					Source.CopyPixels(new PixelArea(tx, cy - inner.Y, tw, 1), cbStride, cbBufferSize, (IntPtr)(pb + cx * bytesPerPixel));
 					Timer.Start();
 				}
 
@@ -107,7 +107,7 @@ namespace PhotoSauce.MagicScaler
 
 				var innerRect = new Rectangle(padRect.Left, padRect.Top, ctx.Source.Width, ctx.Source.Height);
 				var outerRect = Rectangle.FromLTRB(0, 0, innerRect.Right + padRect.Right, innerRect.Bottom + padRect.Bottom);
-				ctx.Source = new PadTransformInternal(ctx.Source, padColor, innerRect, outerRect);
+				ctx.Source = new PadTransformInternal(ctx.Source, padColor, PixelArea.FromGdiRect(innerRect), PixelArea.FromGdiRect(outerRect));
 			}
 
 			Source = ctx.Source;

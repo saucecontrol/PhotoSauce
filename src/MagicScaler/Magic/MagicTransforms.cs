@@ -160,7 +160,7 @@ namespace PhotoSauce.MagicScaler
 
 			AddExternalFormatConverter(ctx);
 
-			ctx.Source = new PadTransformInternal(ctx.Source, ctx.Settings.MatteColor, ctx.Settings.InnerRect, ctx.Settings.OuterRect);
+			ctx.Source = new PadTransformInternal(ctx.Source, ctx.Settings.MatteColor, PixelArea.FromGdiRect(ctx.Settings.InnerRect), PixelArea.FromGdiRect(ctx.Settings.OuterRect));
 		}
 
 		public static void AddCropper(PipelineContext ctx)

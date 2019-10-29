@@ -68,9 +68,11 @@ namespace PhotoSauce.MagicScaler
 			return ext;
 		}
 
+#pragma warning disable CS8717 // https://github.com/dotnet/roslyn/issues/38638
 		[return: MaybeNull]
 		public static TValue GetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dic, TKey key, TValue defaultValue = default) where TKey : notnull =>
 			dic.TryGetValue(key, out var value) ? value : defaultValue;
+#pragma warning restore CS8717
 
 #if NETFRAMEWORK
 		public static IDictionary<string, string> ToDictionary(this NameValueCollection nv) =>

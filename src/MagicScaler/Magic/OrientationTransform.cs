@@ -41,7 +41,7 @@ namespace PhotoSauce.MagicScaler
 				throw new NotSupportedException("Pixel format not supported.");
 
 			srcArea = crop.DeOrient(orientation, Source.Width, Source.Height);
-			if ((uint)(srcArea.X + srcArea.Width) > Source.Width || (uint)(srcArea.Y + srcArea.Height) > Source.Height)
+			if (srcArea.X + srcArea.Width > Source.Width || srcArea.Y + srcArea.Height > Source.Height)
 				throw new ArgumentOutOfRangeException(nameof(crop));
 
 			bytesPerPixel = bpp / 8;

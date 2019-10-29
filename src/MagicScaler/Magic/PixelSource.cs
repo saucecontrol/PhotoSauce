@@ -49,13 +49,13 @@ namespace PhotoSauce.MagicScaler
 		{
 			int cbLine = MathUtil.DivCeiling(prc.Width * Format.BitsPerPixel, 8);
 
-			if (prc.X < 0 || prc.Y < 0 || prc.Width < 0 || prc.Height < 0 || prc.X + prc.Width > Width || prc.Y + prc.Height > Height)
+			if (prc.X + prc.Width > Width || prc.Y + prc.Height > Height)
 				throw new ArgumentOutOfRangeException(nameof(prc), "Requested area does not fall within the image bounds");
 
-			if ((uint)cbLine > (uint)cbStride)
+			if (cbLine > cbStride)
 				throw new ArgumentOutOfRangeException(nameof(cbStride), "Stride is too small for the requested area");
 
-			if ((uint)((prc.Height - 1) * cbStride + cbLine) > (uint)cbBufferSize)
+			if ((prc.Height - 1) * cbStride + cbLine > cbBufferSize)
 				throw new ArgumentOutOfRangeException(nameof(cbBufferSize), "Buffer is too small for the requested area");
 
 			if (pbBuffer == IntPtr.Zero)
@@ -157,7 +157,7 @@ namespace PhotoSauce.MagicScaler
 			}
 
 			unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer) =>
-				upstreamSource.CopyPixels(prc.ToGdiRect(), cbStride, new Span<byte>(pbBuffer.ToPointer(), (int)cbBufferSize));
+				upstreamSource.CopyPixels(prc.ToGdiRect(), cbStride, new Span<byte>(pbBuffer.ToPointer(), cbBufferSize));
 
 			public override string? ToString() => upstreamSource.ToString();
 		}

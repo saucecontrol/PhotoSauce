@@ -40,12 +40,15 @@
 	<PropertyGroup Condition="'$(Configuration)'!='Debug'">
 		<DebugType>portable</DebugType>
 		<DebugSymbols>true</DebugSymbols>
+		<Deterministic>true</Deterministic>
 		<Optimize>true</Optimize>
 		<DocumentationFile>$(IntDir)$(AssemblyName).xml</DocumentationFile>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)'=='Dist'">
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<DeterministicSourcePaths>true</DeterministicSourcePaths>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<IncludeSymbols>true</IncludeSymbols>
 	</PropertyGroup>
@@ -54,6 +57,7 @@
 		<None Include="$(MSBuildThisFileDirectory)$(Company).png" Pack="true" PackagePath="package" />
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0-beta2-19367-01" PrivateAssets="all" />
 		<PackageReference Include="SauceControl.InheritDoc" Version="0.4.0" PrivateAssets="all" />
+		<SourceRoot Include="$(MSBuildThisFileDirectory)..\" />
 	</ItemGroup>
 
 </Project>

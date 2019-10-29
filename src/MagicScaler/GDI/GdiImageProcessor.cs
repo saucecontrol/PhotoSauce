@@ -21,7 +21,7 @@ namespace PhotoSauce.MagicScaler
 		private static readonly ImageCodecInfo jpegCodec = codecs.First(c => c.FormatID == ImageFormat.Jpeg.Guid);
 		private static readonly ImageCodecInfo tiffCodec = codecs.First(c => c.FormatID == ImageFormat.Tiff.Guid);
 
-		public static void ExifRotate(this Image img)
+		internal static void ExifRotate(this Image img)
 		{
 			if (!img.PropertyIdList.Contains(exifOrientationID))
 				return;
@@ -44,6 +44,28 @@ namespace PhotoSauce.MagicScaler
 				img.RotateFlip(rot);
 		}
 
+		internal static Image HybridScale(this Image img, ProcessImageSettings s, InterpolationMode mode)
+		{
+			if (s.HybridScaleRatio == 1d || (mode != InterpolationMode.HighQualityBicubic && mode != InterpolationMode.HighQualityBilinear))
+				return img;
+
+			int intw = (int)Math.Ceiling(img.Width / s.HybridScaleRatio);
+			int inth = (int)Math.Ceiling(img.Height / s.HybridScaleRatio);
+
+			var bmp = new Bitmap(intw, inth);
+			using (var gfx = Graphics.FromImage(bmp))
+			{
+				gfx.PixelOffsetMode = PixelOffsetMode.Half;
+				gfx.CompositingMode = CompositingMode.SourceCopy;
+				gfx.DrawImage(img, new Rectangle(0, 0, intw, inth), s.Crop.X, s.Crop.Y, s.Crop.Width, s.Crop.Height, GraphicsUnit.Pixel);
+			}
+
+			img.Dispose();
+			s.Crop = new Rectangle(0, 0, intw, inth);
+
+			return bmp;
+		}
+
 		public static ProcessImageResult ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
 		{
 			using var fs = new FileStream(imgPath, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -63,101 +85,80 @@ namespace PhotoSauce.MagicScaler
 
 		private static ProcessImageResult processImage(Stream istm, Stream ostm, ProcessImageSettings s)
 		{
-			using (var img = Image.FromStream(istm, s.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed, false))
+			using var img = Image.FromStream(istm, s.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed, false);
+
+			if (s.FrameIndex > 0)
 			{
-				if (s.FrameIndex > 0)
-				{
-					var fd = img.RawFormat.Guid == ImageFormat.Gif.Guid ? FrameDimension.Time : FrameDimension.Page;
-					if (img.GetFrameCount(fd) > s.FrameIndex)
-						img.SelectActiveFrame(fd, s.FrameIndex);
-					else
-						throw new ArgumentOutOfRangeException("Invalid Frame Index");
-				}
-
-				if (s.OrientationMode == OrientationMode.Normalize)
-					img.ExifRotate();
-
-				s = s.Clone();
-				s.Fixup(img.Width, img.Height);
-
-				bool alpha = ((ImageFlags)img.Flags).HasFlag(ImageFlags.HasAlpha);
-				var pixelFormat = alpha && s.MatteColor.A < byte.MaxValue ? GdiPixelFormat.Format32bppArgb : GdiPixelFormat.Format24bppRgb;
-				var mode = s.Interpolation.WeightingFunction.Support < 0.1 ? InterpolationMode.NearestNeighbor :
-				           s.Interpolation.WeightingFunction.Support < 1.0 ? s.ScaleRatio > 1.0 ? InterpolationMode.Bilinear : InterpolationMode.NearestNeighbor :
-				           s.Interpolation.WeightingFunction.Support > 1.0 ? s.ScaleRatio > 1.0 || s.Interpolation.Blur > 1.0 ? InterpolationMode.HighQualityBicubic : InterpolationMode.Bicubic :
-				           s.ScaleRatio > 1.0 ? InterpolationMode.HighQualityBilinear : InterpolationMode.Bilinear;
-
-				var src = img;
-				var crop = s.Crop;
-				if (s.HybridScaleRatio > 1d && (mode == InterpolationMode.HighQualityBicubic || mode == InterpolationMode.HighQualityBilinear))
-				{
-					int intw = (int)Math.Ceiling(img.Width / s.HybridScaleRatio);
-					int inth = (int)Math.Ceiling(img.Height / s.HybridScaleRatio);
-
-					var bmp = new Bitmap(intw, inth);
-					using (var gfx = Graphics.FromImage(bmp))
-					{
-						gfx.PixelOffsetMode = PixelOffsetMode.Half;
-						gfx.CompositingMode = CompositingMode.SourceCopy;
-						gfx.DrawImage(img, new Rectangle(0, 0, intw, inth), crop.X, crop.Y, crop.Width, crop.Height, GraphicsUnit.Pixel);
-					}
-
-					img.Dispose();
-					src = bmp;
-					crop = new Rectangle(0, 0, intw, inth);
-				}
-
-				using (src)
-				using (var iat = new ImageAttributes())
-				using (var bmp = new Bitmap(s.Width, s.Height, pixelFormat))
-				using (var gfx = Graphics.FromImage(bmp))
-				{
-					iat.SetWrapMode(WrapMode.TileFlipXY);
-					gfx.PixelOffsetMode = PixelOffsetMode.Half;
-					gfx.CompositingMode = CompositingMode.SourceCopy;
-					gfx.InterpolationMode = mode;
-
-					if ((alpha || s.InnerRect != s.OuterRect) && !s.MatteColor.IsEmpty)
-					{
-						gfx.Clear(s.MatteColor);
-						gfx.CompositingMode = CompositingMode.SourceOver;
-						gfx.CompositingQuality = CompositingQuality.GammaCorrected;
-					}
-
-					gfx.DrawImage(src, s.InnerRect, crop.X, crop.Y, crop.Width, crop.Height, GraphicsUnit.Pixel, iat);
-
-					switch (s.SaveFormat)
-					{
-						case FileFormat.Bmp:
-							bmp.Save(ostm, ImageFormat.Bmp);
-							break;
-						case FileFormat.Tiff:
-							using (var encoderParams = new EncoderParameters(1))
-							using (var param = new EncoderParameter(Encoder.Compression, (long)EncoderValue.CompressionNone))
-							{
-								encoderParams.Param[0] = param;
-								bmp.Save(ostm, tiffCodec, encoderParams);
-							}
-							break;
-						case FileFormat.Jpeg:
-							using (var encoderParams = new EncoderParameters(1))
-							using (var param = new EncoderParameter(Encoder.Quality, s.JpegQuality))
-							{
-								encoderParams.Param[0] = param;
-								bmp.Save(ostm, jpegCodec, encoderParams);
-							}
-							break;
-						default:
-							if (s.IndexedColor)
-								bmp.Save(ostm, ImageFormat.Gif);
-							else
-								bmp.Save(ostm, ImageFormat.Png);
-							break;
-					}
-				}
+				var fd = img.RawFormat.Guid == ImageFormat.Gif.Guid ? FrameDimension.Time : FrameDimension.Page;
+				if (img.GetFrameCount(fd) > s.FrameIndex)
+					img.SelectActiveFrame(fd, s.FrameIndex);
+				else
+					throw new ArgumentOutOfRangeException("Invalid Frame Index");
 			}
 
-			return new ProcessImageResult(s, Enumerable.Empty<PixelSourceStats>());
+			if (s.OrientationMode == OrientationMode.Normalize)
+				img.ExifRotate();
+
+			s = s.Clone();
+			s.Fixup(img.Width, img.Height);
+			var usedSettings = s.Clone();
+
+			bool alpha = ((ImageFlags)img.Flags).HasFlag(ImageFlags.HasAlpha);
+			var pixelFormat = alpha && s.MatteColor.A < byte.MaxValue ? GdiPixelFormat.Format32bppArgb : GdiPixelFormat.Format24bppRgb;
+			var mode = s.Interpolation.WeightingFunction.Support < 0.1 ? InterpolationMode.NearestNeighbor :
+			           s.Interpolation.WeightingFunction.Support < 1.0 ? s.ScaleRatio > 1.0 ? InterpolationMode.Bilinear : InterpolationMode.NearestNeighbor :
+			           s.Interpolation.WeightingFunction.Support > 1.0 ? s.ScaleRatio > 1.0 || s.Interpolation.Blur > 1.0 ? InterpolationMode.HighQualityBicubic : InterpolationMode.Bicubic :
+			           s.ScaleRatio > 1.0 ? InterpolationMode.HighQualityBilinear : InterpolationMode.Bilinear;
+
+			using var src = img.HybridScale(s, mode);
+			using var iat = new ImageAttributes();
+			using var bmp = new Bitmap(s.Width, s.Height, pixelFormat);
+			using var gfx = Graphics.FromImage(bmp);
+
+			iat.SetWrapMode(WrapMode.TileFlipXY);
+			gfx.PixelOffsetMode = PixelOffsetMode.Half;
+			gfx.CompositingMode = CompositingMode.SourceCopy;
+			gfx.InterpolationMode = mode;
+
+			if ((alpha || s.InnerRect != s.OuterRect) && !s.MatteColor.IsEmpty)
+			{
+				gfx.Clear(s.MatteColor);
+				gfx.CompositingMode = CompositingMode.SourceOver;
+				gfx.CompositingQuality = CompositingQuality.GammaCorrected;
+			}
+
+			gfx.DrawImage(src, s.InnerRect, s.Crop.X, s.Crop.Y, s.Crop.Width, s.Crop.Height, GraphicsUnit.Pixel, iat);
+
+			switch (s.SaveFormat)
+			{
+				case FileFormat.Bmp:
+					bmp.Save(ostm, ImageFormat.Bmp);
+					break;
+				case FileFormat.Tiff:
+					using (var encoderParams = new EncoderParameters(1))
+					using (var param = new EncoderParameter(Encoder.Compression, (long)EncoderValue.CompressionNone))
+					{
+						encoderParams.Param[0] = param;
+						bmp.Save(ostm, tiffCodec, encoderParams);
+					}
+					break;
+				case FileFormat.Jpeg:
+					using (var encoderParams = new EncoderParameters(1))
+					using (var param = new EncoderParameter(Encoder.Quality, s.JpegQuality))
+					{
+						encoderParams.Param[0] = param;
+						bmp.Save(ostm, jpegCodec, encoderParams);
+					}
+					break;
+				default:
+					if (s.IndexedColor)
+						bmp.Save(ostm, ImageFormat.Gif);
+					else
+						bmp.Save(ostm, ImageFormat.Png);
+					break;
+			}
+
+			return new ProcessImageResult(usedSettings, Enumerable.Empty<PixelSourceStats>());
 		}
 
 		private static void createBrokenImage(Stream ostm, ProcessImageSettings s)

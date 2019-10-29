@@ -8,7 +8,7 @@ namespace PhotoSauce.MagicScaler
 
 		public CropTransform(PixelSource source, in PixelArea crop) : base(source)
 		{
-			if ((uint)(crop.X + crop.Width) > Source.Width || (uint)(crop.Y + crop.Height) > Source.Height)
+			if (crop.X + crop.Width > Source.Width || crop.Y + crop.Height > Source.Height)
 				throw new ArgumentOutOfRangeException(nameof(crop));
 
 			srcArea = crop;
