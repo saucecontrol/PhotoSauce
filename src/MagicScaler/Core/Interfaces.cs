@@ -8,8 +8,10 @@ namespace PhotoSauce.MagicScaler
 	{
 		/// <summary>The binary representation of the pixel data.  Must be one of the values from <see cref="PixelFormats" />.</summary>
 		Guid Format { get; }
+
 		/// <summary>The width of the image in pixels</summary>
 		int Width { get; }
+
 		/// <summary>The height of the image in pixels</summary>
 		int Height { get; }
 
@@ -32,6 +34,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		/// <summary>The <see cref="FileFormat" /> (codec) of the image container.</summary>
 		FileFormat ContainerFormat { get; }
+
 		/// <summary>The total number of image frames in this container.</summary>
 		int FrameCount { get; }
 

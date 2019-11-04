@@ -22,7 +22,7 @@ namespace PhotoSauce.MagicScaler
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	public abstract class PixelTransform : IPixelTransform
 	{
-		private protected PixelSource Source = NullPixelSource.Instance;
+		private protected PixelSource Source = NoopPixelSource.Instance;
 
 		/// <inheritdoc />
 		public Guid Format => Source.Format.FormatGuid;

@@ -287,16 +287,16 @@ namespace PhotoSauce.MagicScaler
 		public double ScaleRatio => Math.Max(InnerRect.Width > 0 ? (double)Crop.Width / InnerRect.Width : 0d, InnerRect.Height > 0 ? (double)Crop.Height / InnerRect.Height : 0d);
 
 		/// <summary>The calculated ratio for the low-quality portion of a hybrid scaling operation.</summary>
-		public double HybridScaleRatio
+		public int HybridScaleRatio
 		{
 			get
 			{
 				if (HybridMode == HybridScaleMode.Off)
-					return 1d;
+					return 1;
 
 				double sr = ScaleRatio / (HybridMode == HybridScaleMode.FavorQuality ? 3d : HybridMode == HybridScaleMode.FavorSpeed ? 2d : 1d);
 
-				return Math.Max(Math.Pow(2d, Math.Floor(Math.Log(sr, 2d))), 1d);
+				return (int)Math.Max(Math.Pow(2d, Math.Floor(Math.Log(sr, 2d))), 1d);
 			}
 		}
 

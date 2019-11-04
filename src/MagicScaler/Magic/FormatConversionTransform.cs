@@ -34,9 +34,9 @@ namespace PhotoSauce.MagicScaler
 
 				for (int y = 0; y < oh; y++)
 				{
-					Timer.Stop();
+					Profiler.PauseTiming();
 					Source.CopyPixels(new PixelArea(prc.X, oy + y, prc.Width, 1), BufferStride, BufferStride, (IntPtr)bstart);
-					Timer.Start();
+					Profiler.ResumeTiming();
 
 					byte* op = (byte*)pbBuffer + y * cbStride;
 

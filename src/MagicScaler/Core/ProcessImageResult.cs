@@ -4,22 +4,69 @@ using System.Collections.Generic;
 
 namespace PhotoSauce.MagicScaler
 {
+	internal interface IPixelSourceProfiler
+	{
+		public void LogCopyPixels(in PixelArea prc);
+		public void PauseTiming();
+		public void ResumeTiming();
+	}
+
+	internal sealed class NoopProfiler : IPixelSourceProfiler
+	{
+		public static readonly IPixelSourceProfiler Instance = new NoopProfiler();
+
+		public void LogCopyPixels(in PixelArea prc) { }
+		public void PauseTiming() { }
+		public void ResumeTiming() { }
+	}
+
+	internal sealed class SourceStatsProfiler : IPixelSourceProfiler
+	{
+		private const string namespacePrefix = nameof(PhotoSauce) + "." + nameof(MagicScaler) + ".";
+
+		private int callCount = 0;
+		private long pixelCount = 0;
+		private readonly Stopwatch timer = new Stopwatch();
+		private readonly PixelSource source;
+
+		public SourceStatsProfiler(PixelSource src) => source = src;
+
+		public void LogCopyPixels(in PixelArea prc)
+		{
+			callCount++;
+			pixelCount += prc.Width * prc.Height;
+		}
+
+		public string SourceName => source.ToString()!.Replace(namespacePrefix, null);
+
+		public PixelSourceStats Stats => new PixelSourceStats(SourceName, callCount, pixelCount, (double)timer.ElapsedTicks / Stopwatch.Frequency * 1000);
+
+		public void PauseTiming() => timer.Stop();
+		public void ResumeTiming() => timer.Start();
+	}
+
 	/// <summary>Represents basic instrumentation information for a single pipeline step.</summary>
 	public sealed class PixelSourceStats
 	{
-		internal long TimerTicks;
-
-		internal PixelSourceStats(string sourceName) => SourceName = sourceName;
+		internal PixelSourceStats(string sourceName, int callCount, long pixelCount, double processingTime)
+		{
+			SourceName = sourceName;
+			CallCount = callCount;
+			PixelCount = pixelCount;
+			ProcessingTime = processingTime;
+		}
 
 		/// <summary>A friendly name for the <see cref="IPixelSource" />.</summary>
 		public string SourceName { get; }
+
 		/// <summary>The number of times <see cref="IPixelSource.CopyPixels" /> was invoked.</summary>
-		public int CallCount { get; internal set; }
+		public int CallCount { get; }
+
 		/// <summary>The total number of pixels retrieved from the <see cref="IPixelSource" />.</summary>
-		public int PixelCount { get; internal set; }
+		public long PixelCount { get; }
 
 		/// <summary>The total processing time of the <see cref="IPixelSource" /> in milliseconds.  Note that WIC-based pixel sources will report times inclusive of upstream sources.</summary>
-		public double ProcessingTime => (double)TimerTicks / Stopwatch.Frequency * 1000;
+		public double ProcessingTime { get; }
 
 		/// <inheritdoc />
 		public override string ToString() => $"{SourceName}: Calls={CallCount}, Pixels={PixelCount}, Time={ProcessingTime:f2}ms";
@@ -36,6 +83,7 @@ namespace PhotoSauce.MagicScaler
 
 		/// <summary>The settings used for the operation.  Any default or auto properties will reflect their final calculated values.</summary>
 		public ProcessImageSettings Settings { get; }
+
 		/// <summary>Basic instrumentation for the operation.  There will be one <see cref="PixelSourceStats" /> instance for each pipeline step.</summary>
 		public IEnumerable<PixelSourceStats> Stats { get; }
 	}
@@ -60,8 +108,10 @@ namespace PhotoSauce.MagicScaler
 
 		/// <summary>The source for retrieving calculated pixels from the pipeline.</summary>
 		public IPixelSource PixelSource => source.Value;
+
 		/// <summary>The settings used to construct the pipeline.  Any default or auto properties will reflect their final calculated values.</summary>
 		public ProcessImageSettings Settings => Context.UsedSettings;
+
 		/// <inheritdoc cref="ProcessImageResult.Stats" />
 		public IEnumerable<PixelSourceStats> Stats => Context.Stats;
 

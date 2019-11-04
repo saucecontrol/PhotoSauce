@@ -63,9 +63,9 @@ namespace PhotoSauce.MagicScaler
 
 				if (tw > 0 && cy >= inner.Y && cy < inner.Y + inner.Height)
 				{
-					Timer.Stop();
+					Profiler.PauseTiming();
 					Source.CopyPixels(new PixelArea(tx, cy - inner.Y, tw, 1), cbStride, cbBufferSize, (IntPtr)(pb + cx * bytesPerPixel));
-					Timer.Start();
+					Profiler.ResumeTiming();
 				}
 
 				pb += cbStride;

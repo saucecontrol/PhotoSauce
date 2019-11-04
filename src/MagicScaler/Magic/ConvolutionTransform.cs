@@ -169,9 +169,9 @@ namespace PhotoSauce.MagicScaler
 					byte* bp = bline, wp = wline, tp = tline;
 					for (int ly = 0; ly < cli; ly++)
 					{
-						Timer.Stop();
+						Profiler.PauseTiming();
 						Source.CopyPixels(new PixelArea(0, fli + ly, inWidth, 1), BufferStride, BufferStride, (IntPtr)bp);
-						Timer.Start();
+						Profiler.ResumeTiming();
 
 						if (bp != wp)
 							GreyConverter.ConvertLine(Format.FormatGuid, bp, wp, SrcBuff!.Stride, WorkBuff!.Stride);

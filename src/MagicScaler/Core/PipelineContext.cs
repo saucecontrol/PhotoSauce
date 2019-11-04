@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 
 namespace PhotoSauce.MagicScaler
@@ -6,7 +7,7 @@ namespace PhotoSauce.MagicScaler
 	internal class PipelineContext : IDisposable
 	{
 		private readonly Stack<IDisposable> disposeHandles = new Stack<IDisposable>();
-		private readonly HashSet<PixelSourceStats> stats;
+		private readonly List<PixelSource> allSources = new List<PixelSource>();
 
 		private PixelSource? source;
 
@@ -23,16 +24,16 @@ namespace PhotoSauce.MagicScaler
 		public ColorProfile? SourceColorProfile { get; set; }
 		public ColorProfile? DestColorProfile { get; set; }
 
-		public IReadOnlyCollection<PixelSourceStats> Stats => stats;
+		public IEnumerable<PixelSourceStats> Stats => MagicImageProcessor.EnablePixelSourceStats ? allSources.Select(s => s.Stats!) : Enumerable.Empty<PixelSourceStats>();
 
 		public PixelSource Source
 		{
-			get => source ?? NullPixelSource.Instance;
+			get => source ?? NoopPixelSource.Instance;
 			set
 			{
 				source = value;
-				if (!stats.Contains(source.Stats))
-					stats.Add(source.Stats);
+				if (!allSources.Contains(source))
+					allSources.Add(source);
 			}
 		}
 
@@ -40,7 +41,6 @@ namespace PhotoSauce.MagicScaler
 		{
 			Settings = settings.Clone();
 			WicContext = AddDispose(new WicPipelineContext());
-			stats = new HashSet<PixelSourceStats>();
 
 			// HACK this quiets the nullable warnings for now but needs refactoring
 			UsedSettings = null!;

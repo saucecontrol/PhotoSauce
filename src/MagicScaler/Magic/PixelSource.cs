@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Drawing;
-using System.Diagnostics;
 
 using PhotoSauce.Interop.Wic;
 
@@ -8,28 +7,24 @@ namespace PhotoSauce.MagicScaler
 {
 	internal abstract class PixelSource
 	{
-		private const string namespacePrefix = nameof(PhotoSauce) + "." + nameof(MagicScaler) + ".";
-
-		private readonly Lazy<PixelSourceStats> stats;
-
 		public PixelFormat Format { get; protected set; }
 		public int Width { get; protected set; }
 		public int Height { get; protected set; }
 		public IWICBitmapSource WicSource { get; protected set; }
 
-		protected Stopwatch Timer { get; } = new Stopwatch();
+		protected IPixelSourceProfiler Profiler { get; }
 		protected PixelSource Source { get; set; }
 		protected int BufferStride { get; set; }
 
 		public PixelArea Area => new PixelArea(0, 0, Width, Height);
 
-		public PixelSourceStats Stats => stats.Value;
+		public PixelSourceStats? Stats => Profiler is SourceStatsProfiler ps ? ps.Stats : null;
 
 		protected PixelSource() : this(default(IWICBitmapSource)) { }
 
 		protected PixelSource(IWICBitmapSource? wicSource)
 		{
-			stats = new Lazy<PixelSourceStats>(() => new PixelSourceStats(ToString()!.Replace(namespacePrefix, null)));
+			Profiler = MagicImageProcessor.EnablePixelSourceStats ? new SourceStatsProfiler(this) : NoopProfiler.Instance;
 			WicSource = wicSource ?? this.AsIWICBitmapSource();
 			Source = this;
 		}
@@ -61,14 +56,11 @@ namespace PhotoSauce.MagicScaler
 			if (pbBuffer == IntPtr.Zero)
 				throw new ArgumentOutOfRangeException(nameof(pbBuffer), "Buffer pointer is invalid");
 
-			Timer.Restart();
+			Profiler.ResumeTiming();
 			CopyPixelsInternal(prc, cbStride, cbBufferSize, pbBuffer);
-			Timer.Stop();
+			Profiler.PauseTiming();
 
-			var stats = Stats;
-			stats.CallCount++;
-			stats.PixelCount += prc.Width * prc.Height;
-			stats.TimerTicks += Timer.ElapsedTicks;
+			Profiler.LogCopyPixels(prc);
 		}
 	}
 
@@ -92,9 +84,9 @@ namespace PhotoSauce.MagicScaler
 		public IImageFrame GetFrame(int index) => index == 0 ? frame : throw new IndexOutOfRangeException();
 	}
 
-	internal class NullPixelSource : PixelSource
+	internal class NoopPixelSource : PixelSource
 	{
-		public static readonly NullPixelSource Instance = new NullPixelSource();
+		public static readonly PixelSource Instance = new NoopPixelSource();
 
 		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer) { }
 	}

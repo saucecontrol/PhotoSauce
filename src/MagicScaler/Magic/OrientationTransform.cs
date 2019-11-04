@@ -70,9 +70,9 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private void copyPixelsDirect(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
-			Timer.Stop();
+			Profiler.PauseTiming();
 			Source.CopyPixels(new PixelArea(srcArea.X + prc.X, srcArea.Y + prc.Y, prc.Width, prc.Height), cbStride, cbBufferSize, pbBuffer);
-			Timer.Start();
+			Profiler.ResumeTiming();
 
 			if (orient == Orientation.FlipHorizontal)
 			{
@@ -116,9 +116,9 @@ namespace PhotoSauce.MagicScaler
 
 			for (int y = 0; y < Height; y++)
 			{
-				Timer.Stop();
+				Profiler.PauseTiming();
 				Source.CopyPixels(new PixelArea(srcArea.X, srcArea.Y + y, srcArea.Width, 1), BufferStride, BufferStride, (IntPtr)pb);
-				Timer.Start();
+				Profiler.ResumeTiming();
 
 				if (orient == Orientation.Rotate180)
 					flipLine(pb, srcArea.Width * bytesPerPixel);
@@ -151,9 +151,9 @@ namespace PhotoSauce.MagicScaler
 			{
 				for (int y = 0; y < srcArea.Height; y++)
 				{
-					Timer.Stop();
+					Profiler.PauseTiming();
 					Source.CopyPixels(new PixelArea(srcArea.X, srcArea.Y + y, srcArea.Width, 1), cb, cb, (IntPtr)lp);
-					Timer.Start();
+					Profiler.ResumeTiming();
 
 					byte* ip = lp, ipe = lp + cb;
 					byte* op = bp + y * rowStride;

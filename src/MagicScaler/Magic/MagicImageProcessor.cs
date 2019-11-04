@@ -16,6 +16,9 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>True to check for Orientation tag in Xmp metadata in addition to the default Exif metadata location, false to check Exif only.</summary>
 		public static bool EnableXmpOrientation { get; set; } = false;
 
+		/// <summary>True to enable internal <see cref="IPixelSource"/> instrumentation, false to disable.  When disabled, no <see cref="PixelSourceStats" /> will be collected for the pipeline stages.</summary>
+		public static bool EnablePixelSourceStats { get; set; } = false;
+
 		/// <summary>Overrides the default <a href="https://en.wikipedia.org/wiki/SIMD">SIMD</a> support detection to force floating point processing on or off.</summary>
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static bool EnableSimd { get; set; } = Vector.IsHardwareAccelerated && (Vector<float>.Count == 4 || Vector<float>.Count == 8);
@@ -177,7 +180,7 @@ namespace PhotoSauce.MagicScaler
 			if (ctx.DecoderFrame.Source != null)
 			{
 				processPlanar = EnablePlanarPipeline && ctx.DecoderFrame.SupportsPlanarProcessing;
-				bool preserveNative = processPlanar || (ctx.DecoderFrame.SupportsNativeScale && ctx.Settings.HybridScaleRatio > 1d);
+				bool preserveNative = processPlanar || (ctx.DecoderFrame.SupportsNativeScale && ctx.Settings.HybridScaleRatio > 1);
 				ctx.Source = ctx.DecoderFrame.Source.AsPixelSource(nameof(IWICBitmapFrameDecode), !preserveNative);
 			}
 
@@ -192,7 +195,7 @@ namespace PhotoSauce.MagicScaler
 
 			if (processPlanar)
 			{
-				if (!ctx.Settings.AutoCrop && (int)ctx.Settings.HybridScaleRatio == 1)
+				if (!ctx.Settings.AutoCrop && ctx.Settings.HybridScaleRatio == 1)
 				{
 					var orCrop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.DecoderFrame.ExifOrientation, ctx.Source.Width, ctx.Source.Height);
 

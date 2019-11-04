@@ -92,7 +92,7 @@ namespace PhotoSauce.MagicScaler
 
 			if (hybrid)
 			{
-				int ratio = (int)ctx.Settings.HybridScaleRatio;
+				int ratio = ctx.Settings.HybridScaleRatio;
 				if (ratio == 1 || ctx.Source.Format.FormatGuid != Consts.GUID_WICPixelFormat32bppCMYK)
 					return;
 

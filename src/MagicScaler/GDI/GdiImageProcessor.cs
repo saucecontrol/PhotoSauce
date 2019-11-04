@@ -46,11 +46,11 @@ namespace PhotoSauce.MagicScaler
 
 		internal static Image HybridScale(this Image img, ProcessImageSettings s, InterpolationMode mode)
 		{
-			if (s.HybridScaleRatio == 1d || (mode != InterpolationMode.HighQualityBicubic && mode != InterpolationMode.HighQualityBilinear))
+			if (s.HybridScaleRatio == 1 || (mode != InterpolationMode.HighQualityBicubic && mode != InterpolationMode.HighQualityBilinear))
 				return img;
 
-			int intw = (int)Math.Ceiling(img.Width / s.HybridScaleRatio);
-			int inth = (int)Math.Ceiling(img.Height / s.HybridScaleRatio);
+			int intw = (int)Math.Ceiling((double)img.Width / s.HybridScaleRatio);
+			int inth = (int)Math.Ceiling((double)img.Height / s.HybridScaleRatio);
 
 			var bmp = new Bitmap(intw, inth);
 			using (var gfx = Graphics.FromImage(bmp))

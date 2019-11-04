@@ -65,9 +65,9 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
-			Timer.Stop();
+			Profiler.PauseTiming();
 			Source.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
-			Timer.Start();
+			Profiler.ResumeTiming();
 
 			if (Format.NumericRepresentation == PixelNumericRepresentation.Float)
 				copyPixelsFloat(prc, cbStride, pbBuffer);

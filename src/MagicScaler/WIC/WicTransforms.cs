@@ -302,7 +302,7 @@ namespace PhotoSauce.MagicScaler
 			var srect = ctx.Settings.InnerRect;
 
 			int width = swap ? srect.Height : srect.Width, height = swap? srect.Width : srect.Height;
-			int ratio = (int)ctx.Settings.HybridScaleRatio;
+			int ratio = ctx.Settings.HybridScaleRatio;
 
 			if ((ctx.Source.Width == width && ctx.Source.Height == height) || (hybrid && ratio == 1))
 				return;
@@ -333,7 +333,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddNativeScaler(PipelineContext ctx)
 		{
-			int ratio = (int)ctx.Settings.HybridScaleRatio;
+			int ratio = ctx.Settings.HybridScaleRatio;
 			if (ratio == 1 || !ctx.DecoderFrame.SupportsNativeScale || !(ctx.Source.WicSource is IWICBitmapSourceTransform trans))
 				return;
 
@@ -357,7 +357,7 @@ namespace PhotoSauce.MagicScaler
 			if (!(ctx.Source.WicSource is IWICPlanarBitmapSourceTransform trans))
 				throw new NotSupportedException("Transform chain doesn't support planar mode.  Only JPEG Decoder, Rotator, Scaler, and PixelFormatConverter are allowed");
 
-			int ratio = ((int)ctx.Settings.HybridScaleRatio).Clamp(1, 8);
+			int ratio = ctx.Settings.HybridScaleRatio.Clamp(1, 8);
 			uint ow = (uint)ctx.Source.Width, oh = (uint)ctx.Source.Height;
 			uint cw = (uint)MathUtil.DivCeiling((int)ow, ratio), ch = (uint)MathUtil.DivCeiling((int)oh, ratio);
 

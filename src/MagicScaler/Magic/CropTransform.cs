@@ -19,9 +19,9 @@ namespace PhotoSauce.MagicScaler
 
 		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
-			Timer.Stop();
+			Profiler.PauseTiming();
 			Source.CopyPixels(new PixelArea(srcArea.X + prc.X, srcArea.Y + prc.Y, prc.Width, prc.Height), cbStride, cbBufferSize, pbBuffer);
-			Timer.Start();
+			Profiler.ResumeTiming();
 		}
 	}
 }
