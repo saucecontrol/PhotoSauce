@@ -66,22 +66,34 @@ namespace PhotoSauce.Interop.Wic
 #if !BUILTIN_SPAN
 		public static int Read(this Stream stream, Span<byte> buffer)
 		{
-			using var mem = MemoryPool<byte>.Shared.Rent(buffer.Length);
-			var msa = mem.GetOwnedArraySegment(buffer.Length);
+			var buff = ArrayPool<byte>.Shared.Rent(buffer.Length);
 
-			int cb = stream.Read(msa.Array, msa.Offset, msa.Count);
-			msa.AsSpan().CopyTo(buffer);
+			try
+			{
+				int cb = stream.Read(buff, 0, buffer.Length);
+				buff.AsSpan(0, cb).CopyTo(buffer);
 
-			return cb;
+				return cb;
+			}
+			finally
+			{
+				ArrayPool<byte>.Shared.Return(buff);
+			}
 		}
 
 		public static void Write(this Stream stream, ReadOnlySpan<byte> buffer)
 		{
-			using var mem = MemoryPool<byte>.Shared.Rent(buffer.Length);
-			var msa = mem.GetOwnedArraySegment(buffer.Length);
+			var buff = ArrayPool<byte>.Shared.Rent(buffer.Length);
 
-			buffer.CopyTo(msa);
-			stream.Write(msa.Array, msa.Offset, msa.Count);
+			try
+			{
+				buffer.CopyTo(buff);
+				stream.Write(buff, 0, buffer.Length);
+			}
+			finally
+			{
+				ArrayPool<byte>.Shared.Return(buff);
+			}
 		}
 #endif
 	}

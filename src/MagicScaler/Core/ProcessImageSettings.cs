@@ -390,7 +390,7 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>Create a new <see cref="ProcessImageSettings" /> instance based on name/value pairs in a dictionary.</summary>
 		/// <param name="dic">The dictionary containing the name/value pairs.</param>
 		/// <returns>A new settings instance.</returns>
-		public static ProcessImageSettings FromDictionary(IDictionary<string, string> dic)
+		public static ProcessImageSettings FromDictionary(IDictionary<string, string?> dic)
 		{
 			if (dic == null) throw new ArgumentNullException(nameof(dic));
 			if (dic.Count == 0) return new ProcessImageSettings();
@@ -410,7 +410,7 @@ namespace PhotoSauce.MagicScaler
 
 			if (cropExpression.Value.IsMatch(dic.GetValueOrDefault("crop") ?? string.Empty))
 			{
-				var ps = dic["crop"].Split(',');
+				var ps = dic["crop"]!.Split(',');
 				s.Crop = new Rectangle(int.Parse(ps[0]), int.Parse(ps[1]), int.Parse(ps[2]), int.Parse(ps[3]));
 			}
 

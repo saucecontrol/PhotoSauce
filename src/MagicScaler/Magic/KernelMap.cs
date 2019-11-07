@@ -10,13 +10,13 @@ namespace PhotoSauce.MagicScaler
 	internal class KernelMap<T> : IDisposable where T : unmanaged
 	{
 		private readonly int mapLen;
-		private readonly IMemoryOwner<byte> map;
+		private byte[] map;
 
 		public int InPixels { get; }
 		public int OutPixels { get; }
 		public int Samples { get; }
 		public int Channels { get; }
-		public ReadOnlySpan<byte> Map => map.Memory.Span.Slice(0, mapLen);
+		public ReadOnlySpan<byte> Map => new ReadOnlySpan<byte>(map, 0, mapLen);
 
 		private static Exception getTypeException() => new NotSupportedException(nameof(T) + " must be int or float");
 
@@ -74,8 +74,8 @@ namespace PhotoSauce.MagicScaler
 			Channels = channels;
 
 			mapLen = OutPixels * (Samples * Channels * Unsafe.SizeOf<T>() + sizeof(int));
-			map = MemoryPool<byte>.Shared.Rent(mapLen);
-			map.Memory.Span.Slice(0, mapLen).Clear();
+			map = ArrayPool<byte>.Shared.Rent(mapLen);
+			map.AsSpan(0, mapLen).Clear();
 		}
 
 		unsafe private KernelMap<T> clamp()
@@ -211,7 +211,8 @@ namespace PhotoSauce.MagicScaler
 
 		public void Dispose()
 		{
-			map.Dispose();
+			ArrayPool<byte>.Shared.Return(map ?? Array.Empty<byte>());
+			map = null!;
 		}
 	}
 }

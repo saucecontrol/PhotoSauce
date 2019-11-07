@@ -71,7 +71,7 @@ namespace PhotoSauce.MagicScaler
 				throw new FileNotFoundException("File not found", imgPath);
 
 			using var ctx = new PipelineContext(new ProcessImageSettings());
-			ctx.ImageContainer = WicDecoder.Create(imgPath, ctx.WicContext);
+			ctx.ImageContainer = WicImageContainer.Create(imgPath, ctx.WicContext);
 
 			return fromImage(ctx, fi.Length, fi.LastWriteTimeUtc);
 		}
@@ -87,7 +87,7 @@ namespace PhotoSauce.MagicScaler
 			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
 
 			using var ctx = new PipelineContext(new ProcessImageSettings());
-			ctx.ImageContainer = WicDecoder.Create(imgBuffer, ctx.WicContext);
+			ctx.ImageContainer = WicImageContainer.Create(imgBuffer, ctx.WicContext);
 
 			return fromImage(ctx, imgBuffer.Length, lastModified);
 		}
@@ -105,7 +105,7 @@ namespace PhotoSauce.MagicScaler
 			if (imgStream.Length <= 0 || imgStream.Position >= imgStream.Length) throw new ArgumentException("Input Stream is empty or positioned at its end", nameof(imgStream));
 
 			using var ctx = new PipelineContext(new ProcessImageSettings());
-			ctx.ImageContainer = WicDecoder.Create(imgStream, ctx.WicContext);
+			ctx.ImageContainer = WicImageContainer.Create(imgStream, ctx.WicContext);
 
 			return fromImage(ctx, imgStream.Length, lastModified);
 		}
@@ -115,17 +115,18 @@ namespace PhotoSauce.MagicScaler
 			var frames = new FrameInfo[ctx.ImageContainer.FrameCount];
 			for (int i = 0; i < frames.Length; i++)
 			{
-				ctx.Settings.FrameIndex = i;
-				ctx.DecoderFrame = new WicFrameReader(ctx.ImageContainer, ctx.Settings, ctx.WicContext);
-				ctx.Source = ctx.DecoderFrame.Source!.AsPixelSource(nameof(WicFrameReader));
+				ctx.ImageFrame = ctx.ImageContainer.GetFrame(i);
+				ctx.Source = ((WicImageFrame)ctx.ImageFrame).Source;
 
 				WicTransforms.AddMetadataReader(ctx, basicOnly: true);
 
-				var frm = ctx.DecoderFrame;
-				var src = ctx.Source;
-				int width = frm.ExifOrientation.SwapsDimensions() ? src.Height : src.Width;
-				int height = frm.ExifOrientation.SwapsDimensions() ? src.Width : src.Height;
-				frames[i] = new FrameInfo(width, height, src.Format.AlphaRepresentation != PixelAlphaRepresentation.None, frm.ExifOrientation);
+				int width = ctx.Source.Width;
+				int height = ctx.Source.Height;
+				var orient = ctx.ImageFrame.ExifOrientation;
+				if (orient.SwapsDimensions())
+					(width, height) = (height, width);
+
+				frames[i] = new FrameInfo(width, height, ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None, orient);
 			}
 
 			return new ImageFileInfo(ctx.ImageContainer.ContainerFormat, frames, fileSize, fileDate);

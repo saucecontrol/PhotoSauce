@@ -9,24 +9,7 @@ using PhotoSauce.Interop.Wic;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal class WicFrame : IImageFrame
-	{
-		private readonly Lazy<IPixelSource> iSource;
-
-		public IWICBitmapFrameDecode Frame { get; }
-		public PixelSource Source { get; }
-
-		public IPixelSource PixelSource => iSource.Value;
-
-		public WicFrame(IWICBitmapFrameDecode frame)
-		{
-			Frame = frame;
-			Source = frame.AsPixelSource(nameof(IWICBitmapFrameDecode), false);
-			iSource = new Lazy<IPixelSource>(() => Source.AsIPixelSource());
-		}
-	}
-
-	internal class WicDecoder : IImageContainer
+	internal class WicImageContainer : IImageContainer
 	{
 		private static readonly IDictionary<Guid, FileFormat> formatMap = new Dictionary<Guid, FileFormat> {
 			[Consts.GUID_ContainerFormatBmp] = FileFormat.Bmp,
@@ -36,18 +19,21 @@ namespace PhotoSauce.MagicScaler
 			[Consts.GUID_ContainerFormatTiff] = FileFormat.Tiff
 		};
 
-		public IWICBitmapDecoder Decoder { get; }
+		private readonly WicPipelineContext wicContext;
+
+		public IWICBitmapDecoder WicDecoder { get; }
 		public Guid WicContainerFormat { get; }
 		public FileFormat ContainerFormat { get; }
 		public int FrameCount { get; }
 
 		public bool IsRawContainer => WicContainerFormat == Consts.GUID_ContainerFormatRaw || WicContainerFormat == Consts.GUID_ContainerFormatRaw2 || WicContainerFormat == Consts.GUID_ContainerFormatAdng;
 
-		public IImageFrame GetFrame(int index) => new WicFrame(Decoder.GetFrame((uint)index));
+		public IImageFrame GetFrame(int index) => new WicImageFrame(this, (uint)index, wicContext);
 
-		private WicDecoder(IWICBitmapDecoder dec, WicPipelineContext ctx)
+		private WicImageContainer(IWICBitmapDecoder dec, WicPipelineContext ctx)
 		{
-			Decoder = ctx.AddRef(dec);
+			wicContext = ctx;
+			WicDecoder = ctx.AddRef(dec);
 
 			WicContainerFormat = dec.GetContainerFormat();
 			ContainerFormat = formatMap.GetValueOrDefault(WicContainerFormat, FileFormat.Unknown);
@@ -66,22 +52,22 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		public static WicDecoder Create(string fileName, WicPipelineContext ctx)
+		public static WicImageContainer Create(string fileName, WicPipelineContext ctx)
 		{
 			var dec = createDecoder(() => Wic.Factory.CreateDecoderFromFilename(fileName, null, GenericAccessRights.GENERIC_READ, WICDecodeOptions.WICDecodeMetadataCacheOnDemand));
-			return new WicDecoder(dec, ctx);
+			return new WicImageContainer(dec, ctx);
 		}
 
-		public static WicDecoder Create(Stream inFile, WicPipelineContext ctx)
+		public static WicImageContainer Create(Stream inFile, WicPipelineContext ctx)
 		{
 			var stm = ctx.AddRef(Wic.Factory.CreateStream());
 			stm.InitializeFromIStream(inFile.AsIStream());
 
 			var dec = createDecoder(() => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand));
-			return new WicDecoder(dec, ctx);
+			return new WicImageContainer(dec, ctx);
 		}
 
-		unsafe public static WicDecoder Create(ReadOnlySpan<byte> inBuffer, WicPipelineContext ctx)
+		unsafe public static WicImageContainer Create(ReadOnlySpan<byte> inBuffer, WicPipelineContext ctx)
 		{
 			fixed (byte* pbBuffer = inBuffer)
 			{
@@ -89,7 +75,7 @@ namespace PhotoSauce.MagicScaler
 				stm.InitializeFromMemory((IntPtr)pbBuffer, (uint)inBuffer.Length);
 
 				var dec = createDecoder(() => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand));
-				return new WicDecoder(dec, ctx);
+				return new WicImageContainer(dec, ctx);
 			}
 		}
 	}
@@ -137,13 +123,22 @@ namespace PhotoSauce.MagicScaler
 
 			frame.Initialize(bag);
 			frame.SetSize((uint)ctx.Source.Width, (uint)ctx.Source.Height);
-			frame.SetResolution(ctx.Settings.DpiX > 0d ? ctx.Settings.DpiX : ctx.DecoderFrame.DpiX, ctx.Settings.DpiY > 0d ? ctx.Settings.DpiY : ctx.DecoderFrame.DpiY);
+			frame.SetResolution(ctx.Settings.DpiX > 0d ? ctx.Settings.DpiX : ctx.ImageFrame.DpiX, ctx.Settings.DpiY > 0d ? ctx.Settings.DpiY : ctx.ImageFrame.DpiY);
 
-			if (ctx.DecoderFrame.Metadata?.Count > 0 && frame.TryGetMetadataQueryWriter(out var metawriter))
+			if (frame.TryGetMetadataQueryWriter(out var metawriter))
 			{
 				ctx.WicContext.AddRef(metawriter);
-				foreach (var nv in ctx.DecoderFrame.Metadata)
-					metawriter.TrySetMetadataByName(nv.Key, nv.Value);
+				if (ctx.ImageFrame is WicImageFrame wicFrame && wicFrame.Metadata.Count > 0)
+				{
+					foreach (var nv in wicFrame.Metadata)
+						metawriter.TrySetMetadataByName(nv.Key, nv.Value);
+				}
+
+				if (ctx.Settings.OrientationMode == OrientationMode.Preserve && ctx.ImageFrame.ExifOrientation != Orientation.Normal)
+				{
+					string orientationPath = ctx.Settings.SaveFormat == FileFormat.Jpeg ? WicTransforms.OrientationJpegPath : WicTransforms.OrientationExifPath;
+					metawriter.TrySetMetadataByName(orientationPath, new PropVariant((ushort)ctx.ImageFrame.ExifOrientation));
+				}
 			}
 
 			if (!(ctx.WicContext.DestColorContext is null) && (ctx.Settings.ColorProfileMode == ColorProfileMode.NormalizeAndEmbed || ctx.Settings.ColorProfileMode == ColorProfileMode.Preserve))
@@ -162,12 +157,12 @@ namespace PhotoSauce.MagicScaler
 
 		public void WriteSource(PipelineContext ctx)
 		{
-			if (!(ctx.PlanarSourceY is null || ctx.PlanarSourceCbCr is null))
+			if (ctx.PlanarContext != null)
 			{
 				var oformat = Consts.GUID_WICPixelFormat24bppBGR;
 				Frame.SetPixelFormat(ref oformat);
 
-				var planes = new[] { ctx.PlanarSourceY.WicSource, ctx.PlanarSourceCbCr.WicSource };
+				var planes = new[] { ctx.PlanarContext.SourceY.WicSource, ctx.PlanarContext.SourceCbCr.WicSource };
 				((IWICPlanarBitmapFrameEncode)Frame).WriteSource(planes, (uint)planes.Length, WICRect.Null);
 			}
 			else

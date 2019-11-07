@@ -14,7 +14,8 @@ namespace PhotoSauce.MagicScaler
 		protected readonly PixelFormat InFormat;
 		protected readonly CurveProfile SourceProfile;
 		protected readonly CurveProfile DestProfile;
-		protected readonly IMemoryOwner<byte> LineBuff;
+
+		protected byte[] LineBuff;
 
 		public FormatConversionTransformInternal(PixelSource source, ColorProfile? sourceProfile, ColorProfile? destProfile, Guid destFormat) : base(source)
 		{
@@ -22,12 +23,12 @@ namespace PhotoSauce.MagicScaler
 			Format = PixelFormat.FromGuid(destFormat);
 			SourceProfile = sourceProfile as CurveProfile ?? ColorProfile.sRGB;
 			DestProfile = destProfile as CurveProfile ?? ColorProfile.sRGB;
-			LineBuff = MemoryPool<byte>.Shared.Rent(BufferStride);
+			LineBuff = ArrayPool<byte>.Shared.Rent(BufferStride);
 		}
 
 		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
-			fixed (byte* bstart = LineBuff.Memory.Span)
+			fixed (byte* bstart = &LineBuff[0])
 			{
 				int oh = prc.Height, oy = prc.Y;
 				int cb = DivCeiling(prc.Width * InFormat.BitsPerPixel, 8);
@@ -783,7 +784,8 @@ namespace PhotoSauce.MagicScaler
 
 		public void Dispose()
 		{
-			LineBuff.Dispose();
+			ArrayPool<byte>.Shared.Return(LineBuff ?? Array.Empty<byte>());
+			LineBuff = null!;
 		}
 
 		public override string ToString() => $"{base.ToString()}: {InFormat.Name}->{Format.Name}";

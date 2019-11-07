@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Numerics;
+using System.Diagnostics;
 using System.ComponentModel;
 
 using PhotoSauce.Interop.Wic;
@@ -47,7 +48,7 @@ namespace PhotoSauce.MagicScaler
 			checkOutStream(outStream);
 
 			using var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicDecoder.Create(imgPath, ctx.WicContext);
+			ctx.ImageContainer = WicImageContainer.Create(imgPath, ctx.WicContext);
 
 			buildPipeline(ctx);
 			return executePipeline(ctx, outStream);
@@ -64,7 +65,7 @@ namespace PhotoSauce.MagicScaler
 			checkOutStream(outStream);
 
 			using var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicDecoder.Create(imgBuffer, ctx.WicContext);
+			ctx.ImageContainer = WicImageContainer.Create(imgBuffer, ctx.WicContext);
 
 			buildPipeline(ctx);
 			return executePipeline(ctx, outStream);
@@ -81,7 +82,7 @@ namespace PhotoSauce.MagicScaler
 			checkOutStream(outStream);
 
 			using var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicDecoder.Create(imgStream, ctx.WicContext);
+			ctx.ImageContainer = WicImageContainer.Create(imgStream, ctx.WicContext);
 
 			buildPipeline(ctx);
 			return executePipeline(ctx, outStream);
@@ -114,7 +115,7 @@ namespace PhotoSauce.MagicScaler
 			if (imgPath is null) throw new ArgumentNullException(nameof(imgPath));
 
 			var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicDecoder.Create(imgPath, ctx.WicContext);
+			ctx.ImageContainer = WicImageContainer.Create(imgPath, ctx.WicContext);
 
 			buildPipeline(ctx, false);
 			return new ProcessingPipeline(ctx);
@@ -129,7 +130,7 @@ namespace PhotoSauce.MagicScaler
 			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
 
 			var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicDecoder.Create(imgBuffer, ctx.WicContext);
+			ctx.ImageContainer = WicImageContainer.Create(imgBuffer, ctx.WicContext);
 
 			buildPipeline(ctx, false);
 			return new ProcessingPipeline(ctx);
@@ -144,7 +145,7 @@ namespace PhotoSauce.MagicScaler
 			checkInStream(imgStream);
 
 			var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicDecoder.Create(imgStream, ctx.WicContext);
+			ctx.ImageContainer = WicImageContainer.Create(imgStream, ctx.WicContext);
 
 			buildPipeline(ctx, false);
 			return new ProcessingPipeline(ctx);
@@ -175,13 +176,16 @@ namespace PhotoSauce.MagicScaler
 
 		private static void buildPipeline(PipelineContext ctx, bool outputPlanar = true)
 		{
+			ctx.ImageFrame = ctx.ImageContainer.GetFrame(ctx.Settings.FrameIndex);
+
 			bool processPlanar = false;
-			ctx.DecoderFrame = new WicFrameReader(ctx.ImageContainer, ctx.Settings, ctx.WicContext);
-			if (ctx.DecoderFrame.Source != null)
+			var wicFrame = ctx.ImageFrame as WicImageFrame;
+
+			if (wicFrame != null)
 			{
-				processPlanar = EnablePlanarPipeline && ctx.DecoderFrame.SupportsPlanarProcessing;
-				bool preserveNative = processPlanar || (ctx.DecoderFrame.SupportsNativeScale && ctx.Settings.HybridScaleRatio > 1);
-				ctx.Source = ctx.DecoderFrame.Source.AsPixelSource(nameof(IWICBitmapFrameDecode), !preserveNative);
+				processPlanar = EnablePlanarPipeline && wicFrame.SupportsPlanarProcessing && ctx.Settings.Interpolation.WeightingFunction.Support >= 0.5d;
+				bool profilingPassThrough = processPlanar || (wicFrame.SupportsNativeScale && ctx.Settings.HybridScaleRatio > 1);
+				ctx.Source = wicFrame.WicSource.AsPixelSource(nameof(IWICBitmapFrameDecode), !profilingPassThrough);
 			}
 
 			WicTransforms.AddMetadataReader(ctx);
@@ -195,17 +199,17 @@ namespace PhotoSauce.MagicScaler
 
 			if (processPlanar)
 			{
-				if (!ctx.Settings.AutoCrop && ctx.Settings.HybridScaleRatio == 1)
+				if (wicFrame != null && !ctx.Settings.AutoCrop && ctx.Settings.HybridScaleRatio == 1)
 				{
-					var orCrop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.DecoderFrame.ExifOrientation, ctx.Source.Width, ctx.Source.Height);
+					var orCrop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height);
 
-					if (ctx.DecoderFrame.ChromaSubsampling.IsSubsampledX() && ((orCrop.X & 1) != 0 || (orCrop.Width & 1) != 0))
+					if (wicFrame.ChromaSubsampling.IsSubsampledX() && ((orCrop.X & 1) != 0 || (orCrop.Width & 1) != 0))
 						processPlanar = false;
-					if (ctx.DecoderFrame.ChromaSubsampling.IsSubsampledY() && ((orCrop.Y & 1) != 0 || (orCrop.Height & 1) != 0))
+					if (wicFrame.ChromaSubsampling.IsSubsampledY() && ((orCrop.Y & 1) != 0 || (orCrop.Height & 1) != 0))
 						processPlanar = false;
 				}
 
-				if (ctx.Settings.SaveFormat == FileFormat.Jpeg && ctx.DecoderFrame.ExifOrientation.SwapsDimensions())
+				if (ctx.Settings.SaveFormat == FileFormat.Jpeg && ctx.Orientation.SwapsDimensions())
 				{
 					if (subsample.IsSubsampledX() && (ctx.Settings.InnerRect.Width & 1) != 0)
 						outputPlanar = false;
@@ -216,23 +220,24 @@ namespace PhotoSauce.MagicScaler
 
 			if (processPlanar)
 			{
-				var orient = ctx.DecoderFrame.ExifOrientation;
+				var orient = ctx.Orientation;
 				bool savePlanar = outputPlanar
 					&& ctx.Settings.SaveFormat == FileFormat.Jpeg
 					&& ctx.Settings.InnerRect == ctx.Settings.OuterRect
 					&& ctx.WicContext.SourceColorContext is null;
 
 				WicTransforms.AddPlanarCache(ctx);
+				Debug.Assert(ctx.PlanarContext != null);
 
 				MagicTransforms.AddHighQualityScaler(ctx);
 				MagicTransforms.AddUnsharpMask(ctx);
 				MagicTransforms.AddExternalFormatConverter(ctx);
 				MagicTransforms.AddExifFlipRotator(ctx);
 
-				ctx.PlanarSourceY = ctx.Source;
-				ctx.Source = ctx.WicContext.PlanarCache!.GetPlane(WicPlane.CbCr);
+				ctx.PlanarContext.SourceY = ctx.Source;
+				ctx.Source = ctx.PlanarContext.SourceCbCr;
 
-				ctx.DecoderFrame.ExifOrientation = orient;
+				ctx.Orientation = orient;
 				ctx.Settings.Crop = ctx.Source.Area.ReOrient(orient, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
 
 				if (savePlanar)
@@ -247,8 +252,8 @@ namespace PhotoSauce.MagicScaler
 				MagicTransforms.AddExternalFormatConverter(ctx);
 				MagicTransforms.AddExifFlipRotator(ctx);
 
-				ctx.PlanarSourceCbCr = ctx.Source;
-				ctx.Source = ctx.PlanarSourceY;
+				ctx.PlanarContext.SourceCbCr = ctx.Source;
+				ctx.Source = ctx.PlanarContext.SourceY;
 
 				if (!savePlanar)
 				{

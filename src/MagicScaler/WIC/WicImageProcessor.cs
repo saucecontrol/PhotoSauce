@@ -14,7 +14,7 @@ namespace PhotoSauce.MagicScaler
 		public static ProcessImageResult ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
 		{
 			using var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicDecoder.Create(imgPath, ctx.WicContext);
+			ctx.ImageContainer = WicImageContainer.Create(imgPath, ctx.WicContext);
 
 			return processImage(ctx, outStream);
 		}
@@ -22,7 +22,7 @@ namespace PhotoSauce.MagicScaler
 		public static ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
 			using var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicDecoder.Create(imgBuffer, ctx.WicContext);
+			ctx.ImageContainer = WicImageContainer.Create(imgBuffer, ctx.WicContext);
 
 			return processImage(ctx, outStream);
 		}
@@ -30,15 +30,15 @@ namespace PhotoSauce.MagicScaler
 		public static ProcessImageResult ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings)
 		{
 			using var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicDecoder.Create(imgStream, ctx.WicContext);
+			ctx.ImageContainer = WicImageContainer.Create(imgStream, ctx.WicContext);
 
 			return processImage(ctx, outStream);
 		}
 
 		private static ProcessImageResult processImage(PipelineContext ctx, Stream ostm)
 		{
-			ctx.DecoderFrame = new WicFrameReader(ctx.ImageContainer, ctx.Settings, ctx.WicContext);
-			ctx.Source = ctx.DecoderFrame.Source!.AsPixelSource(nameof(IWICBitmapFrameDecode));
+			ctx.ImageFrame = ctx.ImageContainer.GetFrame(ctx.Settings.FrameIndex);
+			ctx.Source = ((WicImageFrame)ctx.ImageFrame).Source;
 
 			WicTransforms.AddMetadataReader(ctx);
 

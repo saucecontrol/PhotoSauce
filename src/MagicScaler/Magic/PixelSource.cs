@@ -7,26 +7,29 @@ namespace PhotoSauce.MagicScaler
 {
 	internal abstract class PixelSource
 	{
+		private IWICBitmapSource? wicSource;
+
+		protected IPixelSourceProfiler Profiler { get; }
+		protected PixelSource Source { get; }
+		protected int BufferStride { get; set; }
+
 		public PixelFormat Format { get; protected set; }
 		public int Width { get; protected set; }
 		public int Height { get; protected set; }
-		public IWICBitmapSource WicSource { get; protected set; }
-
-		protected IPixelSourceProfiler Profiler { get; }
-		protected PixelSource Source { get; set; }
-		protected int BufferStride { get; set; }
 
 		public PixelArea Area => new PixelArea(0, 0, Width, Height);
 
 		public PixelSourceStats? Stats => Profiler is SourceStatsProfiler ps ? ps.Stats : null;
 
+		public IWICBitmapSource WicSource => wicSource ??= this.AsIWICBitmapSource();
+
 		protected PixelSource() : this(default(IWICBitmapSource)) { }
 
-		protected PixelSource(IWICBitmapSource? wicSource)
+		protected PixelSource(IWICBitmapSource? wrapWicSource)
 		{
-			Profiler = MagicImageProcessor.EnablePixelSourceStats ? new SourceStatsProfiler(this) : NoopProfiler.Instance;
-			WicSource = wicSource ?? this.AsIWICBitmapSource();
 			Source = this;
+			Profiler = MagicImageProcessor.EnablePixelSourceStats ? new SourceStatsProfiler(this) : NoopProfiler.Instance;
+			wicSource = wrapWicSource;
 		}
 
 		protected PixelSource(PixelSource source) : this(default(IWICBitmapSource))
@@ -66,6 +69,10 @@ namespace PhotoSauce.MagicScaler
 
 	internal class PixelSourceFrame : IImageFrame
 	{
+		public double DpiX { get; } = 96d;
+		public double DpiY { get; } = 96d;
+		public Orientation ExifOrientation { get; set; } = Orientation.Normal;
+
 		public IPixelSource PixelSource { get; }
 
 		public PixelSourceFrame(IPixelSource source) => PixelSource = source;
@@ -97,11 +104,13 @@ namespace PhotoSauce.MagicScaler
 		{
 			private readonly IWICBitmapSource upstreamSource;
 			private readonly string sourceName;
+			private readonly bool profiling;
 
 			public PixelSourceFromIWICBitmapSource(IWICBitmapSource source, string name, bool profile = true) : base(profile ? null : source)
 			{
 				upstreamSource = source;
-				sourceName = profile ? name : $"{name} (nonprofiling)";
+				sourceName = name;
+				profiling = profile;
 				source.GetSize(out uint width, out uint height);
 				Format = PixelFormat.FromGuid(source.GetPixelFormat());
 				Width = (int)width;
@@ -111,7 +120,7 @@ namespace PhotoSauce.MagicScaler
 			protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer) =>
 				upstreamSource.CopyPixels(prc.ToWicRect(), (uint)cbStride, (uint)cbBufferSize, pbBuffer);
 
-			public override string ToString() => sourceName;
+			public override string ToString() => profiling ? sourceName : $"{sourceName} (nonprofiling)";
 		}
 
 		private class PixelSourceAsIWICBitmapSource : IWICBitmapSource

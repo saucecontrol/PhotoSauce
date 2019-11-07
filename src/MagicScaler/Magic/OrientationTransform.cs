@@ -31,8 +31,9 @@ namespace PhotoSauce.MagicScaler
 		private readonly Orientation orient;
 		private readonly PixelArea srcArea;
 		private readonly PixelBuffer? srcBuff;
-		private readonly IMemoryOwner<byte>? lineBuff;
 		private readonly int bytesPerPixel;
+
+		private byte[]? lineBuff;
 
 		public OrientationTransformInternal(PixelSource source, Orientation orientation, PixelArea crop) : base(source)
 		{
@@ -52,7 +53,7 @@ namespace PhotoSauce.MagicScaler
 
 			if (orient.SwapsDimensions())
 			{
-				lineBuff = MemoryPool<byte>.Shared.Rent(BufferStride);
+				lineBuff = ArrayPool<byte>.Shared.Rent(BufferStride);
 				BufferStride = MathUtil.PowerOfTwoCeiling(Width * bytesPerPixel, IntPtr.Size);
 			}
 
@@ -147,7 +148,7 @@ namespace PhotoSauce.MagicScaler
 
 			int cb = srcArea.Width * bytesPerPixel;
 
-			fixed (byte* lp = lineBuff!.Memory.Span)
+			fixed (byte* lp = &lineBuff![0])
 			{
 				for (int y = 0; y < srcArea.Height; y++)
 				{
@@ -264,7 +265,9 @@ namespace PhotoSauce.MagicScaler
 		public void Dispose()
 		{
 			srcBuff?.Dispose();
-			lineBuff?.Dispose();
+
+			ArrayPool<byte>.Shared.Return(lineBuff ?? Array.Empty<byte>());
+			lineBuff = null;
 		}
 	}
 

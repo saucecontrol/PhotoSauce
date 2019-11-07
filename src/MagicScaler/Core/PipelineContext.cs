@@ -6,25 +6,39 @@ namespace PhotoSauce.MagicScaler
 {
 	internal class PipelineContext : IDisposable
 	{
-		private readonly Stack<IDisposable> disposeHandles = new Stack<IDisposable>();
-		private readonly List<PixelSource> allSources = new List<PixelSource>();
+		internal class PlanarPipelineContext
+		{
+			public PixelSource SourceY;
+			public PixelSource SourceCbCr;
+
+			public PlanarPipelineContext(PixelSource sourceY, PixelSource sourceCbCr)
+			{
+				SourceY = sourceY;
+				SourceCbCr = sourceCbCr;
+			}
+		}
+
+		private readonly Stack<IDisposable> disposeHandles = new Stack<IDisposable>(16);
+		private readonly List<PixelSource> allSources = new List<PixelSource>(8);
 
 		private PixelSource? source;
+		private WicPipelineContext? wicContext;
 
-		public WicPipelineContext WicContext { get; }
 		public ProcessImageSettings Settings { get; }
 		public ProcessImageSettings UsedSettings { get; private set; }
+		public Orientation Orientation { get; set; }
 
 		public IImageContainer ImageContainer { get; set; }
-		public WicFrameReader DecoderFrame { get; set; }
+		public IImageFrame ImageFrame { get; set; }
 
-		public PixelSource? PlanarSourceY { get; set; }
-		public PixelSource? PlanarSourceCbCr { get; set; }
+		public PlanarPipelineContext? PlanarContext { get; set; }
 
 		public ColorProfile? SourceColorProfile { get; set; }
 		public ColorProfile? DestColorProfile { get; set; }
 
 		public IEnumerable<PixelSourceStats> Stats => MagicImageProcessor.EnablePixelSourceStats ? allSources.Select(s => s.Stats!) : Enumerable.Empty<PixelSourceStats>();
+
+		public WicPipelineContext WicContext => wicContext ??= AddDispose(new WicPipelineContext());
 
 		public PixelSource Source
 		{
@@ -40,12 +54,11 @@ namespace PhotoSauce.MagicScaler
 		public PipelineContext(ProcessImageSettings settings)
 		{
 			Settings = settings.Clone();
-			WicContext = AddDispose(new WicPipelineContext());
 
 			// HACK this quiets the nullable warnings for now but needs refactoring
 			UsedSettings = null!;
 			ImageContainer = null!;
-			DecoderFrame = null!;
+			ImageFrame = null!;
 		}
 
 		public T AddDispose<T>(T disposeHandle) where T : IDisposable
@@ -57,9 +70,11 @@ namespace PhotoSauce.MagicScaler
 
 		public void FinalizeSettings()
 		{
+			Orientation = Settings.OrientationMode == OrientationMode.Normalize ? ImageFrame.ExifOrientation : Orientation.Normal;
+
 			if (!Settings.Normalized)
 			{
-				Settings.Fixup(Source.Width, Source.Height, DecoderFrame.ExifOrientation.SwapsDimensions());
+				Settings.Fixup(Source.Width, Source.Height, Orientation.SwapsDimensions());
 
 				if (Settings.SaveFormat == FileFormat.Auto)
 					Settings.SetSaveFormat(ImageContainer.ContainerFormat, Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
@@ -71,7 +86,7 @@ namespace PhotoSauce.MagicScaler
 		public void Dispose()
 		{
 			while (disposeHandles.Count > 0)
-				disposeHandles.Pop()?.Dispose();
+				disposeHandles.Pop().Dispose();
 		}
 	}
 }

@@ -83,7 +83,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddHighQualityScaler(PipelineContext ctx, bool hybrid = false)
 		{
-			bool swap = ctx.DecoderFrame.ExifOrientation.SwapsDimensions();
+			bool swap = ctx.Orientation.SwapsDimensions();
 			var srect = ctx.Settings.InnerRect;
 
 			int width = swap ? srect.Height : srect.Width, height = swap ? srect.Width : srect.Height;
@@ -114,7 +114,7 @@ namespace PhotoSauce.MagicScaler
 			else
 				ctx.Source = ctx.AddDispose(ConvolutionTransform<byte, int>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory));
 
-			ctx.Settings.Crop = ctx.Source.Area.ReOrient(ctx.DecoderFrame.ExifOrientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
+			ctx.Settings.Crop = ctx.Source.Area.ReOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
 		}
 
 		public static void AddUnsharpMask(PipelineContext ctx)
@@ -165,12 +165,12 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddCropper(PipelineContext ctx)
 		{
-			var crop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.DecoderFrame.ExifOrientation, ctx.Source.Width, ctx.Source.Height);
+			var crop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height);
 			if (crop == ctx.Source.Area)
 				return;
 
 			ctx.Source = new CropTransform(ctx.Source, crop);
-			ctx.Settings.Crop = ctx.Source.Area.ReOrient(ctx.DecoderFrame.ExifOrientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
+			ctx.Settings.Crop = ctx.Source.Area.ReOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
 		}
 
 		public static void AddFlipRotator(PipelineContext ctx, Orientation orientation)
@@ -182,10 +182,10 @@ namespace PhotoSauce.MagicScaler
 
 			ctx.Source = new OrientationTransformInternal(ctx.Source, orientation, PixelArea.FromGdiRect(ctx.Settings.Crop));
 			ctx.Settings.Crop = ctx.Source.Area.ToGdiRect();
-			ctx.DecoderFrame.ExifOrientation = Orientation.Normal;
+			ctx.Orientation = Orientation.Normal;
 		}
 
-		public static void AddExifFlipRotator(PipelineContext ctx) => AddFlipRotator(ctx, ctx.DecoderFrame.ExifOrientation);
+		public static void AddExifFlipRotator(PipelineContext ctx) => AddFlipRotator(ctx, ctx.Orientation);
 
 		public static void AddColorspaceConverter(PipelineContext ctx)
 		{

@@ -25,6 +25,15 @@ namespace PhotoSauce.MagicScaler
 	/// <summary>A single image frame within an <see cref="IImageContainer" /></summary>
 	public interface IImageFrame
 	{
+		/// <summary>The horizontal resolution of the image frame, in dots per inch.  If the frame source has no resolution information, a default value of 72 or 96 is suitable.</summary>
+		double DpiX { get; }
+
+		/// <summary>The vertical resolution of the image frame, in dots per inch.  If the frame source has no resolution information, a default value of 72 or 96 is suitable.</summary>
+		double DpiY { get; }
+
+		/// <summary>The <see cref="Orientation"/> of the image frame.  If the frame source has no orientation information, a default value of <see cref="Orientation.Normal"/> is suitable.</summary>
+		Orientation ExifOrientation { get; }
+
 		/// <summary>The <see cref="IPixelSource" /> to retrieve pixels from this image frame.</summary>
 		IPixelSource PixelSource { get; }
 	}

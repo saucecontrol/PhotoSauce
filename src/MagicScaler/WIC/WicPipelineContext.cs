@@ -9,9 +9,7 @@ namespace PhotoSauce.MagicScaler
 {
 	internal class WicPipelineContext : IDisposable
 	{
-		private readonly Stack<object> comHandles = new Stack<object>();
-
-		public WicPlanarCache? PlanarCache { get; set; }
+		private readonly Stack<object> comHandles = new Stack<object>(8);
 
 		public IWICColorContext? SourceColorContext { get; set; }
 		public IWICColorContext? DestColorContext { get; set; }
