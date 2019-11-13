@@ -41,25 +41,25 @@ namespace PhotoSauce.MagicScaler
 		LinearRgb
 	}
 
-	internal struct PixelFormat : IEquatable<PixelFormat>
+	internal class PixelFormat : IEquatable<PixelFormat>
 	{
-		public Guid FormatGuid;
-		public string Name;
-		public bool IsWicNative;
-		public int BitsPerPixel;
-		public int ChannelCount;
-		public PixelNumericRepresentation NumericRepresentation;
-		public PixelColorRepresentation ColorRepresentation;
-		public PixelAlphaRepresentation AlphaRepresentation;
-		public PixelColorspace Colorspace;
+		public readonly Guid FormatGuid;
+		public readonly string Name;
+		public readonly bool IsWicNative;
+		public readonly int BitsPerPixel;
+		public readonly int ChannelCount;
+		public readonly PixelNumericRepresentation NumericRepresentation;
+		public readonly PixelColorRepresentation ColorRepresentation;
+		public readonly PixelAlphaRepresentation AlphaRepresentation;
+		public readonly PixelColorspace Colorspace;
 
-		public readonly bool Equals(PixelFormat other) => FormatGuid == other.FormatGuid;
+		public bool Equals(PixelFormat other) => FormatGuid == other.FormatGuid;
 
 		public static bool operator ==(PixelFormat left, PixelFormat right) => left.Equals(right);
 		public static bool operator !=(PixelFormat left, PixelFormat right) => !left.Equals(right);
 
-		public readonly override bool Equals(object? o) => o is PixelFormat pf ? Equals(pf) : false;
-		public readonly override int GetHashCode() => FormatGuid.GetHashCode();
+		public override bool Equals(object? o) => o is PixelFormat pf ? Equals(pf) : false;
+		public override int GetHashCode() => FormatGuid.GetHashCode();
 
 		public bool IsBinaryCompatibleWith(PixelFormat other) =>
 			BitsPerPixel == other.BitsPerPixel &&
@@ -69,186 +69,202 @@ namespace PhotoSauce.MagicScaler
 			AlphaRepresentation == other.AlphaRepresentation &&
 			Colorspace == other.Colorspace;
 
+		private PixelFormat(Guid guid, string name, int bpp, int channels, PixelNumericRepresentation numericRepresentation,
+			PixelColorRepresentation colorRepresentation = PixelColorRepresentation.Unspecified, PixelAlphaRepresentation alphaRepresentation = PixelAlphaRepresentation.None,
+			PixelColorspace colorspace = PixelColorspace.Unspecified, bool isWic = false
+		)
+		{
+			FormatGuid = guid;
+			Name = name;
+			IsWicNative = isWic;
+			BitsPerPixel = bpp;
+			ChannelCount = channels;
+			NumericRepresentation = numericRepresentation;
+			ColorRepresentation = colorRepresentation;
+			AlphaRepresentation = alphaRepresentation;
+			Colorspace = colorspace;
+		}
+
 		private static readonly Lazy<ReadOnlyDictionary<Guid, PixelFormat>> cache = new Lazy<ReadOnlyDictionary<Guid, PixelFormat>>(getFormatCache);
 
-		public static readonly PixelFormat Grey16BppUQ15 = new PixelFormat {
-			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0x9F),
-			Name = "16bpp Grey UQ15",
-			BitsPerPixel = 16,
-			ChannelCount = 1,
-			NumericRepresentation = PixelNumericRepresentation.Fixed,
-			ColorRepresentation = PixelColorRepresentation.Grey,
-			Colorspace = PixelColorspace.sRgb
-		};
+		public static readonly PixelFormat Grey16BppUQ15 = new PixelFormat(
+			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0x9F),
+			name: "16bpp Grey UQ15",
+			bpp: 16,
+			channels: 1,
+			numericRepresentation: PixelNumericRepresentation.Fixed,
+			colorRepresentation: PixelColorRepresentation.Grey,
+			colorspace: PixelColorspace.sRgb
+		);
 
-		public static readonly PixelFormat Grey16BppLinearUQ15 = new PixelFormat {
-			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA0),
-			Name = "16bpp Grey UQ15 Linear",
-			BitsPerPixel = 16,
-			ChannelCount = 1,
-			NumericRepresentation = PixelNumericRepresentation.Fixed,
-			ColorRepresentation = PixelColorRepresentation.Grey,
-			Colorspace = PixelColorspace.LinearRgb
-		};
+		public static readonly PixelFormat Grey16BppLinearUQ15 = new PixelFormat(
+			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA0),
+			name: "16bpp Grey UQ15 Linear",
+			bpp: 16,
+			channels: 1,
+			numericRepresentation: PixelNumericRepresentation.Fixed,
+			colorRepresentation: PixelColorRepresentation.Grey,
+			colorspace: PixelColorspace.LinearRgb
+		);
 
-		public static readonly PixelFormat Grey32BppFloat = new PixelFormat {
-			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0x9E),
-			Name = "32bpp Grey Float",
-			BitsPerPixel = 32,
-			ChannelCount = 1,
-			NumericRepresentation = PixelNumericRepresentation.Float,
-			ColorRepresentation = PixelColorRepresentation.Grey,
-			Colorspace = PixelColorspace.sRgb
-		};
+		public static readonly PixelFormat Grey32BppFloat = new PixelFormat(
+			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0x9E),
+			name: "32bpp Grey Float",
+			bpp: 32,
+			channels: 1,
+			numericRepresentation: PixelNumericRepresentation.Float,
+			colorRepresentation: PixelColorRepresentation.Grey,
+			colorspace: PixelColorspace.sRgb
+		);
 
-		public static readonly PixelFormat Grey32BppLinearFloat = new PixelFormat {
-			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA1),
-			Name = "32bpp Grey Float Linear",
-			BitsPerPixel = 32,
-			ChannelCount = 1,
-			NumericRepresentation = PixelNumericRepresentation.Float,
-			ColorRepresentation = PixelColorRepresentation.Grey,
-			Colorspace = PixelColorspace.LinearRgb
-		};
+		public static readonly PixelFormat Grey32BppLinearFloat = new PixelFormat(
+			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA1),
+			name: "32bpp Grey Float Linear",
+			bpp: 32,
+			channels: 1,
+			numericRepresentation: PixelNumericRepresentation.Float,
+			colorRepresentation: PixelColorRepresentation.Grey,
+			colorspace: PixelColorspace.LinearRgb
+		);
 
-		public static readonly PixelFormat Bgr48BppLinearUQ15 = new PixelFormat {
-			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA2),
-			Name = "48bpp BGR UQ15 Linear",
-			BitsPerPixel = 48,
-			ChannelCount = 3,
-			NumericRepresentation = PixelNumericRepresentation.Fixed,
-			ColorRepresentation = PixelColorRepresentation.Bgr,
-			Colorspace = PixelColorspace.LinearRgb
-		};
+		public static readonly PixelFormat Bgr48BppLinearUQ15 = new PixelFormat(
+			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA2),
+			name: "48bpp BGR UQ15 Linear",
+			bpp: 48,
+			channels: 3,
+			numericRepresentation: PixelNumericRepresentation.Fixed,
+			colorRepresentation: PixelColorRepresentation.Bgr,
+			colorspace: PixelColorspace.LinearRgb
+		);
 
-		public static readonly PixelFormat Bgr96BppFloat = new PixelFormat {
-			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA3),
-			Name = "96bpp BGR Float",
-			BitsPerPixel = 96,
-			ChannelCount = 3,
-			NumericRepresentation = PixelNumericRepresentation.Float,
-			ColorRepresentation = PixelColorRepresentation.Bgr,
-			Colorspace = PixelColorspace.sRgb
-		};
+		public static readonly PixelFormat Bgr96BppFloat = new PixelFormat(
+			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA3),
+			name: "96bpp BGR Float",
+			bpp: 96,
+			channels: 3,
+			numericRepresentation: PixelNumericRepresentation.Float,
+			colorRepresentation: PixelColorRepresentation.Bgr,
+			colorspace: PixelColorspace.sRgb
+		);
 
-		public static readonly PixelFormat Bgr96BppLinearFloat = new PixelFormat {
-			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA4),
-			Name = "96bpp BGR Float Linear",
-			BitsPerPixel = 96,
-			ChannelCount = 3,
-			NumericRepresentation = PixelNumericRepresentation.Float,
-			ColorRepresentation = PixelColorRepresentation.Bgr,
-			Colorspace = PixelColorspace.LinearRgb
-		};
+		public static readonly PixelFormat Bgr96BppLinearFloat = new PixelFormat(
+			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA4),
+			name: "96bpp BGR Float Linear",
+			bpp: 96,
+			channels: 3,
+			numericRepresentation: PixelNumericRepresentation.Float,
+			colorRepresentation: PixelColorRepresentation.Bgr,
+			colorspace: PixelColorspace.LinearRgb
+		);
 
-		public static readonly PixelFormat Pbgra64BppLinearUQ15 = new PixelFormat {
-			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA6),
-			Name = "64bpp pBGRA UQ15 Linear",
-			BitsPerPixel = 64,
-			ChannelCount = 4,
-			NumericRepresentation = PixelNumericRepresentation.Fixed,
-			ColorRepresentation = PixelColorRepresentation.Bgr,
-			AlphaRepresentation = PixelAlphaRepresentation.Associated,
-			Colorspace = PixelColorspace.LinearRgb
-		};
+		public static readonly PixelFormat Pbgra64BppLinearUQ15 = new PixelFormat(
+			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA6),
+			name: "64bpp pBGRA UQ15 Linear",
+			bpp: 64,
+			channels: 4,
+			numericRepresentation: PixelNumericRepresentation.Fixed,
+			colorRepresentation: PixelColorRepresentation.Bgr,
+			alphaRepresentation: PixelAlphaRepresentation.Associated,
+			colorspace: PixelColorspace.LinearRgb
+		);
 
-		public static readonly PixelFormat Pbgra128BppFloat = new PixelFormat {
-			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA7),
-			Name = "128bpp pBGRA Float",
-			BitsPerPixel = 128,
-			ChannelCount = 4,
-			NumericRepresentation = PixelNumericRepresentation.Float,
-			ColorRepresentation = PixelColorRepresentation.Bgr,
-			AlphaRepresentation = PixelAlphaRepresentation.Associated,
-			Colorspace = PixelColorspace.sRgb
-		};
+		public static readonly PixelFormat Pbgra128BppFloat = new PixelFormat(
+			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA7),
+			name: "128bpp pBGRA Float",
+			bpp: 128,
+			channels: 4,
+			numericRepresentation: PixelNumericRepresentation.Float,
+			colorRepresentation: PixelColorRepresentation.Bgr,
+			alphaRepresentation: PixelAlphaRepresentation.Associated,
+			colorspace: PixelColorspace.sRgb
+		);
 
-		public static readonly PixelFormat Pbgra128BppLinearFloat = new PixelFormat {
-			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA8),
-			Name = "128bpp pBGRA Float Linear",
-			BitsPerPixel = 128,
-			ChannelCount = 4,
-			NumericRepresentation = PixelNumericRepresentation.Float,
-			ColorRepresentation = PixelColorRepresentation.Bgr,
-			AlphaRepresentation = PixelAlphaRepresentation.Associated,
-			Colorspace = PixelColorspace.LinearRgb
-		};
+		public static readonly PixelFormat Pbgra128BppLinearFloat = new PixelFormat(
+			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA8),
+			name: "128bpp pBGRA Float Linear",
+			bpp: 128,
+			channels: 4,
+			numericRepresentation: PixelNumericRepresentation.Float,
+			colorRepresentation: PixelColorRepresentation.Bgr,
+			alphaRepresentation: PixelAlphaRepresentation.Associated,
+			colorspace: PixelColorspace.LinearRgb
+		);
 
-		public static readonly PixelFormat Y16BppLinearUQ15 = new PixelFormat {
-			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA9),
-			Name = "16bpp Y UQ15 Linear",
-			BitsPerPixel = 16,
-			ChannelCount = 1,
-			NumericRepresentation = PixelNumericRepresentation.Fixed,
-			ColorRepresentation = PixelColorRepresentation.Grey,
-			Colorspace = PixelColorspace.LinearRgb
-		};
+		public static readonly PixelFormat Y16BppLinearUQ15 = new PixelFormat(
+			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA9),
+			name: "16bpp Y UQ15 Linear",
+			bpp: 16,
+			channels: 1,
+			numericRepresentation: PixelNumericRepresentation.Fixed,
+			colorRepresentation: PixelColorRepresentation.Grey,
+			colorspace: PixelColorspace.LinearRgb
+		);
 
-		public static readonly PixelFormat Y32BppFloat = new PixelFormat {
-			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xAA),
-			Name = "32bpp Y Float",
-			BitsPerPixel = 32,
-			ChannelCount = 1,
-			NumericRepresentation = PixelNumericRepresentation.Float,
-			ColorRepresentation = PixelColorRepresentation.Grey,
-			Colorspace = PixelColorspace.sRgb
-		};
+		public static readonly PixelFormat Y32BppFloat = new PixelFormat(
+			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xAA),
+			name: "32bpp Y Float",
+			bpp: 32,
+			channels: 1,
+			numericRepresentation: PixelNumericRepresentation.Float,
+			colorRepresentation: PixelColorRepresentation.Grey,
+			colorspace: PixelColorspace.sRgb
+		);
 
-		public static readonly PixelFormat Y32BppLinearFloat = new PixelFormat {
-			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xAB),
-			Name = "32bpp Y Float Linear",
-			BitsPerPixel = 32,
-			ChannelCount = 1,
-			NumericRepresentation = PixelNumericRepresentation.Float,
-			ColorRepresentation = PixelColorRepresentation.Grey,
-			Colorspace = PixelColorspace.LinearRgb
-		};
+		public static readonly PixelFormat Y32BppLinearFloat = new PixelFormat(
+			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xAB),
+			name: "32bpp Y Float Linear",
+			bpp: 32,
+			channels: 1,
+			numericRepresentation: PixelNumericRepresentation.Float,
+			colorRepresentation: PixelColorRepresentation.Grey,
+			colorspace: PixelColorspace.LinearRgb
+		);
 
-		public static readonly PixelFormat CbCr64BppFloat = new PixelFormat {
-			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xAC),
-			Name = "64bpp CbCr Float",
-			BitsPerPixel = 64,
-			ChannelCount = 2,
-			NumericRepresentation = PixelNumericRepresentation.Float
-		};
+		public static readonly PixelFormat CbCr64BppFloat = new PixelFormat(
+			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xAC),
+			name: "64bpp CbCr Float",
+			bpp: 64,
+			channels: 2,
+			numericRepresentation: PixelNumericRepresentation.Float
+		);
 
-		public static readonly PixelFormat Cb32BppFloat = new PixelFormat {
-			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xAF),
-			Name = "32bpp Cb Float",
-			BitsPerPixel = 32,
-			ChannelCount = 1,
-			NumericRepresentation = PixelNumericRepresentation.Float
-		};
+		public static readonly PixelFormat Cb32BppFloat = new PixelFormat(
+			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xAF),
+			name: "32bpp Cb Float",
+			bpp: 32,
+			channels: 1,
+			numericRepresentation: PixelNumericRepresentation.Float
+		);
 
-		public static readonly PixelFormat Cr32BppFloat = new PixelFormat {
-			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xB0),
-			Name = "32bpp Cr Float",
-			BitsPerPixel = 32,
-			ChannelCount = 1,
-			NumericRepresentation = PixelNumericRepresentation.Float
-		};
+		public static readonly PixelFormat Cr32BppFloat = new PixelFormat(
+			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xB0),
+			name: "32bpp Cr Float",
+			bpp: 32,
+			channels: 1,
+			numericRepresentation: PixelNumericRepresentation.Float
+		);
 
-		public static readonly PixelFormat Bgrx128BppFloat = new PixelFormat {
-			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xAD),
-			Name = "128bpp BGRX Float",
-			BitsPerPixel = 128,
-			ChannelCount = 4,
-			NumericRepresentation = PixelNumericRepresentation.Float,
-			ColorRepresentation = PixelColorRepresentation.Bgr,
-			AlphaRepresentation = PixelAlphaRepresentation.None,
-			Colorspace = PixelColorspace.sRgb
-		};
+		public static readonly PixelFormat Bgrx128BppFloat = new PixelFormat(
+			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xAD),
+			name: "128bpp BGRX Float",
+			bpp: 128,
+			channels: 4,
+			numericRepresentation: PixelNumericRepresentation.Float,
+			colorRepresentation: PixelColorRepresentation.Bgr,
+			alphaRepresentation: PixelAlphaRepresentation.None,
+			colorspace: PixelColorspace.sRgb
+		);
 
-		public static readonly PixelFormat Bgrx128BppLinearFloat = new PixelFormat {
-			FormatGuid = new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xAE),
-			Name = "128bpp BGRX Float Linear",
-			BitsPerPixel = 128,
-			ChannelCount = 4,
-			NumericRepresentation = PixelNumericRepresentation.Float,
-			ColorRepresentation = PixelColorRepresentation.Bgr,
-			AlphaRepresentation = PixelAlphaRepresentation.None,
-			Colorspace = PixelColorspace.LinearRgb
-		};
+		public static readonly PixelFormat Bgrx128BppLinearFloat = new PixelFormat(
+			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xAE),
+			name: "128bpp BGRX Float Linear",
+			bpp: 128,
+			channels: 4,
+			numericRepresentation: PixelNumericRepresentation.Float,
+			colorRepresentation: PixelColorRepresentation.Bgr,
+			alphaRepresentation: PixelAlphaRepresentation.None,
+			colorspace: PixelColorspace.LinearRgb
+		);
 
 		public static PixelFormat FromGuid(Guid guid) => cache.Value[guid];
 
@@ -292,25 +308,31 @@ namespace PhotoSauce.MagicScaler
 					pix.GetFriendlyName(cch, sbn);
 					string pfn = sbn.ToString();
 
-					var fmt = new PixelFormat {
-						FormatGuid = pix.GetFormatGUID(),
-						Name = pfn,
-						IsWicNative = true,
-						BitsPerPixel = (int)pix.GetBitsPerPixel(),
-						ChannelCount = (int)pix.GetChannelCount(),
-						NumericRepresentation = (PixelNumericRepresentation)pix.GetNumericRepresentation(),
-						ColorRepresentation = pfn.Contains("BGR") ? PixelColorRepresentation.Bgr :
-						                      pfn.Contains("RGB") ? PixelColorRepresentation.Rgb :
-						                      pfn.Contains("CMYK") ? PixelColorRepresentation.Cmyk :
-						                      pfn.Contains("Gray") || pfn.EndsWith(" Y") ? PixelColorRepresentation.Grey :
-						                      PixelColorRepresentation.Unspecified,
-						AlphaRepresentation = pfn.Contains("pBGRA") || pfn.Contains("pRGBA") ? PixelAlphaRepresentation.Associated :
-						                      pix.SupportsTransparency() ? PixelAlphaRepresentation.Unassociated :
-						                      PixelAlphaRepresentation.None
-					};
+					var numericRep = (PixelNumericRepresentation)pix.GetNumericRepresentation();
+					var colorRep =
+						pfn.Contains("BGR") ? PixelColorRepresentation.Bgr :
+					  pfn.Contains("RGB") ? PixelColorRepresentation.Rgb :
+					  pfn.Contains("CMYK") ? PixelColorRepresentation.Cmyk :
+					  pfn.Contains("Gray") || pfn.EndsWith(" Y") ? PixelColorRepresentation.Grey :
+					  PixelColorRepresentation.Unspecified;
+					var colorspace = colorRep == PixelColorRepresentation.Grey || colorRep == PixelColorRepresentation.Bgr || colorRep == PixelColorRepresentation.Rgb ?
+						numericRep == PixelNumericRepresentation.Fixed || numericRep == PixelNumericRepresentation.Float ? PixelColorspace.scRgb :
+						PixelColorspace.sRgb :
+						PixelColorspace.Unspecified;
 
-					if (fmt.ColorRepresentation == PixelColorRepresentation.Grey || fmt.ColorRepresentation == PixelColorRepresentation.Bgr || fmt.ColorRepresentation == PixelColorRepresentation.Rgb)
-						fmt.Colorspace = fmt.NumericRepresentation == PixelNumericRepresentation.Fixed || fmt.NumericRepresentation == PixelNumericRepresentation.Float ? PixelColorspace.scRgb : PixelColorspace.sRgb;
+					var fmt = new PixelFormat(
+						guid: pix.GetFormatGUID(),
+						name: pfn,
+						bpp: (int)pix.GetBitsPerPixel(),
+						channels: (int)pix.GetChannelCount(),
+						numericRepresentation: numericRep,
+						colorRepresentation: colorRep,
+						alphaRepresentation: pfn.Contains("pBGRA") || pfn.Contains("pRGBA") ? PixelAlphaRepresentation.Associated :
+							pix.SupportsTransparency() ? PixelAlphaRepresentation.Unassociated :
+							PixelAlphaRepresentation.None,
+						colorspace: colorspace,
+						isWic: true
+					);
 
 					dic.Add(fmt.FormatGuid, fmt);
 				}

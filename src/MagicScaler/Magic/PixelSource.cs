@@ -27,7 +27,8 @@ namespace PhotoSauce.MagicScaler
 
 		protected PixelSource(IWICBitmapSource? wrapWicSource)
 		{
-			Source = this;
+			Source = null!;
+			Format = null!;
 			Profiler = MagicImageProcessor.EnablePixelSourceStats ? new SourceStatsProfiler(this) : NoopProfiler.Instance;
 			wicSource = wrapWicSource;
 		}
