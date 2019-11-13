@@ -1,63 +1,27 @@
 <Project>
 
+	<Import Project="$(MSBuildThisFileDirectory)..\build\Common.props" />
+
 	<PropertyGroup>
-		<Company>PhotoSauce</Company>
-		<Authors>Clinton Ingram</Authors>
-		<RepositoryUrl>https://github.com/saucecontrol/PhotoSauce</RepositoryUrl>
-		<PackageProjectUrl>https://photosauce.net</PackageProjectUrl>
-		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<Copyright>Copyright © 2015-$([System.DateTime]::Today.Year) $(Authors)</Copyright>
-		<Title>High-Quality, High-Performance Image Processing for .NET</Title>
-		<Description>High-Quality, High-Performance Image Processing for .NET</Description>
-		<PackageIcon>package/$(Company).png</PackageIcon>
-		<PackageTags>Image Resize Process Crop Sharpen Rotate Flip WIC JPEG JPG PNG GIF TIFF</PackageTags>
-		<PackageReleaseNotes>See $(RepositoryUrl)/releases for release-specific notes.</PackageReleaseNotes>
-
-		<RootNamespace>$(Company).$(MSBuildProjectName)</RootNamespace>
-		<AssemblyName>$(Company).$(MSBuildProjectName)</AssemblyName>
-		<AssemblyTitle>$(MSBuildProjectName)</AssemblyTitle>
-		<Product>$(MSBuildProjectName)</Product>
-
-		<Configurations>Debug;Release;Dist</Configurations>
-		<LangVersion>8</LangVersion>
-		<Features>strict</Features>
 		<Nullable>annotations</Nullable>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<SignAssembly>true</SignAssembly>
-		<AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)$(Company).snk</AssemblyOriginatorKeyFile>
-
-		<Configuration Condition="'$(Configuration)'==''">Release</Configuration>
-		<BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)..\out\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
-		<BaseOutputPath>$(MSBuildThisFileDirectory)..\out\bin\$(MSBuildProjectName)\</BaseOutputPath>
-		<IntermediateOutputPath>$(BaseIntermediateOutputPath)$(Configuration)\</IntermediateOutputPath>
-		<OutputPath>$(BaseOutputPath)$(Configuration)\</OutputPath>
-		<IntDir>$(IntermediateOutputPath)$(TargetFramework)\</IntDir>
-		<OutDir>$(OutputPath)$(TargetFramework)\</OutDir>
-		<AssemblyInfoFile>$(IntDir)_AssemblyInfo.cs</AssemblyInfoFile>
-		<BaseModulesPath>$(MSBuildThisFileDirectory)..\modules\</BaseModulesPath>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)'!='Debug'">
-		<DebugType>portable</DebugType>
-		<DebugSymbols>true</DebugSymbols>
-		<Deterministic>true</Deterministic>
-		<Optimize>true</Optimize>
-		<DocumentationFile>$(IntDir)$(AssemblyName).xml</DocumentationFile>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)'=='Dist'">
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<DeterministicSourcePaths>true</DeterministicSourcePaths>
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
-		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(Configuration)'=='Dist'">
-		<None Include="$(MSBuildThisFileDirectory)$(Company).png" Pack="true" PackagePath="package" />
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0-beta2-19367-01" PrivateAssets="all" />
 		<PackageReference Include="SauceControl.InheritDoc" Version="0.4.0" PrivateAssets="all" />
-		<SourceRoot Include="$(MSBuildThisFileDirectory)..\" />
 	</ItemGroup>
 
 </Project>

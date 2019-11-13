@@ -9,22 +9,21 @@ steps:
 - checkout: self
   submodules: true
 
+- task: NuGetAuthenticate@0
+  condition: ne(variables['Build.Reason'], 'PullRequest')
+
 - task: UseDotNet@2
-  displayName: Ensure 3.0.x SDK
+  displayName: Ensure 3.0 SDK
   inputs:
     version: 3.0.x
 
-- task: DotNetCoreCLI@2
+- script: |
+    dotnet build src\MagicScaler -c Dist --version-suffix ci$(Build.BuildNumber)
+    dotnet build src\WebRSize -c Dist --version-suffix ci$(Build.BuildNumber)
   displayName: Build
-  inputs:
-    command: build
-    projects: 'src/**/*.csproj'
-    arguments: '-c Dist --version-suffix preview$(Build.BuildNumber)'
 
-- task: DotNetCoreCLI@2
+- script: |
+    dotnet nuget push --api-key AzureArtifacts --source https://pkgs.dev.azure.com/saucecontrol/PhotoSauce/_packaging/photosauce_ci/nuget/v3/index.json out\bin\MagicScaler\Dist\PhotoSauce.MagicScaler.*.nupkg
+    dotnet nuget push --api-key AzureArtifacts --source https://pkgs.dev.azure.com/saucecontrol/PhotoSauce/_packaging/photosauce_ci/nuget/v3/index.json out\bin\WebRSize\Dist\PhotoSauce.WebRSize.*.nupkg
   displayName: Push
-  inputs:
-    command: push
-    packagesToPush: 'out/bin/**/*.nupkg'
-    nuGetFeedType: internal
-    publishVstsFeed: 9b7fee74-4eb8-4d6c-8fc4-708a85ce29e9/8b515d68-d608-431f-a29a-9dbee561cd62
+  condition: ne(variables['Build.Reason'], 'PullRequest')

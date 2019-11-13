@@ -1,0 +1,55 @@
+<Project>
+
+	<PropertyGroup>
+		<Company>PhotoSauce</Company>
+		<Authors>Clinton Ingram</Authors>
+		<RepositoryUrl>https://github.com/saucecontrol/PhotoSauce</RepositoryUrl>
+		<Copyright>Copyright © 2015-$([System.DateTime]::Today.Year) $(Authors)</Copyright>
+		<Title>High-Quality, High-Performance Image Processing for .NET</Title>
+		<Description>High-Quality, High-Performance Image Processing for .NET</Description>
+
+		<RootNamespace>$(Company).$(MSBuildProjectName)</RootNamespace>
+		<AssemblyName>$(Company).$(MSBuildProjectName)</AssemblyName>
+		<AssemblyTitle>$(MSBuildProjectName)</AssemblyTitle>
+		<Product>$(MSBuildProjectName)</Product>
+
+		<PackageIcon>package/$(Company).png</PackageIcon>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageProjectUrl>https://photosauce.net</PackageProjectUrl>
+		<PackageTags>Image Resize Process Crop Sharpen Rotate Flip WIC JPEG JPG PNG GIF TIFF</PackageTags>
+		<PackageReleaseNotes>See $(RepositoryUrl)/releases for release-specific notes.</PackageReleaseNotes>
+
+		<LangVersion>8</LangVersion>
+		<Features>strict</Features>
+		<Nullable>annotations</Nullable>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+		<Configurations>Debug;Release;Dist</Configurations>
+		<Configuration Condition="'$(Configuration)'==''">Release</Configuration>
+
+		<RepositoryRoot>$(MSBuildThisFileDirectory)..\</RepositoryRoot>
+		<BaseModulesPath>$(RepositoryRoot)modules\</BaseModulesPath>
+		<BaseIntermediateOutputPath>$(RepositoryRoot)out\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+		<BaseOutputPath>$(RepositoryRoot)out\bin\$(MSBuildProjectName)\</BaseOutputPath>
+		<IntermediateOutputPath>$(BaseIntermediateOutputPath)$(Configuration)\</IntermediateOutputPath>
+		<OutputPath>$(BaseOutputPath)$(Configuration)\</OutputPath>
+		<IntDir>$(IntermediateOutputPath)$(TargetFramework)\</IntDir>
+		<OutDir>$(OutputPath)$(TargetFramework)\</OutDir>
+
+		<AssemblyInfoFile>$(IntDir)_AssemblyInfo.cs</AssemblyInfoFile>
+		<AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)$(Company).snk</AssemblyOriginatorKeyFile>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)'!='Debug'">
+		<Deterministic>true</Deterministic>
+		<DebugSymbols>true</DebugSymbols>
+		<DebugType>portable</DebugType>
+		<Optimize>true</Optimize>
+	</PropertyGroup>
+
+	<ItemGroup Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">
+		<None Include="$(MSBuildThisFileDirectory)$(Company).png" Pack="true" PackagePath="package" />
+		<SourceRoot Include="$(RepositoryRoot)" />
+	</ItemGroup>
+
+</Project>
