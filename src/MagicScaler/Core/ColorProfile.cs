@@ -99,10 +99,10 @@ namespace PhotoSauce.MagicScaler
 
 		private static readonly Lazy<MatrixProfile> srgb = new Lazy<MatrixProfile>(() => {
 			var m = new Matrix4x4(
-				0.71393112f, 0.06062103f, 0.14307328f, 0f,
-				0.09707674f, 0.71694100f, 0.38510027f, 0f,
-				0.01389754f, 0.22243797f, 0.43602939f, 0f,
-				0f,          0f,          0f,          1f
+				0.43602939f, 0.22243797f, 0.01389754f, 0,
+				0.38510027f, 0.71694100f, 0.09707674f, 0,
+				0.14307328f, 0.06062103f, 0.71393112f, 0,
+				0,           0,           0,           1
 			);
 			Matrix4x4.Invert(m, out var im);
 			var curve = new ProfileCurve(LookupTables.SrgbGamma, LookupTables.SrgbInverseGammaFloat, LookupTables.SrgbInverseGammaUQ15);
@@ -224,15 +224,13 @@ namespace PhotoSauce.MagicScaler
 
 		private static ProfileCurve curveFromParameters(float a, float b, float c, float d, float e, float f, float g)
 		{
-			if (g.IsRoughlyEqualTo(2.4f)
-				&& d.IsRoughlyEqualTo(0.04045f)
-				&& a.IsRoughlyEqualTo(1.000f/1.055f)
-				&& b.IsRoughlyEqualTo(0.055f/1.055f)
-				&& c.IsRoughlyEqualTo(1.000f/12.92f)
-			)
-			{
-				return sRGB.Curve!;
-			}
+			if (
+				g.IsRoughlyEqualTo(2.4f) &&
+				d.IsRoughlyEqualTo(0.04045f) &&
+				a.IsRoughlyEqualTo(1.000f/1.055f) &&
+				b.IsRoughlyEqualTo(0.055f/1.055f) &&
+				c.IsRoughlyEqualTo(1.000f/12.92f)
+			) return sRGB.Curve!;
 
 			var igtf = new float[LookupTables.InverseGammaLength];
 			var igtq = new ushort[LookupTables.InverseGammaLength];
@@ -318,10 +316,10 @@ namespace PhotoSauce.MagicScaler
 
 			float div = 1 / 65536f;
 			matrix = new Matrix4x4(
-				bz * div, by * div, bx * div, 0f,
-				gz * div, gy * div, gx * div, 0f,
-				rz * div, ry * div, rx * div, 0f,
-				0f,       0f,       0f,       1f
+				rx * div, ry * div, rz * div, 0,
+				gx * div, gy * div, gz * div, 0,
+				bx * div, by * div, bz * div, 0,
+				0,        0,        0,        1
 			);
 
 			return true;
@@ -575,9 +573,9 @@ namespace PhotoSauce.MagicScaler
 		public ColorProfileType ProfileType { get; protected set; }
 
 		public bool IsCompatibleWith(PixelFormat fmt) =>
-			(DataColorSpace == ProfileColorSpace.Cmyk && fmt.ColorRepresentation == PixelColorRepresentation.Cmyk)
-			|| (DataColorSpace == ProfileColorSpace.Grey && fmt.ColorRepresentation == PixelColorRepresentation.Grey)
-			|| (DataColorSpace == ProfileColorSpace.Rgb && (fmt.ColorRepresentation == PixelColorRepresentation.Rgb || fmt.ColorRepresentation == PixelColorRepresentation.Bgr));
+			(DataColorSpace == ProfileColorSpace.Cmyk && fmt.ColorRepresentation == PixelColorRepresentation.Cmyk) ||
+			(DataColorSpace == ProfileColorSpace.Grey && fmt.ColorRepresentation == PixelColorRepresentation.Grey) ||
+			(DataColorSpace == ProfileColorSpace.Rgb && (fmt.ColorRepresentation == PixelColorRepresentation.Rgb || fmt.ColorRepresentation == PixelColorRepresentation.Bgr));
 
 		public bool IsSrgb => this is CurveProfile cp && cp.Curve == sRGB.Curve && (!(this is MatrixProfile mp) || mp.Matrix == sRGB.Matrix);
 

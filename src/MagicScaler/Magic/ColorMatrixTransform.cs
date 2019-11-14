@@ -2,6 +2,11 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
+#if HWINTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
+
 using PhotoSauce.Interop.Wic;
 using static PhotoSauce.MagicScaler.MathUtil;
 
@@ -12,34 +17,34 @@ namespace PhotoSauce.MagicScaler
 	{
 		/// <summary>Converts a color image to greyscale using the <a href="https://en.wikipedia.org/wiki/Rec._601">Rec. 601</a> luma coefficients.</summary>
 		public static readonly Matrix4x4 Grey = new Matrix4x4(
-			Rec601.B, Rec601.B, Rec601.B, 0f,
-			Rec601.G, Rec601.G, Rec601.G, 0f,
-			Rec601.R, Rec601.R, Rec601.R, 0f,
-			0f,       0f,       0f,       1f
+			Rec601.R, Rec601.R, Rec601.R, 0,
+			Rec601.G, Rec601.G, Rec601.G, 0,
+			Rec601.B, Rec601.B, Rec601.B, 0,
+			0,        0,        0,        1
 		);
 
 		/// <summary>Applies <a href="https://en.wikipedia.org/wiki/Photographic_print_toning#Sepia_toning">sepia toning</a> to an image.</summary>
 		public static readonly Matrix4x4 Sepia = new Matrix4x4(
-			0.131f, 0.168f, 0.189f, 0f,
-			0.534f, 0.686f, 0.769f, 0f,
-			0.272f, 0.349f, 0.393f, 0f,
-			0f,     0f,     0f,     1f
+			0.393f, 0.349f, 0.272f, 0,
+			0.769f, 0.686f, 0.534f, 0,
+			0.189f, 0.168f, 0.131f, 0,
+			0,      0,      0,      1
 		);
 
 		/// <summary>An example of a stylized matrix, with a teal tint, increased contrast, and overblown highlights.</summary>
 		public static readonly Matrix4x4 Polaroid = new Matrix4x4(
-			 1.483f, -0.016f, -0.016f, 0f,
-			-0.122f,  1.378f, -0.122f, 0f,
-			-0.062f, -0.062f,  1.438f, 0f,
-			-0.020f,  0.050f, -0.030f, 1f
+			 1.438f, -0.062f, -0.062f, 0,
+			-0.122f,  1.378f, -0.122f, 0,
+			-0.016f, -0.016f,  1.483f, 0,
+			-0.020f,  0.050f, -0.030f, 1
 		);
 
 		/// <summary>Inverts the channel values of an image, producing a color or greyscale negative.</summary>
 		public static readonly Matrix4x4 Negative = new Matrix4x4(
-			-1f,  0f,  0f, 0f,
-			 0f, -1f,  0f, 0f,
-			 0f,  0f, -1f, 0f,
-			 1f,  1f,  1f, 1f
+			-1,  0,  0, 0,
+			 0, -1,  0, 0,
+			 0,  0, -1, 0,
+			 1,  1,  1, 1
 		);
 	}
 
@@ -50,15 +55,15 @@ namespace PhotoSauce.MagicScaler
 
 		public ColorMatrixTransformInternal(PixelSource source, Matrix4x4 matrix) : base(source)
 		{
-			vec0 = new Vector4(matrix.M11, matrix.M21, matrix.M31, matrix.M41);
-			vec1 = new Vector4(matrix.M12, matrix.M22, matrix.M32, matrix.M42);
-			vec2 = new Vector4(matrix.M13, matrix.M23, matrix.M33, matrix.M43);
+			vec0 = new Vector4(matrix.M33, matrix.M23, matrix.M13, matrix.M43);
+			vec1 = new Vector4(matrix.M32, matrix.M22, matrix.M12, matrix.M42);
+			vec2 = new Vector4(matrix.M31, matrix.M21, matrix.M11, matrix.M41);
 			vec3 = new Vector4(matrix.M14, matrix.M24, matrix.M34, matrix.M44);
 
 			matrixFixed = new[] {
-				Fix15(matrix.M11), Fix15(matrix.M21), Fix15(matrix.M31), Fix15(matrix.M41),
-				Fix15(matrix.M12), Fix15(matrix.M22), Fix15(matrix.M32), Fix15(matrix.M42),
-				Fix15(matrix.M13), Fix15(matrix.M23), Fix15(matrix.M33), Fix15(matrix.M43),
+				Fix15(matrix.M33), Fix15(matrix.M23), Fix15(matrix.M13), Fix15(matrix.M43),
+				Fix15(matrix.M32), Fix15(matrix.M22), Fix15(matrix.M12), Fix15(matrix.M42),
+				Fix15(matrix.M31), Fix15(matrix.M21), Fix15(matrix.M11), Fix15(matrix.M41),
 				Fix15(matrix.M14), Fix15(matrix.M24), Fix15(matrix.M34), Fix15(matrix.M44)
 			};
 		}
@@ -70,7 +75,12 @@ namespace PhotoSauce.MagicScaler
 			Profiler.ResumeTiming();
 
 			if (Format.NumericRepresentation == PixelNumericRepresentation.Float)
-				copyPixelsFloat(prc, cbStride, pbBuffer);
+#if HWINTRINSICS
+				if (Avx.IsSupported)
+					copyPixelsAvx(prc, cbStride, pbBuffer);
+				else
+#endif
+					copyPixelsFloat(prc, cbStride, pbBuffer);
 			else if (Format.NumericRepresentation == PixelNumericRepresentation.Fixed)
 				copyPixelsFixed(prc, cbStride, pbBuffer);
 			else
@@ -141,22 +151,23 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private void copyPixelsFloat(in PixelArea prc, int cbStride, IntPtr pbBuffer)
 		{
-			Vector4 vb = vec0, vg = vec1, vr = vec2, va = vec3;
-			float falpha = va.W, fone = Vector4.One.X;
 			int chan = Format.ChannelCount;
 			bool alpha = Format.AlphaRepresentation != PixelAlphaRepresentation.None;
+
+			Vector4 vm0 = vec0, vm1 = vec1, vm2 = vec2;
+			float falpha = vec3.W, fone = Vector4.One.X;
 
 			for (int y = 0; y < prc.Height; y++)
 			{
 				float* ip = (float*)((byte*)pbBuffer + y * cbStride), ipe = ip + prc.Width * chan;
 				while (ip < ipe)
 				{
-					var v = Unsafe.ReadUnaligned<Vector4>(ip);
-					v.W = fone;
+					var vn = Unsafe.ReadUnaligned<Vector4>(ip);
+					vn.W = fone;
 
-					float f0 = Vector4.Dot(v, vb); 
-					float f1 = Vector4.Dot(v, vg);
-					float f2 = Vector4.Dot(v, vr);
+					float f0 = Vector4.Dot(vn, vm0); 
+					float f1 = Vector4.Dot(vn, vm1);
+					float f2 = Vector4.Dot(vn, vm2);
 
 					ip[0] = f0;
 					ip[1] = f1;
@@ -169,6 +180,68 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 		}
+
+#if HWINTRINSICS
+		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+		unsafe private void copyPixelsAvx(in PixelArea prc, int cbStride, IntPtr pbBuffer)
+		{
+			int chan = Format.ChannelCount;
+
+			var vt0 = vec0;
+			var vt1 = vec1;
+			var vt2 = vec2;
+			var vt3 = vec3;
+
+			var vm0 = Avx.BroadcastVector128ToVector256((float*)&vt0);
+			var vm1 = Avx.BroadcastVector128ToVector256((float*)&vt1);
+			var vm2 = Avx.BroadcastVector128ToVector256((float*)&vt2);
+			var vm3 = Avx.BroadcastVector128ToVector256((float*)&vt3);
+
+			var vone = Vector256.Create(1f);
+
+			for (int y = 0; y < prc.Height; y++)
+			{
+				float* ip = (float*)((byte*)pbBuffer + y * cbStride), ipe = ip + prc.Width * chan;
+
+				ipe -= Vector256<float>.Count;
+				while (ip <= ipe)
+				{
+					var vi = Avx.LoadVector256(ip);
+					var vn = Avx.Blend(vi, vone, 0b_1000_1000);
+
+					var vr0 = Avx.DotProduct(vn, vm0, 0b_1111_0001);
+					var vr1 = Avx.DotProduct(vn, vm1, 0b_1111_0010);
+					var vr2 = Avx.DotProduct(vn, vm2, 0b_1111_0100);
+
+					vi = Avx.Multiply(vi, vm3);
+					vi = Avx.Blend(vi, vr0, 0b_0001_0001);
+					vi = Avx.Blend(vi, vr1, 0b_0010_0010);
+					vi = Avx.Blend(vi, vr2, 0b_0100_0100);
+
+					Avx.Store(ip, vi);
+
+					ip += Vector256<float>.Count;
+				}
+
+				if (ip <= ipe + Vector128<float>.Count)
+				{
+					var vi = Sse.LoadVector128(ip);
+					var vn = Sse41.Blend(vi, vone.GetLower(), 0b_1000_1000);
+
+					var vr0 = Sse41.DotProduct(vn, vm0.GetLower(), 0b_1111_0001);
+					var vr1 = Sse41.DotProduct(vn, vm1.GetLower(), 0b_1111_0010);
+					var vr2 = Sse41.DotProduct(vn, vm2.GetLower(), 0b_1111_0100);
+
+					vi = Sse.Multiply(vi, vm3.GetLower());
+					vi = Sse41.Blend(vi, vr0, 0b_0001_0001);
+					vi = Sse41.Blend(vi, vr1, 0b_0010_0010);
+					vi = Sse41.Blend(vi, vr2, 0b_0100_0100);
+
+					Sse.Store(ip, vi);
+				}
+			}
+		}
+#endif
 	}
 
 	/// <summary>Transforms an image according to coefficients in a <see cref="Matrix4x4" />.</summary>
