@@ -101,7 +101,7 @@ namespace PhotoSauce.MagicScaler
 		public const string OrientationExifPath = "/ifd/{ushort=274}";
 		public const string OrientationJpegPath = "/app1" + OrientationExifPath;
 
-		internal static readonly Guid[] PlanarPixelFormats = new[] { Consts.GUID_WICPixelFormat8bppY, Consts.GUID_WICPixelFormat16bppCbCr };
+		internal static readonly Guid[] PlanarPixelFormats = new[] { Consts.GUID_WICPixelFormat8bppY, Consts.GUID_WICPixelFormat8bppCb, Consts.GUID_WICPixelFormat8bppCr };
 
 		public static void AddMetadataReader(PipelineContext ctx, bool basicOnly = false)
 		{
@@ -237,6 +237,9 @@ namespace PhotoSauce.MagicScaler
 
 				ctx.WicContext.SourceColorContext = null;
 			}
+
+			if (curFormat.FormatGuid == Consts.GUID_WICPixelFormat8bppY || curFormat.FormatGuid == Consts.GUID_WICPixelFormat8bppCb || curFormat.FormatGuid == Consts.GUID_WICPixelFormat8bppCr)
+				return;
 
 			var newFormat = PixelFormat.FromGuid(Consts.GUID_WICPixelFormat24bppBGR);
 			if (curFormat.AlphaRepresentation == PixelAlphaRepresentation.Associated && allowPbgra && ctx.Settings.BlendingMode != GammaMode.Linear && ctx.Settings.MatteColor.IsEmpty)
@@ -376,7 +379,7 @@ namespace PhotoSauce.MagicScaler
 
 			var crop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.Orientation, (int)ow, (int)oh).ProportionalScale((int)ow, (int)oh, (int)cw, (int)ch);
 			var cache = ctx.AddDispose(new WicPlanarCache(trans, desc, WICBitmapTransformOptions.WICBitmapTransformRotate0, cw, ch, crop));
-			ctx.PlanarContext = new PipelineContext.PlanarPipelineContext(cache.SourceY, cache.SourceCbCr);
+			ctx.PlanarContext = new PipelineContext.PlanarPipelineContext(cache.SourceY, cache.SourceCb, cache.SourceCr);
 
 			ctx.Source = ctx.PlanarContext.SourceY;
 			ctx.Settings.Crop = ctx.Source.Area.ReOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
@@ -386,7 +389,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			Debug.Assert(ctx.PlanarContext != null);
 
-			var planes = new[] { ctx.PlanarContext.SourceY.WicSource, ctx.PlanarContext.SourceCbCr.WicSource };
+			var planes = new[] { ctx.PlanarContext.SourceY.WicSource, ctx.PlanarContext.SourceCb.WicSource, ctx.PlanarContext.SourceCr.WicSource };
 			var conv = (IWICPlanarFormatConverter)ctx.WicContext.AddRef(Wic.Factory.CreateFormatConverter());
 			conv.Initialize(planes, (uint)planes.Length, Consts.GUID_WICPixelFormat24bppBGR, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
 

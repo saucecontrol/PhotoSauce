@@ -54,11 +54,10 @@ namespace PhotoSauce.MagicScaler
 			return executePipeline(ctx, outStream);
 		}
 
-		/// <summary>All-in-one processing of an image according to the specified <paramref name="settings" />.</summary>
+#pragma warning disable 1573 // not all params have docs
+
+		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
 		/// <param name="imgBuffer">A buffer containing a supported input image container.</param>
-		/// <param name="outStream">The stream to which the output image will be written.</param>
-		/// <param name="settings">The settings for this processing operation.</param>
-		/// <returns>A <see cref="ProcessImageResult" /> containing the settings used and basic instrumentation for the pipeline.</returns>
 		public static ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
 			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
@@ -71,11 +70,8 @@ namespace PhotoSauce.MagicScaler
 			return executePipeline(ctx, outStream);
 		}
 
-		/// <summary>All-in-one processing of an image according to the specified <paramref name="settings" />.</summary>
+		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
 		/// <param name="imgStream">A stream containing a supported input image container.</param>
-		/// <param name="outStream">The stream to which the output image will be written.</param>
-		/// <param name="settings">The settings for this processing operation.</param>
-		/// <returns>A <see cref="ProcessImageResult" /> containing the settings used and basic instrumentation for the pipeline.</returns>
 		public static ProcessImageResult ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings)
 		{
 			checkInStream(imgStream);
@@ -88,19 +84,32 @@ namespace PhotoSauce.MagicScaler
 			return executePipeline(ctx, outStream);
 		}
 
-		/// <summary>All-in-one processing of an image according to the specified <paramref name="settings" />.</summary>
+		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
 		/// <param name="imgSource">A custom pixel source to use as input.</param>
-		/// <param name="outStream">The stream to which the output image will be written.</param>
-		/// <param name="settings">The settings for this processing operation.</param>
-		/// <returns>A <see cref="ProcessImageResult" /> containing the settings used and basic instrumentation for the pipeline.</returns>
 		public static ProcessImageResult ProcessImage(IPixelSource imgSource, Stream outStream, ProcessImageSettings settings)
 		{
 			if (imgSource is null) throw new ArgumentNullException(nameof(imgSource));
 			checkOutStream(outStream);
 
-			using var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = new PixelSourceContainer(imgSource);
-			ctx.Source = imgSource.AsPixelSource();
+			using var ctx = new PipelineContext(settings) {
+				ImageContainer = new PixelSourceContainer(imgSource),
+				Source = imgSource.AsPixelSource()
+			};
+
+			buildPipeline(ctx);
+			return executePipeline(ctx, outStream);
+		}
+
+		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
+		/// <param name="imgContainer">A custom <see cref="IImageContainer"/> to use as input.</param>
+		public static ProcessImageResult ProcessImage(IImageContainer imgContainer, Stream outStream, ProcessImageSettings settings)
+		{
+			if (imgContainer is null) throw new ArgumentNullException(nameof(imgContainer));
+			checkOutStream(outStream);
+
+			using var ctx = new PipelineContext(settings) {
+				ImageContainer = imgContainer
+			};
 
 			buildPipeline(ctx);
 			return executePipeline(ctx, outStream);
@@ -121,10 +130,8 @@ namespace PhotoSauce.MagicScaler
 			return new ProcessingPipeline(ctx);
 		}
 
-		/// <summary>Constructs a new processing pipeline from which pixels can be retrieved.</summary>
+		/// <inheritdoc cref="BuildPipeline(string, ProcessImageSettings)" />
 		/// <param name="imgBuffer">A buffer containing a supported input image container.</param>
-		/// <param name="settings">The settings for this processing operation.</param>
-		/// <returns>A <see cref="ProcessingPipeline" /> containing the <see cref="IPixelSource" />, settings used, and basic instrumentation for the pipeline.</returns>
 		public static ProcessingPipeline BuildPipeline(ReadOnlySpan<byte> imgBuffer, ProcessImageSettings settings)
 		{
 			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
@@ -136,10 +143,8 @@ namespace PhotoSauce.MagicScaler
 			return new ProcessingPipeline(ctx);
 		}
 
-		/// <summary>Constructs a new processing pipeline from which pixels can be retrieved.</summary>
+		/// <inheritdoc cref="BuildPipeline(string, ProcessImageSettings)" />
 		/// <param name="imgStream">A stream containing a supported input image container.</param>
-		/// <param name="settings">The settings for this processing operation.</param>
-		/// <returns>A <see cref="ProcessingPipeline" /> containing the <see cref="IPixelSource" />, settings used, and basic instrumentation for the pipeline.</returns>
 		public static ProcessingPipeline BuildPipeline(Stream imgStream, ProcessImageSettings settings)
 		{
 			checkInStream(imgStream);
@@ -151,21 +156,36 @@ namespace PhotoSauce.MagicScaler
 			return new ProcessingPipeline(ctx);
 		}
 
-		/// <summary>Constructs a new processing pipeline from which pixels can be retrieved.</summary>
+		/// <inheritdoc cref="BuildPipeline(string, ProcessImageSettings)" />
 		/// <param name="imgSource">A custom pixel source to use as input.</param>
-		/// <param name="settings">The settings for this processing operation.</param>
-		/// <returns>A <see cref="ProcessingPipeline" /> containing the <see cref="IPixelSource" />, settings used, and basic instrumentation for the pipeline.</returns>
 		public static ProcessingPipeline BuildPipeline(IPixelSource imgSource, ProcessImageSettings settings)
 		{
 			if (imgSource is null) throw new ArgumentNullException(nameof(imgSource));
 
-			var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = new PixelSourceContainer(imgSource);
-			ctx.Source = imgSource.AsPixelSource();
+			var ctx = new PipelineContext(settings) {
+				ImageContainer = new PixelSourceContainer(imgSource),
+				Source = imgSource.AsPixelSource()
+			};
 
 			buildPipeline(ctx, false);
 			return new ProcessingPipeline(ctx);
 		}
+
+		/// <inheritdoc cref="BuildPipeline(string, ProcessImageSettings)" />
+		/// <param name="imgContainer">A custom <see cref="IImageContainer"/> to use as input.</param>
+		public static ProcessingPipeline BuildPipeline(IImageContainer imgContainer, ProcessImageSettings settings)
+		{
+			if (imgContainer is null) throw new ArgumentNullException(nameof(imgContainer));
+
+			var ctx = new PipelineContext(settings) {
+				ImageContainer = imgContainer
+			};
+
+			buildPipeline(ctx, false);
+			return new ProcessingPipeline(ctx);
+		}
+
+#pragma warning restore 1573
 
 		/// <summary>Completes processing of a <see cref="ProcessingPipeline" />, saving the output to <paramref name="outStream" />.</summary>
 		/// <param name="pipeline">The processing pipeline attached to a pixel source.</param>
@@ -186,6 +206,12 @@ namespace PhotoSauce.MagicScaler
 				processPlanar = EnablePlanarPipeline && wicFrame.SupportsPlanarProcessing && ctx.Settings.Interpolation.WeightingFunction.Support >= 0.5d;
 				bool profilingPassThrough = processPlanar || (wicFrame.SupportsNativeScale && ctx.Settings.HybridScaleRatio > 1);
 				ctx.Source = wicFrame.WicSource.AsPixelSource(nameof(IWICBitmapFrameDecode), !profilingPassThrough);
+			}
+			else if (ctx.ImageFrame is IYccImageFrame planarFrame)
+			{
+				processPlanar = true;
+				ctx.PlanarContext = new PipelineContext.PlanarPipelineContext(planarFrame.PixelSource.AsPixelSource(), planarFrame.PixelSourceCb.AsPixelSource(), planarFrame.PixelSourceCr.AsPixelSource());
+				ctx.Source = ctx.PlanarContext.SourceY;
 			}
 
 			WicTransforms.AddMetadataReader(ctx);
@@ -226,7 +252,9 @@ namespace PhotoSauce.MagicScaler
 					&& ctx.Settings.InnerRect == ctx.Settings.OuterRect
 					&& ctx.WicContext.SourceColorContext is null;
 
-				WicTransforms.AddPlanarCache(ctx);
+				if (wicFrame != null)
+					WicTransforms.AddPlanarCache(ctx);
+
 				Debug.Assert(ctx.PlanarContext != null);
 
 				MagicTransforms.AddHighQualityScaler(ctx);
@@ -235,7 +263,7 @@ namespace PhotoSauce.MagicScaler
 				MagicTransforms.AddExifFlipRotator(ctx);
 
 				ctx.PlanarContext.SourceY = ctx.Source;
-				ctx.Source = ctx.PlanarContext.SourceCbCr;
+				ctx.Source = ctx.PlanarContext.SourceCb;
 
 				ctx.Orientation = orient;
 				ctx.Settings.Crop = ctx.Source.Area.ReOrient(orient, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
@@ -252,7 +280,14 @@ namespace PhotoSauce.MagicScaler
 				MagicTransforms.AddExternalFormatConverter(ctx);
 				MagicTransforms.AddExifFlipRotator(ctx);
 
-				ctx.PlanarContext.SourceCbCr = ctx.Source;
+				ctx.PlanarContext.SourceCb = ctx.Source;
+				ctx.Source = ctx.PlanarContext.SourceCr;
+
+				MagicTransforms.AddHighQualityScaler(ctx);
+				MagicTransforms.AddExternalFormatConverter(ctx);
+				MagicTransforms.AddExifFlipRotator(ctx);
+
+				ctx.PlanarContext.SourceCr = ctx.Source;
 				ctx.Source = ctx.PlanarContext.SourceY;
 
 				if (!savePlanar)

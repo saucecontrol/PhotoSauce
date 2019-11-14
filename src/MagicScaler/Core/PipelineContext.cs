@@ -9,12 +9,14 @@ namespace PhotoSauce.MagicScaler
 		internal class PlanarPipelineContext
 		{
 			public PixelSource SourceY;
-			public PixelSource SourceCbCr;
+			public PixelSource SourceCb;
+			public PixelSource SourceCr;
 
-			public PlanarPipelineContext(PixelSource sourceY, PixelSource sourceCbCr)
+			public PlanarPipelineContext(PixelSource sourceY, PixelSource sourceCb, PixelSource sourceCr)
 			{
 				SourceY = sourceY;
-				SourceCbCr = sourceCbCr;
+				SourceCb = sourceCb;
+				SourceCr = sourceCr;
 			}
 		}
 

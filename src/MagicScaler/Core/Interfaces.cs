@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.Numerics;
 
 namespace PhotoSauce.MagicScaler
 {
@@ -36,6 +37,25 @@ namespace PhotoSauce.MagicScaler
 
 		/// <summary>The <see cref="IPixelSource" /> to retrieve pixels from this image frame.</summary>
 		IPixelSource PixelSource { get; }
+	}
+
+	/// <summary>An image frame within an <see cref="IImageContainer" />.  The frame exposes 3 <see cref="IPixelSource" /> values, representing the Y', Cb, and Cr planes.</summary>
+	public interface IYccImageFrame : IImageFrame
+	{
+		/// <summary>The position of subsampled chroma components relative to their associated luma components.</summary>
+		ChromaPosition ChromaPosition { get; }
+
+		/// <summary>The <see cref="IPixelSource" /> to retrieve pixels from the Cb (blue-yellow) chroma plane.</summary>
+		IPixelSource PixelSourceCb { get; }
+
+		/// <summary>The <see cref="IPixelSource" /> to retrieve pixels from the Cr (red-green) chroma plane.</summary>
+		IPixelSource PixelSourceCr { get; }
+
+		/// <summary>A 3x3 matrix containing the coefficients for converting this image frame from Y'CbCr format to R'G'B'.  The fourth row and column will be ignored.</summary>
+		Matrix4x4 YccToRgbMatrix { get; }
+
+		/// <summary>True if the image uses the full 0-255 range for pixel values, false if the image uses video range (16-235 luma and 16-240 chroma).</summary>
+		bool IsFullRange { get; }
 	}
 
 	/// <summary>An image container (file), made up of one or more <see cref="IImageFrame" />instances.</summary>

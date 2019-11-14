@@ -9,7 +9,7 @@ namespace PhotoSauce.MagicScaler
 {
 	internal class WicPlanarCache : IDisposable
 	{
-		private enum WicPlane { Y, CbCr }
+		private enum WicPlane { Y, Cb, Cr }
 
 		private readonly uint scaledWidth, scaledHeight;
 		private readonly int subsampleRatioX, subsampleRatioY;
@@ -18,19 +18,20 @@ namespace PhotoSauce.MagicScaler
 
 		private readonly IWICPlanarBitmapSourceTransform sourceTransform;
 		private readonly WICBitmapTransformOptions sourceTransformOptions;
-		private readonly PlanarCachePixelSource sourceY, sourceCbCr;
-		private readonly PixelBuffer buffY, buffCbCr;
+		private readonly PlanarCachePixelSource sourceY, sourceCb, sourceCr;
+		private readonly PixelBuffer buffY, buffCb, buffCr;
 		private readonly WICRect scaledCrop;
 		private readonly WICBitmapPlane[] sourcePlanes;
 
 		public WicPlanarCache(IWICPlanarBitmapSourceTransform source, WICBitmapPlaneDescription[] desc, WICBitmapTransformOptions transformOptions, uint width, uint height, in PixelArea crop)
 		{
 			var descY = desc[0];
-			var descC = desc[1];
+			var descCb = desc[1];
+			var descCr = desc[2];
 
 			// IWICPlanarBitmapSourceTransform only supports 4:2:0, 4:4:0, 4:2:2, and 4:4:4 subsampling, so ratios will always be 1 or 2
-			subsampleRatioX = (int)((descY.Width + 1u) / descC.Width);
-			subsampleRatioY = (int)((descY.Height + 1u) / descC.Height);
+			subsampleRatioX = (int)((descY.Width + 1u) / descCb.Width);
+			subsampleRatioY = (int)((descY.Height + 1u) / descCb.Height);
 
 			var scrop = new WICRect {
 				X = MathUtil.PowerOfTwoFloor(crop.X, subsampleRatioX),
@@ -39,11 +40,14 @@ namespace PhotoSauce.MagicScaler
 			scrop.Width = Math.Min(MathUtil.PowerOfTwoCeiling(crop.Width, subsampleRatioX), (int)descY.Width - scrop.X);
 			scrop.Height = Math.Min(MathUtil.PowerOfTwoCeiling(crop.Height, subsampleRatioY), (int)descY.Height - scrop.Y);
 
-			descC.Width = Math.Min((uint)MathUtil.DivCeiling(scrop.Width, subsampleRatioX), descC.Width);
-			descC.Height = Math.Min((uint)MathUtil.DivCeiling(scrop.Height, subsampleRatioY), descC.Height);
+			descCb.Width = Math.Min((uint)MathUtil.DivCeiling(scrop.Width, subsampleRatioX), descCb.Width);
+			descCb.Height = Math.Min((uint)MathUtil.DivCeiling(scrop.Height, subsampleRatioY), descCb.Height);
 
-			descY.Width = Math.Min(descC.Width * (uint)subsampleRatioX, (uint)scrop.Width);
-			descY.Height = Math.Min(descC.Height * (uint)subsampleRatioY, (uint)scrop.Height);
+			descY.Width = Math.Min(descCb.Width * (uint)subsampleRatioX, (uint)scrop.Width);
+			descY.Height = Math.Min(descCb.Height * (uint)subsampleRatioY, (uint)scrop.Height);
+
+			descCr.Width = descCb.Width;
+			descCr.Height = descCb.Height;
 
 			sourceTransform = source;
 			sourceTransformOptions = transformOptions;
@@ -52,33 +56,38 @@ namespace PhotoSauce.MagicScaler
 			scaledHeight = height;
 
 			strideY = MathUtil.PowerOfTwoCeiling((int)descY.Width, IntPtr.Size);
-			strideC = MathUtil.PowerOfTwoCeiling((int)descC.Width * 2, IntPtr.Size);
+			strideC = MathUtil.PowerOfTwoCeiling((int)descCb.Width, IntPtr.Size);
 
 			buffHeight = Math.Min(scrop.Height, transformOptions.RequiresCache() ? (int)descY.Height : 16);
 			buffY = new PixelBuffer(buffHeight, strideY);
-			buffCbCr = new PixelBuffer(MathUtil.DivCeiling(buffHeight, subsampleRatioY), strideC);
+			buffCb = new PixelBuffer(MathUtil.DivCeiling(buffHeight, subsampleRatioY), strideC);
+			buffCr = new PixelBuffer(MathUtil.DivCeiling(buffHeight, subsampleRatioY), strideC);
 
 			sourceY = new PlanarCachePixelSource(this, WicPlane.Y, descY);
-			sourceCbCr = new PlanarCachePixelSource(this, WicPlane.CbCr, descC);
+			sourceCb = new PlanarCachePixelSource(this, WicPlane.Cb, descCb);
+			sourceCr = new PlanarCachePixelSource(this, WicPlane.Cr, descCr);
 
 			sourcePlanes = new[] {
 				new WICBitmapPlane { Format = descY.Format, cbStride = (uint)strideY },
-				new WICBitmapPlane { Format = descC.Format, cbStride = (uint)strideC }
+				new WICBitmapPlane { Format = descCb.Format, cbStride = (uint)strideC },
+				new WICBitmapPlane { Format = descCr.Format, cbStride = (uint)strideC }
 			};
 		}
 
 		public PixelSource SourceY => sourceY;
-		public PixelSource SourceCbCr => sourceCbCr;
+		public PixelSource SourceCb => sourceCb;
+		public PixelSource SourceCr => sourceCr;
 
 		unsafe private void copyPixels(WicPlane plane, in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
-			var buff = plane == WicPlane.Y ? buffY : buffCbCr;
-			int bpp = plane == WicPlane.Y ? 1 : 2;
-			int cbLine = prc.Width * bpp;
-			int cbOffs = prc.X * bpp;
+			Debug.Assert(cbStride >= prc.Width);
+			Debug.Assert(cbBufferSize >= (prc.Height - 1) * cbStride + prc.Width);
 
-			Debug.Assert(cbStride >= cbLine);
-			Debug.Assert(cbBufferSize >= (prc.Height - 1) * cbStride + cbLine);
+			var buff = plane switch {
+				WicPlane.Cb => buffCb,
+				WicPlane.Cr => buffCr,
+				_ => buffY
+			};
 
 			for (int y = 0; y < prc.Height; y++)
 			{
@@ -86,7 +95,7 @@ namespace PhotoSauce.MagicScaler
 				if (!buff.ContainsLine(line))
 					loadBuffer(plane, line);
 
-				var lspan = buff.PrepareRead(line, 1).Slice(cbOffs, cbLine);
+				var lspan = buff.PrepareRead(line, 1).Slice(prc.X, prc.Width);
 				Unsafe.CopyBlockUnaligned(ref Unsafe.AsRef<byte>((byte*)pbBuffer + y * cbStride), ref MemoryMarshal.GetReference(lspan), (uint)lspan.Length);
 			}
 		}
@@ -103,19 +112,22 @@ namespace PhotoSauce.MagicScaler
 			};
 
 			int lineY = prcY;
-			int lineC = lineY / subsampleRatioY;
+			int lineCb = lineY / subsampleRatioY, lineCr = lineCb;
 			int heightY = sourceRect.Height;
-			int heightC = MathUtil.DivCeiling(heightY, subsampleRatioY);
+			int heightCb = MathUtil.DivCeiling(heightY, subsampleRatioY), heightCr = heightCb;
 
 			var spanY = buffY.PrepareLoad(ref lineY, ref heightY);
-			var spanC = buffCbCr.PrepareLoad(ref lineC, ref heightC);
+			var spanCb = buffCb.PrepareLoad(ref lineCb, ref heightCb);
+			var spanCr = buffCr.PrepareLoad(ref lineCr, ref heightCr);
 
-			fixed (byte* pBuffY = spanY, pBuffC = spanC)
+			fixed (byte* pBuffY = spanY, pBuffCb = spanCb, pBuffCr = spanCr)
 			{
 				sourcePlanes[0].pbBuffer = (IntPtr)pBuffY;
-				sourcePlanes[1].pbBuffer = (IntPtr)pBuffC;
+				sourcePlanes[1].pbBuffer = (IntPtr)pBuffCb;
+				sourcePlanes[2].pbBuffer = (IntPtr)pBuffCr;
 				sourcePlanes[0].cbBufferSize = (uint)spanY.Length;
-				sourcePlanes[1].cbBufferSize = (uint)spanC.Length;
+				sourcePlanes[1].cbBufferSize = (uint)spanCb.Length;
+				sourcePlanes[2].cbBufferSize = (uint)spanCr.Length;
 
 				sourceTransform.CopyPixels(sourceRect, scaledWidth, scaledHeight, sourceTransformOptions, WICPlanarOptions.WICPlanarOptionsDefault, sourcePlanes, (uint)sourcePlanes.Length);
 			}
@@ -124,7 +136,8 @@ namespace PhotoSauce.MagicScaler
 		public void Dispose()
 		{
 			buffY.Dispose();
-			buffCbCr.Dispose();
+			buffCb.Dispose();
+			buffCr.Dispose();
 		}
 
 		private class PlanarCachePixelSource : PixelSource

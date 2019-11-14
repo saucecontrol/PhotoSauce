@@ -162,7 +162,7 @@ namespace PhotoSauce.MagicScaler
 				var oformat = Consts.GUID_WICPixelFormat24bppBGR;
 				Frame.SetPixelFormat(ref oformat);
 
-				var planes = new[] { ctx.PlanarContext.SourceY.WicSource, ctx.PlanarContext.SourceCbCr.WicSource };
+				var planes = new[] { ctx.PlanarContext.SourceY.WicSource, ctx.PlanarContext.SourceCb.WicSource, ctx.PlanarContext.SourceCr.WicSource };
 				((IWICPlanarBitmapFrameEncode)Frame).WriteSource(planes, (uint)planes.Length, WICRect.Null);
 			}
 			else
