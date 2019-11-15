@@ -12,42 +12,6 @@ using static PhotoSauce.MagicScaler.MathUtil;
 
 namespace PhotoSauce.MagicScaler
 {
-	/// <summary>Contains standard 4x4 matrices for use with the <see cref="ColorMatrixTransform" /> filter.</summary>
-	public static class ColorMatrix
-	{
-		/// <summary>Converts a color image to greyscale using the <a href="https://en.wikipedia.org/wiki/Rec._601">Rec. 601</a> luma coefficients.</summary>
-		public static readonly Matrix4x4 Grey = new Matrix4x4(
-			Rec601.R, Rec601.R, Rec601.R, 0,
-			Rec601.G, Rec601.G, Rec601.G, 0,
-			Rec601.B, Rec601.B, Rec601.B, 0,
-			0,        0,        0,        1
-		);
-
-		/// <summary>Applies <a href="https://en.wikipedia.org/wiki/Photographic_print_toning#Sepia_toning">sepia toning</a> to an image.</summary>
-		public static readonly Matrix4x4 Sepia = new Matrix4x4(
-			0.393f, 0.349f, 0.272f, 0,
-			0.769f, 0.686f, 0.534f, 0,
-			0.189f, 0.168f, 0.131f, 0,
-			0,      0,      0,      1
-		);
-
-		/// <summary>An example of a stylized matrix, with a teal tint, increased contrast, and overblown highlights.</summary>
-		public static readonly Matrix4x4 Polaroid = new Matrix4x4(
-			 1.438f, -0.062f, -0.062f, 0,
-			-0.122f,  1.378f, -0.122f, 0,
-			-0.016f, -0.016f,  1.483f, 0,
-			-0.020f,  0.050f, -0.030f, 1
-		);
-
-		/// <summary>Inverts the channel values of an image, producing a color or greyscale negative.</summary>
-		public static readonly Matrix4x4 Negative = new Matrix4x4(
-			-1,  0,  0, 0,
-			 0, -1,  0, 0,
-			 0,  0, -1, 0,
-			 1,  1,  1, 1
-		);
-	}
-
 	internal class ColorMatrixTransformInternal: PixelSource
 	{
 		private readonly Vector4 vec0, vec1, vec2, vec3;
@@ -58,13 +22,13 @@ namespace PhotoSauce.MagicScaler
 			vec0 = new Vector4(matrix.M33, matrix.M23, matrix.M13, matrix.M43);
 			vec1 = new Vector4(matrix.M32, matrix.M22, matrix.M12, matrix.M42);
 			vec2 = new Vector4(matrix.M31, matrix.M21, matrix.M11, matrix.M41);
-			vec3 = new Vector4(matrix.M14, matrix.M24, matrix.M34, matrix.M44);
+			vec3 = new Vector4(matrix.M34, matrix.M24, matrix.M14, matrix.M44);
 
 			matrixFixed = new[] {
 				Fix15(matrix.M33), Fix15(matrix.M23), Fix15(matrix.M13), Fix15(matrix.M43),
 				Fix15(matrix.M32), Fix15(matrix.M22), Fix15(matrix.M12), Fix15(matrix.M42),
 				Fix15(matrix.M31), Fix15(matrix.M21), Fix15(matrix.M11), Fix15(matrix.M41),
-				Fix15(matrix.M14), Fix15(matrix.M24), Fix15(matrix.M34), Fix15(matrix.M44)
+				Fix15(matrix.M34), Fix15(matrix.M24), Fix15(matrix.M14), Fix15(matrix.M44)
 			};
 		}
 
@@ -250,7 +214,7 @@ namespace PhotoSauce.MagicScaler
 		private readonly Matrix4x4 matrix;
 
 		/// <summary>Constructs a new <see cref="ColorMatrixTransform" /> using the specified <paramref name="matrix" />.</summary>
-		/// <param name="matrix">A 4x4 matrix of coefficients.  The channel order is BGRA.</param>
+		/// <param name="matrix">A 4x4 matrix of coefficients.  The channel order is RGBA, column-major.</param>
 		public ColorMatrixTransform(Matrix4x4 matrix) => this.matrix = matrix;
 
 		void IPixelTransformInternal.Init(PipelineContext ctx)

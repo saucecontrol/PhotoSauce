@@ -11,10 +11,10 @@ namespace PhotoSauce.MagicScaler
 {
 	internal static class Rec601
 	{
-		public const float R = 0.299f;
-		public const float G = 0.587f;
-		public const float B = 0.114f;
-		public static Vector3 Coefficients = new Vector3(B, G, R);
+		public const double R = 0.299;
+		public const double B = 0.114;
+		public const double G = 1 - R - B;
+		public static Vector3 Coefficients = new Vector3((float)B, (float)G, (float)R);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte LumaFromBgr(byte b, byte g, byte r)
@@ -29,10 +29,10 @@ namespace PhotoSauce.MagicScaler
 
 	internal static class Rec709
 	{
-		public const float R = 0.2126f;
-		public const float G = 0.7152f;
-		public const float B = 0.0722f;
-		public static Vector3 Coefficients = new Vector3(B, G, R);
+		public const double R = 0.2126;
+		public const double B = 0.0722;
+		public const double G = 1 - R - B;
+		public static Vector3 Coefficients = new Vector3((float)B, (float)G, (float)R);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ushort LumaFromBgr(ushort b, ushort g, ushort r)

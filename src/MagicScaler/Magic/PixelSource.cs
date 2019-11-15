@@ -70,9 +70,10 @@ namespace PhotoSauce.MagicScaler
 
 	internal class PixelSourceFrame : IImageFrame
 	{
-		public double DpiX { get; } = 96d;
-		public double DpiY { get; } = 96d;
+		public double DpiX => 96d;
+		public double DpiY => 96d;
 		public Orientation ExifOrientation { get; set; } = Orientation.Normal;
+		public ReadOnlySpan<byte> ColorProfile => ReadOnlySpan<byte>.Empty;
 
 		public IPixelSource PixelSource { get; }
 

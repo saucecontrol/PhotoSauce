@@ -19,6 +19,7 @@ namespace PhotoSauce.MagicScaler
 		public double DpiX { get; } = 96d;
 		public double DpiY { get; } = 96d;
 		public Orientation ExifOrientation { get; set; } = Orientation.Normal;
+		public ReadOnlySpan<byte> ColorProfile => ReadOnlySpan<byte>.Empty;
 		public IDictionary<string, PropVariant> Metadata { get; set; } = emptyDic;
 
 		public bool SupportsNativeScale { get; }

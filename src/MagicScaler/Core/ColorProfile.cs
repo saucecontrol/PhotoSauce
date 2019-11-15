@@ -104,7 +104,7 @@ namespace PhotoSauce.MagicScaler
 				0.14307328f, 0.06062103f, 0.71393112f, 0,
 				0,           0,           0,           1
 			);
-			Matrix4x4.Invert(m, out var im);
+			var im = m.InvertPrecise();
 			var curve = new ProfileCurve(LookupTables.SrgbGamma, LookupTables.SrgbInverseGammaFloat, LookupTables.SrgbInverseGammaUQ15);
 
 			return new MatrixProfile(m, im, curve, ProfileColorSpace.Rgb, ProfileColorSpace.Xyz);
@@ -555,7 +555,8 @@ namespace PhotoSauce.MagicScaler
 					if (matrix.IsRouglyEqualTo(sRGB.Matrix) && rgbcurve == sRGB.Curve)
 						return sRGB;
 
-					if (Matrix4x4.Invert(matrix, out var imatrix))
+					var imatrix = matrix.InvertPrecise();
+					if (!float.IsNaN(imatrix.M11))
 						return new MatrixProfile(matrix, imatrix, rgbcurve, dataColorSpace, pcsColorSpace);
 				}
 			}
