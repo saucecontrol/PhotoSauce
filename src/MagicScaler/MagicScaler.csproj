@@ -42,12 +42,16 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<EmbeddedResource Include="Resources\*.icc" />
-		<Compile Include="$(BaseModulesPath)WicInterop\src\WinCodec.cs" Link="External\WicInterop\%(FileName).cs" />
-		<Compile Include="$(BaseModulesPath)WicInterop\src\PropVariant.cs" Link="External\WicInterop\%(FileName).cs" />
-		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\Blake2b\*.cs" Link="External\Blake2Fast\Blake2b\%(FileName).cs" />
-		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\IBlake2Incremental.cs" Link="External\Blake2Fast\%(FileName).cs" />
-		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\ThrowHelper.cs" Link="External\Blake2Fast\%(FileName).cs" />
+		<Compile Include="$(BaseModulesPath)WicInterop\src\WinCodec.cs" Link="External\WicInterop\%(FileName)%(Extension)" />
+		<Compile Include="$(BaseModulesPath)WicInterop\src\PropVariant.cs" Link="External\WicInterop\%(FileName)%(Extension)" />
+		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\Blake2b\*.cs" Link="External\Blake2Fast\Blake2b\%(FileName)%(Extension)" />
+		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\IBlake2Incremental.cs" Link="External\Blake2Fast\%(FileName)%(Extension)" />
+		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\ThrowHelper.cs" Link="External\Blake2Fast\%(FileName)%(Extension)" />
+		<EmbeddedResource Include="$(BaseModulesPath)CompactProfiles\profiles\AdobeCompat-v2.icc" Link="Resources\%(FileName)%(Extension)" />
+		<EmbeddedResource Include="$(BaseModulesPath)CompactProfiles\profiles\sGrey-v2-micro.icc" Link="Resources\%(FileName)%(Extension)" />
+		<EmbeddedResource Include="$(BaseModulesPath)CompactProfiles\profiles\sGrey-v4.icc" Link="Resources\%(FileName)%(Extension)" />
+		<EmbeddedResource Include="$(BaseModulesPath)CompactProfiles\profiles\sRGB-v2-micro.icc" Link="Resources\%(FileName)%(Extension)" />
+		<EmbeddedResource Include="$(BaseModulesPath)CompactProfiles\profiles\sRGB-v4.icc" Link="Resources\%(FileName)%(Extension)" />
 	</ItemGroup>
 
 	<ItemGroup>

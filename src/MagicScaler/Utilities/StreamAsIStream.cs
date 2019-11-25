@@ -55,14 +55,6 @@ namespace PhotoSauce.Interop.Wic
 
 		public static IStream AsIStream(this Stream stream) => new StreamAsIStream(stream);
 
-		public static ArraySegment<byte> GetOwnedArraySegment(this IMemoryOwner<byte> m, int cb)
-		{
-			if (!MemoryMarshal.TryGetArray(m.Memory.Slice(0, cb), out ArraySegment<byte> msa) || msa.Array is null)
-				throw new NotSupportedException("Could not retrieve " + nameof(MemoryPool<byte>) + " array.");
-
-			return msa;
-		}
-
 #if !BUILTIN_SPAN
 		public static int Read(this Stream stream, Span<byte> buffer)
 		{

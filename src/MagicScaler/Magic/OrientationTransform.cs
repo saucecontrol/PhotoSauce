@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
@@ -17,7 +18,7 @@ namespace PhotoSauce.MagicScaler
 		public OrientationTransformInternal(PixelSource source, Orientation orientation, PixelArea crop) : base(source)
 		{
 			int bpp = Format.BitsPerPixel;
-			if (!(bpp == 8 || bpp == 16 || bpp == 24 || bpp == 32))
+			if (!(bpp == 8 || bpp == 16 || bpp == 24 || bpp == 32 || bpp == 128))
 				throw new NotSupportedException("Pixel format not supported.");
 
 			srcArea = crop.DeOrient(orientation, Source.Width, Source.Height);
@@ -158,22 +159,22 @@ namespace PhotoSauce.MagicScaler
 								op += colStride;
 							}
 							break;
-						case 4:
-							while (ip < ipe)
-							{
-								*(uint*)op = *(uint*)ip;
-
-								ip += 4;
-								op += colStride;
-							}
-							break;
-						default:
+						case 3:
 							while (ip < ipe)
 							{
 								*(ushort*)op = *(ushort*)ip;
 								op[2] = ip[2];
 
 								ip += 3;
+								op += colStride;
+							}
+							break;
+						case 4:
+							while (ip < ipe)
+							{
+								*(uint*)op = *(uint*)ip;
+
+								ip += 4;
 								op += colStride;
 							}
 							break;
@@ -211,19 +212,7 @@ namespace PhotoSauce.MagicScaler
 						pp += 2;
 					}
 					break;
-				case 4:
-					while (pp < pe)
-					{
-						uint t0 = *(uint*)pe;
-
-						*(uint*)pe = *(uint*)pp;
-						*(uint*)pp = t0;
-
-						pe -= 4;
-						pp += 4;
-					}
-					break;
-				default:
+				case 3:
 					while (pp < pe)
 					{
 						ushort t0 = *(ushort*)pe;
@@ -236,6 +225,30 @@ namespace PhotoSauce.MagicScaler
 
 						pe -= 3;
 						pp += 3;
+					}
+					break;
+				case 4:
+					while (pp < pe)
+					{
+						uint t0 = *(uint*)pe;
+
+						*(uint*)pe = *(uint*)pp;
+						*(uint*)pp = t0;
+
+						pe -= 4;
+						pp += 4;
+					}
+					break;
+				case 16:
+					while (pp < pe)
+					{
+						Vector4 t0 = Unsafe.ReadUnaligned<Vector4>(pe);
+
+						Unsafe.WriteUnaligned(pe, Unsafe.ReadUnaligned<Vector4>(pp));
+						Unsafe.WriteUnaligned(pp, t0);
+
+						pe -= Unsafe.SizeOf<Vector4>();
+						pp += Unsafe.SizeOf<Vector4>();
 					}
 					break;
 			}

@@ -1,6 +1,12 @@
 [submodule "modules/WicInterop"]
 	path = modules/WicInterop
 	url = https://github.com/saucecontrol/WicInterop
+	update = merge
 [submodule "modules/Blake2Fast"]
 	path = modules/Blake2Fast
 	url = https://github.com/saucecontrol/Blake2Fast
+	update = merge
+[submodule "modules/CompactProfiles"]
+	path = modules/CompactProfiles
+	url = https://github.com/saucecontrol/Compact-ICC-Profiles
+	update = merge

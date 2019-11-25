@@ -21,7 +21,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			private static readonly ConcurrentDictionary<Guid, WeakReference<ColorProfile>> dic = new ConcurrentDictionary<Guid, WeakReference<ColorProfile>>();
 
-			public static ColorProfile GetOrAdd(ArraySegment<byte> bytes)
+			public static ColorProfile GetOrAdd(ReadOnlySpan<byte> bytes)
 			{
 #if BUILTIN_SPAN
 				Span<byte> hash = stackalloc byte[16];
@@ -107,12 +107,25 @@ namespace PhotoSauce.MagicScaler
 			var im = m.InvertPrecise();
 			var curve = new ProfileCurve(LookupTables.SrgbGamma, LookupTables.SrgbInverseGammaFloat, LookupTables.SrgbInverseGammaUQ15);
 
-			return new MatrixProfile(m, im, curve, ProfileColorSpace.Rgb, ProfileColorSpace.Xyz);
+			return new MatrixProfile(IccProfiles.sRgbV4.Value, m, im, curve, ProfileColorSpace.Rgb, ProfileColorSpace.Xyz);
 		});
 
 		private static readonly Lazy<CurveProfile> sgrey = new Lazy<CurveProfile>(() =>
-			new CurveProfile(srgb.Value.Curve, ProfileColorSpace.Grey, ProfileColorSpace.Xyz)
+			new CurveProfile(IccProfiles.sGreyV4.Value, srgb.Value.Curve, ProfileColorSpace.Grey, ProfileColorSpace.Xyz)
 		);
+
+		private static readonly Lazy<MatrixProfile> adobeRgb = new Lazy<MatrixProfile>(() => {
+			var m = new Matrix4x4(
+				0.60974189f, 0.31111293f, 0.01946551f, 0,
+				0.20527343f, 0.62567449f, 0.06087462f, 0,
+				0.14918756f, 0.06321258f, 0.74456527f, 0,
+				0,           0,           0,           1
+			);
+			var im = m.InvertPrecise();
+			var curve = curveFromPower(2.2f);
+
+			return new MatrixProfile(IccProfiles.AdobeRgb.Value, m, im, curve, ProfileColorSpace.Rgb, ProfileColorSpace.Xyz);
+		});
 
 		private static ProfileCurve curveFromPower(float gamma)
 		{
@@ -498,7 +511,7 @@ namespace PhotoSauce.MagicScaler
 				ProfileColorSpace.Other;
 
 			if (pcsColorSpace != ProfileColorSpace.Xyz || (dataColorSpace != ProfileColorSpace.Rgb && dataColorSpace != ProfileColorSpace.Grey))
-				return new ColorProfile(dataColorSpace, pcsColorSpace, ColorProfileType.Unknown);
+				return new ColorProfile(prof.ToArray(), dataColorSpace, pcsColorSpace, ColorProfileType.Unknown);
 
 			uint tagCount = ReadUInt32BigEndian(prof.Slice(headerLength));
 			if (len < (headerPlusTagCountLength + tagCount * Unsafe.SizeOf<TagEntry>()))
@@ -518,7 +531,7 @@ namespace PhotoSauce.MagicScaler
 
 				// not handling these yet, so we'll hand off to WCS
 				if (tag == IccTags.A2B0 || tag == IccTags.B2A0)
-					return new ColorProfile(dataColorSpace, pcsColorSpace, ColorProfileType.Table);
+					return new ColorProfile(prof.ToArray(), dataColorSpace, pcsColorSpace, ColorProfileType.Table);
 
 				tagEntries[i] = new TagEntry(tag, (int)pos, (int)cb);
 			}
@@ -531,7 +544,7 @@ namespace PhotoSauce.MagicScaler
 				if (curve == sRGB.Curve)
 					return sGrey;
 
-				return new CurveProfile(curve, dataColorSpace, pcsColorSpace);
+				return new CurveProfile(prof.ToArray(), curve, dataColorSpace, pcsColorSpace);
 			}
 
 			if (dataColorSpace == ProfileColorSpace.Rgb
@@ -556,8 +569,8 @@ namespace PhotoSauce.MagicScaler
 						return sRGB;
 
 					var imatrix = matrix.InvertPrecise();
-					if (!float.IsNaN(imatrix.M11))
-						return new MatrixProfile(matrix, imatrix, rgbcurve, dataColorSpace, pcsColorSpace);
+					if (!imatrix.IsNaN())
+						return new MatrixProfile(prof.ToArray(), matrix, imatrix, rgbcurve, dataColorSpace, pcsColorSpace);
 				}
 			}
 
@@ -566,8 +579,12 @@ namespace PhotoSauce.MagicScaler
 
 		public static MatrixProfile sRGB => srgb.Value;
 		public static CurveProfile sGrey => sgrey.Value;
+		public static CurveProfile AdobeRgb => adobeRgb.Value;
+
+		public static ColorProfile GetDefaultFor(PixelFormat fmt) => fmt.ColorRepresentation == PixelColorRepresentation.Grey ? sGrey : sRGB;
 
 		public bool IsValid { get; }
+		public byte[] ProfileBytes { get; }
 		public ProfileColorSpace DataColorSpace { get; }
 		public ProfileColorSpace PcsColorSpace { get; }
 
@@ -580,11 +597,12 @@ namespace PhotoSauce.MagicScaler
 
 		public bool IsSrgb => this is CurveProfile cp && cp.Curve == sRGB.Curve && (!(this is MatrixProfile mp) || mp.Matrix == sRGB.Matrix);
 
-		private ColorProfile() => IsValid = false;
+		private ColorProfile() => ProfileBytes = Array.Empty<byte>();
 
-		protected ColorProfile(ProfileColorSpace dataSpace, ProfileColorSpace pcsSpace, ColorProfileType profileType)
+		protected ColorProfile(byte[] bytes, ProfileColorSpace dataSpace, ProfileColorSpace pcsSpace, ColorProfileType profileType)
 		{
 			IsValid = true;
+			ProfileBytes = bytes;
 			DataColorSpace = dataSpace;
 			PcsColorSpace = pcsSpace;
 			ProfileType = profileType;
@@ -610,7 +628,7 @@ namespace PhotoSauce.MagicScaler
 		public bool IsLinear { get; }
 		public ProfileCurve? Curve { get; }
 
-		public CurveProfile(ProfileCurve? curve, ProfileColorSpace dataSpace, ProfileColorSpace pcsSpace) : base(dataSpace, pcsSpace, ColorProfileType.Curve)
+		public CurveProfile(byte[] bytes, ProfileCurve? curve, ProfileColorSpace dataSpace, ProfileColorSpace pcsSpace) : base(bytes, dataSpace, pcsSpace, ColorProfileType.Curve)
 		{
 			IsLinear = curve is null;
 			Curve = curve;
@@ -622,11 +640,31 @@ namespace PhotoSauce.MagicScaler
 		public Matrix4x4 Matrix { get; }
 		public Matrix4x4 InverseMatrix { get; }
 
-		public MatrixProfile(Matrix4x4 matrix, Matrix4x4 imatrix, ProfileCurve? curve, ProfileColorSpace dataSpace, ProfileColorSpace pcsSpace) : base(curve, dataSpace, pcsSpace)
+		public MatrixProfile(byte[] bytes, Matrix4x4 matrix, Matrix4x4 imatrix, ProfileCurve? curve, ProfileColorSpace dataSpace, ProfileColorSpace pcsSpace) : base(bytes, curve, dataSpace, pcsSpace)
 		{
 			ProfileType = ColorProfileType.Matrix;
 			Matrix = matrix;
 			InverseMatrix = imatrix;
 		}
+	}
+
+	internal static class IccProfiles
+	{
+		private static byte[] getResourceBinary(string name)
+		{
+			string resName = nameof(PhotoSauce) + "." + nameof(MagicScaler) + ".Resources." + name;
+			using var stm = typeof(IccProfiles).Assembly.GetManifestResourceStream(resName)!;
+
+			var buff = new byte[(int)stm.Length];
+			stm.Read(buff, 0, buff.Length);
+
+			return buff;
+		}
+
+		public static readonly Lazy<byte[]> sRgbV4 = new Lazy<byte[]>(() => getResourceBinary("sRGB-v4.icc"));
+		public static readonly Lazy<byte[]> sRgbCompact = new Lazy<byte[]>(() => getResourceBinary("sRGB-v2-micro.icc"));
+		public static readonly Lazy<byte[]> sGreyV4 = new Lazy<byte[]>(() => getResourceBinary("sGrey-v4.icc"));
+		public static readonly Lazy<byte[]> sGreyCompact = new Lazy<byte[]>(() => getResourceBinary("sRGB-v2-micro.icc"));
+		public static readonly Lazy<byte[]> AdobeRgb = new Lazy<byte[]>(() => getResourceBinary("AdobeCompat-v2.icc"));
 	}
 }

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Buffers;
 using System.Runtime.InteropServices;
 using System.Diagnostics.CodeAnalysis;
 
@@ -7,33 +6,16 @@ namespace PhotoSauce.Interop.Wic
 {
 	internal static class Wic
 	{
-		private static IWICColorContext getDefaultColorContext(Guid pixelFormat)
-		{
-			using var pfi = new ComHandle<IWICPixelFormatInfo>(Factory.CreateComponentInfo(pixelFormat));
-			return pfi.ComObject.GetColorContext();
-		}
-
-		private static IWICColorContext getResourceColorContext(string name)
-		{
-			string resName = nameof(PhotoSauce) + "." + nameof(MagicScaler) + ".Resources." + name;
-			using var stm = typeof(Wic).Assembly.GetManifestResourceStream(resName)!;
-			using var buff = MemoryPool<byte>.Shared.Rent((int)stm.Length);
-
-			var cca = buff.GetOwnedArraySegment((int)stm.Length);
-			stm.Read(cca.Array!, cca.Offset, cca.Count);
-
-			var cc = Factory.CreateColorContext();
-			cc.InitializeFromMemory(cca.Array!, (uint)cca.Count);
-			return cc;
-		}
-
 		public static readonly IWICImagingFactory Factory = new WICImagingFactory2() as IWICImagingFactory ?? throw new PlatformNotSupportedException("Windows Imaging Component (WIC) is not available on this platform.");
 
-		public static readonly Lazy<IWICColorContext> CmykContext = new Lazy<IWICColorContext>(() => getDefaultColorContext(Consts.GUID_WICPixelFormat32bppCMYK));
-		public static readonly Lazy<IWICColorContext> SrgbContext = new Lazy<IWICColorContext>(() => getResourceColorContext("sRGB-v4.icc"));
-		public static readonly Lazy<IWICColorContext> GreyContext = new Lazy<IWICColorContext>(() => getResourceColorContext("sGrey-v4.icc"));
-		public static readonly Lazy<IWICColorContext> SrgbCompactContext = new Lazy<IWICColorContext>(() => getResourceColorContext("sRGB-v2-micro.icc"));
-		public static readonly Lazy<IWICColorContext> GreyCompactContext = new Lazy<IWICColorContext>(() => getResourceColorContext("sGrey-v2-micro.icc"));
+		public static class Metadata
+		{
+			public const string InteropIndexExifPath = "/ifd/exif/interop/{ushort=1}";
+			public const string InteropIndexJpegPath = "/app1" + InteropIndexExifPath;
+			public const string OrientationWindowsPolicy = "System.Photo.Orientation";
+			public const string OrientationExifPath = "/ifd/{ushort=274}";
+			public const string OrientationJpegPath = "/app1" + OrientationExifPath;
+		}
 	}
 
 	internal static class WinCodecExtensions
@@ -98,6 +80,34 @@ namespace PhotoSauce.Interop.Wic
 		{
 			int hr = ProxyFunctions.SetColorContexts(frame, (uint)contexts.Length, contexts);
 			return hr >= 0;
+		}
+
+		public static void Write<T>(this IPropertyBag2 bag, string name, T val) where T : unmanaged
+		{
+			var prop = new PROPBAG2 { pstrName = name };
+			var pvar = new UnmanagedPropVariant();
+
+			if (typeof(T) == typeof(bool))
+			{
+				pvar.vt = VarEnum.VT_BOOL;
+				pvar.int16Value = (bool)(object)val ? (short)-1 : (short)0;
+			}
+			else if (typeof(T) == typeof(byte))
+			{
+				pvar.vt = VarEnum.VT_UI1;
+				pvar.byteValue = (byte)(object)val;
+			}
+			else if (typeof(T) == typeof(float))
+			{
+				pvar.vt = VarEnum.VT_R4;
+				pvar.floatValue = (float)(object)val;
+			}
+			else
+			{
+				throw new ArgumentException("Marshaling not implemented for type: " + typeof(T).Name, nameof(T));
+			}
+
+			ProxyFunctions.PropertyBagWrite(bag, 1, prop, pvar);
 		}
 	}
 }

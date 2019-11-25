@@ -73,11 +73,13 @@ namespace PhotoSauce.MagicScaler
 		public double DpiX => 96d;
 		public double DpiY => 96d;
 		public Orientation ExifOrientation { get; set; } = Orientation.Normal;
-		public ReadOnlySpan<byte> ColorProfile => ReadOnlySpan<byte>.Empty;
+		public ReadOnlySpan<byte> IccProfile => ReadOnlySpan<byte>.Empty;
 
 		public IPixelSource PixelSource { get; }
 
 		public PixelSourceFrame(IPixelSource source) => PixelSource = source;
+
+		public void Dispose() { }
 	}
 
 	internal class PixelSourceContainer : IImageContainer

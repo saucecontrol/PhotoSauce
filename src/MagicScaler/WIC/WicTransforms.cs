@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Linq;
 using System.Buffers;
 using System.Diagnostics;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 using PhotoSauce.Interop.Wic;
@@ -11,16 +9,17 @@ namespace PhotoSauce.MagicScaler
 {
 	internal class WicImageFrame : IImageFrame
 	{
-		private static readonly IDictionary<string, PropVariant> emptyDic = new Dictionary<string, PropVariant>();
+		private readonly WicImageContainer container;
+		private readonly ComHandleCollection comHandles = new ComHandleCollection(4);
 
 		private PixelSource? source;
 		private IPixelSource? iSource;
+		private WicColorProfile? colorProfile;
 
-		public double DpiX { get; } = 96d;
-		public double DpiY { get; } = 96d;
-		public Orientation ExifOrientation { get; set; } = Orientation.Normal;
-		public ReadOnlySpan<byte> ColorProfile => ReadOnlySpan<byte>.Empty;
-		public IDictionary<string, PropVariant> Metadata { get; set; } = emptyDic;
+		public double DpiX { get; }
+		public double DpiY { get; }
+		public Orientation ExifOrientation { get; } = Orientation.Normal;
+		public ReadOnlySpan<byte> IccProfile => ColorProfileSource.ParsedProfile.ProfileBytes;
 
 		public bool SupportsNativeScale { get; }
 		public bool SupportsNativeTransform { get; }
@@ -30,27 +29,30 @@ namespace PhotoSauce.MagicScaler
 
 		public IWICBitmapFrameDecode WicFrame { get; }
 		public IWICBitmapSource WicSource { get; }
+		public IWICMetadataQueryReader? WicMetadataReader { get; }
 
 		public PixelSource Source => source ??= WicSource.AsPixelSource(nameof(IWICBitmapFrameDecode), false);
 
 		public IPixelSource PixelSource => iSource ??= Source.AsIPixelSource();
 
-		public WicImageFrame(WicImageContainer decoder, uint index, WicPipelineContext ctx)
+		public WicColorProfile ColorProfileSource => colorProfile ??= getColorProfile();
+
+		public WicImageFrame(WicImageContainer decoder, uint index)
 		{
 			if (index >= (uint)decoder.FrameCount) throw new IndexOutOfRangeException("Frame index does not exist");
 
-			WicFrame = ctx.AddRef(decoder.WicDecoder.GetFrame(index));
+			WicFrame = comHandles.AddRef(decoder.WicDecoder.GetFrame(index));
 			WicSource = WicFrame;
 			WicFrame.GetSize(out uint frameWidth, out uint frameHeight);
+			container = decoder;
 
 			if (decoder.IsRawContainer && index == 0 && decoder.WicDecoder.TryGetPreview(out var preview))
 			{
+				using var pvwSource = new ComHandle<IWICBitmapSource>(preview);
 				preview.GetSize(out uint pw, out uint ph);
 
 				if (pw == frameWidth && ph == frameHeight)
-					WicSource = ctx.AddRef(preview);
-				else
-					Marshal.ReleaseComObject(preview);
+					WicSource = comHandles.AddOwnRef(preview);
 			}
 
 			WicFrame.GetResolution(out double dpix, out double dpiy);
@@ -59,7 +61,7 @@ namespace PhotoSauce.MagicScaler
 
 			if (PixelFormat.FromGuid(WicSource.GetPixelFormat()).NumericRepresentation == PixelNumericRepresentation.Indexed)
 			{
-				var pal = ctx.AddRef(Wic.Factory.CreatePalette());
+				var pal = comHandles.AddRef(Wic.Factory.CreatePalette());
 				WicSource.CopyPalette(pal);
 
 				var newFormat = Consts.GUID_WICPixelFormat24bppBGR;
@@ -68,7 +70,7 @@ namespace PhotoSauce.MagicScaler
 				else if (pal.IsGrayscale() || pal.IsBlackWhite())
 					newFormat = Consts.GUID_WICPixelFormat8bppGray;
 
-				var conv = ctx.AddRef(Wic.Factory.CreateFormatConverter());
+				var conv = comHandles.AddRef(Wic.Factory.CreateFormatConverter());
 				conv.Initialize(WicSource, newFormat, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
 				WicSource = conv;
 			}
@@ -93,104 +95,84 @@ namespace PhotoSauce.MagicScaler
 					desc[1].Height < desc[0].Height ? WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling440 :
 					WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling444;
 			}
-		}
-	}
 
-	internal static class WicTransforms
-	{
-		private const string orientationWindowsPolicy = "System.Photo.Orientation";
-		public const string OrientationExifPath = "/ifd/{ushort=274}";
-		public const string OrientationJpegPath = "/app1" + OrientationExifPath;
-
-		internal static readonly Guid[] PlanarPixelFormats = new[] { Consts.GUID_WICPixelFormat8bppY, Consts.GUID_WICPixelFormat8bppCb, Consts.GUID_WICPixelFormat8bppCr };
-
-		public static void AddMetadataReader(PipelineContext ctx, bool basicOnly = false)
-		{
-			if (!(ctx.ImageFrame is WicImageFrame frame))
-				return;
-
-			if (frame.WicFrame.TryGetMetadataQueryReader(out var metareader))
+			if (WicFrame.TryGetMetadataQueryReader(out var metareader))
 			{
-				ctx.WicContext.AddRef(metareader);
+				WicMetadataReader = comHandles.AddRef(metareader);
 
-				string orientationPath = MagicImageProcessor.EnableXmpOrientation ? orientationWindowsPolicy : ctx.ImageContainer.ContainerFormat == FileFormat.Jpeg ? OrientationJpegPath : OrientationExifPath;
+				string orientationPath =
+					MagicImageProcessor.EnableXmpOrientation ? Wic.Metadata.OrientationWindowsPolicy :
+					decoder.ContainerFormat == FileFormat.Jpeg ? Wic.Metadata.OrientationJpegPath :
+					Wic.Metadata.OrientationExifPath;
 
 				if (metareader.TryGetMetadataByName(orientationPath, out var pvorient) && pvorient.UnmanagedType == VarEnum.VT_UI2)
-					frame.ExifOrientation = (Orientation)Math.Min(Math.Max((ushort)Orientation.Normal, (ushort)pvorient.Value!), (ushort)Orientation.Rotate270);
-
-				if (basicOnly)
-					return;
-
-				if (ctx.Settings.MetadataNames.Any())
-				{
-					var propdic = frame.Metadata = new Dictionary<string, PropVariant>();
-					foreach (string prop in ctx.Settings.MetadataNames)
-					{
-						if (metareader.TryGetMetadataByName(prop, out var pvar) && !(pvar.Value is null))
-							propdic[prop] = pvar;
-					}
-				}
+					ExifOrientation = (Orientation)Math.Min(Math.Max((ushort)Orientation.Normal, (ushort)pvorient.Value!), (ushort)Orientation.Rotate270);
 			}
+		}
 
-			if (basicOnly)
-				return;
+		public void Dispose() => comHandles.Dispose();
 
-			// ICC profiles
-			// http://ninedegreesbelow.com/photography/embedded-color-space-information.html
-			uint ccc = frame.WicFrame.GetColorContextCount();
-			var fmt = ctx.Source.Format;
+		private WicColorProfile getColorProfile()
+		{
+			var fmt = PixelFormat.FromGuid(WicSource.GetPixelFormat());
+			uint ccc = WicFrame.GetColorContextCount();
+			if (ccc == 0)
+				return WicColorProfile.GetDefaultFor(fmt);
+
 			var profiles = new IWICColorContext[ccc];
-			var profile = default(IWICColorContext);
+			for (int i = 0; i < ccc; i++)
+				profiles[i] = comHandles.AddRef(Wic.Factory.CreateColorContext());
 
-			if (ccc > 0)
-			{
-				for (int i = 0; i < ccc; i++)
-					profiles[i] = ctx.WicContext.AddRef(Wic.Factory.CreateColorContext());
-
-				frame.WicFrame.GetColorContexts(ccc, profiles);
-			}
+			WicFrame.GetColorContexts(ccc, profiles);
 
 			foreach (var cc in profiles)
 			{
 				var cct = cc.GetType();
 				if (cct == WICColorContextType.WICColorContextProfile)
 				{
-					uint ccs = cc.GetProfileBytes(0, null);
+					uint cb = cc.GetProfileBytes(0, null);
 
-					// don't try to read giant profiles. 4MiB is more than enough
-					if (ccs > (1024 * 1024 * 4))
+					// Don't try to read giant profiles. 4MiB should be enough, and more might indicate corrupt metadata.
+					if (cb > 1024 * 1024 * 4)
 						continue;
 
-					using var ccb = MemoryPool<byte>.Shared.Rent((int)ccs);
-					var cca = ccb.GetOwnedArraySegment((int)ccs);
-
-					cc.GetProfileBytes((uint)cca.Count, cca.Array);
-					var cpi = ColorProfile.Cache.GetOrAdd(cca);
-
-					// match only color profiles that match our intended use. if we have a standard sRGB profile, don't save it; we don't need to convert
-					if (cpi.IsValid && cpi.IsCompatibleWith(fmt) && !cpi.IsSrgb)
+					var buff = ArrayPool<byte>.Shared.Rent((int)cb);
+					try
 					{
-						profile = cc;
-						if (cpi.ProfileType == ColorProfileType.Matrix || cpi.ProfileType == ColorProfileType.Curve)
-							ctx.SourceColorProfile = cpi;
-						break;
+						cc.GetProfileBytes(cb, buff);
+						var cpi = ColorProfile.Cache.GetOrAdd(new ReadOnlySpan<byte>(buff, 0, (int)cb));
+
+						// Use the profile only if it matches the frame's pixel format.  Ignore embedded sRGB-compatible profiles -- they will be upgraded to the internal sRGB/sGrey definintion.
+						if (cpi.IsValid && cpi.IsCompatibleWith(fmt) && !cpi.IsSrgb)
+							return new WicColorProfile(cc, cpi);
+					}
+					finally
+					{
+						ArrayPool<byte>.Shared.Return(buff);
 					}
 				}
-				else if (cct == WICColorContextType.WICColorContextExifColorSpace && cc.GetExifColorSpace() == ExifColorSpace.AdobeRGB)
+				else if (cct == WICColorContextType.WICColorContextExifColorSpace && WicMetadataReader != null)
 				{
-					profile = cc;
-					break;
+					// Although WIC defines the non-standard AdobeRGB ExifColorSpace value, most software (including Adobe's) only supports the Uncalibrated/InteropIndex=R03 convention.
+					// http://ninedegreesbelow.com/photography/embedded-color-space-information.html
+					var ecs = cc.GetExifColorSpace();
+					if (
+						ecs == ExifColorSpace.AdobeRGB || (
+						ecs == ExifColorSpace.Uncalibrated
+						&& WicMetadataReader.TryGetMetadataByName(container.ContainerFormat == FileFormat.Jpeg ? Wic.Metadata.InteropIndexJpegPath : Wic.Metadata.InteropIndexExifPath, out var interopIdx)
+						&& interopIdx.UnmanagedType == VarEnum.VT_LPSTR
+						&& (string)interopIdx.Value! == "R03")
+					) return WicColorProfile.AdobeRgb.Value;
 				}
 			}
 
-			var defaultColorContext = fmt.ColorRepresentation == PixelColorRepresentation.Grey ? Wic.GreyContext.Value : Wic.SrgbContext.Value;
-			ctx.WicContext.SourceColorContext = profile ?? (fmt.ColorRepresentation == PixelColorRepresentation.Cmyk ? Wic.CmykContext.Value : null);
-			ctx.WicContext.DestColorContext = ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed || ctx.WicContext.SourceColorContext is null ? defaultColorContext : ctx.WicContext.SourceColorContext;
-
-			var defaultColorProfile = fmt.ColorRepresentation == PixelColorRepresentation.Grey ? ColorProfile.sGrey : ColorProfile.sRGB;
-			ctx.SourceColorProfile ??= defaultColorProfile;
-			ctx.DestColorProfile = ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed ? defaultColorProfile : ctx.SourceColorProfile;
+			return WicColorProfile.GetDefaultFor(fmt);
 		}
+	}
+
+	internal static class WicTransforms
+	{
+		public static readonly Guid[] PlanarPixelFormats = new[] { Consts.GUID_WICPixelFormat8bppY, Consts.GUID_WICPixelFormat8bppCb, Consts.GUID_WICPixelFormat8bppCr };
 
 		public static void AddConditionalCache(PipelineContext ctx)
 		{
@@ -202,6 +184,15 @@ namespace PhotoSauce.MagicScaler
 
 			ctx.Source = bmp.AsPixelSource(nameof(IWICBitmap));
 			ctx.Settings.Crop = ctx.Source.Area.ToGdiRect();
+		}
+
+		public static void AddColorProfileReader(PipelineContext ctx)
+		{
+			if (!(ctx.ImageFrame is WicImageFrame wicFrame))
+				return;
+
+			ctx.WicContext.SourceColorContext = wicFrame.ColorProfileSource.WicColorContext;
+			ctx.WicContext.DestColorContext = ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed ? WicColorProfile.GetDefaultFor(ctx.Source.Format).WicColorContext : ctx.WicContext.SourceColorContext;
 		}
 
 		public static void AddColorspaceConverter(PipelineContext ctx)
@@ -219,9 +210,10 @@ namespace PhotoSauce.MagicScaler
 			var curFormat = ctx.Source.Format;
 			if (curFormat.ColorRepresentation == PixelColorRepresentation.Cmyk)
 			{
-				Debug.Assert(ctx.WicContext.SourceColorContext != null && ctx.WicContext.DestColorContext != null);
+				var sRgbContext = WicColorProfile.Srgb.Value;
+				Debug.Assert(ctx.WicContext.SourceColorContext != null);
 
-				//TODO WIC doesn't support proper CMYKA conversion with color profile
+				// TODO WIC doesn't support proper CMYKA conversion with color profile
 				if (curFormat.AlphaRepresentation == PixelAlphaRepresentation.None)
 				{
 					// WIC doesn't support 16bpc CMYK conversion with color profile
@@ -229,14 +221,15 @@ namespace PhotoSauce.MagicScaler
 						ctx.Source = ctx.AddDispose(new FormatConversionTransformInternal(ctx.Source, null, null, Consts.GUID_WICPixelFormat32bppCMYK));
 
 					var trans = ctx.WicContext.AddRef(Wic.Factory.CreateColorTransformer());
-					if (trans.TryInitialize(ctx.Source.WicSource, ctx.WicContext.SourceColorContext, ctx.WicContext.DestColorContext, Consts.GUID_WICPixelFormat24bppBGR))
+					if (trans.TryInitialize(ctx.Source.WicSource, ctx.WicContext.SourceColorContext, sRgbContext.WicColorContext, Consts.GUID_WICPixelFormat24bppBGR))
 					{
 						ctx.Source = trans.AsPixelSource(nameof(IWICColorTransform));
 						curFormat = ctx.Source.Format;
 					}
 				}
 
-				ctx.WicContext.SourceColorContext = null;
+				ctx.WicContext.DestColorContext = ctx.WicContext.SourceColorContext = sRgbContext.WicColorContext;
+				ctx.DestColorProfile = ctx.SourceColorProfile = sRgbContext.ParsedProfile;
 			}
 
 			if (curFormat.FormatGuid == Consts.GUID_WICPixelFormat8bppY || curFormat.FormatGuid == Consts.GUID_WICPixelFormat8bppCb || curFormat.FormatGuid == Consts.GUID_WICPixelFormat8bppCr)

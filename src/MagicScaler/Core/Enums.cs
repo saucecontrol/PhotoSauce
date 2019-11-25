@@ -144,7 +144,7 @@ namespace PhotoSauce.MagicScaler
 	/// <summary>Defines the modes that control <a href="https://en.wikipedia.org/wiki/Chroma_subsampling">chroma subsampling</a> for output image formats that support it.</summary>
 	public enum ChromaSubsampleMode
 	{
-		/// <summary>Configured subsampling automatically based on output format and quality settings.</summary>
+		/// <summary>Configure subsampling automatically based on output format and quality settings.</summary>
 		Default = 0,
 		/// <summary>Use 4:2:0 Y'CbCr subsampling.</summary>
 		Subsample420 = 1,

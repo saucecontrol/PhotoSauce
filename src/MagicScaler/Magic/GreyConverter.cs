@@ -9,15 +9,15 @@ using VectorF = System.Numerics.Vector<float>;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal static class Rec601
+	internal static class Rec601Luma
 	{
 		public const double R = 0.299;
 		public const double B = 0.114;
 		public const double G = 1 - R - B;
-		public static Vector3 Coefficients = new Vector3((float)B, (float)G, (float)R);
+		public static readonly Vector3 Coefficients = new Vector3((float)B, (float)G, (float)R);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte LumaFromBgr(byte b, byte g, byte r)
+		public static byte FromBgr(byte b, byte g, byte r)
 		{
 			const int rY = (ushort)(R * DoubleScale + DoubleRound);
 			const int gY = (ushort)(G * DoubleScale + DoubleRound);
@@ -27,15 +27,15 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	internal static class Rec709
+	internal static class Rec709Luma
 	{
 		public const double R = 0.2126;
 		public const double B = 0.0722;
 		public const double G = 1 - R - B;
-		public static Vector3 Coefficients = new Vector3((float)B, (float)G, (float)R);
+		public static readonly Vector3 Coefficients = new Vector3((float)B, (float)G, (float)R);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ushort LumaFromBgr(ushort b, ushort g, ushort r)
+		public static ushort FromBgr(ushort b, ushort g, ushort r)
 		{
 			const int rY = (ushort)(R * DoubleScale + DoubleRound);
 			const int gY = (ushort)(G * DoubleScale + DoubleRound);
@@ -85,7 +85,7 @@ namespace PhotoSauce.MagicScaler
 
 			while (ip <= ipe)
 			{
-				byte y = Rec601.LumaFromBgr(ip[0], ip[1], ip[2]);
+				byte y = Rec601Luma.FromBgr(ip[0], ip[1], ip[2]);
 				op[0] = y;
 
 				ip += 3;
@@ -102,7 +102,7 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip <= ipe)
 				{
-					uint y = Rec709.LumaFromBgr(ip[0], ip[1], ip[2]);
+					uint y = Rec709Luma.FromBgr(ip[0], ip[1], ip[2]);
 					op[0] = gt[y];
 
 					ip += 3;
@@ -114,7 +114,7 @@ namespace PhotoSauce.MagicScaler
 		unsafe private static void bgrToGreyFloat(byte* ipstart, byte* opstart, int cb, bool linear)
 		{
 			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - 3, op = (float*)opstart;
-			var clum = linear ? Rec709.Coefficients : Rec601.Coefficients;
+			var clum = linear ? Rec709Luma.Coefficients : Rec601Luma.Coefficients;
 			float cbl = clum.X, cgl = clum.Y, crl = clum.Z;
 
 			while (ip <= ipe)
@@ -133,7 +133,7 @@ namespace PhotoSauce.MagicScaler
 
 			while (ip <= ipe)
 			{
-				byte y = Rec601.LumaFromBgr(ip[0], ip[1], ip[2]);
+				byte y = Rec601Luma.FromBgr(ip[0], ip[1], ip[2]);
 				op[0] = y;
 
 				ip += 4;
@@ -150,7 +150,7 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip <= ipe)
 				{
-					uint y = Rec709.LumaFromBgr(ip[0], ip[1], ip[2]);
+					uint y = Rec709Luma.FromBgr(ip[0], ip[1], ip[2]);
 					op[0] = gt[y];
 
 					ip += 4;
@@ -162,7 +162,7 @@ namespace PhotoSauce.MagicScaler
 		unsafe private static void bgrxToGreyFloat(byte* ipstart, byte* opstart, int cb, bool linear)
 		{
 			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - 4, op = (float*)opstart;
-			var clum = new Vector4(linear ? Rec709.Coefficients : Rec601.Coefficients, 0f);
+			var clum = new Vector4(linear ? Rec709Luma.Coefficients : Rec601Luma.Coefficients, 0f);
 
 			while (ip <= ipe)
 			{

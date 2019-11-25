@@ -73,7 +73,7 @@ namespace PhotoSauce.MagicScaler
 			using var ctx = new PipelineContext(new ProcessImageSettings());
 			ctx.ImageContainer = WicImageContainer.Create(imgPath, ctx.WicContext);
 
-			return fromImage(ctx, fi.Length, fi.LastWriteTimeUtc);
+			return fromWicImage(ctx, fi.Length, fi.LastWriteTimeUtc);
 		}
 
 		/// <inheritdoc cref="Load(ReadOnlySpan{byte}, DateTime)" />
@@ -89,7 +89,7 @@ namespace PhotoSauce.MagicScaler
 			using var ctx = new PipelineContext(new ProcessImageSettings());
 			ctx.ImageContainer = WicImageContainer.Create(imgBuffer, ctx.WicContext);
 
-			return fromImage(ctx, imgBuffer.Length, lastModified);
+			return fromWicImage(ctx, imgBuffer.Length, lastModified);
 		}
 
 		/// <inheritdoc cref="Load(Stream, DateTime)" />
@@ -107,18 +107,18 @@ namespace PhotoSauce.MagicScaler
 			using var ctx = new PipelineContext(new ProcessImageSettings());
 			ctx.ImageContainer = WicImageContainer.Create(imgStream, ctx.WicContext);
 
-			return fromImage(ctx, imgStream.Length, lastModified);
+			return fromWicImage(ctx, imgStream.Length, lastModified);
 		}
 
-		private static ImageFileInfo fromImage(PipelineContext ctx, long fileSize, DateTime fileDate)
+		private static ImageFileInfo fromWicImage(PipelineContext ctx, long fileSize, DateTime fileDate)
 		{
 			var frames = new FrameInfo[ctx.ImageContainer.FrameCount];
 			for (int i = 0; i < frames.Length; i++)
 			{
-				ctx.ImageFrame = ctx.ImageContainer.GetFrame(i);
-				ctx.Source = ((WicImageFrame)ctx.ImageFrame).Source;
+				using var frame = (WicImageFrame)ctx.ImageContainer.GetFrame(i);
 
-				WicTransforms.AddMetadataReader(ctx, basicOnly: true);
+				ctx.ImageFrame = frame;
+				ctx.Source = frame.Source;
 
 				int width = ctx.Source.Width;
 				int height = ctx.Source.Height;

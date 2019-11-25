@@ -266,7 +266,7 @@ namespace PhotoSauce.MagicScaler
 			colorspace: PixelColorspace.LinearRgb
 		);
 
-		public static PixelFormat FromGuid(Guid guid) => cache.Value[guid];
+		public static PixelFormat FromGuid(Guid guid) => cache.Value.TryGetValue(guid, out var pf) ? pf : throw new NotSupportedException("Unsupported pixel format.");
 
 		private static ReadOnlyDictionary<Guid, PixelFormat> getFormatCache()
 		{
@@ -311,10 +311,10 @@ namespace PhotoSauce.MagicScaler
 					var numericRep = (PixelNumericRepresentation)pix.GetNumericRepresentation();
 					var colorRep =
 						pfn.Contains("BGR") ? PixelColorRepresentation.Bgr :
-					  pfn.Contains("RGB") ? PixelColorRepresentation.Rgb :
-					  pfn.Contains("CMYK") ? PixelColorRepresentation.Cmyk :
-					  pfn.Contains("Gray") || pfn.EndsWith(" Y") ? PixelColorRepresentation.Grey :
-					  PixelColorRepresentation.Unspecified;
+						pfn.Contains("RGB") ? PixelColorRepresentation.Rgb :
+						pfn.Contains("CMYK") ? PixelColorRepresentation.Cmyk :
+						pfn.Contains("Gray") || pfn.EndsWith(" Y") ? PixelColorRepresentation.Grey :
+						PixelColorRepresentation.Unspecified;
 					var colorspace = colorRep == PixelColorRepresentation.Grey || colorRep == PixelColorRepresentation.Bgr || colorRep == PixelColorRepresentation.Rgb ?
 						numericRep == PixelNumericRepresentation.Fixed || numericRep == PixelNumericRepresentation.Float ? PixelColorspace.scRgb :
 						PixelColorspace.sRgb :

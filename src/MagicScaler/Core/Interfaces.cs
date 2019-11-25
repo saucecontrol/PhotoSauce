@@ -24,7 +24,7 @@ namespace PhotoSauce.MagicScaler
 	}
 
 	/// <summary>A single image frame within an <see cref="IImageContainer" /></summary>
-	public interface IImageFrame
+	public interface IImageFrame : IDisposable
 	{
 		/// <summary>The horizontal resolution of the image frame, in dots per inch.  If the frame source has no resolution information, a default value of 72 or 96 is suitable.</summary>
 		double DpiX { get; }
@@ -35,8 +35,8 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>The <see cref="Orientation"/> of the image frame.  If the frame source has no orientation information, a default value of <see cref="Orientation.Normal"/> is suitable.</summary>
 		Orientation ExifOrientation { get; }
 
-		/// <summary>The ICC color profile that describes the color space of the image frame.  If this value is <see cref="ReadOnlySpan{T}.Empty" />, the pixels will be interpreted as <a href="https://en.wikipedia.org/wiki/SRGB">sRGB</a>.</summary>
-		ReadOnlySpan<byte> ColorProfile { get; }
+		/// <summary>The <a href="https://en.wikipedia.org/wiki/ICC_profile">ICC color profile</a> that describes the color space of the image frame.  If this value is <see cref="ReadOnlySpan{T}.Empty" />, colors will be interpreted as <a href="https://en.wikipedia.org/wiki/SRGB">sRGB or sYCC</a>.</summary>
+		ReadOnlySpan<byte> IccProfile { get; }
 
 		/// <summary>The <see cref="IPixelSource" /> to retrieve pixels from this image frame.</summary>
 		IPixelSource PixelSource { get; }
@@ -48,10 +48,10 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>The position of subsampled chroma components relative to their associated luma components.</summary>
 		ChromaPosition ChromaPosition { get; }
 
-		/// <summary>A 3x3 matrix containing the coefficients for converting this image frame from Y'CbCr format to R'G'B'.  The fourth row and column will be ignored.</summary>
+		/// <summary>A 3x3 matrix containing the coefficients for converting the image frame from Y'CbCr format to R'G'B'.  The fourth row and column will be ignored.  See <see cref="YccRgbMatrix" /> for standard values.</summary>
 		Matrix4x4 YccToRgbMatrix { get; }
 
-		/// <summary>True if the image uses the full 0-255 range for pixel values, false if the image uses video range (16-235 luma and 16-240 chroma).</summary>
+		/// <summary>True if the encoding uses the full 0-255 range for pixel values, false if the encoding uses video range (16-235 luma and 16-240 chroma).</summary>
 		bool IsFullRange { get; }
 
 		/// <summary>The <see cref="IPixelSource" /> to retrieve pixels from the Cb (blue-yellow) chroma plane.</summary>

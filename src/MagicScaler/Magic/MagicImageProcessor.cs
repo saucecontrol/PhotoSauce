@@ -214,7 +214,7 @@ namespace PhotoSauce.MagicScaler
 				ctx.Source = ctx.PlanarContext.SourceY;
 			}
 
-			WicTransforms.AddMetadataReader(ctx);
+			MagicTransforms.AddColorProfileReader(ctx);
 
 			ctx.FinalizeSettings();
 			ctx.Settings.UnsharpMask = ctx.UsedSettings.UnsharpMask;
@@ -250,7 +250,7 @@ namespace PhotoSauce.MagicScaler
 				bool savePlanar = outputPlanar
 					&& ctx.Settings.SaveFormat == FileFormat.Jpeg
 					&& ctx.Settings.InnerRect == ctx.Settings.OuterRect
-					&& ctx.WicContext.SourceColorContext is null;
+					&& ctx.DestColorProfile == ctx.SourceColorProfile;
 
 				if (wicFrame != null)
 					WicTransforms.AddPlanarCache(ctx);
@@ -282,6 +282,9 @@ namespace PhotoSauce.MagicScaler
 
 				ctx.PlanarContext.SourceCb = ctx.Source;
 				ctx.Source = ctx.PlanarContext.SourceCr;
+
+				ctx.Orientation = orient;
+				ctx.Settings.Crop = ctx.Source.Area.ReOrient(orient, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
 
 				MagicTransforms.AddHighQualityScaler(ctx);
 				MagicTransforms.AddExternalFormatConverter(ctx);

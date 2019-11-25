@@ -189,8 +189,6 @@ namespace PhotoSauce.MagicScaler
 		// This is the same logic but with double precision intermediate calculations.
 		public static Matrix4x4 InvertPrecise(this Matrix4x4 matrix)
 		{
-			const double epsilon = 2.2250738585072014E-308;
-
 			double a = matrix.M11, b = matrix.M12, c = matrix.M13, d = matrix.M14;
 			double e = matrix.M21, f = matrix.M22, g = matrix.M23, h = matrix.M24;
 			double i = matrix.M31, j = matrix.M32, k = matrix.M33, l = matrix.M34;
@@ -210,7 +208,7 @@ namespace PhotoSauce.MagicScaler
 
 			double det = a * a11 + b * a12 + c * a13 + d * a14;
 
-			if (Math.Abs(det) < epsilon)
+			if (Math.Abs(det) < float.Epsilon)
 				return new Matrix4x4(
 					float.NaN, float.NaN, float.NaN, float.NaN,
 					float.NaN, float.NaN, float.NaN, float.NaN,
@@ -258,15 +256,21 @@ namespace PhotoSauce.MagicScaler
 			return result;
 		}
 
+		public static bool IsNaN(this Matrix4x4 m) =>
+			float.IsNaN(m.M11) || float.IsNaN(m.M12) || float.IsNaN(m.M13) || float.IsNaN(m.M14) ||
+			float.IsNaN(m.M21) || float.IsNaN(m.M22) || float.IsNaN(m.M23) || float.IsNaN(m.M24) ||
+			float.IsNaN(m.M31) || float.IsNaN(m.M32) || float.IsNaN(m.M33) || float.IsNaN(m.M34) ||
+			float.IsNaN(m.M41) || float.IsNaN(m.M42) || float.IsNaN(m.M43) || float.IsNaN(m.M44);
+
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static float HorizontalAdd(this Vector128<float> v)
-		{	                                      //  a | b | c | d
-			var high = Sse3.IsSupported ?         //  b |___| d |___
+		{	                                        //  a | b | c | d
+			var high = Sse3.IsSupported ?           //  b |___| d |___
 				Sse3.MoveHighAndDuplicate(v) :
 				Sse.Shuffle(v, v, 0b_11_11_01_01);
-			var sums = Sse.Add(v, high);          // a+b|___|c+d|___
-			high = Sse.MoveHighToLow(high, sums); // c+d|___|___|___
+			var sums = Sse.Add(v, high);            // a+b|___|c+d|___
+			high = Sse.MoveHighToLow(high, sums);   // c+d|___|___|___
 
 			return Sse.AddScalar(sums, high).ToScalar();
 		}

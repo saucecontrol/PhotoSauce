@@ -7,10 +7,10 @@ namespace PhotoSauce.MagicScaler
 	{
 		/// <summary>Converts a color image to greyscale using the <a href="https://en.wikipedia.org/wiki/Rec._601">Rec. 601</a> luma coefficients.</summary>
 		public static readonly Matrix4x4 Grey = new Matrix4x4(
-			(float)Rec601.R, (float)Rec601.R, (float)Rec601.R, 0,
-			(float)Rec601.G, (float)Rec601.G, (float)Rec601.G, 0,
-			(float)Rec601.B, (float)Rec601.B, (float)Rec601.B, 0,
-			0,               0,               0,               1
+			(float)Rec601Luma.R, (float)Rec601Luma.R, (float)Rec601Luma.R, 0,
+			(float)Rec601Luma.G, (float)Rec601Luma.G, (float)Rec601Luma.G, 0,
+			(float)Rec601Luma.B, (float)Rec601Luma.B, (float)Rec601Luma.B, 0,
+			0,                   0,                   0,                   1
 		);
 
 		/// <summary>Applies <a href="https://en.wikipedia.org/wiki/Photographic_print_toning#Sepia_toning">sepia toning</a> to an image.</summary>
@@ -41,16 +41,16 @@ namespace PhotoSauce.MagicScaler
 	/// <summary>Contains standard matrices for converting between Y'CbCr and R'G'B' formats.</summary>
 	public static class YccRgbMatrix
 	{
-		/// <summary>Coefficients for converting <a href="https://en.wikipedia.org/wiki/Rec._601">Rec. 601</a> Y'CbCr to R'G'B'.</summary>
-		public static readonly Matrix4x4 Rec601YccToRgb = createRgbToYcc(Rec601.R, Rec601.B).InvertPrecise();
+		/// <summary>Coefficients for converting <a href="https://en.wikipedia.org/wiki/Rec._601">Rec. 601</a> Y'CbCr to R'G'B'. Kr = 0.299, Kb = 0.114.</summary>
+		public static readonly Matrix4x4 Rec601YccToRgb = createRgbToYcc(Rec601Luma.R, Rec601Luma.B).InvertPrecise();
 
-		/// <summary>Coefficients for converting <a href="https://en.wikipedia.org/wiki/Rec._709">Rec. 709</a> Y'CbCr to R'G'B'.</summary>
-		public static readonly Matrix4x4 Rec709YccToRgb = createRgbToYcc(Rec709.R, Rec709.B).InvertPrecise();
+		/// <summary>Coefficients for converting <a href="https://en.wikipedia.org/wiki/Rec._709">Rec. 709</a> Y'CbCr to R'G'B'. Kr = 0.2126, Kb = 0.0722.</summary>
+		public static readonly Matrix4x4 Rec709YccToRgb = createRgbToYcc(Rec709Luma.R, Rec709Luma.B).InvertPrecise();
 
-		/// <summary>Coefficients for converting <a href="https://en.wikipedia.org/wiki/Rec._2020">Rec. 2020</a> Y'CbCr to R'G'B'.</summary>
+		/// <summary>Coefficients for converting <a href="https://en.wikipedia.org/wiki/Rec._2020">Rec. 2020</a> Y'CbCr to R'G'B'. Kr = 0.2627, Kb = 0.0593.</summary>
 		public static readonly Matrix4x4 Rec2020YccToRgb = createRgbToYcc(0.2627, 0.0593).InvertPrecise();
 
-		/// <summary>Coefficients for converting <a href="https://en.wikipedia.org/wiki/Luma_(video)">SMPTE 240M</a> (NTSC) Y'CbCr to R'G'B'.</summary>
+		/// <summary>Coefficients for converting <a href="https://en.wikipedia.org/wiki/Luma_(video)">SMPTE 240M</a> (NTSC) Y'CbCr to R'G'B'. Kr = 0.212, Kb = 0.087.</summary>
 		public static readonly Matrix4x4 Smpte240mYccToRgb = createRgbToYcc(0.212, 0.087).InvertPrecise();
 
 		private static Matrix4x4 createRgbToYcc(double kr, double kb)

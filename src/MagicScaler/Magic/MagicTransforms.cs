@@ -178,7 +178,8 @@ namespace PhotoSauce.MagicScaler
 			if (orientation == Orientation.Normal)
 				return;
 
-			AddExternalFormatConverter(ctx);
+			if (orientation.RequiresCache())
+				AddExternalFormatConverter(ctx);
 
 			ctx.Source = new OrientationTransformInternal(ctx.Source, orientation, PixelArea.FromGdiRect(ctx.Settings.Crop));
 			ctx.Settings.Crop = ctx.Source.Area.ToGdiRect();
@@ -187,15 +188,43 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddExifFlipRotator(PipelineContext ctx) => AddFlipRotator(ctx, ctx.Orientation);
 
+		public static void AddColorProfileReader(PipelineContext ctx)
+		{
+			if (ctx.ImageFrame is WicImageFrame wicFrame)
+			{
+				ctx.WicContext.SourceColorContext = wicFrame.ColorProfileSource.WicColorContext;
+				ctx.SourceColorProfile = wicFrame.ColorProfileSource.ParsedProfile;
+			}
+			else
+			{
+				var fmt = ctx.Source.Format;
+				var profile = ColorProfile.Cache.GetOrAdd(ctx.ImageFrame.IccProfile);
+				if (profile.IsValid && profile.IsCompatibleWith(fmt) && !profile.IsSrgb)
+				{
+					ctx.WicContext.SourceColorContext = ctx.WicContext.AddRef(WicColorProfile.CreateContextFromProfile(profile.ProfileBytes));
+					ctx.SourceColorProfile = profile;
+				}
+				else
+				{
+					var wicProfile = WicColorProfile.GetDefaultFor(fmt);
+					ctx.WicContext.SourceColorContext = wicProfile.WicColorContext;
+					ctx.SourceColorProfile = wicProfile.ParsedProfile;
+				}
+			}
+
+			ctx.WicContext.DestColorContext = ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed ? WicColorProfile.GetDefaultFor(ctx.Source.Format).WicColorContext : ctx.WicContext.SourceColorContext;
+			ctx.DestColorProfile = ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed ? ColorProfile.GetDefaultFor(ctx.Source.Format) : ctx.SourceColorProfile;
+		}
+
 		public static void AddColorspaceConverter(PipelineContext ctx)
 		{
-			if (ctx.SourceColorProfile == ctx.DestColorProfile)
+			if (ctx.SourceColorProfile is null || ctx.DestColorProfile is null || ctx.SourceColorProfile == ctx.DestColorProfile)
+				return;
+
+			if (ctx.SourceColorProfile.ProfileType > ColorProfileType.Matrix || ctx.DestColorProfile.ProfileType > ColorProfileType.Matrix)
 			{
-				if ((ctx.SourceColorProfile == ColorProfile.sRGB || ctx.SourceColorProfile == ColorProfile.sGrey) && ctx.WicContext.SourceColorContext != null)
-				{
-					AddExternalFormatConverter(ctx);
-					WicTransforms.AddColorspaceConverter(ctx);
-				}
+				AddExternalFormatConverter(ctx);
+				WicTransforms.AddColorspaceConverter(ctx);
 
 				return;
 			}

@@ -89,6 +89,8 @@ namespace PhotoSauce.MagicScaler
 		{
 			while (disposeHandles.Count > 0)
 				disposeHandles.Pop().Dispose();
+
+			ImageFrame?.Dispose();
 		}
 	}
 }
