@@ -628,10 +628,22 @@ namespace PhotoSauce.MagicScaler
 		public bool IsLinear { get; }
 		public ProfileCurve? Curve { get; }
 
+		public ConverterFromLinear<ushort, byte> ConverterUQ15ToByte { get; }
+		public ConverterFromLinear<float, byte> ConverterFloatToByte { get; }
+
+		public ConverterToLinear<byte, ushort> ConverterByteToUQ15 { get; }
+		public ConverterToLinear<byte, float> ConverterByteToFloat { get; }
+
 		public CurveProfile(byte[] bytes, ProfileCurve? curve, ProfileColorSpace dataSpace, ProfileColorSpace pcsSpace) : base(bytes, dataSpace, pcsSpace, ColorProfileType.Curve)
 		{
 			IsLinear = curve is null;
-			Curve = curve;
+			Curve = curve ?? new ProfileCurve(null!, LookupTables.AlphaFloat, LookupTables.AlphaUQ15);
+
+			ConverterUQ15ToByte = new ConverterFromLinear<ushort, byte>(Curve.Gamma);
+			ConverterFloatToByte = new ConverterFromLinear<float, byte>(Curve.Gamma);
+
+			ConverterByteToUQ15 = new ConverterToLinear<byte, ushort>(Curve.InverseGammaUQ15);
+			ConverterByteToFloat = new ConverterToLinear<byte, float>(Curve.InverseGammaFloat);
 		}
 	}
 

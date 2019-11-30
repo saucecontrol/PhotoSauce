@@ -86,14 +86,16 @@ namespace PhotoSauce.MagicScaler
 
 			if (WicSource is IWICPlanarBitmapSourceTransform ptrans)
 			{
-				var desc = new WICBitmapPlaneDescription[WicTransforms.PlanarPixelFormats.Length];
+				var desc = ArrayPool<WICBitmapPlaneDescription>.Shared.Rent(WicTransforms.PlanarPixelFormats.Length);
 
-				SupportsPlanarProcessing = ptrans.DoesSupportTransform(ref frameWidth, ref frameHeight, WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault, WicTransforms.PlanarPixelFormats, desc, (uint)desc.Length);
+				SupportsPlanarProcessing = ptrans.DoesSupportTransform(ref frameWidth, ref frameHeight, WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault, WicTransforms.PlanarPixelFormats, desc, (uint)WicTransforms.PlanarPixelFormats.Length);
 				ChromaSubsampling =
 					desc[1].Width < desc[0].Width && desc[1].Height < desc[0].Height ? WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling420 :
 					desc[1].Width < desc[0].Width ? WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling422 :
 					desc[1].Height < desc[0].Height ? WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling440 :
 					WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling444;
+
+				ArrayPool<WICBitmapPlaneDescription>.Shared.Return(desc);
 			}
 
 			if (WicFrame.TryGetMetadataQueryReader(out var metareader))
@@ -137,19 +139,14 @@ namespace PhotoSauce.MagicScaler
 						continue;
 
 					var buff = ArrayPool<byte>.Shared.Rent((int)cb);
-					try
-					{
-						cc.GetProfileBytes(cb, buff);
-						var cpi = ColorProfile.Cache.GetOrAdd(new ReadOnlySpan<byte>(buff, 0, (int)cb));
+					cc.GetProfileBytes(cb, buff);
+					var cpi = ColorProfile.Cache.GetOrAdd(new ReadOnlySpan<byte>(buff, 0, (int)cb));
 
-						// Use the profile only if it matches the frame's pixel format.  Ignore embedded sRGB-compatible profiles -- they will be upgraded to the internal sRGB/sGrey definintion.
-						if (cpi.IsValid && cpi.IsCompatibleWith(fmt) && !cpi.IsSrgb)
-							return new WicColorProfile(cc, cpi);
-					}
-					finally
-					{
-						ArrayPool<byte>.Shared.Return(buff);
-					}
+					ArrayPool<byte>.Shared.Return(buff);
+
+					// Use the profile only if it matches the frame's pixel format.  Ignore embedded sRGB-compatible profiles -- they will be upgraded to the internal sRGB/sGrey definintion.
+					if (cpi.IsValid && cpi.IsCompatibleWith(fmt) && !cpi.IsSrgb)
+						return new WicColorProfile(cc, cpi);
 				}
 				else if (cct == WICColorContextType.WICColorContextExifColorSpace && WicMetadataReader != null)
 				{
@@ -367,14 +364,16 @@ namespace PhotoSauce.MagicScaler
 			uint ow = (uint)ctx.Source.Width, oh = (uint)ctx.Source.Height;
 			uint cw = (uint)MathUtil.DivCeiling((int)ow, ratio), ch = (uint)MathUtil.DivCeiling((int)oh, ratio);
 
-			var desc = new WICBitmapPlaneDescription[PlanarPixelFormats.Length];
-			if (!trans.DoesSupportTransform(ref cw, ref ch, WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault, PlanarPixelFormats, desc, (uint)desc.Length))
+			var desc = ArrayPool<WICBitmapPlaneDescription>.Shared.Rent(PlanarPixelFormats.Length);
+			if (!trans.DoesSupportTransform(ref cw, ref ch, WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault, PlanarPixelFormats, desc, (uint)PlanarPixelFormats.Length))
 				throw new NotSupportedException("Requested planar transform not supported");
 
 			var crop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.Orientation, (int)ow, (int)oh).ProportionalScale((int)ow, (int)oh, (int)cw, (int)ch);
 			var cache = ctx.AddDispose(new WicPlanarCache(trans, desc, WICBitmapTransformOptions.WICBitmapTransformRotate0, cw, ch, crop));
-			ctx.PlanarContext = new PipelineContext.PlanarPipelineContext(cache.SourceY, cache.SourceCb, cache.SourceCr);
 
+			ArrayPool<WICBitmapPlaneDescription>.Shared.Return(desc);
+
+			ctx.PlanarContext = new PipelineContext.PlanarPipelineContext(cache.SourceY, cache.SourceCb, cache.SourceCr);
 			ctx.Source = ctx.PlanarContext.SourceY;
 			ctx.Settings.Crop = ctx.Source.Area.ReOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
 		}

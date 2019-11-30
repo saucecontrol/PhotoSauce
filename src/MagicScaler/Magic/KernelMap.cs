@@ -12,8 +12,7 @@ namespace PhotoSauce.MagicScaler
 		private readonly int mapLen;
 		private byte[] map;
 
-		public int InPixels { get; }
-		public int OutPixels { get; }
+		public int Pixels { get; }
 		public int Samples { get; }
 		public int Channels { get; }
 		public ReadOnlySpan<byte> Map => new ReadOnlySpan<byte>(map, 0, mapLen);
@@ -59,30 +58,28 @@ namespace PhotoSauce.MagicScaler
 
 		private static int getKernelPadding(int isize, int ksize, int channels)
 		{
-			int kpad = 0, inc = channels == 2 || channels == 3 ? 4 : Vector<T>.Count;
-			if (ksize * channels % (inc * channels) > 1)
-				kpad = MathUtil.DivCeiling(ksize * channels, inc * channels) * inc - ksize;
+			int inc = channels == 2 || channels == 3 ? 4 : Vector<T>.Count;
+			int kpad = MathUtil.DivCeiling(ksize * channels, inc * channels) * inc - ksize;
 
 			return ksize + kpad > isize ? 0 : kpad;
 		}
 
-		private KernelMap(int inPixels, int outPixels, int samples, int channels)
+		private KernelMap(int pixels, int samples, int channels)
 		{
-			InPixels = inPixels;
-			OutPixels = outPixels;
+			Pixels = pixels;
 			Samples = samples;
 			Channels = channels;
 
-			mapLen = OutPixels * (Samples * Channels * Unsafe.SizeOf<T>() + sizeof(int));
+			mapLen = Pixels * (Samples * Channels * Unsafe.SizeOf<T>() + sizeof(int));
 			map = ArrayPool<byte>.Shared.Rent(mapLen);
 			map.AsSpan(0, mapLen).Clear();
 		}
 
-		unsafe private KernelMap<T> clamp()
+		unsafe private KernelMap<T> clamp(int ipix)
 		{
 			fixed (byte* mstart = Map)
 			{
-				int samp = Samples, ipix = InPixels, chan = Channels;
+				int samp = Samples, chan = Channels;
 
 				int* mp = (int*)mstart;
 				int* mpe = (int*)(mstart + mapLen);
@@ -144,7 +141,7 @@ namespace PhotoSauce.MagicScaler
 			int ksize = (int)Math.Ceiling(support * 2d);
 			int kpad = vectored ? getKernelPadding(isize, ksize, channels) : 0;
 
-			var map = new KernelMap<T>(isize, osize, ksize + kpad, channels);
+			var map = new KernelMap<T>(osize, ksize + kpad, channels);
 			fixed (byte* mstart = map.Map)
 			{
 				int* mp = (int*)mstart;
@@ -171,7 +168,7 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			return map.clamp();
+			return map.clamp(isize);
 		}
 
 		unsafe public static KernelMap<T> MakeBlurMap(int size, double radius, int ichannels, bool vectored)
@@ -183,7 +180,7 @@ namespace PhotoSauce.MagicScaler
 			int ksize = Math.Min(dist * 2 + 1, size);
 			int kpad = vectored ? getKernelPadding(size, ksize, channels) : 0;
 
-			var map = new KernelMap<T>(size, size, ksize + kpad, channels);
+			var map = new KernelMap<T>(size, ksize + kpad, channels);
 			fixed (byte* mstart = map.Map)
 			{
 				int* mp = (int*)mstart;
@@ -206,7 +203,7 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			return map.clamp();
+			return map.clamp(size);
 		}
 
 		public void Dispose()

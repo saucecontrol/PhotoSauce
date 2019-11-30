@@ -56,10 +56,10 @@
 
 	<ItemGroup>
 		<Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
-		<None Update="Magic\Generated\Convolver.tt" LastGenOutput="Convolver.cs" Generator="TextTemplatingFileGenerator" />
-		<None Update="Magic\Generated\VectorConvolver.tt" LastGenOutput="VectorConvolver.cs" Generator="TextTemplatingFileGenerator" />
-		<Compile Update="Magic\Generated\Convolver.cs" DependentUpon="Convolver.tt" DesignTime="True" AutoGen="True" />
-		<Compile Update="Magic\Generated\VectorConvolver.cs" DependentUpon="VectorConvolver.tt" DesignTime="True" AutoGen="True" />
+		<None Update="Magic\Processors\Convolvers.tt" LastGenOutput="Convolvers.cs" Generator="TextTemplatingFileGenerator" />
+		<None Update="Magic\Processors\ConvolversVector.tt" LastGenOutput="ConvolversVector.cs" Generator="TextTemplatingFileGenerator" />
+		<Compile Update="Magic\Processors\Convolvers.cs" DependentUpon="Convolvers.tt" DesignTime="True" AutoGen="True" />
+		<Compile Update="Magic\Processors\ConvolversVector.cs" DependentUpon="ConvolversVector.tt" DesignTime="True" AutoGen="True" />
 	</ItemGroup>
 
 </Project>

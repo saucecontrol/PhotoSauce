@@ -21,9 +21,9 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		private readonly Stack<IDisposable> disposeHandles = new Stack<IDisposable>(16);
-		private readonly List<PixelSource> allSources = new List<PixelSource>(8);
 
 		private PixelSource? source;
+		private List<PixelSource>? allSources;
 		private WicPipelineContext? wicContext;
 
 		public ProcessImageSettings Settings { get; }
@@ -38,7 +38,7 @@ namespace PhotoSauce.MagicScaler
 		public ColorProfile? SourceColorProfile { get; set; }
 		public ColorProfile? DestColorProfile { get; set; }
 
-		public IEnumerable<PixelSourceStats> Stats => MagicImageProcessor.EnablePixelSourceStats ? allSources.Select(s => s.Stats!) : Enumerable.Empty<PixelSourceStats>();
+		public IEnumerable<PixelSourceStats> Stats => allSources?.Select(s => s.Stats!) ?? Enumerable.Empty<PixelSourceStats>();
 
 		public WicPipelineContext WicContext => wicContext ??= AddDispose(new WicPipelineContext());
 
@@ -48,8 +48,13 @@ namespace PhotoSauce.MagicScaler
 			set
 			{
 				source = value;
-				if (!allSources.Contains(source))
-					allSources.Add(source);
+
+				if (MagicImageProcessor.EnablePixelSourceStats)
+				{
+					allSources ??= new List<PixelSource>(8);
+					if (!allSources.Contains(source))
+						allSources.Add(source);
+				}
 			}
 		}
 

@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal class PixelBuffer : IDisposable
+	internal sealed class PixelBuffer : IDisposable
 	{
 		private readonly int minCapacity;
 		private readonly int window;

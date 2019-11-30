@@ -23,7 +23,7 @@ namespace PhotoSauce.MagicScaler
 		private readonly WICRect scaledCrop;
 		private readonly WICBitmapPlane[] sourcePlanes;
 
-		public WicPlanarCache(IWICPlanarBitmapSourceTransform source, WICBitmapPlaneDescription[] desc, WICBitmapTransformOptions transformOptions, uint width, uint height, in PixelArea crop)
+		public WicPlanarCache(IWICPlanarBitmapSourceTransform source, ReadOnlySpan<WICBitmapPlaneDescription> desc, WICBitmapTransformOptions transformOptions, uint width, uint height, in PixelArea crop)
 		{
 			var descY = desc[0];
 			var descCb = desc[1];

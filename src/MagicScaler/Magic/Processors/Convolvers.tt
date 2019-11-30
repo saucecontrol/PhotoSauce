@@ -61,7 +61,7 @@ procDef[] ta = {
 		xUnroll = 5,
 		yUnroll = 2
 	},
-	new procDef {
+	/*new procDef {
 		name = "2Chan",
 		suffix = "Byte",
 		channels = 2,
@@ -70,7 +70,7 @@ procDef[] ta = {
 		weighType = "int",
 		xUnroll = 8,
 		yUnroll = 4
-	},
+	},*/
 	new procDef {
 		name = "1Chan",
 		suffix = "Byte",
@@ -112,14 +112,18 @@ namespace PhotoSauce.MagicScaler
 foreach (var t in ta) {
 	if (t != ta[0]) WriteLine(null);
 #>
-	unsafe internal sealed class Convolver<#= t.name #><#= t.suffix #> : IConvolver
+	internal sealed class Convolver<#= t.name #><#= t.suffix #> : IConvolver
 	{
 		private const int Channels = <#= t.channels #>;
+
+		public static Convolver<#= t.name #><#= t.suffix #> Instance = new Convolver<#= t.name #><#= t.suffix #>();
+
+		private Convolver<#= t.name #><#= t.suffix #>() { }
 
 		int IConvolver.Channels => Channels;
 		int IConvolver.MapChannels => 1;
 
-		void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
+		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			<#= t.weighType #>* pmapx = (<#= t.weighType #>*)mapxstart;
 			<#= t.interType #>* tp = (<#= t.interType #>*)tstart;
@@ -273,7 +277,7 @@ if (t.alpha) {
 			}
 		}
 
-		void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
+		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			<#= t.pixelType #>* op = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>ostart;
 			int xc = ox + ow, tstride = smapy * Channels;
@@ -433,7 +437,7 @@ if (t.alpha) {
 //http://en.wikipedia.org/wiki/Unsharp_masking
 if (t.sharpen) {
 #>
-		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
+		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
 		{
 <#
 if (t.pixelType == "ushort") {
@@ -516,7 +520,7 @@ if (t.pixelType == "ushort") {
 <#
 } else {
 #>
-		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma) => throw new NotImplementedException();
+		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma) => throw new NotImplementedException();
 <#
 }
 #>

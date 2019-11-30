@@ -31,14 +31,14 @@ procDef[] ta = {
 		xUnroll = 4,
 		yUnroll = 4
 	},
-	new procDef {
+	/*new procDef {
 		name = "2Chan",
 		vtype = "4",
 		channels = 2,
 		colors = 2,
 		xUnroll = 2,
 		yUnroll = 2
-	},
+	},*/
 	new procDef {
 		name = "1Chan",
 		vtype = "F",
@@ -69,14 +69,18 @@ namespace PhotoSauce.MagicScaler
 foreach (var t in ta) {
 	if (t != ta[0]) WriteLine(null);
 #>
-	unsafe internal sealed class Convolver<#= t.name #>Float : IConvolver
+	internal sealed class Convolver<#= t.name #>Float : IConvolver
 	{
 		private const int Channels = <#= t.channels #>;
+
+		public static Convolver<#= t.name #>Float Instance = new Convolver<#= t.name #>Float();
+
+		private Convolver<#= t.name #>Float() { }
 
 		int IConvolver.Channels => Channels;
 		int IConvolver.MapChannels => Channels;
 
-		void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
+		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			float* pmapx = (float*)mapxstart;
 			float* tp = (float*)tstart;
@@ -200,7 +204,7 @@ for (int j = 0; j < t.colors; j++) {
 <#
 if (t.yUnroll > 0) {
 #>
-		void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
+		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			float* op = (float*)ostart;
 			int xc = ox + ow, tstride = smapy * Channels;
@@ -320,7 +324,7 @@ for (int j = 0; j < t.colors; j++) {
 <#
 } else {
 #>
-		void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy) => throw new NotImplementedException();
+		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy) => throw new NotImplementedException();
 <#
 }
 #>
@@ -329,7 +333,7 @@ for (int j = 0; j < t.colors; j++) {
 //http://en.wikipedia.org/wiki/Unsharp_masking
 if (t.sharpen) {
 #>
-		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
+		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
 		{
 			float famt = amt * 0.01f;
 			float threshold = (float)thresh / byte.MaxValue;
@@ -345,10 +349,10 @@ if (t.channels == 1) {
 			var vamt = new VectorF(famt);
 			float fmin = vmin[0];
 <#
-}
-if (t.colors == 4) {
+} else {
 #>
 			var vamt = new Vector4(famt);
+			vamt.W = 0f;
 <#
 }
 #>
@@ -398,7 +402,7 @@ if (t.channels == 1) {
 
 				if (threshold == 0 || Math.Abs(dif) > threshold)
 				{
-					<#= t.channels == 1 ? "dif *= famt" : $"var vd = new Vector{t.channels}{(t.colors == 4 ? "(dif) * vamt" : "(dif * famt)")}" #>;
+					<#= t.channels == 1 ? "dif *= famt" : $"var vd = new Vector{t.channels}(dif) * vamt" #>;
 
 					if (gamma)
 					{
@@ -421,7 +425,7 @@ if (t.channels == 1) {
 <#
 } else {
 #>
-		void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma) => throw new NotImplementedException();
+		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma) => throw new NotImplementedException();
 <#
 }
 #>

@@ -2,7 +2,7 @@
 
 namespace PhotoSauce.MagicScaler
 {
-	unsafe internal static class ChannelChanger<T> where T : unmanaged
+	internal static class ChannelChanger<T> where T : unmanaged
 	{
 		private static readonly T maxalpha = getOneValue();
 
@@ -18,95 +18,155 @@ namespace PhotoSauce.MagicScaler
 			throw new NotSupportedException(nameof(T) + " must be float, ushort, or byte");
 		}
 
-		public static void Change1to3Chan(byte* ipstart, byte* opstart, int cb)
+		public static IConverter<T, T> GetConverter(int chanIn, int chanOut)
 		{
-			T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
+			if (chanIn == 1 && chanOut == 3)
+				return Change1to3Chan.Instance;
+			if (chanIn == 1 && chanOut == 4)
+				return Change1to4Chan.Instance;
+			else if (chanIn == 3 && chanOut == 1)
+				return Change3to1Chan.Instance;
+			else if (chanIn == 3 && chanOut == 4)
+				return Change3to4Chan.Instance;
+			else if (chanIn == 4 && chanOut == 1)
+				return Change4to1Chan.Instance;
+			else if (chanIn == 4 && chanOut == 3)
+				return Change4to3Chan.Instance;
 
-			while (ip < ipe)
+			throw new NotSupportedException("Unsupported pixel format");
+		}
+
+		private sealed class Change1to3Chan : IConverter<T, T>
+		{
+			public static Change1to3Chan Instance = new Change1to3Chan();
+
+			private Change1to3Chan() { }
+
+			unsafe void IConverter.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
-				var i0 = *ip;
-				op[0] = i0;
-				op[1] = i0;
-				op[2] = i0;
+				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
 
-				ip++;
-				op += 3;
+				while (ip < ipe)
+				{
+					var i0 = *ip;
+					op[0] = i0;
+					op[1] = i0;
+					op[2] = i0;
+
+					ip++;
+					op += 3;
+				}
 			}
 		}
 
-		public static void Change1to4Chan(byte* ipstart, byte* opstart, int cb)
+		private sealed class Change1to4Chan : IConverter<T, T>
 		{
-			T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
-			var alpha = maxalpha;
+			public static Change1to4Chan Instance = new Change1to4Chan();
 
-			while (ip < ipe)
+			private Change1to4Chan() { }
+
+			unsafe void IConverter.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
-				var i0 = *ip;
-				op[0] = i0;
-				op[1] = i0;
-				op[2] = i0;
-				op[3] = alpha;
+				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
+				var alpha = maxalpha;
 
-				ip++;
-				op += 4;
+				while (ip < ipe)
+				{
+					var i0 = *ip;
+					op[0] = i0;
+					op[1] = i0;
+					op[2] = i0;
+					op[3] = alpha;
+
+					ip++;
+					op += 4;
+				}
 			}
 		}
 
-		public static void Change3to1Chan(byte* ipstart, byte* opstart, int cb)
+		private sealed class Change3to1Chan : IConverter<T, T>
 		{
-			T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb) - 3, op = (T*)opstart;
+			public static Change3to1Chan Instance = new Change3to1Chan();
 
-			while (ip <= ipe)
+			private Change3to1Chan() { }
+
+			unsafe void IConverter.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
-				op[0] = ip[0];
+				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb) - 3, op = (T*)opstart;
 
-				ip += 3;
-				op++;
+				while (ip <= ipe)
+				{
+					op[0] = ip[0];
+
+					ip += 3;
+					op++;
+				}
 			}
 		}
 
-		public static void Change3to4Chan(byte* ipstart, byte* opstart, int cb)
+		private sealed class Change3to4Chan : IConverter<T, T>
 		{
-			T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb) - 3, op = (T*)opstart;
-			var alpha = maxalpha;
+			public static Change3to4Chan Instance = new Change3to4Chan();
 
-			while (ip <= ipe)
+			private Change3to4Chan() { }
+
+			unsafe void IConverter.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
-				op[0] = ip[0];
-				op[1] = ip[1];
-				op[2] = ip[2];
-				op[3] = alpha;
+				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb) - 3, op = (T*)opstart;
+				var alpha = maxalpha;
 
-				ip += 3;
-				op += 4;
+				while (ip <= ipe)
+				{
+					op[0] = ip[0];
+					op[1] = ip[1];
+					op[2] = ip[2];
+					op[3] = alpha;
+
+					ip += 3;
+					op += 4;
+				}
 			}
 		}
 
-		public static void Change4to1Chan(byte* ipstart, byte* opstart, int cb)
+		private sealed class Change4to1Chan : IConverter<T, T>
 		{
-			T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb) - 4, op = (T*)opstart;
+			public static Change4to1Chan Instance = new Change4to1Chan();
 
-			while (ip <= ipe)
+			private Change4to1Chan() { }
+
+			unsafe void IConverter.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
-				op[0] = ip[0];
+				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb) - 4, op = (T*)opstart;
 
-				ip += 4;
-				op++;
+				while (ip <= ipe)
+				{
+					op[0] = ip[0];
+
+					ip += 4;
+					op++;
+				}
 			}
 		}
 
-		public static void Change4to3Chan(byte* ipstart, byte* opstart, int cb)
+		private sealed class Change4to3Chan : IConverter<T, T>
 		{
-			T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb) - 4, op = (T*)opstart;
+			public static Change4to3Chan Instance = new Change4to3Chan();
 
-			while (ip <= ipe)
+			private Change4to3Chan() { }
+
+			unsafe void IConverter.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
-				op[0] = ip[0];
-				op[1] = ip[1];
-				op[2] = ip[2];
+				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb) - 4, op = (T*)opstart;
 
-				ip += 4;
-				op += 3;
+				while (ip <= ipe)
+				{
+					op[0] = ip[0];
+					op[1] = ip[1];
+					op[2] = ip[2];
+
+					ip += 4;
+					op += 3;
+				}
 			}
 		}
 	}

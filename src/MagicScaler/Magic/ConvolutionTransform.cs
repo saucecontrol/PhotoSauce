@@ -21,33 +21,33 @@ namespace PhotoSauce.MagicScaler
 	internal class ConvolutionTransform<TPixel, TWeight> : PixelSource, IDisposable where TPixel : unmanaged where TWeight : unmanaged
 	{
 		protected static readonly ReadOnlyDictionary<Guid, IConvolver> ProcessorMap = new ReadOnlyDictionary<Guid, IConvolver>(new Dictionary<Guid, IConvolver> {
-			[Consts.GUID_WICPixelFormat32bppCMYK          ] = new Convolver4ChanByte(),
-			[Consts.GUID_WICPixelFormat32bppPBGRA         ] = new Convolver4ChanByte(),
-			[Consts.GUID_WICPixelFormat32bppBGRA          ] = new ConvolverBgraByte(),
-			[Consts.GUID_WICPixelFormat24bppBGR           ] = new ConvolverBgrByte(),
-			[Consts.GUID_WICPixelFormat16bppCbCr          ] = new Convolver2ChanByte(),
-			[Consts.GUID_WICPixelFormat8bppGray           ] = new Convolver1ChanByte(),
-			[Consts.GUID_WICPixelFormat8bppY              ] = new Convolver1ChanByte(),
-			[Consts.GUID_WICPixelFormat8bppCb             ] = new Convolver1ChanByte(),
-			[Consts.GUID_WICPixelFormat8bppCr             ] = new Convolver1ChanByte(),
-			[PixelFormat.Pbgra64BppLinearUQ15.FormatGuid  ] = new Convolver4ChanUQ15(),
-			[PixelFormat.Bgr48BppLinearUQ15.FormatGuid    ] = new ConvolverBgrUQ15(),
-			[PixelFormat.Grey16BppLinearUQ15.FormatGuid   ] = new Convolver1ChanUQ15(),
-			[PixelFormat.Grey16BppUQ15.FormatGuid         ] = new Convolver1ChanUQ15(),
-			[PixelFormat.Y16BppLinearUQ15.FormatGuid      ] = new Convolver1ChanUQ15(),
-			[PixelFormat.Pbgra128BppLinearFloat.FormatGuid] = new Convolver4ChanFloat(),
-			[PixelFormat.Pbgra128BppFloat.FormatGuid      ] = new Convolver4ChanFloat(),
-			[PixelFormat.Bgrx128BppLinearFloat.FormatGuid ] = new Convolver3XChanFloat(),
-			[PixelFormat.Bgrx128BppFloat.FormatGuid       ] = new Convolver3XChanFloat(),
-			[PixelFormat.Bgr96BppLinearFloat.FormatGuid   ] = new Convolver3ChanFloat(),
-			[PixelFormat.Bgr96BppFloat.FormatGuid         ] = new Convolver3ChanFloat(),
-			[PixelFormat.CbCr64BppFloat.FormatGuid        ] = new Convolver2ChanFloat(),
-			[PixelFormat.Grey32BppLinearFloat.FormatGuid  ] = new Convolver1ChanFloat(),
-			[PixelFormat.Grey32BppFloat.FormatGuid        ] = new Convolver1ChanFloat(),
-			[PixelFormat.Y32BppLinearFloat.FormatGuid     ] = new Convolver1ChanFloat(),
-			[PixelFormat.Y32BppFloat.FormatGuid           ] = new Convolver1ChanFloat(),
-			[PixelFormat.Cb32BppFloat.FormatGuid          ] = new Convolver1ChanFloat(),
-			[PixelFormat.Cr32BppFloat.FormatGuid          ] = new Convolver1ChanFloat()
+			[Consts.GUID_WICPixelFormat32bppCMYK          ] = Convolver4ChanByte.Instance,
+			[Consts.GUID_WICPixelFormat32bppPBGRA         ] = Convolver4ChanByte.Instance,
+			[Consts.GUID_WICPixelFormat32bppBGRA          ] = ConvolverBgraByte.Instance,
+			[Consts.GUID_WICPixelFormat24bppBGR           ] = ConvolverBgrByte.Instance,
+			//[Consts.GUID_WICPixelFormat16bppCbCr        ] = Convolver2ChanByte.Instance,
+			[Consts.GUID_WICPixelFormat8bppGray           ] = Convolver1ChanByte.Instance,
+			[Consts.GUID_WICPixelFormat8bppY              ] = Convolver1ChanByte.Instance,
+			[Consts.GUID_WICPixelFormat8bppCb             ] = Convolver1ChanByte.Instance,
+			[Consts.GUID_WICPixelFormat8bppCr             ] = Convolver1ChanByte.Instance,
+			[PixelFormat.Pbgra64BppLinearUQ15.FormatGuid  ] = Convolver4ChanUQ15.Instance,
+			[PixelFormat.Bgr48BppLinearUQ15.FormatGuid    ] = ConvolverBgrUQ15.Instance,
+			[PixelFormat.Grey16BppLinearUQ15.FormatGuid   ] = Convolver1ChanUQ15.Instance,
+			[PixelFormat.Grey16BppUQ15.FormatGuid         ] = Convolver1ChanUQ15.Instance,
+			[PixelFormat.Y16BppLinearUQ15.FormatGuid      ] = Convolver1ChanUQ15.Instance,
+			[PixelFormat.Pbgra128BppLinearFloat.FormatGuid] = Convolver4ChanFloat.Instance,
+			[PixelFormat.Pbgra128BppFloat.FormatGuid      ] = Convolver4ChanFloat.Instance,
+			[PixelFormat.Bgrx128BppLinearFloat.FormatGuid ] = Convolver3XChanFloat.Instance,
+			[PixelFormat.Bgrx128BppFloat.FormatGuid       ] = Convolver3XChanFloat.Instance,
+			[PixelFormat.Bgr96BppLinearFloat.FormatGuid   ] = Convolver3ChanFloat.Instance,
+			[PixelFormat.Bgr96BppFloat.FormatGuid         ] = Convolver3ChanFloat.Instance,
+			//[PixelFormat.CbCr64BppFloat.FormatGuid      ] = Convolver2ChanFloat.Instance,
+			[PixelFormat.Grey32BppLinearFloat.FormatGuid  ] = Convolver1ChanFloat.Instance,
+			[PixelFormat.Grey32BppFloat.FormatGuid        ] = Convolver1ChanFloat.Instance,
+			[PixelFormat.Y32BppLinearFloat.FormatGuid     ] = Convolver1ChanFloat.Instance,
+			[PixelFormat.Y32BppFloat.FormatGuid           ] = Convolver1ChanFloat.Instance,
+			[PixelFormat.Cb32BppFloat.FormatGuid          ] = Convolver1ChanFloat.Instance,
+			[PixelFormat.Cr32BppFloat.FormatGuid          ] = Convolver1ChanFloat.Instance
 		});
 
 		protected readonly KernelMap<TWeight> XMap, YMap;
@@ -109,11 +109,11 @@ namespace PhotoSauce.MagicScaler
 				throw new NotSupportedException("Map and Processor channel counts don't match");
 
 			inWidth = Width;
-			Width = mapx.OutPixels;
-			Height = mapy.OutPixels;
+			Width = mapx.Pixels;
+			Height = mapy.Pixels;
 
 			int bpp = workfmt.BitsPerPixel / 8 / Unsafe.SizeOf<TPixel>() * Unsafe.SizeOf<TWeight>();
-			IntBuff = new PixelBuffer(mapy.Samples, bpp, true, mapy.Samples * mapx.OutPixels * bpp);
+			IntBuff = new PixelBuffer(mapy.Samples, bpp, true, mapy.Samples * mapx.Pixels * bpp);
 
 			if (bufferSource = lumaMode)
 			{
