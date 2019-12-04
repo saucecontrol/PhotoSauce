@@ -215,7 +215,7 @@ namespace PhotoSauce.MagicScaler
 				{
 					// WIC doesn't support 16bpc CMYK conversion with color profile
 					if (curFormat.BitsPerPixel == 64)
-						ctx.Source = ctx.AddDispose(new FormatConversionTransformInternal(ctx.Source, null, null, Consts.GUID_WICPixelFormat32bppCMYK));
+						ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, Consts.GUID_WICPixelFormat32bppCMYK));
 
 					var trans = ctx.WicContext.AddRef(Wic.Factory.CreateColorTransformer());
 					if (trans.TryInitialize(ctx.Source.WicSource, ctx.WicContext.SourceColorContext, sRgbContext.WicColorContext, Consts.GUID_WICPixelFormat24bppBGR))

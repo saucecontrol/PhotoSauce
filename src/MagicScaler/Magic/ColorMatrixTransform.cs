@@ -225,7 +225,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				var fmt = matrix.M44 < 1f || ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None ? Consts.GUID_WICPixelFormat32bppBGRA : Consts.GUID_WICPixelFormat24bppBGR;
 				if (ctx.Source.Format.FormatGuid != fmt)
-					ctx.Source = ctx.AddDispose(new FormatConversionTransformInternal(ctx.Source, null, null, fmt));
+					ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, fmt));
 
 				ctx.Source = new ColorMatrixTransformInternal(ctx.Source, matrix);
 			}

@@ -50,7 +50,7 @@ namespace PhotoSauce.MagicScaler
 
 			bool forceSrgb = (ofmt == PixelFormat.Y32BppLinearFloat.FormatGuid || ofmt == PixelFormat.Y16BppLinearUQ15.FormatGuid) && ctx.SourceColorProfile != ColorProfile.sRGB;
 
-			ctx.Source = ctx.AddDispose(new FormatConversionTransformInternal(ctx.Source, forceSrgb ? ColorProfile.sRGB : ctx.SourceColorProfile, forceSrgb ? ColorProfile.sRGB : ctx.DestColorProfile, ofmt));
+			ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, forceSrgb ? ColorProfile.sRGB : ctx.SourceColorProfile, forceSrgb ? ColorProfile.sRGB : ctx.DestColorProfile, ofmt));
 		}
 
 		public static void AddExternalFormatConverter(PipelineContext ctx)
@@ -78,7 +78,7 @@ namespace PhotoSauce.MagicScaler
 
 			bool forceSrgb = (ifmt == PixelFormat.Y32BppLinearFloat.FormatGuid || ifmt == PixelFormat.Y16BppLinearUQ15.FormatGuid) && ctx.SourceColorProfile != ColorProfile.sRGB;
 
-			ctx.Source = ctx.AddDispose(new FormatConversionTransformInternal(ctx.Source, forceSrgb ? ColorProfile.sRGB : ctx.SourceColorProfile, forceSrgb ? ColorProfile.sRGB : ctx.DestColorProfile, ofmt));
+			ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, forceSrgb ? ColorProfile.sRGB : ctx.SourceColorProfile, forceSrgb ? ColorProfile.sRGB : ctx.DestColorProfile, ofmt));
 		}
 
 		public static void AddHighQualityScaler(PipelineContext ctx, bool hybrid = false)
@@ -101,12 +101,12 @@ namespace PhotoSauce.MagicScaler
 				ctx.Settings.HybridMode = HybridScaleMode.Off;
 			}
 
-			AddInternalFormatConverter(ctx, allow96bppFloat: true);
-
-			var fmt = ctx.Source.Format;
 			var interpolatorx = width == ctx.Source.Width ? InterpolationSettings.NearestNeighbor : hybrid ? InterpolationSettings.Average : ctx.Settings.Interpolation;
 			var interpolatory = height == ctx.Source.Height ? InterpolationSettings.NearestNeighbor : hybrid ? InterpolationSettings.Average : ctx.Settings.Interpolation;
+			if (interpolatorx.WeightingFunction.Support >= 0.1 || interpolatory.WeightingFunction.Support >= 0.1)
+				AddInternalFormatConverter(ctx, allow96bppFloat: true);
 
+			var fmt = ctx.Source.Format;
 			if (fmt.NumericRepresentation == PixelNumericRepresentation.Float)
 				ctx.Source = ctx.AddDispose(ConvolutionTransform<float, float>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory));
 			else if (fmt.NumericRepresentation == PixelNumericRepresentation.Fixed)
@@ -138,7 +138,7 @@ namespace PhotoSauce.MagicScaler
 				return;
 
 			if (ctx.Source.Format == PixelFormat.Pbgra128BppFloat)
-				ctx.Source = ctx.AddDispose(new FormatConversionTransformInternal(ctx.Source, null, null, Consts.GUID_WICPixelFormat32bppBGRA));
+				ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, Consts.GUID_WICPixelFormat32bppBGRA));
 
 			ctx.Source = new MatteTransform(ctx.Source, ctx.Settings.MatteColor);
 
@@ -149,7 +149,7 @@ namespace PhotoSauce.MagicScaler
 					: oldFmt.FormatGuid == Consts.GUID_WICPixelFormat32bppBGRA ? PixelFormat.FromGuid(Consts.GUID_WICPixelFormat24bppBGR)
 					: throw new NotSupportedException("Unsupported pixel format");
 
-				ctx.Source = ctx.AddDispose(new FormatConversionTransformInternal(ctx.Source, null, null, newFmt.FormatGuid));
+				ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, newFmt.FormatGuid));
 			}
 		}
 

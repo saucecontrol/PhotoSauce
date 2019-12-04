@@ -125,9 +125,8 @@ foreach (var t in ta) {
 
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
+			<#= t.interType #>* tp = (<#= t.interType #>*)tstart, tpe = (<#= t.interType #>*)(tstart + cb);
 			<#= t.weighType #>* pmapx = (<#= t.weighType #>*)mapxstart;
-			<#= t.interType #>* tp = (<#= t.interType #>*)tstart;
-			<#= t.interType #>* tpe = (<#= t.interType #>*)(tstart + cb);
 			int tstride = smapy * Channels;
 
 			while (tp < tpe)

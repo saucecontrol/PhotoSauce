@@ -10,7 +10,7 @@ namespace PhotoSauce.MagicScaler
 
 	internal interface IConverter<TFrom, TTo> : IConverter where TFrom : unmanaged where TTo : unmanaged { }
 
-	internal class FormatConversionTransformInternal : PixelSource, IDisposable
+	internal class ConversionTransform : PixelSource, IDisposable
 	{
 		private readonly PixelFormat srcFormat;
 		private readonly IConverter processor;
@@ -18,7 +18,7 @@ namespace PhotoSauce.MagicScaler
 
 		private byte[] lineBuff;
 
-		public FormatConversionTransformInternal(PixelSource source, ColorProfile? sourceProfile, ColorProfile? destProfile, Guid destFormat) : base(source)
+		public ConversionTransform(PixelSource source, ColorProfile? sourceProfile, ColorProfile? destProfile, Guid destFormat) : base(source)
 		{
 			var srcProfile = sourceProfile as CurveProfile ?? ColorProfile.sRGB;
 			var dstProfile = destProfile as CurveProfile ?? ColorProfile.sRGB;
@@ -147,7 +147,7 @@ namespace PhotoSauce.MagicScaler
 			MagicTransforms.AddExternalFormatConverter(ctx);
 
 			if (ctx.Source.Format.FormatGuid != outFormat)
-				ctx.Source = ctx.AddDispose(new FormatConversionTransformInternal(ctx.Source, null, null, outFormat));
+				ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, outFormat));
 
 			Source = ctx.Source;
 		}

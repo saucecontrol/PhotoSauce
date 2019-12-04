@@ -108,7 +108,7 @@ namespace PhotoSauce.MagicScaler
 			return buffer.AsSpan((first - start) * Stride, window == 0 ? lines * Stride : window - (minCapacity - toLoad) * Stride);
 		}
 
-		unsafe public ReadOnlySpan<byte> PrepareRead(int first, int lines)
+		public ReadOnlySpan<byte> PrepareRead(int first, int lines)
 		{
 			int offset = first - start;
 			consumed = Math.Max(consumed, offset + lines);

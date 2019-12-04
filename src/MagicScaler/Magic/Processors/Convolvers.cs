@@ -24,9 +24,8 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
+			int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
 			int* pmapx = (int*)mapxstart;
-			int* tp = (int*)tstart;
-			int* tpe = (int*)(tstart + cb);
 			int tstride = smapy * Channels;
 
 			while (tp < tpe)
@@ -304,9 +303,8 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
+			int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
 			int* pmapx = (int*)mapxstart;
-			int* tp = (int*)tstart;
-			int* tpe = (int*)(tstart + cb);
 			int tstride = smapy * Channels;
 
 			while (tp < tpe)
@@ -468,9 +466,8 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
+			int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
 			int* pmapx = (int*)mapxstart;
-			int* tp = (int*)tstart;
-			int* tpe = (int*)(tstart + cb);
 			int tstride = smapy * Channels;
 
 			while (tp < tpe)
@@ -641,9 +638,8 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
+			int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
 			int* pmapx = (int*)mapxstart;
-			int* tp = (int*)tstart;
-			int* tpe = (int*)(tstart + cb);
 			int tstride = smapy * Channels;
 
 			while (tp < tpe)
@@ -798,9 +794,8 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
+			int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
 			int* pmapx = (int*)mapxstart;
-			int* tp = (int*)tstart;
-			int* tpe = (int*)(tstart + cb);
 			int tstride = smapy * Channels;
 
 			while (tp < tpe)
@@ -964,9 +959,8 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
+			int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
 			int* pmapx = (int*)mapxstart;
-			int* tp = (int*)tstart;
-			int* tpe = (int*)(tstart + cb);
 			int tstride = smapy * Channels;
 
 			while (tp < tpe)
@@ -1084,9 +1078,8 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
+			int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
 			int* pmapx = (int*)mapxstart;
-			int* tp = (int*)tstart;
-			int* tpe = (int*)(tstart + cb);
 			int tstride = smapy * Channels;
 
 			while (tp < tpe)

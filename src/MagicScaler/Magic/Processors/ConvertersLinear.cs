@@ -30,12 +30,12 @@ namespace PhotoSauce.MagicScaler
 
 			unsafe void IConverter.ConvertLine(byte* istart, byte* ostart, int cb)
 			{
-				fixed (TTo* lutstart = &igt[0])
+				fixed (TTo* igtstart = &igt[0])
 				{
 					if (typeof(TTo) == typeof(ushort))
-						convertUQ15(istart, ostart, (ushort*)lutstart, cb);
+						convertUQ15(istart, ostart, (ushort*)igtstart, cb);
 					else if (typeof(TTo) == typeof(float))
-						convertFloat(istart, ostart, (float*)lutstart, cb);
+						convertFloat(istart, ostart, (float*)igtstart, cb);
 				}
 			}
 
@@ -124,12 +124,12 @@ namespace PhotoSauce.MagicScaler
 
 			unsafe void IConverter.ConvertLine(byte* istart, byte* ostart, int cb)
 			{
-				fixed (TTo* lutstart = &igt[0])
+				fixed (TTo* igtstart = &igt[0])
 				{
 					if (typeof(TTo) == typeof(ushort))
-						convertUQ15(istart, ostart, (ushort*)lutstart, cb);
+						convertUQ15(istart, ostart, (ushort*)igtstart, cb);
 					else if (typeof(TTo) == typeof(float))
-						convertFloat(istart, ostart, (float*)lutstart, cb);
+						convertFloat(istart, ostart, (float*)igtstart, cb);
 				}
 			}
 
@@ -195,10 +195,10 @@ namespace PhotoSauce.MagicScaler
 
 			unsafe void IConverter.ConvertLine(byte* istart, byte* ostart, int cb)
 			{
-				fixed (TTo* lutstart = &igt[0])
+				fixed (TTo* igtstart = &igt[0])
 				{
 					if (typeof(TTo) == typeof(float))
-						convertFloat(istart, ostart, (float*)lutstart, cb);
+						convertFloat(istart, ostart, (float*)igtstart, cb);
 				}
 			}
 
@@ -246,12 +246,12 @@ namespace PhotoSauce.MagicScaler
 
 			unsafe void IConverter.ConvertLine(byte* istart, byte* ostart, int cb)
 			{
-				fixed (TTo* lutstart = &gt[0])
+				fixed (TTo* gtstart = &gt[0])
 				{
 					if (typeof(TFrom) == typeof(ushort))
-						convertUQ15(istart, ostart, (byte*)lutstart, cb);
+						convertUQ15(istart, ostart, (byte*)gtstart, cb);
 					else if (typeof(TFrom) == typeof(float))
-						convertFloat(istart, ostart, (byte*)lutstart, cb);
+						convertFloat(istart, ostart, (byte*)gtstart, cb);
 				}
 			}
 
@@ -348,12 +348,12 @@ namespace PhotoSauce.MagicScaler
 
 			unsafe void IConverter.ConvertLine(byte* istart, byte* ostart, int cb)
 			{
-				fixed (TTo* lutstart = &gt[0])
+				fixed (TTo* gtstart = &gt[0])
 				{
 					if (typeof(TFrom) == typeof(ushort))
-						convertUQ15(istart, ostart, (byte*)lutstart, cb);
+						convertUQ15(istart, ostart, (byte*)gtstart, cb);
 					else if (typeof(TFrom) == typeof(float))
-						convertFloat(istart, ostart, (byte*)lutstart, cb);
+						convertFloat(istart, ostart, (byte*)gtstart, cb);
 				}
 			}
 
@@ -432,10 +432,10 @@ namespace PhotoSauce.MagicScaler
 
 			unsafe void IConverter.ConvertLine(byte* istart, byte* ostart, int cb)
 			{
-				fixed (TTo* lutstart = &gt[0])
+				fixed (TTo* gtstart = &gt[0])
 				{
 					if (typeof(TFrom) == typeof(float))
-						convertFloat(istart, ostart, (byte*)lutstart, cb);
+						convertFloat(istart, ostart, (byte*)gtstart, cb);
 				}
 			}
 
