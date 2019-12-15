@@ -105,7 +105,7 @@ namespace PhotoSauce.MagicScaler
 				0,           0,           0,           1
 			);
 			var im = m.InvertPrecise();
-			var curve = new ProfileCurve(LookupTables.SrgbGamma, LookupTables.SrgbInverseGammaFloat, LookupTables.SrgbInverseGammaUQ15);
+			var curve = new ProfileCurve(LookupTables.SrgbGammaFloat, LookupTables.SrgbInverseGammaFloat);
 
 			return new MatrixProfile(IccProfiles.sRgbV4.Value, m, im, curve, ProfileColorSpace.Rgb, ProfileColorSpace.Xyz);
 		});
@@ -122,88 +122,63 @@ namespace PhotoSauce.MagicScaler
 				0,           0,           0,           1
 			);
 			var im = m.InvertPrecise();
-			var curve = curveFromPower(2.2f);
+			var curve = curveFromPower(2.2);
 
 			return new MatrixProfile(IccProfiles.AdobeRgb.Value, m, im, curve, ProfileColorSpace.Rgb, ProfileColorSpace.Xyz);
 		});
 
-		private static ProfileCurve curveFromPower(float gamma)
+		private static ProfileCurve curveFromPower(double gamma)
 		{
-			var igtf = new float[LookupTables.InverseGammaLength];
-			var igtq = new ushort[LookupTables.InverseGammaLength];
+			var igt = new float[LookupTables.InverseGammaLength];
+			for (int i = 0; i < igt.Length; i++)
+				igt[i] = (float)Math.Pow((double)i / LookupTables.InverseGammaScale, gamma);
 
-			for (int i = 0; i < igtf.Length; i++)
-			{
-				float f = PowF((float)i / byte.MaxValue, gamma);
-				igtf[i] = f;
-				igtq[i] = FixToUQ15One(f);
-			}
+			gamma = 1d / gamma;
 
-			LookupTables.Fixup(igtf, byte.MaxValue);
-			LookupTables.Fixup(igtq, byte.MaxValue);
-
-			gamma = 1f / gamma;
-			var gt = new byte[LookupTables.GammaLength];
-
+			var gt = new float[LookupTables.GammaLengthFloat];
 			for (int i = 0; i < gt.Length; i++)
-				gt[i] = FixToByte(PowF(UnFix15ToFloat(i), gamma));
+				gt[i] = (float)Math.Pow((double)i / LookupTables.GammaScaleFloat, gamma);
 
-			LookupTables.Fixup(gt, UQ15One);
+			LookupTables.Fixup(gt, LookupTables.GammaScaleFloat);
+			LookupTables.Fixup(igt, LookupTables.InverseGammaScale);
 
-			return new ProfileCurve(gt, igtf, igtq);
+			return new ProfileCurve(gt, igt);
 		}
 
-		private static ProfileCurve curveFromPoints(Span<ushort> points, bool inverse)
+		private static ProfileCurve curveFromPoints(ReadOnlySpan<ushort> points, bool inverse)
 		{
-			var igtf = new float[LookupTables.InverseGammaLength];
-			var igtq = new ushort[LookupTables.InverseGammaLength];
+			int buffLen = points.Length * sizeof(double);
+			using var buff = MemoryPool<byte>.Shared.Rent(buffLen);
 
-			int buffLen = points.Length * sizeof(float);
-			using (var buff = MemoryPool<byte>.Shared.Rent(buffLen))
+			var curve = MemoryMarshal.Cast<byte, double>(buff.Memory.Span.Slice(0, buffLen));
+			double cscal = curve.Length - 1;
+
+			for (int i = 0; i < curve.Length; i++)
+				curve[i] = (double)points[i] / ushort.MaxValue;
+
+			var igt = new float[LookupTables.InverseGammaLength];
+			for (int i = 0; i <= LookupTables.InverseGammaScale; i++)
 			{
-				var curve = MemoryMarshal.Cast<byte, float>(buff.Memory.Span.Slice(0, buffLen));
+				double val = (double)i / LookupTables.InverseGammaScale;
+				double pos = val * cscal;
 
-				const float div = 1f / ushort.MaxValue;
-				for (int i = 0; i < curve.Length; i++)
-					curve[i] = points[i] * div;
-
-				float cscal = curve.Length - 1;
-				float cstep = 1f / cscal;
-				float vstep = 1f / byte.MaxValue;
-
-				for (int i = 0; i <= byte.MaxValue; i++)
-				{
-					float val = i * vstep;
-					float pos = (val * cscal).Floor();
-					float rem = val - (pos * cstep);
-					int idx = (int)pos;
-
-					val = curve[idx];
-					if (rem > 0.000001f)
-						val = Lerp(val, curve[idx + 1], rem * cscal);
-
-					igtf[i] = val;
-					igtq[i] = FixToUQ15One(val);
-				}
+				int idx = Math.Min((int)pos, curve.Length - 2);
+				igt[i] = (float)Lerp(curve[idx], curve[idx + 1], pos - idx);
 			}
 
-			LookupTables.Fixup(igtf, byte.MaxValue);
-			LookupTables.Fixup(igtq, byte.MaxValue);
-
-			if (lutInvertsTo(igtq, LookupTables.SrgbGamma))
-				return sRGB.Curve!;
+			if (lutInvertsTo(igt, LookupTables.SrgbGammaFloat))
+				return sRGB.Curve;
 
 			if (inverse)
-				points.Reverse();
+				curve.Reverse();
 
-			var gt = new byte[LookupTables.GammaLength];
-
-			const float scale = (float)ushort.MaxValue / UQ15One;
-			for (int i = 0; i < gt.Length; i++)
+			var gt = new float[LookupTables.GammaLengthFloat];
+			for (int i = 0; i <= LookupTables.GammaScaleFloat; i++)
 			{
-				ushort val = (ushort)(i * scale + FloatRound);
-				int idx = points.BinarySearch(val);
-				float pos;
+				double val = (double)i / LookupTables.GammaScaleFloat;
+				int idx = curve.BinarySearch(val);
+
+				double pos;
 				if (idx >= 0)
 					pos = idx;
 				else
@@ -211,82 +186,81 @@ namespace PhotoSauce.MagicScaler
 					idx = ~idx;
 					if (idx == 0)
 						pos = 0;
-					else if (idx == points.Length)
-						pos = points.Length - 1;
+					else if (idx == curve.Length)
+						pos = curve.Length - 1;
 					else
 					{
-						int vh = points[idx];
-						int vl = points[idx - 1];
+						double vh = curve[idx];
+						double vl = curve[idx - 1];
 						if (vl == vh)
 							pos = idx;
 						else
-							pos = (idx - 1) + ((float)(val - vl) / (vh - vl));
+							pos = idx - 1 + (val - vl) / (vh - vl);
 					}
 				}
 
-				gt[i] = FixToByte(pos / (points.Length - 1));
+				gt[i] = (float)(pos / (curve.Length - 1));
 			}
 
 			if (inverse)
-				Array.Reverse(gt, 0, UQ15One + 1);
+				Array.Reverse(gt, 0, LookupTables.GammaScaleFloat + 1);
 
-			LookupTables.Fixup(gt, UQ15One);
+			LookupTables.Fixup(gt, LookupTables.GammaScaleFloat);
+			LookupTables.Fixup(igt, LookupTables.InverseGammaScale);
 
-			return new ProfileCurve(gt, igtf, igtq);
+			return new ProfileCurve(gt, igt);
 		}
 
-		private static ProfileCurve curveFromParameters(float a, float b, float c, float d, float e, float f, float g)
+		private static ProfileCurve curveFromParameters(double a, double b, double c, double d, double e, double f, double g)
 		{
 			if (
-				g.IsRoughlyEqualTo(2.4f) &&
-				d.IsRoughlyEqualTo(0.04045f) &&
-				a.IsRoughlyEqualTo(1.000f/1.055f) &&
-				b.IsRoughlyEqualTo(0.055f/1.055f) &&
-				c.IsRoughlyEqualTo(1.000f/12.92f)
-			) return sRGB.Curve!;
+				g.IsRoughlyEqualTo(2.4) &&
+				d.IsRoughlyEqualTo(0.04045) &&
+				a.IsRoughlyEqualTo(1.000/1.055) &&
+				b.IsRoughlyEqualTo(0.055/1.055) &&
+				c.IsRoughlyEqualTo(1.000/12.92)
+			) return sRGB.Curve;
 
-			var igtf = new float[LookupTables.InverseGammaLength];
-			var igtq = new ushort[LookupTables.InverseGammaLength];
-
-			for (int i = 0; i < igtf.Length; i++)
+			var igt = new float[LookupTables.InverseGammaLength];
+			for (int i = 0; i < igt.Length; i++)
 			{
-				float val = (float)i / byte.MaxValue;
+				double val = (double)i / LookupTables.InverseGammaScale;
 				if (val >= d)
-					val = PowF(val * a + b, g) + c + e;
+					val = Math.Pow(val * a + b, g) + c + e;
 				else
 					val = val * c + f;
 
-				igtf[i] = val;
-				igtq[i] = FixToUQ15One(val);
+				igt[i] = (float)val;
 			}
 
-			LookupTables.Fixup(igtf, byte.MaxValue);
-			LookupTables.Fixup(igtq, byte.MaxValue);
+			g = 1d / g;
 
-			g = 1f / g;
-			var gt = new byte[LookupTables.GammaLength];
-
+			var gt = new float[LookupTables.GammaLengthFloat];
 			for (int i = 0; i < gt.Length; i++)
 			{
-				float val = UnFix15ToFloat(i);
+				double val = (double)i / LookupTables.GammaScaleFloat;
 				if (val > (c * d + f))
-					val = (PowF(val - c - e, g) - b) / a;
+					val = (Math.Pow(val - c - e, g) - b) / a;
 				else
 					val = c == 0f ? 0f : ((val - f) / c);
 
-				gt[i] = FixToByte(val);
+				gt[i] = (float)val;
 			}
 
-			LookupTables.Fixup(gt, UQ15One);
+			LookupTables.Fixup(gt, LookupTables.GammaScaleFloat);
+			LookupTables.Fixup(igt, LookupTables.InverseGammaScale);
 
-			return new ProfileCurve(gt, igtf, igtq);
+			return new ProfileCurve(gt, igt);
 		}
 
-		private static bool lutInvertsTo(ushort[] igtq, byte[] gt)
+		private static bool lutInvertsTo(float[] igt, float[] gt)
 		{
-			for (int i = 0; i <= byte.MaxValue; i++)
+			for (int i = 0; i <= LookupTables.InverseGammaScale; i++)
 			{
-				if (gt[igtq[i]] != i)
+				float pos = igt[i] * LookupTables.GammaScaleFloat;
+				int idx = (int)pos;
+
+				if (i != FixToByte(Lerp(gt[idx], gt[idx + 1], pos - idx)))
 					return false;
 			}
 
@@ -359,7 +333,7 @@ namespace PhotoSauce.MagicScaler
 				if (pcnt == 1)
 				{
 					ushort gi = ReadUInt16BigEndian(trc.Slice(12));
-					float gf;
+					double gd;
 					switch (gi)
 					{
 						case 0:
@@ -367,18 +341,17 @@ namespace PhotoSauce.MagicScaler
 						case 256:
 							return true;
 						case 461:
-							gf = 1.8f;
+							gd = 1.8;
 							break;
 						case 563:
-							gf = 2.2f;
+							gd = 2.2;
 							break;
 						default:
-							gf = gi / 256f;
+							gd = gi / 256d;
 							break;
 					}
 
-					curve = curveFromPower(gf);
-					return true;
+					curve = curveFromPower(gd);
 				}
 				else
 				{
@@ -406,11 +379,9 @@ namespace PhotoSauce.MagicScaler
 					}
 
 					curve = curveFromPoints(points, dec);
-					return true;
 				}
 			}
-
-			if (tag == IccTypes.para)
+			else // (tag == IccTypes.para)
 			{
 				ushort func = ReadUInt16BigEndian(trc.Slice(8));
 				if (trc.Length < 16 || func > 4)
@@ -418,6 +389,10 @@ namespace PhotoSauce.MagicScaler
 
 				var param = trc.Slice(12);
 				int g = ReadInt32BigEndian(param);
+
+				if (func == 0 && g == 0x10000)
+					return true;
+
 				if (
 					(g == 0) ||
 					(func == 1 && param.Length < 12) ||
@@ -448,33 +423,30 @@ namespace PhotoSauce.MagicScaler
 				// prevent divide by 0 and some uninvertible curves.
 				if (
 					(a == 0) ||
-					(c == 0 && (func == 3 || func == 4)) ||
-					((uint)c > 0x10000u && (func == 2 || func == 3 || func == 4)) ||
-					((uint)d > 0x10000u && (func == 3 || func == 4)) ||
-					((uint)e > 0x10000u && (func == 4))
+					(c == 0 && func >= 3) ||
+					((uint)c > 0x10000u && func >= 2) ||
+					((uint)d > 0x10000u && func >= 3) ||
+					((uint)e > 0x10000u && func == 4)
 				) return false;
 
-				float div = 1 / 65536f;
-				float fa = a * div, fb = b * div, fc = c * div, fd = d * div, fe = e * div, ff = f * div, fg = g * div;
+				double div = 1 / 65536d;
+				double da = a * div, db = b * div, dc = c * div, dd = d * div, de = e * div, df = f * div, dg = g * div;
 				switch (func)
 				{
 					case 1:
-						fd = -fb / fa;
+						dd = -db / da;
 						break;
 					case 2:
-						ff = fe = fc;
-						fc = 0f;
+						df = de = dc;
+						dc = 0d;
 						goto case 1;
 					case 3:
 					case 4:
-						fe -= fc;
+						de -= dc;
 						break;
 				}
 
-				if (func == 0)
-					curve = curveFromPower(fg);
-				else
-					curve = curveFromParameters(fa, fb, fc, fd, fe, ff, fg);
+				curve = func == 0 ? curveFromPower(dg) : curveFromParameters(da, db, dc, dd, de, df, dg);
 			}
 
 			return true;
@@ -497,18 +469,18 @@ namespace PhotoSauce.MagicScaler
 			if ((ver[0] != 2 && ver[0] != 4) || acsp != IccStrings.acsp)
 				return invalidProfile;
 
-			uint dcs = ReadUInt32BigEndian(prof.Slice(16));
-			var dataColorSpace =
-				dcs == IccStrings.RGB  ? ProfileColorSpace.Rgb  :
-				dcs == IccStrings.GRAY ? ProfileColorSpace.Grey :
-				dcs == IccStrings.CMYK ? ProfileColorSpace.Cmyk :
-				ProfileColorSpace.Other;
+			var dataColorSpace = ReadUInt32BigEndian(prof.Slice(16)) switch {
+				IccStrings.RGB  => ProfileColorSpace.Rgb,
+				IccStrings.GRAY => ProfileColorSpace.Grey,
+				IccStrings.CMYK => ProfileColorSpace.Cmyk,
+				_               => ProfileColorSpace.Other
+			};
 
-			uint ccs = ReadUInt32BigEndian(prof.Slice(20));
-			var pcsColorSpace =
-				ccs == IccStrings.XYZ ? ProfileColorSpace.Xyz :
-				ccs == IccStrings.Lab ? ProfileColorSpace.Lab :
-				ProfileColorSpace.Other;
+			var pcsColorSpace = ReadUInt32BigEndian(prof.Slice(20)) switch {
+				IccStrings.XYZ => ProfileColorSpace.Xyz,
+				IccStrings.Lab => ProfileColorSpace.Lab,
+				_              => ProfileColorSpace.Other
+			};
 
 			if (pcsColorSpace != ProfileColorSpace.Xyz || (dataColorSpace != ProfileColorSpace.Rgb && dataColorSpace != ProfileColorSpace.Grey))
 				return new ColorProfile(prof.ToArray(), dataColorSpace, pcsColorSpace, ColorProfileType.Unknown);
@@ -610,15 +582,17 @@ namespace PhotoSauce.MagicScaler
 
 		public class ProfileCurve
 		{
-			public byte[] Gamma { get; }
+			public float[] GammaFloat { get; }
+			public byte[] GammaUQ15 { get; }
 			public float[] InverseGammaFloat { get; }
 			public ushort[] InverseGammaUQ15 { get; }
 
-			public ProfileCurve(byte[] gamma, float[] inverseGammaFloat, ushort[] inverseGammaUQ15)
+			public ProfileCurve(float[] gamma, float[] inverseGamma)
 			{
-				Gamma = gamma;
-				InverseGammaFloat = inverseGammaFloat;
-				InverseGammaUQ15 = inverseGammaUQ15;
+				GammaFloat = gamma;
+				GammaUQ15 = gamma == null ? null! : gamma == LookupTables.SrgbGammaFloat ? LookupTables.SrgbGammaUQ15 : LookupTables.MakeUQ15Gamma(gamma);
+				InverseGammaFloat = inverseGamma;
+				InverseGammaUQ15 = gamma == LookupTables.SrgbGammaFloat ? LookupTables.SrgbInverseGammaUQ15 : LookupTables.MakeUQ15InverseGamma(inverseGamma);
 			}
 		}
 	}
@@ -626,24 +600,28 @@ namespace PhotoSauce.MagicScaler
 	internal class CurveProfile : ColorProfile
 	{
 		public bool IsLinear { get; }
-		public ProfileCurve? Curve { get; }
+		public ProfileCurve Curve { get; }
 
 		public ConverterFromLinear<ushort, byte> ConverterUQ15ToByte { get; }
 		public ConverterFromLinear<float, byte> ConverterFloatToByte { get; }
+		public ConverterFromLinear<float, float> ConverterFloatLinearToFloat { get; }
 
 		public ConverterToLinear<byte, ushort> ConverterByteToUQ15 { get; }
 		public ConverterToLinear<byte, float> ConverterByteToFloat { get; }
+		public ConverterToLinear<float, float> ConverterFloatToFloatLinear { get; }
 
 		public CurveProfile(byte[] bytes, ProfileCurve? curve, ProfileColorSpace dataSpace, ProfileColorSpace pcsSpace) : base(bytes, dataSpace, pcsSpace, ColorProfileType.Curve)
 		{
 			IsLinear = curve is null;
-			Curve = curve ?? new ProfileCurve(null!, LookupTables.AlphaFloat, LookupTables.AlphaUQ15);
+			Curve = curve ?? new ProfileCurve(null!, LookupTables.AlphaFloat);
 
-			ConverterUQ15ToByte = new ConverterFromLinear<ushort, byte>(Curve.Gamma);
-			ConverterFloatToByte = new ConverterFromLinear<float, byte>(Curve.Gamma);
+			ConverterUQ15ToByte = new ConverterFromLinear<ushort, byte>(Curve.GammaUQ15);
+			ConverterFloatToByte = new ConverterFromLinear<float, byte>(Curve.GammaUQ15);
+			ConverterFloatLinearToFloat = new ConverterFromLinear<float, float>(Curve.GammaFloat);
 
 			ConverterByteToUQ15 = new ConverterToLinear<byte, ushort>(Curve.InverseGammaUQ15);
 			ConverterByteToFloat = new ConverterToLinear<byte, float>(Curve.InverseGammaFloat);
+			ConverterFloatToFloatLinear = new ConverterToLinear<float, float>(Curve.InverseGammaFloat);
 		}
 	}
 

@@ -19,7 +19,7 @@ namespace PhotoSauce.MagicScaler
 				throw new NotSupportedException("Pixel format not supported.");
 
 			fillBGRA = (uint)color.ToArgb();
-			fillBG = (ushort)((color.B << 8) | color.G);
+			fillBG = (ushort)(color.B | (color.G << 8));
 			fillR = color.R;
 
 			inner = innerArea;

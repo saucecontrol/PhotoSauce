@@ -13,9 +13,9 @@ steps:
   condition: ne(variables['Build.Reason'], 'PullRequest')
 
 - task: UseDotNet@2
-  displayName: Ensure 3.0 SDK
+  displayName: Ensure 3.1 SDK
   inputs:
-    version: 3.0.x
+    version: 3.1.x
 
 - script: |
     dotnet build src\MagicScaler -c Dist --version-suffix ci$(Build.BuildNumber)

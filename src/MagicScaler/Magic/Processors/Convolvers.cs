@@ -586,7 +586,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
 		{
-			fixed (byte* gtstart = &LookupTables.SrgbGamma[0])
+			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15[0])
 			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15[0])
 			{
 				int iamt = Fix15(amt * 0.01);
@@ -909,7 +909,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
 		{
-			fixed (byte* gtstart = &LookupTables.SrgbGamma[0])
+			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15[0])
 			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15[0])
 			{
 				int iamt = Fix15(amt * 0.01);
@@ -1160,7 +1160,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
 		{
-			fixed (byte* gtstart = &LookupTables.SrgbGamma[0])
+			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15[0])
 			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15[0])
 			{
 				int iamt = Fix15(amt * 0.01);

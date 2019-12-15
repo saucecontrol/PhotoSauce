@@ -259,7 +259,6 @@ namespace PhotoSauce.MagicScaler
 
 				MagicTransforms.AddHighQualityScaler(ctx);
 				MagicTransforms.AddUnsharpMask(ctx);
-				MagicTransforms.AddExternalFormatConverter(ctx);
 				MagicTransforms.AddExifFlipRotator(ctx);
 
 				ctx.PlanarContext.SourceY = ctx.Source;
@@ -277,7 +276,6 @@ namespace PhotoSauce.MagicScaler
 				}
 
 				MagicTransforms.AddHighQualityScaler(ctx);
-				MagicTransforms.AddExternalFormatConverter(ctx);
 				MagicTransforms.AddExifFlipRotator(ctx);
 
 				ctx.PlanarContext.SourceCb = ctx.Source;
@@ -287,7 +285,6 @@ namespace PhotoSauce.MagicScaler
 				ctx.Settings.Crop = ctx.Source.Area.ReOrient(orient, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
 
 				MagicTransforms.AddHighQualityScaler(ctx);
-				MagicTransforms.AddExternalFormatConverter(ctx);
 				MagicTransforms.AddExifFlipRotator(ctx);
 
 				ctx.PlanarContext.SourceCr = ctx.Source;
@@ -295,7 +292,7 @@ namespace PhotoSauce.MagicScaler
 
 				if (!savePlanar)
 				{
-					WicTransforms.AddPlanarConverter(ctx);
+					MagicTransforms.AddPlanarConverter(ctx);
 					MagicTransforms.AddColorspaceConverter(ctx);
 					MagicTransforms.AddPad(ctx);
 				}

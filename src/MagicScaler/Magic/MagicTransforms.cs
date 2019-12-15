@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Diagnostics;
+using System.Collections.Generic;
 
 using PhotoSauce.Interop.Wic;
 
@@ -6,44 +8,79 @@ namespace PhotoSauce.MagicScaler
 {
 	internal static class MagicTransforms
 	{
-		public static void AddInternalFormatConverter(PipelineContext ctx, bool allow96bppFloat = false, bool forceLinear = false)
+		private static readonly IReadOnlyDictionary<Guid, Guid> externalFormatMap = new Dictionary<Guid, Guid> {
+			[PixelFormat.Grey32BppFloat.FormatGuid] = Consts.GUID_WICPixelFormat8bppGray,
+			[PixelFormat.Grey32BppLinearFloat.FormatGuid] = Consts.GUID_WICPixelFormat8bppGray,
+			[PixelFormat.Grey16BppLinearUQ15.FormatGuid] = Consts.GUID_WICPixelFormat8bppGray,
+
+			[PixelFormat.Y32BppFloat.FormatGuid] = Consts.GUID_WICPixelFormat8bppY,
+			[PixelFormat.Y32BppLinearFloat.FormatGuid] = Consts.GUID_WICPixelFormat8bppY,
+			[PixelFormat.Y16BppLinearUQ15.FormatGuid] = Consts.GUID_WICPixelFormat8bppY,
+
+			[PixelFormat.Bgrx128BppFloat.FormatGuid] = Consts.GUID_WICPixelFormat24bppBGR,
+			[PixelFormat.Bgrx128BppLinearFloat.FormatGuid] = Consts.GUID_WICPixelFormat24bppBGR,
+			[PixelFormat.Bgr96BppFloat.FormatGuid] = Consts.GUID_WICPixelFormat24bppBGR,
+			[PixelFormat.Bgr96BppLinearFloat.FormatGuid] = Consts.GUID_WICPixelFormat24bppBGR,
+			[PixelFormat.Bgr48BppLinearUQ15.FormatGuid] = Consts.GUID_WICPixelFormat24bppBGR,
+
+			[PixelFormat.Pbgra128BppFloat.FormatGuid] = Consts.GUID_WICPixelFormat32bppBGRA,
+			[PixelFormat.Pbgra128BppLinearFloat.FormatGuid] = Consts.GUID_WICPixelFormat32bppBGRA,
+			[PixelFormat.Pbgra64BppLinearUQ15.FormatGuid] = Consts.GUID_WICPixelFormat32bppBGRA,
+
+			//[PixelFormat.CbCr64BppFloat.FormatGuid] = Consts.GUID_WICPixelFormat16bppCbCr,
+			[PixelFormat.Cb32BppFloat.FormatGuid] = Consts.GUID_WICPixelFormat8bppCb,
+			[PixelFormat.Cr32BppFloat.FormatGuid] = Consts.GUID_WICPixelFormat8bppCr
+		};
+
+		private static readonly IReadOnlyDictionary<Guid, Guid> internalFormatMapSimd = new Dictionary<Guid, Guid> {
+			[Consts.GUID_WICPixelFormat8bppGray] = PixelFormat.Grey32BppFloat.FormatGuid,
+			[Consts.GUID_WICPixelFormat8bppY] = PixelFormat.Y32BppFloat.FormatGuid,
+			[Consts.GUID_WICPixelFormat24bppBGR] = PixelFormat.Bgrx128BppFloat.FormatGuid,
+			[Consts.GUID_WICPixelFormat32bppBGRA] = PixelFormat.Pbgra128BppFloat.FormatGuid,
+			[Consts.GUID_WICPixelFormat32bppPBGRA] = PixelFormat.Pbgra128BppFloat.FormatGuid, // !
+
+			[PixelFormat.Grey32BppLinearFloat.FormatGuid] = PixelFormat.Grey32BppFloat.FormatGuid,
+			[PixelFormat.Y32BppLinearFloat.FormatGuid] = PixelFormat.Y32BppFloat.FormatGuid,
+			[PixelFormat.Bgrx128BppLinearFloat.FormatGuid] = PixelFormat.Bgrx128BppFloat.FormatGuid,
+			[PixelFormat.Pbgra128BppLinearFloat.FormatGuid] = PixelFormat.Pbgra128BppFloat.FormatGuid,
+
+			//[Consts.GUID_WICPixelFormat16bppCbCr] = PixelFormat.CbCr64BppFloat.FormatGuid,
+			[Consts.GUID_WICPixelFormat8bppCb] = PixelFormat.Cb32BppFloat.FormatGuid,
+			[Consts.GUID_WICPixelFormat8bppCr] = PixelFormat.Cr32BppFloat.FormatGuid
+		};
+
+		private static readonly IReadOnlyDictionary<Guid, Guid> internalFormatMapLinear = new Dictionary<Guid, Guid> {
+			[Consts.GUID_WICPixelFormat8bppGray] = PixelFormat.Grey16BppLinearUQ15.FormatGuid,
+			[Consts.GUID_WICPixelFormat8bppY] = PixelFormat.Y16BppLinearUQ15.FormatGuid,
+			[Consts.GUID_WICPixelFormat24bppBGR] = PixelFormat.Bgr48BppLinearUQ15.FormatGuid,
+			[Consts.GUID_WICPixelFormat32bppBGRA] = PixelFormat.Pbgra64BppLinearUQ15.FormatGuid
+		};
+
+		private static readonly IReadOnlyDictionary<Guid, Guid> internalFormatMapLinearSimd = new Dictionary<Guid, Guid> {
+			[Consts.GUID_WICPixelFormat8bppGray] = PixelFormat.Grey32BppLinearFloat.FormatGuid,
+			[Consts.GUID_WICPixelFormat8bppY] = PixelFormat.Y32BppLinearFloat.FormatGuid,
+			[Consts.GUID_WICPixelFormat24bppBGR] = PixelFormat.Bgrx128BppLinearFloat.FormatGuid,
+			[Consts.GUID_WICPixelFormat32bppBGRA] = PixelFormat.Pbgra128BppLinearFloat.FormatGuid,
+
+			[PixelFormat.Grey32BppFloat.FormatGuid] = PixelFormat.Grey32BppLinearFloat.FormatGuid,
+			[PixelFormat.Y32BppFloat.FormatGuid] = PixelFormat.Y32BppLinearFloat.FormatGuid,
+			[PixelFormat.Bgrx128BppFloat.FormatGuid] = PixelFormat.Bgrx128BppLinearFloat.FormatGuid,
+			[PixelFormat.Pbgra128BppFloat.FormatGuid] = PixelFormat.Pbgra128BppLinearFloat.FormatGuid,
+		};
+
+
+		public static void AddInternalFormatConverter(PipelineContext ctx, PixelColorspace pcs = PixelColorspace.Unspecified, bool allow96bppFloat = false)
 		{
 			var ifmt = ctx.Source.Format.FormatGuid;
 			var ofmt = ifmt;
-			bool linear = forceLinear || ctx.Settings.BlendingMode == GammaMode.Linear;
+			bool linear = pcs == PixelColorspace.Unspecified ? ctx.Settings.BlendingMode == GammaMode.Linear : pcs == PixelColorspace.LinearRgb;
 
-			if (MagicImageProcessor.EnableSimd)
-			{
-				if (ifmt == Consts.GUID_WICPixelFormat8bppGray)
-					ofmt = linear ? PixelFormat.Grey32BppLinearFloat.FormatGuid : PixelFormat.Grey32BppFloat.FormatGuid;
-				else if (ifmt == Consts.GUID_WICPixelFormat8bppY)
-					ofmt = linear ? PixelFormat.Y32BppLinearFloat.FormatGuid : PixelFormat.Y32BppFloat.FormatGuid;
-				else if (ifmt == Consts.GUID_WICPixelFormat24bppBGR && allow96bppFloat)
-					ofmt = linear ? PixelFormat.Bgr96BppLinearFloat.FormatGuid : PixelFormat.Bgr96BppFloat.FormatGuid;
-				else if (ifmt == Consts.GUID_WICPixelFormat24bppBGR)
-					ofmt = linear ? PixelFormat.Bgrx128BppLinearFloat.FormatGuid : PixelFormat.Bgrx128BppFloat.FormatGuid;
-				else if (ifmt == Consts.GUID_WICPixelFormat32bppBGRA)
-					ofmt = linear ? PixelFormat.Pbgra128BppLinearFloat.FormatGuid : PixelFormat.Pbgra128BppFloat.FormatGuid;
-				else if (ifmt == Consts.GUID_WICPixelFormat32bppPBGRA)
-					ofmt = PixelFormat.Pbgra128BppFloat.FormatGuid;
-				else if (ifmt == Consts.GUID_WICPixelFormat16bppCbCr)
-					ofmt = PixelFormat.CbCr64BppFloat.FormatGuid;
-				else if (ifmt == Consts.GUID_WICPixelFormat8bppCb)
-					ofmt = PixelFormat.Cb32BppFloat.FormatGuid;
-				else if (ifmt == Consts.GUID_WICPixelFormat8bppCr)
-					ofmt = PixelFormat.Cr32BppFloat.FormatGuid;
-			}
-			else if (linear)
-			{
-				if (ifmt == Consts.GUID_WICPixelFormat8bppGray)
-					ofmt = PixelFormat.Grey16BppLinearUQ15.FormatGuid;
-				else if (ifmt == Consts.GUID_WICPixelFormat8bppY)
-					ofmt = PixelFormat.Y16BppLinearUQ15.FormatGuid;
-				else if (ifmt == Consts.GUID_WICPixelFormat24bppBGR)
-					ofmt = PixelFormat.Bgr48BppLinearUQ15.FormatGuid;
-				else if (ifmt == Consts.GUID_WICPixelFormat32bppBGRA)
-					ofmt = PixelFormat.Pbgra64BppLinearUQ15.FormatGuid;
-			}
+			if (allow96bppFloat && ifmt == Consts.GUID_WICPixelFormat24bppBGR)
+				ofmt = linear ? PixelFormat.Bgr96BppLinearFloat.FormatGuid : PixelFormat.Bgr96BppFloat.FormatGuid;
+			else if (linear && (MagicImageProcessor.EnableSimd ? internalFormatMapLinearSimd : internalFormatMapLinear).TryGetValue(ifmt, out var ofmtl))
+				ofmt = ofmtl;
+			else if (MagicImageProcessor.EnableSimd && internalFormatMapSimd.TryGetValue(ifmt, out var ofmts))
+				ofmt = ofmts;
 
 			if (ofmt == ifmt)
 				return;
@@ -53,27 +90,27 @@ namespace PhotoSauce.MagicScaler
 			ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, forceSrgb ? ColorProfile.sRGB : ctx.SourceColorProfile, forceSrgb ? ColorProfile.sRGB : ctx.DestColorProfile, ofmt));
 		}
 
-		public static void AddExternalFormatConverter(PipelineContext ctx)
+		public static void AddExternalFormatConverter(PipelineContext ctx, bool allowPlanar = false)
 		{
+			if (allowPlanar && ctx.PlanarContext != null)
+			{
+				AddExternalFormatConverter(ctx);
+				ctx.PlanarContext.SourceY = ctx.Source;
+				ctx.Source = ctx.PlanarContext.SourceCb;
+
+				AddExternalFormatConverter(ctx);
+				ctx.PlanarContext.SourceCb = ctx.Source;
+				ctx.Source = ctx.PlanarContext.SourceCr;
+
+				AddExternalFormatConverter(ctx);
+				ctx.PlanarContext.SourceCr = ctx.Source;
+				ctx.Source = ctx.PlanarContext.SourceY;
+
+				return;
+			}
+
 			var ifmt = ctx.Source.Format.FormatGuid;
-			var ofmt = ifmt;
-
-			if (ifmt == PixelFormat.Grey32BppFloat.FormatGuid || ifmt == PixelFormat.Grey32BppLinearFloat.FormatGuid || ifmt == PixelFormat.Grey16BppLinearUQ15.FormatGuid)
-				ofmt = Consts.GUID_WICPixelFormat8bppGray;
-			else if (ifmt == PixelFormat.Y32BppFloat.FormatGuid || ifmt == PixelFormat.Y32BppLinearFloat.FormatGuid || ifmt == PixelFormat.Y16BppLinearUQ15.FormatGuid)
-				ofmt = Consts.GUID_WICPixelFormat8bppY;
-			else if (ifmt == PixelFormat.Bgrx128BppFloat.FormatGuid || ifmt == PixelFormat.Bgrx128BppLinearFloat.FormatGuid || ifmt == PixelFormat.Bgr96BppFloat.FormatGuid || ifmt == PixelFormat.Bgr96BppLinearFloat.FormatGuid || ifmt == PixelFormat.Bgr48BppLinearUQ15.FormatGuid)
-				ofmt = Consts.GUID_WICPixelFormat24bppBGR;
-			else if (ifmt == PixelFormat.Pbgra128BppFloat.FormatGuid || ifmt == PixelFormat.Pbgra128BppLinearFloat.FormatGuid || ifmt == PixelFormat.Pbgra64BppLinearUQ15.FormatGuid)
-				ofmt = Consts.GUID_WICPixelFormat32bppBGRA;
-			else if (ifmt == PixelFormat.CbCr64BppFloat.FormatGuid)
-				ofmt = Consts.GUID_WICPixelFormat16bppCbCr;
-			else if (ifmt == PixelFormat.Cb32BppFloat.FormatGuid)
-				ofmt = Consts.GUID_WICPixelFormat8bppCb;
-			else if (ifmt == PixelFormat.Cr32BppFloat.FormatGuid)
-				ofmt = Consts.GUID_WICPixelFormat8bppCr;
-
-			if (ofmt == ifmt)
+			if (!externalFormatMap.TryGetValue(ifmt, out var ofmt) || ofmt == ifmt)
 				return;
 
 			bool forceSrgb = (ifmt == PixelFormat.Y32BppLinearFloat.FormatGuid || ifmt == PixelFormat.Y16BppLinearUQ15.FormatGuid) && ctx.SourceColorProfile != ColorProfile.sRGB;
@@ -229,10 +266,7 @@ namespace PhotoSauce.MagicScaler
 				return;
 			}
 
-			if (ctx.Source.Format.NumericRepresentation == PixelNumericRepresentation.Float && ctx.Source.Format.Colorspace != PixelColorspace.LinearRgb)
-				AddExternalFormatConverter(ctx);
-
-			AddInternalFormatConverter(ctx, forceLinear: true);
+			AddInternalFormatConverter(ctx, PixelColorspace.LinearRgb);
 
 			if (ctx.Source.Format.ColorRepresentation == PixelColorRepresentation.Bgr && ctx.SourceColorProfile is MatrixProfile srcProf && ctx.DestColorProfile is MatrixProfile dstProf)
 			{
@@ -240,6 +274,24 @@ namespace PhotoSauce.MagicScaler
 				if (matrix != default && !matrix.IsIdentity)
 					ctx.Source = new ColorMatrixTransformInternal(ctx.Source, matrix);
 			}
+		}
+
+		public static void AddPlanarConverter(PipelineContext ctx)
+		{
+			Debug.Assert(ctx.PlanarContext != null);
+
+			if (ctx.Source.Format.Colorspace == PixelColorspace.LinearRgb || ctx.PlanarContext.SourceCb.Format.NumericRepresentation != ctx.Source.Format.NumericRepresentation)
+			{
+				if (ctx.Source.Format.NumericRepresentation == PixelNumericRepresentation.Float && ctx.PlanarContext.SourceCb.Format.NumericRepresentation == ctx.Source.Format.NumericRepresentation)
+					AddInternalFormatConverter(ctx, PixelColorspace.sRgb);
+				else
+					AddExternalFormatConverter(ctx, true);
+			}
+
+			var matrix = ctx.ImageFrame is IYccImageFrame frame ? frame.RgbYccMatrix : YccMatrix.Rec601;
+
+			ctx.Source = ctx.AddDispose(new PlanarConversionTransform(ctx.Source, ctx.PlanarContext.SourceCb, ctx.PlanarContext.SourceCr, matrix));
+			ctx.PlanarContext = null;
 		}
 	}
 }

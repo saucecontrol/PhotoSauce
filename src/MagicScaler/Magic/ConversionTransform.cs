@@ -12,60 +12,68 @@ namespace PhotoSauce.MagicScaler
 
 	internal class ConversionTransform : PixelSource, IDisposable
 	{
-		private readonly PixelFormat srcFormat;
 		private readonly IConverter processor;
-		private readonly int bpp;
 
-		private byte[] lineBuff;
+		private byte[]? lineBuff;
 
 		public ConversionTransform(PixelSource source, ColorProfile? sourceProfile, ColorProfile? destProfile, Guid destFormat) : base(source)
 		{
 			var srcProfile = sourceProfile as CurveProfile ?? ColorProfile.sRGB;
 			var dstProfile = destProfile as CurveProfile ?? ColorProfile.sRGB;
+			var srcFormat = source.Format;
 
-			srcFormat = source.Format;
-			bpp = srcFormat.BitsPerPixel;
-
-			Format = PixelFormat.FromGuid(destFormat);
-			lineBuff = ArrayPool<byte>.Shared.Rent(BufferStride);
-			lineBuff.AsSpan().Clear();
 			processor = null!;
 
-			if (srcFormat.ColorRepresentation == PixelColorRepresentation.Cmyk && bpp == 64 && bpp == 32)
+			Format = PixelFormat.FromGuid(destFormat);
+			if (srcFormat.BitsPerPixel != Format.BitsPerPixel)
+			{
+				lineBuff = ArrayPool<byte>.Shared.Rent(BufferStride);
+				lineBuff.AsSpan().Clear();
+			}
+
+			if (srcFormat.ColorRepresentation == PixelColorRepresentation.Cmyk && srcFormat.BitsPerPixel == 64 && Format.BitsPerPixel == 32)
 			{
 				processor = NarrowingConverter.Instance;
 			}
-			else if (srcFormat.Colorspace == PixelColorspace.sRgb && Format.Colorspace == PixelColorspace.LinearRgb)
+			else if (srcFormat.Colorspace == PixelColorspace.sRgb && Format.Colorspace == PixelColorspace.LinearRgb && !srcProfile.IsLinear)
 			{
 				if (Format.NumericRepresentation == PixelNumericRepresentation.Fixed)
 					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
 						processor = srcProfile.ConverterByteToUQ15.Processor3A;
 					else
 						processor = srcProfile.ConverterByteToUQ15.Processor;
-				else if (Format.NumericRepresentation == PixelNumericRepresentation.Float)
-					// TODO if srcProfile.IsLinear, we can use normal byte to float
+				else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger && Format.NumericRepresentation == PixelNumericRepresentation.Float)
 					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
 						processor = srcProfile.ConverterByteToFloat.Processor3A;
 					else if (srcFormat.ChannelCount == 3 && Format.ChannelCount == 4)
 						processor = srcProfile.ConverterByteToFloat.Processor3X;
 					else
 						processor = srcProfile.ConverterByteToFloat.Processor;
+				else if (Format.NumericRepresentation == PixelNumericRepresentation.Float)
+					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
+						processor = srcProfile.ConverterFloatToFloatLinear.Processor3A;
+					else
+						processor = srcProfile.ConverterFloatToFloatLinear.Processor;
 			}
 			else if (srcFormat.Colorspace == PixelColorspace.LinearRgb && Format.Colorspace == PixelColorspace.sRgb && !dstProfile.IsLinear)
 			{
-				// TODO add normal UQ15/Float to byte for when dstProfile.IsLinear?
 				if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Fixed)
 					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
 						processor = dstProfile.ConverterUQ15ToByte.Processor3A;
 					else
 						processor = dstProfile.ConverterUQ15ToByte.Processor;
-				else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Float)
+				else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Float && Format.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger)
 					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
 						processor = dstProfile.ConverterFloatToByte.Processor3A;
 					else if (srcFormat.ChannelCount == 4 && Format.ChannelCount == 3)
 						processor = dstProfile.ConverterFloatToByte.Processor3X;
 					else
 						processor = dstProfile.ConverterFloatToByte.Processor;
+				else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Float)
+					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
+						processor = dstProfile.ConverterFloatLinearToFloat.Processor3A;
+					else
+						processor = dstProfile.ConverterFloatLinearToFloat.Processor;
 			}
 			else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger && Format.NumericRepresentation == PixelNumericRepresentation.Float)
 			{
@@ -101,15 +109,22 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
-			fixed (byte* bstart = &lineBuff[0])
-			{
-				int oh = prc.Height, oy = prc.Y;
-				int cb = MathUtil.DivCeiling(prc.Width * bpp, 8);
+			if (lineBuff != null)
+				copyPixelsBuffered(prc, cbStride, cbBufferSize, pbBuffer);
+			else
+				copyPixelsDirect(prc, cbStride, cbBufferSize, pbBuffer);
+		}
 
-				for (int y = 0; y < oh; y++)
+		unsafe private void copyPixelsBuffered(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		{
+			fixed (byte* bstart = &lineBuff![0])
+			{
+				int cb = MathUtil.DivCeiling(prc.Width * Source.Format.BitsPerPixel, 8);
+
+				for (int y = 0; y < prc.Height; y++)
 				{
 					Profiler.PauseTiming();
-					Source.CopyPixels(new PixelArea(prc.X, oy + y, prc.Width, 1), BufferStride, BufferStride, (IntPtr)bstart);
+					Source.CopyPixels(new PixelArea(prc.X, prc.Y + y, prc.Width, 1), BufferStride, BufferStride, (IntPtr)bstart);
 					Profiler.ResumeTiming();
 
 					byte* op = (byte*)pbBuffer + y * cbStride;
@@ -118,13 +133,29 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
+		unsafe private void copyPixelsDirect(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		{
+			int cb = MathUtil.DivCeiling(prc.Width * Source.Format.BitsPerPixel, 8);
+
+			for (int y = 0; y < prc.Height; y++)
+			{
+				byte* op = (byte*)pbBuffer + y * cbStride;
+
+				Profiler.PauseTiming();
+				Source.CopyPixels(new PixelArea(prc.X, prc.Y + y, prc.Width, 1), cbStride, cb, (IntPtr)op);
+				Profiler.ResumeTiming();
+
+				processor.ConvertLine(op, op, cb);
+			}
+		}
+
 		public void Dispose()
 		{
 			ArrayPool<byte>.Shared.Return(lineBuff ?? Array.Empty<byte>());
-			lineBuff = null!;
+			lineBuff = null;
 		}
 
-		public override string ToString() => $"{base.ToString()}: {srcFormat.Name}->{Format.Name}";
+		public override string ToString() => $"{base.ToString()}: {Source.Format.Name}->{Format.Name}";
 	}
 
 	/// <summary>Converts an image to an alternate pixel format.</summary>

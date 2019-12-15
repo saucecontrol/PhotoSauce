@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 using static PhotoSauce.MagicScaler.MathUtil;
@@ -347,6 +348,94 @@ namespace PhotoSauce.MagicScaler
 
 					ip += 4;
 					op += 3;
+				}
+			}
+		}
+
+		public static class Interpolating
+		{
+			unsafe public static void ConvertFloat(byte* ipstart, byte* opstart, float* lutstart, int lutmax, int cb)
+			{
+				Debug.Assert(ipstart == opstart);
+
+				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb);
+				float* lp = lutstart;
+
+				var vlmax = new Vector4(lutmax);
+				var vzero = Vector4.Zero;
+				float fmin = vzero.X, fgmax = vlmax.X;
+
+				ipe -= 4;
+				while (ip <= ipe)
+				{
+					var vf = (Unsafe.ReadUnaligned<Vector4>(ip) * vlmax).Clamp(vzero, vlmax);
+
+					float f0 = vf.X;
+					float f1 = vf.Y;
+					float f2 = vf.Z;
+					float f3 = vf.W;
+
+					uint i0 = (uint)f0;
+					uint i1 = (uint)f1;
+					uint i2 = (uint)f2;
+					uint i3 = (uint)f3;
+
+					ip[0] = Lerp(lp[i0], lp[i0 + 1], f0 - (int)i0);
+					ip[1] = Lerp(lp[i1], lp[i1 + 1], f1 - (int)i1);
+					ip[2] = Lerp(lp[i2], lp[i2 + 1], f2 - (int)i2);
+					ip[3] = Lerp(lp[i3], lp[i3 + 1], f3 - (int)i3);
+
+					ip += 4;
+				}
+				ipe += 4;
+
+				while (ip < ipe)
+				{
+					float f = (*ip * fgmax).Clamp(fmin, fgmax);
+					uint i = (uint)f;
+
+					*ip++ = Lerp(lp[i], lp[i + 1], f - i);
+				}
+			}
+
+			unsafe public static void ConvertFloat3A(byte* ipstart, byte* opstart, float* lutstart, int lutmax, int cb)
+			{
+				Debug.Assert(ipstart == opstart);
+
+				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb);
+				float* lp = lutstart;
+
+				var vlmax = new Vector4(lutmax);
+				var vzero = Vector4.Zero;
+				float famin = new Vector4(1 / 1024f).X;
+
+				while (ip < ipe)
+				{
+					var vf = Unsafe.ReadUnaligned<Vector4>(ip);
+
+					float f3 = vf.W;
+					if (f3 < famin)
+					{
+						Unsafe.WriteUnaligned(ip, vzero);
+					}
+					else
+					{
+						vf = (vf * vlmax / f3).Clamp(vzero, vlmax);
+
+						float f0 = vf.X;
+						float f1 = vf.Y;
+						float f2 = vf.Z;
+
+						uint i0 = (uint)f0;
+						uint i1 = (uint)f1;
+						uint i2 = (uint)f2;
+
+						ip[0] = Lerp(lp[i0], lp[i0 + 1], f0 - (int)i0) * f3;
+						ip[1] = Lerp(lp[i1], lp[i1 + 1], f1 - (int)i1) * f3;
+						ip[2] = Lerp(lp[i2], lp[i2 + 1], f2 - (int)i2) * f3;
+					}
+
+					ip += 4;
 				}
 			}
 		}

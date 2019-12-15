@@ -12,7 +12,7 @@ using static PhotoSauce.MagicScaler.MathUtil;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal class ColorMatrixTransformInternal: PixelSource
+	internal class ColorMatrixTransformInternal : PixelSource
 	{
 		private readonly Vector4 vec0, vec1, vec2, vec3;
 		private readonly int[] matrixFixed;
@@ -28,7 +28,7 @@ namespace PhotoSauce.MagicScaler
 				Fix15(matrix.M33), Fix15(matrix.M23), Fix15(matrix.M13), Fix15(matrix.M43),
 				Fix15(matrix.M32), Fix15(matrix.M22), Fix15(matrix.M12), Fix15(matrix.M42),
 				Fix15(matrix.M31), Fix15(matrix.M21), Fix15(matrix.M11), Fix15(matrix.M41),
-				Fix15(matrix.M34), Fix15(matrix.M24), Fix15(matrix.M14), Fix15(matrix.M44)
+				                                                        Fix15(matrix.M44)
 			};
 		}
 
@@ -54,7 +54,7 @@ namespace PhotoSauce.MagicScaler
 		unsafe private void copyPixelsByte(in PixelArea prc, int cbStride, IntPtr pbBuffer)
 		{
 			int chan = Format.ChannelCount;
-			bool alpha = chan == 4 && matrixFixed[15] != UQ15One;
+			bool alpha = chan == 4 && matrixFixed[12] != UQ15One;
 
 			fixed (int* pm = &matrixFixed[0])
 			for (int y = 0; y < prc.Height; y++)
@@ -75,7 +75,7 @@ namespace PhotoSauce.MagicScaler
 					ip[2] = o2;
 
 					if (alpha)
-						ip[3] = UnFix15ToByte(ip[3] * pm[15]);
+						ip[3] = UnFix15ToByte(ip[3] * pm[12]);
 
 					ip += chan;
 				}
@@ -85,7 +85,7 @@ namespace PhotoSauce.MagicScaler
 		unsafe private void copyPixelsFixed(in PixelArea prc, int cbStride, IntPtr pbBuffer)
 		{
 			int chan = Format.ChannelCount;
-			bool alpha = chan == 4 && matrixFixed[15] != UQ15One;
+			bool alpha = chan == 4 && matrixFixed[12] != UQ15One;
 
 			fixed (int* pm = &matrixFixed[0])
 			for (int y = 0; y < prc.Height; y++)
@@ -106,7 +106,7 @@ namespace PhotoSauce.MagicScaler
 					ip[2] = o2;
 
 					if (alpha)
-						ip[3] = UnFixToUQ15(ip[3] * pm[15]);
+						ip[3] = UnFixToUQ15(ip[3] * pm[12]);
 
 					ip += chan;
 				}
@@ -219,7 +219,13 @@ namespace PhotoSauce.MagicScaler
 
 		void IPixelTransformInternal.Init(PipelineContext ctx)
 		{
-			MagicTransforms.AddExternalFormatConverter(ctx);
+			if (ctx.Source.Format.Colorspace == PixelColorspace.LinearRgb)
+			{
+				if (ctx.Source.Format.NumericRepresentation == PixelNumericRepresentation.Float)
+					MagicTransforms.AddInternalFormatConverter(ctx, PixelColorspace.sRgb);
+				else
+					MagicTransforms.AddExternalFormatConverter(ctx);
+			}
 
 			if (matrix != default && !matrix.IsIdentity)
 			{

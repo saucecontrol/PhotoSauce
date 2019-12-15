@@ -32,10 +32,12 @@ namespace PhotoSauce.MagicScaler
 			{
 				fixed (TTo* igtstart = &igt[0])
 				{
-					if (typeof(TTo) == typeof(ushort))
+					if (typeof(TFrom) == typeof(byte) && typeof(TTo) == typeof(ushort))
 						convertUQ15(istart, ostart, (ushort*)igtstart, cb);
-					else if (typeof(TTo) == typeof(float))
+					else if (typeof(TFrom) == typeof(byte) && typeof(TTo) == typeof(float))
 						convertFloat(istart, ostart, (float*)igtstart, cb);
+					else if (typeof(TFrom) == typeof(float) && typeof(TTo) == typeof(float))
+						FloatConverter.Interpolating.ConvertFloat(istart, ostart, (float*)igtstart, LookupTables.InverseGammaScale, cb);
 				}
 			}
 
@@ -126,10 +128,12 @@ namespace PhotoSauce.MagicScaler
 			{
 				fixed (TTo* igtstart = &igt[0])
 				{
-					if (typeof(TTo) == typeof(ushort))
+					if (typeof(TFrom) == typeof(byte) && typeof(TTo) == typeof(ushort))
 						convertUQ15(istart, ostart, (ushort*)igtstart, cb);
-					else if (typeof(TTo) == typeof(float))
+					else if (typeof(TFrom) == typeof(byte) && typeof(TTo) == typeof(float))
 						convertFloat(istart, ostart, (float*)igtstart, cb);
+					else if (typeof(TFrom) == typeof(float) && typeof(TTo) == typeof(float))
+						FloatConverter.Interpolating.ConvertFloat3A(istart, ostart, (float*)igtstart, LookupTables.InverseGammaScale, cb);
 				}
 			}
 
@@ -197,7 +201,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				fixed (TTo* igtstart = &igt[0])
 				{
-					if (typeof(TTo) == typeof(float))
+					if (typeof(TFrom) == typeof(byte) && typeof(TTo) == typeof(float))
 						convertFloat(istart, ostart, (float*)igtstart, cb);
 				}
 			}
@@ -248,10 +252,12 @@ namespace PhotoSauce.MagicScaler
 			{
 				fixed (TTo* gtstart = &gt[0])
 				{
-					if (typeof(TFrom) == typeof(ushort))
+					if (typeof(TFrom) == typeof(ushort) && typeof(TTo) == typeof(byte))
 						convertUQ15(istart, ostart, (byte*)gtstart, cb);
-					else if (typeof(TFrom) == typeof(float))
+					else if (typeof(TFrom) == typeof(float) && typeof(TTo) == typeof(byte))
 						convertFloat(istart, ostart, (byte*)gtstart, cb);
+					else if (typeof(TFrom) == typeof(float) && typeof(TTo) == typeof(float))
+						FloatConverter.Interpolating.ConvertFloat(istart, ostart, (float*)gtstart, LookupTables.GammaScaleFloat, cb);
 				}
 			}
 
@@ -300,7 +306,7 @@ namespace PhotoSauce.MagicScaler
 					v = v.Clamp(vmin, vmax);
 
 #if VECTOR_CONVERT
-					var vi = Vector.ConvertToInt32(v);
+					var vi = Vector.AsVectorUInt32(Vector.ConvertToInt32(v));
 #else
 					var vi = v;
 #endif
@@ -350,10 +356,12 @@ namespace PhotoSauce.MagicScaler
 			{
 				fixed (TTo* gtstart = &gt[0])
 				{
-					if (typeof(TFrom) == typeof(ushort))
+					if (typeof(TFrom) == typeof(ushort) && typeof(TTo) == typeof(byte))
 						convertUQ15(istart, ostart, (byte*)gtstart, cb);
-					else if (typeof(TFrom) == typeof(float))
+					else if (typeof(TFrom) == typeof(float) && typeof(TTo) == typeof(byte))
 						convertFloat(istart, ostart, (byte*)gtstart, cb);
+					else if (typeof(TFrom) == typeof(float) && typeof(TTo) == typeof(float))
+						FloatConverter.Interpolating.ConvertFloat3A(istart, ostart, (float*)gtstart, LookupTables.GammaScaleFloat, cb);
 				}
 			}
 
@@ -434,7 +442,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				fixed (TTo* gtstart = &gt[0])
 				{
-					if (typeof(TFrom) == typeof(float))
+					if (typeof(TFrom) == typeof(float) && typeof(TTo) == typeof(byte))
 						convertFloat(istart, ostart, (byte*)gtstart, cb);
 				}
 			}

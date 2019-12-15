@@ -3,19 +3,17 @@ using System.Linq;
 using System.Drawing;
 using System.Reflection;
 using System.Globalization;
-using System.Collections.ObjectModel;
+using System.Collections.Generic;
 
 namespace PhotoSauce.MagicScaler
 {
 	internal static class ColorParser
 	{
-		private static readonly Lazy<ReadOnlyDictionary<string, Color>> namedColors = new Lazy<ReadOnlyDictionary<string, Color>>(() =>
-			new ReadOnlyDictionary<string, Color>(
-				typeof(Color)
-					.GetProperties(BindingFlags.Public | BindingFlags.Static)
-					.Where(p => p.PropertyType == typeof(Color))
-					.ToDictionary(p => p.Name, p => (Color)p.GetValue(null)!, StringComparer.OrdinalIgnoreCase)
-			)
+		private static readonly Lazy<IReadOnlyDictionary<string, Color>> namedColors = new Lazy<IReadOnlyDictionary<string, Color>>(() =>
+			typeof(Color)
+				.GetProperties(BindingFlags.Public | BindingFlags.Static)
+				.Where(p => p.PropertyType == typeof(Color))
+				.ToDictionary(p => p.Name, p => (Color)p.GetValue(null)!, StringComparer.OrdinalIgnoreCase)
 		);
 
 		public static bool TryParse(string value, out Color color)

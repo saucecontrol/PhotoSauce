@@ -38,28 +38,28 @@ namespace PhotoSauce.MagicScaler
 		);
 	}
 
-	/// <summary>Contains standard matrices for converting between Y'CbCr and R'G'B' formats.</summary>
-	public static class YccRgbMatrix
+	/// <summary>Contains standard matrices for converting between R'G'B' and Y'CbCr formats.</summary>
+	public static class YccMatrix
 	{
-		/// <summary>Coefficients for converting <a href="https://en.wikipedia.org/wiki/Rec._601">Rec. 601</a> Y'CbCr to R'G'B'. Kr = 0.299, Kb = 0.114.</summary>
-		public static readonly Matrix4x4 Rec601YccToRgb = createRgbToYcc(Rec601Luma.R, Rec601Luma.B).InvertPrecise();
+		/// <summary>Coefficients for converting R'G'B' to <a href="https://en.wikipedia.org/wiki/Rec._601">Rec. 601</a> Y'CbCr. Kr = 0.299, Kb = 0.114.</summary>
+		public static readonly Matrix4x4 Rec601 = createYccMatrix(Rec601Luma.R, Rec601Luma.B);
 
-		/// <summary>Coefficients for converting <a href="https://en.wikipedia.org/wiki/Rec._709">Rec. 709</a> Y'CbCr to R'G'B'. Kr = 0.2126, Kb = 0.0722.</summary>
-		public static readonly Matrix4x4 Rec709YccToRgb = createRgbToYcc(Rec709Luma.R, Rec709Luma.B).InvertPrecise();
+		/// <summary>Coefficients for converting R'G'B' to <a href="https://en.wikipedia.org/wiki/Rec._709">Rec. 709</a> Y'CbCr. Kr = 0.2126, Kb = 0.0722.</summary>
+		public static readonly Matrix4x4 Rec709 = createYccMatrix(Rec709Luma.R, Rec709Luma.B);
 
-		/// <summary>Coefficients for converting <a href="https://en.wikipedia.org/wiki/Rec._2020">Rec. 2020</a> Y'CbCr to R'G'B'. Kr = 0.2627, Kb = 0.0593.</summary>
-		public static readonly Matrix4x4 Rec2020YccToRgb = createRgbToYcc(0.2627, 0.0593).InvertPrecise();
+		/// <summary>Coefficients for converting R'G'B' to <a href="https://en.wikipedia.org/wiki/Rec._2020">Rec. 2020</a> Y'CbCr. Kr = 0.2627, Kb = 0.0593.</summary>
+		public static readonly Matrix4x4 Rec2020 = createYccMatrix(0.2627, 0.0593);
 
-		/// <summary>Coefficients for converting <a href="https://en.wikipedia.org/wiki/Luma_(video)">SMPTE 240M</a> (NTSC) Y'CbCr to R'G'B'. Kr = 0.212, Kb = 0.087.</summary>
-		public static readonly Matrix4x4 Smpte240mYccToRgb = createRgbToYcc(0.212, 0.087).InvertPrecise();
+		/// <summary>Coefficients for converting R'G'B' to <a href="https://en.wikipedia.org/wiki/Luma_(video)">SMPTE 240M</a> (NTSC) Y'CbCr. Kr = 0.212, Kb = 0.087.</summary>
+		public static readonly Matrix4x4 Smpte240M = createYccMatrix(0.212, 0.087);
 
-		private static Matrix4x4 createRgbToYcc(double kr, double kb)
+		private static Matrix4x4 createYccMatrix(double kr, double kb)
 		{
 			double kg = 1 - kr - kb;
 			double kbs = 1 / ((1 - kb) * 2);
 			double krs = 1 / ((1 - kr) * 2);
 
-			return new Matrix4x4() {
+			return new Matrix4x4 {
 				M11 = (float)kr,
 				M21 = (float)kg,
 				M31 = (float)kb,

@@ -11,7 +11,7 @@ namespace PhotoSauce.MagicScaler
 {
 	internal class WicImageContainer : IImageContainer
 	{
-		private static readonly IDictionary<Guid, FileFormat> formatMap = new Dictionary<Guid, FileFormat> {
+		private static readonly IReadOnlyDictionary<Guid, FileFormat> formatMap = new Dictionary<Guid, FileFormat> {
 			[Consts.GUID_ContainerFormatBmp] = FileFormat.Bmp,
 			[Consts.GUID_ContainerFormatGif] = FileFormat.Gif,
 			[Consts.GUID_ContainerFormatJpeg] = FileFormat.Jpeg,
@@ -82,7 +82,7 @@ namespace PhotoSauce.MagicScaler
 
 	internal class WicEncoder
 	{
-		private static readonly IDictionary<FileFormat, Guid> formatMap = new Dictionary<FileFormat, Guid> {
+		private static readonly IReadOnlyDictionary<FileFormat, Guid> formatMap = new Dictionary<FileFormat, Guid> {
 			[FileFormat.Bmp] = Consts.GUID_ContainerFormatBmp,
 			[FileFormat.Gif] = Consts.GUID_ContainerFormatGif,
 			[FileFormat.Jpeg] = Consts.GUID_ContainerFormatJpeg,
@@ -158,6 +158,8 @@ namespace PhotoSauce.MagicScaler
 		{
 			if (ctx.PlanarContext != null)
 			{
+				MagicTransforms.AddExternalFormatConverter(ctx, true);
+
 				var oformat = Consts.GUID_WICPixelFormat24bppBGR;
 				Frame.SetPixelFormat(ref oformat);
 

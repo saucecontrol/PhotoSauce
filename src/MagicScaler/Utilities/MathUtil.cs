@@ -39,6 +39,12 @@ namespace PhotoSauce.MagicScaler
 		public static double Clamp(this double x, double min, double max) => Min(Max(min, x), max);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static float Clamp(this float x, float min, float max) => MinF(MaxF(min, x), max);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Vector4 Clamp(this Vector4 x, Vector4 min, Vector4 max) => Vector4.Min(Vector4.Max(min, x), max);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Vector<T> Clamp<T>(this Vector<T> x, Vector<T> min, Vector<T> max) where T : unmanaged => Vector.Min(Vector.Max(min, x), max);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -121,14 +127,6 @@ namespace PhotoSauce.MagicScaler
 #endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static float Floor(this float x) =>
-#if BUILTIN_MATHF
-			MathF.Floor(x);
-#else
-			(float)Math.Floor(x);
-#endif
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static float Abs(this float x) =>
 #if BUILTIN_MATHF
 			MathF.Abs(x);
@@ -145,17 +143,20 @@ namespace PhotoSauce.MagicScaler
 #endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static float PowF(float x, float y) =>
+		public static float MinF(float x, float o) =>
 #if BUILTIN_MATHF
-			MathF.Pow(x, y);
+			MathF.Min(x, o);
 #else
-			(float)Pow(x, y);
+			x > o ? o : x;
 #endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static float Lerp(float l, float h, float d) => h * d + l * (1f - d);
+		public static double Lerp(double l, double h, double d) => l + (h - l) * d;
 
-		public static bool IsRoughlyEqualTo(this float x, float y) => (x - y).Abs() < 0.0001f;
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static float Lerp(float l, float h, float d) => l + (h - l) * d;
+
+		public static bool IsRoughlyEqualTo(this double x, double y) => Math.Abs(x - y) < 0.0001;
 
 		unsafe public static bool IsRouglyEqualTo(this Matrix4x4 m1, Matrix4x4 m2)
 		{
@@ -261,22 +262,5 @@ namespace PhotoSauce.MagicScaler
 			float.IsNaN(m.M21) || float.IsNaN(m.M22) || float.IsNaN(m.M23) || float.IsNaN(m.M24) ||
 			float.IsNaN(m.M31) || float.IsNaN(m.M32) || float.IsNaN(m.M33) || float.IsNaN(m.M34) ||
 			float.IsNaN(m.M41) || float.IsNaN(m.M42) || float.IsNaN(m.M43) || float.IsNaN(m.M44);
-
-#if HWINTRINSICS
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static float HorizontalAdd(this Vector128<float> v)
-		{	                                        //  a | b | c | d
-			var high = Sse3.IsSupported ?           //  b |___| d |___
-				Sse3.MoveHighAndDuplicate(v) :
-				Sse.Shuffle(v, v, 0b_11_11_01_01);
-			var sums = Sse.Add(v, high);            // a+b|___|c+d|___
-			high = Sse.MoveHighToLow(high, sums);   // c+d|___|___|___
-
-			return Sse.AddScalar(sums, high).ToScalar();
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static float HorizontalAdd(this Vector256<float> v) => HorizontalAdd(Sse.Add(v.GetLower(), v.GetUpper()));
-#endif
 	}
 }

@@ -48,8 +48,8 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>The position of subsampled chroma components relative to their associated luma components.</summary>
 		ChromaPosition ChromaPosition { get; }
 
-		/// <summary>A 3x3 matrix containing the coefficients for converting the image frame from Y'CbCr format to R'G'B'.  The fourth row and column will be ignored.  See <see cref="YccRgbMatrix" /> for standard values.</summary>
-		Matrix4x4 YccToRgbMatrix { get; }
+		/// <summary>A 3x3 matrix containing the coefficients for converting from R'G'B' to the Y'CbCr format of this image frame.  The fourth row and column will be ignored.  See <see cref="YccMatrix" /> for standard values.</summary>
+		Matrix4x4 RgbYccMatrix { get; }
 
 		/// <summary>True if the encoding uses the full 0-255 range for pixel values, false if the encoding uses video range (16-235 luma and 16-240 chroma).</summary>
 		bool IsFullRange { get; }

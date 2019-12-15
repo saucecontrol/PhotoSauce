@@ -95,7 +95,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private static void bgrToGreyUQ15(byte* ipstart, byte* opstart, int cb)
 		{
-			fixed (byte* gtstart = &LookupTables.SrgbGamma[0])
+			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15[0])
 			{
 				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb) - 3, op = (ushort*)opstart;
 				byte* gt = gtstart;
@@ -143,7 +143,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private static void bgrxToGreyUQ15(byte* ipstart, byte* opstart, int cb)
 		{
-			fixed (byte* gtstart = &LookupTables.SrgbGamma[0])
+			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15[0])
 			{
 				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb) - 4, op = (ushort*)opstart;
 				byte* gt = gtstart;
@@ -173,7 +173,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private static void greyLinearToGreyUQ15(byte* ipstart, byte* opstart, int cb)
 		{
-			fixed (byte* gtstart = &LookupTables.SrgbGamma[0])
+			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15[0])
 			{
 				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb), op = (ushort*)opstart;
 				byte* gt = gtstart;
