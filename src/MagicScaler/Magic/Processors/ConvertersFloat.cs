@@ -8,51 +8,63 @@ using VectorF = System.Numerics.Vector<float>;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal sealed class NarrowingConverter : IConverter<ushort, byte>
-	{
-		public static NarrowingConverter Instance = new NarrowingConverter();
-
-		private NarrowingConverter() { }
-
-		unsafe void IConverter.ConvertLine(byte* istart, byte* ostart, int cb)
-		{
-			ushort* ip = (ushort*)istart, ipe = (ushort*)(istart + cb) - 4;
-			byte* op = ostart;
-
-			while (ip <= ipe)
-			{
-				byte o0 = (byte)(ip[0] >> 8);
-				byte o1 = (byte)(ip[1] >> 8);
-				byte o2 = (byte)(ip[2] >> 8);
-				byte o3 = (byte)(ip[3] >> 8);
-				op[0] = o0;
-				op[1] = o1;
-				op[2] = o2;
-				op[3] = o3;
-
-				ip += 4;
-				op += 4;
-			}
-		}
-	}
-
 	internal class FloatConverter
 	{
 		public sealed class Widening : IConverter<byte, float>
 		{
-			public static Widening Instance = new Widening();
+			public static Widening InstanceFullRange = new Widening();
+			public static Widening InstanceVideoRange = new Widening(true);
 
-			private Widening() { }
+			private static readonly WideningImpl3A processor3A = new WideningImpl3A();
+			private static readonly WideningImpl3X processor3X = new WideningImpl3X();
 
-			unsafe void IConverter.ConvertLine(byte* ipstart, byte* opstart, int cb)
+			private readonly WideningImpl processor;
+
+			private Widening(bool videoRange = false) => processor = new WideningImpl(videoRange);
+
+			public IConversionProcessor<byte, float> Processor => processor;
+			public IConversionProcessor<byte, float> Processor3A => processor3A;
+			public IConversionProcessor<byte, float> Processor3X => processor3X;
+		}
+
+		public sealed class Narrowing : IConverter<float, byte>
+		{
+			public static Narrowing Instance = new Narrowing();
+
+			private static readonly NarrowingImpl processor = new NarrowingImpl();
+			private static readonly NarrowingImpl3A processor3A = new NarrowingImpl3A();
+			private static readonly NarrowingImpl3X processor3X = new NarrowingImpl3X();
+
+			private Narrowing() { }
+
+			public IConversionProcessor<float, byte> Processor => processor;
+			public IConversionProcessor<float, byte> Processor3A => processor3A;
+			public IConversionProcessor<float, byte> Processor3X => processor3X;
+		}
+
+		private sealed class WideningImpl : IConversionProcessor<byte, float>
+		{
+			private readonly float scale;
+			private readonly float offset;
+			private readonly float[] valueTable;
+
+			public WideningImpl(bool videoRange = false)
 			{
-				fixed (float* atstart = &LookupTables.AlphaFloat[0])
+				scale = 1f / (videoRange ? VideoLumaScale : byte.MaxValue);
+				offset = videoRange ? VideoLumaMin : 0f;
+				valueTable = videoRange ? LookupTables.MakeVideoInverseGamma(LookupTables.Alpha) : LookupTables.Alpha;
+			}
+
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
+			{
+				fixed (float* atstart = &valueTable[0])
 				{
 					byte* ip = ipstart, ipe = ipstart + cb;
 					float* op = (float*)opstart, at = atstart;
 
 #if VECTOR_CONVERT
-					var vscale = new VectorF(1f / byte.MaxValue);
+					var vscal = new VectorF(scale);
+					var voffs = new VectorF(offset);
 
 					ipe -= Vector<byte>.Count;
 					while (ip <= ipe)
@@ -67,10 +79,10 @@ namespace PhotoSauce.MagicScaler
 						var vf2 = Vector.ConvertToSingle(Vector.AsVectorInt32(vi2));
 						var vf3 = Vector.ConvertToSingle(Vector.AsVectorInt32(vi3));
 
-						vf0 *= vscale;
-						vf1 *= vscale;
-						vf2 *= vscale;
-						vf3 *= vscale;
+						vf0 = (vf0 - voffs) * vscal;
+						vf1 = (vf1 - voffs) * vscal;
+						vf2 = (vf2 - voffs) * vscal;
+						vf3 = (vf3 - voffs) * vscal;
 
 						Unsafe.WriteUnaligned(op, vf0);
 						Unsafe.WriteUnaligned(op + VectorF.Count, vf1);
@@ -119,15 +131,11 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		public sealed class Widening3A : IConverter<byte, float>
+		private sealed class WideningImpl3A : IConversionProcessor<byte, float>
 		{
-			public static Widening3A Instance = new Widening3A();
-
-			private Widening3A() { }
-
-			unsafe void IConverter.ConvertLine(byte* ipstart, byte* opstart, int cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
-				fixed (float* atstart = &LookupTables.AlphaFloat[0])
+				fixed (float* atstart = &LookupTables.Alpha[0])
 				{
 					byte* ip = ipstart, ipe = ipstart + cb - 4;
 					float* op = (float*)opstart, at = atstart;
@@ -150,15 +158,11 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		public sealed class Widening3X : IConverter<byte, float>
+		private sealed class WideningImpl3X : IConversionProcessor<byte, float>
 		{
-			public static Widening3X Instance = new Widening3X();
-
-			private Widening3X() { }
-
-			unsafe void IConverter.ConvertLine(byte* ipstart, byte* opstart, int cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
-				fixed (float* atstart = &LookupTables.AlphaFloat[0])
+				fixed (float* atstart = &LookupTables.Alpha[0])
 				{
 					byte* ip = ipstart, ipe = ipstart + cb - 3;
 					float* op = (float*)opstart, at = atstart;
@@ -179,13 +183,9 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		public sealed class Narrowing : IConverter<float, byte>
+		private sealed class NarrowingImpl : IConversionProcessor<float, byte>
 		{
-			public static Narrowing Instance = new Narrowing();
-
-			private Narrowing() { }
-
-			unsafe void IConverter.ConvertLine(byte* ipstart, byte* opstart, int cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
 				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb);
 				byte* op = opstart;
@@ -198,7 +198,7 @@ namespace PhotoSauce.MagicScaler
 
 				var vmin = new VectorF(byte.MinValue);
 				var vmax = new VectorF(byte.MaxValue);
-				var vround = new VectorF(FloatRound);
+				var vround = new VectorF(0.5f);
 
 				ipe -= unrollCount;
 				while (ip <= ipe)
@@ -260,17 +260,13 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		public sealed class Narrowing3A : IConverter<float, byte>
+		private sealed class NarrowingImpl3A : IConversionProcessor<float, byte>
 		{
-			public static Narrowing3A Instance = new Narrowing3A();
-
-			private Narrowing3A() { }
-
-			unsafe void IConverter.ConvertLine(byte* ipstart, byte* opstart, int cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
 				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - 4;
 				byte* op = opstart;
-				float fmax = new Vector4(byte.MaxValue).X, fround = new Vector4(FloatRound).X, fmin = fround / fmax;
+				float fmax = new Vector4(byte.MaxValue).X, fround = new Vector4(0.5f).X, fmin = fround / fmax;
 
 				while (ip <= ipe)
 				{
@@ -298,20 +294,16 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		public sealed class Narrowing3X : IConverter<float, byte>
+		private sealed class NarrowingImpl3X : IConversionProcessor<float, byte>
 		{
-			public static Narrowing3X Instance = new Narrowing3X();
-
-			private Narrowing3X() { }
-
-			unsafe void IConverter.ConvertLine(byte* ipstart, byte* opstart, int cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
 				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - VectorF.Count;
 				byte* op = opstart;
 
 				var vmin = new VectorF(byte.MinValue);
 				var vmax = new VectorF(byte.MaxValue);
-				var vround = new VectorF(FloatRound);
+				var vround = new VectorF(0.5f);
 
 				while (ip <= ipe)
 				{

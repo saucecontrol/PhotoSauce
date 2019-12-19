@@ -33,12 +33,12 @@ namespace PhotoSauce.MagicScaler
 		Unassociated
 	}
 
-	internal enum PixelColorspace
+	internal enum PixelValueEncoding
 	{
 		Unspecified,
-		sRgb,
-		scRgb,
-		LinearRgb
+		Companded,
+		Linear,
+		scRgb
 	}
 
 	internal class PixelFormat : IEquatable<PixelFormat>
@@ -51,7 +51,7 @@ namespace PhotoSauce.MagicScaler
 		public readonly PixelNumericRepresentation NumericRepresentation;
 		public readonly PixelColorRepresentation ColorRepresentation;
 		public readonly PixelAlphaRepresentation AlphaRepresentation;
-		public readonly PixelColorspace Colorspace;
+		public readonly PixelValueEncoding Encoding;
 
 		public bool Equals(PixelFormat other) => FormatGuid == other.FormatGuid;
 
@@ -67,11 +67,11 @@ namespace PhotoSauce.MagicScaler
 			NumericRepresentation == other.NumericRepresentation &&
 			ColorRepresentation == other.ColorRepresentation &&
 			AlphaRepresentation == other.AlphaRepresentation &&
-			Colorspace == other.Colorspace;
+			Encoding == other.Encoding;
 
 		private PixelFormat(Guid guid, string name, int bpp, int channels, PixelNumericRepresentation numericRepresentation,
 			PixelColorRepresentation colorRepresentation = PixelColorRepresentation.Unspecified, PixelAlphaRepresentation alphaRepresentation = PixelAlphaRepresentation.None,
-			PixelColorspace colorspace = PixelColorspace.Unspecified, bool isWic = false
+			PixelValueEncoding encoding = PixelValueEncoding.Unspecified, bool isWic = false
 		)
 		{
 			FormatGuid = guid;
@@ -82,7 +82,7 @@ namespace PhotoSauce.MagicScaler
 			NumericRepresentation = numericRepresentation;
 			ColorRepresentation = colorRepresentation;
 			AlphaRepresentation = alphaRepresentation;
-			Colorspace = colorspace;
+			Encoding = encoding;
 		}
 
 		private static readonly Lazy<ReadOnlyDictionary<Guid, PixelFormat>> cache = new Lazy<ReadOnlyDictionary<Guid, PixelFormat>>(getFormatCache);
@@ -94,7 +94,7 @@ namespace PhotoSauce.MagicScaler
 			channels: 1,
 			numericRepresentation: PixelNumericRepresentation.Fixed,
 			colorRepresentation: PixelColorRepresentation.Grey,
-			colorspace: PixelColorspace.sRgb
+			encoding: PixelValueEncoding.Companded
 		);
 
 		public static readonly PixelFormat Grey16BppLinearUQ15 = new PixelFormat(
@@ -104,7 +104,7 @@ namespace PhotoSauce.MagicScaler
 			channels: 1,
 			numericRepresentation: PixelNumericRepresentation.Fixed,
 			colorRepresentation: PixelColorRepresentation.Grey,
-			colorspace: PixelColorspace.LinearRgb
+			encoding: PixelValueEncoding.Linear
 		);
 
 		public static readonly PixelFormat Grey32BppFloat = new PixelFormat(
@@ -114,7 +114,7 @@ namespace PhotoSauce.MagicScaler
 			channels: 1,
 			numericRepresentation: PixelNumericRepresentation.Float,
 			colorRepresentation: PixelColorRepresentation.Grey,
-			colorspace: PixelColorspace.sRgb
+			encoding: PixelValueEncoding.Companded
 		);
 
 		public static readonly PixelFormat Grey32BppLinearFloat = new PixelFormat(
@@ -124,7 +124,7 @@ namespace PhotoSauce.MagicScaler
 			channels: 1,
 			numericRepresentation: PixelNumericRepresentation.Float,
 			colorRepresentation: PixelColorRepresentation.Grey,
-			colorspace: PixelColorspace.LinearRgb
+			encoding: PixelValueEncoding.Linear
 		);
 
 		public static readonly PixelFormat Bgr48BppLinearUQ15 = new PixelFormat(
@@ -134,7 +134,7 @@ namespace PhotoSauce.MagicScaler
 			channels: 3,
 			numericRepresentation: PixelNumericRepresentation.Fixed,
 			colorRepresentation: PixelColorRepresentation.Bgr,
-			colorspace: PixelColorspace.LinearRgb
+			encoding: PixelValueEncoding.Linear
 		);
 
 		public static readonly PixelFormat Bgr96BppFloat = new PixelFormat(
@@ -144,7 +144,7 @@ namespace PhotoSauce.MagicScaler
 			channels: 3,
 			numericRepresentation: PixelNumericRepresentation.Float,
 			colorRepresentation: PixelColorRepresentation.Bgr,
-			colorspace: PixelColorspace.sRgb
+			encoding: PixelValueEncoding.Companded
 		);
 
 		public static readonly PixelFormat Bgr96BppLinearFloat = new PixelFormat(
@@ -154,7 +154,7 @@ namespace PhotoSauce.MagicScaler
 			channels: 3,
 			numericRepresentation: PixelNumericRepresentation.Float,
 			colorRepresentation: PixelColorRepresentation.Bgr,
-			colorspace: PixelColorspace.LinearRgb
+			encoding: PixelValueEncoding.Linear
 		);
 
 		public static readonly PixelFormat Pbgra64BppLinearUQ15 = new PixelFormat(
@@ -165,7 +165,7 @@ namespace PhotoSauce.MagicScaler
 			numericRepresentation: PixelNumericRepresentation.Fixed,
 			colorRepresentation: PixelColorRepresentation.Bgr,
 			alphaRepresentation: PixelAlphaRepresentation.Associated,
-			colorspace: PixelColorspace.LinearRgb
+			encoding: PixelValueEncoding.Linear
 		);
 
 		public static readonly PixelFormat Pbgra128BppFloat = new PixelFormat(
@@ -176,7 +176,7 @@ namespace PhotoSauce.MagicScaler
 			numericRepresentation: PixelNumericRepresentation.Float,
 			colorRepresentation: PixelColorRepresentation.Bgr,
 			alphaRepresentation: PixelAlphaRepresentation.Associated,
-			colorspace: PixelColorspace.sRgb
+			encoding: PixelValueEncoding.Companded
 		);
 
 		public static readonly PixelFormat Pbgra128BppLinearFloat = new PixelFormat(
@@ -187,7 +187,7 @@ namespace PhotoSauce.MagicScaler
 			numericRepresentation: PixelNumericRepresentation.Float,
 			colorRepresentation: PixelColorRepresentation.Bgr,
 			alphaRepresentation: PixelAlphaRepresentation.Associated,
-			colorspace: PixelColorspace.LinearRgb
+			encoding: PixelValueEncoding.Linear
 		);
 
 		public static readonly PixelFormat Y16BppLinearUQ15 = new PixelFormat(
@@ -197,7 +197,7 @@ namespace PhotoSauce.MagicScaler
 			channels: 1,
 			numericRepresentation: PixelNumericRepresentation.Fixed,
 			colorRepresentation: PixelColorRepresentation.Grey,
-			colorspace: PixelColorspace.LinearRgb
+			encoding: PixelValueEncoding.Linear
 		);
 
 		public static readonly PixelFormat Y32BppFloat = new PixelFormat(
@@ -207,7 +207,7 @@ namespace PhotoSauce.MagicScaler
 			channels: 1,
 			numericRepresentation: PixelNumericRepresentation.Float,
 			colorRepresentation: PixelColorRepresentation.Grey,
-			colorspace: PixelColorspace.sRgb
+			encoding: PixelValueEncoding.Companded
 		);
 
 		public static readonly PixelFormat Y32BppLinearFloat = new PixelFormat(
@@ -217,7 +217,7 @@ namespace PhotoSauce.MagicScaler
 			channels: 1,
 			numericRepresentation: PixelNumericRepresentation.Float,
 			colorRepresentation: PixelColorRepresentation.Grey,
-			colorspace: PixelColorspace.LinearRgb
+			encoding: PixelValueEncoding.Linear
 		);
 
 		public static readonly PixelFormat CbCr64BppFloat = new PixelFormat(
@@ -252,7 +252,7 @@ namespace PhotoSauce.MagicScaler
 			numericRepresentation: PixelNumericRepresentation.Float,
 			colorRepresentation: PixelColorRepresentation.Bgr,
 			alphaRepresentation: PixelAlphaRepresentation.None,
-			colorspace: PixelColorspace.sRgb
+			encoding: PixelValueEncoding.Companded
 		);
 
 		public static readonly PixelFormat Bgrx128BppLinearFloat = new PixelFormat(
@@ -263,7 +263,7 @@ namespace PhotoSauce.MagicScaler
 			numericRepresentation: PixelNumericRepresentation.Float,
 			colorRepresentation: PixelColorRepresentation.Bgr,
 			alphaRepresentation: PixelAlphaRepresentation.None,
-			colorspace: PixelColorspace.LinearRgb
+			encoding: PixelValueEncoding.Linear
 		);
 
 		public static PixelFormat FromGuid(Guid guid) => cache.Value.TryGetValue(guid, out var pf) ? pf : throw new NotSupportedException("Unsupported pixel format.");
@@ -315,10 +315,10 @@ namespace PhotoSauce.MagicScaler
 						pfn.Contains("CMYK") ? PixelColorRepresentation.Cmyk :
 						pfn.Contains("Gray") || pfn.EndsWith(" Y") ? PixelColorRepresentation.Grey :
 						PixelColorRepresentation.Unspecified;
-					var colorspace = colorRep == PixelColorRepresentation.Grey || colorRep == PixelColorRepresentation.Bgr || colorRep == PixelColorRepresentation.Rgb ?
-						numericRep == PixelNumericRepresentation.Fixed || numericRep == PixelNumericRepresentation.Float ? PixelColorspace.scRgb :
-						PixelColorspace.sRgb :
-						PixelColorspace.Unspecified;
+					var valEncoding = colorRep == PixelColorRepresentation.Grey || colorRep == PixelColorRepresentation.Bgr || colorRep == PixelColorRepresentation.Rgb ?
+						numericRep == PixelNumericRepresentation.Fixed || numericRep == PixelNumericRepresentation.Float ? PixelValueEncoding.scRgb :
+						PixelValueEncoding.Companded :
+						PixelValueEncoding.Unspecified;
 
 					var fmt = new PixelFormat(
 						guid: pix.GetFormatGUID(),
@@ -330,7 +330,7 @@ namespace PhotoSauce.MagicScaler
 						alphaRepresentation: pfn.Contains("pBGRA") || pfn.Contains("pRGBA") ? PixelAlphaRepresentation.Associated :
 							pix.SupportsTransparency() ? PixelAlphaRepresentation.Unassociated :
 							PixelAlphaRepresentation.None,
-						colorspace: colorspace,
+						encoding: valEncoding,
 						isWic: true
 					);
 

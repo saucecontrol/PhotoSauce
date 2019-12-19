@@ -15,7 +15,7 @@
 
 	<PropertyGroup>
 		<NoWarn Condition="'$(TargetFramework)'=='netcoreapp2.1' Or '$(TargetFramework)'=='netstandard2.1'">$(NoWarn);0618</NoWarn><!-- VarEnum spuriously marked obsolete -->
-		<NoWarn Condition="'$(TargetFramework)'=='netstandard2.0'">$(NoWarn);IDT001;IDT002</NoWarn><!-- Bad docs in NuGet package -->
+		<NoWarn Condition="'$(TargetFramework)'=='netstandard2.0'">$(NoWarn);IDT001</NoWarn><!-- Bad docs in NuGet package -->
 		<Nullable Condition="$(DefineConstants.Contains('BUILTIN_NULLABLE'))">enable</Nullable>
 	</PropertyGroup>
 
@@ -39,6 +39,11 @@
 	<ItemGroup Condition="$(DefineConstants.Contains('NETFRAMEWORK'))">
 		<Reference Include="System.Configuration" />
 		<Reference Include="System.Drawing" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
+		<PackageDownload Include="NETStandard.Library.Ref" Version="[2.1.0]" />
+		<InheritDocReference Include="$([MSBuild]::EnsureTrailingSlash('$(NugetPackageRoot)'))netstandard.library.ref\2.1.0\ref\netstandard2.1\netstandard.xml" />
 	</ItemGroup>
 
 	<ItemGroup>

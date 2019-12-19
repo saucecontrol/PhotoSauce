@@ -15,7 +15,6 @@ namespace PhotoSauce.MagicScaler
 	internal class ColorMatrixTransformInternal : PixelSource
 	{
 		private readonly Vector4 vec0, vec1, vec2, vec3;
-		private readonly int[] matrixFixed;
 
 		public ColorMatrixTransformInternal(PixelSource source, Matrix4x4 matrix) : base(source)
 		{
@@ -23,13 +22,6 @@ namespace PhotoSauce.MagicScaler
 			vec1 = new Vector4(matrix.M32, matrix.M22, matrix.M12, matrix.M42);
 			vec2 = new Vector4(matrix.M31, matrix.M21, matrix.M11, matrix.M41);
 			vec3 = new Vector4(matrix.M34, matrix.M24, matrix.M14, matrix.M44);
-
-			matrixFixed = new[] {
-				Fix15(matrix.M33), Fix15(matrix.M23), Fix15(matrix.M13), Fix15(matrix.M43),
-				Fix15(matrix.M32), Fix15(matrix.M22), Fix15(matrix.M12), Fix15(matrix.M42),
-				Fix15(matrix.M31), Fix15(matrix.M21), Fix15(matrix.M11), Fix15(matrix.M41),
-				                                                        Fix15(matrix.M44)
-			};
 		}
 
 		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
@@ -53,10 +45,16 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private void copyPixelsByte(in PixelArea prc, int cbStride, IntPtr pbBuffer)
 		{
-			int chan = Format.ChannelCount;
-			bool alpha = chan == 4 && matrixFixed[12] != UQ15One;
+			int* pm = stackalloc[] {
+				Fix15(vec0.X), Fix15(vec0.Y), Fix15(vec0.Z), Fix15(vec0.W),
+				Fix15(vec1.X), Fix15(vec1.Y), Fix15(vec1.Z), Fix15(vec1.W),
+				Fix15(vec2.X), Fix15(vec2.Y), Fix15(vec2.Z), Fix15(vec2.W),
+				                                             Fix15(vec3.W)
+			};
 
-			fixed (int* pm = &matrixFixed[0])
+			int chan = Format.ChannelCount;
+			bool alpha = chan == 4 && pm[12] != UQ15One;
+
 			for (int y = 0; y < prc.Height; y++)
 			{
 				byte* ip = (byte*)pbBuffer + y * cbStride, ipe = ip + prc.Width * chan;
@@ -84,10 +82,16 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private void copyPixelsFixed(in PixelArea prc, int cbStride, IntPtr pbBuffer)
 		{
-			int chan = Format.ChannelCount;
-			bool alpha = chan == 4 && matrixFixed[12] != UQ15One;
+			int* pm = stackalloc[] {
+				Fix15(vec0.X), Fix15(vec0.Y), Fix15(vec0.Z), Fix15(vec0.W),
+				Fix15(vec1.X), Fix15(vec1.Y), Fix15(vec1.Z), Fix15(vec1.W),
+				Fix15(vec2.X), Fix15(vec2.Y), Fix15(vec2.Z), Fix15(vec2.W),
+				                                             Fix15(vec3.W)
+			};
 
-			fixed (int* pm = &matrixFixed[0])
+			int chan = Format.ChannelCount;
+			bool alpha = chan == 4 && pm[12] != UQ15One;
+
 			for (int y = 0; y < prc.Height; y++)
 			{
 				ushort* ip = (ushort*)((byte*)pbBuffer + y * cbStride), ipe = ip + prc.Width * chan;
@@ -219,10 +223,10 @@ namespace PhotoSauce.MagicScaler
 
 		void IPixelTransformInternal.Init(PipelineContext ctx)
 		{
-			if (ctx.Source.Format.Colorspace == PixelColorspace.LinearRgb)
+			if (ctx.Source.Format.Encoding == PixelValueEncoding.Linear)
 			{
 				if (ctx.Source.Format.NumericRepresentation == PixelNumericRepresentation.Float)
-					MagicTransforms.AddInternalFormatConverter(ctx, PixelColorspace.sRgb);
+					MagicTransforms.AddInternalFormatConverter(ctx, PixelValueEncoding.Companded);
 				else
 					MagicTransforms.AddExternalFormatConverter(ctx);
 			}

@@ -18,7 +18,7 @@ namespace PhotoSauce.MagicScaler
 			throw new NotSupportedException(nameof(T) + " must be float, ushort, or byte");
 		}
 
-		public static IConverter<T, T> GetConverter(int chanIn, int chanOut)
+		public static IConversionProcessor<T, T> GetConverter(int chanIn, int chanOut)
 		{
 			if (chanIn == 1 && chanOut == 3)
 				return Change1to3Chan.Instance;
@@ -36,13 +36,13 @@ namespace PhotoSauce.MagicScaler
 			throw new NotSupportedException("Unsupported pixel format");
 		}
 
-		private sealed class Change1to3Chan : IConverter<T, T>
+		private sealed class Change1to3Chan : IConversionProcessor<T, T>
 		{
 			public static Change1to3Chan Instance = new Change1to3Chan();
 
 			private Change1to3Chan() { }
 
-			unsafe void IConverter.ConvertLine(byte* ipstart, byte* opstart, int cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
 				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
 
@@ -59,13 +59,13 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private sealed class Change1to4Chan : IConverter<T, T>
+		private sealed class Change1to4Chan : IConversionProcessor<T, T>
 		{
 			public static Change1to4Chan Instance = new Change1to4Chan();
 
 			private Change1to4Chan() { }
 
-			unsafe void IConverter.ConvertLine(byte* ipstart, byte* opstart, int cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
 				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
 				var alpha = maxalpha;
@@ -84,13 +84,13 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private sealed class Change3to1Chan : IConverter<T, T>
+		private sealed class Change3to1Chan : IConversionProcessor<T, T>
 		{
 			public static Change3to1Chan Instance = new Change3to1Chan();
 
 			private Change3to1Chan() { }
 
-			unsafe void IConverter.ConvertLine(byte* ipstart, byte* opstart, int cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
 				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb) - 3, op = (T*)opstart;
 
@@ -104,13 +104,13 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private sealed class Change3to4Chan : IConverter<T, T>
+		private sealed class Change3to4Chan : IConversionProcessor<T, T>
 		{
 			public static Change3to4Chan Instance = new Change3to4Chan();
 
 			private Change3to4Chan() { }
 
-			unsafe void IConverter.ConvertLine(byte* ipstart, byte* opstart, int cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
 				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb) - 3, op = (T*)opstart;
 				var alpha = maxalpha;
@@ -128,13 +128,13 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private sealed class Change4to1Chan : IConverter<T, T>
+		private sealed class Change4to1Chan : IConversionProcessor<T, T>
 		{
 			public static Change4to1Chan Instance = new Change4to1Chan();
 
 			private Change4to1Chan() { }
 
-			unsafe void IConverter.ConvertLine(byte* ipstart, byte* opstart, int cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
 				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb) - 4, op = (T*)opstart;
 
@@ -148,13 +148,13 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private sealed class Change4to3Chan : IConverter<T, T>
+		private sealed class Change4to3Chan : IConversionProcessor<T, T>
 		{
 			public static Change4to3Chan Instance = new Change4to3Chan();
 
 			private Change4to3Chan() { }
 
-			unsafe void IConverter.ConvertLine(byte* ipstart, byte* opstart, int cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
 				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb) - 4, op = (T*)opstart;
 

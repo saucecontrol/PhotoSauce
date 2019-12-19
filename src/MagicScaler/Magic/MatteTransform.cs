@@ -12,7 +12,7 @@ namespace PhotoSauce.MagicScaler
 {
 	internal class MatteTransform : PixelSource
 	{
-		private readonly ushort matteB, matteG, matteR, matteA;
+		private readonly uint matteB, matteG, matteR, matteA;
 		private readonly uint matteValue32;
 		private readonly ulong matteValue64;
 		private readonly VectorF vmatte;
@@ -27,18 +27,17 @@ namespace PhotoSauce.MagicScaler
 				Format = PixelFormat.Bgrx128BppLinearFloat;
 
 			var igtq = LookupTables.SrgbInverseGammaUQ15;
-			var atq = LookupTables.AlphaUQ15;
 
-			matteB = igtq[color.B];
-			matteG = igtq[color.G];
-			matteR = igtq[color.R];
-			matteA = atq[color.A];
+			matteB =  igtq[color.B];
+			matteG =  igtq[color.G];
+			matteR =  igtq[color.R];
+			matteA = Fix15(color.A);
 
 			matteValue32 = (uint)color.ToArgb();
-			matteValue64 = ((ulong)matteA << 48) | ((ulong)UnFix15(matteR * matteA) << 32) | ((ulong)UnFix15(matteG * matteA) << 16) | (ushort)UnFix15(matteB * matteA);
+			matteValue64 = ((ulong)matteA << 48) | ((ulong)UnFix15(matteR * matteA) << 32) | ((ulong)UnFix15(matteG * matteA) << 16) | UnFix15(matteB * matteA);
 
-			var igtf = LookupTables.SrgbInverseGammaFloat;
-			var atf = LookupTables.AlphaFloat;
+			var igtf = LookupTables.SrgbInverseGamma;
+			var atf = LookupTables.Alpha;
 
 			float mr = igtf[color.R], mg = igtf[color.G], mb = igtf[color.B], maa = atf[color.A];
 
@@ -136,17 +135,17 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip < ipe)
 				{
-					int alpha = ip[3];
+					uint alpha = ip[3];
 					if (alpha == 0)
 					{
 						*(ulong*)ip = matteValue64;
 					}
 					else if (alpha < maxalpha)
 					{
-						int ia = alpha, ma = UnFix15(matteA * (UQ15One - ia));
-						int ib = ip[0];
-						int ig = ip[1];
-						int ir = ip[2];
+						uint ia = alpha, ma = UnFix15(matteA * (UQ15One - ia));
+						uint ib = ip[0];
+						uint ig = ip[1];
+						uint ir = ip[2];
 
 						ib += UnFix15(matteB * ma);
 						ig += UnFix15(matteG * ma);
@@ -166,13 +165,13 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe private void applyMatteCompanded(in PixelArea prc, byte* pixels, int stride)
 		{
-			const byte maxalpha = byte.MaxValue;
+			const uint maxalpha = byte.MaxValue;
 
-			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15[0], atstart = &LookupTables.AlphaUQ15[0])
+			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15[0])
 			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15[0])
 			{
 				byte* gt = gtstart;
-				ushort* igt = igtstart, at = atstart;
+				ushort* igt = igtstart;
 
 				for (int y = 0; y < prc.Height; y++)
 				{
@@ -181,25 +180,25 @@ namespace PhotoSauce.MagicScaler
 
 					while (ip < ipe)
 					{
-						int alpha = ip[3];
+						byte alpha = ip[3];
 						if (alpha == 0)
 						{
 							*(uint*)ip = matteValue32;
 						}
 						else if (alpha < maxalpha)
 						{
-							int ia =  at[alpha];
-							int ib = igt[ip[0]];
-							int ig = igt[ip[1]];
-							int ir = igt[ip[2]];
+							uint ia = Fix15(alpha);
+							uint ib = igt[(uint)ip[0]];
+							uint ig = igt[(uint)ip[1]];
+							uint ir = igt[(uint)ip[2]];
 
-							int ma = UnFix15(matteA * (UQ15One - ia));
+							uint ma = UnFix15(matteA * (UQ15One - ia));
 							ib = UnFix15(ib * ia + matteB * ma);
 							ig = UnFix15(ig * ia + matteG * ma);
 							ir = UnFix15(ir * ia + matteR * ma);
 							ia += ma;
 
-							int fa = (UQ15One << 15) / ia;
+							uint fa = UQ15One * UQ15One / ia;
 							ib = UnFix15(ib * fa);
 							ig = UnFix15(ig * fa);
 							ir = UnFix15(ir * fa);

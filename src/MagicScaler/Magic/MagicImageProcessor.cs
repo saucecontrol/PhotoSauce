@@ -210,6 +210,7 @@ namespace PhotoSauce.MagicScaler
 			else if (ctx.ImageFrame is IYccImageFrame planarFrame)
 			{
 				processPlanar = true;
+				outputPlanar = outputPlanar && planarFrame.RgbYccMatrix.IsRouglyEqualTo(YccMatrix.Rec601);
 				ctx.PlanarContext = new PipelineContext.PlanarPipelineContext(planarFrame.PixelSource.AsPixelSource(), planarFrame.PixelSourceCb.AsPixelSource(), planarFrame.PixelSourceCr.AsPixelSource());
 				ctx.Source = ctx.PlanarContext.SourceY;
 			}

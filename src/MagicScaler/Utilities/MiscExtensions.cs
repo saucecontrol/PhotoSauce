@@ -42,6 +42,10 @@ namespace PhotoSauce.MagicScaler
 
 		public static Orientation Invert(this Orientation o) => o == Orientation.Rotate270 ? Orientation.Rotate90 : o == Orientation.Rotate90 ? Orientation.Rotate270 : o;
 
+		public static bool IsSubsampledX(this ChromaSubsampleMode o) => IsSubsampledX((WICJpegYCrCbSubsamplingOption)o);
+
+		public static bool IsSubsampledY(this ChromaSubsampleMode o) => IsSubsampledY((WICJpegYCrCbSubsamplingOption)o);
+
 		public static bool IsSubsampledX(this WICJpegYCrCbSubsamplingOption o) => o == WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling420 || o == WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling422;
 
 		public static bool IsSubsampledY(this WICJpegYCrCbSubsamplingOption o) => o == WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling420 || o == WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling440;

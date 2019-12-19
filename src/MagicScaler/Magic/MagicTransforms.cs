@@ -69,25 +69,27 @@ namespace PhotoSauce.MagicScaler
 		};
 
 
-		public static void AddInternalFormatConverter(PipelineContext ctx, PixelColorspace pcs = PixelColorspace.Unspecified, bool allow96bppFloat = false)
+		public static void AddInternalFormatConverter(PipelineContext ctx, PixelValueEncoding enc = PixelValueEncoding.Unspecified, bool allow96bppFloat = false)
 		{
 			var ifmt = ctx.Source.Format.FormatGuid;
 			var ofmt = ifmt;
-			bool linear = pcs == PixelColorspace.Unspecified ? ctx.Settings.BlendingMode == GammaMode.Linear : pcs == PixelColorspace.LinearRgb;
+			bool linear = enc == PixelValueEncoding.Unspecified ? ctx.Settings.BlendingMode == GammaMode.Linear : enc == PixelValueEncoding.Linear;
 
-			if (allow96bppFloat && ifmt == Consts.GUID_WICPixelFormat24bppBGR)
+			if (allow96bppFloat && MagicImageProcessor.EnableSimd && ifmt == Consts.GUID_WICPixelFormat24bppBGR)
 				ofmt = linear ? PixelFormat.Bgr96BppLinearFloat.FormatGuid : PixelFormat.Bgr96BppFloat.FormatGuid;
 			else if (linear && (MagicImageProcessor.EnableSimd ? internalFormatMapLinearSimd : internalFormatMapLinear).TryGetValue(ifmt, out var ofmtl))
 				ofmt = ofmtl;
 			else if (MagicImageProcessor.EnableSimd && internalFormatMapSimd.TryGetValue(ifmt, out var ofmts))
 				ofmt = ofmts;
 
-			if (ofmt == ifmt)
+			bool videoLevels = ifmt == Consts.GUID_WICPixelFormat8bppY && ctx.ImageFrame is IYccImageFrame frame && !frame.IsFullRange;
+
+			if (ofmt == ifmt && !videoLevels)
 				return;
 
 			bool forceSrgb = (ofmt == PixelFormat.Y32BppLinearFloat.FormatGuid || ofmt == PixelFormat.Y16BppLinearUQ15.FormatGuid) && ctx.SourceColorProfile != ColorProfile.sRGB;
 
-			ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, forceSrgb ? ColorProfile.sRGB : ctx.SourceColorProfile, forceSrgb ? ColorProfile.sRGB : ctx.DestColorProfile, ofmt));
+			ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, forceSrgb ? ColorProfile.sRGB : ctx.SourceColorProfile, forceSrgb ? ColorProfile.sRGB : ctx.DestColorProfile, ofmt, videoLevels));
 		}
 
 		public static void AddExternalFormatConverter(PipelineContext ctx, bool allowPlanar = false)
@@ -143,13 +145,20 @@ namespace PhotoSauce.MagicScaler
 			if (interpolatorx.WeightingFunction.Support >= 0.1 || interpolatory.WeightingFunction.Support >= 0.1)
 				AddInternalFormatConverter(ctx, allow96bppFloat: true);
 
+			bool offsetX = false, offsetY = false;
+			if (ctx.ImageFrame is IYccImageFrame frame && ctx.PlanarContext != null && ctx.Source.Format.Encoding == PixelValueEncoding.Unspecified)
+			{
+				offsetX = frame.ChromaPosition.HasFlag(ChromaPosition.CositedHorizontal) && ctx.PlanarContext.ChromaSubsampling.IsSubsampledX();
+				offsetY = frame.ChromaPosition.HasFlag(ChromaPosition.CositedVertical) && ctx.PlanarContext.ChromaSubsampling.IsSubsampledY();
+			}
+
 			var fmt = ctx.Source.Format;
 			if (fmt.NumericRepresentation == PixelNumericRepresentation.Float)
-				ctx.Source = ctx.AddDispose(ConvolutionTransform<float, float>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory));
+				ctx.Source = ctx.AddDispose(ConvolutionTransform<float, float>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory, offsetX, offsetY));
 			else if (fmt.NumericRepresentation == PixelNumericRepresentation.Fixed)
-				ctx.Source = ctx.AddDispose(ConvolutionTransform<ushort, int>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory));
+				ctx.Source = ctx.AddDispose(ConvolutionTransform<ushort, int>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory, offsetX, offsetY));
 			else
-				ctx.Source = ctx.AddDispose(ConvolutionTransform<byte, int>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory));
+				ctx.Source = ctx.AddDispose(ConvolutionTransform<byte, int>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory, offsetX, offsetY));
 
 			ctx.Settings.Crop = ctx.Source.Area.ReOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
 		}
@@ -227,6 +236,8 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddColorProfileReader(PipelineContext ctx)
 		{
+			var fmt = ctx.ImageFrame is IYccImageFrame ? PixelFormat.FromGuid(PixelFormats.Bgr24bpp) : ctx.Source.Format;
+
 			if (ctx.ImageFrame is WicImageFrame wicFrame)
 			{
 				ctx.WicContext.SourceColorContext = wicFrame.ColorProfileSource.WicColorContext;
@@ -234,7 +245,6 @@ namespace PhotoSauce.MagicScaler
 			}
 			else
 			{
-				var fmt = ctx.Source.Format;
 				var profile = ColorProfile.Cache.GetOrAdd(ctx.ImageFrame.IccProfile);
 				if (profile.IsValid && profile.IsCompatibleWith(fmt) && !profile.IsSrgb)
 				{
@@ -249,8 +259,8 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			ctx.WicContext.DestColorContext = ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed ? WicColorProfile.GetDefaultFor(ctx.Source.Format).WicColorContext : ctx.WicContext.SourceColorContext;
-			ctx.DestColorProfile = ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed ? ColorProfile.GetDefaultFor(ctx.Source.Format) : ctx.SourceColorProfile;
+			ctx.WicContext.DestColorContext = ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed ? WicColorProfile.GetDefaultFor(fmt).WicColorContext : ctx.WicContext.SourceColorContext;
+			ctx.DestColorProfile = ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed ? ColorProfile.GetDefaultFor(fmt) : ctx.SourceColorProfile;
 		}
 
 		public static void AddColorspaceConverter(PipelineContext ctx)
@@ -266,7 +276,7 @@ namespace PhotoSauce.MagicScaler
 				return;
 			}
 
-			AddInternalFormatConverter(ctx, PixelColorspace.LinearRgb);
+			AddInternalFormatConverter(ctx, PixelValueEncoding.Linear);
 
 			if (ctx.Source.Format.ColorRepresentation == PixelColorRepresentation.Bgr && ctx.SourceColorProfile is MatrixProfile srcProf && ctx.DestColorProfile is MatrixProfile dstProf)
 			{
@@ -280,17 +290,24 @@ namespace PhotoSauce.MagicScaler
 		{
 			Debug.Assert(ctx.PlanarContext != null);
 
-			if (ctx.Source.Format.Colorspace == PixelColorspace.LinearRgb || ctx.PlanarContext.SourceCb.Format.NumericRepresentation != ctx.Source.Format.NumericRepresentation)
+			if (ctx.Source.Format.Encoding == PixelValueEncoding.Linear || ctx.PlanarContext.SourceCb.Format.NumericRepresentation != ctx.Source.Format.NumericRepresentation)
 			{
 				if (ctx.Source.Format.NumericRepresentation == PixelNumericRepresentation.Float && ctx.PlanarContext.SourceCb.Format.NumericRepresentation == ctx.Source.Format.NumericRepresentation)
-					AddInternalFormatConverter(ctx, PixelColorspace.sRgb);
+					AddInternalFormatConverter(ctx, PixelValueEncoding.Companded);
 				else
 					AddExternalFormatConverter(ctx, true);
 			}
 
-			var matrix = ctx.ImageFrame is IYccImageFrame frame ? frame.RgbYccMatrix : YccMatrix.Rec601;
+			var matrix = YccMatrix.Rec601;
+			bool videoLevels = false;
 
-			ctx.Source = ctx.AddDispose(new PlanarConversionTransform(ctx.Source, ctx.PlanarContext.SourceCb, ctx.PlanarContext.SourceCr, matrix));
+			if (ctx.ImageFrame is IYccImageFrame frame)
+			{
+				matrix = frame.RgbYccMatrix;
+				videoLevels = !frame.IsFullRange;
+			}
+
+			ctx.Source = ctx.AddDispose(new PlanarConversionTransform(ctx.Source, ctx.PlanarContext.SourceCb, ctx.PlanarContext.SourceCr, matrix, videoLevels));
 			ctx.PlanarContext = null;
 		}
 	}

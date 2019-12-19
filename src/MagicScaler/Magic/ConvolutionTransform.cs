@@ -60,11 +60,11 @@ namespace PhotoSauce.MagicScaler
 
 		private byte[]? lineBuff;
 
-		public static ConvolutionTransform<TPixel, TWeight> CreateResize(PixelSource src, int width, int height, InterpolationSettings interpolatorx, InterpolationSettings interpolatory)
+		public static ConvolutionTransform<TPixel, TWeight> CreateResize(PixelSource src, int width, int height, InterpolationSettings interpolatorx, InterpolationSettings interpolatory, bool offsetX, bool offsetY)
 		{
 			var fmt = src.Format;
-			var mx = KernelMap<TWeight>.MakeScaleMap(src.Width, width, interpolatorx, fmt.ChannelCount, typeof(TPixel) == typeof(float));
-			var my = KernelMap<TWeight>.MakeScaleMap(src.Height, height, interpolatory, fmt.ChannelCount == 3 ? 4 : fmt.ChannelCount, typeof(TPixel) == typeof(float));
+			var mx = KernelMap<TWeight>.MakeScaleMap(src.Width, width, interpolatorx, fmt.ChannelCount, offsetX, typeof(TPixel) == typeof(float));
+			var my = KernelMap<TWeight>.MakeScaleMap(src.Height, height, interpolatory, fmt.ChannelCount == 3 ? 4 : fmt.ChannelCount, offsetY, typeof(TPixel) == typeof(float));
 
 			return new ConvolutionTransform<TPixel, TWeight>(src, mx, my);
 		}
@@ -245,7 +245,7 @@ namespace PhotoSauce.MagicScaler
 			fixed (byte* bstart = bspan, wstart = wspan, tstart = tspan, blurstart = &blurBuff[0])
 			{
 				YProcessor.WriteDestLine(tstart, blurstart, ox, ow, pmapy, smapy);
-				processor.SharpenLine(bstart, wstart, blurstart, ostart, ox, ow, sharpenSettings.Amount, sharpenSettings.Threshold, Format.Colorspace == PixelColorspace.LinearRgb);
+				processor.SharpenLine(bstart, wstart, blurstart, ostart, ox, ow, sharpenSettings.Amount, sharpenSettings.Threshold, Format.Encoding == PixelValueEncoding.Linear);
 			}
 		}
 

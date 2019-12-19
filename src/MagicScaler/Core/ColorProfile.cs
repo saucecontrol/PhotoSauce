@@ -21,6 +21,14 @@ namespace PhotoSauce.MagicScaler
 		{
 			private static readonly ConcurrentDictionary<Guid, WeakReference<ColorProfile>> dic = new ConcurrentDictionary<Guid, WeakReference<ColorProfile>>();
 
+			private static ColorProfile addOrUpdate(Guid guid, ReadOnlySpan<byte> bytes)
+			{
+				var prof = Parse(bytes);
+				dic.AddOrUpdate(guid, (g) => new WeakReference<ColorProfile>(prof), (g, r) => { r.SetTarget(prof); return r; });
+
+				return prof;
+			}
+
 			public static ColorProfile GetOrAdd(ReadOnlySpan<byte> bytes)
 			{
 #if BUILTIN_SPAN
@@ -31,13 +39,7 @@ namespace PhotoSauce.MagicScaler
 #endif
 
 				var guid = new Guid(hash);
-				if (dic.TryGetValue(guid, out var wref) && wref.TryGetTarget(out var prof))
-					return prof;
-
-				prof = Parse(bytes);
-				dic.AddOrUpdate(guid, (g) => new WeakReference<ColorProfile>(prof), (g, r) => { r.SetTarget(prof); return r; });
-
-				return prof;
+				return (dic.TryGetValue(guid, out var wref) && wref.TryGetTarget(out var prof)) ? prof : addOrUpdate(guid, bytes);
 			}
 		}
 
@@ -105,7 +107,7 @@ namespace PhotoSauce.MagicScaler
 				0,           0,           0,           1
 			);
 			var im = m.InvertPrecise();
-			var curve = new ProfileCurve(LookupTables.SrgbGammaFloat, LookupTables.SrgbInverseGammaFloat);
+			var curve = new ProfileCurve(LookupTables.SrgbGamma, LookupTables.SrgbInverseGamma);
 
 			return new MatrixProfile(IccProfiles.sRgbV4.Value, m, im, curve, ProfileColorSpace.Rgb, ProfileColorSpace.Xyz);
 		});
@@ -166,7 +168,7 @@ namespace PhotoSauce.MagicScaler
 				igt[i] = (float)Lerp(curve[idx], curve[idx + 1], pos - idx);
 			}
 
-			if (lutInvertsTo(igt, LookupTables.SrgbGammaFloat))
+			if (lutInvertsTo(igt, LookupTables.SrgbGamma))
 				return sRGB.Curve;
 
 			if (inverse)
@@ -582,46 +584,75 @@ namespace PhotoSauce.MagicScaler
 
 		public class ProfileCurve
 		{
-			public float[] GammaFloat { get; }
-			public byte[] GammaUQ15 { get; }
-			public float[] InverseGammaFloat { get; }
-			public ushort[] InverseGammaUQ15 { get; }
+			public float[] Gamma { get; }
+			public float[] InverseGamma { get; }
 
 			public ProfileCurve(float[] gamma, float[] inverseGamma)
 			{
-				GammaFloat = gamma;
-				GammaUQ15 = gamma == null ? null! : gamma == LookupTables.SrgbGammaFloat ? LookupTables.SrgbGammaUQ15 : LookupTables.MakeUQ15Gamma(gamma);
-				InverseGammaFloat = inverseGamma;
-				InverseGammaUQ15 = gamma == LookupTables.SrgbGammaFloat ? LookupTables.SrgbInverseGammaUQ15 : LookupTables.MakeUQ15InverseGamma(inverseGamma);
+				Gamma = gamma;
+				InverseGamma = inverseGamma;
 			}
 		}
 	}
 
 	internal class CurveProfile : ColorProfile
 	{
+		private readonly ConcurrentDictionary<(Type, Type, ConverterDirection, bool), IConverter> converterCache = new ConcurrentDictionary<(Type, Type, ConverterDirection, bool), IConverter>();
+
 		public bool IsLinear { get; }
 		public ProfileCurve Curve { get; }
-
-		public ConverterFromLinear<ushort, byte> ConverterUQ15ToByte { get; }
-		public ConverterFromLinear<float, byte> ConverterFloatToByte { get; }
-		public ConverterFromLinear<float, float> ConverterFloatLinearToFloat { get; }
-
-		public ConverterToLinear<byte, ushort> ConverterByteToUQ15 { get; }
-		public ConverterToLinear<byte, float> ConverterByteToFloat { get; }
-		public ConverterToLinear<float, float> ConverterFloatToFloatLinear { get; }
 
 		public CurveProfile(byte[] bytes, ProfileCurve? curve, ProfileColorSpace dataSpace, ProfileColorSpace pcsSpace) : base(bytes, dataSpace, pcsSpace, ColorProfileType.Curve)
 		{
 			IsLinear = curve is null;
-			Curve = curve ?? new ProfileCurve(null!, LookupTables.AlphaFloat);
+			Curve = curve ?? new ProfileCurve(null!, LookupTables.Alpha);
+		}
 
-			ConverterUQ15ToByte = new ConverterFromLinear<ushort, byte>(Curve.GammaUQ15);
-			ConverterFloatToByte = new ConverterFromLinear<float, byte>(Curve.GammaUQ15);
-			ConverterFloatLinearToFloat = new ConverterFromLinear<float, float>(Curve.GammaFloat);
+		private IConverter addConverter((Type tfrom, Type tto, ConverterDirection direction, bool videoLevels) cacheKey) => converterCache.GetOrAdd(cacheKey, _ => {
+			if (IsLinear)
+			{
+				if (cacheKey.tfrom == typeof(float) && cacheKey.tto == typeof(float))
+					return NoopConverter.Instance;
+				if (cacheKey.tfrom == typeof(byte) && cacheKey.tto == typeof(float))
+					return cacheKey.videoLevels ? FloatConverter.Widening.InstanceVideoRange : FloatConverter.Widening.InstanceFullRange;
+				if (cacheKey.tfrom == typeof(float) && cacheKey.tto == typeof(byte))
+					return FloatConverter.Narrowing.Instance;
+				if (cacheKey.tfrom == typeof(ushort) && cacheKey.tto == typeof(byte))
+					return UQ15Converter.Instance;
+			}
 
-			ConverterByteToUQ15 = new ConverterToLinear<byte, ushort>(Curve.InverseGammaUQ15);
-			ConverterByteToFloat = new ConverterToLinear<byte, float>(Curve.InverseGammaFloat);
-			ConverterFloatToFloatLinear = new ConverterToLinear<float, float>(Curve.InverseGammaFloat);
+			if (cacheKey.direction == ConverterDirection.FromLinear)
+			{
+				var gt = Curve.Gamma;
+
+				if (cacheKey.tfrom == typeof(float) && cacheKey.tto == typeof(float))
+					return new ConverterFromLinear<float, float>(gt);
+				if (cacheKey.tfrom == typeof(ushort) && cacheKey.tto == typeof(byte))
+					return new ConverterFromLinear<ushort, byte>(gt == LookupTables.SrgbGamma ? LookupTables.SrgbGammaUQ15 : LookupTables.MakeUQ15Gamma(gt));
+				if (cacheKey.tfrom == typeof(float) && cacheKey.tto == typeof(byte))
+					return new ConverterFromLinear<float, byte>(gt == LookupTables.SrgbGamma ? LookupTables.SrgbGammaUQ15 : LookupTables.MakeUQ15Gamma(gt));
+			}
+
+			if (cacheKey.direction == ConverterDirection.ToLinear)
+			{
+				var igt = Curve.InverseGamma;
+
+				if (cacheKey.tfrom == typeof(float) && cacheKey.tto == typeof(float))
+					return new ConverterToLinear<float, float>(igt);
+				if (cacheKey.tfrom == typeof(byte) && cacheKey.tto == typeof(float))
+					return new ConverterToLinear<byte, float>(cacheKey.videoLevels ? LookupTables.MakeVideoInverseGamma(igt) : igt);
+				if (cacheKey.tfrom == typeof(byte) && cacheKey.tto == typeof(ushort))
+					return new ConverterToLinear<byte, ushort>(LookupTables.MakeUQ15InverseGamma(cacheKey.videoLevels ? LookupTables.MakeVideoInverseGamma(igt) : igt));
+			}
+
+			throw new ArgumentException("Invalid Type combination", nameof(cacheKey));
+		});
+
+		public IConverter<TFrom, TTo> GetConverter<TFrom, TTo>(ConverterDirection direction, bool videoRange = false) where TFrom : unmanaged where TTo : unmanaged
+		{
+			var cacheKey = (typeof(TFrom), typeof(TTo), direction, videoRange);
+
+			return (IConverter<TFrom, TTo>)(converterCache.TryGetValue(cacheKey, out var converter) ? converter : addConverter(cacheKey));
 		}
 	}
 

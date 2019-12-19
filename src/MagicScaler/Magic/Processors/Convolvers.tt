@@ -248,7 +248,7 @@ if (t.xUnroll > 1) {
 #>
 				if (aw != 0)
 				{
-					int wf = aw == UQ15One ? UQ15One : ((UQ15One << 15) / (UQ15One - aw));
+					int wf = aw == UQ15One ? UQ15One : ((UQ15One * UQ15One) / (UQ15One - aw));
 <#
 		for (int j = 0; j < t.channels - 1; j++) {
 #>
@@ -404,7 +404,7 @@ if (t.alpha)
 				}
 				else if (aw != 0)
 				{
-					int wf = aw == UQ15One ? UQ15One : ((UQ15One << 15) / (UQ15One - aw));
+					int wf = aw == UQ15One ? UQ15One : ((UQ15One * UQ15One) / (UQ15One - aw));
 <#
 		for (int j = 0; j < t.channels - 1; j++) {
 #>
@@ -441,7 +441,7 @@ if (t.sharpen) {
 <#
 if (t.pixelType == "ushort") {
 #>
-			fixed (byte* gtstart = &LookupTables.SrgbGamma[0])
+			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15[0])
 			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15[0])
 			{
 <#
@@ -476,7 +476,7 @@ WriteLine(null);
 if (t.pixelType == "ushort") {
 	for (int j = 0; j < t.channels - (t.alpha || t.channels == 4 ? 1 : 0); j++) {
 #>
-					c<#= j #> = gt[ClampToUQ15One(c<#= j #>)];
+					c<#= j #> = gt[(uint)ClampToUQ15One((uint)c<#= j #>)];
 <#
 	}
 	WriteLine(null);
@@ -486,7 +486,7 @@ if (t.pixelType == "ushort") {
 <#
 for (int j = 0; j < t.channels - (t.alpha || t.channels == 4 ? 1 : 0); j++) {
 #>
-					op[<#= j #>] = <#= t.pixelType == "ushort" ? "igt[" : "" #>ClampToByte(c<#= j #> + dif)<#= t.pixelType == "ushort" ? "]" : "" #>;
+					op[<#= j #>] = <#= t.pixelType == "ushort" ? "igt[(uint)" : "" #>ClampToByte(c<#= j #> + dif)<#= t.pixelType == "ushort" ? "]" : "" #>;
 <#
 }
 if (t.alpha || t.channels == 4) {

@@ -143,7 +143,7 @@ namespace PhotoSauce.MagicScaler
 
 				if (aw != 0)
 				{
-					int wf = aw == UQ15One ? UQ15One : ((UQ15One << 15) / (UQ15One - aw));
+					int wf = aw == UQ15One ? UQ15One : ((UQ15One * UQ15One) / (UQ15One - aw));
 					a0 = UnFix15(a0) * wf;
 					a1 = UnFix15(a1) * wf;
 					a2 = UnFix15(a2) * wf;
@@ -243,7 +243,7 @@ namespace PhotoSauce.MagicScaler
 				}
 				else if (aw != 0)
 				{
-					int wf = aw == UQ15One ? UQ15One : ((UQ15One << 15) / (UQ15One - aw));
+					int wf = aw == UQ15One ? UQ15One : ((UQ15One * UQ15One) / (UQ15One - aw));
 					a0 = UnFix15(a0) * wf;
 					a1 = UnFix15(a1) * wf;
 					a2 = UnFix15(a2) * wf;
@@ -603,14 +603,14 @@ namespace PhotoSauce.MagicScaler
 					ushort c0 = ip[0], c1 = ip[1], c2 = ip[2], c3 = ip[3];
 					if (threshold == 0 || Math.Abs(dif) > threshold)
 					{
-						c0 = gt[ClampToUQ15One(c0)];
-						c1 = gt[ClampToUQ15One(c1)];
-						c2 = gt[ClampToUQ15One(c2)];
+						c0 = gt[(uint)ClampToUQ15One((uint)c0)];
+						c1 = gt[(uint)ClampToUQ15One((uint)c1)];
+						c2 = gt[(uint)ClampToUQ15One((uint)c2)];
 
 						dif = UnFix15(dif * iamt);
-						op[0] = igt[ClampToByte(c0 + dif)];
-						op[1] = igt[ClampToByte(c1 + dif)];
-						op[2] = igt[ClampToByte(c2 + dif)];
+						op[0] = igt[(uint)ClampToByte(c0 + dif)];
+						op[1] = igt[(uint)ClampToByte(c1 + dif)];
+						op[2] = igt[(uint)ClampToByte(c2 + dif)];
 						op[3] = c3;
 					}
 					else
@@ -926,14 +926,14 @@ namespace PhotoSauce.MagicScaler
 					ushort c0 = ip[0], c1 = ip[1], c2 = ip[2];
 					if (threshold == 0 || Math.Abs(dif) > threshold)
 					{
-						c0 = gt[ClampToUQ15One(c0)];
-						c1 = gt[ClampToUQ15One(c1)];
-						c2 = gt[ClampToUQ15One(c2)];
+						c0 = gt[(uint)ClampToUQ15One((uint)c0)];
+						c1 = gt[(uint)ClampToUQ15One((uint)c1)];
+						c2 = gt[(uint)ClampToUQ15One((uint)c2)];
 
 						dif = UnFix15(dif * iamt);
-						op[0] = igt[ClampToByte(c0 + dif)];
-						op[1] = igt[ClampToByte(c1 + dif)];
-						op[2] = igt[ClampToByte(c2 + dif)];
+						op[0] = igt[(uint)ClampToByte(c0 + dif)];
+						op[1] = igt[(uint)ClampToByte(c1 + dif)];
+						op[2] = igt[(uint)ClampToByte(c2 + dif)];
 					}
 					else
 					{
@@ -1177,10 +1177,10 @@ namespace PhotoSauce.MagicScaler
 					ushort c0 = ip[0];
 					if (threshold == 0 || Math.Abs(dif) > threshold)
 					{
-						c0 = gt[ClampToUQ15One(c0)];
+						c0 = gt[(uint)ClampToUQ15One((uint)c0)];
 
 						dif = UnFix15(dif * iamt);
-						op[0] = igt[ClampToByte(c0 + dif)];
+						op[0] = igt[(uint)ClampToByte(c0 + dif)];
 					}
 					else
 					{

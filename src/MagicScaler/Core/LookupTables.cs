@@ -16,22 +16,15 @@ namespace PhotoSauce.MagicScaler
 		public const int GammaLengthFloat = GammaScaleFloat + 2;
 		public const int InverseGammaLength = InverseGammaScale + 2;
 
-		private static readonly Lazy<Tuple<float[], ushort[]>> alphaTable = new Lazy<Tuple<float[], ushort[]>>(() => {
-			var atf = new float[InverseGammaLength];
-			var atq = new ushort[InverseGammaLength];
+		private static readonly Lazy<float[]> alphaTable = new Lazy<float[]>(() => {
+			var at = new float[InverseGammaLength];
 
-			for (int i = 0; i < atf.Length; i++)
-			{
-				double d = (double)i / byte.MaxValue;
+			for (int i = 0; i < at.Length; i++)
+				at[i] = (float)((double)i / byte.MaxValue);
 
-				atf[i] = (float)d;
-				atq[i] = FixToUQ15One(d);
-			}
+			Fixup(at, InverseGammaScale);
 
-			Fixup(atf, InverseGammaScale);
-			Fixup(atq, InverseGammaScale);
-
-			return Tuple.Create(atf, atq);
+			return at;
 		});
 
 		//http://www.w3.org/Graphics/Color/srgb
@@ -76,11 +69,10 @@ namespace PhotoSauce.MagicScaler
 			return Tuple.Create(igtf, igtq);
 		});
 
-		public static float[] AlphaFloat => alphaTable.Value.Item1;
-		public static ushort[] AlphaUQ15 => alphaTable.Value.Item2;
-		public static float[] SrgbGammaFloat => gammaTable.Value.Item1;
+		public static float[] Alpha => alphaTable.Value;
+		public static float[] SrgbGamma => gammaTable.Value.Item1;
 		public static byte[] SrgbGammaUQ15 => gammaTable.Value.Item2;
-		public static float[] SrgbInverseGammaFloat => inverseGammaTable.Value.Item1;
+		public static float[] SrgbInverseGamma => inverseGammaTable.Value.Item1;
 		public static ushort[] SrgbInverseGammaUQ15 => inverseGammaTable.Value.Item2;
 
 		public static void Fixup<T>(T[] t, int maxValid)
@@ -111,6 +103,9 @@ namespace PhotoSauce.MagicScaler
 
 		public static ushort[] MakeUQ15InverseGamma(float[] igt)
 		{
+			if (igt == SrgbInverseGamma)
+				return SrgbInverseGammaUQ15;
+
 			var igtq = new ushort[InverseGammaLength];
 
 			for (int i = 0; i < igtq.Length; i++)
@@ -119,6 +114,26 @@ namespace PhotoSauce.MagicScaler
 			Fixup(igtq, InverseGammaScale);
 
 			return igtq;
+		}
+
+		public static float[] MakeVideoInverseGamma(float[] igt)
+		{
+			var igtv = new float[InverseGammaLength];
+
+			for (int i = 0; i < igtv.Length; i++)
+			{
+				double val = (i.Clamp(VideoLumaMin, VideoLumaMax) - VideoLumaMin) / (double)VideoLumaScale;
+				double pos = val * InverseGammaScale;
+
+				int idx = (int)pos;
+				val = Lerp(igt[idx], igt[idx + 1], pos - idx);
+
+				igtv[i] = (float)val;
+			}
+
+			Fixup(igtv, InverseGammaScale);
+
+			return igtv;
 		}
 	}
 }

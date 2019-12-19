@@ -2,6 +2,8 @@
 using System.Linq;
 using System.Collections.Generic;
 
+using PhotoSauce.Interop.Wic;
+
 namespace PhotoSauce.MagicScaler
 {
 	internal class PipelineContext : IDisposable
@@ -11,12 +13,23 @@ namespace PhotoSauce.MagicScaler
 			public PixelSource SourceY;
 			public PixelSource SourceCb;
 			public PixelSource SourceCr;
+			public ChromaSubsampleMode ChromaSubsampling;
 
 			public PlanarPipelineContext(PixelSource sourceY, PixelSource sourceCb, PixelSource sourceCr)
 			{
+				if (sourceY.Format.FormatGuid != Consts.GUID_WICPixelFormat8bppY) throw new ArgumentException("Invalid pixel format", nameof(sourceY));
+				if (sourceCb.Format.FormatGuid != Consts.GUID_WICPixelFormat8bppCb) throw new ArgumentException("Invalid pixel format", nameof(sourceCb));
+				if (sourceCr.Format.FormatGuid != Consts.GUID_WICPixelFormat8bppCr) throw new ArgumentException("Invalid pixel format", nameof(sourceCr));
+
 				SourceY = sourceY;
 				SourceCb = sourceCb;
 				SourceCr = sourceCr;
+
+				ChromaSubsampling =
+					sourceCb.Width < sourceY.Width && sourceCb.Height < sourceY.Height ? ChromaSubsampleMode.Subsample420 :
+					sourceCb.Width < sourceY.Width ? ChromaSubsampleMode.Subsample422 :
+					sourceCb.Height < sourceY.Height ? (ChromaSubsampleMode)4 : // 4:4:0
+					ChromaSubsampleMode.Subsample444;
 			}
 		}
 

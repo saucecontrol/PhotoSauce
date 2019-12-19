@@ -50,8 +50,8 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>Coefficients for converting R'G'B' to <a href="https://en.wikipedia.org/wiki/Rec._2020">Rec. 2020</a> Y'CbCr. Kr = 0.2627, Kb = 0.0593.</summary>
 		public static readonly Matrix4x4 Rec2020 = createYccMatrix(0.2627, 0.0593);
 
-		/// <summary>Coefficients for converting R'G'B' to <a href="https://en.wikipedia.org/wiki/Luma_(video)">SMPTE 240M</a> (NTSC) Y'CbCr. Kr = 0.212, Kb = 0.087.</summary>
-		public static readonly Matrix4x4 Smpte240M = createYccMatrix(0.212, 0.087);
+		/// <summary>Coefficients for converting R'G'B' to <a href="https://en.wikipedia.org/wiki/Luma_(video)">SMPTE 240M</a> (NTSC) Y'CbCr. Kr = 0.2122, Kb = 0.0865.</summary>
+		public static readonly Matrix4x4 Smpte240M = createYccMatrix(0.2122, 0.0865);
 
 		private static Matrix4x4 createYccMatrix(double kr, double kb)
 		{

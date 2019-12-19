@@ -19,9 +19,9 @@ namespace PhotoSauce.MagicScaler
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte FromBgr(byte b, byte g, byte r)
 		{
-			const int rY = (ushort)(R * DoubleScale + DoubleRound);
-			const int gY = (ushort)(G * DoubleScale + DoubleRound);
-			const int bY = (ushort)(B * DoubleScale + DoubleRound);
+			const uint rY = (ushort)(R * UQ15One + 0.5);
+			const uint gY = (ushort)(G * UQ15One + 0.5);
+			const uint bY = (ushort)(B * UQ15One + 0.5);
 
 			return UnFix15ToByte(r * rY + g * gY + b * bY);
 		}
@@ -37,9 +37,9 @@ namespace PhotoSauce.MagicScaler
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ushort FromBgr(ushort b, ushort g, ushort r)
 		{
-			const int rY = (ushort)(R * DoubleScale + DoubleRound);
-			const int gY = (ushort)(G * DoubleScale + DoubleRound);
-			const int bY = (ushort)(B * DoubleScale + DoubleRound);
+			const uint rY = (ushort)(R * UQ15One + 0.5);
+			const uint gY = (ushort)(G * UQ15One + 0.5);
+			const uint bY = (ushort)(B * UQ15One + 0.5);
 
 			return UnFixToUQ15One(r * rY + g * gY + b * bY);
 		}
@@ -179,7 +179,7 @@ namespace PhotoSauce.MagicScaler
 				byte* gt = gtstart;
 
 				while (ip < ipe)
-					*op++ = gt[ClampToUQ15One(*ip++)];
+					*op++ = gt[(uint)ClampToUQ15One((uint)*ip++)];
 			}
 		}
 
