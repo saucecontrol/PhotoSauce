@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
@@ -21,7 +22,8 @@ namespace PhotoSauce.MagicScaler
 		private readonly PlanarCachePixelSource sourceY, sourceCb, sourceCr;
 		private readonly PixelBuffer buffY, buffCb, buffCr;
 		private readonly WICRect scaledCrop;
-		private readonly WICBitmapPlane[] sourcePlanes;
+
+		private WICBitmapPlane[] sourcePlanes;
 
 		public WicPlanarCache(IWICPlanarBitmapSourceTransform source, ReadOnlySpan<WICBitmapPlaneDescription> desc, WICBitmapTransformOptions transformOptions, uint width, uint height, in PixelArea crop)
 		{
@@ -67,11 +69,10 @@ namespace PhotoSauce.MagicScaler
 			sourceCb = new PlanarCachePixelSource(this, WicPlane.Cb, descCb);
 			sourceCr = new PlanarCachePixelSource(this, WicPlane.Cr, descCr);
 
-			sourcePlanes = new[] {
-				new WICBitmapPlane { Format = descY.Format, cbStride = (uint)strideY },
-				new WICBitmapPlane { Format = descCb.Format, cbStride = (uint)strideC },
-				new WICBitmapPlane { Format = descCr.Format, cbStride = (uint)strideC }
-			};
+			sourcePlanes = ArrayPool<WICBitmapPlane>.Shared.Rent(WicTransforms.PlanarPixelFormats.Length);
+			sourcePlanes[0] = new WICBitmapPlane { Format = descY.Format, cbStride = (uint)strideY };
+			sourcePlanes[1] = new WICBitmapPlane { Format = descCb.Format, cbStride = (uint)strideC };
+			sourcePlanes[2] = new WICBitmapPlane { Format = descCr.Format, cbStride = (uint)strideC };
 		}
 
 		public PixelSource SourceY => sourceY;
@@ -129,12 +130,15 @@ namespace PhotoSauce.MagicScaler
 				sourcePlanes[1].cbBufferSize = (uint)spanCb.Length;
 				sourcePlanes[2].cbBufferSize = (uint)spanCr.Length;
 
-				sourceTransform.CopyPixels(sourceRect, scaledWidth, scaledHeight, sourceTransformOptions, WICPlanarOptions.WICPlanarOptionsDefault, sourcePlanes, (uint)sourcePlanes.Length);
+				sourceTransform.CopyPixels(sourceRect, scaledWidth, scaledHeight, sourceTransformOptions, WICPlanarOptions.WICPlanarOptionsDefault, sourcePlanes, (uint)WicTransforms.PlanarPixelFormats.Length);
 			}
 		}
 
 		public void Dispose()
 		{
+			ArrayPool<WICBitmapPlane>.Shared.Return(sourcePlanes ?? Array.Empty<WICBitmapPlane>());
+			sourcePlanes = null!;
+
 			buffY.Dispose();
 			buffCb.Dispose();
 			buffCr.Dispose();

@@ -51,11 +51,11 @@ namespace PhotoSauce.Interop.Wic
 		{
 			value = null;
 
-			int hr = ProxyFunctions.GetMetadataByName(meta, name, null);
+			int hr = ProxyFunctions.GetMetadataByName(meta, name, IntPtr.Zero);
 			if (hr >= 0)
 			{
 				value = new PropVariant();
-				hr = ProxyFunctions.GetMetadataByName(meta, name, value);
+				meta.GetMetadataByName(name, value);
 			}
 
 			return hr >= 0;

@@ -60,32 +60,22 @@ namespace PhotoSauce.Interop.Wic
 		{
 			var buff = ArrayPool<byte>.Shared.Rent(buffer.Length);
 
-			try
-			{
-				int cb = stream.Read(buff, 0, buffer.Length);
-				buff.AsSpan(0, cb).CopyTo(buffer);
+			int cb = stream.Read(buff, 0, buffer.Length);
+			buff.AsSpan(0, cb).CopyTo(buffer);
 
-				return cb;
-			}
-			finally
-			{
-				ArrayPool<byte>.Shared.Return(buff);
-			}
+			ArrayPool<byte>.Shared.Return(buff);
+
+			return cb;
 		}
 
 		public static void Write(this Stream stream, ReadOnlySpan<byte> buffer)
 		{
 			var buff = ArrayPool<byte>.Shared.Rent(buffer.Length);
 
-			try
-			{
-				buffer.CopyTo(buff);
-				stream.Write(buff, 0, buffer.Length);
-			}
-			finally
-			{
-				ArrayPool<byte>.Shared.Return(buff);
-			}
+			buffer.CopyTo(buff);
+			stream.Write(buff, 0, buffer.Length);
+
+			ArrayPool<byte>.Shared.Return(buff);
 		}
 #endif
 	}

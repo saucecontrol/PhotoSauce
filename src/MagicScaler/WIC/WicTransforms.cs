@@ -121,12 +121,21 @@ namespace PhotoSauce.MagicScaler
 			if (ccc == 0)
 				return WicColorProfile.GetDefaultFor(fmt);
 
-			var profiles = new IWICColorContext[ccc];
-			for (int i = 0; i < ccc; i++)
+			var profiles = ArrayPool<IWICColorContext>.Shared.Rent((int)ccc);
+
+			for (int i = 0; i < (int)ccc; i++)
 				profiles[i] = comHandles.AddRef(Wic.Factory.CreateColorContext());
 
 			WicFrame.GetColorContexts(ccc, profiles);
+			var match = matchProfile(profiles.AsSpan(0, (int)ccc), fmt);
 
+			ArrayPool<IWICColorContext>.Shared.Return(profiles);
+
+			return match ?? WicColorProfile.GetDefaultFor(fmt);
+		}
+
+		private WicColorProfile? matchProfile(ReadOnlySpan<IWICColorContext> profiles, PixelFormat fmt)
+		{
 			foreach (var cc in profiles)
 			{
 				var cct = cc.GetType();
@@ -139,6 +148,7 @@ namespace PhotoSauce.MagicScaler
 						continue;
 
 					var buff = ArrayPool<byte>.Shared.Rent((int)cb);
+
 					cc.GetProfileBytes(cb, buff);
 					var cpi = ColorProfile.Cache.GetOrAdd(new ReadOnlySpan<byte>(buff, 0, (int)cb));
 
@@ -163,7 +173,7 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			return WicColorProfile.GetDefaultFor(fmt);
+			return null;
 		}
 	}
 

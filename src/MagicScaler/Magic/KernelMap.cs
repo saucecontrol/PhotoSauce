@@ -9,6 +9,12 @@ namespace PhotoSauce.MagicScaler
 {
 	internal class KernelMap<T> : IDisposable where T : unmanaged
 	{
+		private static readonly GaussianInterpolator blur_0_50 = new GaussianInterpolator(0.50);
+		private static readonly GaussianInterpolator blur_0_60 = new GaussianInterpolator(0.60);
+		private static readonly GaussianInterpolator blur_0_75 = new GaussianInterpolator(0.75);
+		private static readonly GaussianInterpolator blur_1_00 = new GaussianInterpolator(1.00);
+		private static readonly GaussianInterpolator blur_1_50 = new GaussianInterpolator(1.50);
+
 		private readonly int mapLen;
 		private byte[] map;
 
@@ -173,7 +179,14 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe public static KernelMap<T> MakeBlurMap(int size, double radius, int ichannels, bool vectored)
 		{
-			var interpolator = new GaussianInterpolator(radius);
+			var interpolator = radius switch {
+				0.50 => blur_0_50,
+				0.60 => blur_0_60,
+				0.75 => blur_0_75,
+				1.00 => blur_1_00,
+				1.50 => blur_1_50,
+				_    => new GaussianInterpolator(radius)
+			};
 
 			int channels = vectored ? ichannels : 1;
 			int dist = (int)Math.Ceiling(interpolator.Support);
