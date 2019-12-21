@@ -181,18 +181,6 @@ namespace PhotoSauce.MagicScaler
 	{
 		public static readonly Guid[] PlanarPixelFormats = new[] { Consts.GUID_WICPixelFormat8bppY, Consts.GUID_WICPixelFormat8bppCb, Consts.GUID_WICPixelFormat8bppCr };
 
-		public static void AddConditionalCache(PipelineContext ctx)
-		{
-			if (!ctx.Orientation.RequiresCache())
-				return;
-
-			var crop = ctx.Settings.Crop;
-			var bmp = ctx.WicContext.AddRef(Wic.Factory.CreateBitmapFromSourceRect(ctx.Source.WicSource, (uint)crop.X, (uint)crop.Y, (uint)crop.Width, (uint)crop.Height));
-
-			ctx.Source = bmp.AsPixelSource(nameof(IWICBitmap));
-			ctx.Settings.Crop = ctx.Source.Area.ToGdiRect();
-		}
-
 		public static void AddColorProfileReader(PipelineContext ctx)
 		{
 			if (!(ctx.ImageFrame is WicImageFrame wicFrame))
@@ -293,8 +281,16 @@ namespace PhotoSauce.MagicScaler
 			rotator.Initialize(ctx.Source.WicSource, ctx.Orientation.ToWicTransformOptions());
 
 			ctx.Source = rotator.AsPixelSource(nameof(IWICBitmapFlipRotator));
-			AddConditionalCache(ctx);
 			ctx.Orientation = Orientation.Normal;
+
+			if (ctx.Orientation.RequiresCache())
+			{
+				var crop = ctx.Settings.Crop;
+				var bmp = ctx.WicContext.AddRef(Wic.Factory.CreateBitmapFromSourceRect(ctx.Source.WicSource, (uint)crop.X, (uint)crop.Y, (uint)crop.Width, (uint)crop.Height));
+
+				ctx.Source = bmp.AsPixelSource(nameof(IWICBitmap));
+				ctx.Settings.Crop = ctx.Source.Area.ToGdiRect();
+			}
 		}
 
 		public static void AddCropper(PipelineContext ctx)
@@ -307,6 +303,7 @@ namespace PhotoSauce.MagicScaler
 			cropper.Initialize(ctx.Source.WicSource, crop.ToWicRect());
 
 			ctx.Source = cropper.AsPixelSource(nameof(IWICBitmapClipper));
+			ctx.Settings.Crop = ctx.Source.Area.ToGdiRect();
 		}
 
 		public static void AddScaler(PipelineContext ctx, bool hybrid = false)
@@ -315,16 +312,17 @@ namespace PhotoSauce.MagicScaler
 			var srect = ctx.Settings.InnerRect;
 
 			int width = swap ? srect.Height : srect.Width, height = swap? srect.Width : srect.Height;
-			int ratio = ctx.Settings.HybridScaleRatio;
-
-			if ((ctx.Source.Width == width && ctx.Source.Height == height) || (hybrid && ratio == 1))
+			if (ctx.Source.Width == width && ctx.Source.Height == height)
 				return;
 
 			if (hybrid)
 			{
+				int ratio = ctx.Settings.HybridScaleRatio;
+				if (ratio == 1 || ctx.Settings.Interpolation.WeightingFunction.Support < 0.1)
+					return;
+
 				width = MathUtil.DivCeiling(ctx.Source.Width, ratio);
 				height = MathUtil.DivCeiling(ctx.Source.Height, ratio);
-				ctx.Settings.HybridMode = HybridScaleMode.Off;
 			}
 
 			var mode = hybrid ? WICBitmapInterpolationMode.WICBitmapInterpolationModeFant :
@@ -340,8 +338,9 @@ namespace PhotoSauce.MagicScaler
 			var scaler = ctx.WicContext.AddRef(Wic.Factory.CreateBitmapScaler());
 			scaler.Initialize(ctx.Source.WicSource, (uint)width, (uint)height, mode);
 
-			ctx.Source = scaler.AsPixelSource(nameof(IWICBitmapScaler));
+			ctx.Source = scaler.AsPixelSource(nameof(IWICBitmapScaler) + (hybrid ? " (hybrid)" : null));
 			ctx.Settings.Crop = ctx.Source.Area.ReOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
+			ctx.Settings.HybridMode = HybridScaleMode.Off;
 		}
 
 		public static void AddNativeScaler(PipelineContext ctx)
@@ -386,6 +385,7 @@ namespace PhotoSauce.MagicScaler
 			ctx.PlanarContext = new PipelineContext.PlanarPipelineContext(cache.SourceY, cache.SourceCb, cache.SourceCr);
 			ctx.Source = ctx.PlanarContext.SourceY;
 			ctx.Settings.Crop = ctx.Source.Area.ReOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
+			ctx.Settings.HybridMode = HybridScaleMode.Off;
 		}
 
 		public static void AddPlanarConverter(PipelineContext ctx)

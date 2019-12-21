@@ -43,10 +43,10 @@ namespace PhotoSauce.MagicScaler
 			ctx.Source = frame.Source;
 			ctx.FinalizeSettings();
 
+			WicTransforms.AddColorProfileReader(ctx);
 			WicTransforms.AddNativeScaler(ctx);
 			WicTransforms.AddExifFlipRotator(ctx);
 			WicTransforms.AddCropper(ctx);
-			WicTransforms.AddColorProfileReader(ctx);
 			WicTransforms.AddPixelFormatConverter(ctx);
 			WicTransforms.AddScaler(ctx);
 			WicTransforms.AddColorspaceConverter(ctx);

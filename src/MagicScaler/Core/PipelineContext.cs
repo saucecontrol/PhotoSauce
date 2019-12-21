@@ -28,7 +28,7 @@ namespace PhotoSauce.MagicScaler
 				ChromaSubsampling =
 					sourceCb.Width < sourceY.Width && sourceCb.Height < sourceY.Height ? ChromaSubsampleMode.Subsample420 :
 					sourceCb.Width < sourceY.Width ? ChromaSubsampleMode.Subsample422 :
-					sourceCb.Height < sourceY.Height ? (ChromaSubsampleMode)4 : // 4:4:0
+					sourceCb.Height < sourceY.Height ? ChromaSubsampleMode.Subsample440 :
 					ChromaSubsampleMode.Subsample444;
 			}
 		}

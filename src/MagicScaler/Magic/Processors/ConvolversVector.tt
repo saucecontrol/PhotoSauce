@@ -81,7 +81,7 @@ if (t.vtype != "F") {
 #>
 		private const int Channels = <#= t.channels #>;
 
-		public static Convolver<#= t.name #>Float Instance = new Convolver<#= t.name #>Float();
+		public static readonly Convolver<#= t.name #>Float Instance = new Convolver<#= t.name #>Float();
 
 		private Convolver<#= t.name #>Float() { }
 

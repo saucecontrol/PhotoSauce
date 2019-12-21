@@ -180,11 +180,12 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddMatte(PipelineContext ctx)
 		{
-			if (ctx.Settings.MatteColor.IsEmpty || ctx.Source.Format.ColorRepresentation != PixelColorRepresentation.Bgr || ctx.Source.Format.AlphaRepresentation == PixelAlphaRepresentation.None)
+			var fmt = ctx.Source.Format;
+			if (ctx.Settings.MatteColor.IsEmpty || fmt.ColorRepresentation != PixelColorRepresentation.Bgr || fmt.AlphaRepresentation == PixelAlphaRepresentation.None)
 				return;
 
-			if (ctx.Source.Format == PixelFormat.Pbgra128BppFloat)
-				ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, Consts.GUID_WICPixelFormat32bppBGRA));
+			if (fmt.NumericRepresentation == PixelNumericRepresentation.Float && fmt.Encoding == PixelValueEncoding.Companded)
+				AddInternalFormatConverter(ctx, PixelValueEncoding.Linear);
 
 			ctx.Source = new MatteTransform(ctx.Source, ctx.Settings.MatteColor);
 

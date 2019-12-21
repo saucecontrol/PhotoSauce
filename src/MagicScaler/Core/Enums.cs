@@ -151,7 +151,9 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>Use 4:2:2 Y'CbCr subsampling.</summary>
 		Subsample422 = 2,
 		/// <summary>Do not use chroma subsampling (4:4:4).</summary>
-		Subsample444 = 3
+		Subsample444 = 3,
+		/// <summary>4:4:0 Y'CbCr subsampling.  Not supported by the JPEG encoder.</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		Subsample440 = 4
 	}
-
 }

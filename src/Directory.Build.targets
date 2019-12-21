@@ -7,7 +7,7 @@
 		
 		<ItemGroup>
 			<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-				<_Parameter1>$(AssemblyName).Test,PublicKey=$(SnkPublicKey)</_Parameter1>
+				<_Parameter1>$(MSBuildProjectName).Test,PublicKey=$(SnkPublicKey)</_Parameter1>
 			</AssemblyAttribute>
 			<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute" Condition="'$(MSBuildProjectName)'!='WebRSize'">
 				<_Parameter1>$(Company).WebRSize,PublicKey=$(SnkPublicKey)</_Parameter1>

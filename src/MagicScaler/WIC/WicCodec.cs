@@ -40,11 +40,11 @@ namespace PhotoSauce.MagicScaler
 			FrameCount = (int)dec.GetFrameCount();
 		}
 
-		private static IWICBitmapDecoder createDecoder(Func<IWICBitmapDecoder> factory)
+		private static IWICBitmapDecoder createDecoder<T>(Func<T, IWICBitmapDecoder> factory, T arg)
 		{
 			try
 			{
-				return factory();
+				return factory(arg);
 			}
 			catch (COMException ex) when (ex.HResult == (int)WinCodecError.WINCODEC_ERR_COMPONENTNOTFOUND)
 			{
@@ -54,16 +54,13 @@ namespace PhotoSauce.MagicScaler
 
 		public static WicImageContainer Create(string fileName, WicPipelineContext ctx)
 		{
-			var dec = createDecoder(() => Wic.Factory.CreateDecoderFromFilename(fileName, null, GenericAccessRights.GENERIC_READ, WICDecodeOptions.WICDecodeMetadataCacheOnDemand));
+			var dec = createDecoder(fn => Wic.Factory.CreateDecoderFromFilename(fn, null, GenericAccessRights.GENERIC_READ, WICDecodeOptions.WICDecodeMetadataCacheOnDemand), fileName);
 			return new WicImageContainer(dec, ctx);
 		}
 
-		public static WicImageContainer Create(Stream inFile, WicPipelineContext ctx)
+		public static WicImageContainer Create(Stream inStream, WicPipelineContext ctx)
 		{
-			var stm = ctx.AddRef(Wic.Factory.CreateStream());
-			stm.InitializeFromIStream(inFile.AsIStream());
-
-			var dec = createDecoder(() => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand));
+			var dec = createDecoder(stm => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand), inStream.AsIStream());
 			return new WicImageContainer(dec, ctx);
 		}
 
@@ -71,10 +68,10 @@ namespace PhotoSauce.MagicScaler
 		{
 			fixed (byte* pbBuffer = inBuffer)
 			{
-				var stm = ctx.AddRef(Wic.Factory.CreateStream());
-				stm.InitializeFromMemory((IntPtr)pbBuffer, (uint)inBuffer.Length);
+				var istm = ctx.AddRef(Wic.Factory.CreateStream());
+				istm.InitializeFromMemory((IntPtr)pbBuffer, (uint)inBuffer.Length);
 
-				var dec = createDecoder(() => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand));
+				var dec = createDecoder(stm => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand), istm);
 				return new WicImageContainer(dec, ctx);
 			}
 		}

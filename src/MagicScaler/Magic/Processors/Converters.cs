@@ -24,7 +24,7 @@ namespace PhotoSauce.MagicScaler
 
 	internal sealed class NarrowingConverter : IConversionProcessor<ushort, byte>
 	{
-		public static NarrowingConverter Instance = new NarrowingConverter();
+		public static readonly NarrowingConverter Instance = new NarrowingConverter();
 
 		private NarrowingConverter() { }
 
@@ -52,7 +52,7 @@ namespace PhotoSauce.MagicScaler
 
 	internal sealed class VideoLevelsConverter : IConversionProcessor<byte, byte>
 	{
-		public static VideoLevelsConverter Instance = new VideoLevelsConverter();
+		public static readonly VideoLevelsConverter Instance = new VideoLevelsConverter();
 
 		private VideoLevelsConverter() { }
 

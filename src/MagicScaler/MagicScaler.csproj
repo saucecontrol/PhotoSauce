@@ -25,11 +25,11 @@
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)'=='netcoreapp3.0'">
-		<PackageReference Include="System.Drawing.Common" Version="4.6.0" />
+		<PackageReference Include="System.Drawing.Common" Version="4.7.0" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)'!='netcoreapp3.0'">
-		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.6.0" />
+		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.0" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)'=='net46'">

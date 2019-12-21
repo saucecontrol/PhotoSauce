@@ -162,7 +162,7 @@ namespace PhotoSauce.MagicScaler
 			protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer) =>
 				cacheSource.copyPixels(cachePlane, prc, cbStride, cbBufferSize, pbBuffer);
 
-			public override string ToString() => $"{base.ToString()}: {cachePlane}";
+			public override string ToString() => $"{nameof(PlanarCachePixelSource)}: {cachePlane}";
 		}
 	}
 }

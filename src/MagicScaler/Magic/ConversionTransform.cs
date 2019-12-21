@@ -152,7 +152,7 @@ namespace PhotoSauce.MagicScaler
 			lineBuff = null;
 		}
 
-		public override string ToString() => $"{base.ToString()}: {Source.Format.Name}->{Format.Name}";
+		public override string ToString() => $"{nameof(ConversionTransform)}: {Source.Format.Name}->{Format.Name}";
 	}
 
 	/// <summary>Converts an image to an alternate pixel format.</summary>

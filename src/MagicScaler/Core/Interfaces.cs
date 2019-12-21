@@ -26,10 +26,10 @@ namespace PhotoSauce.MagicScaler
 	/// <summary>A single image frame within an <see cref="IImageContainer" /></summary>
 	public interface IImageFrame : IDisposable
 	{
-		/// <summary>The horizontal resolution of the image frame, in dots per inch.  If the frame source has no resolution information, a default value of 72 or 96 is suitable.</summary>
+		/// <summary>The horizontal resolution of the image frame, in dots/pixels per inch.  If the frame source has no resolution information, a default value of 72 or 96 is suitable.</summary>
 		double DpiX { get; }
 
-		/// <summary>The vertical resolution of the image frame, in dots per inch.  If the frame source has no resolution information, a default value of 72 or 96 is suitable.</summary>
+		/// <summary>The vertical resolution of the image frame, in dots/pixels per inch.  If the frame source has no resolution information, a default value of 72 or 96 is suitable.</summary>
 		double DpiY { get; }
 
 		/// <summary>The <see cref="Orientation"/> of the image frame.  If the frame source has no orientation information, a default value of <see cref="Orientation.Normal"/> is suitable.</summary>
@@ -51,7 +51,7 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>A 3x3 matrix containing the coefficients for converting from R'G'B' to the Y'CbCr format of this image frame.  The fourth row and column will be ignored.  See <see cref="YccMatrix" /> for standard values.</summary>
 		Matrix4x4 RgbYccMatrix { get; }
 
-		/// <summary>True if the encoding uses the full 0-255 range for pixel values, false if the encoding uses video range (16-235 luma and 16-240 chroma).</summary>
+		/// <summary>True if the encoding uses the full 0-255 range for pixel values, false if it uses video range (16-235 luma and 16-240 chroma).</summary>
 		bool IsFullRange { get; }
 
 		/// <summary>The <see cref="IPixelSource" /> to retrieve pixels from the Cb (blue-yellow) chroma plane.</summary>

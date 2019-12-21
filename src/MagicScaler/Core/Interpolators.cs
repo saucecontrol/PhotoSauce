@@ -65,7 +65,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 		/// <inheritdoc />
 		public double GetValue(double d) => (d < support) ? Exp(-(d * d * s0)) * s1 : 0.0;
 		/// <inheritdoc />
-		public override string ToString() => $"{base.ToString()}({sigma})";
+		public override string ToString() => $"{nameof(GaussianInterpolator)}({sigma})";
 	}
 
 	/// <summary>Implements <a href="http://neildodgson.com/pubs/quad.pdf">Quadratic</a> interpolation.</summary>
@@ -101,7 +101,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 		}
 
 		/// <inheritdoc />
-		public override string ToString() => $"{base.ToString()}({r})";
+		public override string ToString() => $"{nameof(QuadraticInterpolator)}({r})";
 	}
 
 	/// <summary>Implements <a href="http://www.imagemagick.org/Usage/filter/#cubics">Cubic</a> interpolation.</summary>
@@ -144,7 +144,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 		}
 
 		/// <inheritdoc />
-		public override string ToString() => $"{base.ToString()}({b}, {c})";
+		public override string ToString() => $"{nameof(CubicInterpolator)}({b}, {c})";
 	}
 
 	/// <summary>Implements <a href="http://en.wikipedia.org/wiki/Lanczos_resampling">Lanczos</a> interpolation.</summary>
@@ -180,7 +180,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 		}
 
 		/// <inheritdoc />
-		public override string ToString() => $"{base.ToString()}({support})";
+		public override string ToString() => $"{nameof(LanczosInterpolator)}({support})";
 	}
 
 	/// <summary>Implements <a href="http://www.panotools.org/dersch/interpolator/interpolator.html">Spline 36</a> interpolation.</summary>

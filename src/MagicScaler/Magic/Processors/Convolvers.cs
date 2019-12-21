@@ -15,7 +15,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		private const int Channels = 4;
 
-		public static ConvolverBgraByte Instance = new ConvolverBgraByte();
+		public static readonly ConvolverBgraByte Instance = new ConvolverBgraByte();
 
 		private ConvolverBgraByte() { }
 
@@ -294,7 +294,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		private const int Channels = 4;
 
-		public static Convolver4ChanByte Instance = new Convolver4ChanByte();
+		public static readonly Convolver4ChanByte Instance = new Convolver4ChanByte();
 
 		private Convolver4ChanByte() { }
 
@@ -457,7 +457,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		private const int Channels = 4;
 
-		public static Convolver4ChanUQ15 Instance = new Convolver4ChanUQ15();
+		public static readonly Convolver4ChanUQ15 Instance = new Convolver4ChanUQ15();
 
 		private Convolver4ChanUQ15() { }
 
@@ -629,7 +629,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		private const int Channels = 3;
 
-		public static ConvolverBgrByte Instance = new ConvolverBgrByte();
+		public static readonly ConvolverBgrByte Instance = new ConvolverBgrByte();
 
 		private ConvolverBgrByte() { }
 
@@ -785,7 +785,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		private const int Channels = 3;
 
-		public static ConvolverBgrUQ15 Instance = new ConvolverBgrUQ15();
+		public static readonly ConvolverBgrUQ15 Instance = new ConvolverBgrUQ15();
 
 		private ConvolverBgrUQ15() { }
 
@@ -950,7 +950,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		private const int Channels = 1;
 
-		public static Convolver1ChanByte Instance = new Convolver1ChanByte();
+		public static readonly Convolver1ChanByte Instance = new Convolver1ChanByte();
 
 		private Convolver1ChanByte() { }
 
@@ -1069,7 +1069,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		private const int Channels = 1;
 
-		public static Convolver1ChanUQ15 Instance = new Convolver1ChanUQ15();
+		public static readonly Convolver1ChanUQ15 Instance = new Convolver1ChanUQ15();
 
 		private Convolver1ChanUQ15() { }
 

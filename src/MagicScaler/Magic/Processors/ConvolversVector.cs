@@ -17,7 +17,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		private const int Channels = 4;
 
-		public static Convolver4ChanFloat Instance = new Convolver4ChanFloat();
+		public static readonly Convolver4ChanFloat Instance = new Convolver4ChanFloat();
 
 		private Convolver4ChanFloat() { }
 
@@ -230,7 +230,7 @@ namespace PhotoSauce.MagicScaler
 
 		private const int Channels = 3;
 
-		public static Convolver3ChanFloat Instance = new Convolver3ChanFloat();
+		public static readonly Convolver3ChanFloat Instance = new Convolver3ChanFloat();
 
 		private Convolver3ChanFloat() { }
 
@@ -313,7 +313,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		private const int Channels = 4;
 
-		public static Convolver3XChanFloat Instance = new Convolver3XChanFloat();
+		public static readonly Convolver3XChanFloat Instance = new Convolver3XChanFloat();
 
 		private Convolver3XChanFloat() { }
 
@@ -516,7 +516,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		private const int Channels = 1;
 
-		public static Convolver1ChanFloat Instance = new Convolver1ChanFloat();
+		public static readonly Convolver1ChanFloat Instance = new Convolver1ChanFloat();
 
 		private Convolver1ChanFloat() { }
 
