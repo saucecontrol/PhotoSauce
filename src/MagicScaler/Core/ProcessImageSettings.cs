@@ -171,7 +171,7 @@ namespace PhotoSauce.MagicScaler
 		public bool IndexedColor => SaveFormat == FileFormat.Png8 || SaveFormat == FileFormat.Gif;
 
 		/// <summary>The calculated ratio of the input image size to output size.</summary>
-		public double ScaleRatio => Math.Max(InnerRect.Width > 0 ? (double)Crop.Width / InnerRect.Width : 0d, InnerRect.Height > 0 ? (double)Crop.Height / InnerRect.Height : 0d);
+		public double ScaleRatio => Math.Min(InnerRect.Width > 0 ? (double)Crop.Width / InnerRect.Width : 0d, InnerRect.Height > 0 ? (double)Crop.Height / InnerRect.Height : 0d);
 
 		/// <summary>The calculated ratio for the low-quality portion of a hybrid scaling operation.</summary>
 		public int HybridScaleRatio

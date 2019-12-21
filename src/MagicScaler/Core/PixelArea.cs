@@ -28,6 +28,8 @@ namespace PhotoSauce.MagicScaler
 			(X, Y, Width, Height) = (x, y, width, height);
 		}
 
+		public bool IsEmpty => this == default;
+
 		public void Deconstruct(out int x, out int y, out int w, out int h) => (x, y, w, h) = (X, Y, Width, Height);
 
 		public PixelArea DeOrient(Orientation orientation, int targetWidth, int targetHeight)

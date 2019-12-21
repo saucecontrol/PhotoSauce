@@ -155,8 +155,6 @@ namespace PhotoSauce.MagicScaler
 		{
 			if (ctx.PlanarContext != null)
 			{
-				MagicTransforms.AddExternalFormatConverter(ctx, true);
-
 				var oformat = Consts.GUID_WICPixelFormat24bppBGR;
 				Frame.SetPixelFormat(ref oformat);
 

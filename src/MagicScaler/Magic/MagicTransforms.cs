@@ -92,25 +92,8 @@ namespace PhotoSauce.MagicScaler
 			ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, forceSrgb ? ColorProfile.sRGB : ctx.SourceColorProfile, forceSrgb ? ColorProfile.sRGB : ctx.DestColorProfile, ofmt, videoLevels));
 		}
 
-		public static void AddExternalFormatConverter(PipelineContext ctx, bool allowPlanar = false)
+		public static void AddExternalFormatConverter(PipelineContext ctx)
 		{
-			if (allowPlanar && ctx.PlanarContext != null)
-			{
-				AddExternalFormatConverter(ctx);
-				ctx.PlanarContext.SourceY = ctx.Source;
-				ctx.Source = ctx.PlanarContext.SourceCb;
-
-				AddExternalFormatConverter(ctx);
-				ctx.PlanarContext.SourceCb = ctx.Source;
-				ctx.Source = ctx.PlanarContext.SourceCr;
-
-				AddExternalFormatConverter(ctx);
-				ctx.PlanarContext.SourceCr = ctx.Source;
-				ctx.Source = ctx.PlanarContext.SourceY;
-
-				return;
-			}
-
 			var ifmt = ctx.Source.Format.FormatGuid;
 			if (!externalFormatMap.TryGetValue(ifmt, out var ofmt) || ofmt == ifmt)
 				return;
@@ -118,6 +101,23 @@ namespace PhotoSauce.MagicScaler
 			bool forceSrgb = (ifmt == PixelFormat.Y32BppLinearFloat.FormatGuid || ifmt == PixelFormat.Y16BppLinearUQ15.FormatGuid) && ctx.SourceColorProfile != ColorProfile.sRGB;
 
 			ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, forceSrgb ? ColorProfile.sRGB : ctx.SourceColorProfile, forceSrgb ? ColorProfile.sRGB : ctx.DestColorProfile, ofmt));
+		}
+
+		public static void AddPlanarExternalFormatConverter(PipelineContext ctx)
+		{
+			Debug.Assert(ctx.PlanarContext != null);
+
+			AddExternalFormatConverter(ctx);
+			ctx.PlanarContext.SourceY = ctx.Source;
+			ctx.Source = ctx.PlanarContext.SourceCb;
+
+			AddExternalFormatConverter(ctx);
+			ctx.PlanarContext.SourceCb = ctx.Source;
+			ctx.Source = ctx.PlanarContext.SourceCr;
+
+			AddExternalFormatConverter(ctx);
+			ctx.PlanarContext.SourceCr = ctx.Source;
+			ctx.Source = ctx.PlanarContext.SourceY;
 		}
 
 		public static void AddHighQualityScaler(PipelineContext ctx, bool hybrid = false)
@@ -145,22 +145,66 @@ namespace PhotoSauce.MagicScaler
 			if (interpolatorx.WeightingFunction.Support >= 0.1 || interpolatory.WeightingFunction.Support >= 0.1)
 				AddInternalFormatConverter(ctx, allow96bppFloat: true);
 
+			var fmt = ctx.Source.Format;
 			bool offsetX = false, offsetY = false;
-			if (ctx.ImageFrame is IYccImageFrame frame && ctx.PlanarContext != null && ctx.Source.Format.Encoding == PixelValueEncoding.Unspecified)
+			if (ctx.ImageFrame is IYccImageFrame frame && ctx.PlanarContext != null && fmt.Encoding == PixelValueEncoding.Unspecified)
 			{
 				offsetX = frame.ChromaPosition.HasFlag(ChromaPosition.CositedHorizontal) && ctx.PlanarContext.ChromaSubsampling.IsSubsampledX();
 				offsetY = frame.ChromaPosition.HasFlag(ChromaPosition.CositedVertical) && ctx.PlanarContext.ChromaSubsampling.IsSubsampledY();
 			}
 
-			var fmt = ctx.Source.Format;
 			if (fmt.NumericRepresentation == PixelNumericRepresentation.Float)
 				ctx.Source = ctx.AddDispose(ConvolutionTransform<float, float>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory, offsetX, offsetY));
 			else if (fmt.NumericRepresentation == PixelNumericRepresentation.Fixed)
 				ctx.Source = ctx.AddDispose(ConvolutionTransform<ushort, int>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory, offsetX, offsetY));
 			else
 				ctx.Source = ctx.AddDispose(ConvolutionTransform<byte, int>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory, offsetX, offsetY));
+		}
 
-			ctx.Settings.Crop = ctx.Source.Area.ReOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
+		public static void AddPlanarHighQualityScaler(PipelineContext ctx, ChromaSubsampleMode subsample)
+		{
+			Debug.Assert(ctx.PlanarContext != null);
+
+			AddHighQualityScaler(ctx);
+			ctx.PlanarContext.SourceY = ctx.Source;
+			ctx.Source = ctx.PlanarContext.SourceCb;
+
+			if (subsample.IsSubsampledX())
+				ctx.Settings.InnerRect.Width = MathUtil.DivCeiling(ctx.Settings.InnerRect.Width, 2);
+			if (subsample.IsSubsampledY())
+				ctx.Settings.InnerRect.Height = MathUtil.DivCeiling(ctx.Settings.InnerRect.Height, 2);
+
+			AddHighQualityScaler(ctx);
+			ctx.PlanarContext.SourceCb = ctx.Source;
+			ctx.Source = ctx.PlanarContext.SourceCr;
+
+			AddHighQualityScaler(ctx);
+			ctx.PlanarContext.SourceCr = ctx.Source;
+			ctx.Source = ctx.PlanarContext.SourceY;
+		}
+
+		public static void AddPlanarHybridScaler(PipelineContext ctx)
+		{
+			Debug.Assert(ctx.PlanarContext != null);
+
+			int ratio = ctx.Settings.HybridScaleRatio;
+			if (ratio == 1)
+				return;
+
+			int ratioX = (ctx.Source.Width + 1) / ctx.PlanarContext.SourceCb.Width;
+			int ratioY = (ctx.Source.Height + 1) / ctx.PlanarContext.SourceCb.Height;
+
+			WicTransforms.AddHybridScaler(ctx);
+			ctx.PlanarContext.SourceY = ctx.Source;
+			ctx.Source = ctx.PlanarContext.SourceCb;
+
+			WicTransforms.AddHybridScaler(ctx, ratio / Math.Min(ratioX, ratioY));
+			ctx.PlanarContext.SourceCb = ctx.Source;
+			ctx.Source = ctx.PlanarContext.SourceCr;
+
+			WicTransforms.AddHybridScaler(ctx, ratio / Math.Min(ratioX, ratioY));
+			ctx.PlanarContext.SourceCr = ctx.Source;
+			ctx.Source = ctx.PlanarContext.SourceY;
 		}
 
 		public static void AddUnsharpMask(PipelineContext ctx)
@@ -210,14 +254,52 @@ namespace PhotoSauce.MagicScaler
 			ctx.Source = new PadTransformInternal(ctx.Source, ctx.Settings.MatteColor, PixelArea.FromGdiRect(ctx.Settings.InnerRect), PixelArea.FromGdiRect(ctx.Settings.OuterRect));
 		}
 
-		public static void AddCropper(PipelineContext ctx)
+		public static void AddCropper(PipelineContext ctx, PixelArea area = default)
 		{
-			var crop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height);
+			var crop = area.IsEmpty ? PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height) : area;
 			if (crop == ctx.Source.Area)
 				return;
 
 			ctx.Source = new CropTransform(ctx.Source, crop);
-			ctx.Settings.Crop = ctx.Source.Area.ReOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
+		}
+
+		public static void AddPlanarCropper(PipelineContext ctx)
+		{
+			Debug.Assert(ctx.PlanarContext != null);
+
+			var crop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height);
+			if (crop == ctx.Source.Area)
+				return;
+
+			int yw = ctx.Source.Width;
+			int yh = ctx.Source.Height;
+			int cw = ctx.PlanarContext.SourceCb.Width;
+			int ch = ctx.PlanarContext.SourceCb.Height;
+
+			int ratioX = (yw + 1) / cw;
+			int ratioY = (yh + 1) / ch;
+
+			int scropX = MathUtil.PowerOfTwoFloor(crop.X, ratioX);
+			int scropY = MathUtil.PowerOfTwoFloor(crop.Y, ratioY);
+			int scropW = Math.Min(MathUtil.PowerOfTwoCeiling(crop.Width, ratioX), yw - scropX);
+			int scropH = Math.Min(MathUtil.PowerOfTwoCeiling(crop.Height, ratioY), yh - scropY);
+			var scrop = new PixelArea(scropX, scropY, scropW, scropH);
+
+			AddCropper(ctx, scrop);
+			ctx.PlanarContext.SourceY = ctx.Source;
+			ctx.Source = ctx.PlanarContext.SourceCb;
+
+			cw = Math.Min(MathUtil.DivCeiling(scrop.Width, ratioX), cw);
+			ch = Math.Min(MathUtil.DivCeiling(scrop.Height, ratioY), ch);
+			scrop = new PixelArea(scrop.X / ratioX, scrop.Y / ratioY, cw, ch);
+
+			AddCropper(ctx, scrop);
+			ctx.PlanarContext.SourceCb = ctx.Source;
+			ctx.Source = ctx.PlanarContext.SourceCr;
+
+			AddCropper(ctx, scrop);
+			ctx.PlanarContext.SourceCr = ctx.Source;
+			ctx.Source = ctx.PlanarContext.SourceY;
 		}
 
 		public static void AddFlipRotator(PipelineContext ctx, Orientation orientation)
@@ -228,12 +310,32 @@ namespace PhotoSauce.MagicScaler
 			if (orientation.RequiresCache())
 				AddExternalFormatConverter(ctx);
 
-			ctx.Source = new OrientationTransformInternal(ctx.Source, orientation, PixelArea.FromGdiRect(ctx.Settings.Crop));
-			ctx.Settings.Crop = ctx.Source.Area.ToGdiRect();
+			ctx.Source = new OrientationTransformInternal(ctx.Source, orientation);
 			ctx.Orientation = Orientation.Normal;
 		}
 
 		public static void AddExifFlipRotator(PipelineContext ctx) => AddFlipRotator(ctx, ctx.Orientation);
+
+		public static void AddPlanarExifFlipRotator(PipelineContext ctx)
+		{
+			Debug.Assert(ctx.PlanarContext != null);
+
+			var orientation = ctx.Orientation;
+			if (orientation == Orientation.Normal)
+				return;
+
+			AddFlipRotator(ctx, orientation);
+			ctx.PlanarContext.SourceY = ctx.Source;
+			ctx.Source = ctx.PlanarContext.SourceCb;
+
+			AddFlipRotator(ctx, orientation);
+			ctx.PlanarContext.SourceCb = ctx.Source;
+			ctx.Source = ctx.PlanarContext.SourceCr;
+
+			AddFlipRotator(ctx, orientation);
+			ctx.PlanarContext.SourceCr = ctx.Source;
+			ctx.Source = ctx.PlanarContext.SourceY;
+		}
 
 		public static void AddColorProfileReader(PipelineContext ctx)
 		{
@@ -296,7 +398,7 @@ namespace PhotoSauce.MagicScaler
 				if (ctx.Source.Format.NumericRepresentation == PixelNumericRepresentation.Float && ctx.PlanarContext.SourceCb.Format.NumericRepresentation == ctx.Source.Format.NumericRepresentation)
 					AddInternalFormatConverter(ctx, PixelValueEncoding.Companded);
 				else
-					AddExternalFormatConverter(ctx, true);
+					AddPlanarExternalFormatConverter(ctx);
 			}
 
 			var matrix = YccMatrix.Rec601;

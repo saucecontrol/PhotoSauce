@@ -222,7 +222,7 @@ namespace PhotoSauce.MagicScaler
 			ctx.Settings.JpegQuality = ctx.UsedSettings.JpegQuality;
 			ctx.Settings.JpegSubsampleMode = ctx.UsedSettings.JpegSubsampleMode;
 
-			var subsample = (WICJpegYCrCbSubsamplingOption)ctx.Settings.JpegSubsampleMode;
+			var subsample = ctx.Settings.JpegSubsampleMode;
 
 			if (processPlanar)
 			{
@@ -256,45 +256,21 @@ namespace PhotoSauce.MagicScaler
 				if (wicFrame != null)
 					WicTransforms.AddPlanarCache(ctx);
 
-				Debug.Assert(ctx.PlanarContext != null);
-
-				MagicTransforms.AddHighQualityScaler(ctx);
+				MagicTransforms.AddPlanarCropper(ctx);
+				MagicTransforms.AddPlanarHybridScaler(ctx);
+				MagicTransforms.AddPlanarHighQualityScaler(ctx, savePlanar ? subsample : ChromaSubsampleMode.Subsample444);
 				MagicTransforms.AddUnsharpMask(ctx);
-				MagicTransforms.AddExifFlipRotator(ctx);
-
-				ctx.PlanarContext.SourceY = ctx.Source;
-				ctx.Source = ctx.PlanarContext.SourceCb;
-
-				ctx.Orientation = orient;
-				ctx.Settings.Crop = ctx.Source.Area.ReOrient(orient, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
 
 				if (savePlanar)
 				{
-					if (subsample.IsSubsampledX())
-						ctx.Settings.InnerRect.Width = MathUtil.DivCeiling(ctx.Settings.InnerRect.Width, 2);
-					if (subsample.IsSubsampledY())
-						ctx.Settings.InnerRect.Height = MathUtil.DivCeiling(ctx.Settings.InnerRect.Height, 2);
+					MagicTransforms.AddPlanarExifFlipRotator(ctx);
+					MagicTransforms.AddPlanarExternalFormatConverter(ctx);
 				}
-
-				MagicTransforms.AddHighQualityScaler(ctx);
-				MagicTransforms.AddExifFlipRotator(ctx);
-
-				ctx.PlanarContext.SourceCb = ctx.Source;
-				ctx.Source = ctx.PlanarContext.SourceCr;
-
-				ctx.Orientation = orient;
-				ctx.Settings.Crop = ctx.Source.Area.ReOrient(orient, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
-
-				MagicTransforms.AddHighQualityScaler(ctx);
-				MagicTransforms.AddExifFlipRotator(ctx);
-
-				ctx.PlanarContext.SourceCr = ctx.Source;
-				ctx.Source = ctx.PlanarContext.SourceY;
-
-				if (!savePlanar)
+				else
 				{
 					MagicTransforms.AddPlanarConverter(ctx);
 					MagicTransforms.AddColorspaceConverter(ctx);
+					MagicTransforms.AddExifFlipRotator(ctx);
 					MagicTransforms.AddPad(ctx);
 				}
 			}
@@ -304,7 +280,7 @@ namespace PhotoSauce.MagicScaler
 				MagicTransforms.AddCropper(ctx);
 				MagicTransforms.AddHighQualityScaler(ctx, true);
 				WicTransforms.AddPixelFormatConverter(ctx);
-				WicTransforms.AddScaler(ctx, true);
+				WicTransforms.AddHybridScaler(ctx);
 				MagicTransforms.AddHighQualityScaler(ctx);
 				MagicTransforms.AddColorspaceConverter(ctx);
 				MagicTransforms.AddMatte(ctx);

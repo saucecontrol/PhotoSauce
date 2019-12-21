@@ -48,6 +48,7 @@ namespace PhotoSauce.MagicScaler
 			WicTransforms.AddExifFlipRotator(ctx);
 			WicTransforms.AddCropper(ctx);
 			WicTransforms.AddPixelFormatConverter(ctx);
+			WicTransforms.AddHybridScaler(ctx);
 			WicTransforms.AddScaler(ctx);
 			WicTransforms.AddColorspaceConverter(ctx);
 			MagicTransforms.AddMatte(ctx);
