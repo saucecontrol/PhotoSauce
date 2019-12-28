@@ -120,7 +120,7 @@ namespace PhotoSauce.MagicScaler
 			ctx.Source = ctx.PlanarContext.SourceY;
 		}
 
-		public static void AddHighQualityScaler(PipelineContext ctx, bool hybrid = false)
+		public static void AddHighQualityScaler(PipelineContext ctx)
 		{
 			bool swap = ctx.Orientation.SwapsDimensions();
 			var srect = ctx.Settings.InnerRect;
@@ -129,19 +129,8 @@ namespace PhotoSauce.MagicScaler
 			if (ctx.Source.Width == width && ctx.Source.Height == height)
 				return;
 
-			if (hybrid)
-			{
-				int ratio = ctx.Settings.HybridScaleRatio;
-				if (ratio == 1 || ctx.Source.Format.FormatGuid != Consts.GUID_WICPixelFormat32bppCMYK)
-					return;
-
-				width = MathUtil.DivCeiling(ctx.Source.Width, ratio);
-				height = MathUtil.DivCeiling(ctx.Source.Height, ratio);
-				ctx.Settings.HybridMode = HybridScaleMode.Off;
-			}
-
-			var interpolatorx = width == ctx.Source.Width ? InterpolationSettings.NearestNeighbor : hybrid ? InterpolationSettings.Average : ctx.Settings.Interpolation;
-			var interpolatory = height == ctx.Source.Height ? InterpolationSettings.NearestNeighbor : hybrid ? InterpolationSettings.Average : ctx.Settings.Interpolation;
+			var interpolatorx = width == ctx.Source.Width ? InterpolationSettings.NearestNeighbor : ctx.Settings.Interpolation;
+			var interpolatory = height == ctx.Source.Height ? InterpolationSettings.NearestNeighbor : ctx.Settings.Interpolation;
 			if (interpolatorx.WeightingFunction.Support >= 0.1 || interpolatory.WeightingFunction.Support >= 0.1)
 				AddInternalFormatConverter(ctx, allow96bppFloat: true);
 
@@ -183,6 +172,16 @@ namespace PhotoSauce.MagicScaler
 			ctx.Source = ctx.PlanarContext.SourceY;
 		}
 
+		public static void AddHybridScaler(PipelineContext ctx, int ratio = default)
+		{
+			ratio = ratio == default ? ctx.Settings.HybridScaleRatio : ratio;
+			if (ratio == 1 || ctx.Settings.Interpolation.WeightingFunction.Support < 0.1 || ctx.Source.Format.BitsPerPixel / ctx.Source.Format.ChannelCount != 8)
+				return;
+
+			ctx.Source = ctx.AddDispose(new HybridScaleTransform(ctx.Source, ratio));
+			ctx.Settings.HybridMode = HybridScaleMode.Off;
+		}
+
 		public static void AddPlanarHybridScaler(PipelineContext ctx)
 		{
 			Debug.Assert(ctx.PlanarContext != null);
@@ -193,16 +192,17 @@ namespace PhotoSauce.MagicScaler
 
 			int ratioX = (ctx.Source.Width + 1) / ctx.PlanarContext.SourceCb.Width;
 			int ratioY = (ctx.Source.Height + 1) / ctx.PlanarContext.SourceCb.Height;
+			int ratioC = ratio / Math.Min(ratioX, ratioY);
 
-			WicTransforms.AddHybridScaler(ctx);
+			AddHybridScaler(ctx, ratio);
 			ctx.PlanarContext.SourceY = ctx.Source;
 			ctx.Source = ctx.PlanarContext.SourceCb;
 
-			WicTransforms.AddHybridScaler(ctx, ratio / Math.Min(ratioX, ratioY));
+			AddHybridScaler(ctx, ratioC);
 			ctx.PlanarContext.SourceCb = ctx.Source;
 			ctx.Source = ctx.PlanarContext.SourceCr;
 
-			WicTransforms.AddHybridScaler(ctx, ratio / Math.Min(ratioX, ratioY));
+			AddHybridScaler(ctx, ratioC);
 			ctx.PlanarContext.SourceCr = ctx.Source;
 			ctx.Source = ctx.PlanarContext.SourceY;
 		}

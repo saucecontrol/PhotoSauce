@@ -1,14 +1,28 @@
 ﻿using System;
 using System.Drawing;
+using System.Runtime.InteropServices;
 
 namespace PhotoSauce.MagicScaler
 {
+	[StructLayout(LayoutKind.Sequential, Pack = 1)]
+	internal readonly struct triple
+	{
+		public readonly ushort v1;
+		public readonly byte v2;
+
+		public triple(uint v)
+		{
+			v1 = (ushort)v;
+			v2 = (byte)(v >> 16);
+		}
+
+		public static explicit operator triple(uint v) => new triple(v);
+	}
+
 	internal class PadTransformInternal : PixelSource
 	{
 		private readonly int bytesPerPixel;
-		private readonly uint fillBGRA;
-		private readonly ushort fillBG;
-		private readonly byte fillR;
+		private readonly uint fill;
 		private readonly PixelArea inner;
 
 		public PadTransformInternal(PixelSource source, Color color, PixelArea innerArea, PixelArea outerArea) : base(source)
@@ -18,9 +32,7 @@ namespace PhotoSauce.MagicScaler
 			if (Format.NumericRepresentation != PixelNumericRepresentation.UnsignedInteger || Format.ChannelCount != bytesPerPixel)
 				throw new NotSupportedException("Pixel format not supported.");
 
-			fillBGRA = (uint)color.ToArgb();
-			fillBG = (ushort)(color.B | (color.G << 8));
-			fillR = color.R;
+			fill = (uint)color.ToArgb();
 
 			inner = innerArea;
 			Width = outerArea.Width;
@@ -43,20 +55,13 @@ namespace PhotoSauce.MagicScaler
 					switch (bytesPerPixel)
 					{
 						case 1:
-							new Span<byte>(pb, prc.Width).Fill(fillR);
+							new Span<byte>(pb, prc.Width).Fill((byte)fill);
+							break;
+						case 3:
+							new Span<triple>(pb, prc.Width).Fill((triple)fill);
 							break;
 						case 4:
-							new Span<uint>(pb, prc.Width).Fill(fillBGRA);
-							break;
-						default:
-							byte* pp = pb, pe = pb + prc.Width * 3;
-							while (pp < pe)
-							{
-								*(ushort*)pp = fillBG;
-								pp[2] = fillR;
-
-								pp += 3;
-							}
+							new Span<uint>(pb, prc.Width).Fill(fill);
 							break;
 					}
 				}

@@ -61,6 +61,8 @@ namespace PhotoSauce.MagicScaler
 		public override bool Equals(object? o) => o is PixelFormat pf ? Equals(pf) : false;
 		public override int GetHashCode() => FormatGuid.GetHashCode();
 
+		public int BytesPerPixel => MathUtil.DivCeiling(BitsPerPixel, 8);
+
 		public bool IsBinaryCompatibleWith(PixelFormat other) =>
 			BitsPerPixel == other.BitsPerPixel &&
 			ChannelCount == other.ChannelCount &&

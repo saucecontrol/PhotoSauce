@@ -16,13 +16,11 @@ namespace PhotoSauce.MagicScaler
 
 		public OrientationTransformInternal(PixelSource source, Orientation orientation) : base(source)
 		{
-			int bpp = Format.BitsPerPixel;
-			if (!(bpp == 8 || bpp == 16 || bpp == 24 || bpp == 32 || bpp == 128))
+			bytesPerPixel = Format.BytesPerPixel;
+			if (!(bytesPerPixel == 1 || bytesPerPixel == 2 || bytesPerPixel == 3 || bytesPerPixel == 4 || bytesPerPixel == 16))
 				throw new NotSupportedException("Pixel format not supported.");
 
-			bytesPerPixel = bpp / 8;
 			orient = orientation;
-
 			if (orient.SwapsDimensions())
 			{
 				lineBuff = ArrayPool<byte>.Shared.Rent(BufferStride);
@@ -188,18 +186,14 @@ namespace PhotoSauce.MagicScaler
 					while (pp < pe)
 					{
 						byte t0 = *pe;
-						*pe = *pp;
-						*pp = t0;
-
-						pe--;
-						pp++;
+						*pe-- = *pp;
+						*pp++ = t0;
 					}
 					break;
 				case 2:
 					while (pp < pe)
 					{
 						ushort t0 = *(ushort*)pe;
-
 						*(ushort*)pe = *(ushort*)pp;
 						*(ushort*)pp = t0;
 
@@ -211,11 +205,11 @@ namespace PhotoSauce.MagicScaler
 					while (pp < pe)
 					{
 						ushort t0 = *(ushort*)pe;
-						byte t1 = pe[2];
-
 						*(ushort*)pe = *(ushort*)pp;
-						pe[2] = pp[2];
 						*(ushort*)pp = t0;
+
+						byte t1 = pe[2];
+						pe[2] = pp[2];
 						pp[2] = t1;
 
 						pe -= 3;
@@ -226,7 +220,6 @@ namespace PhotoSauce.MagicScaler
 					while (pp < pe)
 					{
 						uint t0 = *(uint*)pe;
-
 						*(uint*)pe = *(uint*)pp;
 						*(uint*)pp = t0;
 

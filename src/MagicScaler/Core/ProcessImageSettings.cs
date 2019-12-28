@@ -183,7 +183,7 @@ namespace PhotoSauce.MagicScaler
 
 				double sr = ScaleRatio / (HybridMode == HybridScaleMode.FavorQuality ? 3d : HybridMode == HybridScaleMode.FavorSpeed ? 2d : 1d);
 
-				return (int)Math.Max(Math.Pow(2d, Math.Floor(Math.Log(sr, 2d))), 1d);
+				return (int)Math.Pow(2d, Math.Floor(Math.Log(sr, 2d))).Clamp(1d, 32d);
 			}
 		}
 

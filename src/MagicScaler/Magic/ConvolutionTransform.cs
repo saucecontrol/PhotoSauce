@@ -112,7 +112,7 @@ namespace PhotoSauce.MagicScaler
 			Width = mapx.Pixels;
 			Height = mapy.Pixels;
 
-			int bpp = workfmt.BitsPerPixel / 8 / Unsafe.SizeOf<TPixel>() * Unsafe.SizeOf<TWeight>();
+			int bpp = workfmt.BytesPerPixel / Unsafe.SizeOf<TPixel>() * Unsafe.SizeOf<TWeight>();
 			IntBuff = new PixelBuffer(mapy.Samples, bpp, true, mapy.Samples * mapx.Pixels * bpp);
 
 			if (bufferSource = lumaMode)
@@ -122,7 +122,7 @@ namespace PhotoSauce.MagicScaler
 				if (workfmt.IsBinaryCompatibleWith(infmt))
 					WorkBuff = SrcBuff;
 				else
-					WorkBuff = new PixelBuffer(mapy.Samples, MathUtil.PowerOfTwoCeiling(workfmt.BitsPerPixel / 8 * inWidth, IntPtr.Size), true);
+					WorkBuff = new PixelBuffer(mapy.Samples, MathUtil.PowerOfTwoCeiling(inWidth * workfmt.BytesPerPixel, IntPtr.Size), true);
 			}
 			else
 			{

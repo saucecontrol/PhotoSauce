@@ -67,12 +67,12 @@ namespace PhotoSauce.MagicScaler
 				byte o1 = ScaleFromVideoLevels(ip[1]);
 				byte o2 = ScaleFromVideoLevels(ip[2]);
 				byte o3 = ScaleFromVideoLevels(ip[3]);
+				ip += 4;
+
 				op[0] = o0;
 				op[1] = o1;
 				op[2] = o2;
 				op[3] = o3;
-
-				ip += 4;
 				op += 4;
 			}
 			ipe += 4;
@@ -130,12 +130,12 @@ namespace PhotoSauce.MagicScaler
 					byte i1 = UnFix15ToByte((uint)ip[1] * byte.MaxValue);
 					byte i2 = UnFix15ToByte((uint)ip[2] * byte.MaxValue);
 					byte i3 = UnFix15ToByte((uint)ip[3] * byte.MaxValue);
+					ip += 4;
+
 					op[0] = i0;
 					op[1] = i1;
 					op[2] = i2;
 					op[3] = i3;
-
-					ip += 4;
 					op += 4;
 				}
 				ipe += 4;
@@ -153,14 +153,13 @@ namespace PhotoSauce.MagicScaler
 		{
 			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
-				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb) - 4;
+				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb);
 				byte* op = opstart;
 
-				while (ip <= ipe)
+				while (ip < ipe)
 				{
 					uint i3 = ip[3];
-					byte o3 = UnFix15ToByte(i3 * byte.MaxValue);
-					if (o3 == 0)
+					if (i3 < (UQ15Round >> 8))
 					{
 						*(uint*)op = 0;
 					}
@@ -174,6 +173,7 @@ namespace PhotoSauce.MagicScaler
 						byte o0 = UnFix15ToByte(i0 * o3i);
 						byte o1 = UnFix15ToByte(i1 * o3i);
 						byte o2 = UnFix15ToByte(i2 * o3i);
+						byte o3 = UnFix15ToByte(i3 * byte.MaxValue);
 						op[0] = o0;
 						op[1] = o1;
 						op[2] = o2;

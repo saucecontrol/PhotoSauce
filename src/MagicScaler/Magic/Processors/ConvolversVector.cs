@@ -51,19 +51,18 @@ namespace PhotoSauce.MagicScaler
 						var iv1 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count);
 						var iv2 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count * 2);
 						var iv3 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count * 3);
+						ip += VectorF.Count * 4;
 
 						var mv0 = Unsafe.ReadUnaligned<VectorF>(mp);
 						var mv1 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count);
 						var mv2 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 2);
 						var mv3 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 3);
+						mp += VectorF.Count * 4;
 
 						av0 += iv0 * mv0;
 						av0 += iv1 * mv1;
 						av0 += iv2 * mv2;
 						av0 += iv3 * mv3;
-
-						ip += VectorF.Count * 4;
-						mp += VectorF.Count * 4;
 					} while (ip <= ipe);
 
 					ipe += VectorF.Count * 4;
@@ -128,19 +127,18 @@ namespace PhotoSauce.MagicScaler
 						var tv1 = Unsafe.ReadUnaligned<VectorF>(tp + VectorF.Count);
 						var tv2 = Unsafe.ReadUnaligned<VectorF>(tp + VectorF.Count * 2);
 						var tv3 = Unsafe.ReadUnaligned<VectorF>(tp + VectorF.Count * 3);
+						tp += VectorF.Count * 4;
 
 						var mv0 = Unsafe.ReadUnaligned<VectorF>(mp);
 						var mv1 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count);
 						var mv2 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 2);
 						var mv3 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 3);
+						mp += VectorF.Count * 4;
 
 						av0 += tv0 * mv0;
 						av0 += tv1 * mv1;
 						av0 += tv2 * mv2;
 						av0 += tv3 * mv3;
-
-						tp += VectorF.Count * 4;
-						mp += VectorF.Count * 4;
 					} while (tp <= tpe);
 
 					tpe += VectorF.Count * 4;
@@ -199,6 +197,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				float dif = *yp++ - *bp++;
 				var c0 = Unsafe.ReadUnaligned<Vector4>(ip);
+				ip += Channels;
 
 				if (threshold == 0 || Math.Abs(dif) > threshold)
 				{
@@ -217,8 +216,6 @@ namespace PhotoSauce.MagicScaler
 				}
 
 				Unsafe.WriteUnaligned(op, c0);
-
-				ip += Channels;
 				op += Channels;
 			}
 		}
@@ -263,17 +260,16 @@ namespace PhotoSauce.MagicScaler
 						var iv0 = Unsafe.ReadUnaligned<Vector4>(ip);
 						var iv1 = Unsafe.ReadUnaligned<Vector4>(ip + Vector4Count);
 						var iv2 = Unsafe.ReadUnaligned<Vector4>(ip + Vector4Count * 2);
+						ip += Vector4Count * 3;
 
 						var mv0 = Unsafe.ReadUnaligned<Vector4>(mp);
 						var mv1 = Unsafe.ReadUnaligned<Vector4>(mp + Vector4Count);
 						var mv2 = Unsafe.ReadUnaligned<Vector4>(mp + Vector4Count * 2);
+						mp += Vector4Count * 3;
 
 						av0 += iv0 * mv0;
 						av1 += iv1 * mv1;
 						av2 += iv2 * mv2;
-
-						ip += Vector4Count * 3;
-						mp += Vector4Count * 3;
 					} while (ip <= ipe);
 
 					ipe += Vector4Count * 3;
@@ -347,19 +343,18 @@ namespace PhotoSauce.MagicScaler
 						var iv1 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count);
 						var iv2 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count * 2);
 						var iv3 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count * 3);
+						ip += VectorF.Count * 4;
 
 						var mv0 = Unsafe.ReadUnaligned<VectorF>(mp);
 						var mv1 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count);
 						var mv2 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 2);
 						var mv3 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 3);
+						mp += VectorF.Count * 4;
 
 						av0 += iv0 * mv0;
 						av0 += iv1 * mv1;
 						av0 += iv2 * mv2;
 						av0 += iv3 * mv3;
-
-						ip += VectorF.Count * 4;
-						mp += VectorF.Count * 4;
 					} while (ip <= ipe);
 
 					ipe += VectorF.Count * 4;
@@ -420,19 +415,18 @@ namespace PhotoSauce.MagicScaler
 						var tv1 = Unsafe.ReadUnaligned<VectorF>(tp + VectorF.Count);
 						var tv2 = Unsafe.ReadUnaligned<VectorF>(tp + VectorF.Count * 2);
 						var tv3 = Unsafe.ReadUnaligned<VectorF>(tp + VectorF.Count * 3);
+						tp += VectorF.Count * 4;
 
 						var mv0 = Unsafe.ReadUnaligned<VectorF>(mp);
 						var mv1 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count);
 						var mv2 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 2);
 						var mv3 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 3);
+						mp += VectorF.Count * 4;
 
 						av0 += tv0 * mv0;
 						av0 += tv1 * mv1;
 						av0 += tv2 * mv2;
 						av0 += tv3 * mv3;
-
-						tp += VectorF.Count * 4;
-						mp += VectorF.Count * 4;
 					} while (tp <= tpe);
 
 					tpe += VectorF.Count * 4;
@@ -487,6 +481,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				float dif = *yp++ - *bp++;
 				var c0 = Unsafe.ReadUnaligned<Vector4>(ip);
+				ip += Channels;
 
 				if (threshold == 0 || Math.Abs(dif) > threshold)
 				{
@@ -505,8 +500,6 @@ namespace PhotoSauce.MagicScaler
 				}
 
 				Unsafe.WriteUnaligned(op, c0);
-
-				ip += Channels;
 				op += Channels;
 			}
 		}
@@ -549,13 +542,12 @@ namespace PhotoSauce.MagicScaler
 					do
 					{
 						var iv0 = Unsafe.ReadUnaligned<VectorF>(ip);
+						ip += VectorF.Count;
 
 						var mv0 = Unsafe.ReadUnaligned<VectorF>(mp);
+						mp += VectorF.Count;
 
 						av0 += iv0 * mv0;
-
-						ip += VectorF.Count;
-						mp += VectorF.Count;
 					} while (ip <= ipe);
 
 					ipe += VectorF.Count;
@@ -602,13 +594,12 @@ namespace PhotoSauce.MagicScaler
 					do
 					{
 						var tv0 = Unsafe.ReadUnaligned<VectorF>(tp);
+						tp += VectorF.Count;
 
 						var mv0 = Unsafe.ReadUnaligned<VectorF>(mp);
+						mp += VectorF.Count;
 
 						av0 += tv0 * mv0;
-
-						tp += VectorF.Count;
-						mp += VectorF.Count;
 					} while (tp <= tpe);
 
 					tpe += VectorF.Count;
@@ -650,6 +641,9 @@ namespace PhotoSauce.MagicScaler
 			while (ip <= ipe)
 			{
 				var vd = Unsafe.ReadUnaligned<VectorF>(yp) - Unsafe.ReadUnaligned<VectorF>(bp);
+				yp += VectorF.Count;
+				bp += VectorF.Count;
+
 				if (thresh > 0)
 				{
 					var sm = Vector.GreaterThan(Vector.Abs(vd), vthresh);
@@ -658,6 +652,7 @@ namespace PhotoSauce.MagicScaler
 				vd *= vamt;
 
 				var v0 = Unsafe.ReadUnaligned<VectorF>(ip);
+				ip += VectorF.Count * Channels;
 
 				if (gamma)
 				{
@@ -671,11 +666,7 @@ namespace PhotoSauce.MagicScaler
 				}
 
 				Unsafe.WriteUnaligned(op, v0);
-
-				ip += VectorF.Count * Channels;
 				op += VectorF.Count * Channels;
-				yp += VectorF.Count;
-				bp += VectorF.Count;
 			}
 
 			ipe += VectorF.Count;
@@ -683,6 +674,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				float dif = *yp++ - *bp++;
 				float c0 = *ip;
+				ip += Channels;
 
 				if (threshold == 0 || Math.Abs(dif) > threshold)
 				{
@@ -701,8 +693,6 @@ namespace PhotoSauce.MagicScaler
 				}
 
 				*op = c0;
-
-				ip += Channels;
 				op += Channels;
 			}
 		}

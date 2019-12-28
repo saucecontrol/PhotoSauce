@@ -39,7 +39,7 @@ namespace PhotoSauce.MagicScaler
 		public virtual void CopyPixels(Rectangle sourceArea, int cbStride, Span<byte> buffer)
 		{
 			var (rx, ry, rw, rh) = (sourceArea.X, sourceArea.Y, sourceArea.Width, sourceArea.Height);
-			int bpp = PixelFormat.FromGuid(Format).BitsPerPixel / 8;
+			int bpp = PixelFormat.FromGuid(Format).BytesPerPixel;
 			int cb = rw * bpp;
 
 			if (rx < 0 || ry < 0 || rw < 0 || rh < 0 || rx + rw > Width || ry + rh > Height)

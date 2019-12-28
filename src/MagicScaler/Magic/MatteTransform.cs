@@ -107,12 +107,12 @@ namespace PhotoSauce.MagicScaler
 				ipe += VectorF.Count;
 				while (ip < ipe)
 				{
-					float ib = ip[0], ig = ip[1], ir = ip[2], ia = ip[3], ma = fa * (1f - ia);
+					float ib = ip[0], ig = ip[1], ir = ip[2], ia = ip[3], ma = (1f - ia);
 
 					ib += fb * ma;
 					ig += fg * ma;
 					ir += fr * ma;
-					ia += ma;
+					ia += fa * ma;
 
 					ip[0] = ib;
 					ip[1] = ig;
@@ -187,7 +187,7 @@ namespace PhotoSauce.MagicScaler
 						}
 						else if (alpha < maxalpha)
 						{
-							uint ia = Fix15(alpha);
+							uint ia = FastFix15(alpha);
 							uint ib = igt[(uint)ip[0]];
 							uint ig = igt[(uint)ip[1]];
 							uint ir = igt[(uint)ip[2]];

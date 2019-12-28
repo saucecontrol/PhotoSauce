@@ -278,9 +278,9 @@ namespace PhotoSauce.MagicScaler
 			{
 				WicTransforms.AddNativeScaler(ctx);
 				MagicTransforms.AddCropper(ctx);
-				MagicTransforms.AddHighQualityScaler(ctx, true);
+				MagicTransforms.AddHybridScaler(ctx);
 				WicTransforms.AddPixelFormatConverter(ctx);
-				WicTransforms.AddHybridScaler(ctx);
+				MagicTransforms.AddHybridScaler(ctx);
 				MagicTransforms.AddHighQualityScaler(ctx);
 				MagicTransforms.AddColorspaceConverter(ctx);
 				MagicTransforms.AddMatte(ctx);

@@ -145,7 +145,7 @@ namespace PhotoSauce.MagicScaler
 					uint i0 = igt[(uint)ip[0]];
 					uint i1 = igt[(uint)ip[1]];
 					uint i2 = igt[(uint)ip[2]];
-					uint i3 =     Fix15(ip[3]);
+					uint i3 = FastFix15(ip[3]);
 
 					i0 = UnFix15(i0 * i3);
 					i1 = UnFix15(i1 * i3);
@@ -359,10 +359,10 @@ namespace PhotoSauce.MagicScaler
 
 			unsafe private static void convertUQ15(byte* ipstart, byte* opstart, byte* gtstart, int cb)
 			{
-				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb) - 4;
+				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb);
 				byte* op = opstart, gt = gtstart;
 
-				while (ip <= ipe)
+				while (ip < ipe)
 				{
 					uint i3 = ip[3];
 					byte o3 = UnFix15ToByte(i3 * byte.MaxValue);
@@ -393,11 +393,11 @@ namespace PhotoSauce.MagicScaler
 
 			unsafe private static void convertFloat(byte* ipstart, byte* opstart, byte* gtstart, int cb)
 			{
-				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - 4;
+				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb);
 				byte* op = opstart, gt = gtstart;
 				float fmax = new Vector4(byte.MaxValue).X, fround = new Vector4(0.5f).X, fmin = fround / fmax;
 
-				while (ip <= ipe)
+				while (ip < ipe)
 				{
 					float f3 = ip[3];
 					if (f3 < fmin)

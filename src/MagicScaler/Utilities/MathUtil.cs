@@ -13,6 +13,8 @@ namespace PhotoSauce.MagicScaler
 {
 	internal static class MathUtil
 	{
+		private const uint maskb = ~0x01010101u;
+
 		private const int ishift = 15;
 		private const int iscale = 1 << ishift;
 		private const int imax = (1 << ishift + 1) - 1;
@@ -86,13 +88,10 @@ namespace PhotoSauce.MagicScaler
 		public static byte FixToByte(float x) => ClampToByte((int)(x * byte.MaxValue + 0.5f));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static double UnFix15ToDouble(int x) => x * (1d / UQ15One);
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static float UnFix15ToFloat(int x) => x * (1f / UQ15One);
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int UnFix8(int x) => x + (iround >> 7) >> 8;
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static uint UnFix10(uint x) => x + (iround >> 5) >> 10;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int UnFix15(int x) => x + iround >> ishift;
@@ -104,10 +103,10 @@ namespace PhotoSauce.MagicScaler
 		public static int UnFix22(int x) => x + (iround << 7) >> 22;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ushort UnFixToUQ15(int x) => ClampToUQ15(UnFix15(x));
+		public static uint UnFix22(uint x) => x + (iround << 7) >> 22;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ushort UnFixToUQ15One(int x) => ClampToUQ15One(UnFix15(x));
+		public static ushort UnFixToUQ15(int x) => ClampToUQ15(UnFix15(x));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ushort UnFixToUQ15One(uint x) => ClampToUQ15One(UnFix15(x));
@@ -122,6 +121,9 @@ namespace PhotoSauce.MagicScaler
 		public static byte UnFix22ToByte(int x) => ClampToByte(UnFix22(x));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static byte UnFix22ToByte(uint x) => ClampToByte(UnFix22(x));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte ScaleFromVideoLevels(byte x) => UnFix15ToByte((uint)Max(x - VideoLumaMin, 0) * (UQ15One * byte.MaxValue / VideoLumaScale));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -132,6 +134,21 @@ namespace PhotoSauce.MagicScaler
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int PowerOfTwoCeiling(int x, int powerOfTwo) => x + (powerOfTwo - 1) & ~(powerOfTwo - 1);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ulong FastAvgU(ulong x, ulong y, ulong m) => (x | y) - (((x ^ y) & m) >> 1);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ulong FastAvgD(ulong x, ulong y, ulong m) => (x & y) + (((x ^ y) & m) >> 1);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static uint FastAvgBytesU(uint x, uint y) => (x | y) - (((x ^ y) & maskb) >> 1);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static uint FastAvgBytesD(uint x, uint y) => (x & y) + (((x ^ y) & maskb) >> 1);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static uint FastFix15(byte x) => ((uint)x * ((UQ15One << 8) / byte.MaxValue + 1)) >> 8;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static float Sqrt(this float x) =>
