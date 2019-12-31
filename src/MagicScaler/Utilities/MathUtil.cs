@@ -65,15 +65,7 @@ namespace PhotoSauce.MagicScaler
 		public static uint Fix15(byte x) => UnFix15((uint)x * (UQ15One * UQ15One / byte.MaxValue));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int Fix15(double x) => (int)Round(x * UQ15One);
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int Fix15(float x) =>
-#if BUILTIN_MATHF
-			(int)MathF.Round(x * UQ15One);
-#else
-			(int)Round(x * UQ15One);
-#endif
+		public static int Fix15(float x) => RoundF(x * UQ15One);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ushort FixToUQ15One(double x) => ClampToUQ15One((int)(x * UQ15One + 0.5));
@@ -180,6 +172,14 @@ namespace PhotoSauce.MagicScaler
 			MathF.Min(x, o);
 #else
 			x > o ? o : x;
+#endif
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static int RoundF(float x) =>
+#if BUILTIN_MATHF
+			(int)MathF.Round(x);
+#else
+			(int)Round(x);
 #endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

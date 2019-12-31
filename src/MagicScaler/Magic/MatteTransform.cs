@@ -3,10 +3,13 @@ using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
+#if HWINTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
+
 using PhotoSauce.Interop.Wic;
 using static PhotoSauce.MagicScaler.MathUtil;
-
-using VectorF = System.Numerics.Vector<float>;
 
 namespace PhotoSauce.MagicScaler
 {
@@ -15,8 +18,7 @@ namespace PhotoSauce.MagicScaler
 		private readonly uint matteB, matteG, matteR, matteA;
 		private readonly uint matteValue32;
 		private readonly ulong matteValue64;
-		private readonly VectorF vmatte;
-		private readonly Vector<int> vmask0, vmask1;
+		private readonly Vector4 vmatte;
 
 		unsafe public MatteTransform(PixelSource source, Color color) : base(source)
 		{
@@ -40,14 +42,7 @@ namespace PhotoSauce.MagicScaler
 			var atf = LookupTables.Alpha;
 
 			float mr = igtf[color.R], mg = igtf[color.G], mb = igtf[color.B], maa = atf[color.A];
-
-			int* m0 = stackalloc int[] { -1, -1, -1, -1, 0, 0, 0, 0 };
-			int* m1 = stackalloc int[] { -1, -1, -1, 0, -1, -1, -1, 0 };
-			float* mat = stackalloc float[] { mb, mg, mr, 1f, mb, mg, mr, 1f };
-
-			vmask0 = Unsafe.ReadUnaligned<Vector<int>>(m0);
-			vmask1 = Unsafe.ReadUnaligned<Vector<int>>(m1);
-			vmatte = Unsafe.ReadUnaligned<VectorF>(mat) * new VectorF(maa);
+			vmatte = new Vector4(mb, mg, mr, 1f) * new Vector4(maa);
 		}
 
 		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
@@ -57,7 +52,12 @@ namespace PhotoSauce.MagicScaler
 			Profiler.ResumeTiming();
 
 			if (Format == PixelFormat.Pbgra128BppLinearFloat || Format == PixelFormat.Bgrx128BppLinearFloat)
-				applyMatteLinearFloat(prc, (float*)pbBuffer, cbStride / sizeof(float));
+#if HWINTRINSICS
+				if (Avx.IsSupported)
+					applyMatteLinearAvx(prc, (float*)pbBuffer, cbStride / sizeof(float));
+				else
+#endif
+					applyMatteLinearFloat(prc, (float*)pbBuffer, cbStride / sizeof(float));
 			else if (Format == PixelFormat.Pbgra64BppLinearUQ15)
 				applyMatteLinear(prc, (ushort*)pbBuffer, cbStride / sizeof(ushort));
 			else if (Format.FormatGuid == Consts.GUID_WICPixelFormat32bppBGRA)
@@ -66,59 +66,72 @@ namespace PhotoSauce.MagicScaler
 				throw new NotSupportedException("Pixel format not supported.");
 		}
 
-		unsafe private void applyMatteLinearFloat(in PixelArea prc, float* pixels, int stride)
+#if HWINTRINSICS
+		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+		unsafe private void applyMatteLinearAvx(in PixelArea prc, float* pixels, int stride)
 		{
-			var v1 = VectorF.One;
-			var vm0 = vmask0;
-			var vm1 = vmask1;
-			var vmat = vmatte;
-			float fb = vmat[0], fg = vmat[1], fr = vmat[2], fa = vmat[3];
+			var vmt = vmatte;
+			var vmat = Avx.BroadcastVector128ToVector256((float*)&vmt);
+			var vone = Vector256.Create(1f);
 
 			for (int y = 0; y < prc.Height; y++)
 			{
 				float* ip = pixels + y * stride;
-				float* ipe = ip + prc.Width * 4 - VectorF.Count;
+				float* ipe = ip + prc.Width * 4;
 
+				ipe -= Vector256<float>.Count;
 				while (ip <= ipe)
 				{
-					var vi = Unsafe.ReadUnaligned<VectorF>(ip);
-					float ia0 = vi[3], ia1 = VectorF.Count == 8 ? vi[7] : ia0;
+					var vi = Avx.LoadVector256(ip);
+					var va = Avx.Shuffle(vi, vi, HWIntrinsics.ShuffleMaskAlpha);
 
-					if (ia0 == 0 && ia1 == 0)
-					{
-						Unsafe.WriteUnaligned(ip, vmat);
-					}
-					else if (ia0 < 1f || ia1 < 1f)
-					{
-						var vpa = new VectorF(ia0);
-						if (VectorF.Count == 8)
-							vpa = Vector.ConditionalSelect(vm0, vpa, new VectorF(ia1));
+					va = Avx.Subtract(vone, va);
+					if (Fma.IsSupported)
+						vi = Fma.MultiplyAdd(vmat, va, vi);
+					else
+						vi = Avx.Add(vi, Avx.Multiply(vmat, va));
 
-						var vma = vmat * (v1 - vpa);
-
-						var vr = vi + vma;
-						var vo = Vector.ConditionalSelect(vm1, vr, vma + vpa);
-						Unsafe.WriteUnaligned(ip, vo);
-					}
-
-					ip += VectorF.Count;
+					Avx.Store(ip, vi);
+					ip += Vector256<float>.Count;
 				}
+				ipe += Vector256<float>.Count;
 
-				ipe += VectorF.Count;
 				while (ip < ipe)
 				{
-					float ib = ip[0], ig = ip[1], ir = ip[2], ia = ip[3], ma = (1f - ia);
+					var vi = Sse.LoadVector128(ip);
+					var va = Sse.Shuffle(vi, vi, HWIntrinsics.ShuffleMaskAlpha);
 
-					ib += fb * ma;
-					ig += fg * ma;
-					ir += fr * ma;
-					ia += fa * ma;
+					va = Sse.Subtract(vone.GetLower(), va);
+					if (Fma.IsSupported)
+						vi = Fma.MultiplyAdd(vmat.GetLower(), va, vi);
+					else
+						vi = Sse.Add(vi, Sse.Multiply(vmat.GetLower(), va));
 
-					ip[0] = ib;
-					ip[1] = ig;
-					ip[2] = ir;
-					ip[3] = ia;
+					Sse.Store(ip, vi);
+					ip += Vector128<float>.Count;
+				}
+			}
+		}
+#endif
 
+		unsafe private void applyMatteLinearFloat(in PixelArea prc, float* pixels, int stride)
+		{
+			var vmat = vmatte;
+			var vone = Vector4.One;
+
+			for (int y = 0; y < prc.Height; y++)
+			{
+				float* ip = pixels + y * stride;
+				float* ipe = ip + prc.Width * 4;
+
+				while (ip < ipe)
+				{
+					var vi = Unsafe.ReadUnaligned<Vector4>(ip);
+					var va = vone - new Vector4(vi.W);
+
+					vi += vmat * va;
+
+					Unsafe.WriteUnaligned(ip, vi);
 					ip += 4;
 				}
 			}
@@ -157,7 +170,6 @@ namespace PhotoSauce.MagicScaler
 						ip[2] = ClampToUQ15(ir);
 						ip[3] = ClampToUQ15(ia);
 					}
-
 					ip += 4;
 				}
 			}
@@ -212,7 +224,6 @@ namespace PhotoSauce.MagicScaler
 							ip[2] = gt[ir];
 							ip[3] = UnFix15ToByte(ia * maxalpha);
 						}
-
 						ip += 4;
 					}
 				}

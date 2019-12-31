@@ -13,28 +13,28 @@ using VectorF = System.Numerics.Vector<float>;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal sealed class Convolver4ChanFloat : IConvolver
+	internal sealed partial class Convolver4ChanFloat : IConvolver
 	{
-		private const int Channels = 4;
+		private const int channels = 4;
 
 		public static readonly Convolver4ChanFloat Instance = new Convolver4ChanFloat();
 
 		private Convolver4ChanFloat() { }
 
-		int IConvolver.Channels => Channels;
-		int IConvolver.MapChannels => Channels;
+		int IConvolver.Channels => channels;
+		int IConvolver.MapChannels => channels;
 
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
 			float* pmapx = (float*)mapxstart;
-			int kstride = smapx * Channels;
-			int tstride = smapy * Channels;
+			int kstride = smapx * channels;
+			int tstride = smapy * channels;
 
 			while (tp < tpe)
 			{
 				int ix = *(int*)pmapx++;
-				float* ip = (float*)istart + ix * Channels, ipe = ip + kstride;
+				float* ip = (float*)istart + ix * channels, ipe = ip + kstride;
 				float* mp = pmapx;
 				pmapx += kstride;
 
@@ -92,8 +92,8 @@ namespace PhotoSauce.MagicScaler
 					a2 += ip[2] * mp[2];
 					a3 += ip[3] * mp[3];
 
-					ip += Channels;
-					mp += Channels;
+					ip += channels;
+					mp += channels;
 				}
 
 				tp[0] = a0;
@@ -107,7 +107,7 @@ namespace PhotoSauce.MagicScaler
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			float* op = (float*)ostart;
-			int xc = ox + ow, tstride = smapy * Channels;
+			int xc = ox + ow, tstride = smapy * channels;
 
 			while (ox < xc)
 			{
@@ -168,38 +168,35 @@ namespace PhotoSauce.MagicScaler
 					a2 += tp[2] * mp[2];
 					a3 += tp[3] * mp[3];
 
-					tp += Channels;
-					mp += Channels;
+					tp += channels;
+					mp += channels;
 				}
 
 				op[0] = a0;
 				op[1] = a1;
 				op[2] = a2;
 				op[3] = a3;
-				op += Channels;
+				op += channels;
 				ox++;
 			}
 		}
 
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
+		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
 		{
-			float famt = amt * 0.01f;
-			float threshold = (float)thresh / byte.MaxValue;
+			float* ip = (float*)cstart + ox * channels, yp = (float*)ystart + ox, bp = (float*)bstart, op = (float*)ostart;
+			float* ipe = ip + ow * channels;
 
-			float* ip = (float*)cstart + ox * Channels, yp = (float*)ystart + ox, bp = (float*)bstart, op = (float*)ostart;
-			float* ipe = ip + ow * Channels;
-
+			bool threshold = thresh > 0f;
 			var vmin = Vector4.Zero;
-			var vamt = new Vector4(famt);
-			vamt.W = 0f;
+			var vamt = new Vector4(amt) { W = 0f };
 
 			while (ip < ipe)
 			{
 				float dif = *yp++ - *bp++;
 				var c0 = Unsafe.ReadUnaligned<Vector4>(ip);
-				ip += Channels;
+				ip += channels;
 
-				if (threshold == 0 || Math.Abs(dif) > threshold)
+				if (!threshold || Math.Abs(dif) > thresh)
 				{
 					var vd = new Vector4(dif) * vamt;
 
@@ -216,63 +213,63 @@ namespace PhotoSauce.MagicScaler
 				}
 
 				Unsafe.WriteUnaligned(op, c0);
-				op += Channels;
+				op += channels;
 			}
 		}
 	}
 
-	internal sealed class Convolver3ChanFloat : IConvolver
+	internal sealed partial class Convolver3ChanFloat : IConvolver
 	{
-		private const int Vector4Count = 4;
+		private const int vector4Count = 4;
 
-		private const int Channels = 3;
+		private const int channels = 3;
 
 		public static readonly Convolver3ChanFloat Instance = new Convolver3ChanFloat();
 
 		private Convolver3ChanFloat() { }
 
-		int IConvolver.Channels => Channels;
-		int IConvolver.MapChannels => Channels;
+		int IConvolver.Channels => channels;
+		int IConvolver.MapChannels => channels;
 
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
 			float* pmapx = (float*)mapxstart;
-			int kstride = smapx * Channels;
+			int kstride = smapx * channels;
 			int tstride = smapy * 4;
 
 			while (tp < tpe)
 			{
 				int ix = *(int*)pmapx++;
-				float* ip = (float*)istart + ix * Channels, ipe = ip + kstride;
+				float* ip = (float*)istart + ix * channels, ipe = ip + kstride;
 				float* mp = pmapx;
 				pmapx += kstride;
 
 				float a0, a1, a2;
 
-				if (kstride >= Vector4Count * 3)
+				if (kstride >= vector4Count * 3)
 				{
 					Vector4 av0 = Vector4.Zero, av1 = av0, av2 = av0;
-					ipe -= Vector4Count * 3;
+					ipe -= vector4Count * 3;
 
 					do
 					{
 						var iv0 = Unsafe.ReadUnaligned<Vector4>(ip);
-						var iv1 = Unsafe.ReadUnaligned<Vector4>(ip + Vector4Count);
-						var iv2 = Unsafe.ReadUnaligned<Vector4>(ip + Vector4Count * 2);
-						ip += Vector4Count * 3;
+						var iv1 = Unsafe.ReadUnaligned<Vector4>(ip + vector4Count);
+						var iv2 = Unsafe.ReadUnaligned<Vector4>(ip + vector4Count * 2);
+						ip += vector4Count * 3;
 
 						var mv0 = Unsafe.ReadUnaligned<Vector4>(mp);
-						var mv1 = Unsafe.ReadUnaligned<Vector4>(mp + Vector4Count);
-						var mv2 = Unsafe.ReadUnaligned<Vector4>(mp + Vector4Count * 2);
-						mp += Vector4Count * 3;
+						var mv1 = Unsafe.ReadUnaligned<Vector4>(mp + vector4Count);
+						var mv2 = Unsafe.ReadUnaligned<Vector4>(mp + vector4Count * 2);
+						mp += vector4Count * 3;
 
 						av0 += iv0 * mv0;
 						av1 += iv1 * mv1;
 						av2 += iv2 * mv2;
 					} while (ip <= ipe);
 
-					ipe += Vector4Count * 3;
+					ipe += vector4Count * 3;
 
 					a0 = av0.X + av0.W + av1.Z + av2.Y;
 					a1 = av0.Y + av1.X + av1.W + av2.Z;
@@ -289,8 +286,8 @@ namespace PhotoSauce.MagicScaler
 					a1 += ip[1] * mp[1];
 					a2 += ip[2] * mp[2];
 
-					ip += Channels;
-					mp += Channels;
+					ip += channels;
+					mp += channels;
 				}
 
 				tp[0] = a0;
@@ -302,31 +299,31 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy) => throw new NotImplementedException();
 
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma) => throw new NotImplementedException();
+		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma) => throw new NotImplementedException();
 	}
 
-	internal sealed class Convolver3XChanFloat : IConvolver
+	internal sealed partial class Convolver3XChanFloat : IConvolver
 	{
-		private const int Channels = 4;
+		private const int channels = 4;
 
 		public static readonly Convolver3XChanFloat Instance = new Convolver3XChanFloat();
 
 		private Convolver3XChanFloat() { }
 
-		int IConvolver.Channels => Channels;
-		int IConvolver.MapChannels => Channels;
+		int IConvolver.Channels => channels;
+		int IConvolver.MapChannels => channels;
 
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
 			float* pmapx = (float*)mapxstart;
-			int kstride = smapx * Channels;
-			int tstride = smapy * Channels;
+			int kstride = smapx * channels;
+			int tstride = smapy * channels;
 
 			while (tp < tpe)
 			{
 				int ix = *(int*)pmapx++;
-				float* ip = (float*)istart + ix * Channels, ipe = ip + kstride;
+				float* ip = (float*)istart + ix * channels, ipe = ip + kstride;
 				float* mp = pmapx;
 				pmapx += kstride;
 
@@ -381,8 +378,8 @@ namespace PhotoSauce.MagicScaler
 					a1 += ip[1] * mp[1];
 					a2 += ip[2] * mp[2];
 
-					ip += Channels;
-					mp += Channels;
+					ip += channels;
+					mp += channels;
 				}
 
 				tp[0] = a0;
@@ -395,7 +392,7 @@ namespace PhotoSauce.MagicScaler
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			float* op = (float*)ostart;
-			int xc = ox + ow, tstride = smapy * Channels;
+			int xc = ox + ow, tstride = smapy * channels;
 
 			while (ox < xc)
 			{
@@ -453,37 +450,34 @@ namespace PhotoSauce.MagicScaler
 					a1 += tp[1] * mp[1];
 					a2 += tp[2] * mp[2];
 
-					tp += Channels;
-					mp += Channels;
+					tp += channels;
+					mp += channels;
 				}
 
 				op[0] = a0;
 				op[1] = a1;
 				op[2] = a2;
-				op += Channels;
+				op += channels;
 				ox++;
 			}
 		}
 
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
+		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
 		{
-			float famt = amt * 0.01f;
-			float threshold = (float)thresh / byte.MaxValue;
+			float* ip = (float*)cstart + ox * channels, yp = (float*)ystart + ox, bp = (float*)bstart, op = (float*)ostart;
+			float* ipe = ip + ow * channels;
 
-			float* ip = (float*)cstart + ox * Channels, yp = (float*)ystart + ox, bp = (float*)bstart, op = (float*)ostart;
-			float* ipe = ip + ow * Channels;
-
+			bool threshold = thresh > 0f;
 			var vmin = Vector4.Zero;
-			var vamt = new Vector4(famt);
-			vamt.W = 0f;
+			var vamt = new Vector4(amt) { W = 0f };
 
 			while (ip < ipe)
 			{
 				float dif = *yp++ - *bp++;
 				var c0 = Unsafe.ReadUnaligned<Vector4>(ip);
-				ip += Channels;
+				ip += channels;
 
-				if (threshold == 0 || Math.Abs(dif) > threshold)
+				if (!threshold || Math.Abs(dif) > thresh)
 				{
 					var vd = new Vector4(dif) * vamt;
 
@@ -500,35 +494,35 @@ namespace PhotoSauce.MagicScaler
 				}
 
 				Unsafe.WriteUnaligned(op, c0);
-				op += Channels;
+				op += channels;
 			}
 		}
 	}
 
-	internal sealed class Convolver1ChanFloat : IConvolver
+	internal sealed partial class Convolver1ChanFloat : IConvolver
 	{
-		private const int Channels = 1;
+		private const int channels = 1;
 
 		public static readonly Convolver1ChanFloat Instance = new Convolver1ChanFloat();
 
 		private Convolver1ChanFloat() { }
 
-		int IConvolver.Channels => Channels;
-		int IConvolver.MapChannels => Channels;
+		int IConvolver.Channels => channels;
+		int IConvolver.MapChannels => channels;
 
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
 			float* pmapx = (float*)mapxstart;
-			int kstride = smapx * Channels;
-			int tstride = smapy * Channels;
+			int kstride = smapx * channels;
+			int tstride = smapy * channels;
 
 			var m0 = VectorF.One;
 
 			while (tp < tpe)
 			{
 				int ix = *(int*)pmapx++;
-				float* ip = (float*)istart + ix * Channels, ipe = ip + kstride;
+				float* ip = (float*)istart + ix * channels, ipe = ip + kstride;
 				float* mp = pmapx;
 				pmapx += kstride;
 
@@ -563,8 +557,8 @@ namespace PhotoSauce.MagicScaler
 				{
 					a0 += ip[0] * mp[0];
 
-					ip += Channels;
-					mp += Channels;
+					ip += channels;
+					mp += channels;
 				}
 
 				tp[0] = a0;
@@ -575,7 +569,7 @@ namespace PhotoSauce.MagicScaler
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			float* op = (float*)ostart;
-			int xc = ox + ow, tstride = smapy * Channels;
+			int xc = ox + ow, tstride = smapy * channels;
 
 			var m0 = VectorF.One;
 
@@ -615,36 +609,35 @@ namespace PhotoSauce.MagicScaler
 				{
 					a0 += tp[0] * mp[0];
 
-					tp += Channels;
-					mp += Channels;
+					tp += channels;
+					mp += channels;
 				}
 
 				op[0] = a0;
-				op += Channels;
+				op += channels;
 				ox++;
 			}
 		}
 
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
+		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
 		{
-			float famt = amt * 0.01f;
-			float threshold = (float)thresh / byte.MaxValue;
+			float* ip = (float*)cstart + ox * channels, yp = (float*)ystart + ox, bp = (float*)bstart, op = (float*)ostart;
+			float* ipe = ip + ow * channels;
 
-			float* ip = (float*)cstart + ox * Channels, yp = (float*)ystart + ox, bp = (float*)bstart, op = (float*)ostart;
-			float* ipe = ip + ow * Channels - VectorF.Count;
-
+			bool threshold = thresh > 0f;
 			var vmin = VectorF.Zero;
-			var vthresh = new VectorF(threshold > 0f ? threshold : -1f);
-			var vamt = new VectorF(famt);
+			var vthresh = new VectorF(threshold ? thresh : -1f);
+			var vamt = new VectorF(amt);
 			float fmin = vmin[0];
 
+			ipe -= VectorF.Count;
 			while (ip <= ipe)
 			{
 				var vd = Unsafe.ReadUnaligned<VectorF>(yp) - Unsafe.ReadUnaligned<VectorF>(bp);
 				yp += VectorF.Count;
 				bp += VectorF.Count;
 
-				if (thresh > 0)
+				if (threshold)
 				{
 					var sm = Vector.GreaterThan(Vector.Abs(vd), vthresh);
 					vd = Vector.ConditionalSelect(sm, vd, vmin);
@@ -652,7 +645,7 @@ namespace PhotoSauce.MagicScaler
 				vd *= vamt;
 
 				var v0 = Unsafe.ReadUnaligned<VectorF>(ip);
-				ip += VectorF.Count * Channels;
+				ip += VectorF.Count * channels;
 
 				if (gamma)
 				{
@@ -666,19 +659,19 @@ namespace PhotoSauce.MagicScaler
 				}
 
 				Unsafe.WriteUnaligned(op, v0);
-				op += VectorF.Count * Channels;
+				op += VectorF.Count * channels;
 			}
-
 			ipe += VectorF.Count;
+
 			while (ip < ipe)
 			{
 				float dif = *yp++ - *bp++;
 				float c0 = *ip;
-				ip += Channels;
+				ip += channels;
 
-				if (threshold == 0 || Math.Abs(dif) > threshold)
+				if (!threshold || Math.Abs(dif) > thresh)
 				{
-					dif *= famt;
+					dif *= amt;
 
 					if (gamma)
 					{
@@ -693,7 +686,7 @@ namespace PhotoSauce.MagicScaler
 				}
 
 				*op = c0;
-				op += Channels;
+				op += channels;
 			}
 		}
 	}

@@ -2,7 +2,6 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 
 using PhotoSauce.Interop.Wic;
@@ -15,17 +14,16 @@ namespace PhotoSauce.MagicScaler
 		int MapChannels { get; }
 		void ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy);
 		void WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy);
-		void SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma);
+		void SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma);
 	}
 
 	internal class ConvolutionTransform<TPixel, TWeight> : PixelSource, IDisposable where TPixel : unmanaged where TWeight : unmanaged
 	{
-		protected static readonly ReadOnlyDictionary<Guid, IConvolver> ProcessorMap = new ReadOnlyDictionary<Guid, IConvolver>(new Dictionary<Guid, IConvolver> {
+		protected static readonly IReadOnlyDictionary<Guid, IConvolver> ProcessorMap = new Dictionary<Guid, IConvolver> {
 			[Consts.GUID_WICPixelFormat32bppCMYK          ] = Convolver4ChanByte.Instance,
 			[Consts.GUID_WICPixelFormat32bppPBGRA         ] = Convolver4ChanByte.Instance,
 			[Consts.GUID_WICPixelFormat32bppBGRA          ] = ConvolverBgraByte.Instance,
 			[Consts.GUID_WICPixelFormat24bppBGR           ] = ConvolverBgrByte.Instance,
-			//[Consts.GUID_WICPixelFormat16bppCbCr        ] = Convolver2ChanByte.Instance,
 			[Consts.GUID_WICPixelFormat8bppGray           ] = Convolver1ChanByte.Instance,
 			[Consts.GUID_WICPixelFormat8bppY              ] = Convolver1ChanByte.Instance,
 			[Consts.GUID_WICPixelFormat8bppCb             ] = Convolver1ChanByte.Instance,
@@ -41,14 +39,13 @@ namespace PhotoSauce.MagicScaler
 			[PixelFormat.Bgrx128BppFloat.FormatGuid       ] = Convolver3XChanFloat.Instance,
 			[PixelFormat.Bgr96BppLinearFloat.FormatGuid   ] = Convolver3ChanFloat.Instance,
 			[PixelFormat.Bgr96BppFloat.FormatGuid         ] = Convolver3ChanFloat.Instance,
-			//[PixelFormat.CbCr64BppFloat.FormatGuid      ] = Convolver2ChanFloat.Instance,
 			[PixelFormat.Grey32BppLinearFloat.FormatGuid  ] = Convolver1ChanFloat.Instance,
 			[PixelFormat.Grey32BppFloat.FormatGuid        ] = Convolver1ChanFloat.Instance,
 			[PixelFormat.Y32BppLinearFloat.FormatGuid     ] = Convolver1ChanFloat.Instance,
 			[PixelFormat.Y32BppFloat.FormatGuid           ] = Convolver1ChanFloat.Instance,
 			[PixelFormat.Cb32BppFloat.FormatGuid          ] = Convolver1ChanFloat.Instance,
 			[PixelFormat.Cr32BppFloat.FormatGuid          ] = Convolver1ChanFloat.Instance
-		});
+		};
 
 		protected readonly KernelMap<TWeight> XMap, YMap;
 		protected readonly IConvolver XProcessor, YProcessor;
@@ -63,8 +60,8 @@ namespace PhotoSauce.MagicScaler
 		public static ConvolutionTransform<TPixel, TWeight> CreateResize(PixelSource src, int width, int height, InterpolationSettings interpolatorx, InterpolationSettings interpolatory, bool offsetX, bool offsetY)
 		{
 			var fmt = src.Format;
-			var mx = KernelMap<TWeight>.MakeScaleMap(src.Width, width, interpolatorx, fmt.ChannelCount, offsetX, typeof(TPixel) == typeof(float));
-			var my = KernelMap<TWeight>.MakeScaleMap(src.Height, height, interpolatory, fmt.ChannelCount == 3 ? 4 : fmt.ChannelCount, offsetY, typeof(TPixel) == typeof(float));
+			var mx = KernelMap<TWeight>.CreateResample(src.Width, width, interpolatorx, fmt.ChannelCount, offsetX, typeof(TPixel) == typeof(float));
+			var my = KernelMap<TWeight>.CreateResample(src.Height, height, interpolatory, fmt.ChannelCount == 3 ? 4 : fmt.ChannelCount, offsetY, typeof(TPixel) == typeof(float));
 
 			return new ConvolutionTransform<TPixel, TWeight>(src, mx, my);
 		}
@@ -72,8 +69,8 @@ namespace PhotoSauce.MagicScaler
 		public static ConvolutionTransform<TPixel, TWeight> CreateBlur(PixelSource src, double radius)
 		{
 			var fmt = src.Format;
-			var mx = KernelMap<TWeight>.MakeBlurMap(src.Width, radius, fmt.ChannelCount, typeof(TPixel) == typeof(float));
-			var my = KernelMap<TWeight>.MakeBlurMap(src.Height, radius, fmt.ChannelCount == 3 ? 4 : fmt.ChannelCount, typeof(TPixel) == typeof(float));
+			var mx = KernelMap<TWeight>.CreateBlur(src.Width, radius, fmt.ChannelCount, typeof(TPixel) == typeof(float));
+			var my = KernelMap<TWeight>.CreateBlur(src.Height, radius, fmt.ChannelCount == 3 ? 4 : fmt.ChannelCount, typeof(TPixel) == typeof(float));
 
 			return new ConvolutionTransform<TPixel, TWeight>(src, mx, my);
 		}
@@ -93,7 +90,7 @@ namespace PhotoSauce.MagicScaler
 				          throw new NotSupportedException("Unsupported pixel format: " + infmt.Name);
 			}
 
-			if (!ProcessorMap.TryGetValue(workfmt.FormatGuid, out XProcessor))
+			if (!ProcessorMap.TryGetValue(workfmt.FormatGuid, out XProcessor!))
 				throw new NotSupportedException("Unsupported pixel format: " + workfmt.Name);
 
 			if (workfmt == PixelFormat.Bgr96BppLinearFloat)
@@ -102,6 +99,12 @@ namespace PhotoSauce.MagicScaler
 				Format = workfmt = PixelFormat.Bgrx128BppFloat;
 
 			YProcessor = ProcessorMap[workfmt.FormatGuid];
+
+			if (HWIntrinsics.IsSupported && (mapx.Samples & 3) == 0 && XProcessor is IVectorConvolver vcx)
+				XProcessor = vcx.IntrinsicImpl;
+			if (HWIntrinsics.IsSupported && (mapy.Samples & 3) == 0 && YProcessor is IVectorConvolver vcy)
+				YProcessor = vcy.IntrinsicImpl;
+
 			XMap = mapx;
 			YMap = mapy;
 
@@ -214,15 +217,15 @@ namespace PhotoSauce.MagicScaler
 
 	internal class UnsharpMaskTransform<TPixel, TWeight> : ConvolutionTransform<TPixel, TWeight> where TPixel : unmanaged where TWeight : unmanaged
 	{
-		private readonly UnsharpMaskSettings sharpenSettings;
 		private readonly IConvolver processor;
+		private readonly float amount, threshold;
 
 		private byte[] blurBuff;
 
 		public static UnsharpMaskTransform<TPixel, TWeight> CreateSharpen(PixelSource src, UnsharpMaskSettings sharp)
 		{
-			var mx = KernelMap<TWeight>.MakeBlurMap(src.Width, sharp.Radius, 1, typeof(TPixel) == typeof(float));
-			var my = KernelMap<TWeight>.MakeBlurMap(src.Height, sharp.Radius, 1, typeof(TPixel) == typeof(float));
+			var mx = KernelMap<TWeight>.CreateBlur(src.Width, sharp.Radius, 1, typeof(TPixel) == typeof(float));
+			var my = KernelMap<TWeight>.CreateBlur(src.Height, sharp.Radius, 1, typeof(TPixel) == typeof(float));
 
 			return new UnsharpMaskTransform<TPixel, TWeight>(src, mx, my, sharp);
 		}
@@ -231,8 +234,13 @@ namespace PhotoSauce.MagicScaler
 		{
 			Debug.Assert(SrcBuff != null && WorkBuff != null);
 
-			sharpenSettings = ss;
 			processor = ProcessorMap[Format.FormatGuid];
+			if (HWIntrinsics.IsSupported && processor is IVectorConvolver vc)
+				processor = vc.IntrinsicImpl;
+
+			amount = ss.Amount * 0.01f;
+			threshold = (float)ss.Threshold / byte.MaxValue;
+
 			blurBuff = ArrayPool<byte>.Shared.Rent(WorkBuff.Stride);
 		}
 
@@ -245,7 +253,7 @@ namespace PhotoSauce.MagicScaler
 			fixed (byte* bstart = bspan, wstart = wspan, tstart = tspan, blurstart = &blurBuff[0])
 			{
 				YProcessor.WriteDestLine(tstart, blurstart, ox, ow, pmapy, smapy);
-				processor.SharpenLine(bstart, wstart, blurstart, ostart, ox, ow, sharpenSettings.Amount, sharpenSettings.Threshold, Format.Encoding == PixelValueEncoding.Linear);
+				processor.SharpenLine(bstart, wstart, blurstart, ostart, ox, ow, amount, threshold, Format.Encoding == PixelValueEncoding.Linear);
 			}
 		}
 

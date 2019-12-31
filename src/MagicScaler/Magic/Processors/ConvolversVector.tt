@@ -69,7 +69,7 @@ namespace PhotoSauce.MagicScaler
 foreach (var t in ta) {
 	if (t != ta[0]) WriteLine(null);
 #>
-	internal sealed class Convolver<#= t.name #>Float : IConvolver
+	internal sealed partial class Convolver<#= t.name #>Float : IConvolver
 	{
 <#
 if (t.vtype != "F") {
@@ -79,21 +79,21 @@ if (t.vtype != "F") {
 <#
 }
 #>
-		private const int Channels = <#= t.channels #>;
+		private const int channels = <#= t.channels #>;
 
 		public static readonly Convolver<#= t.name #>Float Instance = new Convolver<#= t.name #>Float();
 
 		private Convolver<#= t.name #>Float() { }
 
-		int IConvolver.Channels => Channels;
-		int IConvolver.MapChannels => Channels;
+		int IConvolver.Channels => channels;
+		int IConvolver.MapChannels => channels;
 
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
 			float* pmapx = (float*)mapxstart;
-			int kstride = smapx * Channels;
-			int tstride = smapy * <#= t.channels == 3 ? "4" /* 3Chan to 3XChan x-over */ : "Channels" #>;
+			int kstride = smapx * channels;
+			int tstride = smapy * <#= t.channels == 3 ? "4" /* 3Chan to 3XChan x-over */ : "channels" #>;
 <#
 if (t.channels == 1) {
 #>
@@ -106,7 +106,7 @@ if (t.channels == 1) {
 			while (tp < tpe)
 			{
 				int ix = *(int*)pmapx++;
-				float* ip = (float*)istart + ix * Channels, ipe = ip + kstride;
+				float* ip = (float*)istart + ix * channels, ipe = ip + kstride;
 				float* mp = pmapx;
 				pmapx += kstride;
 
@@ -203,8 +203,8 @@ for (int i = 0; i < t.colors; i++) {
 }
 #>
 
-					ip += Channels;
-					mp += Channels;
+					ip += channels;
+					mp += channels;
 				}
 
 <#
@@ -224,7 +224,7 @@ if (t.yUnroll > 0) {
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			float* op = (float*)ostart;
-			int xc = ox + ow, tstride = smapy * Channels;
+			int xc = ox + ow, tstride = smapy * channels;
 <#
 if (t.channels == 1) {
 #>
@@ -332,8 +332,8 @@ if (t.channels == 4) {
 	}
 #>
 
-					tp += Channels;
-					mp += Channels;
+					tp += channels;
+					mp += channels;
 				}
 
 <#
@@ -343,7 +343,7 @@ for (int j = 0; j < t.colors; j++) {
 <#
 }
 #>
-				op += Channels;
+				op += channels;
 				ox++;
 			}
 		}
@@ -359,26 +359,23 @@ for (int j = 0; j < t.colors; j++) {
 //http://en.wikipedia.org/wiki/Unsharp_masking
 if (t.sharpen) {
 #>
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
+		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
 		{
-			float famt = amt * 0.01f;
-			float threshold = (float)thresh / byte.MaxValue;
+			float* ip = (float*)cstart + ox * channels, yp = (float*)ystart + ox, bp = (float*)bstart, op = (float*)ostart;
+			float* ipe = ip + ow * channels;
 
-			float* ip = (float*)cstart + ox * Channels, yp = (float*)ystart + ox, bp = (float*)bstart, op = (float*)ostart;
-			float* ipe = ip + ow * Channels<#= t.channels == 1 ? " - VectorF.Count" : "" #>;
-
+			bool threshold = thresh > 0f;
 			var vmin = Vector<#= t.channels == 1 ? "F" : t.channels.ToString() #>.Zero;
 <#
 if (t.channels == 1) {
 #>
-			var vthresh = new VectorF(threshold > 0f ? threshold : -1f);
-			var vamt = new VectorF(famt);
+			var vthresh = new VectorF(threshold ? thresh : -1f);
+			var vamt = new VectorF(amt);
 			float fmin = vmin[0];
 <#
 } else {
 #>
-			var vamt = new Vector4(famt);
-			vamt.W = 0f;
+			var vamt = new Vector4(amt) { W = 0f };
 <#
 }
 #>
@@ -386,13 +383,14 @@ if (t.channels == 1) {
 <#
 if (t.channels == 1) {
 #>
+			ipe -= VectorF.Count;
 			while (ip <= ipe)
 			{
 				var vd = Unsafe.ReadUnaligned<VectorF>(yp) - Unsafe.ReadUnaligned<VectorF>(bp);
 				yp += VectorF.Count;
 				bp += VectorF.Count;
 
-				if (thresh > 0)
+				if (threshold)
 				{
 					var sm = Vector.GreaterThan(Vector.Abs(vd), vthresh);
 					vd = Vector.ConditionalSelect(sm, vd, vmin);
@@ -400,7 +398,7 @@ if (t.channels == 1) {
 				vd *= vamt;
 
 				var v0 = Unsafe.ReadUnaligned<VectorF>(ip);
-				ip += VectorF.Count * Channels;
+				ip += VectorF.Count * channels;
 
 				if (gamma)
 				{
@@ -414,10 +412,10 @@ if (t.channels == 1) {
 				}
 
 				Unsafe.WriteUnaligned(op, v0);
-				op += VectorF.Count * Channels;
+				op += VectorF.Count * channels;
 			}
-
 			ipe += VectorF.Count;
+
 <#
 }
 #>
@@ -425,11 +423,11 @@ if (t.channels == 1) {
 			{
 				float dif = *yp++ - *bp++;
 				<#= t.channels == 1 ? "float" : "var" #> c0 = <#= t.channels == 1 ? "*ip" : $"Unsafe.ReadUnaligned<Vector{t.channels}>(ip)" #>;
-				ip += Channels;
+				ip += channels;
 
-				if (threshold == 0 || Math.Abs(dif) > threshold)
+				if (!threshold || Math.Abs(dif) > thresh)
 				{
-					<#= t.channels == 1 ? "dif *= famt" : $"var vd = new Vector{t.channels}(dif) * vamt" #>;
+					<#= t.channels == 1 ? "dif *= amt" : $"var vd = new Vector{t.channels}(dif) * vamt" #>;
 
 					if (gamma)
 					{
@@ -444,13 +442,13 @@ if (t.channels == 1) {
 				}
 
 				<#= t.channels == 1 ? "*op = c0" : "Unsafe.WriteUnaligned(op, c0)" #>;
-				op += Channels;
+				op += channels;
 			}
 		}
 <#
 } else {
 #>
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma) => throw new NotImplementedException();
+		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma) => throw new NotImplementedException();
 <#
 }
 #>
@@ -470,7 +468,7 @@ class procDef
 	public int xUnroll;
 	public int yUnroll;
 
-	public string vcnt => vtype == "F" ? "VectorF.Count" : $"Vector{vtype}Count";
+	public string vcnt => vtype == "F" ? "VectorF.Count" : $"vector{vtype}Count";
 	public string xUnrollIncr => vcnt + (xUnroll > 1 ? $" * {xUnroll}" : "");
 	public string yUnrollIncr => vcnt + (yUnroll > 1 ? $" * {yUnroll}" : "");
 }

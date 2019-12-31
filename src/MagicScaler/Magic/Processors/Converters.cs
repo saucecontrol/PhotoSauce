@@ -1,5 +1,11 @@
 ﻿using System;
 
+#if HWINTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+using System.Runtime.CompilerServices;
+#endif
+
 using static PhotoSauce.MagicScaler.MathUtil;
 
 namespace PhotoSauce.MagicScaler
@@ -28,23 +34,68 @@ namespace PhotoSauce.MagicScaler
 
 		private NarrowingConverter() { }
 
+#if HWINTRINSICS
+		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+#endif
 		unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, int cb)
 		{
-			ushort* ip = (ushort*)istart, ipe = (ushort*)(istart + cb) - 4;
+			ushort* ip = (ushort*)istart, ipe = (ushort*)(istart + cb);
 			byte* op = ostart;
 
-			while (ip <= ipe)
+#if HWINTRINSICS
+			if (Avx2.IsSupported)
+			{
+				ipe -= Vector256<byte>.Count;
+				while (ip <= ipe)
+				{
+					var vs0 = Avx.LoadVector256(ip);
+					var vs1 = Avx.LoadVector256(ip + Vector256<ushort>.Count);
+					ip += Vector256<byte>.Count;
+
+					vs0 = Avx2.ShiftRightLogical(vs0, 8);
+					vs1 = Avx2.ShiftRightLogical(vs1, 8);
+
+					var vb0 = Avx2.PackUnsignedSaturate(vs0.AsInt16(), vs1.AsInt16());
+					vb0 = Avx2.Permute4x64(vb0.AsInt64(), HWIntrinsics.PermuteMaskDeinterleave4x64).AsByte();
+
+					Avx.Store(op, vb0);
+					op += Vector256<byte>.Count;
+				}
+				ipe += Vector256<byte>.Count;
+			}
+			else if (Sse2.IsSupported)
+			{
+				ipe -= Vector128<byte>.Count;
+				while (ip <= ipe)
+				{
+					var vs0 = Sse2.LoadVector128(ip);
+					var vs1 = Sse2.LoadVector128(ip + Vector128<ushort>.Count);
+					ip += Vector128<byte>.Count;
+
+					vs0 = Sse2.ShiftRightLogical(vs0, 8);
+					vs1 = Sse2.ShiftRightLogical(vs1, 8);
+
+					var vb0 = Sse2.PackUnsignedSaturate(vs0.AsInt16(), vs1.AsInt16());
+
+					Sse2.Store(op, vb0);
+					op += Vector128<byte>.Count;
+				}
+				ipe += Vector128<byte>.Count;
+			}
+#endif
+
+			while (ip < ipe)
 			{
 				byte o0 = (byte)(ip[0] >> 8);
 				byte o1 = (byte)(ip[1] >> 8);
 				byte o2 = (byte)(ip[2] >> 8);
 				byte o3 = (byte)(ip[3] >> 8);
+				ip += 4;
+
 				op[0] = o0;
 				op[1] = o1;
 				op[2] = o2;
 				op[3] = o3;
-
-				ip += 4;
 				op += 4;
 			}
 		}

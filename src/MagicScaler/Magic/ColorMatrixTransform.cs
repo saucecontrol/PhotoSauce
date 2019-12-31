@@ -175,7 +175,7 @@ namespace PhotoSauce.MagicScaler
 				while (ip <= ipe)
 				{
 					var vi = Avx.LoadVector256(ip);
-					var vn = Avx.Blend(vi, vone, 0b_1000_1000);
+					var vn = Avx.Blend(vi, vone, HWIntrinsics.BlendMaskAlpha);
 
 					var vr0 = Avx.DotProduct(vn, vm0, 0b_1111_0001);
 					var vr1 = Avx.DotProduct(vn, vm1, 0b_1111_0010);
@@ -194,7 +194,7 @@ namespace PhotoSauce.MagicScaler
 				if (ip <= ipe + Vector128<float>.Count)
 				{
 					var vi = Sse.LoadVector128(ip);
-					var vn = Sse41.Blend(vi, vone.GetLower(), 0b_1000_1000);
+					var vn = Sse41.Blend(vi, vone.GetLower(), HWIntrinsics.BlendMaskAlpha);
 
 					var vr0 = Sse41.DotProduct(vn, vm0.GetLower(), 0b_1111_0001);
 					var vr1 = Sse41.DotProduct(vn, vm1.GetLower(), 0b_1111_0010);

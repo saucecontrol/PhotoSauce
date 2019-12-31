@@ -258,10 +258,10 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
+		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
 		{
-			int iamt = Fix15(amt * 0.01);
-			int threshold = thresh;
+			int iamt = Fix15(amt);
+			int threshold = RoundF(thresh * byte.MaxValue);
 
 			byte* ip = cstart + ox * Channels, yp = ystart + ox, bp = bstart, op = ostart;
 
@@ -421,10 +421,10 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
+		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
 		{
-			int iamt = Fix15(amt * 0.01);
-			int threshold = thresh;
+			int iamt = Fix15(amt);
+			int threshold = RoundF(thresh * byte.MaxValue);
 
 			byte* ip = cstart + ox * Channels, yp = ystart + ox, bp = bstart, op = ostart;
 
@@ -584,13 +584,13 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
+		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
 		{
 			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15[0])
 			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15[0])
 			{
-				int iamt = Fix15(amt * 0.01);
-				int threshold = thresh;
+				int iamt = Fix15(amt);
+				int threshold = RoundF(thresh * byte.MaxValue);
 
 				byte* gt = gtstart;
 				ushort* ip = (ushort*)cstart + ox * Channels, yp = (ushort*)ystart + ox, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;
@@ -751,10 +751,10 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
+		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
 		{
-			int iamt = Fix15(amt * 0.01);
-			int threshold = thresh;
+			int iamt = Fix15(amt);
+			int threshold = RoundF(thresh * byte.MaxValue);
 
 			byte* ip = cstart + ox * Channels, yp = ystart + ox, bp = bstart, op = ostart;
 
@@ -907,13 +907,13 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
+		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
 		{
 			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15[0])
 			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15[0])
 			{
-				int iamt = Fix15(amt * 0.01);
-				int threshold = thresh;
+				int iamt = Fix15(amt);
+				int threshold = RoundF(thresh * byte.MaxValue);
 
 				byte* gt = gtstart;
 				ushort* ip = (ushort*)cstart + ox * Channels, yp = (ushort*)ystart + ox, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;
@@ -1039,10 +1039,10 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
+		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
 		{
-			int iamt = Fix15(amt * 0.01);
-			int threshold = thresh;
+			int iamt = Fix15(amt);
+			int threshold = RoundF(thresh * byte.MaxValue);
 
 			byte* ip = cstart + ox * Channels, yp = ystart + ox, bp = bstart, op = ostart;
 
@@ -1158,13 +1158,13 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
+		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
 		{
 			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15[0])
 			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15[0])
 			{
-				int iamt = Fix15(amt * 0.01);
-				int threshold = thresh;
+				int iamt = Fix15(amt);
+				int threshold = RoundF(thresh * byte.MaxValue);
 
 				byte* gt = gtstart;
 				ushort* ip = (ushort*)cstart + ox * Channels, yp = (ushort*)ystart + ox, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;

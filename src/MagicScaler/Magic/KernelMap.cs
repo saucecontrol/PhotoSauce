@@ -26,18 +26,18 @@ namespace PhotoSauce.MagicScaler
 		private static Exception getTypeException() => new NotSupportedException(nameof(T) + " must be int or float");
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		unsafe private static T convertWeight(double d)
+		private static T convertWeight(float f)
 		{
 			if (typeof(T) == typeof(int))
-				return (T)(object)MathUtil.Fix15(d);
+				return (T)(object)MathUtil.Fix15(f);
 			if (typeof(T) == typeof(float))
-				return (T)(object)(float)d;
+				return (T)(object)f;
 
 			throw getTypeException();
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		unsafe private static T add(T a, T b)
+		private static T add(T a, T b)
 		{
 			if (typeof(T) == typeof(int))
 				return (T)(object)((int)(object)a + (int)(object)b);
@@ -47,25 +47,26 @@ namespace PhotoSauce.MagicScaler
 			throw getTypeException();
 		}
 
-		unsafe private static void fillKernelWeights(IInterpolator interpolator, double* kernel, int ksize, double start, double center, double scale)
+		private static void fillWeights(Span<float> kernel, IInterpolator interpolator, double start, double center, double scale)
 		{
 			double sum = 0d;
-			for (int i = 0; i < ksize; i++)
+			for (int i = 0; i < kernel.Length; i++)
 			{
 				double weight = interpolator.GetValue(Math.Abs((start - center + i) * scale));
 				sum += weight;
-				kernel[i] = weight;
+				kernel[i] = (float)weight;
 			}
 
-			sum = 1d / sum;
-			for (int i = 0; i < ksize; i++)
-				kernel[i] *= sum;
+			float kscale = (float)(1 / sum);
+			for (int i = 0; i < kernel.Length; i++)
+				kernel[i] *= kscale;
 		}
 
-		private static int getKernelPadding(int isize, int ksize, int channels)
+		private static int getPadding(int isize, int ksize, int channels)
 		{
-			int inc = channels == 2 || channels == 3 ? 4 : Vector<T>.Count;
-			int kpad = MathUtil.DivCeiling(ksize * channels, inc * channels) * inc - ksize;
+			int kpad = 0, inc = HWIntrinsics.IsSupported || channels == 3 ? 4 : Vector<T>.Count;
+			if ((HWIntrinsics.IsSupported && ksize > 1) || ksize * channels % (inc * channels) > 1)
+				kpad = MathUtil.DivCeiling(ksize * channels, inc * channels) * inc - ksize;
 
 			return ksize + kpad > isize ? 0 : kpad;
 		}
@@ -136,7 +137,7 @@ namespace PhotoSauce.MagicScaler
 			return this;
 		}
 
-		unsafe public static KernelMap<T> MakeScaleMap(int isize, int osize, InterpolationSettings interpolator, int ichannels, bool subsampleOffset, bool vectored)
+		unsafe public static KernelMap<T> CreateResample(int isize, int osize, InterpolationSettings interpolator, int ichannels, bool subsampleOffset, bool vectored)
 		{
 			double offs = interpolator.WeightingFunction.Support < 0.1 ? 0.5 : subsampleOffset ? 0.25 : 0.0;
 			double ratio = Math.Min((double)osize / isize, 1d);
@@ -145,27 +146,28 @@ namespace PhotoSauce.MagicScaler
 
 			int channels = vectored ? ichannels : 1;
 			int ksize = (int)Math.Ceiling(support * 2d);
-			int kpad = vectored ? getKernelPadding(isize, ksize, channels) : 0;
+			int kpad = vectored ? getPadding(isize, ksize, channels) : 0;
 
 			var map = new KernelMap<T>(osize, ksize + kpad, channels);
 			fixed (byte* mstart = map.Map)
 			{
 				int* mp = (int*)mstart;
-				double* kp = stackalloc double[ksize];
-
 				double inc = (double)isize / osize;
 				double spoint = ((double)isize - osize) / (osize * 2d) + offs;
+
+				Span<float> kernel = stackalloc float[ksize];
+
 				for (int i = 0; i < osize; i++)
 				{
 					int start = (int)(spoint + support) - ksize + 1;
-					fillKernelWeights(interpolator.WeightingFunction, kp, ksize, start, spoint, cscale);
+					fillWeights(kernel, interpolator.WeightingFunction, start, spoint, cscale);
 
 					spoint += inc;
 					*mp++ = start;
 
-					for (int j = 0; j < ksize; j++)
+					for (int j = 0; j < kernel.Length; j++)
 					{
-						var w = convertWeight(kp[j]);
+						var w = convertWeight(kernel[j]);
 						for (int k = 0; k < channels; k++)
 							Unsafe.Write(mp++, w);
 					}
@@ -177,7 +179,7 @@ namespace PhotoSauce.MagicScaler
 			return map.clamp(isize);
 		}
 
-		unsafe public static KernelMap<T> MakeBlurMap(int size, double radius, int ichannels, bool vectored)
+		unsafe public static KernelMap<T> CreateBlur(int size, double radius, int ichannels, bool vectored)
 		{
 			var interpolator = radius switch {
 				0.50 => blur_0_50,
@@ -191,23 +193,24 @@ namespace PhotoSauce.MagicScaler
 			int channels = vectored ? ichannels : 1;
 			int dist = (int)Math.Ceiling(interpolator.Support);
 			int ksize = Math.Min(dist * 2 + 1, size);
-			int kpad = vectored ? getKernelPadding(size, ksize, channels) : 0;
+			int kpad = vectored ? getPadding(size, ksize, channels) : 0;
 
 			var map = new KernelMap<T>(size, ksize + kpad, channels);
 			fixed (byte* mstart = map.Map)
 			{
 				int* mp = (int*)mstart;
-				double* kp = stackalloc double[ksize];
-				fillKernelWeights(interpolator, kp, ksize, 0d, dist, 1d);
+
+				Span<float> kernel = stackalloc float[ksize];
+				fillWeights(kernel, interpolator, 0d, dist, 1d);
 
 				for (int i = 0; i < size; i++)
 				{
 					int start = i - ksize / 2;
 					*mp++ = start;
 
-					for (int j = 0; j < ksize; j++)
+					for (int j = 0; j < kernel.Length; j++)
 					{
-						var w = convertWeight(kp[j]);
+						var w = convertWeight(kernel[j]);
 						for (int k = 0; k < channels; k++)
 							Unsafe.Write(mp++, w);
 					}

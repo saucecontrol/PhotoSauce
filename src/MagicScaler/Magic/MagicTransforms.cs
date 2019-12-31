@@ -12,22 +12,17 @@ namespace PhotoSauce.MagicScaler
 			[PixelFormat.Grey32BppFloat.FormatGuid] = Consts.GUID_WICPixelFormat8bppGray,
 			[PixelFormat.Grey32BppLinearFloat.FormatGuid] = Consts.GUID_WICPixelFormat8bppGray,
 			[PixelFormat.Grey16BppLinearUQ15.FormatGuid] = Consts.GUID_WICPixelFormat8bppGray,
-
 			[PixelFormat.Y32BppFloat.FormatGuid] = Consts.GUID_WICPixelFormat8bppY,
 			[PixelFormat.Y32BppLinearFloat.FormatGuid] = Consts.GUID_WICPixelFormat8bppY,
 			[PixelFormat.Y16BppLinearUQ15.FormatGuid] = Consts.GUID_WICPixelFormat8bppY,
-
 			[PixelFormat.Bgrx128BppFloat.FormatGuid] = Consts.GUID_WICPixelFormat24bppBGR,
 			[PixelFormat.Bgrx128BppLinearFloat.FormatGuid] = Consts.GUID_WICPixelFormat24bppBGR,
 			[PixelFormat.Bgr96BppFloat.FormatGuid] = Consts.GUID_WICPixelFormat24bppBGR,
 			[PixelFormat.Bgr96BppLinearFloat.FormatGuid] = Consts.GUID_WICPixelFormat24bppBGR,
 			[PixelFormat.Bgr48BppLinearUQ15.FormatGuid] = Consts.GUID_WICPixelFormat24bppBGR,
-
 			[PixelFormat.Pbgra128BppFloat.FormatGuid] = Consts.GUID_WICPixelFormat32bppBGRA,
 			[PixelFormat.Pbgra128BppLinearFloat.FormatGuid] = Consts.GUID_WICPixelFormat32bppBGRA,
 			[PixelFormat.Pbgra64BppLinearUQ15.FormatGuid] = Consts.GUID_WICPixelFormat32bppBGRA,
-
-			//[PixelFormat.CbCr64BppFloat.FormatGuid] = Consts.GUID_WICPixelFormat16bppCbCr,
 			[PixelFormat.Cb32BppFloat.FormatGuid] = Consts.GUID_WICPixelFormat8bppCb,
 			[PixelFormat.Cr32BppFloat.FormatGuid] = Consts.GUID_WICPixelFormat8bppCr
 		};
@@ -38,13 +33,10 @@ namespace PhotoSauce.MagicScaler
 			[Consts.GUID_WICPixelFormat24bppBGR] = PixelFormat.Bgrx128BppFloat.FormatGuid,
 			[Consts.GUID_WICPixelFormat32bppBGRA] = PixelFormat.Pbgra128BppFloat.FormatGuid,
 			[Consts.GUID_WICPixelFormat32bppPBGRA] = PixelFormat.Pbgra128BppFloat.FormatGuid, // !
-
 			[PixelFormat.Grey32BppLinearFloat.FormatGuid] = PixelFormat.Grey32BppFloat.FormatGuid,
 			[PixelFormat.Y32BppLinearFloat.FormatGuid] = PixelFormat.Y32BppFloat.FormatGuid,
 			[PixelFormat.Bgrx128BppLinearFloat.FormatGuid] = PixelFormat.Bgrx128BppFloat.FormatGuid,
 			[PixelFormat.Pbgra128BppLinearFloat.FormatGuid] = PixelFormat.Pbgra128BppFloat.FormatGuid,
-
-			//[Consts.GUID_WICPixelFormat16bppCbCr] = PixelFormat.CbCr64BppFloat.FormatGuid,
 			[Consts.GUID_WICPixelFormat8bppCb] = PixelFormat.Cb32BppFloat.FormatGuid,
 			[Consts.GUID_WICPixelFormat8bppCr] = PixelFormat.Cr32BppFloat.FormatGuid
 		};
@@ -61,13 +53,11 @@ namespace PhotoSauce.MagicScaler
 			[Consts.GUID_WICPixelFormat8bppY] = PixelFormat.Y32BppLinearFloat.FormatGuid,
 			[Consts.GUID_WICPixelFormat24bppBGR] = PixelFormat.Bgrx128BppLinearFloat.FormatGuid,
 			[Consts.GUID_WICPixelFormat32bppBGRA] = PixelFormat.Pbgra128BppLinearFloat.FormatGuid,
-
 			[PixelFormat.Grey32BppFloat.FormatGuid] = PixelFormat.Grey32BppLinearFloat.FormatGuid,
 			[PixelFormat.Y32BppFloat.FormatGuid] = PixelFormat.Y32BppLinearFloat.FormatGuid,
 			[PixelFormat.Bgrx128BppFloat.FormatGuid] = PixelFormat.Bgrx128BppLinearFloat.FormatGuid,
 			[PixelFormat.Pbgra128BppFloat.FormatGuid] = PixelFormat.Pbgra128BppLinearFloat.FormatGuid,
 		};
-
 
 		public static void AddInternalFormatConverter(PipelineContext ctx, PixelValueEncoding enc = PixelValueEncoding.Unspecified, bool allow96bppFloat = false)
 		{

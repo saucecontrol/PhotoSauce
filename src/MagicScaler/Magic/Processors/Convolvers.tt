@@ -436,7 +436,7 @@ if (t.alpha) {
 //http://en.wikipedia.org/wiki/Unsharp_masking
 if (t.sharpen) {
 #>
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma)
+		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
 		{
 <#
 if (t.pixelType == "ushort") {
@@ -448,8 +448,8 @@ if (t.pixelType == "ushort") {
 	PushIndent("\t");
 }
 #>
-			<#= t.interType #> iamt = Fix15(amt * 0.01);
-			<#= t.interType #> threshold = thresh;
+			<#= t.interType #> iamt = Fix15(amt);
+			<#= t.interType #> threshold = RoundF(thresh * byte.MaxValue);
 <#
 WriteLine(null);
 if (t.pixelType == "ushort") {
@@ -519,7 +519,7 @@ if (t.pixelType == "ushort") {
 <#
 } else {
 #>
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, int amt, int thresh, bool gamma) => throw new NotImplementedException();
+		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma) => throw new NotImplementedException();
 <#
 }
 #>
