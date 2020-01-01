@@ -41,7 +41,10 @@ namespace PhotoSauce.WebRSize
 
 					string tmpPath = $"{cachePath}.tmp";
 					using (var fs = new FileStream(tmpPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.Asynchronous))
+					{
 						await fs.WriteAsync(bytes.Array, bytes.Offset, bytes.Count);
+						await fs.FlushAsync();
+					}
 
 					if (lastWrite > DateTime.MinValue)
 						File.SetLastWriteTimeUtc(tmpPath, lastWrite);
@@ -111,9 +114,9 @@ namespace PhotoSauce.WebRSize
 
 			if (tsource?.Task == task)
 			{
-				ctx.Trace.Write(nameof(WebRSize), $"{nameof(MagicImageProcessor.ProcessImage)} Begin");
+				ctx.Trace.Write(nameof(WebRSize), nameof(MagicImageProcessor.ProcessImage) + " Begin");
 				await process(tsource, ctx.Request.Path, cachePath, s);
-				ctx.Trace.Write(nameof(WebRSize), $"{nameof(MagicImageProcessor.ProcessImage)} End");
+				ctx.Trace.Write(nameof(WebRSize), nameof(MagicImageProcessor.ProcessImage) + " End");
 			}
 
 			var img = await task;
@@ -129,6 +132,7 @@ namespace PhotoSauce.WebRSize
 				res.AddHeader("Content-Length", img.Count.ToString());
 
 				await res.OutputStream.WriteAsync(img.Array, img.Offset, img.Count);
+				await res.OutputStream.FlushAsync();
 			}
 			catch (HttpException ex) when (new StackTrace(ex).GetFrame(0)?.GetMethod().Name == "RaiseCommunicationError")
 			{

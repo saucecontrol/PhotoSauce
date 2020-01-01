@@ -104,7 +104,7 @@ namespace PhotoSauce.MagicScaler
 				throw new NotSupportedException("Unsupported pixel format");
 		}
 
-		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			if (lineBuff != null)
 				copyPixelsBuffered(prc, cbStride, cbBufferSize, pbBuffer);

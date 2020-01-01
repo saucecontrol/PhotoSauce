@@ -66,7 +66,7 @@ namespace PhotoSauce.WebRSize
 			ifi ??= await CacheHelper.GetImageInfoAsync(path);
 			s.NormalizeFrom(ifi);
 
-			if (!folderConfig.AllowEnlarge)
+			if (!folderConfig.AllowEnlarge && s.ResizeMode != CropScaleMode.Max)
 			{
 				var frame = ifi.Frames[s.FrameIndex];
 				if (s.Width > frame.Width)
@@ -122,7 +122,7 @@ namespace PhotoSauce.WebRSize
 			if (app.Context.Items[nameof(WebRSizeModule)] != null)
 				return;
 
-			app.Context.Items[nameof(WebRSizeModule)] = true;
+			app.Context.Items[nameof(WebRSizeModule)] = this;
 
 			if (!imageFolders.Any())
 				return;

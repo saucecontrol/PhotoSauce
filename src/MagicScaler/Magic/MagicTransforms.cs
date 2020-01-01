@@ -113,9 +113,9 @@ namespace PhotoSauce.MagicScaler
 		public static void AddHighQualityScaler(PipelineContext ctx)
 		{
 			bool swap = ctx.Orientation.SwapsDimensions();
-			var srect = ctx.Settings.InnerRect;
+			var tsize = ctx.Settings.InnerSize;
 
-			int width = swap ? srect.Height : srect.Width, height = swap ? srect.Width : srect.Height;
+			int width = swap ? tsize.Height : tsize.Width, height = swap ? tsize.Width : tsize.Height;
 			if (ctx.Source.Width == width && ctx.Source.Height == height)
 				return;
 
@@ -149,9 +149,9 @@ namespace PhotoSauce.MagicScaler
 			ctx.Source = ctx.PlanarContext.SourceCb;
 
 			if (subsample.IsSubsampledX())
-				ctx.Settings.InnerRect.Width = MathUtil.DivCeiling(ctx.Settings.InnerRect.Width, 2);
+				ctx.Settings.InnerSize.Width = MathUtil.DivCeiling(ctx.Settings.InnerSize.Width, 2);
 			if (subsample.IsSubsampledY())
-				ctx.Settings.InnerRect.Height = MathUtil.DivCeiling(ctx.Settings.InnerRect.Height, 2);
+				ctx.Settings.InnerSize.Height = MathUtil.DivCeiling(ctx.Settings.InnerSize.Height, 2);
 
 			AddHighQualityScaler(ctx);
 			ctx.PlanarContext.SourceCb = ctx.Source;
@@ -236,12 +236,12 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddPad(PipelineContext ctx)
 		{
-			if (ctx.Settings.InnerRect == ctx.Settings.OuterRect)
+			if (ctx.Settings.InnerSize == ctx.Settings.OuterSize)
 				return;
 
 			AddExternalFormatConverter(ctx);
 
-			ctx.Source = new PadTransformInternal(ctx.Source, ctx.Settings.MatteColor, PixelArea.FromGdiRect(ctx.Settings.InnerRect), PixelArea.FromGdiRect(ctx.Settings.OuterRect));
+			ctx.Source = new PadTransformInternal(ctx.Source, ctx.Settings.MatteColor, PixelArea.FromGdiRect(ctx.Settings.InnerRect), PixelArea.FromGdiSize(ctx.Settings.OuterSize));
 		}
 
 		public static void AddCropper(PipelineContext ctx, PixelArea area = default)

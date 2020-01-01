@@ -310,9 +310,9 @@ namespace PhotoSauce.MagicScaler
 		public static void AddScaler(PipelineContext ctx)
 		{
 			bool swap = ctx.Orientation.SwapsDimensions();
-			var srect = ctx.Settings.InnerRect;
+			var tsize = ctx.Settings.InnerSize;
 
-			int width = swap ? srect.Height : srect.Width, height = swap ? srect.Width : srect.Height;
+			int width = swap ? tsize.Height : tsize.Width, height = swap ? tsize.Width : tsize.Height;
 			if (ctx.Source.Width == width && ctx.Source.Height == height)
 				return;
 

@@ -14,6 +14,8 @@ namespace PhotoSauce.MagicScaler
 
 		public static PixelArea FromGdiRect(Rectangle r) => new PixelArea(r.X, r.Y, r.Width, r.Height);
 
+		public static PixelArea FromGdiSize(Size s) => new PixelArea(0, 0, s.Width, s.Height);
+
 		public static PixelArea FromWicRect(WICRect r) => new PixelArea(r.X, r.Y, r.Width, r.Height);
 
 		public PixelArea(int x, int y, int width, int height)

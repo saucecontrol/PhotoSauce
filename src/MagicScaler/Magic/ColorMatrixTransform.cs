@@ -24,7 +24,7 @@ namespace PhotoSauce.MagicScaler
 			vec3 = new Vector4(matrix.M34, matrix.M24, matrix.M14, matrix.M44);
 		}
 
-		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			Profiler.PauseTiming();
 			Source.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);

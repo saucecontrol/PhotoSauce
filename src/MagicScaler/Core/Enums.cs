@@ -25,11 +25,13 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>Preserve the aspect ratio of the input image.  Crop if necessary to fit the output dimensions.</summary>
 		Crop,
 		/// <summary>Preserve the aspect ratio of the input image.  Reduce one of the output dimensions if necessary to preserve the ratio.</summary>
-		Max,
+		Contain,
 		/// <summary>Stretch the image on one axis if necessary to fill the output dimensions.</summary>
 		Stretch,
 		/// <summary>Preserve the aspect ratio of the input image.  Fill any undefined pixels with the <see cref="ProcessImageSettings.MatteColor" />.</summary>
-		Pad
+		Pad,
+		/// <summary>Preserve the aspect ratio of the input image.  Reduce one or both of the output dimensions if necessary to preserve the ratio but never enlarge.</summary>
+		Max
 	}
 
 	/// <summary>Defines the modes that control speed vs. quality trade-offs for high-ratio scaling operations.</summary>

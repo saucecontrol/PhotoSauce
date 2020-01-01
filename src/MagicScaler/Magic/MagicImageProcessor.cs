@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Numerics;
-using System.Diagnostics;
 using System.ComponentModel;
 
 using PhotoSauce.Interop.Wic;
@@ -51,7 +50,7 @@ namespace PhotoSauce.MagicScaler
 			ctx.ImageContainer = WicImageContainer.Create(imgPath, ctx.WicContext);
 
 			buildPipeline(ctx);
-			return executePipeline(ctx, outStream);
+			return WriteOutput(ctx, outStream);
 		}
 
 #pragma warning disable 1573 // not all params have docs
@@ -67,7 +66,7 @@ namespace PhotoSauce.MagicScaler
 			ctx.ImageContainer = WicImageContainer.Create(imgBuffer, ctx.WicContext);
 
 			buildPipeline(ctx);
-			return executePipeline(ctx, outStream);
+			return WriteOutput(ctx, outStream);
 		}
 
 		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
@@ -81,7 +80,7 @@ namespace PhotoSauce.MagicScaler
 			ctx.ImageContainer = WicImageContainer.Create(imgStream, ctx.WicContext);
 
 			buildPipeline(ctx);
-			return executePipeline(ctx, outStream);
+			return WriteOutput(ctx, outStream);
 		}
 
 		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
@@ -97,7 +96,7 @@ namespace PhotoSauce.MagicScaler
 			};
 
 			buildPipeline(ctx);
-			return executePipeline(ctx, outStream);
+			return WriteOutput(ctx, outStream);
 		}
 
 		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
@@ -112,7 +111,7 @@ namespace PhotoSauce.MagicScaler
 			};
 
 			buildPipeline(ctx);
-			return executePipeline(ctx, outStream);
+			return WriteOutput(ctx, outStream);
 		}
 
 		/// <summary>Constructs a new processing pipeline from which pixels can be retrieved.</summary>
@@ -187,12 +186,16 @@ namespace PhotoSauce.MagicScaler
 
 #pragma warning restore 1573
 
-		/// <summary>Completes processing of a <see cref="ProcessingPipeline" />, saving the output to <paramref name="outStream" />.</summary>
-		/// <param name="pipeline">The processing pipeline attached to a pixel source.</param>
-		/// <param name="outStream">The stream to which the output image will be written.</param>
-		/// <returns>A <see cref="ProcessImageResult" /> containing the settings used and basic instrumentation for the pipeline.</returns>
-		public static ProcessImageResult ExecutePipeline(this ProcessingPipeline pipeline, Stream outStream) =>
-			executePipeline(pipeline.Context, outStream);
+		internal static ProcessImageResult WriteOutput(PipelineContext ctx, Stream ostm)
+		{
+			MagicTransforms.AddExternalFormatConverter(ctx);
+			WicTransforms.AddIndexedColorConverter(ctx);
+
+			var enc = new WicEncoder(ctx, ostm.AsIStream());
+			enc.WriteSource(ctx);
+
+			return new ProcessImageResult(ctx.UsedSettings, ctx.Stats);
+		}
 
 		private static void buildPipeline(PipelineContext ctx, bool outputPlanar = true)
 		{
@@ -238,9 +241,9 @@ namespace PhotoSauce.MagicScaler
 
 				if (ctx.Settings.SaveFormat == FileFormat.Jpeg && ctx.Orientation.SwapsDimensions())
 				{
-					if (subsample.IsSubsampledX() && (ctx.Settings.InnerRect.Width & 1) != 0)
+					if (subsample.IsSubsampledX() && (ctx.Settings.InnerSize.Width & 1) != 0)
 						outputPlanar = false;
-					if (subsample.IsSubsampledY() && (ctx.Settings.InnerRect.Height & 1) != 0)
+					if (subsample.IsSubsampledY() && (ctx.Settings.InnerSize.Height & 1) != 0)
 						outputPlanar = false;
 				}
 			}
@@ -250,7 +253,7 @@ namespace PhotoSauce.MagicScaler
 				var orient = ctx.Orientation;
 				bool savePlanar = outputPlanar
 					&& ctx.Settings.SaveFormat == FileFormat.Jpeg
-					&& ctx.Settings.InnerRect == ctx.Settings.OuterRect
+					&& ctx.Settings.InnerSize == ctx.Settings.OuterSize
 					&& ctx.DestColorProfile == ctx.SourceColorProfile;
 
 				if (wicFrame != null)
@@ -288,17 +291,6 @@ namespace PhotoSauce.MagicScaler
 				MagicTransforms.AddExifFlipRotator(ctx);
 				MagicTransforms.AddPad(ctx);
 			}
-		}
-
-		private static ProcessImageResult executePipeline(PipelineContext ctx, Stream ostm)
-		{
-			MagicTransforms.AddExternalFormatConverter(ctx);
-			WicTransforms.AddIndexedColorConverter(ctx);
-
-			var enc = new WicEncoder(ctx, ostm.AsIStream());
-			enc.WriteSource(ctx);
-
-			return new ProcessImageResult(ctx.UsedSettings, ctx.Stats);
 		}
 	}
 }

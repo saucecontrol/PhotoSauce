@@ -20,7 +20,7 @@ namespace PhotoSauce.MagicScaler
 		private readonly ulong matteValue64;
 		private readonly Vector4 vmatte;
 
-		unsafe public MatteTransform(PixelSource source, Color color) : base(source)
+		public MatteTransform(PixelSource source, Color color) : base(source)
 		{
 			if (Format.ColorRepresentation != PixelColorRepresentation.Bgr || Format.AlphaRepresentation == PixelAlphaRepresentation.None)
 				throw new NotSupportedException("Pixel format not supported.  Must be BGRA");

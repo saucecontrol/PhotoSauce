@@ -87,7 +87,8 @@ namespace PhotoSauce.MagicScaler
 	/// <summary>Defines settings for a <see cref="MagicImageProcessor" /> pipeline operation.</summary>
 	public sealed class ProcessImageSettings
 	{
-		private static readonly Lazy<Regex> cropExpression = new Lazy<Regex>(() => new Regex(@"^(\d+,){3}\d+$", RegexOptions.Compiled));
+		private static readonly Lazy<Regex> cropExpression = new Lazy<Regex>(() => new Regex(@"^(\d+,){2}-?\d+,-?\d+$", RegexOptions.Compiled));
+		private static readonly Lazy<Regex> cropBasisExpression = new Lazy<Regex>(() => new Regex(@"^\d+,\d+$", RegexOptions.Compiled));
 		private static readonly Lazy<Regex> anchorExpression = new Lazy<Regex>(() => new Regex(@"^(top|middle|bottom)?\-?(left|center|right)?$", RegexOptions.Compiled | RegexOptions.IgnoreCase));
 		private static readonly Lazy<Regex> subsampleExpression = new Lazy<Regex>(() => new Regex(@"^4(20|22|44)$", RegexOptions.Compiled));
 		private static readonly ProcessImageSettings empty = new ProcessImageSettings();
@@ -97,8 +98,8 @@ namespace PhotoSauce.MagicScaler
 		private int jpegQuality;
 		private ChromaSubsampleMode jpegSubsampling;
 		private ImageFileInfo? imageInfo;
-		internal Rectangle InnerRect;
-		internal Rectangle OuterRect;
+		internal Size InnerSize;
+		internal Size OuterSize;
 		internal bool AutoCrop;
 
 		/// <summary>The 0-based index of the image frame to process from within the container.</summary>
@@ -113,6 +114,8 @@ namespace PhotoSauce.MagicScaler
 		public CropScaleMode ResizeMode { get; set; }
 		/// <summary>Defines the bounding rectangle to use from the input image.  Can be calculated automatically depending on <see cref="CropScaleMode" />.</summary>
 		public Rectangle Crop { get; set; }
+		/// <summary>Defines the dimensions on which the <see cref="Crop"/> rectangle is based.  If this value is empty, <see cref="Crop"/> values are based on the actual input image dimensions.</summary>
+		public Size CropBasis { get; set; }
 		/// <summary>Determines which part of the image is preserved when automatic cropping is performed.</summary>
 		public CropAnchor Anchor { get; set; }
 		/// <summary>Determines the container format of the output image.</summary>
@@ -133,37 +136,45 @@ namespace PhotoSauce.MagicScaler
 		internal bool Normalized => imageInfo != null;
 
 		internal bool IsEmpty =>
-			OuterRect       == empty.OuterRect       &&
+			OuterSize       == empty.OuterSize       &&
 			jpegQuality     == empty.jpegQuality     &&
 			jpegSubsampling == empty.jpegSubsampling &&
 			FrameIndex      == empty.FrameIndex      &&
 			DpiX            == empty.DpiX            &&
 			DpiY            == empty.DpiY            &&
 			Crop            == empty.Crop            &&
+			CropBasis       == empty.CropBasis       &&
 			SaveFormat      == empty.SaveFormat      &&
 			MatteColor      == empty.MatteColor      &&
 			unsharpMask.Equals(empty.unsharpMask)
 		;
 
-		/// <summary>The width of the output image in pixels.</summary>
-		public int Width
+		internal Rectangle InnerRect => new Rectangle {
+			X = (OuterSize.Width - InnerSize.Width) / 2,
+			Y = (OuterSize.Height - InnerSize.Height) / 2,
+			Width = InnerSize.Width,
+			Height = InnerSize.Height
+		};
+
+	/// <summary>The width of the output image in pixels.</summary>
+	public int Width
 		{
-			get => OuterRect.Width;
+			get => OuterSize.Width;
 			set
 			{
 				if (value < 0) throw new ArgumentOutOfRangeException(nameof(Width), "Value must be >= 0");
-				OuterRect.Width = value;
+				OuterSize.Width = value;
 			}
 		}
 
 		/// <summary>The height of the output image in pixels.</summary>
 		public int Height
 		{
-			get => OuterRect.Height;
+			get => OuterSize.Height;
 			set
 			{
 				if (value < 0) throw new ArgumentOutOfRangeException(nameof(Height), "Value must be >= 0");
-				OuterRect.Height = value;
+				OuterSize.Height = value;
 			}
 		}
 
@@ -171,9 +182,9 @@ namespace PhotoSauce.MagicScaler
 		public bool IndexedColor => SaveFormat == FileFormat.Png8 || SaveFormat == FileFormat.Gif;
 
 		/// <summary>The calculated ratio of the input image size to output size.</summary>
-		public double ScaleRatio => Math.Min(InnerRect.Width > 0 ? (double)Crop.Width / InnerRect.Width : 0d, InnerRect.Height > 0 ? (double)Crop.Height / InnerRect.Height : 0d);
+		public double ScaleRatio => Math.Min(InnerSize.Width > 0 ? (double)Crop.Width / InnerSize.Width : 0d, InnerSize.Height > 0 ? (double)Crop.Height / InnerSize.Height : 0d);
 
-		/// <summary>The calculated ratio for the low-quality portion of a hybrid scaling operation.</summary>
+		/// <summary>The calculated ratio for the lower-quality portion of a hybrid scaling operation.</summary>
 		public int HybridScaleRatio
 		{
 			get
@@ -301,6 +312,12 @@ namespace PhotoSauce.MagicScaler
 				s.Crop = new Rectangle(int.Parse(ps[0]), int.Parse(ps[1]), int.Parse(ps[2]), int.Parse(ps[3]));
 			}
 
+			if (cropBasisExpression.Value.IsMatch(dic.GetValueOrDefault("cropbasis") ?? string.Empty))
+			{
+				var ps = dic["cropbasis"]!.Split(',');
+				s.CropBasis = new Size(int.Parse(ps[0]), int.Parse(ps[1]));
+			}
+
 			foreach (var group in anchorExpression.Value.Match(dic.GetValueOrDefault("anchor") ?? string.Empty).Groups.Cast<Group>())
 			{
 				if (Enum.TryParse(group.Value, true, out CropAnchor anchor))
@@ -370,16 +387,53 @@ namespace PhotoSauce.MagicScaler
 			int imgWidth = swapDimensions ? inHeight : inWidth;
 			int imgHeight = swapDimensions ? inWidth : inHeight;
 
+			if (!Crop.IsEmpty && !CropBasis.IsEmpty)
+			{
+				var crop = Crop;
+				if (CropBasis.Width > 0)
+				{
+					double xrat = (double)imgWidth / CropBasis.Width;
+					crop.X = (int)Math.Floor(Crop.Left * xrat);
+					crop.Width = Math.Min((int)Math.Ceiling(Crop.Width * xrat), imgWidth - crop.X);
+				}
+				if (CropBasis.Height > 0)
+				{
+					double yrat = (double)imgHeight / CropBasis.Height;
+					crop.Y = (int)Math.Floor(Crop.Top * yrat);
+					crop.Height = Math.Min((int)Math.Ceiling(Crop.Height * yrat), imgHeight - crop.Y);
+				}
+
+				Crop = crop;
+				CropBasis = new Size(imgWidth, imgHeight);
+			}
+
+			if (!Crop.IsEmpty && (Crop.Width <= 0 || Crop.Height <= 0))
+			{
+				var crop = Crop;
+				if (crop.Width <= 0)
+				{
+					int rem = Math.Max(1, imgWidth - crop.X);
+					crop.Width = crop.Width == 0 ? rem : (imgWidth - crop.X + crop.Width).Clamp(1, rem);
+				}
+				if (crop.Height <= 0)
+				{
+					int rem = Math.Max(1, imgHeight - crop.Y);
+					crop.Height = crop.Height == 0 ? rem : (imgHeight - crop.Y + crop.Height).Clamp(1, rem);
+				}
+
+				Crop = crop;
+			}
+
 			var whole = new Rectangle(0, 0, imgWidth, imgHeight);
 			AutoCrop = Crop.IsEmpty || Crop != Rectangle.Intersect(whole, Crop);
 
 			if (Width == 0 || Height == 0)
 				ResizeMode = CropScaleMode.Crop;
 
-			if (Width == 0 && Height == 0)
+			if (OuterSize.IsEmpty)
 			{
 				Crop = AutoCrop ? whole : Crop;
-				OuterRect = InnerRect = new Rectangle(0, 0, Crop.Width, Crop.Height);
+				OuterSize = InnerSize = new Size(Crop.Width, Crop.Height);
 				return;
 			}
 
@@ -416,33 +470,30 @@ namespace PhotoSauce.MagicScaler
 			wrat = width > 0 ? (double)Crop.Width / width : (double)Crop.Height / height;
 			hrat = height > 0 ? (double)Crop.Height / height : wrat;
 
-			if (ResizeMode == CropScaleMode.Max || ResizeMode == CropScaleMode.Pad)
+			if (ResizeMode == CropScaleMode.Contain || ResizeMode == CropScaleMode.Max || ResizeMode == CropScaleMode.Pad)
 			{
-				double rat = Math.Max(wrat, hrat);
 				int dim = Math.Max(width, height);
+
+				double rat = Math.Max(wrat, hrat);
+				if (ResizeMode == CropScaleMode.Max)
+					rat = Math.Max(rat, 1d);
 
 				width = MathUtil.Clamp((int)Math.Round(Crop.Width / rat), 1, dim);
 				height = MathUtil.Clamp((int)Math.Round(Crop.Height / rat), 1, dim);
 			}
 
-			InnerRect.Width = width > 0 ? width : Math.Max((int)Math.Round(Crop.Width / wrat), 1);
-			InnerRect.Height = height > 0 ? height : Math.Max((int)Math.Round(Crop.Height / hrat), 1);
+			InnerSize.Width = width > 0 ? width : Math.Max((int)Math.Round(Crop.Width / wrat), 1);
+			InnerSize.Height = height > 0 ? height : Math.Max((int)Math.Round(Crop.Height / hrat), 1);
 
-			if (ResizeMode == CropScaleMode.Crop || ResizeMode == CropScaleMode.Max)
-				OuterRect = InnerRect;
-
-			if (ResizeMode == CropScaleMode.Pad)
-			{
-				InnerRect.X = (OuterRect.Width - InnerRect.Width) / 2;
-				InnerRect.Y = (OuterRect.Height - InnerRect.Height) / 2;
-			}
+			if (ResizeMode == CropScaleMode.Crop || ResizeMode == CropScaleMode.Contain || ResizeMode == CropScaleMode.Max)
+				OuterSize = InnerSize;
 		}
 
 		internal void SetSaveFormat(FileFormat containerType, bool frameHasAlpha)
 		{
 			if (containerType == FileFormat.Gif) // Restrict to animated only?
 				SaveFormat = FileFormat.Gif;
-			else if (containerType == FileFormat.Png || ((frameHasAlpha || InnerRect != OuterRect) && MatteColor.A < byte.MaxValue))
+			else if (containerType == FileFormat.Png || ((frameHasAlpha || InnerSize != OuterSize) && MatteColor.A < byte.MaxValue))
 				SaveFormat = FileFormat.Png;
 			else
 				SaveFormat = FileFormat.Jpeg;
@@ -468,7 +519,7 @@ namespace PhotoSauce.MagicScaler
 				JpegQuality = 0;
 			}
 
-			if (!frame.HasAlpha && InnerRect == OuterRect)
+			if (!frame.HasAlpha && InnerSize == OuterSize)
 				MatteColor = Color.Empty;
 
 			if (!Sharpen)
@@ -485,14 +536,10 @@ namespace PhotoSauce.MagicScaler
 			hash.Update(imageInfo?.FileSize ?? 0L);
 			hash.Update(imageInfo?.FileDate.Ticks ?? 0L);
 			hash.Update(FrameIndex);
-			hash.Update(Width);
-			hash.Update(Height);
-			hash.Update(Crop.X);
-			hash.Update(Crop.Y);
-			hash.Update(Crop.Width);
-			hash.Update(Crop.Height);
+			hash.Update(Crop);
+			hash.Update(OuterSize);
+			hash.Update(InnerRect);
 			hash.Update(MatteColor.ToArgb());
-			hash.Update(Anchor);
 			hash.Update(SaveFormat);
 			hash.Update(BlendingMode);
 			hash.Update(ResizeMode);

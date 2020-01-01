@@ -120,7 +120,7 @@ namespace PhotoSauce.MagicScaler
 			gfx.CompositingMode = CompositingMode.SourceCopy;
 			gfx.InterpolationMode = mode;
 
-			if ((alpha || s.InnerRect != s.OuterRect) && !s.MatteColor.IsEmpty)
+			if ((alpha || s.InnerSize != s.OuterSize) && !s.MatteColor.IsEmpty)
 			{
 				gfx.Clear(s.MatteColor);
 				gfx.CompositingMode = CompositingMode.SourceOver;
