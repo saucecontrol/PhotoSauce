@@ -55,7 +55,12 @@ namespace PhotoSauce.Interop.Wic
 			if (hr >= 0)
 			{
 				value = new PropVariant();
-				meta.GetMetadataByName(name, value);
+
+				var pvMarshal = PropVariant.Marshaler.GetInstance(null);
+				var pvNative = pvMarshal.MarshalManagedToNative(value);
+				hr = ProxyFunctions.GetMetadataByName(meta, name, pvNative);
+				pvMarshal.MarshalNativeToManaged(pvNative);
+				pvMarshal.CleanUpNativeData(pvNative);
 			}
 
 			return hr >= 0;
@@ -63,7 +68,11 @@ namespace PhotoSauce.Interop.Wic
 
 		public static bool TrySetMetadataByName(this IWICMetadataQueryWriter meta, string name, PropVariant value)
 		{
-			int hr = ProxyFunctions.SetMetadataByName(meta, name, value);
+			var pvMarshal = PropVariant.Marshaler.GetInstance(null);
+			var pvNative = pvMarshal.MarshalManagedToNative(value);
+			int hr = ProxyFunctions.SetMetadataByName(meta, name, pvNative);
+			pvMarshal.CleanUpNativeData(pvNative);
+
 			return hr >= 0;
 		}
 

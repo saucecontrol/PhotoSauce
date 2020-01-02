@@ -250,10 +250,9 @@ namespace PhotoSauce.MagicScaler
 
 			if (processPlanar)
 			{
-				var orient = ctx.Orientation;
 				bool savePlanar = outputPlanar
 					&& ctx.Settings.SaveFormat == FileFormat.Jpeg
-					&& ctx.Settings.InnerSize == ctx.Settings.OuterSize
+					&& ctx.Settings.OuterSize == ctx.Settings.InnerSize
 					&& ctx.DestColorProfile == ctx.SourceColorProfile;
 
 				if (wicFrame != null)
