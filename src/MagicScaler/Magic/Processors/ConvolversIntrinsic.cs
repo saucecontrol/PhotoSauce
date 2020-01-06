@@ -6,7 +6,7 @@ using System.Runtime.Intrinsics.X86;
 using System.Runtime.CompilerServices;
 #endif
 
-namespace PhotoSauce.MagicScaler
+namespace PhotoSauce.MagicScaler.Transforms
 {
 	internal interface IVectorConvolver
 	{

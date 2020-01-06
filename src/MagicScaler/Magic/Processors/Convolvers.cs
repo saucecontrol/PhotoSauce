@@ -9,7 +9,7 @@ using System;
 
 using static PhotoSauce.MagicScaler.MathUtil;
 
-namespace PhotoSauce.MagicScaler
+namespace PhotoSauce.MagicScaler.Transforms
 {
 	internal sealed class ConvolverBgraByte : IConvolver
 	{

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 using PhotoSauce.Interop.Wic;
 
-namespace PhotoSauce.MagicScaler
+namespace PhotoSauce.MagicScaler.Transforms
 {
 	internal static class MagicTransforms
 	{

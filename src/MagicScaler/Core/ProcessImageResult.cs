@@ -3,6 +3,8 @@ using System.IO;
 using System.Diagnostics;
 using System.Collections.Generic;
 
+using PhotoSauce.MagicScaler.Transforms;
+
 namespace PhotoSauce.MagicScaler
 {
 	internal interface IPixelSourceProfiler

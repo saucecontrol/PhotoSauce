@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 
 using PhotoSauce.Interop.Wic;
 
-namespace PhotoSauce.MagicScaler
+namespace PhotoSauce.MagicScaler.Transforms
 {
 	unsafe internal interface IConvolver
 	{

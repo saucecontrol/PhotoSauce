@@ -10,7 +10,7 @@ using System.Runtime.Intrinsics.X86;
 using PhotoSauce.Interop.Wic;
 using static PhotoSauce.MagicScaler.MathUtil;
 
-namespace PhotoSauce.MagicScaler
+namespace PhotoSauce.MagicScaler.Transforms
 {
 	internal class ColorMatrixTransformInternal : PixelSource
 	{
@@ -213,7 +213,7 @@ namespace PhotoSauce.MagicScaler
 	}
 
 	/// <summary>Transforms an image according to coefficients in a <see cref="Matrix4x4" />.</summary>
-	public sealed class ColorMatrixTransform : PixelTransform, IPixelTransformInternal
+	public sealed class ColorMatrixTransform : PixelTransformInternalBase, IPixelTransformInternal
 	{
 		private readonly Matrix4x4 matrix;
 

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace PhotoSauce.MagicScaler
+namespace PhotoSauce.MagicScaler.Transforms
 {
 	internal static class ChannelChanger<T> where T : unmanaged
 	{

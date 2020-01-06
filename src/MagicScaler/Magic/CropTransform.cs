@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace PhotoSauce.MagicScaler
+namespace PhotoSauce.MagicScaler.Transforms
 {
 	internal class CropTransform : PixelSource
 	{

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
 #if HWINTRINSICS
@@ -11,6 +12,21 @@ using static System.Math;
 
 namespace PhotoSauce.MagicScaler
 {
+	[StructLayout(LayoutKind.Sequential, Pack = 1)]
+	internal readonly struct triple
+	{
+		public readonly ushort v1;
+		public readonly byte v2;
+
+		public triple(uint v)
+		{
+			v1 = (ushort)v;
+			v2 = (byte)(v >> 16);
+		}
+
+		public static explicit operator triple(uint v) => new triple(v);
+	}
+
 	internal static class MathUtil
 	{
 		private const uint maskb = ~0x01010101u;

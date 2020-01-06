@@ -2,7 +2,7 @@
 using System.Drawing;
 using System.ComponentModel;
 
-namespace PhotoSauce.MagicScaler
+namespace PhotoSauce.MagicScaler.Transforms
 {
 	/// <summary>Provides a mechanism for defining a filter that transforms image pixels.</summary>
 	public interface IPixelTransform : IPixelSource
@@ -20,7 +20,7 @@ namespace PhotoSauce.MagicScaler
 	/// <summary>Provides a minimal base implementation of <see cref="IPixelTransform" />, which simply passes calls through to the upstream source.</summary>
 	/// <remarks>This class is intended for internal use only.</remarks>
 	[EditorBrowsable(EditorBrowsableState.Never)]
-	public abstract class PixelTransform : IPixelTransform
+	public abstract class PixelTransformInternalBase : IPixelTransform
 	{
 		private protected PixelSource Source = NoopPixelSource.Instance;
 

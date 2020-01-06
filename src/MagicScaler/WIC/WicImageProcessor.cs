@@ -5,6 +5,7 @@ using System.IO;
 using System.ComponentModel;
 
 using PhotoSauce.Interop.Wic;
+using PhotoSauce.MagicScaler.Transforms;
 
 namespace PhotoSauce.MagicScaler
 {

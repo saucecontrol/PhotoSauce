@@ -12,7 +12,7 @@ using PhotoSauce.Interop.Wic;
 
 using static PhotoSauce.MagicScaler.MathUtil;
 
-namespace PhotoSauce.MagicScaler
+namespace PhotoSauce.MagicScaler.Transforms
 {
 	internal class PlanarConversionTransform : PixelSource, IDisposable
 	{

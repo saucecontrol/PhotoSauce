@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Buffers;
 
-namespace PhotoSauce.MagicScaler
+namespace PhotoSauce.MagicScaler.Transforms
 {
 	internal class ConversionTransform : PixelSource, IDisposable
 	{
@@ -156,7 +156,7 @@ namespace PhotoSauce.MagicScaler
 	}
 
 	/// <summary>Converts an image to an alternate pixel format.</summary>
-	public sealed class FormatConversionTransform : PixelTransform, IPixelTransformInternal
+	public sealed class FormatConversionTransform : PixelTransformInternalBase, IPixelTransformInternal
 	{
 		private readonly Guid outFormat;
 

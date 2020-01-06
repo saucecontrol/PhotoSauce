@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 using static PhotoSauce.MagicScaler.MathUtil;
 
-namespace PhotoSauce.MagicScaler
+namespace PhotoSauce.MagicScaler.Transforms
 {
 	internal class HybridScaleTransform : PixelSource, IDisposable
 	{

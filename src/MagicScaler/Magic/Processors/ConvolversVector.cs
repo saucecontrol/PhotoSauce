@@ -11,7 +11,7 @@ using System.Runtime.CompilerServices;
 
 using VectorF = System.Numerics.Vector<float>;
 
-namespace PhotoSauce.MagicScaler
+namespace PhotoSauce.MagicScaler.Transforms
 {
 	internal sealed partial class Convolver4ChanFloat : IConvolver
 	{

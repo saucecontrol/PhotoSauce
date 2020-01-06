@@ -63,7 +63,7 @@ using System.Runtime.CompilerServices;
 
 using VectorF = System.Numerics.Vector<float>;
 
-namespace PhotoSauce.MagicScaler
+namespace PhotoSauce.MagicScaler.Transforms
 {
 <#
 foreach (var t in ta) {

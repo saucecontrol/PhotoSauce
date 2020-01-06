@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.Drawing;
-using System.Diagnostics;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
@@ -102,6 +101,34 @@ namespace PhotoSauce.MagicScaler
 		internal Size OuterSize;
 		internal bool AutoCrop;
 
+		internal bool IndexedColor => SaveFormat == FileFormat.Png8 || SaveFormat == FileFormat.Gif;
+
+		internal bool IsNormalized => imageInfo != null;
+
+		internal bool IsEmpty =>
+			OuterSize       == empty.OuterSize       &&
+			jpegQuality     == empty.jpegQuality     &&
+			jpegSubsampling == empty.jpegSubsampling &&
+			FrameIndex      == empty.FrameIndex      &&
+			DpiX            == empty.DpiX            &&
+			DpiY            == empty.DpiY            &&
+			Crop            == empty.Crop            &&
+			CropBasis       == empty.CropBasis       &&
+			SaveFormat      == empty.SaveFormat      &&
+			MatteColor      == empty.MatteColor      &&
+			unsharpMask.Equals(empty.unsharpMask)
+		;
+
+		internal Rectangle InnerRect => new Rectangle {
+			X = (OuterSize.Width - InnerSize.Width) / 2,
+			Y = (OuterSize.Height - InnerSize.Height) / 2,
+			Width = InnerSize.Width,
+			Height = InnerSize.Height
+		};
+
+		internal double ScaleRatio =>
+			Math.Min(InnerSize.Width > 0 ? (double)Crop.Width / InnerSize.Width : 0d, InnerSize.Height > 0 ? (double)Crop.Height / InnerSize.Height : 0d);
+
 		/// <summary>The 0-based index of the image frame to process from within the container.</summary>
 		public int FrameIndex { get; set; }
 		/// <summary>The horizontal DPI of the output image.  This affects the image metadata only.</summary>
@@ -133,31 +160,8 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>A list of <a href="https://docs.microsoft.com/en-us/windows/desktop/wic/photo-metadata-policies">Windows Photo Metadata Policy</a> names.  Any values matching the included policies will be copied to the output image if supported.</summary>
 		public IEnumerable<string> MetadataNames { get; set; } = Enumerable.Empty<string>();
 
-		internal bool Normalized => imageInfo != null;
-
-		internal bool IsEmpty =>
-			OuterSize       == empty.OuterSize       &&
-			jpegQuality     == empty.jpegQuality     &&
-			jpegSubsampling == empty.jpegSubsampling &&
-			FrameIndex      == empty.FrameIndex      &&
-			DpiX            == empty.DpiX            &&
-			DpiY            == empty.DpiY            &&
-			Crop            == empty.Crop            &&
-			CropBasis       == empty.CropBasis       &&
-			SaveFormat      == empty.SaveFormat      &&
-			MatteColor      == empty.MatteColor      &&
-			unsharpMask.Equals(empty.unsharpMask)
-		;
-
-		internal Rectangle InnerRect => new Rectangle {
-			X = (OuterSize.Width - InnerSize.Width) / 2,
-			Y = (OuterSize.Height - InnerSize.Height) / 2,
-			Width = InnerSize.Width,
-			Height = InnerSize.Height
-		};
-
-	/// <summary>The width of the output image in pixels.</summary>
-	public int Width
+		/// <summary>The width of the output image in pixels.</summary>
+		public int Width
 		{
 			get => OuterSize.Width;
 			set
@@ -177,12 +181,6 @@ namespace PhotoSauce.MagicScaler
 				OuterSize.Height = value;
 			}
 		}
-
-		/// <summary>True if the output format requires indexed color, otherwise false.</summary>
-		public bool IndexedColor => SaveFormat == FileFormat.Png8 || SaveFormat == FileFormat.Gif;
-
-		/// <summary>The calculated ratio of the input image size to output size.</summary>
-		public double ScaleRatio => Math.Min(InnerSize.Width > 0 ? (double)Crop.Width / InnerSize.Width : 0d, InnerSize.Height > 0 ? (double)Crop.Height / InnerSize.Height : 0d);
 
 		/// <summary>The calculated ratio for the lower-quality portion of a hybrid scaling operation.</summary>
 		public int HybridScaleRatio
@@ -530,29 +528,31 @@ namespace PhotoSauce.MagicScaler
 
 		internal string GetCacheHash()
 		{
-			Debug.Assert(Normalized, "Hash is only valid for normalized settings.");
+			if (imageInfo is null) throw new InvalidOperationException("Hash is only valid for normalized settings.");
 
 			var hash = Blake2b.CreateIncrementalHasher(CacheHash.DigestLength);
-			hash.Update(imageInfo?.FileSize ?? 0L);
-			hash.Update(imageInfo?.FileDate.Ticks ?? 0L);
+			hash.Update(imageInfo.FileSize);
+			hash.Update(imageInfo.FileDate.Ticks);
 			hash.Update(FrameIndex);
 			hash.Update(Crop);
+			hash.Update(InnerSize);
 			hash.Update(OuterSize);
-			hash.Update(InnerRect);
 			hash.Update(MatteColor.ToArgb());
-			hash.Update(SaveFormat);
 			hash.Update(BlendingMode);
-			hash.Update(ResizeMode);
 			hash.Update(OrientationMode);
 			hash.Update(ColorProfileMode);
-			hash.Update(JpegSubsampleMode);
-			hash.Update(JpegQuality);
 			hash.Update(HybridScaleRatio);
 			hash.Update(Interpolation.WeightingFunction.ToString().AsSpan());
 			hash.Update(Interpolation.Blur);
-			hash.Update(UnsharpMask.Amount);
-			hash.Update(UnsharpMask.Radius);
-			hash.Update(UnsharpMask.Threshold);
+			hash.Update(UnsharpMask);
+			hash.Update(SaveFormat);
+
+			if (SaveFormat == FileFormat.Jpeg)
+			{
+				hash.Update(JpegSubsampleMode);
+				hash.Update(JpegQuality);
+			}
+
 			foreach (string m in MetadataNames ?? Enumerable.Empty<string>())
 				hash.Update(m.AsSpan());
 

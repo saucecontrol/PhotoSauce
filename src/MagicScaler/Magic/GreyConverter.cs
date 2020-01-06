@@ -2,6 +2,11 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
+#if HWINTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
+
 using PhotoSauce.Interop.Wic;
 using static PhotoSauce.MagicScaler.MathUtil;
 
@@ -183,22 +188,51 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
+#if HWINTRINSICS
+		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+#endif
 		unsafe private static void greyLinearToGreyFloat(byte* ipstart, byte* opstart, int cb)
 		{
-			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - VectorF.Count, op = (float*)opstart;
-			var vmin = Vector<float>.Zero;
-			float fmin = vmin[0];
+			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb), op = (float*)opstart;
 
-			while (ip <= ipe)
+#if HWINTRINSICS
+			if (!Avx.IsSupported)
 			{
-				var v = Unsafe.ReadUnaligned<VectorF>(ip);
-				Unsafe.WriteUnaligned(op, Vector.SquareRoot(Vector.Max(v, vmin)));
+				var vzero = Vector256<float>.Zero;
 
-				ip += VectorF.Count;
-				op += VectorF.Count;
+				ipe -= Vector256<float>.Count;
+				while (ip <= ipe)
+				{
+					var v = Avx.Max(vzero, Avx.LoadVector256(ip));
+					ip += Vector256<float>.Count;
+
+					v = Avx.Sqrt(v);
+
+					Avx.Store(op, v);
+					op += Vector256<float>.Count;
+				}
+				ipe += Vector256<float>.Count;
+			}
+			else
+#endif
+			{
+				var vzero = Vector<float>.Zero;
+
+				ipe -=  -VectorF.Count;
+				while (ip <= ipe)
+				{
+					var v = Unsafe.ReadUnaligned<VectorF>(ip);
+					ip += VectorF.Count;
+
+					v = Vector.SquareRoot(Vector.Max(v, vzero));
+
+					Unsafe.WriteUnaligned(op, v);
+					op += VectorF.Count;
+				}
+				ipe += VectorF.Count;
 			}
 
-			ipe += VectorF.Count;
+			float fmin = Vector4.Zero.X;
 			while (ip < ipe)
 				*op++ = MaxF(*ip++, fmin).Sqrt();
 		}

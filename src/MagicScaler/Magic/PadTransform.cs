@@ -1,24 +1,8 @@
 ﻿using System;
 using System.Drawing;
-using System.Runtime.InteropServices;
 
-namespace PhotoSauce.MagicScaler
+namespace PhotoSauce.MagicScaler.Transforms
 {
-	[StructLayout(LayoutKind.Sequential, Pack = 1)]
-	internal readonly struct triple
-	{
-		public readonly ushort v1;
-		public readonly byte v2;
-
-		public triple(uint v)
-		{
-			v1 = (ushort)v;
-			v2 = (byte)(v >> 16);
-		}
-
-		public static explicit operator triple(uint v) => new triple(v);
-	}
-
 	internal class PadTransformInternal : PixelSource
 	{
 		private readonly int bytesPerPixel;
@@ -79,7 +63,7 @@ namespace PhotoSauce.MagicScaler
 	}
 
 	/// <summary>Adds solid-colored padding pixels to an image.</summary>
-	public sealed class PadTransform : PixelTransform, IPixelTransformInternal
+	public sealed class PadTransform : PixelTransformInternalBase, IPixelTransformInternal
 	{
 		private readonly Color padColor;
 		private readonly Rectangle padRect;

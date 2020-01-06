@@ -4,7 +4,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
-namespace PhotoSauce.MagicScaler
+namespace PhotoSauce.MagicScaler.Transforms
 {
 	internal class OrientationTransformInternal : PixelSource, IDisposable
 	{
@@ -252,7 +252,7 @@ namespace PhotoSauce.MagicScaler
 	}
 
 	/// <summary>Transforms an image by changing its column/row order according to an <see cref="Orientation" /> value.</summary>
-	public sealed class OrientationTransform : PixelTransform, IPixelTransformInternal
+	public sealed class OrientationTransform : PixelTransformInternalBase, IPixelTransformInternal
 	{
 		private readonly Orientation orientation;
 

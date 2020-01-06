@@ -92,7 +92,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			Orientation = Settings.OrientationMode == OrientationMode.Normalize ? ImageFrame.ExifOrientation : Orientation.Normal;
 
-			if (!Settings.Normalized)
+			if (!Settings.IsNormalized)
 			{
 				Settings.Fixup(Source.Width, Source.Height, Orientation.SwapsDimensions());
 
