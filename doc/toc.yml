@@ -1,0 +1,6 @@
+- name: MagicScaler API
+  topicUid: PhotoSauce.MagicScaler
+- name: WebRSize
+  href: web.md
+- name: GitHub
+  href: https://github.com/saucecontrol/PhotoSauce

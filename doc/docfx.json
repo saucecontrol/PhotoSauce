@@ -1,0 +1,45 @@
+{
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": "../",
+          "files": [
+            "out/bin/MagicScaler/Dist/**\/PhotoSauce.MagicScaler.dll"
+          ]
+        }
+      ],
+      "dest": "../out/doc/api",
+      "properties": {
+          "TargetFramework": "netcoreapp3.0",
+          "Configuration": "Dist"
+      }
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "src": "../out/doc",
+        "files": "api/**.yml"
+      },
+      {
+        "files": [
+          "toc.yml",
+          "*.md"
+        ]
+      }
+    ],
+    "template": [ "default", "template" ],
+    "dest": "../out/doc/_site",
+    "intermediateFolder": "../out/obj/DocFX",
+    "markdownEngineName": "markdig",
+    "postProcessors": "ExtractSearchIndex",
+    "globalMetadata": {
+      "_appFooter": "<span>Copyright © 2020 Clinton Ingram<br>Generated with <strong>DocFX</strong></span>",
+      "_appTitle": "PhotoSauce Documentation",
+      "_enableSearch": true,
+      "_enableNewTab": false,
+      "_gitUrlPattern": "github"
+    }
+  }
+}

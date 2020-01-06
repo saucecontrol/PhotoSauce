@@ -1,8 +1,11 @@
 # WebRSize Configuration Guide
 
-In order to reduce overhead and improve security, WebRSize requires explicit opt-in for the image folders you want processed.  WebRSize will not perform any processing at all unless at least one image folder is configured.  You must register a WebRSize `ConfigSection` to store this configuration.
+> [!NOTE]
+> WebRSize currently only works with ASP.NET hosted with IIS Integrated Pipeline Mode.  A version for ASP.NET Core will be released later.
 
-```
+In order to reduce overhead and improve security, WebRSize requires explicit opt-in for the image folders you want processed.  You must register a WebRSize `ConfigSection` to store this configuration.
+
+```XML
 <configSections>
   <section name="webrsize" type="PhotoSauce.WebRSize.WebRSizeSection" />
 </configSections>
@@ -10,7 +13,7 @@ In order to reduce overhead and improve security, WebRSize requires explicit opt
 
 A minimal configuration must specify the disk cache location and at least one image folder.
 
-```
+```XML
 <webrsize>
   <diskCache path="/webrsizecache" />
   <imageFolders>
@@ -21,6 +24,11 @@ A minimal configuration must specify the disk cache location and at least one im
 
 The folder specified in the `diskCache` element must exist, and the App Pool identity must have write access to that folder.  Requests matching paths specified in the `imageFolders` element are eligible for processing by WebRSize.  All other requests pass through WebRSize unchanged.
 
+> [!IMPORTANT]
+> WebRSize will not perform any processing at all unless at least one image folder is configured.
+
+---
+
 Processing and caching are managed by an `IHttpModule` implementation called `WebRSizeModule`.  This module examines inbound requests matching the configured image folder paths and either serves a cached already-processed image or processes the image on the fly and schedules a copy to be saved to the disk cache.
 
 The `WebRSizeModule` must receive event notifications for static image requests in your configured folders in order to do its job.  There are multiple ways to accomplish this.
@@ -29,7 +37,7 @@ The `WebRSizeModule` must receive event notifications for static image requests 
 
 2. You can register the module explicitly in the `system.webServer` section.
 
-    ```
+    ```XML
     <system.webServer>
       <modules>
         <add name="WebRSize" type="PhotoSauce.WebRSize.WebRSizeModule" />
@@ -40,7 +48,7 @@ The `WebRSizeModule` must receive event notifications for static image requests 
 
 3. You can set up an explicit handler mapping for image file extension you want to process that maps to a managed `IHttpHandler`.
 
-    ```
+    ```XML
     <system.webServer>
       <handlers>
         <add name="ManagedJpeg" path="*.jpg" verb="GET" type="System.Web.StaticFileHandler" />
@@ -48,6 +56,10 @@ The `WebRSizeModule` must receive event notifications for static image requests 
     </system.webServer>
     ```
     This is common in scenarios where images will be served from a `VirtualPathProvider` that uses a database or cloud storage.  The built-in `StaticFileHandler` will request files from the registered `VirtualPathProvider`, and because the handler is managed, the self-registered `WebRSizeModule` instance will be able to intercept image processing requests.
+
+&nbsp;
+
+---
 
 ## Configuration Reference
 
@@ -78,7 +90,8 @@ The pattern used is as follows:
 The hash is used as the first part of the file name to prevent performance issues associated with 8.3-compatible name collisions.  If you have different preferences, you may create your own naming strategy by inheriting the `CacheFileNamingStrategyBase` class and implementing the abstract `GetCacheFilePath` method.
 
 Note that WebRSize uses a normalized version of the settings when creating the Settings Hash so that parameter combinations that yield the same file net results all share the same cache file.  For example, imagine you have a master JPEG image that is 3000x2000 pixels.  The following query string parameter sets would all generate the same image, so they would all serve the same file from the cache.
-```
+
+```INI
 w=300
 h=200
 w=300&h=200
@@ -88,7 +101,7 @@ w=300&format=jpg
 w=300&format=jpeg
 w=300&sharpen=true
 w=300&gamma=linear
-... and many more
+... and many, many more
 ```
 
 ### Image Folders
@@ -123,7 +136,7 @@ Default Value 10,000,000
 
 The `defaultSettings` element allows you to define a collection of key/value pairs that specify settings you would like applied to all WebRSize requests in the absence of an override on the query string.  For example, if you wish to disable sharpening on an entire image folder, you need not append the `sharpen=false` value to all request query strings.  You can configure it as a folder default.
 
-```
+```XML
 <webrsize>
   <diskCache path="/webrsizecache" />
   <imageFolders>
@@ -141,7 +154,7 @@ Any parameter value that would be valid on the query string of a request can be 
 
 ## Query String Parameters
 
-The following MagicScaler `ProcessImageSettings` values can be set from the query string when processing an image through a configured `ImageFolder`.  See the [MagicScaler documentation](main.md) for more details.
+The following MagicScaler `ProcessImageSettings` values can be set from the query string when processing an image through a configured `ImageFolder`.  See the [MagicScaler documentation](/api/PhotoSauce.MagicScaler.ProcessImageSettings.html) for more details.
 
 | ProcessImageSettings<br />Property| QueryString<br />Name | QueryString<br />Values/Type |
 |---|---|---|
@@ -149,6 +162,7 @@ The following MagicScaler `ProcessImageSettings` values can be set from the quer
 | Width | width<br />w | int |
 | Height | height<br />h | int |
 | Crop | crop | [left(int)],[top(int)],[width(int)],[height(int)] |
+| CropBasis | cropbasis | [width(int)],[height(int)] |
 | CropAnchor | anchor | [vertical(center, top, bottom)]\|[horizontal(center, left, right)] |
 | ResizeMode | mode | crop, max, stretch |
 | Sharpen | sharpen | bool |
@@ -175,7 +189,7 @@ Normally static images can be cached and served by the `http.sys` kernel cache. 
 
 This sample policy ensures that any requests for .jpg files can be kernel-cached as long as the URL (including query string) matches.  This will allow your processed images to be served with performance equal to that of static image files once they've been cached to disk.
 
-```
+```XML
 <system.webServer>
   <caching>
     <profiles>
@@ -187,7 +201,7 @@ This sample policy ensures that any requests for .jpg files can be kernel-cached
 
 You can verify kernel caching is working for processed image requests with the `netsh http show cachestate` command.  The output looks something like this when items are cached:
 
-```
+```INI
 PS C:\> netsh http show cachestate
 
 Snapshot of HTTP response cache:
@@ -205,8 +219,6 @@ URL: http://localhost/images/test1.jpg?w=150&h=150&mode=max
     Content length: 21335
     Hit count: 3
     Force disconnect after serving: FALSE
-
-...
 ```
 
 There are several other restrictions that affect caching, so you may not see many (or any) responses cached, even if you have a policy configured.  By default, a single URL has to be requested more than twice within a 10-second window to be considered cache-worthy, and the response must be smaller than 256KB.
