@@ -139,7 +139,7 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		/// <summary>Completes processing of the pipeline, writing the output image to <paramref name="outStream" />.</summary>
-		/// <param name="outStream">The stream to which the output image will be written.</param>
+		/// <param name="outStream">The stream to which the output image will be written. The stream must allow Seek and Write.</param>
 		/// <returns>A <see cref="ProcessImageResult" /> containing the settings used and basic instrumentation for the pipeline.</returns>
 		public ProcessImageResult WriteOutput(Stream outStream) => MagicImageProcessor.WriteOutput(Context, outStream);
 

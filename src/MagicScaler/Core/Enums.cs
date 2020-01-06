@@ -50,9 +50,9 @@ namespace PhotoSauce.MagicScaler
 	/// <summary>Defines the modes that control <a href="http://blog.johnnovak.net/2016/09/21/what-every-coder-should-know-about-gamma/">gamma correction</a> in pixel blending.</summary>
 	public enum GammaMode
 	{
-		/// <summary>Convert values to linear RGB before blending.</summary>
+		/// <summary>Convert values to linear RGB before blending.  This is more mathematically correct and more visually pleasing in most cases.</summary>
 		Linear,
-		/// <summary>Blend gamma-companded R'G'B' values directly.</summary>
+		/// <summary>Blend gamma-companded R'G'B' values directly.  This is usually a poor choice but may be used for compatibility with other software or where speed is more important than image quality.</summary>
 		Companded,
 		/// <summary>Same as <see cref="Companded" />.</summary>
 		[Obsolete("Replaced by " + nameof(GammaMode) + "." + nameof(Companded), true), EditorBrowsable(EditorBrowsableState.Never)]
@@ -86,6 +86,7 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>Convert the input image to the <a href="https://en.wikipedia.org/wiki/SRGB">sRGB color space</a> during processing.  Output an untagged sRGB image.</summary>
 		Normalize,
 		/// <summary>Convert the input image to the <a href="https://en.wikipedia.org/wiki/SRGB">sRGB color space</a> during processing.  Embed a compact sRGB profile in the output.</summary>
+		/// <remarks>This option ensures maximum compatibility with web browsers and other software but results in slightly larger (+456 bytes) output files.</remarks>
 		NormalizeAndEmbed,
 		/// <summary>Preserve the input image color space during processing.  Embed the ICC profile in the output image.  If the output format does not support embedded profiles, it will be discarded.</summary>
 		Preserve,
@@ -117,11 +118,11 @@ namespace PhotoSauce.MagicScaler
 	/// <summary>Defines the modes that control <a href="https://magnushoff.com/jpeg-orientation.html">Exif Orientation</a> correction.</summary>
 	public enum OrientationMode
 	{
-		/// <summary>Correct the image orientation according to the Exif tag on load.  Save the output in normal orientation.</summary>
+		/// <summary>Correct the image orientation according to the Exif tag on load.  Save the output in normal orientation.  This option ensures maximum compatibility with viewer software.</summary>
 		Normalize,
 		/// <summary>Preserve the orientation of the input image and tag the output image to reflect the orientation.  If the output format does not support orientation tagging, it will be discarded.</summary>
 		Preserve,
-		/// <summary>Ignore any orientation tag and treat the image as if its stored orientation is normal.  Do not tag the output image.</summary>
+		/// <summary>Ignore any orientation tag and treat the image as if its stored orientation is normal.  Do not tag the output image.  This option should only be used if the Exif orientation of the input image is known to be incorrect.</summary>
 		Ignore = 0xff
 	}
 

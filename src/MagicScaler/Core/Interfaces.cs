@@ -26,16 +26,20 @@ namespace PhotoSauce.MagicScaler
 	/// <summary>A single image frame within an <see cref="IImageContainer" /></summary>
 	public interface IImageFrame : IDisposable
 	{
-		/// <summary>The horizontal resolution of the image frame, in dots/pixels per inch.  If the frame source has no resolution information, a default value of 72 or 96 is suitable.</summary>
+		/// <summary>The horizontal resolution of the image frame, in dots/pixels per inch.</summary>
+		/// <remarks>Implementation note: If the frame source has no resolution information, a default value of 72 or 96 is suitable.</remarks>
 		double DpiX { get; }
 
-		/// <summary>The vertical resolution of the image frame, in dots/pixels per inch.  If the frame source has no resolution information, a default value of 72 or 96 is suitable.</summary>
+		/// <summary>The vertical resolution of the image frame, in dots/pixels per inch.</summary>
+		/// <remarks>Implementation note: If the frame source has no resolution information, a default value of 72 or 96 is suitable.</remarks>
 		double DpiY { get; }
 
-		/// <summary>The <see cref="Orientation"/> of the image frame.  If the frame source has no orientation information, a default value of <see cref="Orientation.Normal"/> is suitable.</summary>
+		/// <summary>The <see cref="Orientation"/> of the image frame.</summary>
+		/// <remarks>Implementation note: If the frame source has no orientation information, a default value of <see cref="Orientation.Normal"/> is suitable.</remarks>
 		Orientation ExifOrientation { get; }
 
-		/// <summary>The <a href="https://en.wikipedia.org/wiki/ICC_profile">ICC color profile</a> that describes the color space of the image frame.  If this value is <see cref="ReadOnlySpan{T}.Empty" />, colors will be interpreted as <a href="https://en.wikipedia.org/wiki/SRGB">sRGB or sYCC</a>.</summary>
+		/// <summary>The <a href="https://en.wikipedia.org/wiki/ICC_profile">ICC color profile</a> that describes the color space of the image frame.</summary>
+		/// <remarks>If this value is <see cref="ReadOnlySpan{T}.Empty" />, colors will be interpreted as <a href="https://en.wikipedia.org/wiki/SRGB">sRGB or sYCC</a>.</remarks>
 		ReadOnlySpan<byte> IccProfile { get; }
 
 		/// <summary>The <see cref="IPixelSource" /> to retrieve pixels from this image frame.</summary>
@@ -43,12 +47,14 @@ namespace PhotoSauce.MagicScaler
 	}
 
 	/// <summary>An image frame within an <see cref="IImageContainer" />.  The frame exposes 3 <see cref="IPixelSource" /> values, representing the Y', Cb, and Cr planes.</summary>
+	/// <remarks>Implementation note: The <see cref="PixelSource" /> property should return the Y (luma) plane.</remarks>
 	public interface IYccImageFrame : IImageFrame
 	{
 		/// <summary>The position of subsampled chroma components relative to their associated luma components.</summary>
 		ChromaPosition ChromaPosition { get; }
 
-		/// <summary>A 3x3 matrix containing the coefficients for converting from R'G'B' to the Y'CbCr format of this image frame.  The fourth row and column will be ignored.  See <see cref="YccMatrix" /> for standard values.</summary>
+		/// <summary>A 3x3 matrix containing the coefficients for converting from R'G'B' to the Y'CbCr format of this image frame.</summary>
+		/// <remarks>The fourth row and column will be ignored.  See <see cref="YccMatrix" /> for standard values.</remarks>
 		Matrix4x4 RgbYccMatrix { get; }
 
 		/// <summary>True if the encoding uses the full 0-255 range for pixel values, false if it uses video range (16-235 luma and 16-240 chroma).</summary>

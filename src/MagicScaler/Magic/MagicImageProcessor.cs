@@ -8,19 +8,25 @@ using PhotoSauce.MagicScaler.Transforms;
 
 namespace PhotoSauce.MagicScaler
 {
-	/// <summary>Provides a set of methods for constructing or executing a MagicScaler processing pipeline.</summary>
+	/// <summary>Provides a set of methods for constructing a MagicScaler processing pipeline or for all-at-once processing of an image.</summary>
 	public static class MagicImageProcessor
 	{
 		/// <summary>True to allow <a href="https://en.wikipedia.org/wiki/YCbCr">Y'CbCr</a> images to be processed in their native planar format, false to force RGB conversion before processing.</summary>
+		/// <include file='Docs/Remarks.xml' path='doc/member[@name="EnablePlanarPipeline"]/*'/>
+		/// <value>Default value: <c>true</c></value>
 		public static bool EnablePlanarPipeline { get; set; } = true;
 
 		/// <summary>True to check for Orientation tag in Xmp metadata in addition to the default Exif metadata location, false to check Exif only.</summary>
+		/// <value>Default value: <c>false</c></value>
 		public static bool EnableXmpOrientation { get; set; } = false;
 
 		/// <summary>True to enable internal <see cref="IPixelSource"/> instrumentation, false to disable.  When disabled, no <see cref="PixelSourceStats" /> will be collected for the pipeline stages.</summary>
+		/// <value>Default value: <c>false</c></value>
 		public static bool EnablePixelSourceStats { get; set; } = false;
 
 		/// <summary>Overrides the default <a href="https://en.wikipedia.org/wiki/SIMD">SIMD</a> support detection to force floating point processing on or off.</summary>
+		/// <include file='Docs/Remarks.xml' path='doc/member[@name="EnableSimd"]/*'/>
+		/// <value>Default value: <c>true</c> if the runtime/JIT and hardware support hardware-accelerated <see cref="System.Numerics.Vector{T}" />, otherwise <c>false</c></value>
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static bool EnableSimd { get; set; } = Vector.IsHardwareAccelerated && (Vector<float>.Count == 4 || Vector<float>.Count == 8);
 
@@ -39,7 +45,7 @@ namespace PhotoSauce.MagicScaler
 
 		/// <summary>All-in-one processing of an image according to the specified <paramref name="settings" />.</summary>
 		/// <param name="imgPath">The path to a file containing the input image.</param>
-		/// <param name="outStream">The stream to which the output image will be written.</param>
+		/// <param name="outStream">The stream to which the output image will be written. The stream must allow Seek and Write.</param>
 		/// <param name="settings">The settings for this processing operation.</param>
 		/// <returns>A <see cref="ProcessImageResult" /> containing the settings used and basic instrumentation for the pipeline.</returns>
 		public static ProcessImageResult ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
@@ -71,7 +77,7 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
-		/// <param name="imgStream">A stream containing a supported input image container.</param>
+		/// <param name="imgStream">A stream containing a supported input image container. The stream must allow Seek and Read.</param>
 		public static ProcessImageResult ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings)
 		{
 			checkInStream(imgStream);
@@ -144,7 +150,7 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		/// <inheritdoc cref="BuildPipeline(string, ProcessImageSettings)" />
-		/// <param name="imgStream">A stream containing a supported input image container.</param>
+		/// <param name="imgStream">A stream containing a supported input image container. The stream must allow Seek and Read.</param>
 		public static ProcessingPipeline BuildPipeline(Stream imgStream, ProcessImageSettings settings)
 		{
 			checkInStream(imgStream);

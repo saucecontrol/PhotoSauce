@@ -21,5 +21,5 @@ git submodule update --remote
 The projects can then be built as normal with Visual Studio or dotnet CLI.  The NuGet packages are built only under the `Dist` build configuration.
 
 ```
-dotnet build -c Dist
+dotnet build src\MagicScaler -c Dist
 ```

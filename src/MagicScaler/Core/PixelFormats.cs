@@ -348,20 +348,26 @@ namespace PhotoSauce.MagicScaler
 	public static class PixelFormats
 	{
 		/// <summary>Greyscale data with 1 byte per pixel.</summary>
+		/// <value>6FDDC324-4E03-4BFE-B185-3D77768DC908</value>
 		public static readonly Guid Grey8bpp = Consts.GUID_WICPixelFormat8bppGray;
 		/// <summary>RGB data with 1 byte per channel in BGR byte order.</summary>
+		/// <value>6FDDC324-4E03-4BFE-B185-3D77768DC90C</value>
 		public static readonly Guid Bgr24bpp = Consts.GUID_WICPixelFormat24bppBGR;
 		/// <summary>RGBA data with 1 byte per channel in BGRA byte order.</summary>
+		/// <value>6FDDC324-4E03-4BFE-B185-3D77768DC90F</value>
 		public static readonly Guid Bgra32bpp = Consts.GUID_WICPixelFormat32bppBGRA;
 
 		/// <summary>Contains standard pixel formats for <see cref="IYccImageFrame"/> implementations.</summary>
 		public static class Planar
 		{
 			/// <summary>Planar luma data with 1 byte per pixel.</summary>
+			/// <value>91B4DB54-2DF9-42F0-B449-2909BB3DF88E</value>
 			public static readonly Guid Y8bpp = Consts.GUID_WICPixelFormat8bppY;
 			/// <summary>Planar blue-yellow chroma data with 1 byte per pixel.</summary>
+			/// <value>1339F224-6BFE-4C3E-9302E4F3A6D0CA2A</value>
 			public static readonly Guid Cb8bpp = Consts.GUID_WICPixelFormat8bppCb;
 			/// <summary>Planar red-green chroma data with 1 byte per pixel.</summary>
+			/// <value>B8145053-2116-49F0-8835ED844B205C51</value>
 			public static readonly Guid Cr8bpp = Consts.GUID_WICPixelFormat8bppCr;
 		}
 	}

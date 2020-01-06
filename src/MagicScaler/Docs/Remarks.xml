@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<doc>
+        <member name="EnablePlanarPipeline">
+            <remarks>
+                <para>The planar pipeline offers significant performance advantages over standard RGB processing for JPEG images.</para>
+                <para>Most image processing software will convert Y'CbCr JPEG input to RGB for processing and then convert back to Y'CbCr for JPEG output.  In addition to saving the processing time spent on this unnecessary conversion, planar processing allows for other work savings.</para>
+                <list type="bullet">
+                    <item><description><a href="https://en.wikipedia.org/wiki/Chroma_subsampling">Chroma subsampled</a> images do not need to have their chroma planes upsampled to the luma size, only to have them rescaled again.  MagicScaler can scale the subsampled chroma plane directly to its final size.</description></item>
+                    <item><description>When saving in a chroma subsampled format, the final chroma scaling is done with a high-quality resampler rather than the default resampler used by the encoder.</description></item>
+                    <item><description>When processing in <a href="http://www.ericbrasseur.org/gamma.html">linear light</a>, gamma correction needs only be performed on the luma plane.</description></item>
+                    <item><description>When sharpening is applied, it also needs only be performed on the luma plane.</description></item>
+                </list>
+                <para>This feature is only available if WIC supports it (Windows 8.1/Windows Server 2012 and above) and the input image format is Y'CbCr.  The output results will be slightly different than those produced with RGB processing but no less correct or visually appealing.</para>
+            </remarks>
+        </member>
+        <member name="EnableSimd">
+            <remarks>
+                <para>For high-quality resampling, SIMD processing yields significant performance improvements.</para>
+                <para>Note that the SIMD processing is done in floating point whereas the standard processing is done in fixed point math.  This will result in very slight output differences due to rounding.  Differences will not be visually significant but can be detected with a binary compare.</para>
+                <para>This property should only be used for testing/troubleshooting.  Forcing floating point processing on incompatible hardware or runtimes will result in very poor performance, and disabling it when supported will sacrifice much of MagicScaler's current and future optimization.</para>
+            </remarks>
+        </member>
+        <member name="Crop">
+            <remarks>
+            If the input image has an <a href="http://sylvana.net/jpegcrop/exif_orientation.html">Exif Orientation</a> value, rotation and/or flipping will be applied to the image before the crop.
+            Crop values should be expressed in terms of the image's correct orientation, not the encoded orientation.
+            </remarks>
+        </member>
+        <member name="Anchor">
+            <remarks>
+                <para>By default, auto-cropping will maintain the image center by cropping equally from the top, bottom, or sides.</para>
+                <para>If you wish to direct the auto-cropper to focus on another part of the image, you may specify a vertical and horizontal bias using a combination of values. Only one horizontal and one vertical value may be combined.</para>
+            </remarks>
+            <example>
+                <code>mySettings.Anchor = CropAnchor.Top | CropAnchor.Left</code>
+            </example>
+        </member>
+        <member name="HybridMode">
+            <remarks>
+            Hybrid processing may use the image decoder or another lower-quality scaler to shrink an image to an intermediate size before the selected high-quality algorithm is applied to the final resize.
+            This can result in dramatic performance improvements but with a slight reduction in image quality.
+            </remarks>
+        </member>
+        <member name="MatteColor">
+            <remarks>
+            When converting to a file format that does not support transparency (e.g. PNG->JPEG), the background color will be <see cref="Color.Black" /> unless otherwise specified.
+            When saving as a file format that does support transparency, the transparency will be maintained unless a color is set.
+            </remarks>
+        </member>
+        <member name="MetadataNames">
+            <remarks>
+            This feature can be useful for preserving author, copyright, or other important EXIF tags in the output image. Values will be copied only if present in the input image and supported by the output codec.
+            See the <a href="https://docs.microsoft.com/en-us/windows/desktop/wic/photo-metadata-policies">Windows Photo Metadata Policies</a> for examples of commonly-used values,
+            or the <a href="https://docs.microsoft.com/en-us/windows/win32/wic/-wic-codec-metadataquerylanguage">Metadata Query Language Overview</a> for explicit path syntax.
+            </remarks>
+        </member>
+</doc>

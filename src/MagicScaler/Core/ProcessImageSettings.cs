@@ -10,16 +10,21 @@ using PhotoSauce.MagicScaler.Interpolators;
 namespace PhotoSauce.MagicScaler
 {
 	/// <summary>Defines settings for an <a href="https://en.wikipedia.org/wiki/Unsharp_masking">Unsharp Masking</a> operation.</summary>
+	/// <remarks>These settings are designed to function similarly to the Unsharp Mask settings in Photoshop.</remarks>
 	public readonly struct UnsharpMaskSettings
 	{
 		/// <summary>No sharpening.</summary>
 		public static readonly UnsharpMaskSettings None = default;
 
 		/// <summary>The amount of sharpening.  This value represents a percentage of the difference between the blurred image and the original image.</summary>
+		/// <value>Typical values are between <c>25</c> and <c>200</c>.</value>
 		public int Amount { get; }
 		/// <summary>The radius (sigma) of the gaussian blur used for the mask.  This value determines the size of details that are sharpened.</summary>
+		/// <value>Typical values are between <c>0.3</c> and <c>3.0</c>. Larger radius values can have significant performance cost.</value>
 		public double Radius { get; }
 		/// <summary>The minimum brightness change required for a pixel to be modified by the filter.</summary>
+		/// <remarks>When using larger <see cref="Radius"/> or <see cref="Amount"/> values, a larger <see cref="Threshold"/> value can ensure lines are sharpened while textures are not.</remarks>
+		/// <value>Typical values are between <c>0</c> and <c>10</c>.</value>
 		public byte Threshold { get; }
 
 		/// <summary>Constructs a new <see cref="UnsharpMaskSettings" /> instance with the specified values.</summary>
@@ -62,7 +67,8 @@ namespace PhotoSauce.MagicScaler
 
 		private readonly double blur;
 
-		/// <summary>A blur value stretches or compresses the input window of an interpolation function.  This value represents a fraction of the normal window size, with 1.0 being normal.</summary>
+		/// <summary>A blur value stretches or compresses the input window of an interpolation function.  This value represents a fraction of the normal window size, with <c>1.0</c> being normal.</summary>
+		/// <value>Supported values: <c>0.5</c> to <c>1.5</c>.  Values less than <c>1.0</c> can cause unpleasant artifacts.</value>
 		public double Blur => WeightingFunction is null ? default : WeightingFunction.Support * blur < 0.5 ? 1d : blur;
 
 		/// <summary>An <see cref="IInterpolator" /> implementation that provides interpolated sample weights.</summary>
@@ -130,37 +136,63 @@ namespace PhotoSauce.MagicScaler
 			Math.Min(InnerSize.Width > 0 ? (double)Crop.Width / InnerSize.Width : 0d, InnerSize.Height > 0 ? (double)Crop.Height / InnerSize.Height : 0d);
 
 		/// <summary>The 0-based index of the image frame to process from within the container.</summary>
+		/// <value>Default value: <c>0</c></value>
 		public int FrameIndex { get; set; }
-		/// <summary>The horizontal DPI of the output image.  This affects the image metadata only.</summary>
+		/// <summary>The horizontal DPI of the output image.  A value of <c>0</c> will preserve the DPI of the input image.</summary>
+		/// <remarks>This affects the image metadata only.  Not all image formats support a DPI setting and most applications will ignore it.</remarks>
+		/// <value>Default value: <c>96</c></value>
 		public double DpiX { get; set; } = 96d;
-		/// <summary>The vertical DPI of the output image.  This affects the image metadata only.</summary>
+		/// <summary>The vertical DPI of the output image.  A value of <c>0</c> will preserve the DPI of the input image.</summary>
+		/// <remarks>This affects the image metadata only.  Not all image formats support a DPI setting and most applications will ignore it.</remarks>
+		/// <value>Default value: <c>96</c></value>
 		public double DpiY { get; set; } = 96d;
-		/// <summary>Determines whether automatic sharpening is applied during processing.</summary>
+		/// <summary>Determines whether automatic sharpening is applied during processing.  The sharpening settings are controlled by the <see cref="UnsharpMask"/> property.</summary>
+		/// <value>Default value: <c>true</c></value>
 		public bool Sharpen { get; set; } = true;
 		/// <summary>Determines how automatic scaling and cropping is performed.</summary>
+		/// <remarks>Auto-cropping is performed only if a <see cref="Crop" /> value is not explicitly set.</remarks>
+		/// <value>Default value: <see cref="CropScaleMode.Crop" /></value>
 		public CropScaleMode ResizeMode { get; set; }
 		/// <summary>Defines the bounding rectangle to use from the input image.  Can be calculated automatically depending on <see cref="CropScaleMode" />.</summary>
+		/// <include file='Docs/Remarks.xml' path='doc/member[@name="Crop"]/*'/>
+		/// <value>Default value: <see cref="Rectangle.Empty" /></value>
 		public Rectangle Crop { get; set; }
-		/// <summary>Defines the dimensions on which the <see cref="Crop"/> rectangle is based.  If this value is empty, <see cref="Crop"/> values are based on the actual input image dimensions.</summary>
+		/// <summary>Defines the dimensions on which the <see cref="Crop" /> rectangle is based.  If this value is empty, <see cref="Crop" /> values are based on the actual input image dimensions.</summary>
+		/// <value>Default value: <see cref="Size.Empty" /></value>
 		public Size CropBasis { get; set; }
 		/// <summary>Determines which part of the image is preserved when automatic cropping is performed.</summary>
+		/// <include file='Docs/Remarks.xml' path='doc/member[@name="Anchor"]/*'/>
+		/// <value>Default value: <see cref="CropAnchor.Center" /></value>
 		public CropAnchor Anchor { get; set; }
-		/// <summary>Determines the container format of the output image.</summary>
+		/// <summary>Determines the container format of the output image. A value of <see cref="FileFormat.Auto" /> will choose the output codec based on the input image type.</summary>
+		/// <value>Default value: <see cref="FileFormat.Auto" /></value>
 		public FileFormat SaveFormat { get; set; }
 		/// <summary>The background color to use when converting to a non-transparent format and the fill color for <see cref="CropScaleMode.Pad" /> mode.</summary>
+		/// <include file='Docs/Remarks.xml' path='doc/member[@name="MatteColor"]/*'/>
+		/// <value>Default value: <see cref="Color.Empty" /></value>
 		public Color MatteColor { get; set; }
 		/// <summary>Determines whether Hybrid Scaling is allowed to be used to improve performance.</summary>
+		/// <include file='Docs/Remarks.xml' path='doc/member[@name="HybridMode"]/*'/>
+		/// <value>Default value: <see cref="HybridScaleMode.FavorQuality" /></value>
 		public HybridScaleMode HybridMode { get; set; }
 		/// <summary>Determines whether pixel blending is done using linear RGB or gamma-companded R'G'B'.</summary>
+		/// <remarks>Linear processing will yield better quality in almost all cases but with a performance cost.</remarks>
+		/// <value>Default value: <see cref="GammaMode.Linear" /></value>
 		public GammaMode BlendingMode { get; set; }
 		/// <summary>Determines whether automatic orientation correction is performed.</summary>
+		/// <value>Default value: <see cref="OrientationMode.Normalize" /></value>
 		public OrientationMode OrientationMode { get; set; }
 		/// <summary>Determines whether automatic colorspace conversion is performed.</summary>
+		/// <value>Default value: <see cref="ColorProfileMode.Normalize" /></value>
 		public ColorProfileMode ColorProfileMode { get; set; }
-		/// <summary>A list of <a href="https://docs.microsoft.com/en-us/windows/desktop/wic/photo-metadata-policies">Windows Photo Metadata Policy</a> names.  Any values matching the included policies will be copied to the output image if supported.</summary>
+		/// <summary>A list of metadata policy names or explicit metadata paths to be copied from the input image to the output image.</summary>
+		/// <include file='Docs/Remarks.xml' path='doc/member[@name="MetadataNames"]/*'/>
+		/// <value>Default value: <see cref="Enumerable.Empty" /></value>
 		public IEnumerable<string> MetadataNames { get; set; } = Enumerable.Empty<string>();
 
-		/// <summary>The width of the output image in pixels.</summary>
+		/// <summary>The width of the output image in pixels.  If auto-cropping is enabled, a value of <c>0</c> will set the width automatically based on the output height.</summary>
+		/// <remarks>If <see cref="Width"/> and <see cref="Height"/> are both set to <c>0</c>, no resizing will be performed but a crop may still be applied.</remarks>
+		/// <value>Default value: <c>0</c></value>
 		public int Width
 		{
 			get => OuterSize.Width;
@@ -171,7 +203,9 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		/// <summary>The height of the output image in pixels.</summary>
+		/// <summary>The height of the output image in pixels.  If auto-cropping is enabled, a value of <c>0</c> will set the height automatically based on the output width.</summary>
+		/// <remarks>If <see cref="Width"/> and <see cref="Height"/> are both set to <c>0</c>, no resizing will be performed but a crop may still be applied.</remarks>
+		/// <value>Default value: <c>0</c></value>
 		public int Height
 		{
 			get => OuterSize.Height;
@@ -183,6 +217,7 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		/// <summary>The calculated ratio for the lower-quality portion of a hybrid scaling operation.</summary>
+		/// <value>Calculated based on <see cref="HybridScaleMode" /> and the ratio of input image size to output image size</value>
 		public int HybridScaleRatio
 		{
 			get
@@ -197,6 +232,8 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		/// <summary>The quality setting to use for JPEG output.</summary>
+		/// <remarks>If this value is set to <c>0</c>, the quality level will be set automatically according to the output image dimensions. Typically, this value should be <c>80</c> or greater if set explicitly.</remarks>
+		/// <value>Default value: calculated based on output image size</value>
 		public int JpegQuality
 		{
 			get
@@ -217,6 +254,8 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		/// <summary>Determines what type of chroma subsampling is used for the output image.</summary>
+		/// <remarks>If this value is set to <see cref="ChromaSubsampleMode.Default"/>, the chroma subsampling will be set automatically based on the <see cref="JpegQuality"/> setting.</remarks>
+		/// <value>Default value: calculated based on <see cref="JpegQuality"/></value>
 		public ChromaSubsampleMode JpegSubsampleMode
 		{
 			get
@@ -230,6 +269,8 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		/// <summary>Determines how resampling interpolation is performed.</summary>
+		/// <remarks>If this value is unset, the algorithm will be chosen automatically to maximize image quality and performance based on the ratio of input image size to output image size.</remarks>
+		/// <value>Default value: calculated based on resize ratio</value>
 		public InterpolationSettings Interpolation
 		{
 			get
@@ -252,7 +293,9 @@ namespace PhotoSauce.MagicScaler
 			set => interpolation = value;
 		}
 
-		/// <summary>Settings for automatic sharpening.</summary>
+		/// <summary>Settings for automatic post-resize sharpening.</summary>
+		/// <remarks>If this value is unset, the settings will be chosen automatically to maximize image quality based on the ratio of input image size to output image size.</remarks>
+		/// <value>Default value: calculated based on resize ratio</value>
 		public UnsharpMaskSettings UnsharpMask
 		{
 			get
