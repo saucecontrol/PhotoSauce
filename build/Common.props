@@ -16,7 +16,7 @@
 		<PackageIcon>package/$(Company).png</PackageIcon>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageProjectUrl>https://photosauce.net</PackageProjectUrl>
-		<PackageTags>Image Resize Process Crop Sharpen Rotate Flip WIC JPEG JPG PNG GIF TIFF</PackageTags>
+		<PackageTags>Image Resize Resample Process Crop Sharpen Rotate Flip WIC JPEG JPG PNG GIF TIFF</PackageTags>
 		<PackageReleaseNotes>See $(RepositoryUrl)/releases for release-specific notes.</PackageReleaseNotes>
 
 		<LangVersion>8</LangVersion>
