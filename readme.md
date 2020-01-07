@@ -199,11 +199,14 @@ The recently-added NetVips test has the same problem as ImageMagick.  It would d
 
 These are common mistakes made by developers starting out with image processing, because it can be easy to miss the shift in colors and difficult to discover how to do the right thing.
 
+<samp>
 Sample Images:
 
-| System.Drawing | MagicScaler | ImageSharp | Magick.NET | NetVips | FreeImage | SkiaSharp |
+| System.Drawing | &nbsp;&nbsp;MagicScaler&nbsp; | &nbsp;&nbsp;ImageSharp&nbsp;&nbsp; | &nbsp;&nbsp;Magick.NET&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;NetVips&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;FreeImage&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;SkiaSharp&nbsp;&nbsp; |
 |----------------|-------------|------------|------------|---------|-----------|-----------|
 |<img src="/doc/images/IMG_2525-SystemDrawing.jpg" alt="System.Drawing" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-MagicScaler.jpg" alt="MagicScaler" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-ImageSharp.jpg" alt="ImageSharp" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-MagickNET.jpg" alt="MagickNET" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-NetVips.jpg" alt="NetVips" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-FreeImage.jpg" alt="FreeImage" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-SkiaSharpCanvas.jpg" alt="SkiaSharp" style="max-width: 150px" />|
+</samp>
+&nbsp;
 
 The color difference between these should be obvious.  Compared to the [original image](https://github.com/bleroy/core-imaging-playground/blob/master/images/IMG_2525.jpg), it's easy to see which are correct (unless your browser is busted).
 
@@ -211,11 +214,14 @@ The color difference between these should be obvious.  Compared to the [original
 
 Of the libraries tested in the benchmark, only MagicScaler performs the resampling step in [linear light](http://www.imagemagick.org/Usage/resize/#resize_colorspace).  ImageSharp, ImageMagick, and Vips are capable of processing in linear light but would require extra code to do so and would perform significantly worse.
 
+<samp>
 Sample Images:
 
-| System.Drawing | MagicScaler | ImageSharp | Magick.NET | NetVips | FreeImage | SkiaSharp |
+| System.Drawing | &nbsp;&nbsp;MagicScaler&nbsp; | &nbsp;&nbsp;ImageSharp&nbsp;&nbsp; | &nbsp;&nbsp;Magick.NET&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;NetVips&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;FreeImage&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;SkiaSharp&nbsp;&nbsp; |
 |----------------|-------------|------------|------------|---------|-----------|-----------|
 |<img src="/doc/images/IMG_2301-SystemDrawing.jpg" alt="System.Drawing" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-MagicScaler.jpg" alt="MagicScaler" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-ImageSharp.jpg" alt="ImageSharp" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-MagickNET.jpg" alt="MagickNET" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-NetVips.jpg" alt="NetVips" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-FreeImage.jpg" alt="FreeImage" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-SkiaSharpCanvas.jpg" alt="SkiaSharp" style="max-width: 150px" />|
+</samp>
+&nbsp;
 
 In addition to keeping the correct colors, MagicScaler does markedly better at preserving image highlights because of the linear light blending.  Notice the highlights on the flowers are a better representation of those in the [original image](https://github.com/bleroy/core-imaging-playground/blob/master/images/IMG_2301.jpg)
 
@@ -223,11 +229,14 @@ In addition to keeping the correct colors, MagicScaler does markedly better at p
 
 Most imaging libraries have at least some capability to do high-quality resampling, but not all do.  MagicScaler defaults to high-quality, but the other libraries in this test were configured for their best quality as well.
 
+<samp>
 Sample Images:
 
-| System.Drawing | MagicScaler | ImageSharp | Magick.NET | NetVips | FreeImage | SkiaSharp |
+| System.Drawing | &nbsp;&nbsp;MagicScaler&nbsp; | &nbsp;&nbsp;ImageSharp&nbsp;&nbsp; | &nbsp;&nbsp;Magick.NET&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;NetVips&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;FreeImage&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;SkiaSharp&nbsp;&nbsp; |
 |----------------|-------------|------------|------------|---------|-----------|-----------|
 |<img src="/doc/images/IMG_2445-SystemDrawing.jpg" alt="System.Drawing" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-MagicScaler.jpg" alt="MagicScaler" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-ImageSharp.jpg" alt="ImageSharp" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-MagickNET.jpg" alt="MagickNET" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-NetVips.jpg" alt="NetVips" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-FreeImage.jpg" alt="FreeImage" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-SkiaSharpCanvas.jpg" alt="SkiaSharp" style="max-width: 150px" />|
+</samp>
+&nbsp;
 
 FreeImage and SkiaSharp have particularly poor image quality in this test, with output substantially more blurry than the others.
 
@@ -239,11 +248,14 @@ And here's that [original image](https://github.com/bleroy/core-imaging-playgrou
 
 Finally, MagicScaler performs a post-resizing sharpening step to compensate for the natural blurring that occurs when an image is resized.  Some of the other libraries would be capable of doing the same, but again, that would require extra code and would negatively impact the performance numbers.
 
+<samp>
 Sample Images:
 
-| System.Drawing | MagicScaler | ImageSharp | Magick.NET | NetVips | FreeImage | SkiaSharp |
+| System.Drawing | &nbsp;&nbsp;MagicScaler&nbsp; | &nbsp;&nbsp;ImageSharp&nbsp;&nbsp; | &nbsp;&nbsp;Magick.NET&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;NetVips&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;FreeImage&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;SkiaSharp&nbsp;&nbsp; |
 |----------------|-------------|------------|------------|---------|-----------|-----------|
 |<img src="/doc/images/sample-SystemDrawing.jpg" alt="System.Drawing" style="max-width: 150px" />|<img src="/doc/images/sample-MagicScaler.jpg" alt="MagicScaler" style="max-width: 150px" />|<img src="/doc/images/sample-ImageSharp.jpg" alt="ImageSharp" style="max-width: 150px" />|<img src="/doc/images/sample-MagickNET.jpg" alt="MagickNET" style="max-width: 150px" />|<img src="/doc/images/sample-NetVips.jpg" alt="NetVips" style="max-width: 150px" />|<img src="/doc/images/sample-FreeImage.jpg" alt="FreeImage" style="max-width: 150px" />|<img src="/doc/images/sample-SkiaSharpCanvas.jpg" alt="SkiaSharp" style="max-width: 150px" />|
+</samp>
+&nbsp;
 
 The linear light blending combined with the sharpening work to preserve more details from this [original image](https://github.com/bleroy/core-imaging-playground/blob/master/images/sample.jpg) than the other libraries do.  Again, some details are mangled by the poor JPEG settings, so MagicScaler's default settings would do even better.
 
