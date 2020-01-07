@@ -148,7 +148,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public void Dispose()
 		{
-			ArrayPool<byte>.Shared.Return(lineBuff ?? Array.Empty<byte>());
+			if (lineBuff is null)
+				return;
+
+			ArrayPool<byte>.Shared.Return(lineBuff);
 			lineBuff = null;
 		}
 
