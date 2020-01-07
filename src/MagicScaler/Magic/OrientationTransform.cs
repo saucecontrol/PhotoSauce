@@ -246,7 +246,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			srcBuff?.Dispose();
 
-			ArrayPool<byte>.Shared.Return(lineBuff ?? Array.Empty<byte>());
+			if (lineBuff is null)
+				return;
+
+			ArrayPool<byte>.Shared.Return(lineBuff);
 			lineBuff = null;
 		}
 	}

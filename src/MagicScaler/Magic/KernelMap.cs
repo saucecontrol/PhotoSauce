@@ -224,7 +224,10 @@ namespace PhotoSauce.MagicScaler
 
 		public void Dispose()
 		{
-			ArrayPool<byte>.Shared.Return(map ?? Array.Empty<byte>());
+			if (map is null)
+				return;
+
+			ArrayPool<byte>.Shared.Return(map);
 			map = null!;
 		}
 	}

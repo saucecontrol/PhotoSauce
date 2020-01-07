@@ -208,7 +208,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 			SrcBuff?.Dispose();
 			WorkBuff?.Dispose();
 
-			ArrayPool<byte>.Shared.Return(lineBuff ?? Array.Empty<byte>());
+			if (lineBuff is null)
+				return;
+
+			ArrayPool<byte>.Shared.Return(lineBuff);
 			lineBuff = null;
 		}
 
@@ -261,7 +264,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			base.Dispose();
 
-			ArrayPool<byte>.Shared.Return(blurBuff ?? Array.Empty<byte>());
+			if (blurBuff is null)
+				return;
+
+			ArrayPool<byte>.Shared.Return(blurBuff);
 			blurBuff = null!;
 		}
 
