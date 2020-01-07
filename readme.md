@@ -203,7 +203,7 @@ Sample Images:
 
 | System.Drawing | MagicScaler | ImageSharp | Magick.NET | NetVips | FreeImage | SkiaSharp |
 |----------------|-------------|------------|------------|---------|-----------|-----------|
-|![System.Drawing](doc/images/IMG_2525-SystemDrawing.jpg)|![MagicScaler](doc/images/IMG_2525-MagicScaler.jpg)|![ImageSharp](doc/images/IMG_2525-ImageSharp.jpg)|![MagickNET](doc/images/IMG_2525-MagickNET.jpg)|![NetVips](doc/images/IMG_2525-NetVips.jpg)|![FreeImage](doc/images/IMG_2525-FreeImage.jpg)|![SkiaSharp](doc/images/IMG_2525-SkiaSharpCanvas.jpg)|
+|<img src="/doc/images/IMG_2525-SystemDrawing.jpg" alt="System.Drawing" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-MagicScaler.jpg" alt="MagicScaler" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-ImageSharp.jpg" alt="ImageSharp" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-MagickNET.jpg" alt="MagickNET" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-NetVips.jpg" alt="NetVips" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-FreeImage.jpg" alt="FreeImage" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-SkiaSharpCanvas.jpg" alt="SkiaSharp" style="max-width: 150px" />|
 
 The color difference between these should be obvious.  Compared to the [original image](https://github.com/bleroy/core-imaging-playground/blob/master/images/IMG_2525.jpg), it's easy to see which are correct (unless your browser is busted).
 
@@ -215,7 +215,7 @@ Sample Images:
 
 | System.Drawing | MagicScaler | ImageSharp | Magick.NET | NetVips | FreeImage | SkiaSharp |
 |----------------|-------------|------------|------------|---------|-----------|-----------|
-|![System.Drawing](doc/images/IMG_2301-SystemDrawing.jpg)|![MagicScaler](doc/images/IMG_2301-MagicScaler.jpg)|![ImageSharp](doc/images/IMG_2301-ImageSharp.jpg)|![MagickNET](doc/images/IMG_2301-MagickNET.jpg)|![NetVips](doc/images/IMG_2301-NetVips.jpg)|![FreeImage](doc/images/IMG_2301-FreeImage.jpg)|![SkiaSharp](doc/images/IMG_2301-SkiaSharpCanvas.jpg)|
+|<img src="/doc/images/IMG_2301-SystemDrawing.jpg" alt="System.Drawing" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-MagicScaler.jpg" alt="MagicScaler" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-ImageSharp.jpg" alt="ImageSharp" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-MagickNET.jpg" alt="MagickNET" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-NetVips.jpg" alt="NetVips" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-FreeImage.jpg" alt="FreeImage" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-SkiaSharpCanvas.jpg" alt="SkiaSharp" style="max-width: 150px" />|
 
 In addition to keeping the correct colors, MagicScaler does markedly better at preserving image highlights because of the linear light blending.  Notice the highlights on the flowers are a better representation of those in the [original image](https://github.com/bleroy/core-imaging-playground/blob/master/images/IMG_2301.jpg)
 
@@ -227,7 +227,7 @@ Sample Images:
 
 | System.Drawing | MagicScaler | ImageSharp | Magick.NET | NetVips | FreeImage | SkiaSharp |
 |----------------|-------------|------------|------------|---------|-----------|-----------|
-|![System.Drawing](doc/images/IMG_2445-SystemDrawing.jpg)|![MagicScaler](doc/images/IMG_2445-MagicScaler.jpg)|![ImageSharp](doc/images/IMG_2445-ImageSharp.jpg)|![MagickNET](doc/images/IMG_2445-MagickNET.jpg)|![NetVips](doc/images/IMG_2445-NetVips.jpg)|![FreeImage](doc/images/IMG_2445-FreeImage.jpg)|![SkiaSharp](doc/images/IMG_2445-SkiaSharpCanvas.jpg)|
+|<img src="/doc/images/IMG_2445-SystemDrawing.jpg" alt="System.Drawing" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-MagicScaler.jpg" alt="MagicScaler" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-ImageSharp.jpg" alt="ImageSharp" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-MagickNET.jpg" alt="MagickNET" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-NetVips.jpg" alt="NetVips" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-FreeImage.jpg" alt="FreeImage" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-SkiaSharpCanvas.jpg" alt="SkiaSharp" style="max-width: 150px" />|
 
 FreeImage and SkiaSharp have particularly poor image quality in this test, with output substantially more blurry than the others.
 
@@ -243,7 +243,7 @@ Sample Images:
 
 | System.Drawing | MagicScaler | ImageSharp | Magick.NET | NetVips | FreeImage | SkiaSharp |
 |----------------|-------------|------------|------------|---------|-----------|-----------|
-|![System.Drawing](doc/images/sample-SystemDrawing.jpg)|![MagicScaler](doc/images/sample-MagicScaler.jpg)|![ImageSharp](doc/images/sample-ImageSharp.jpg)|![MagickNET](doc/images/sample-MagickNET.jpg)|![NetVips](doc/images/sample-NetVips.jpg)|![FreeImage](doc/images/sample-FreeImage.jpg)|![SkiaSharp](doc/images/sample-SkiaSharpCanvas.jpg)|
+|<img src="/doc/images/sample-SystemDrawing.jpg" alt="System.Drawing" style="max-width: 150px" />|<img src="/doc/images/sample-MagicScaler.jpg" alt="MagicScaler" style="max-width: 150px" />|<img src="/doc/images/sample-ImageSharp.jpg" alt="ImageSharp" style="max-width: 150px" />|<img src="/doc/images/sample-MagickNET.jpg" alt="MagickNET" style="max-width: 150px" />|<img src="/doc/images/sample-NetVips.jpg" alt="NetVips" style="max-width: 150px" />|<img src="/doc/images/sample-FreeImage.jpg" alt="FreeImage" style="max-width: 150px" />|<img src="/doc/images/sample-SkiaSharpCanvas.jpg" alt="SkiaSharp" style="max-width: 150px" />|
 
 The linear light blending combined with the sharpening work to preserve more details from this [original image](https://github.com/bleroy/core-imaging-playground/blob/master/images/sample.jpg) than the other libraries do.  Again, some details are mangled by the poor JPEG settings, so MagicScaler's default settings would do even better.
 
