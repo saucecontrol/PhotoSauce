@@ -196,7 +196,7 @@ namespace PhotoSauce.MagicScaler
 			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb), op = (float*)opstart;
 
 #if HWINTRINSICS
-			if (!Avx.IsSupported)
+			if (Avx.IsSupported)
 			{
 				var vzero = Vector256<float>.Zero;
 
@@ -218,7 +218,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				var vzero = Vector<float>.Zero;
 
-				ipe -=  -VectorF.Count;
+				ipe -= VectorF.Count;
 				while (ip <= ipe)
 				{
 					var v = Unsafe.ReadUnaligned<VectorF>(ip);
