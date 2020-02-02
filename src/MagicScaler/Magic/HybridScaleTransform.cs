@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Buffers;
 using System.Runtime.CompilerServices;
 
 using static PhotoSauce.MagicScaler.MathUtil;
@@ -15,7 +14,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		private readonly int scale;
 
-		private byte[] lineBuff;
+		private ArraySegment<byte> lineBuff;
 
 		public HybridScaleTransform(PixelSource source, int hybridScale) : base(source)
 		{
@@ -23,7 +22,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			scale = hybridScale;
 
 			BufferStride = PowerOfTwoCeiling(PowerOfTwoCeiling(Width, scale) * Format.BytesPerPixel, IntPtr.Size);
-			lineBuff = ArrayPool<byte>.Shared.Rent(BufferStride * scale);
+			lineBuff = BufferPool.Rent(BufferStride * scale);
 
 			Width = DivCeiling(Source.Width, scale);
 			Height = DivCeiling(Source.Height, scale);
@@ -31,7 +30,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
-			fixed (byte* bstart = &lineBuff[0])
+			if (lineBuff.Array is null) throw new ObjectDisposedException(nameof(HybridScaleTransform));
+
+			fixed (byte* bstart = &lineBuff.Array[lineBuff.Offset])
 			{
 				int iw = prc.Width * scale;
 				int iiw = Math.Min(iw, Source.Width - prc.X * scale);
@@ -45,7 +46,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					int iih = Math.Min(ih, Source.Height - iy);
 
 					Profiler.PauseTiming();
-					Source.CopyPixels(new PixelArea(prc.X * scale, iy, iiw, iih), (int)stride, lineBuff.Length, (IntPtr)bstart);
+					Source.CopyPixels(new PixelArea(prc.X * scale, iy, iiw, iih), (int)stride, lineBuff.Count, (IntPtr)bstart);
 					Profiler.ResumeTiming();
 
 					for (int i = 0; iiw < iw && i < iih; i++)
@@ -195,9 +196,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 					*(ulong*)op = i0;
 					op += sizeof(ulong);
-				} while (ip <= ipe);
 
+				} while (ip <= ipe);
 				ipe += sizeof(ulong) * 2;
+
 				if (ip >= ipe)
 					return;
 			}
@@ -258,11 +260,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 					*(ulong*)op = i0;
 					op += 6;
-				} while (ip <= ipe);
 
+				} while (ip <= ipe);
 				ipe += sizeof(ulong) * 2;
-				if (ip >= ipe)
-					return;
 			}
 
 			do
@@ -292,6 +292,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				op[1] = (byte)i0; i0 >>= 8;
 				op[2] = (byte)i0;
 				break;
+
 			} while (true);
 		}
 
@@ -321,9 +322,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 					op[2] = (byte)i0; i0 >>= 16;
 					op[3] = (byte)i0;
 					op += sizeof(uint);
-				} while (ip <= ipe);
 
+				} while (ip <= ipe);
 				ipe += sizeof(ulong);
+
 				if (ip >= ipe)
 					return;
 			}
@@ -364,11 +366,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public void Dispose()
 		{
-			if (lineBuff is null)
-				return;
-
-			ArrayPool<byte>.Shared.Return(lineBuff);
-			lineBuff = null!;
+			BufferPool.Return(lineBuff);
+			lineBuff = default;
 		}
 
 		public override string ToString() => $"{nameof(HybridScaleTransform)}: {Format.Name} {scale}:1";

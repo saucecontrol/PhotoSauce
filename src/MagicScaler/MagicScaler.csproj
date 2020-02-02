@@ -1,16 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<VersionPrefix>0.10.1</VersionPrefix>
+		<VersionPrefix>0.10.2</VersionPrefix>
 		<TargetFrameworks>net46;net472;netcoreapp2.1;netcoreapp3.0;netstandard2.0;netstandard2.1</TargetFrameworks>
 	</PropertyGroup>
 
 	<PropertyGroup>
 		<DefineConstants Condition="$(TargetFramework.StartsWith('netcoreapp')) Or '$(TargetFramework)'=='netstandard2.1'">$(DefineConstants);BUILTIN_MATHF;BUILTIN_SPAN</DefineConstants>
 		<DefineConstants Condition="$(TargetFramework.StartsWith('netcoreapp')) Or '$(TargetFramework)'=='netstandard2.1' Or '$(TargetFramework)'=='net472'">$(DefineConstants);VECTOR_CONVERT</DefineConstants>
-		<DefineConstants Condition="$(TargetFramework.StartsWith('net4'))">$(DefineConstants);SYSTEM_DRAWING</DefineConstants>
+		<DefineConstants Condition="$(TargetFramework.StartsWith('net4')) Or ('$(TargetFramework)'=='netcoreapp3.0' And '$(Configuration)'!='Dist')">$(DefineConstants);SYSTEM_DRAWING</DefineConstants>
 		<DefineConstants Condition="'$(TargetFramework)'=='netcoreapp3.0' Or '$(TargetFramework)'=='netstandard2.1'">$(DefineConstants);BUILTIN_NULLABLE</DefineConstants>
 		<DefineConstants Condition="'$(TargetFramework)'=='netcoreapp3.0'">$(DefineConstants);HWINTRINSICS</DefineConstants>
+		<DefineConstants Condition="'$(Configuration)'!='Dist'">$(DefineConstants);GUARDRAILS</DefineConstants>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -23,6 +24,10 @@
 		<PackageReference Include="System.Buffers" Version="4.5.0" />
 		<PackageReference Include="System.Memory" Version="4.5.3" />
 		<PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
+	</ItemGroup>
+
+	<ItemGroup Condition="$(DefineConstants.Contains('SYSTEM_DRAWING')) And !$(DefineConstants.Contains('NETFRAMEWORK'))">
+		<PackageReference Include="System.Drawing.Common" Version="4.7.0" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)'!='netcoreapp3.0'">

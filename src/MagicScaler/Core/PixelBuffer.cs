@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler
@@ -14,7 +15,7 @@ namespace PhotoSauce.MagicScaler
 		private int start;
 		private int loaded;
 		private int consumed;
-		private byte[]? buffer;
+		private ArraySegment<byte> buffer;
 
 		public readonly int Stride;
 
@@ -28,47 +29,49 @@ namespace PhotoSauce.MagicScaler
 
 		private Span<byte> init(int first, int lines)
 		{
-			if (buffer is null)
+			if (buffer.Array is null)
 			{
-				buffer = ArrayPool<byte>.Shared.Rent(window != 0 ? window + Math.Max(minCapacity, lines) * Stride : Math.Max(minCapacity, lines) * Stride);
-				capacity = (buffer.Length - window) / Stride;
+				var buff = BufferPool.Rent(window != 0 ? window + Math.Max(minCapacity, lines) * Stride : Math.Max(minCapacity, lines) * Stride, true);
+
+				capacity = (buff.Array!.Length - buff.Offset - window) / Stride;
+				buffer = new ArraySegment<byte>(buff.Array, buff.Offset, window + capacity * Stride);
 
 				if (clear)
-					Unsafe.InitBlock(ref buffer[0], 0, (uint)buffer.Length);
+					Unsafe.InitBlock(ref buffer.Array![buffer.Offset], 0, (uint)buffer.Count);
 			}
 
 			start = first;
 			loaded = lines;
 			consumed = 0;
 
-			return new Span<byte>(buffer, 0, window != 0 ? window : lines * Stride);
+			return buffer.AsSpan(0, window != 0 ? window : lines * Stride);
 		}
 
 		private void grow(int cbKeep, int cbKill)
 		{
-			var tbuff = ArrayPool<byte>.Shared.Rent(buffer!.Length * 2);
+			var tbuff = BufferPool.Rent(buffer.Count * 2, true);
 
 			if (cbKeep > 0)
-				Unsafe.CopyBlockUnaligned(ref tbuff[0], ref buffer[cbKill], (uint)cbKeep);
+				Unsafe.CopyBlockUnaligned(ref tbuff.Array![tbuff.Offset], ref buffer.Array![buffer.Offset + cbKill], (uint)cbKeep);
 
-			ArrayPool<byte>.Shared.Return(buffer);
+			BufferPool.Return(buffer);
 
-			buffer = tbuff;
-			capacity = (buffer.Length - window) / Stride;
+			capacity = (tbuff.Array!.Length - tbuff.Offset - window) / Stride;
+			buffer = new ArraySegment<byte>(tbuff.Array, tbuff.Offset, window + capacity * Stride);
 
 			if (clear)
-				Unsafe.InitBlockUnaligned(ref buffer[cbKeep], 0, (uint)(buffer.Length - cbKeep));
+				Unsafe.InitBlockUnaligned(ref buffer.Array![buffer.Offset + cbKeep], 0, (uint)(buffer.Count - cbKeep));
 		}
 
 		unsafe private void slide(int cbKeep, int cbKill)
 		{
-			fixed (byte* pb = &buffer![0])
-				Buffer.MemoryCopy(pb + cbKill, pb, buffer.Length, cbKeep);
+			fixed (byte* pb = &buffer.Array![buffer.Offset])
+				Buffer.MemoryCopy(pb + cbKill, pb, buffer.Count, cbKeep);
 		}
 
 		public Span<byte> PrepareLoad(ref int first, ref int lines)
 		{
-			if (buffer is null || first < start || first > (start + loaded))
+			if (buffer.Array is null || first < start || first > (start + loaded))
 				return init(first, lines);
 
 			int toLoad;
@@ -113,7 +116,7 @@ namespace PhotoSauce.MagicScaler
 			int offset = first - start;
 			consumed = Math.Max(consumed, offset + lines);
 
-			return new ReadOnlySpan<byte>(buffer, offset * Stride, window != 0 ? window : lines * Stride);
+			return new ReadOnlySpan<byte>(buffer.Array, buffer.Offset + offset * Stride, window != 0 ? window : lines * Stride);
 		}
 
 		public bool ContainsLine(int line) => line >= start && line < start + loaded;
@@ -122,12 +125,74 @@ namespace PhotoSauce.MagicScaler
 
 		public void Dispose()
 		{
-			if (buffer is null)
+			BufferPool.Return(buffer);
+			buffer = default;
+			capacity = start = loaded = consumed = 0;
+		}
+	}
+
+	internal static class BufferPool
+	{
+		private const byte marker = 0b_01010101;
+
+		[Conditional("GUARDRAILS")]
+		private static void addBoundsMarkers(byte[] buff, int offs, int length)
+		{
+			if (offs > 0)
+				new Span<byte>(buff, 0, offs).Fill(marker);
+
+			if (buff.Length > length + offs)
+				new Span<byte>(buff, length + offs, buff.Length - length - offs).Fill(marker);
+		}
+
+		[Conditional("GUARDRAILS")]
+		public static void checkBounds(ArraySegment<byte> buff)
+		{
+			var arr = buff.Array!;
+			if (buff.Offset > 0)
+			{
+				int chkCnt = 0;
+				int i = buff.Offset;
+				while (i > 0 && arr[--i] != marker)
+					chkCnt++;
+
+				if (chkCnt > 0)
+					throw new AccessViolationException($"Buffer offset violation detected! {chkCnt} byte(s) clobbered.");
+			}
+
+			if (arr.Length > buff.Count)
+			{
+				int chkCnt = 0;
+				int i = buff.Offset + buff.Count;
+				while (i < arr.Length && arr[i++] != marker)
+					chkCnt++;
+
+				if (chkCnt > 0)
+					throw new AccessViolationException($"Buffer overrun detected! {chkCnt} byte(s) clobbered.");
+			}
+		}
+
+		unsafe public static ArraySegment<byte> Rent(int length, bool aligned = false)
+		{
+			int pad = aligned ? HWIntrinsics.VectorCount<byte>() - IntPtr.Size : 0;
+			var buff = ArrayPool<byte>.Shared.Rent(length + pad);
+
+			int mask = aligned ? HWIntrinsics.VectorCount<byte>() - 1 : 0;
+			int offs = (mask + 1 - ((int)Unsafe.AsPointer(ref buff[0]) & mask)) & mask;
+
+			addBoundsMarkers(buff, offs, length);
+
+			return new ArraySegment<byte>(buff, offs, length);
+		}
+
+		public static void Return(ArraySegment<byte> buff)
+		{
+			if (buff.Array is null)
 				return;
 
-			ArrayPool<byte>.Shared.Return(buffer);
-			buffer = null;
-			capacity = start = loaded = consumed = 0;
+			checkBounds(buff);
+
+			ArrayPool<byte>.Shared.Return(buff.Array);
 		}
 	}
 }

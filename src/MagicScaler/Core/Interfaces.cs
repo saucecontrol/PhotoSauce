@@ -47,7 +47,7 @@ namespace PhotoSauce.MagicScaler
 	}
 
 	/// <summary>An image frame within an <see cref="IImageContainer" />.  The frame exposes 3 <see cref="IPixelSource" /> values, representing the Y', Cb, and Cr planes.</summary>
-	/// <remarks>Implementation note: The <see cref="PixelSource" /> property should return the Y (luma) plane.</remarks>
+	/// <remarks>Implementation note: The <see cref="IImageFrame.PixelSource" /> property should return the Y' (luma) plane.</remarks>
 	public interface IYccImageFrame : IImageFrame
 	{
 		/// <summary>The position of subsampled chroma components relative to their associated luma components.</summary>
@@ -67,7 +67,7 @@ namespace PhotoSauce.MagicScaler
 		IPixelSource PixelSourceCr { get; }
 	}
 
-	/// <summary>An image container (file), made up of one or more <see cref="IImageFrame" />instances.</summary>
+	/// <summary>An image container (file), made up of one or more <see cref="IImageFrame" /> instances.</summary>
 	public interface IImageContainer
 	{
 		/// <summary>The <see cref="FileFormat" /> (codec) of the image container.</summary>

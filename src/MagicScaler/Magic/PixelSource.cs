@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.Diagnostics;
 
 using PhotoSauce.Interop.Wic;
 
@@ -42,9 +43,8 @@ namespace PhotoSauce.MagicScaler
 			BufferStride = MathUtil.PowerOfTwoCeiling(MathUtil.DivCeiling(Width * Format.BitsPerPixel, 8), IntPtr.Size);
 		}
 
-		protected abstract void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer);
-
-		public void CopyPixels(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		[Conditional("GUARDRAILS")]
+		private void checkBounds(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			int cbLine = MathUtil.DivCeiling(prc.Width * Format.BitsPerPixel, 8);
 
@@ -59,6 +59,13 @@ namespace PhotoSauce.MagicScaler
 
 			if (pbBuffer == IntPtr.Zero)
 				throw new ArgumentOutOfRangeException(nameof(pbBuffer), "Buffer pointer is invalid");
+		}
+
+		protected abstract void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer);
+
+		public void CopyPixels(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		{
+			checkBounds(prc, cbStride, cbBufferSize, pbBuffer);
 
 			Profiler.ResumeTiming();
 			CopyPixelsInternal(prc, cbStride, cbBufferSize, pbBuffer);
@@ -179,8 +186,21 @@ namespace PhotoSauce.MagicScaler
 
 			unsafe public void CopyPixels(Rectangle sourceArea, int cbStride, Span<byte> buffer)
 			{
+				var prc = PixelArea.FromGdiRect(sourceArea);
+				int cbLine = MathUtil.DivCeiling(prc.Width * source.Format.BitsPerPixel, 8);
+				int cbBuffer = buffer.Length;
+
+				if (prc.X + prc.Width > Width || prc.Y + prc.Height > Height)
+					throw new ArgumentOutOfRangeException(nameof(prc), "Requested area does not fall within the image bounds");
+
+				if (cbLine > cbStride)
+					throw new ArgumentOutOfRangeException(nameof(cbStride), "Stride is too small for the requested area");
+
+				if ((prc.Height - 1) * cbStride + cbLine > cbBuffer)
+					throw new ArgumentOutOfRangeException(nameof(buffer), "Buffer is too small for the requested area");
+
 				fixed (byte* pbBuffer = buffer)
-					source.CopyPixels(PixelArea.FromGdiRect(sourceArea), cbStride, buffer.Length, (IntPtr)pbBuffer);
+					source.CopyPixels(prc, cbStride, cbBuffer, (IntPtr)pbBuffer);
 			}
 		}
 

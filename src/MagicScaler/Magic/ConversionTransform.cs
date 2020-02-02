@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Buffers;
 
 namespace PhotoSauce.MagicScaler.Transforms
 {
@@ -7,7 +6,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 	{
 		private readonly IConversionProcessor processor;
 
-		private byte[]? lineBuff;
+		private ArraySegment<byte> lineBuff;
 
 		public ConversionTransform(PixelSource source, ColorProfile? sourceProfile, ColorProfile? destProfile, Guid destFormat, bool videoLevels = false) : base(source)
 		{
@@ -20,7 +19,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			Format = PixelFormat.FromGuid(destFormat);
 			if (srcFormat.BitsPerPixel != Format.BitsPerPixel)
 			{
-				lineBuff = ArrayPool<byte>.Shared.Rent(BufferStride);
+				lineBuff = BufferPool.Rent(BufferStride, true);
 				lineBuff.AsSpan().Clear();
 			}
 
@@ -106,7 +105,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
-			if (lineBuff != null)
+			if (Source.Format.BitsPerPixel != Format.BitsPerPixel)
 				copyPixelsBuffered(prc, cbStride, cbBufferSize, pbBuffer);
 			else
 				copyPixelsDirect(prc, cbStride, cbBufferSize, pbBuffer);
@@ -114,7 +113,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		unsafe private void copyPixelsBuffered(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
-			fixed (byte* bstart = &lineBuff![0])
+			if (lineBuff.Array is null) throw new ObjectDisposedException(nameof(ConversionTransform));
+
+			fixed (byte* bstart = &lineBuff.Array[lineBuff.Offset])
 			{
 				int cb = MathUtil.DivCeiling(prc.Width * Source.Format.BitsPerPixel, 8);
 
@@ -148,11 +149,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public void Dispose()
 		{
-			if (lineBuff is null)
-				return;
-
-			ArrayPool<byte>.Shared.Return(lineBuff);
-			lineBuff = null;
+			BufferPool.Return(lineBuff);
+			lineBuff = default;
 		}
 
 		public override string ToString() => $"{nameof(ConversionTransform)}: {Source.Format.Name}->{Format.Name}";

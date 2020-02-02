@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Buffers;
 using System.Numerics;
 
 #if HWINTRINSICS
@@ -23,7 +22,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		private readonly PixelSource sourceCb, sourceCr;
 		private readonly Vector4 vec0, vec1, vec2;
 
-		private byte[] lineBuff;
+		private ArraySegment<byte> lineBuff;
 
 		public PlanarConversionTransform(PixelSource srcY, PixelSource srcCb, PixelSource srcCr, Matrix4x4 matrix, bool videoLevels) : base(srcY)
 		{
@@ -51,13 +50,17 @@ namespace PhotoSauce.MagicScaler.Transforms
 			vec2 = new Vector4(matrix.M11, matrix.M21, matrix.M31, 0f);
 
 			Format = srcY.Format.FormatGuid == Consts.GUID_WICPixelFormat8bppY ? PixelFormat.FromGuid(Consts.GUID_WICPixelFormat24bppBGR) : PixelFormat.Bgrx128BppFloat;
+			if (HWIntrinsics.IsAvxSupported)
+				BufferStride = PowerOfTwoCeiling(BufferStride, HWIntrinsics.VectorCount<byte>());
 
-			lineBuff = ArrayPool<byte>.Shared.Rent(BufferStride * 3);
+			lineBuff = BufferPool.Rent(BufferStride * 3, true);
 		}
 
 		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
-			fixed (byte* bstart = &lineBuff[0])
+			if (lineBuff.Array is null) throw new ObjectDisposedException(nameof(PlanarConversionTransform));
+
+			fixed (byte* bstart = &lineBuff.Array[lineBuff.Offset])
 			{
 				uint cb = (uint)DivCeiling(prc.Width * Source.Format.BitsPerPixel, 8);
 				uint bstride = (uint)BufferStride;
@@ -75,7 +78,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					byte* op = (byte*)pbBuffer + y * cbStride;
 					if (Format.NumericRepresentation == PixelNumericRepresentation.Float)
 #if HWINTRINSICS
-						if (Avx.IsSupported && cb > Vector256<byte>.Count * 4)
+						if (Avx.IsSupported && cb > (uint)Vector256<byte>.Count * 4)
 							copyPixelsAvx(bstart, op, bstride, cb);
 						else
 #endif
@@ -224,11 +227,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public void Dispose()
 		{
-			if (lineBuff is null)
-				return;
-
-			ArrayPool<byte>.Shared.Return(lineBuff);
-			lineBuff = null!;
+			BufferPool.Return(lineBuff);
+			lineBuff = default;
 		}
 	}
 }

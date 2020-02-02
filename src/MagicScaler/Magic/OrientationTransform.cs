@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Buffers;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
@@ -12,7 +11,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		private readonly PixelBuffer? srcBuff;
 		private readonly int bytesPerPixel;
 
-		private byte[]? lineBuff;
+		private ArraySegment<byte> lineBuff;
 
 		public OrientationTransformInternal(PixelSource source, Orientation orientation) : base(source)
 		{
@@ -23,7 +22,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			orient = orientation;
 			if (orient.SwapsDimensions())
 			{
-				lineBuff = ArrayPool<byte>.Shared.Rent(BufferStride);
+				lineBuff = BufferPool.Rent(BufferStride);
 
 				Width = Source.Height;
 				Height = Source.Width;
@@ -121,7 +120,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			int cb = Source.Width * bytesPerPixel;
 
-			fixed (byte* lp = &lineBuff![0])
+			fixed (byte* lp = lineBuff.AsSpan())
 			{
 				for (int y = 0; y < Source.Height; y++)
 				{
@@ -246,11 +245,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			srcBuff?.Dispose();
 
-			if (lineBuff is null)
-				return;
-
-			ArrayPool<byte>.Shared.Return(lineBuff);
-			lineBuff = null;
+			BufferPool.Return(lineBuff);
+			lineBuff = default;
 		}
 	}
 

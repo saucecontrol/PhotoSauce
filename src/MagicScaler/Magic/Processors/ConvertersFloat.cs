@@ -760,7 +760,7 @@ namespace PhotoSauce.MagicScaler
 					var vscale = Vector256.Create((float)byte.MaxValue);
 					var vmaskp = Avx.LoadVector256((int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.PermuteMaskDeinterleave8x32)));
 					var vmaskq = Avx.LoadVector256((int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.PermuteMask3xTo3Chan)));
-					var vmasks = Avx.LoadVector256((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3xTo3Chan)));
+					var vmasks = Avx2.BroadcastVector128ToVector256((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3xTo3Chan)));
 
 					ipe -= Vector256<byte>.Count;
 					do
