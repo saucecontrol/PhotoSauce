@@ -16,6 +16,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 		void SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma);
 	}
 
+	internal interface IVectorConvolver
+	{
+		IConvolver IntrinsicImpl { get; }
+	}
+
 	internal class ConvolutionTransform<TPixel, TWeight> : PixelSource, IDisposable where TPixel : unmanaged where TWeight : unmanaged
 	{
 		protected static readonly IReadOnlyDictionary<Guid, IConvolver> ProcessorMap = new Dictionary<Guid, IConvolver> {
@@ -32,18 +37,18 @@ namespace PhotoSauce.MagicScaler.Transforms
 			[PixelFormat.Grey16BppLinearUQ15.FormatGuid   ] = Convolver1ChanUQ15.Instance,
 			[PixelFormat.Grey16BppUQ15.FormatGuid         ] = Convolver1ChanUQ15.Instance,
 			[PixelFormat.Y16BppLinearUQ15.FormatGuid      ] = Convolver1ChanUQ15.Instance,
-			[PixelFormat.Pbgra128BppLinearFloat.FormatGuid] = Convolver4ChanFloat.Instance,
-			[PixelFormat.Pbgra128BppFloat.FormatGuid      ] = Convolver4ChanFloat.Instance,
-			[PixelFormat.Bgrx128BppLinearFloat.FormatGuid ] = Convolver3XChanFloat.Instance,
-			[PixelFormat.Bgrx128BppFloat.FormatGuid       ] = Convolver3XChanFloat.Instance,
-			[PixelFormat.Bgr96BppLinearFloat.FormatGuid   ] = Convolver3ChanFloat.Instance,
-			[PixelFormat.Bgr96BppFloat.FormatGuid         ] = Convolver3ChanFloat.Instance,
-			[PixelFormat.Grey32BppLinearFloat.FormatGuid  ] = Convolver1ChanFloat.Instance,
-			[PixelFormat.Grey32BppFloat.FormatGuid        ] = Convolver1ChanFloat.Instance,
-			[PixelFormat.Y32BppLinearFloat.FormatGuid     ] = Convolver1ChanFloat.Instance,
-			[PixelFormat.Y32BppFloat.FormatGuid           ] = Convolver1ChanFloat.Instance,
-			[PixelFormat.Cb32BppFloat.FormatGuid          ] = Convolver1ChanFloat.Instance,
-			[PixelFormat.Cr32BppFloat.FormatGuid          ] = Convolver1ChanFloat.Instance
+			[PixelFormat.Pbgra128BppLinearFloat.FormatGuid] = Convolver4ChanVector.Instance,
+			[PixelFormat.Pbgra128BppFloat.FormatGuid      ] = Convolver4ChanVector.Instance,
+			[PixelFormat.Bgrx128BppLinearFloat.FormatGuid ] = Convolver4ChanVector.Instance,
+			[PixelFormat.Bgrx128BppFloat.FormatGuid       ] = Convolver4ChanVector.Instance,
+			[PixelFormat.Bgr96BppLinearFloat.FormatGuid   ] = Convolver3ChanVector.Instance,
+			[PixelFormat.Bgr96BppFloat.FormatGuid         ] = Convolver3ChanVector.Instance,
+			[PixelFormat.Grey32BppLinearFloat.FormatGuid  ] = Convolver1ChanVector.Instance,
+			[PixelFormat.Grey32BppFloat.FormatGuid        ] = Convolver1ChanVector.Instance,
+			[PixelFormat.Y32BppLinearFloat.FormatGuid     ] = Convolver1ChanVector.Instance,
+			[PixelFormat.Y32BppFloat.FormatGuid           ] = Convolver1ChanVector.Instance,
+			[PixelFormat.Cb32BppFloat.FormatGuid          ] = Convolver1ChanVector.Instance,
+			[PixelFormat.Cr32BppFloat.FormatGuid          ] = Convolver1ChanVector.Instance
 		};
 
 		protected readonly KernelMap<TWeight> XMap, YMap;
@@ -99,9 +104,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			YProcessor = ProcessorMap[workfmt.FormatGuid];
 
-			if (HWIntrinsics.IsSupported && (mapx.Samples & 3) == 0 && XProcessor is IVectorConvolver vcx)
+			if (HWIntrinsics.IsSupported && (mapx.Samples * mapx.Channels & 3) == 0 && XProcessor is IVectorConvolver vcx)
 				XProcessor = vcx.IntrinsicImpl;
-			if (HWIntrinsics.IsSupported && (mapy.Samples & 3) == 0 && YProcessor is IVectorConvolver vcy)
+			if (HWIntrinsics.IsSupported && (mapy.Samples * mapy.Channels & 3) == 0 && YProcessor is IVectorConvolver vcy)
 				YProcessor = vcy.IntrinsicImpl;
 
 			XMap = mapx;

@@ -68,11 +68,11 @@ namespace PhotoSauce.MagicScaler
 			if (typeof(T) != typeof(float))
 				return 0;
 
-			int kpad = 0, inc = HWIntrinsics.IsSupported || channels == 3 ? 4 : HWIntrinsics.VectorCount<T>();
-			if ((HWIntrinsics.IsSupported && ksize > 1) || ksize * channels % (inc * channels) > 1)
-				kpad = MathUtil.DivCeiling(ksize * channels, inc * channels) * inc - ksize;
+			int inc = channels == 3 ? 4 : (ksize >= 8 ? HWIntrinsics.VectorCount<T>() : 4) / channels;
+			int	pad = MathUtil.DivCeiling(ksize, inc) * inc - ksize;
+			int thresh = channels == 4 ? 1 : HWIntrinsics.IsSupported || channels == 1 ? 2 : 3;
 
-			return ksize + kpad > isize ? 0 : kpad;
+			return ksize < thresh || ksize + pad > isize ? 0 : pad;
 		}
 
 		private KernelMap(int pixels, int samples, int channels)

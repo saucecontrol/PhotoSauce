@@ -7,46 +7,24 @@
 procDef[] ta = {
 	new procDef {
 		name = "4Chan",
-		vtype = "F",
 		channels = 4,
 		colors = 4,
-		sharpen = true,
 		xUnroll = 4,
-		yUnroll = 4
+		yUnroll = 2
 	},
 	new procDef {
 		name = "3Chan",
-		vtype = "4",
 		channels = 3,
 		colors = 3,
 		xUnroll = 3,
 		yUnroll = 0
 	},
 	new procDef {
-		name = "3XChan",
-		vtype = "F",
-		channels = 4,
-		colors = 3,
-		sharpen = true,
-		xUnroll = 4,
-		yUnroll = 4
-	},
-	/*new procDef {
-		name = "2Chan",
-		vtype = "4",
-		channels = 2,
-		colors = 2,
-		xUnroll = 2,
-		yUnroll = 2
-	},*/
-	new procDef {
 		name = "1Chan",
-		vtype = "F",
 		channels = 1,
 		colors = 1,
-		sharpen = true,
-		xUnroll = 1,
-		yUnroll = 1
+		xUnroll = 4,
+		yUnroll = 2
 	}
 };
 #>
@@ -69,129 +47,240 @@ namespace PhotoSauce.MagicScaler.Transforms
 foreach (var t in ta) {
 	if (t != ta[0]) WriteLine(null);
 #>
-	internal sealed partial class Convolver<#= t.name #>Float : IConvolver
+	internal sealed partial class Convolver<#= t.name #>Vector : IConvolver
 	{
-<#
-if (t.vtype != "F") {
-#>
-		private const int <#= t.vcnt #> = <#= t.vtype #>;
+		private const uint channels = <#= t.channels #>;
+		private const uint vector4Count = 4;
 
-<#
-}
-#>
-		private const int channels = <#= t.channels #>;
+		public static readonly Convolver<#= t.name #>Vector Instance = new Convolver<#= t.name #>Vector();
 
-		public static readonly Convolver<#= t.name #>Float Instance = new Convolver<#= t.name #>Float();
+		private Convolver<#= t.name #>Vector() { }
 
-		private Convolver<#= t.name #>Float() { }
-
-		int IConvolver.Channels => channels;
-		int IConvolver.MapChannels => channels;
+		int IConvolver.Channels => (int)channels;
+		int IConvolver.MapChannels => (int)channels;
 
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
-			float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
+			float* tp = (float*)tstart, tpe = (float*)(tstart + (uint)cb);
 			float* pmapx = (float*)mapxstart;
-			int kstride = smapx * channels;
-			int tstride = smapy * <#= t.channels == 3 ? "4" /* 3Chan to 3XChan x-over */ : "channels" #>;
+			uint kstride = (uint)smapx * channels;
+			uint tstride = (uint)smapy * <#= t.channels == 3 ? "4" /* 3Chan to 3XChan x-over */ : "channels" #>;
+			uint vcnt = kstride / vector4Count;
+
 <#
 if (t.channels == 1) {
 #>
+			var m4 = Vector4.Zero;
+			var mF = VectorF.Zero;
 
-			var m0 = VectorF.One;
+			if (VectorF.Count == 8 && vcnt >= 2)
+				mF = VectorF.One;
+			else
+				m4 = Vector4.One;
+<#
+} else {
+#>
+			float* buff = tp;
+			if (VectorF.Count == 8 && vcnt >= <#= (t.channels == 3 ? 6 : 1) * 2 #>)
+			{
+				float* tmp = stackalloc float[VectorF.Count];
+				buff = tmp;
+			}
 <#
 }
 #>
 
 			while (tp < tpe)
 			{
-				int ix = *(int*)pmapx++;
-				float* ip = (float*)istart + ix * channels, ipe = ip + kstride;
+				uint ix = *(uint*)pmapx++;
+				uint lcnt = vcnt;
+
+				float* ip = (float*)istart + ix * channels<#= t.channels != 4 ? ", ipe = ip + kstride" : "" #>;
 				float* mp = pmapx;
 				pmapx += kstride;
 
-				float a0<# for (int i = 1; i < t.colors; i++) { #>, a<#= i #><# } #>;
+				<#= t.channels == 1 ? "float a0" : "Vector4 av0" #><# for (int i = 1; t.channels == 3 && i < t.colors; i++) { #>, av<#= i #><# } #>;
 
-				if (kstride >= <#= t.xUnrollIncr #>)
+				if (VectorF.Count == 8 && lcnt >= <#= (t.channels == 3 ? 6 : 1) * 2 #>)
 				{
-					Vector<#= t.vtype #> av0 = Vector<#= t.vtype #>.Zero<# for (int i = 1; t.channels == 3 && i < t.colors; i++) { #>, av<#= i #> = av0<# } #>;
-					ipe -= <#= t.xUnrollIncr #>;
+<#
+for (int i = 0; i < (t.channels == 3 ? 3 : 1); i++) {
+#>
+					var ax<#= i #> = VectorF.Zero;
+<#
+}
 
-					do
+for (int unroll = t.xUnroll; unroll > 0; unroll -= (t.channels == 3 ? 3 : 1)) {
+	if (unroll == t.xUnroll) {
+#>
+
+					for (; lcnt >= <#= unroll * 2 #>; lcnt -= <#= unroll * 2 #>)
 					{
 <#
-for (int i = 0; i < t.xUnroll; i++) {
+	} else {
 #>
-						var iv<#= i #> = Unsafe.ReadUnaligned<Vector<#= t.vtype #>>(ip<#= i != 0 ? $" + {t.vcnt}{(i > 1 ? $" * {i}" : "")}" : "" #>);
-<#
-}
-#>
-						ip += <#= t.xUnrollIncr #>;
+					<#= unroll < t.xUnroll - 1  ? "else " : "" #>if (lcnt >= <#= unroll * 2 #>)
+					{
+						lcnt -= <#= unroll * 2 #>;
 
 <#
-for (int i = 0; i < t.xUnroll; i++) {
+	}
+	for (int i = 0; i < unroll; i++) {
 #>
-						var mv<#= i #> = Unsafe.ReadUnaligned<Vector<#= t.vtype #>>(mp<#= i != 0 ? $" + {t.vcnt}{(i > 1 ? $" * {i}" : "")}" : "" #>);
-<#
-}
-#>
-						mp += <#= t.xUnrollIncr #>;
-
-<#
-for (int i = 0; i < t.xUnroll; i++) {
-#>
-						av<#= t.channels == 3 ? i : 0 #> += iv<#= i #> * mv<#= i #>;
-<#
-}
-#>
-					} while (ip <= ipe);
-
-					ipe += <#= t.xUnrollIncr #>;
-
-<#
-if (t.channels == 4) {
-	for (int i = 0; i < t.colors; i++) {
-#>
-					a<#= i #> = av0[<#= i #>];
+						var iv<#= i #> = Unsafe.ReadUnaligned<VectorF>(ip<#= i != 0 ? $" + VectorF.Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
 <#
 	}
 #>
+						ip += VectorF.Count<#= unroll > 1 ? $" * {unroll}" : "" #>;
 
-					if (VectorF.Count == 8)
-					{
 <#
-	for (int i = 0; i < t.colors; i++) {
+	for (int i = 0; i < unroll; i++) {
 #>
-						a<#= i #> += av0[<#= i + 4 #>];
+						ax<#= t.channels == 3 ? i : 0 #> += iv<#= i #> * Unsafe.ReadUnaligned<VectorF>(mp<#= i != 0 ? $" + VectorF.Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
 <#
 	}
 #>
+						mp += VectorF.Count<#= unroll > 1 ? $" * {unroll}" : "" #>;
 					}
+<#
+	if (unroll == t.xUnroll || unroll == 1) WriteLine(null);
+}
+
+if (t.channels == 1) {
+#>
+					a0 = Vector.Dot(ax0, mF);
 <#
 } else if (t.channels == 3) {
 #>
-					a0 = av0.X + av0.W + av1.Z + av2.Y;
-					a1 = av0.Y + av1.X + av1.W + av2.Z;
-					a2 = av0.Z + av1.Y + av2.X + av2.W;
-<#
-} else if (t.channels == 2) {
-#>
-					a0 = av0.X + av0.Z;
-					a1 = av0.Y + av0.W;
+					Unsafe.WriteUnaligned(buff, ax0);
+					av0 = Unsafe.ReadUnaligned<Vector4>(buff);
+					av1 = Unsafe.ReadUnaligned<Vector4>(buff + vector4Count);
+
+					Unsafe.WriteUnaligned(buff, ax1);
+					av2 = Unsafe.ReadUnaligned<Vector4>(buff);
+					av0 += Unsafe.ReadUnaligned<Vector4>(buff + vector4Count);
+
+					Unsafe.WriteUnaligned(buff, ax2);
+					av1 += Unsafe.ReadUnaligned<Vector4>(buff);
+					av2 += Unsafe.ReadUnaligned<Vector4>(buff + vector4Count);
 <#
 } else {
-	for (int i = 0; i < t.colors; i++) {
 #>
-					a<#= i #> = Vector.Dot(a<#= t.channels == 3 ? $"t{i}" : "v0" #>, m<#= t.channels == 3 ? 0 : i #>);
+					Unsafe.WriteUnaligned(buff, ax0);
+					av0 = Unsafe.ReadUnaligned<Vector4>(buff) + Unsafe.ReadUnaligned<Vector4>(buff + vector4Count);
 <#
-	}
 }
 #>
 				}
 				else
 				{
-					a0<# for (int i = 1; i < t.colors; i++) { #> = a<#= i #><# } #> = 0f;
+					<#= t.channels == 1 ? "var " : "" #>av0<# for (int i = 1; t.channels == 3 && i < t.colors; i++) { #> = av<#= i #><# } #> = Vector4.Zero;
+<#
+for (int unroll = t.xUnroll; t.channels != 3 && unroll > 0; unroll -= 2) {
+	if (unroll == t.xUnroll) {
+#>
+
+					for (; lcnt >= <#= unroll #>; lcnt -= <#= unroll #>)
+					{
+<#
+	} else {
+#>
+					<#= unroll < t.xUnroll - 2  ? "else " : "" #>if (lcnt >= <#= unroll #>)
+					{
+						lcnt -= <#= unroll #>;
+
+<#
+	}
+	for (int i = 0; i < unroll; i++) {
+#>
+						var iv<#= i #> = Unsafe.ReadUnaligned<Vector4>(ip<#= i != 0 ? $" + vector4Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
+<#
+	}
+#>
+						ip += vector4Count<#= unroll > 1 ? $" * {unroll}" : "" #>;
+
+<#
+	for (int i = 0; i < unroll; i++) {
+#>
+						av<#= t.channels == 3 ? i : 0 #> += iv<#= i #> * Unsafe.ReadUnaligned<Vector4>(mp<#= i != 0 ? $" + vector4Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
+<#
+	}
+#>
+						mp += vector4Count<#= unroll > 1 ? $" * {unroll}" : "" #>;
+					}
+<#
+	if (unroll == t.xUnroll || unroll == 1) WriteLine(null);
+}
+if (t.channels != 1) {
+#>
 				}
+<#
+}
+WriteLine(null);
+
+int cxunroll = t.channels == 3 ? 3 : 1;
+if (t.channels == 3) {
+#>
+				for (; lcnt >= <#= cxunroll #>; lcnt -= <#= cxunroll #>)
+				{
+<#
+} else {
+	if (t.channels == 1) PushIndent("\t");
+#>
+				if (lcnt != 0)
+				{
+<#
+}
+for (int i = 0; i < cxunroll; i++) {
+#>
+					var iv<#= i #> = Unsafe.ReadUnaligned<Vector4>(ip<#= i != 0 ? $" + vector4Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
+<#
+}
+if (t.channels != 4) {
+#>
+					ip += vector4Count<#= cxunroll > 1 ? $" * {cxunroll}" : "" #>;
+<#
+}
+WriteLine(null);
+for (int i = 0; i < cxunroll; i++) {
+#>
+					av<#= t.channels == 3 ? i : 0 #> += iv<#= i #> * Unsafe.ReadUnaligned<Vector4>(mp<#= i != 0 ? $" + vector4Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
+<#
+}
+if (t.channels != 4) {
+#>
+					mp += vector4Count<#= cxunroll > 1 ? $" * {cxunroll}" : "" #>;
+<#
+}
+#>
+				}
+<#
+if (t.channels == 1) {
+	PopIndent();
+#>
+
+					a0 = Vector4.Dot(av0, m4);
+				}
+<#
+} else if (t.channels == 3) {
+#>
+
+				float a0, a1, a2;
+				if (vcnt == 0)
+				{
+					a0 = a1 = a2 = 0f;
+				}
+				else
+				{
+					a0 = av0.X + av0.W + av1.Z + av2.Y;
+					a1 = av0.Y + av1.X + av1.W + av2.Z;
+					a2 = av0.Z + av1.Y + av2.X + av2.W;
+				}
+<#
+}
+
+if (t.channels != 4) {
+#>
 
 				while (ip < ipe)
 				{
@@ -208,9 +297,15 @@ for (int i = 0; i < t.colors; i++) {
 				}
 
 <#
-for (int j = 0; j < t.colors; j++) {
+	for (int j = 0; j < t.colors; j++) {
 #>
 				tp[<#= j #>] = a<#= j #>;
+<#
+	}
+} else {
+#>
+
+				Unsafe.WriteUnaligned(tp, av0);
 <#
 }
 #>
@@ -224,112 +319,194 @@ if (t.yUnroll > 0) {
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			float* op = (float*)ostart;
-			int xc = ox + ow, tstride = smapy * channels;
+			uint tstride = (uint)smapy * channels;
+			uint vcnt = tstride / vector4Count;
+
 <#
 if (t.channels == 1) {
 #>
+			var m4 = Vector4.Zero;
+			var mF = VectorF.Zero;
 
-			var m0 = VectorF.One;
-<#
-}
-#>
-
-			while (ox < xc)
-			{
-				float* tp = (float*)tstart + ox * tstride, tpe = tp + tstride;
-				float* mp = (float*)pmapy;
-
-				float a0<# for (int i = 1; i < t.colors; i++) { #>, a<#= i #><# } #>;
-
-				if (tstride >= <#= t.yUnrollIncr #>)
-				{
-					Vector<#= t.vtype #> av0 = Vector<#= t.vtype #>.Zero<# for (int i = 1; t.channels == 3 && i < t.colors; i++) { #>, av<#= i #> = av0<# } #>;
-					tpe -= <#= t.yUnrollIncr #>;
-
-					do
-					{
-<#
-for (int i = 0; i < t.yUnroll; i++) {
-#>
-						var tv<#= i #> = Unsafe.ReadUnaligned<Vector<#= t.vtype #>>(tp<#= i != 0 ? $" + {t.vcnt}{(i > 1 ? $" * {i}" : "")}" : "" #>);
-<#
-}
-#>
-						tp += <#= t.yUnrollIncr #>;
-
-<#
-for (int i = 0; i < t.yUnroll; i++) {
-#>
-						var mv<#= i #> = Unsafe.ReadUnaligned<Vector<#= t.vtype #>>(mp<#= i != 0 ? $" + {t.vcnt}{(i > 1 ? $" * {i}" : "")}" : "" #>);
-<#
-}
-#>
-						mp += <#= t.yUnrollIncr #>;
-
-<#
-for (int i = 0; i < t.yUnroll; i++) {
-#>
-						av<#= t.channels == 3 ? i : 0 #> += tv<#= i #> * mv<#= i #>;
-<#
-}
-#>
-					} while (tp <= tpe);
-
-					tpe += <#= t.yUnrollIncr #>;
-
-<#
-if (t.channels == 4) {
-	for (int i = 0; i < t.colors; i++) {
-#>
-					a<#= i #> = av0[<#= i #>];
-<#
-	}
-#>
-
-					if (VectorF.Count == 8)
-					{
-<#
-	for (int i = 0; i < t.colors; i++) {
-#>
-						a<#= i #> += av0[<#= i + 4 #>];
-<#
-	}
-#>
-					}
-<#
-} else if (t.channels == 3) {
-#>
-					a0 = av0.X + av0.W + av1.Z + av2.Y;
-					a1 = av0.Y + av1.X + av1.W + av2.Z;
-					a2 = av0.Z + av1.Y + av2.X + av2.W;
-<#
-} else if (t.channels == 2) {
-#>
-					a0 = av0.X + av0.Z;
-					a1 = av0.Y + av0.W;
+			if (VectorF.Count == 8 && vcnt >= 2)
+				mF = VectorF.One;
+			else
+				m4 = Vector4.One;
 <#
 } else {
-	for (int i = 0; i < t.colors; i++) {
 #>
-					a<#= i #> = Vector.Dot(a<#= t.channels == 3 ? $"t{i}" : "v0" #>, m<#= t.channels == 3 ? 0 : i #>);
+			float* buff = op;
+			if (VectorF.Count == 8 && vcnt >= <#= (t.channels == 3 ? 3 : 1) * 2 #>)
+			{
+				float* tmp = stackalloc float[VectorF.Count];
+				buff = tmp;
+			}
+<#
+}
+#>
+
+			for (int xc = ox + ow; ox < xc; ox++)
+			{
+				uint lcnt = vcnt;
+
+				float* tp = (float*)tstart + (uint)ox * tstride<#= t.channels != 4 ? ", tpe = tp + tstride" : "" #>;
+				float* mp = (float*)pmapy;
+
+				<#= t.channels == 1 ? "float a0" : "Vector4 av0" #><# for (int i = 1; t.channels == 3 && i < t.colors; i++) { #>, av<#= i #><# } #>;
+
+				if (VectorF.Count == 8 && lcnt >= <#= (t.channels == 3 ? 3 : 1) * 2 #>)
+				{
+<#
+for (int i = 0; i < (t.channels == 3 ? 3 : 1); i++) {
+#>
+					var ax<#= i #> = VectorF.Zero;
+<#
+}
+
+for (int unroll = t.yUnroll; unroll > 0; unroll -= (t.channels == 3 ? 3 : 1)) {
+	if (unroll == t.yUnroll) {
+#>
+
+					for (; lcnt >= <#= unroll * 2 #>; lcnt -= <#= unroll * 2 #>)
+					{
+<#
+	} else {
+#>
+					if (lcnt >= <#= unroll * 2 #>)
+					{
+						lcnt -= <#= unroll * 2 #>;
+
 <#
 	}
+	for (int i = 0; i < unroll; i++) {
+#>
+						var iv<#= i #> = Unsafe.ReadUnaligned<VectorF>(tp<#= i != 0 ? $" + VectorF.Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
+<#
+	}
+#>
+						tp += VectorF.Count<#= unroll > 1 ? $" * {unroll}" : "" #>;
+
+<#
+	for (int i = 0; i < unroll; i++) {
+#>
+						ax<#= t.channels == 3 ? i : 0 #> += iv<#= i #> * Unsafe.ReadUnaligned<VectorF>(mp<#= i != 0 ? $" + VectorF.Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
+<#
+	}
+#>
+						mp += VectorF.Count<#= unroll > 1 ? $" * {unroll}" : "" #>;
+					}
+<#
+	if (unroll == t.yUnroll || unroll == 1) WriteLine(null);
+}
+
+if (t.channels == 1) {
+#>
+					a0 = Vector.Dot(ax0, mF);
+<#
+} else {
+#>
+					Unsafe.WriteUnaligned(buff, ax0);
+					av0 = Unsafe.ReadUnaligned<Vector4>(buff) + Unsafe.ReadUnaligned<Vector4>(buff + vector4Count);
+<#
 }
 #>
 				}
 				else
 				{
-					a0<# for (int i = 1; i < t.colors; i++) { #> = a<#= i #><# } #> = 0f;
+					<#= t.channels == 1 ? "var " : "" #>av0<# for (int i = 1; t.channels == 3 && i < t.colors; i++) { #> = av<#= i #><# } #> = Vector4.Zero;
+
+<#
+for (int unroll = t.yUnroll; t.channels != 3 && unroll > 0; unroll -= 2) {
+	if (unroll == t.yUnroll) {
+#>
+					for (; lcnt >= <#= unroll #>; lcnt -= <#= unroll #>)
+					{
+<#
+	} else {
+#>
+					<#= unroll < t.yUnroll - 2  ? "else " : "" #>if (lcnt >= <#= unroll #>)
+					{
+						lcnt -= <#= unroll #>;
+
+<#
+	}
+	for (int i = 0; i < unroll; i++) {
+#>
+						var iv<#= i #> = Unsafe.ReadUnaligned<Vector4>(tp<#= i != 0 ? $" + vector4Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
+<#
+	}
+#>
+						tp += vector4Count<#= unroll > 1 ? $" * {unroll}" : "" #>;
+
+<#
+	for (int i = 0; i < unroll; i++) {
+#>
+						av<#= t.channels == 3 ? i : 0 #> += iv<#= i #> * Unsafe.ReadUnaligned<Vector4>(mp<#= i != 0 ? $" + vector4Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
+<#
+	}
+#>
+						mp += vector4Count<#= unroll > 1 ? $" * {unroll}" : "" #>;
+					}
+<#
+	if (unroll == t.yUnroll && unroll != 2) WriteLine(null);
+}
+if (t.channels != 1) {
+#>
 				}
+<#
+}
+WriteLine(null);
+
+if (t.channels == 1) PushIndent("\t");
+#>
+				if (lcnt != 0)
+				{
+<#
+int cyunroll = t.channels == 3 ? 3 : 1;
+for (int i = 0; i < cyunroll; i++) {
+#>
+					var iv<#= i #> = Unsafe.ReadUnaligned<Vector4>(tp<#= i != 0 ? $" + vector4Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
+<#
+}
+if (t.channels != 4) {
+#>
+					tp += vector4Count<#= cyunroll > 1 ? $" * {cyunroll}" : "" #>;
+<#
+}
+WriteLine(null);
+for (int i = 0; i < cyunroll; i++) {
+#>
+					av<#= t.channels == 3 ? i : 0 #> += iv<#= i #> * Unsafe.ReadUnaligned<Vector4>(mp<#= i != 0 ? $" + vector4Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
+<#
+}
+if (t.channels != 4) {
+#>
+					mp += vector4Count<#= cyunroll > 1 ? $" * {cyunroll}" : "" #>;
+<#
+}
+#>
+				}
+<#
+if (t.channels == 1) {
+	PopIndent();
+#>
+
+					a0 = Vector4.Dot(av0, m4);
+				}
+<#
+}
+
+if (t.channels != 4) {
+#>
 
 				while (tp < tpe)
 				{
 <#
-	for (int i = 0; i < t.colors; i++) {
+for (int i = 0; i < t.colors; i++) {
 #>
 					a<#= i #> += tp[<#= i #>] * mp[<#= i #>];
 <#
-	}
+}
 #>
 
 					tp += channels;
@@ -337,118 +514,25 @@ if (t.channels == 4) {
 				}
 
 <#
-for (int j = 0; j < t.colors; j++) {
+	for (int j = 0; j < t.colors; j++) {
 #>
 				op[<#= j #>] = a<#= j #>;
+<#
+	}
+} else {
+#>
+
+				Unsafe.WriteUnaligned(op, av0);
 <#
 }
 #>
 				op += channels;
-				ox++;
 			}
 		}
 <#
 } else {
 #>
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy) => throw new NotImplementedException();
-<#
-}
-#>
-
-<#
-//http://en.wikipedia.org/wiki/Unsharp_masking
-if (t.sharpen) {
-#>
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
-		{
-			float* ip = (float*)cstart + ox * channels, yp = (float*)ystart + ox, bp = (float*)bstart, op = (float*)ostart;
-			float* ipe = ip + ow * channels;
-
-			bool threshold = thresh > 0f;
-			var vmin = Vector<#= t.channels == 1 ? "F" : t.channels.ToString() #>.Zero;
-<#
-if (t.channels == 1) {
-#>
-			var vthresh = new VectorF(threshold ? thresh : -1f);
-			var vamt = new VectorF(amt);
-			float fmin = vmin[0];
-<#
-} else {
-#>
-			var vamt = new Vector4(amt) { W = 0f };
-<#
-}
-#>
-
-<#
-if (t.channels == 1) {
-#>
-			ipe -= VectorF.Count;
-			while (ip <= ipe)
-			{
-				var vd = Unsafe.ReadUnaligned<VectorF>(yp) - Unsafe.ReadUnaligned<VectorF>(bp);
-				yp += VectorF.Count;
-				bp += VectorF.Count;
-
-				if (threshold)
-				{
-					var sm = Vector.GreaterThan(Vector.Abs(vd), vthresh);
-					vd = Vector.ConditionalSelect(sm, vd, vmin);
-				}
-				vd *= vamt;
-
-				var v0 = Unsafe.ReadUnaligned<VectorF>(ip);
-				ip += VectorF.Count * channels;
-
-				if (gamma)
-				{
-					v0 = Vector.SquareRoot(Vector.Max(v0, vmin));
-					v0 = Vector.Max(v0 + vd, vmin);
-					v0 *= v0;
-				}
-				else
-				{
-					v0 += vd;
-				}
-
-				Unsafe.WriteUnaligned(op, v0);
-				op += VectorF.Count * channels;
-			}
-			ipe += VectorF.Count;
-
-<#
-}
-#>
-			while (ip < ipe)
-			{
-				float dif = *yp++ - *bp++;
-				<#= t.channels == 1 ? "float" : "var" #> c0 = <#= t.channels == 1 ? "*ip" : $"Unsafe.ReadUnaligned<Vector{t.channels}>(ip)" #>;
-				ip += channels;
-
-				if (!threshold || Math.Abs(dif) > thresh)
-				{
-					<#= t.channels == 1 ? "dif *= amt" : $"var vd = new Vector{t.channels}(dif) * vamt" #>;
-
-					if (gamma)
-					{
-						c0 = <#= t.channels == 1 ? "MathUtil.MaxF(c0, fmin).Sqrt()" : $"Vector{t.channels}.SquareRoot(Vector{t.channels}.Max(c0, vmin))" #>;
-						c0 = <#= t.channels == 1 ? "MathUtil.MaxF(c0 + dif, fmin)" : $"Vector{t.channels}.Max(c0 + vd, vmin)" #>;
-						c0 *= c0;
-					}
-					else
-					{
-						c0 += <#= t.channels == 1 ? "dif" : "vd" #>;
-					}
-				}
-
-				<#= t.channels == 1 ? "*op = c0" : "Unsafe.WriteUnaligned(op, c0)" #>;
-				op += channels;
-			}
-		}
-<#
-} else {
-#>
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma) => throw new NotImplementedException();
 <#
 }
 #>
@@ -461,15 +545,9 @@ if (t.channels == 1) {
 class procDef
 {
 	public string name;
-	public string vtype;
 	public int channels;
 	public int colors;
-	public bool sharpen;
 	public int xUnroll;
 	public int yUnroll;
-
-	public string vcnt => vtype == "F" ? "VectorF.Count" : $"vector{vtype}Count";
-	public string xUnrollIncr => vcnt + (xUnroll > 1 ? $" * {xUnroll}" : "");
-	public string yUnrollIncr => vcnt + (yUnroll > 1 ? $" * {yUnroll}" : "");
 }
 #>

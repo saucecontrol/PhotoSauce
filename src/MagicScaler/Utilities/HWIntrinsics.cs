@@ -73,6 +73,24 @@ namespace PhotoSauce.MagicScaler
 			else
 				return Avx.Add(Avx.Multiply(diff, d), l);
 		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		unsafe public static Vector128<float> MultiplyAdd(Vector128<float> va, Vector128<float> vm, float* mp)
+		{
+			if (Fma.IsSupported)
+				return Fma.MultiplyAdd(Sse.LoadVector128(mp), vm, va);
+			else
+				return Sse.Add(va, Sse.Multiply(vm, Sse.LoadVector128(mp)));
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		unsafe public static Vector256<float> MultiplyAdd(Vector256<float> va, Vector256<float> vm, float* mp)
+		{
+			if (Fma.IsSupported)
+				return Fma.MultiplyAdd(Avx.LoadVector256(mp), vm, va);
+			else
+				return Avx.Add(va, Avx.Multiply(vm, Avx.LoadVector256(mp)));
+		}
 #endif
 	}
 }

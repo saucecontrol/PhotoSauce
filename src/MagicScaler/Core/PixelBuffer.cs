@@ -146,7 +146,7 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		[Conditional("GUARDRAILS")]
-		public static void checkBounds(ArraySegment<byte> buff)
+		private static void checkBounds(ArraySegment<byte> buff)
 		{
 			var arr = buff.Array!;
 			if (buff.Offset > 0)

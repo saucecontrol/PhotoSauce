@@ -13,39 +13,49 @@ using VectorF = System.Numerics.Vector<float>;
 
 namespace PhotoSauce.MagicScaler.Transforms
 {
-	internal sealed partial class Convolver4ChanFloat : IConvolver
+	internal sealed partial class Convolver4ChanVector : IConvolver
 	{
-		private const int channels = 4;
+		private const uint channels = 4;
+		private const uint vector4Count = 4;
 
-		public static readonly Convolver4ChanFloat Instance = new Convolver4ChanFloat();
+		public static readonly Convolver4ChanVector Instance = new Convolver4ChanVector();
 
-		private Convolver4ChanFloat() { }
+		private Convolver4ChanVector() { }
 
-		int IConvolver.Channels => channels;
-		int IConvolver.MapChannels => channels;
+		int IConvolver.Channels => (int)channels;
+		int IConvolver.MapChannels => (int)channels;
 
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
-			float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
+			float* tp = (float*)tstart, tpe = (float*)(tstart + (uint)cb);
 			float* pmapx = (float*)mapxstart;
-			int kstride = smapx * channels;
-			int tstride = smapy * channels;
+			uint kstride = (uint)smapx * channels;
+			uint tstride = (uint)smapy * channels;
+			uint vcnt = kstride / vector4Count;
+
+			float* buff = tp;
+			if (VectorF.Count == 8 && vcnt >= 2)
+			{
+				float* tmp = stackalloc float[VectorF.Count];
+				buff = tmp;
+			}
 
 			while (tp < tpe)
 			{
-				int ix = *(int*)pmapx++;
-				float* ip = (float*)istart + ix * channels, ipe = ip + kstride;
+				uint ix = *(uint*)pmapx++;
+				uint lcnt = vcnt;
+
+				float* ip = (float*)istart + ix * channels;
 				float* mp = pmapx;
 				pmapx += kstride;
 
-				float a0, a1, a2, a3;
+				Vector4 av0;
 
-				if (kstride >= VectorF.Count * 4)
+				if (VectorF.Count == 8 && lcnt >= 2)
 				{
-					VectorF av0 = VectorF.Zero;
-					ipe -= VectorF.Count * 4;
+					var ax0 = VectorF.Zero;
 
-					do
+					for (; lcnt >= 8; lcnt -= 8)
 					{
 						var iv0 = Unsafe.ReadUnaligned<VectorF>(ip);
 						var iv1 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count);
@@ -53,53 +63,94 @@ namespace PhotoSauce.MagicScaler.Transforms
 						var iv3 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count * 3);
 						ip += VectorF.Count * 4;
 
-						var mv0 = Unsafe.ReadUnaligned<VectorF>(mp);
-						var mv1 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count);
-						var mv2 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 2);
-						var mv3 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 3);
+						ax0 += iv0 * Unsafe.ReadUnaligned<VectorF>(mp);
+						ax0 += iv1 * Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count);
+						ax0 += iv2 * Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 2);
+						ax0 += iv3 * Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 3);
 						mp += VectorF.Count * 4;
-
-						av0 += iv0 * mv0;
-						av0 += iv1 * mv1;
-						av0 += iv2 * mv2;
-						av0 += iv3 * mv3;
-					} while (ip <= ipe);
-
-					ipe += VectorF.Count * 4;
-
-					a0 = av0[0];
-					a1 = av0[1];
-					a2 = av0[2];
-					a3 = av0[3];
-
-					if (VectorF.Count == 8)
-					{
-						a0 += av0[4];
-						a1 += av0[5];
-						a2 += av0[6];
-						a3 += av0[7];
 					}
+
+					if (lcnt >= 6)
+					{
+						lcnt -= 6;
+
+						var iv0 = Unsafe.ReadUnaligned<VectorF>(ip);
+						var iv1 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count);
+						var iv2 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count * 2);
+						ip += VectorF.Count * 3;
+
+						ax0 += iv0 * Unsafe.ReadUnaligned<VectorF>(mp);
+						ax0 += iv1 * Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count);
+						ax0 += iv2 * Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 2);
+						mp += VectorF.Count * 3;
+					}
+					else if (lcnt >= 4)
+					{
+						lcnt -= 4;
+
+						var iv0 = Unsafe.ReadUnaligned<VectorF>(ip);
+						var iv1 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count);
+						ip += VectorF.Count * 2;
+
+						ax0 += iv0 * Unsafe.ReadUnaligned<VectorF>(mp);
+						ax0 += iv1 * Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count);
+						mp += VectorF.Count * 2;
+					}
+					else if (lcnt >= 2)
+					{
+						lcnt -= 2;
+
+						var iv0 = Unsafe.ReadUnaligned<VectorF>(ip);
+						ip += VectorF.Count;
+
+						ax0 += iv0 * Unsafe.ReadUnaligned<VectorF>(mp);
+						mp += VectorF.Count;
+					}
+
+					Unsafe.WriteUnaligned(buff, ax0);
+					av0 = Unsafe.ReadUnaligned<Vector4>(buff) + Unsafe.ReadUnaligned<Vector4>(buff + vector4Count);
 				}
 				else
 				{
-					a0 = a1 = a2 = a3 = 0f;
+					av0 = Vector4.Zero;
+
+					for (; lcnt >= 4; lcnt -= 4)
+					{
+						var iv0 = Unsafe.ReadUnaligned<Vector4>(ip);
+						var iv1 = Unsafe.ReadUnaligned<Vector4>(ip + vector4Count);
+						var iv2 = Unsafe.ReadUnaligned<Vector4>(ip + vector4Count * 2);
+						var iv3 = Unsafe.ReadUnaligned<Vector4>(ip + vector4Count * 3);
+						ip += vector4Count * 4;
+
+						av0 += iv0 * Unsafe.ReadUnaligned<Vector4>(mp);
+						av0 += iv1 * Unsafe.ReadUnaligned<Vector4>(mp + vector4Count);
+						av0 += iv2 * Unsafe.ReadUnaligned<Vector4>(mp + vector4Count * 2);
+						av0 += iv3 * Unsafe.ReadUnaligned<Vector4>(mp + vector4Count * 3);
+						mp += vector4Count * 4;
+					}
+
+					if (lcnt >= 2)
+					{
+						lcnt -= 2;
+
+						var iv0 = Unsafe.ReadUnaligned<Vector4>(ip);
+						var iv1 = Unsafe.ReadUnaligned<Vector4>(ip + vector4Count);
+						ip += vector4Count * 2;
+
+						av0 += iv0 * Unsafe.ReadUnaligned<Vector4>(mp);
+						av0 += iv1 * Unsafe.ReadUnaligned<Vector4>(mp + vector4Count);
+						mp += vector4Count * 2;
+					}
 				}
 
-				while (ip < ipe)
+				if (lcnt != 0)
 				{
-					a0 += ip[0] * mp[0];
-					a1 += ip[1] * mp[1];
-					a2 += ip[2] * mp[2];
-					a3 += ip[3] * mp[3];
+					var iv0 = Unsafe.ReadUnaligned<Vector4>(ip);
 
-					ip += channels;
-					mp += channels;
+					av0 += iv0 * Unsafe.ReadUnaligned<Vector4>(mp);
 				}
 
-				tp[0] = a0;
-				tp[1] = a1;
-				tp[2] = a2;
-				tp[3] = a3;
+				Unsafe.WriteUnaligned(tp, av0);
 				tp += tstride;
 			}
 		}
@@ -107,177 +158,180 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			float* op = (float*)ostart;
-			int xc = ox + ow, tstride = smapy * channels;
+			uint tstride = (uint)smapy * channels;
+			uint vcnt = tstride / vector4Count;
 
-			while (ox < xc)
+			float* buff = op;
+			if (VectorF.Count == 8 && vcnt >= 2)
 			{
-				float* tp = (float*)tstart + ox * tstride, tpe = tp + tstride;
+				float* tmp = stackalloc float[VectorF.Count];
+				buff = tmp;
+			}
+
+			for (int xc = ox + ow; ox < xc; ox++)
+			{
+				uint lcnt = vcnt;
+
+				float* tp = (float*)tstart + (uint)ox * tstride;
 				float* mp = (float*)pmapy;
 
-				float a0, a1, a2, a3;
+				Vector4 av0;
 
-				if (tstride >= VectorF.Count * 4)
+				if (VectorF.Count == 8 && lcnt >= 2)
 				{
-					VectorF av0 = VectorF.Zero;
-					tpe -= VectorF.Count * 4;
+					var ax0 = VectorF.Zero;
 
-					do
+					for (; lcnt >= 4; lcnt -= 4)
 					{
-						var tv0 = Unsafe.ReadUnaligned<VectorF>(tp);
-						var tv1 = Unsafe.ReadUnaligned<VectorF>(tp + VectorF.Count);
-						var tv2 = Unsafe.ReadUnaligned<VectorF>(tp + VectorF.Count * 2);
-						var tv3 = Unsafe.ReadUnaligned<VectorF>(tp + VectorF.Count * 3);
-						tp += VectorF.Count * 4;
+						var iv0 = Unsafe.ReadUnaligned<VectorF>(tp);
+						var iv1 = Unsafe.ReadUnaligned<VectorF>(tp + VectorF.Count);
+						tp += VectorF.Count * 2;
 
-						var mv0 = Unsafe.ReadUnaligned<VectorF>(mp);
-						var mv1 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count);
-						var mv2 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 2);
-						var mv3 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 3);
-						mp += VectorF.Count * 4;
-
-						av0 += tv0 * mv0;
-						av0 += tv1 * mv1;
-						av0 += tv2 * mv2;
-						av0 += tv3 * mv3;
-					} while (tp <= tpe);
-
-					tpe += VectorF.Count * 4;
-
-					a0 = av0[0];
-					a1 = av0[1];
-					a2 = av0[2];
-					a3 = av0[3];
-
-					if (VectorF.Count == 8)
-					{
-						a0 += av0[4];
-						a1 += av0[5];
-						a2 += av0[6];
-						a3 += av0[7];
+						ax0 += iv0 * Unsafe.ReadUnaligned<VectorF>(mp);
+						ax0 += iv1 * Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count);
+						mp += VectorF.Count * 2;
 					}
+
+					if (lcnt >= 2)
+					{
+						lcnt -= 2;
+
+						var iv0 = Unsafe.ReadUnaligned<VectorF>(tp);
+						tp += VectorF.Count;
+
+						ax0 += iv0 * Unsafe.ReadUnaligned<VectorF>(mp);
+						mp += VectorF.Count;
+					}
+
+					Unsafe.WriteUnaligned(buff, ax0);
+					av0 = Unsafe.ReadUnaligned<Vector4>(buff) + Unsafe.ReadUnaligned<Vector4>(buff + vector4Count);
 				}
 				else
 				{
-					a0 = a1 = a2 = a3 = 0f;
-				}
+					av0 = Vector4.Zero;
 
-				while (tp < tpe)
-				{
-					a0 += tp[0] * mp[0];
-					a1 += tp[1] * mp[1];
-					a2 += tp[2] * mp[2];
-					a3 += tp[3] * mp[3];
-
-					tp += channels;
-					mp += channels;
-				}
-
-				op[0] = a0;
-				op[1] = a1;
-				op[2] = a2;
-				op[3] = a3;
-				op += channels;
-				ox++;
-			}
-		}
-
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
-		{
-			float* ip = (float*)cstart + ox * channels, yp = (float*)ystart + ox, bp = (float*)bstart, op = (float*)ostart;
-			float* ipe = ip + ow * channels;
-
-			bool threshold = thresh > 0f;
-			var vmin = Vector4.Zero;
-			var vamt = new Vector4(amt) { W = 0f };
-
-			while (ip < ipe)
-			{
-				float dif = *yp++ - *bp++;
-				var c0 = Unsafe.ReadUnaligned<Vector4>(ip);
-				ip += channels;
-
-				if (!threshold || Math.Abs(dif) > thresh)
-				{
-					var vd = new Vector4(dif) * vamt;
-
-					if (gamma)
+					for (; lcnt >= 2; lcnt -= 2)
 					{
-						c0 = Vector4.SquareRoot(Vector4.Max(c0, vmin));
-						c0 = Vector4.Max(c0 + vd, vmin);
-						c0 *= c0;
-					}
-					else
-					{
-						c0 += vd;
+						var iv0 = Unsafe.ReadUnaligned<Vector4>(tp);
+						var iv1 = Unsafe.ReadUnaligned<Vector4>(tp + vector4Count);
+						tp += vector4Count * 2;
+
+						av0 += iv0 * Unsafe.ReadUnaligned<Vector4>(mp);
+						av0 += iv1 * Unsafe.ReadUnaligned<Vector4>(mp + vector4Count);
+						mp += vector4Count * 2;
 					}
 				}
 
-				Unsafe.WriteUnaligned(op, c0);
+				if (lcnt != 0)
+				{
+					var iv0 = Unsafe.ReadUnaligned<Vector4>(tp);
+
+					av0 += iv0 * Unsafe.ReadUnaligned<Vector4>(mp);
+				}
+
+				Unsafe.WriteUnaligned(op, av0);
 				op += channels;
 			}
 		}
 	}
 
-	internal sealed partial class Convolver3ChanFloat : IConvolver
+	internal sealed partial class Convolver3ChanVector : IConvolver
 	{
-		private const int vector4Count = 4;
+		private const uint channels = 3;
+		private const uint vector4Count = 4;
 
-		private const int channels = 3;
+		public static readonly Convolver3ChanVector Instance = new Convolver3ChanVector();
 
-		public static readonly Convolver3ChanFloat Instance = new Convolver3ChanFloat();
+		private Convolver3ChanVector() { }
 
-		private Convolver3ChanFloat() { }
-
-		int IConvolver.Channels => channels;
-		int IConvolver.MapChannels => channels;
+		int IConvolver.Channels => (int)channels;
+		int IConvolver.MapChannels => (int)channels;
 
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
-			float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
+			float* tp = (float*)tstart, tpe = (float*)(tstart + (uint)cb);
 			float* pmapx = (float*)mapxstart;
-			int kstride = smapx * channels;
-			int tstride = smapy * 4;
+			uint kstride = (uint)smapx * channels;
+			uint tstride = (uint)smapy * 4;
+			uint vcnt = kstride / vector4Count;
+
+			float* buff = tp;
+			if (VectorF.Count == 8 && vcnt >= 12)
+			{
+				float* tmp = stackalloc float[VectorF.Count];
+				buff = tmp;
+			}
 
 			while (tp < tpe)
 			{
-				int ix = *(int*)pmapx++;
+				uint ix = *(uint*)pmapx++;
+				uint lcnt = vcnt;
+
 				float* ip = (float*)istart + ix * channels, ipe = ip + kstride;
 				float* mp = pmapx;
 				pmapx += kstride;
 
-				float a0, a1, a2;
+				Vector4 av0, av1, av2;
 
-				if (kstride >= vector4Count * 3)
+				if (VectorF.Count == 8 && lcnt >= 12)
 				{
-					Vector4 av0 = Vector4.Zero, av1 = av0, av2 = av0;
-					ipe -= vector4Count * 3;
+					var ax0 = VectorF.Zero;
+					var ax1 = VectorF.Zero;
+					var ax2 = VectorF.Zero;
 
-					do
+					for (; lcnt >= 6; lcnt -= 6)
 					{
-						var iv0 = Unsafe.ReadUnaligned<Vector4>(ip);
-						var iv1 = Unsafe.ReadUnaligned<Vector4>(ip + vector4Count);
-						var iv2 = Unsafe.ReadUnaligned<Vector4>(ip + vector4Count * 2);
-						ip += vector4Count * 3;
+						var iv0 = Unsafe.ReadUnaligned<VectorF>(ip);
+						var iv1 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count);
+						var iv2 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count * 2);
+						ip += VectorF.Count * 3;
 
-						var mv0 = Unsafe.ReadUnaligned<Vector4>(mp);
-						var mv1 = Unsafe.ReadUnaligned<Vector4>(mp + vector4Count);
-						var mv2 = Unsafe.ReadUnaligned<Vector4>(mp + vector4Count * 2);
-						mp += vector4Count * 3;
+						ax0 += iv0 * Unsafe.ReadUnaligned<VectorF>(mp);
+						ax1 += iv1 * Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count);
+						ax2 += iv2 * Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 2);
+						mp += VectorF.Count * 3;
+					}
 
-						av0 += iv0 * mv0;
-						av1 += iv1 * mv1;
-						av2 += iv2 * mv2;
-					} while (ip <= ipe);
+					Unsafe.WriteUnaligned(buff, ax0);
+					av0 = Unsafe.ReadUnaligned<Vector4>(buff);
+					av1 = Unsafe.ReadUnaligned<Vector4>(buff + vector4Count);
 
-					ipe += vector4Count * 3;
+					Unsafe.WriteUnaligned(buff, ax1);
+					av2 = Unsafe.ReadUnaligned<Vector4>(buff);
+					av0 += Unsafe.ReadUnaligned<Vector4>(buff + vector4Count);
 
-					a0 = av0.X + av0.W + av1.Z + av2.Y;
-					a1 = av0.Y + av1.X + av1.W + av2.Z;
-					a2 = av0.Z + av1.Y + av2.X + av2.W;
+					Unsafe.WriteUnaligned(buff, ax2);
+					av1 += Unsafe.ReadUnaligned<Vector4>(buff);
+					av2 += Unsafe.ReadUnaligned<Vector4>(buff + vector4Count);
 				}
 				else
 				{
+					av0 = av1 = av2 = Vector4.Zero;
+				}
+
+				for (; lcnt >= 3; lcnt -= 3)
+				{
+					var iv0 = Unsafe.ReadUnaligned<Vector4>(ip);
+					var iv1 = Unsafe.ReadUnaligned<Vector4>(ip + vector4Count);
+					var iv2 = Unsafe.ReadUnaligned<Vector4>(ip + vector4Count * 2);
+					ip += vector4Count * 3;
+
+					av0 += iv0 * Unsafe.ReadUnaligned<Vector4>(mp);
+					av1 += iv1 * Unsafe.ReadUnaligned<Vector4>(mp + vector4Count);
+					av2 += iv2 * Unsafe.ReadUnaligned<Vector4>(mp + vector4Count * 2);
+					mp += vector4Count * 3;
+				}
+
+				float a0, a1, a2;
+				if (vcnt == 0)
+				{
 					a0 = a1 = a2 = 0f;
+				}
+				else
+				{
+					a0 = av0.X + av0.W + av1.Z + av2.Y;
+					a1 = av0.Y + av1.X + av1.W + av2.Z;
+					a2 = av0.Z + av1.Y + av2.X + av2.W;
 				}
 
 				while (ip < ipe)
@@ -298,43 +352,52 @@ namespace PhotoSauce.MagicScaler.Transforms
 		}
 
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy) => throw new NotImplementedException();
-
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma) => throw new NotImplementedException();
 	}
 
-	internal sealed partial class Convolver3XChanFloat : IConvolver
+	internal sealed partial class Convolver1ChanVector : IConvolver
 	{
-		private const int channels = 4;
+		private const uint channels = 1;
+		private const uint vector4Count = 4;
 
-		public static readonly Convolver3XChanFloat Instance = new Convolver3XChanFloat();
+		public static readonly Convolver1ChanVector Instance = new Convolver1ChanVector();
 
-		private Convolver3XChanFloat() { }
+		private Convolver1ChanVector() { }
 
-		int IConvolver.Channels => channels;
-		int IConvolver.MapChannels => channels;
+		int IConvolver.Channels => (int)channels;
+		int IConvolver.MapChannels => (int)channels;
 
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
-			float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
+			float* tp = (float*)tstart, tpe = (float*)(tstart + (uint)cb);
 			float* pmapx = (float*)mapxstart;
-			int kstride = smapx * channels;
-			int tstride = smapy * channels;
+			uint kstride = (uint)smapx * channels;
+			uint tstride = (uint)smapy * channels;
+			uint vcnt = kstride / vector4Count;
+
+			var m4 = Vector4.Zero;
+			var mF = VectorF.Zero;
+
+			if (VectorF.Count == 8 && vcnt >= 2)
+				mF = VectorF.One;
+			else
+				m4 = Vector4.One;
 
 			while (tp < tpe)
 			{
-				int ix = *(int*)pmapx++;
+				uint ix = *(uint*)pmapx++;
+				uint lcnt = vcnt;
+
 				float* ip = (float*)istart + ix * channels, ipe = ip + kstride;
 				float* mp = pmapx;
 				pmapx += kstride;
 
-				float a0, a1, a2;
+				float a0;
 
-				if (kstride >= VectorF.Count * 4)
+				if (VectorF.Count == 8 && lcnt >= 2)
 				{
-					VectorF av0 = VectorF.Zero;
-					ipe -= VectorF.Count * 4;
+					var ax0 = VectorF.Zero;
 
-					do
+					for (; lcnt >= 8; lcnt -= 8)
 					{
 						var iv0 = Unsafe.ReadUnaligned<VectorF>(ip);
 						var iv1 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count);
@@ -342,215 +405,94 @@ namespace PhotoSauce.MagicScaler.Transforms
 						var iv3 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count * 3);
 						ip += VectorF.Count * 4;
 
-						var mv0 = Unsafe.ReadUnaligned<VectorF>(mp);
-						var mv1 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count);
-						var mv2 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 2);
-						var mv3 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 3);
+						ax0 += iv0 * Unsafe.ReadUnaligned<VectorF>(mp);
+						ax0 += iv1 * Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count);
+						ax0 += iv2 * Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 2);
+						ax0 += iv3 * Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 3);
 						mp += VectorF.Count * 4;
-
-						av0 += iv0 * mv0;
-						av0 += iv1 * mv1;
-						av0 += iv2 * mv2;
-						av0 += iv3 * mv3;
-					} while (ip <= ipe);
-
-					ipe += VectorF.Count * 4;
-
-					a0 = av0[0];
-					a1 = av0[1];
-					a2 = av0[2];
-
-					if (VectorF.Count == 8)
-					{
-						a0 += av0[4];
-						a1 += av0[5];
-						a2 += av0[6];
 					}
-				}
-				else
-				{
-					a0 = a1 = a2 = 0f;
-				}
 
-				while (ip < ipe)
-				{
-					a0 += ip[0] * mp[0];
-					a1 += ip[1] * mp[1];
-					a2 += ip[2] * mp[2];
-
-					ip += channels;
-					mp += channels;
-				}
-
-				tp[0] = a0;
-				tp[1] = a1;
-				tp[2] = a2;
-				tp += tstride;
-			}
-		}
-
-		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
-		{
-			float* op = (float*)ostart;
-			int xc = ox + ow, tstride = smapy * channels;
-
-			while (ox < xc)
-			{
-				float* tp = (float*)tstart + ox * tstride, tpe = tp + tstride;
-				float* mp = (float*)pmapy;
-
-				float a0, a1, a2;
-
-				if (tstride >= VectorF.Count * 4)
-				{
-					VectorF av0 = VectorF.Zero;
-					tpe -= VectorF.Count * 4;
-
-					do
+					if (lcnt >= 6)
 					{
-						var tv0 = Unsafe.ReadUnaligned<VectorF>(tp);
-						var tv1 = Unsafe.ReadUnaligned<VectorF>(tp + VectorF.Count);
-						var tv2 = Unsafe.ReadUnaligned<VectorF>(tp + VectorF.Count * 2);
-						var tv3 = Unsafe.ReadUnaligned<VectorF>(tp + VectorF.Count * 3);
-						tp += VectorF.Count * 4;
+						lcnt -= 6;
 
-						var mv0 = Unsafe.ReadUnaligned<VectorF>(mp);
-						var mv1 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count);
-						var mv2 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 2);
-						var mv3 = Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 3);
-						mp += VectorF.Count * 4;
+						var iv0 = Unsafe.ReadUnaligned<VectorF>(ip);
+						var iv1 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count);
+						var iv2 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count * 2);
+						ip += VectorF.Count * 3;
 
-						av0 += tv0 * mv0;
-						av0 += tv1 * mv1;
-						av0 += tv2 * mv2;
-						av0 += tv3 * mv3;
-					} while (tp <= tpe);
-
-					tpe += VectorF.Count * 4;
-
-					a0 = av0[0];
-					a1 = av0[1];
-					a2 = av0[2];
-
-					if (VectorF.Count == 8)
-					{
-						a0 += av0[4];
-						a1 += av0[5];
-						a2 += av0[6];
+						ax0 += iv0 * Unsafe.ReadUnaligned<VectorF>(mp);
+						ax0 += iv1 * Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count);
+						ax0 += iv2 * Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 2);
+						mp += VectorF.Count * 3;
 					}
-				}
-				else
-				{
-					a0 = a1 = a2 = 0f;
-				}
-
-				while (tp < tpe)
-				{
-					a0 += tp[0] * mp[0];
-					a1 += tp[1] * mp[1];
-					a2 += tp[2] * mp[2];
-
-					tp += channels;
-					mp += channels;
-				}
-
-				op[0] = a0;
-				op[1] = a1;
-				op[2] = a2;
-				op += channels;
-				ox++;
-			}
-		}
-
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
-		{
-			float* ip = (float*)cstart + ox * channels, yp = (float*)ystart + ox, bp = (float*)bstart, op = (float*)ostart;
-			float* ipe = ip + ow * channels;
-
-			bool threshold = thresh > 0f;
-			var vmin = Vector4.Zero;
-			var vamt = new Vector4(amt) { W = 0f };
-
-			while (ip < ipe)
-			{
-				float dif = *yp++ - *bp++;
-				var c0 = Unsafe.ReadUnaligned<Vector4>(ip);
-				ip += channels;
-
-				if (!threshold || Math.Abs(dif) > thresh)
-				{
-					var vd = new Vector4(dif) * vamt;
-
-					if (gamma)
+					else if (lcnt >= 4)
 					{
-						c0 = Vector4.SquareRoot(Vector4.Max(c0, vmin));
-						c0 = Vector4.Max(c0 + vd, vmin);
-						c0 *= c0;
+						lcnt -= 4;
+
+						var iv0 = Unsafe.ReadUnaligned<VectorF>(ip);
+						var iv1 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count);
+						ip += VectorF.Count * 2;
+
+						ax0 += iv0 * Unsafe.ReadUnaligned<VectorF>(mp);
+						ax0 += iv1 * Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count);
+						mp += VectorF.Count * 2;
 					}
-					else
+					else if (lcnt >= 2)
 					{
-						c0 += vd;
-					}
-				}
+						lcnt -= 2;
 
-				Unsafe.WriteUnaligned(op, c0);
-				op += channels;
-			}
-		}
-	}
-
-	internal sealed partial class Convolver1ChanFloat : IConvolver
-	{
-		private const int channels = 1;
-
-		public static readonly Convolver1ChanFloat Instance = new Convolver1ChanFloat();
-
-		private Convolver1ChanFloat() { }
-
-		int IConvolver.Channels => channels;
-		int IConvolver.MapChannels => channels;
-
-		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
-		{
-			float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
-			float* pmapx = (float*)mapxstart;
-			int kstride = smapx * channels;
-			int tstride = smapy * channels;
-
-			var m0 = VectorF.One;
-
-			while (tp < tpe)
-			{
-				int ix = *(int*)pmapx++;
-				float* ip = (float*)istart + ix * channels, ipe = ip + kstride;
-				float* mp = pmapx;
-				pmapx += kstride;
-
-				float a0;
-
-				if (kstride >= VectorF.Count)
-				{
-					VectorF av0 = VectorF.Zero;
-					ipe -= VectorF.Count;
-
-					do
-					{
 						var iv0 = Unsafe.ReadUnaligned<VectorF>(ip);
 						ip += VectorF.Count;
 
-						var mv0 = Unsafe.ReadUnaligned<VectorF>(mp);
+						ax0 += iv0 * Unsafe.ReadUnaligned<VectorF>(mp);
 						mp += VectorF.Count;
+					}
 
-						av0 += iv0 * mv0;
-					} while (ip <= ipe);
-
-					ipe += VectorF.Count;
-
-					a0 = Vector.Dot(av0, m0);
+					a0 = Vector.Dot(ax0, mF);
 				}
 				else
 				{
-					a0 = 0f;
+					var av0 = Vector4.Zero;
+
+					for (; lcnt >= 4; lcnt -= 4)
+					{
+						var iv0 = Unsafe.ReadUnaligned<Vector4>(ip);
+						var iv1 = Unsafe.ReadUnaligned<Vector4>(ip + vector4Count);
+						var iv2 = Unsafe.ReadUnaligned<Vector4>(ip + vector4Count * 2);
+						var iv3 = Unsafe.ReadUnaligned<Vector4>(ip + vector4Count * 3);
+						ip += vector4Count * 4;
+
+						av0 += iv0 * Unsafe.ReadUnaligned<Vector4>(mp);
+						av0 += iv1 * Unsafe.ReadUnaligned<Vector4>(mp + vector4Count);
+						av0 += iv2 * Unsafe.ReadUnaligned<Vector4>(mp + vector4Count * 2);
+						av0 += iv3 * Unsafe.ReadUnaligned<Vector4>(mp + vector4Count * 3);
+						mp += vector4Count * 4;
+					}
+
+					if (lcnt >= 2)
+					{
+						lcnt -= 2;
+
+						var iv0 = Unsafe.ReadUnaligned<Vector4>(ip);
+						var iv1 = Unsafe.ReadUnaligned<Vector4>(ip + vector4Count);
+						ip += vector4Count * 2;
+
+						av0 += iv0 * Unsafe.ReadUnaligned<Vector4>(mp);
+						av0 += iv1 * Unsafe.ReadUnaligned<Vector4>(mp + vector4Count);
+						mp += vector4Count * 2;
+					}
+
+					if (lcnt != 0)
+					{
+						var iv0 = Unsafe.ReadUnaligned<Vector4>(ip);
+						ip += vector4Count;
+
+						av0 += iv0 * Unsafe.ReadUnaligned<Vector4>(mp);
+						mp += vector4Count;
+					}
+
+					a0 = Vector4.Dot(av0, m4);
 				}
 
 				while (ip < ipe)
@@ -569,40 +511,79 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			float* op = (float*)ostart;
-			int xc = ox + ow, tstride = smapy * channels;
+			uint tstride = (uint)smapy * channels;
+			uint vcnt = tstride / vector4Count;
 
-			var m0 = VectorF.One;
+			var m4 = Vector4.Zero;
+			var mF = VectorF.Zero;
 
-			while (ox < xc)
+			if (VectorF.Count == 8 && vcnt >= 2)
+				mF = VectorF.One;
+			else
+				m4 = Vector4.One;
+
+			for (int xc = ox + ow; ox < xc; ox++)
 			{
-				float* tp = (float*)tstart + ox * tstride, tpe = tp + tstride;
+				uint lcnt = vcnt;
+
+				float* tp = (float*)tstart + (uint)ox * tstride, tpe = tp + tstride;
 				float* mp = (float*)pmapy;
 
 				float a0;
 
-				if (tstride >= VectorF.Count)
+				if (VectorF.Count == 8 && lcnt >= 2)
 				{
-					VectorF av0 = VectorF.Zero;
-					tpe -= VectorF.Count;
+					var ax0 = VectorF.Zero;
 
-					do
+					for (; lcnt >= 4; lcnt -= 4)
 					{
-						var tv0 = Unsafe.ReadUnaligned<VectorF>(tp);
+						var iv0 = Unsafe.ReadUnaligned<VectorF>(tp);
+						var iv1 = Unsafe.ReadUnaligned<VectorF>(tp + VectorF.Count);
+						tp += VectorF.Count * 2;
+
+						ax0 += iv0 * Unsafe.ReadUnaligned<VectorF>(mp);
+						ax0 += iv1 * Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count);
+						mp += VectorF.Count * 2;
+					}
+
+					if (lcnt >= 2)
+					{
+						lcnt -= 2;
+
+						var iv0 = Unsafe.ReadUnaligned<VectorF>(tp);
 						tp += VectorF.Count;
 
-						var mv0 = Unsafe.ReadUnaligned<VectorF>(mp);
+						ax0 += iv0 * Unsafe.ReadUnaligned<VectorF>(mp);
 						mp += VectorF.Count;
+					}
 
-						av0 += tv0 * mv0;
-					} while (tp <= tpe);
-
-					tpe += VectorF.Count;
-
-					a0 = Vector.Dot(av0, m0);
+					a0 = Vector.Dot(ax0, mF);
 				}
 				else
 				{
-					a0 = 0f;
+					var av0 = Vector4.Zero;
+
+					for (; lcnt >= 2; lcnt -= 2)
+					{
+						var iv0 = Unsafe.ReadUnaligned<Vector4>(tp);
+						var iv1 = Unsafe.ReadUnaligned<Vector4>(tp + vector4Count);
+						tp += vector4Count * 2;
+
+						av0 += iv0 * Unsafe.ReadUnaligned<Vector4>(mp);
+						av0 += iv1 * Unsafe.ReadUnaligned<Vector4>(mp + vector4Count);
+						mp += vector4Count * 2;
+					}
+
+					if (lcnt != 0)
+					{
+						var iv0 = Unsafe.ReadUnaligned<Vector4>(tp);
+						tp += vector4Count;
+
+						av0 += iv0 * Unsafe.ReadUnaligned<Vector4>(mp);
+						mp += vector4Count;
+					}
+
+					a0 = Vector4.Dot(av0, m4);
 				}
 
 				while (tp < tpe)
@@ -614,78 +595,6 @@ namespace PhotoSauce.MagicScaler.Transforms
 				}
 
 				op[0] = a0;
-				op += channels;
-				ox++;
-			}
-		}
-
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
-		{
-			float* ip = (float*)cstart + ox * channels, yp = (float*)ystart + ox, bp = (float*)bstart, op = (float*)ostart;
-			float* ipe = ip + ow * channels;
-
-			bool threshold = thresh > 0f;
-			var vmin = VectorF.Zero;
-			var vthresh = new VectorF(threshold ? thresh : -1f);
-			var vamt = new VectorF(amt);
-			float fmin = vmin[0];
-
-			ipe -= VectorF.Count;
-			while (ip <= ipe)
-			{
-				var vd = Unsafe.ReadUnaligned<VectorF>(yp) - Unsafe.ReadUnaligned<VectorF>(bp);
-				yp += VectorF.Count;
-				bp += VectorF.Count;
-
-				if (threshold)
-				{
-					var sm = Vector.GreaterThan(Vector.Abs(vd), vthresh);
-					vd = Vector.ConditionalSelect(sm, vd, vmin);
-				}
-				vd *= vamt;
-
-				var v0 = Unsafe.ReadUnaligned<VectorF>(ip);
-				ip += VectorF.Count * channels;
-
-				if (gamma)
-				{
-					v0 = Vector.SquareRoot(Vector.Max(v0, vmin));
-					v0 = Vector.Max(v0 + vd, vmin);
-					v0 *= v0;
-				}
-				else
-				{
-					v0 += vd;
-				}
-
-				Unsafe.WriteUnaligned(op, v0);
-				op += VectorF.Count * channels;
-			}
-			ipe += VectorF.Count;
-
-			while (ip < ipe)
-			{
-				float dif = *yp++ - *bp++;
-				float c0 = *ip;
-				ip += channels;
-
-				if (!threshold || Math.Abs(dif) > thresh)
-				{
-					dif *= amt;
-
-					if (gamma)
-					{
-						c0 = MathUtil.MaxF(c0, fmin).Sqrt();
-						c0 = MathUtil.MaxF(c0 + dif, fmin);
-						c0 *= c0;
-					}
-					else
-					{
-						c0 += dif;
-					}
-				}
-
-				*op = c0;
 				op += channels;
 			}
 		}

@@ -114,28 +114,28 @@ foreach (var t in ta) {
 #>
 	internal sealed class Convolver<#= t.name #><#= t.suffix #> : IConvolver
 	{
-		private const int Channels = <#= t.channels #>;
+		private const int channels = <#= t.channels #>;
 
 		public static readonly Convolver<#= t.name #><#= t.suffix #> Instance = new Convolver<#= t.name #><#= t.suffix #>();
 
 		private Convolver<#= t.name #><#= t.suffix #>() { }
 
-		int IConvolver.Channels => Channels;
+		int IConvolver.Channels => channels;
 		int IConvolver.MapChannels => 1;
 
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			<#= t.interType #>* tp = (<#= t.interType #>*)tstart, tpe = (<#= t.interType #>*)(tstart + cb);
 			<#= t.weighType #>* pmapx = (<#= t.weighType #>*)mapxstart;
-			int tstride = smapy * Channels;
+			int tstride = smapy * channels;
 
 			while (tp < tpe)
 			{
 				<#= t.interType #><# for (int j = 0; j < t.channels - (t.alpha ? 1 : 0); j++) {#><#= j > 0 ? "," : "" #> a<#= j #> = 0<# } if (t.alpha) { #>, aa = 0, aw = 0<# } #>;
 
 				int ix = *<#= t.weighType == "int" ? "" : "(int*)" #>pmapx++;
-				<#= t.pixelType #>* ip = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>istart + ix * Channels;
-				<#= t.pixelType #>* ipe = ip + smapx * Channels - <#= t.xUnroll > 1 ? $"{t.xUnroll} * " : "" #>Channels;
+				<#= t.pixelType #>* ip = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>istart + ix * channels;
+				<#= t.pixelType #>* ipe = ip + smapx * channels - <#= t.xUnroll > 1 ? $"{t.xUnroll} * " : "" #>channels;
 				<#= t.weighType #>* mp = pmapx;
 				pmapx += smapx;
 
@@ -168,7 +168,7 @@ for (int i = 0; i < t.xUnroll; i++) {
 		}
 		if (!t.alpha) {
 #>
-					<#= i == 0 ? "int " : "" #>w = mp[<#= i #>];
+					<#= i == 0 ? $"{t.weighType} " : "" #>w = mp[<#= i #>];
 <#
 		}
 		for (int j = 0; j < t.channels - (t.alpha ? 1 : 0); j++) {
@@ -186,14 +186,14 @@ for (int i = 0; i < t.xUnroll; i++) {
 	}
 }
 #>
-					ip += <#= t.xUnroll #> * Channels;
+					ip += <#= t.xUnroll #> * channels;
 					mp += <#= t.xUnroll #>;
 				}
 
 <#
 if (t.xUnroll > 1) {
 #>
-				ipe += <#= t.xUnroll > 1 ? $"{t.xUnroll} * " : "" #>Channels;
+				ipe += <#= t.xUnroll > 1 ? $"{t.xUnroll} * " : "" #>channels;
 				while (ip < ipe)
 				{
 <#
@@ -222,7 +222,7 @@ if (t.xUnroll > 1) {
 		}
 		if (!t.alpha) {
 #>
-					int w = mp[0];
+					<#= t.weighType #> w = mp[0];
 <#
 		}
 		for (int j = 0; j < t.channels - (t.alpha ? 1 : 0); j++) {
@@ -239,7 +239,7 @@ if (t.xUnroll > 1) {
 	}
 #>
 
-					ip += Channels;
+					ip += channels;
 					mp++;
 				}
 
@@ -279,14 +279,14 @@ if (t.alpha) {
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			<#= t.pixelType #>* op = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>ostart;
-			int xc = ox + ow, tstride = smapy * Channels;
+			int tstride = smapy * channels;
 
-			while (ox < xc)
+			for (int xc = ox + ow; ox < xc; ox++)
 			{
 				<#= t.interType #><# for (int j = 0; j < t.channels - (t.alpha ? 1 : 0); j++) {#><#= j > 0 ? "," : "" #> a<#= j #> = 0<# } if (t.alpha) { #>, aa = 0, aw = 0<# } #>;
 
 				<#= t.interType #>* tp = (<#= t.interType #>*)tstart + ox * tstride;
-				<#= t.interType #>* tpe = tp + tstride - <#= t.yUnroll > 1 ? $"{t.yUnroll} * " : "" #>Channels;
+				<#= t.interType #>* tpe = tp + tstride - <#= t.yUnroll > 1 ? $"{t.yUnroll} * " : "" #>channels;
 				<#= t.weighType #>* mp = (<#= t.weighType #>*)pmapy;
 
 				while (tp <= tpe)
@@ -318,7 +318,7 @@ for (int i = 0; i < t.yUnroll; i++) {
 		}
 		if (!t.alpha) {
 #>
-					<#= i == 0 ? "int " : "" #>w = mp[<#= i #>];
+					<#= i == 0 ? $"{t.weighType} " : "" #>w = mp[<#= i #>];
 <#
 		}
 		for (int j = 0; j < t.channels - (t.alpha ? 1 : 0); j++) {
@@ -336,14 +336,14 @@ for (int i = 0; i < t.yUnroll; i++) {
 	}
 }
 #>
-					tp += <#= t.yUnroll #> * Channels;
+					tp += <#= t.yUnroll #> * channels;
 					mp += <#= t.yUnroll #>;
 				}
 
 <#
 if (t.yUnroll > 1) {
 #>
-				tpe += <#= t.yUnroll > 1 ? $"{t.yUnroll} * " : "" #>Channels;
+				tpe += <#= t.yUnroll > 1 ? $"{t.yUnroll} * " : "" #>channels;
 				while (tp < tpe)
 				{
 <#
@@ -372,7 +372,7 @@ if (t.yUnroll > 1) {
 		}
 		if (!t.alpha) {
 #>
-					int w = mp[0];
+					<#= t.weighType #> w = mp[0];
 <#
 		}
 		for (int j = 0; j < t.channels - (t.alpha ? 1 : 0); j++) {
@@ -389,7 +389,7 @@ if (t.yUnroll > 1) {
 	}
 #>
 
-					tp += Channels;
+					tp += channels;
 					mp++;
 				}
 
@@ -427,8 +427,7 @@ if (t.alpha) {
 <#
 }
 #>
-				op += Channels;
-				ox++;
+				op += channels;
 			}
 		}
 
@@ -458,12 +457,11 @@ if (t.pixelType == "ushort") {
 <#
 }
 #>
-			<#= t.pixelType #>* ip = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>cstart + ox * Channels, yp = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>ystart + ox, bp = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>bstart, op = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>ostart<#= t.pixelType == "ushort" ? ", igt = igtstart" : "" #>;
+			<#= t.pixelType #>* ip = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>cstart + ox * channels, yp = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>ystart + ox, bp = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>bstart, op = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>ostart<#= t.pixelType == "ushort" ? ", igt = igtstart" : "" #>;
 <#
 WriteLine(null);
 #>
-			int xc = ox + ow;
-			for (int x = ox; x < xc; x++, ip += Channels, op += Channels)
+			for (int xc = ox + ow; ox < xc; ox++, ip += channels, op += channels)
 			{
 				<#= t.interType #> dif = *yp++ - *bp++;
 <#
