@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Diagnostics.CodeAnalysis;
 
 #if NETFRAMEWORK
@@ -8,6 +10,7 @@ using System.Configuration;
 using System.Collections.Specialized;
 #endif
 
+using Blake2Fast;
 using PhotoSauce.Interop.Wic;
 
 namespace PhotoSauce.MagicScaler
@@ -57,7 +60,7 @@ namespace PhotoSauce.MagicScaler
 			if (fmt == FileFormat.Png8)
 				fmt = FileFormat.Png;
 
-			string ext = fmt.ToString().ToLower();
+			string ext = fmt.ToString().ToLowerInvariant();
 			if (!string.IsNullOrEmpty(preferredExtension))
 			{
 				if (preferredExtension[0] == '.')
@@ -68,6 +71,20 @@ namespace PhotoSauce.MagicScaler
 			}
 
 			return ext;
+		}
+
+		public static void TryReturn<T>(this ArrayPool<T> pool, T[]? buff)
+		{
+			if (!(buff is null))
+				pool.Return(buff);
+		}
+
+		public static Guid FinalizeToGuid<T>(this T hasher) where T : IBlake2Incremental
+		{
+			Span<byte> hash = stackalloc byte[hasher.DigestLength];
+			hasher.Finish(hash);
+
+			return MemoryMarshal.Read<Guid>(hash);
 		}
 
 		[return: MaybeNull]

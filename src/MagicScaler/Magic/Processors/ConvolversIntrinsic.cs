@@ -31,19 +31,18 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			float* tp = (float*)tstart, tpe = (float*)(tstart + (uint)cb);
-			float* pmapx = (float*)mapxstart;
+			uint* pmapx = (uint*)mapxstart;
 			uint kstride = (uint)smapx * channels;
 			uint tstride = (uint)smapy * channels;
 			uint vcnt = kstride / (uint)VectorSse.Count;
 
 			while (tp < tpe)
 			{
-				uint ix = *(uint*)pmapx++;
+				uint ix = *pmapx++;
 				uint lcnt = vcnt;
 
 				float* ip = (float*)istart + ix * channels;
-				float* mp = pmapx;
-				pmapx += kstride;
+				float* mp = (float*)(mapxstart + *pmapx++);
 
 				VectorSse av0;
 
@@ -243,19 +242,18 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			float* tp = (float*)tstart, tpe = (float*)(tstart + (uint)cb);
-			float* pmapx = (float*)mapxstart;
+			uint* pmapx = (uint*)mapxstart;
 			uint kstride = (uint)smapx * channels;
 			uint tstride = (uint)smapy * 4;
 			uint vcnt = kstride / (uint)VectorSse.Count;
 
 			while (tp < tpe)
 			{
-				uint ix = *(uint*)pmapx++;
+				uint ix = *pmapx++;
 				uint lcnt = vcnt;
 
 				float* ip = (float*)istart + ix * channels;
-				float* mp = pmapx;
-				pmapx += kstride;
+				float* mp = (float*)(mapxstart + *pmapx++);
 
 				VectorSse av0, av1, av2;
 
@@ -337,19 +335,18 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			float* tp = (float*)tstart, tpe = (float*)(tstart + (uint)cb);
-			float* pmapx = (float*)mapxstart;
+			uint* pmapx = (uint*)mapxstart;
 			uint kstride = (uint)smapx * channels;
 			uint tstride = (uint)smapy * channels;
 			uint vcnt = kstride / (uint)VectorSse.Count;
 
 			while (tp < tpe)
 			{
-				uint ix = *(uint*)pmapx++;
+				uint ix = *pmapx++;
 				uint lcnt = vcnt;
 
 				float* ip = (float*)istart + ix * channels;
-				float* mp = pmapx;
-				pmapx += kstride;
+				float* mp = (float*)(mapxstart + *pmapx++);
 
 				VectorSse av0;
 

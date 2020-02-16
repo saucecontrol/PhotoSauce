@@ -233,6 +233,21 @@ namespace PhotoSauce.MagicScaler
 				md.M41.Abs() < epsilon && md.M42.Abs() < epsilon && md.M43.Abs() < epsilon && md.M44.Abs() < epsilon;
 		}
 
+		public static uint GCD(uint x, uint y)
+		{
+			if (x == 0) return y;
+			if (y == 0) return x;
+
+			do
+			{
+				uint t = y;
+				y = x % y;
+				x = t;
+			} while (y != 0);
+
+			return x;
+		}
+
 		// Implementation taken from https://source.dot.net/#System.Private.CoreLib/shared/System/Numerics/Matrix4x4.cs,1314
 		// Because of the number of calculations and rounding steps, using float intermediates results in loss of precision.
 		// This is the same logic but with double precision intermediate calculations.

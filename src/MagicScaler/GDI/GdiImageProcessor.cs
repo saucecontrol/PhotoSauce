@@ -93,7 +93,7 @@ namespace PhotoSauce.MagicScaler
 				if (img.GetFrameCount(fd) > s.FrameIndex)
 					img.SelectActiveFrame(fd, s.FrameIndex);
 				else
-					throw new ArgumentOutOfRangeException("Invalid Frame Index");
+					throw new ArgumentOutOfRangeException(nameof(s), "Invalid Frame Index");
 			}
 
 			if (s.OrientationMode == OrientationMode.Normalize)

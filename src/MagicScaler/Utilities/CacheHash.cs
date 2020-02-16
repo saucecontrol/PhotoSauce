@@ -18,7 +18,10 @@ namespace PhotoSauce.MagicScaler
 
 		// first 40 bits from the crypto hash, base32 encoded
 		// https://tools.ietf.org/html/rfc4648#section-6
-		unsafe public static string Encode(ReadOnlySpan<byte> bhash)
+#if !BUILTIN_SPAN
+		unsafe
+#endif
+		public static string Encode(ReadOnlySpan<byte> bhash)
 		{
 			if (DigestLength > (uint)bhash.Length)
 				throw new ArgumentException($"Hash must be at least {DigestLength} bytes");

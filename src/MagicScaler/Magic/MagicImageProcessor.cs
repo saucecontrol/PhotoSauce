@@ -16,7 +16,7 @@ namespace PhotoSauce.MagicScaler
 		/// <value>Default value: <c>true</c></value>
 		public static bool EnablePlanarPipeline { get; set; } = true;
 
-		/// <summary>True to check for Orientation tag in Xmp metadata in addition to the default Exif metadata location, false to check Exif only.</summary>
+		/// <summary>True to check for <c>Orientation</c> tag in XMP metadata in addition to the default Exif metadata location, false to check Exif only.</summary>
 		/// <value>Default value: <c>false</c></value>
 		public static bool EnableXmpOrientation { get; set; } = false;
 
@@ -51,6 +51,7 @@ namespace PhotoSauce.MagicScaler
 		public static ProcessImageResult ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
 		{
 			if (imgPath is null) throw new ArgumentNullException(nameof(imgPath));
+			if (settings is null) throw new ArgumentNullException(nameof(settings));
 			checkOutStream(outStream);
 
 			using var ctx = new PipelineContext(settings);
@@ -67,6 +68,7 @@ namespace PhotoSauce.MagicScaler
 		public static ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
 			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
+			if (settings is null) throw new ArgumentNullException(nameof(settings));
 			checkOutStream(outStream);
 
 			using var ctx = new PipelineContext(settings);
@@ -80,6 +82,7 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="imgStream">A stream containing a supported input image container. The stream must allow Seek and Read.</param>
 		public static ProcessImageResult ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings)
 		{
+			if (settings is null) throw new ArgumentNullException(nameof(settings));
 			checkInStream(imgStream);
 			checkOutStream(outStream);
 
@@ -95,6 +98,7 @@ namespace PhotoSauce.MagicScaler
 		public static ProcessImageResult ProcessImage(IPixelSource imgSource, Stream outStream, ProcessImageSettings settings)
 		{
 			if (imgSource is null) throw new ArgumentNullException(nameof(imgSource));
+			if (settings is null) throw new ArgumentNullException(nameof(settings));
 			checkOutStream(outStream);
 
 			using var ctx = new PipelineContext(settings) {
@@ -111,6 +115,7 @@ namespace PhotoSauce.MagicScaler
 		public static ProcessImageResult ProcessImage(IImageContainer imgContainer, Stream outStream, ProcessImageSettings settings)
 		{
 			if (imgContainer is null) throw new ArgumentNullException(nameof(imgContainer));
+			if (settings is null) throw new ArgumentNullException(nameof(settings));
 			checkOutStream(outStream);
 
 			using var ctx = new PipelineContext(settings) {
@@ -128,6 +133,7 @@ namespace PhotoSauce.MagicScaler
 		public static ProcessingPipeline BuildPipeline(string imgPath, ProcessImageSettings settings)
 		{
 			if (imgPath is null) throw new ArgumentNullException(nameof(imgPath));
+			if (settings is null) throw new ArgumentNullException(nameof(settings));
 
 			var ctx = new PipelineContext(settings);
 			ctx.ImageContainer = WicImageContainer.Create(imgPath, ctx.WicContext);
@@ -141,6 +147,7 @@ namespace PhotoSauce.MagicScaler
 		public static ProcessingPipeline BuildPipeline(ReadOnlySpan<byte> imgBuffer, ProcessImageSettings settings)
 		{
 			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
+			if (settings is null) throw new ArgumentNullException(nameof(settings));
 
 			var ctx = new PipelineContext(settings);
 			ctx.ImageContainer = WicImageContainer.Create(imgBuffer, ctx.WicContext);
@@ -153,6 +160,7 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="imgStream">A stream containing a supported input image container. The stream must allow Seek and Read.</param>
 		public static ProcessingPipeline BuildPipeline(Stream imgStream, ProcessImageSettings settings)
 		{
+			if (settings is null) throw new ArgumentNullException(nameof(settings));
 			checkInStream(imgStream);
 
 			var ctx = new PipelineContext(settings);
@@ -167,6 +175,7 @@ namespace PhotoSauce.MagicScaler
 		public static ProcessingPipeline BuildPipeline(IPixelSource imgSource, ProcessImageSettings settings)
 		{
 			if (imgSource is null) throw new ArgumentNullException(nameof(imgSource));
+			if (settings is null) throw new ArgumentNullException(nameof(settings));
 
 			var ctx = new PipelineContext(settings) {
 				ImageContainer = new PixelSourceContainer(imgSource),
@@ -182,6 +191,7 @@ namespace PhotoSauce.MagicScaler
 		public static ProcessingPipeline BuildPipeline(IImageContainer imgContainer, ProcessImageSettings settings)
 		{
 			if (imgContainer is null) throw new ArgumentNullException(nameof(imgContainer));
+			if (settings is null) throw new ArgumentNullException(nameof(settings));
 
 			var ctx = new PipelineContext(settings) {
 				ImageContainer = imgContainer

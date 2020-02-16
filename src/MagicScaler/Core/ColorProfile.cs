@@ -31,14 +31,11 @@ namespace PhotoSauce.MagicScaler
 
 			public static ColorProfile GetOrAdd(ReadOnlySpan<byte> bytes)
 			{
-#if BUILTIN_SPAN
-				Span<byte> hash = stackalloc byte[16];
-				Blake2b.ComputeAndWriteHash(16, bytes, hash);
-#else
-				var hash = Blake2b.ComputeHash(16, bytes);
-#endif
+				Span<byte> hash = stackalloc byte[Unsafe.SizeOf<Guid>()];
+				Blake2b.ComputeAndWriteHash(Unsafe.SizeOf<Guid>(), bytes, hash);
 
-				var guid = new Guid(hash);
+				var guid = MemoryMarshal.Read<Guid>(hash);
+
 				return (dic.TryGetValue(guid, out var wref) && wref.TryGetTarget(out var prof)) ? prof : addOrUpdate(guid, bytes);
 			}
 		}

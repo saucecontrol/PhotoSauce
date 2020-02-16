@@ -62,7 +62,7 @@ foreach (var t in ta) {
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			float* tp = (float*)tstart, tpe = (float*)(tstart + (uint)cb);
-			float* pmapx = (float*)mapxstart;
+			uint* pmapx = (uint*)mapxstart;
 			uint kstride = (uint)smapx * channels;
 			uint tstride = (uint)smapy * <#= t.channels == 3 ? "4" /* 3Chan to 3XChan x-over */ : "channels" #>;
 			uint vcnt = kstride / vector4Count;
@@ -92,12 +92,11 @@ if (t.channels == 1) {
 
 			while (tp < tpe)
 			{
-				uint ix = *(uint*)pmapx++;
+				uint ix = *pmapx++;
 				uint lcnt = vcnt;
 
 				float* ip = (float*)istart + ix * channels<#= t.channels != 4 ? ", ipe = ip + kstride" : "" #>;
-				float* mp = pmapx;
-				pmapx += kstride;
+				float* mp = (float*)(mapxstart + *pmapx++);
 
 				<#= t.channels == 1 ? "float a0" : "Vector4 av0" #><# for (int i = 1; t.channels == 3 && i < t.colors; i++) { #>, av<#= i #><# } #>;
 

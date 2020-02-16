@@ -572,6 +572,7 @@ namespace PhotoSauce.MagicScaler
 		internal string GetCacheHash()
 		{
 			if (imageInfo is null) throw new InvalidOperationException("Hash is only valid for normalized settings.");
+			if (!(Interpolation.WeightingFunction is IUniquelyIdentifiable uif)) throw new InvalidOperationException("Hash is only valid for internal interpolators.");
 
 			var hash = Blake2b.CreateIncrementalHasher(CacheHash.DigestLength);
 			hash.Update(imageInfo.FileSize);
@@ -585,7 +586,7 @@ namespace PhotoSauce.MagicScaler
 			hash.Update(OrientationMode);
 			hash.Update(ColorProfileMode);
 			hash.Update(HybridScaleRatio);
-			hash.Update(Interpolation.WeightingFunction.ToString().AsSpan());
+			hash.Update(uif.UniqueID);
 			hash.Update(Interpolation.Blur);
 			hash.Update(UnsharpMask);
 			hash.Update(SaveFormat);
@@ -600,7 +601,7 @@ namespace PhotoSauce.MagicScaler
 				hash.Update(m.AsSpan());
 
 			Span<byte> hbuff = stackalloc byte[hash.DigestLength];
-			hash.TryFinish(hbuff, out _);
+			hash.Finish(hbuff);
 
 			return CacheHash.Encode(hbuff);
 		}

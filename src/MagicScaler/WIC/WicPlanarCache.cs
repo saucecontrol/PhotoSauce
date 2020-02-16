@@ -136,7 +136,7 @@ namespace PhotoSauce.MagicScaler
 
 		public void Dispose()
 		{
-			ArrayPool<WICBitmapPlane>.Shared.Return(sourcePlanes ?? Array.Empty<WICBitmapPlane>());
+			ArrayPool<WICBitmapPlane>.Shared.TryReturn(sourcePlanes);
 			sourcePlanes = null!;
 
 			buffY.Dispose();

@@ -51,10 +51,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 			[PixelFormat.Cr32BppFloat.FormatGuid          ] = Convolver1ChanVector.Instance
 		};
 
-		protected readonly KernelMap<TWeight> XMap, YMap;
 		protected readonly IConvolver XProcessor, YProcessor;
 		protected readonly PixelBuffer IntBuff;
 		protected readonly PixelBuffer? SrcBuff, WorkBuff;
+
+		protected KernelMap<TWeight> XMap, YMap;
 
 		private readonly bool bufferSource;
 		private readonly int inWidth;
@@ -139,6 +140,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
+			if (XMap is null)
+				throw new ObjectDisposedException(nameof(ConvolutionTransform<TPixel, TWeight>));
+
 			fixed (byte* mapystart = YMap.Map)
 			{
 				int oh = prc.Height, ow = prc.Width, ox = prc.X, oy = prc.Y;
@@ -146,8 +150,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 				for (int y = 0; y < oh; y++)
 				{
-					int* pmapy = (int*)mapystart + ((oy + y) * (smapy * chan + 1));
+					int* pmapy = (int*)mapystart + ((oy + y) * (typeof(TWeight) == typeof(float) ? 2 : (smapy * chan + 1)));
 					int iy = *pmapy++;
+					if (typeof(TWeight) == typeof(float))
+						pmapy = (int*)(mapystart + *pmapy);
 
 					if (!IntBuff.ContainsRange(iy, smapy))
 						loadBuffer(iy, smapy);
@@ -206,8 +212,14 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public virtual void Dispose()
 		{
+			if (XMap is null)
+				return;
+
 			XMap.Dispose();
 			YMap.Dispose();
+			XMap = null!;
+			YMap = null!;
+
 			IntBuff.Dispose();
 			SrcBuff?.Dispose();
 			WorkBuff?.Dispose();
