@@ -56,7 +56,7 @@ namespace PhotoSauce.MagicScaler
 					vs1 = Avx2.ShiftRightLogical(vs1, 8);
 
 					var vb0 = Avx2.PackUnsignedSaturate(vs0.AsInt16(), vs1.AsInt16());
-					vb0 = Avx2.Permute4x64(vb0.AsInt64(), HWIntrinsics.PermuteMaskDeinterleave4x64).AsByte();
+					vb0 = Avx2.Permute4x64(vb0.AsUInt64(), HWIntrinsics.PermuteMaskDeinterleave4x64).AsByte();
 
 					Avx.Store(op, vb0);
 					op += Vector256<byte>.Count;

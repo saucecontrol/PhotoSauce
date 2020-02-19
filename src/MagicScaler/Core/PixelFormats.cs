@@ -41,7 +41,7 @@ namespace PhotoSauce.MagicScaler
 		scRgb
 	}
 
-	internal class PixelFormat : IEquatable<PixelFormat>
+	internal sealed class PixelFormat : IEquatable<PixelFormat>
 	{
 		public readonly Guid FormatGuid;
 		public readonly string Name;

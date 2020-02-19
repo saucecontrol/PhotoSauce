@@ -27,6 +27,20 @@ namespace PhotoSauce.MagicScaler
 			return at;
 		});
 
+		private static readonly Lazy<int[]> inverseAlphaTable = new Lazy<int[]>(() => {
+			var iat = new int[1024];
+			int scale = (iat.Length / 2 - 1) << 22;
+
+			for (int i = 0; i < iat.Length; i += 2)
+			{
+				int val = i == 0 ? 0 : scale / (i << 6);
+				iat[i] = val;
+				iat[i + 1] = val;
+			}
+
+			return iat;
+		});
+
 		//http://www.w3.org/Graphics/Color/srgb
 		private static readonly Lazy<Tuple<float[], byte[]>> gammaTable = new Lazy<Tuple<float[], byte[]>>(() => {
 			var gt = new float[GammaLengthFloat];
@@ -70,6 +84,7 @@ namespace PhotoSauce.MagicScaler
 		});
 
 		public static float[] Alpha => alphaTable.Value;
+		public static int[] InverseAlpha => inverseAlphaTable.Value;
 		public static float[] SrgbGamma => gammaTable.Value.Item1;
 		public static byte[] SrgbGammaUQ15 => gammaTable.Value.Item2;
 		public static float[] SrgbInverseGamma => inverseGammaTable.Value.Item1;

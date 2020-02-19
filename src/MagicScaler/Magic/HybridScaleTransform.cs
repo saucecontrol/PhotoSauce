@@ -1,6 +1,12 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 
+#if HWINTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+using System.Runtime.InteropServices;
+#endif
+
 using static PhotoSauce.MagicScaler.MathUtil;
 
 namespace PhotoSauce.MagicScaler.Transforms
@@ -108,12 +114,145 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
+#if HWINTRINSICS
+		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+#endif
 		unsafe private void process4A(byte* ipstart, byte* opstart, uint stride, bool rup)
 		{
 			byte* ip = ipstart, ipe = ipstart + stride;
 			byte* op = opstart;
 
-			do
+#if HWINTRINSICS
+			const byte blendMaskAlpha = 0b_1100_1100;
+			const ushort scaleAlpha = (UQ15One << 8) / byte.MaxValue;
+			const ulong bitMaskAlpha = 0xffff0000ffff0000ul;
+
+			if (Avx2.IsSupported && stride >= (uint)Vector256<byte>.Count)
+			{
+				fixed (int* iatstart = LookupTables.InverseAlpha)
+				{
+					var vshufa = Avx2.BroadcastVector128ToVector256((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask8bitAlpha)));
+					var vmaske = Avx2.BroadcastVector128ToVector256((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask8bitEven)));
+					var vmasko = Avx2.BroadcastVector128ToVector256((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask8bitOdd)));
+					var vmaskp = Avx2.BroadcastVector128ToVector256((int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.PermuteMaskOddEven8x32)));
+
+					var vmaska = Vector256.Create(bitMaskAlpha).AsByte();
+					var vscale = Vector256.Create(scaleAlpha);
+					var vone = Vector256.Create((short)1);
+
+					ipe -= Vector256<byte>.Count;
+					do
+					{
+						byte* ipn = ip + stride;
+						var vi0 = Avx.LoadVector256(ip);
+						var vi2 = Avx.LoadVector256(ipn);
+						ip += Vector256<byte>.Count;
+
+						var va0 = Avx2.MultiplyHigh(Avx2.Shuffle(vi0, vshufa).AsUInt16(), vscale);
+						var va2 = Avx2.MultiplyHigh(Avx2.Shuffle(vi2, vshufa).AsUInt16(), vscale);
+
+						var ve0 = Avx2.MultiplyHigh(Avx2.Shuffle(vi0, vmaske).AsUInt16(), va0);
+						var ve2 = Avx2.MultiplyHigh(Avx2.Shuffle(vi2, vmaske).AsUInt16(), va2);
+
+						ve0 = Avx2.Average(ve0, ve2);
+						var ve = Avx2.MultiplyAddAdjacent(ve0.AsInt16(), vone);
+
+						vi0 = Avx2.Or(vi0, vmaska);
+						vi2 = Avx2.Or(vi2, vmaska);
+
+						var vo0 = Avx2.MultiplyHigh(Avx2.Shuffle(vi0, vmasko).AsUInt16(), va0);
+						var vo2 = Avx2.MultiplyHigh(Avx2.Shuffle(vi2, vmasko).AsUInt16(), va2);
+
+						vo0 = Avx2.Average(vo0, vo2);
+						var vo = Avx2.MultiplyAddAdjacent(vo0.AsInt16(), vone);
+
+						ulong* iat = (ulong*)iatstart;
+						var vai = Avx2.ShiftRightLogical(vo, 7);
+						vai = Avx2.PermuteVar8x32(vai, vmaskp);
+						vai = Avx2.GatherVector256(iat, vai.GetLower(), sizeof(ulong)).AsInt32();
+
+						var vb = vo;
+						ve = Avx2.ShiftRightLogical(Avx2.MultiplyLow(ve, vai), 15);
+						vo = Avx2.ShiftRightLogical(Avx2.MultiplyLow(vo, vai), 15);
+						vo = Avx2.Blend(vo.AsInt16(), vb.AsInt16(), blendMaskAlpha).AsInt32();
+
+						var vs0 = Avx2.PackUnsignedSaturate(Avx2.UnpackLow(ve, vo), Avx2.UnpackHigh(ve, vo));
+						vs0 = Avx2.ShiftRightLogical(vs0, 8);
+
+						vi0 = Avx2.PackUnsignedSaturate(vs0.AsInt16(), vs0.AsInt16());
+						vi0 = Avx2.Permute4x64(vi0.AsUInt64(), HWIntrinsics.PermuteMaskDeinterleave4x64).AsByte();
+
+						Sse2.Store(op, vi0.GetLower());
+						op += Vector128<byte>.Count;
+
+					} while (ip <= ipe);
+					ipe += Vector256<byte>.Count;
+				}
+			}
+			else if (Sse41.IsSupported && stride >= (uint)Vector128<byte>.Count)
+			{
+				fixed (int* iatstart = LookupTables.InverseAlpha)
+				{
+					var vshufa = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask8bitAlpha)));
+					var vmaske = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask8bitEven)));
+					var vmasko = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask8bitOdd)));
+
+					var vmaska = Vector128.Create(bitMaskAlpha).AsByte();
+					var vscale = Vector128.Create(scaleAlpha);
+					var vone = Vector128.Create((short)1);
+
+					ipe -= Vector128<byte>.Count;
+					do
+					{
+						byte* ipn = ip + stride;
+						var vi0 = Sse2.LoadVector128(ip);
+						var vi2 = Sse2.LoadVector128(ipn);
+						ip += Vector128<byte>.Count;
+
+						var va0 = Sse2.MultiplyHigh(Ssse3.Shuffle(vi0, vshufa).AsUInt16(), vscale);
+						var va2 = Sse2.MultiplyHigh(Ssse3.Shuffle(vi2, vshufa).AsUInt16(), vscale);
+
+						var ve0 = Sse2.MultiplyHigh(Ssse3.Shuffle(vi0, vmaske).AsUInt16(), va0);
+						var ve2 = Sse2.MultiplyHigh(Ssse3.Shuffle(vi2, vmaske).AsUInt16(), va2);
+
+						ve0 = Sse2.Average(ve0, ve2);
+						var ve = Sse2.MultiplyAddAdjacent(ve0.AsInt16(), vone);
+
+						vi0 = Sse2.Or(vi0, vmaska);
+						vi2 = Sse2.Or(vi2, vmaska);
+
+						var vo0 = Sse2.MultiplyHigh(Ssse3.Shuffle(vi0, vmasko).AsUInt16(), va0);
+						var vo2 = Sse2.MultiplyHigh(Ssse3.Shuffle(vi2, vmasko).AsUInt16(), va2);
+
+						vo0 = Sse2.Average(vo0, vo2);
+						var vo = Sse2.MultiplyAddAdjacent(vo0.AsInt16(), vone);
+
+						ulong* iat = (ulong*)iatstart;
+						var vai = Sse2.ShiftRightLogical(vo, 7);
+						var vai0 = Sse2.LoadScalarVector128(iat + Sse41.Extract(vai.AsUInt32(), 1));
+						var vai1 = Sse2.LoadScalarVector128(iat + Sse41.Extract(vai.AsUInt32(), 3));
+						vai = Sse2.UnpackLow(vai0, vai1).AsInt32();
+
+						var vb = vo;
+						ve = Sse2.ShiftRightLogical(Sse41.MultiplyLow(ve, vai), 15);
+						vo = Sse2.ShiftRightLogical(Sse41.MultiplyLow(vo, vai), 15);
+						vo = Sse41.Blend(vo.AsInt16(), vb.AsInt16(), blendMaskAlpha).AsInt32();
+
+						var vs0 = Sse41.PackUnsignedSaturate(Sse2.UnpackLow(ve, vo), Sse2.UnpackHigh(ve, vo));
+						vs0 = Sse2.ShiftRightLogical(vs0, 8);
+
+						vi0 = Sse2.PackUnsignedSaturate(vs0.AsInt16(), vs0.AsInt16());
+
+						Sse2.StoreScalar((long*)op, vi0.AsInt64());
+						op += Vector128<byte>.Count / 2;
+
+					} while (ip <= ipe);
+					ipe += Vector128<byte>.Count;
+				}
+			}
+#endif
+
+			while (ip < ipe)
 			{
 				uint i0a0 = FastFix15(ip[3]);
 				uint i0a1 = FastFix15(ip[7]);
@@ -157,13 +296,95 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 				ip += sizeof(uint) * 2;
 				op += sizeof(uint);
-			} while (ip < ipe);
+			}
 		}
 
+#if HWINTRINSICS
+		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+#endif
 		unsafe private void process4(byte* ipstart, byte* opstart, uint stride, bool rup)
 		{
 			byte* ip = ipstart, ipe = ipstart + stride;
 			byte* op = opstart;
+
+#if HWINTRINSICS
+			if (Avx2.IsSupported && stride >= (uint)Vector256<byte>.Count * 2)
+			{
+				var vmaskb = Avx2.BroadcastVector128ToVector256((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask4ChanPairs)));
+				var vone = Vector256.Create((sbyte)1);
+
+				ipe -= Vector256<byte>.Count * 2;
+				do
+				{
+					byte* ipn = ip + stride;
+					var vi0 = Avx.LoadVector256(ip);
+					var vi1 = Avx.LoadVector256(ip + Vector256<byte>.Count);
+					var vi2 = Avx.LoadVector256(ipn);
+					var vi3 = Avx.LoadVector256(ipn + Vector256<byte>.Count);
+					ip += Vector256<byte>.Count * 2;
+
+					vi0 = Avx2.Shuffle(vi0, vmaskb);
+					vi1 = Avx2.Shuffle(vi1, vmaskb);
+					vi2 = Avx2.Shuffle(vi2, vmaskb);
+					vi3 = Avx2.Shuffle(vi3, vmaskb);
+
+					vi0 = Avx2.Average(vi0, vi2);
+					vi1 = Avx2.Average(vi1, vi3);
+
+					var vs0 = Avx2.MultiplyAddAdjacent(vi0, vone);
+					var vs1 = Avx2.MultiplyAddAdjacent(vi1, vone);
+
+					vs0 = Avx2.ShiftRightLogical(vs0, 1);
+					vs1 = Avx2.ShiftRightLogical(vs1, 1);
+
+					vi0 = Avx2.PackUnsignedSaturate(vs0, vs1);
+					vi0 = Avx2.Permute4x64(vi0.AsUInt64(), HWIntrinsics.PermuteMaskDeinterleave4x64).AsByte();
+
+					Avx.Store(op, vi0);
+					op += Vector256<byte>.Count;
+
+				} while (ip <= ipe);
+				ipe += Vector256<byte>.Count * 2;
+			}
+			else if (Ssse3.IsSupported && stride >= (uint)Vector128<byte>.Count * 2)
+			{
+				var vmaskb = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask4ChanPairs)));
+				var vone = Vector128.Create((sbyte)1);
+
+				ipe -= Vector128<byte>.Count * 2;
+				do
+				{
+					byte* ipn = ip + stride;
+					var vi0 = Sse2.LoadVector128(ip);
+					var vi1 = Sse2.LoadVector128(ip + Vector128<byte>.Count);
+					var vi2 = Sse2.LoadVector128(ipn);
+					var vi3 = Sse2.LoadVector128(ipn + Vector128<byte>.Count);
+					ip += Vector128<byte>.Count * 2;
+
+					vi0 = Ssse3.Shuffle(vi0, vmaskb);
+					vi1 = Ssse3.Shuffle(vi1, vmaskb);
+					vi2 = Ssse3.Shuffle(vi2, vmaskb);
+					vi3 = Ssse3.Shuffle(vi3, vmaskb);
+
+					vi0 = Sse2.Average(vi0, vi2);
+					vi1 = Sse2.Average(vi1, vi3);
+
+					var vs0 = Ssse3.MultiplyAddAdjacent(vi0, vone);
+					var vs1 = Ssse3.MultiplyAddAdjacent(vi1, vone);
+
+					vs0 = Sse2.ShiftRightLogical(vs0, 1);
+					vs1 = Sse2.ShiftRightLogical(vs1, 1);
+
+					vi0 = Sse2.PackUnsignedSaturate(vs0, vs1);
+
+					Sse2.Store(op, vi0);
+					op += Vector128<byte>.Count;
+
+				} while (ip <= ipe);
+				ipe += Vector128<byte>.Count * 2;
+			}
+			else
+#endif
 
 			if (IntPtr.Size == sizeof(ulong) && stride > sizeof(ulong) * 2)
 			{
@@ -199,12 +420,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 				} while (ip <= ipe);
 				ipe += sizeof(ulong) * 2;
-
-				if (ip >= ipe)
-					return;
 			}
 
-			do
+			while (ip < ipe)
 			{
 				uint i0 = *(uint*)ip;
 				uint i1 = *(uint*)(ip + sizeof(uint));
@@ -221,13 +439,59 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 				*(uint*)op = i0;
 				op += sizeof(uint);
-			} while (ip < ipe);
+			}
 		}
 
+#if HWINTRINSICS
+		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+#endif
 		unsafe private void process3(byte* ipstart, byte* opstart, uint stride, bool rup)
 		{
 			byte* ip = ipstart, ipe = ipstart + stride;
 			byte* op = opstart;
+
+#if HWINTRINSICS
+			if (Ssse3.IsSupported && stride > (uint)Vector128<byte>.Count * 2)
+			{
+				var vmaskb = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3ChanPairs)));
+				var vmaskw = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3xTo3Chan)));
+				var vone = Vector128.Create((sbyte)1);
+
+				ipe -= Vector128<byte>.Count * 2;
+				do
+				{
+					byte* ipn = ip + stride;
+					var vi0 = Sse2.LoadVector128(ip);
+					var vi1 = Sse2.LoadVector128(ip + 12);
+					var vi2 = Sse2.LoadVector128(ipn);
+					var vi3 = Sse2.LoadVector128(ipn + 12);
+					ip += 24;
+
+					vi0 = Ssse3.Shuffle(vi0, vmaskb);
+					vi1 = Ssse3.Shuffle(vi1, vmaskb);
+					vi2 = Ssse3.Shuffle(vi2, vmaskb);
+					vi3 = Ssse3.Shuffle(vi3, vmaskb);
+
+					vi0 = Sse2.Average(vi0, vi2);
+					vi1 = Sse2.Average(vi1, vi3);
+
+					var vs0 = Ssse3.MultiplyAddAdjacent(vi0, vone);
+					var vs1 = Ssse3.MultiplyAddAdjacent(vi1, vone);
+
+					vs0 = Sse2.ShiftRightLogical(vs0, 1);
+					vs1 = Sse2.ShiftRightLogical(vs1, 1);
+
+					vi0 = Sse2.PackUnsignedSaturate(vs0, vs1);
+					vi0 = Ssse3.Shuffle(vi0, vmaskw);
+
+					Sse2.Store(op, vi0);
+					op += 12;
+
+				} while (ip <= ipe);
+				ipe += Vector128<byte>.Count * 2;
+			}
+			else
+#endif
 
 			if (IntPtr.Size == sizeof(ulong) && stride > sizeof(ulong) * 2)
 			{
@@ -296,10 +560,80 @@ namespace PhotoSauce.MagicScaler.Transforms
 			} while (true);
 		}
 
+#if HWINTRINSICS
+		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+#endif
 		unsafe private void process(byte* ipstart, byte* opstart, uint stride, bool rup)
 		{
 			byte* ip = ipstart, ipe = ipstart + stride;
 			byte* op = opstart;
+
+#if HWINTRINSICS
+			if (Avx2.IsSupported && stride >= (uint)Vector256<byte>.Count * 2)
+			{
+				var vone = Vector256.Create((sbyte)1);
+
+				ipe -= Vector256<byte>.Count * 2;
+				do
+				{
+					byte* ipn = ip + stride;
+					var vi0 = Avx.LoadVector256(ip);
+					var vi1 = Avx.LoadVector256(ip + Vector256<byte>.Count);
+					var vi2 = Avx.LoadVector256(ipn);
+					var vi3 = Avx.LoadVector256(ipn + Vector256<byte>.Count);
+					ip += Vector256<byte>.Count * 2;
+
+					vi0 = Avx2.Average(vi0, vi2);
+					vi1 = Avx2.Average(vi1, vi3);
+
+					var vs0 = Avx2.MultiplyAddAdjacent(vi0, vone);
+					var vs1 = Avx2.MultiplyAddAdjacent(vi1, vone);
+
+					vs0 = Avx2.ShiftRightLogical(vs0, 1);
+					vs1 = Avx2.ShiftRightLogical(vs1, 1);
+
+					vi0 = Avx2.PackUnsignedSaturate(vs0, vs1);
+					vi0 = Avx2.Permute4x64(vi0.AsUInt64(), HWIntrinsics.PermuteMaskDeinterleave4x64).AsByte();
+
+					Avx.Store(op, vi0);
+					op += Vector256<byte>.Count;
+
+				} while (ip <= ipe);
+				ipe += Vector256<byte>.Count * 2;
+			}
+			else if (Ssse3.IsSupported && stride >= (uint)Vector128<byte>.Count * 2)
+			{
+				var vone = Vector128.Create((sbyte)1);
+
+				ipe -= Vector128<byte>.Count * 2;
+				do
+				{
+					byte* ipn = ip + stride;
+					var vi0 = Sse2.LoadVector128(ip);
+					var vi1 = Sse2.LoadVector128(ip + Vector128<byte>.Count);
+					var vi2 = Sse2.LoadVector128(ipn);
+					var vi3 = Sse2.LoadVector128(ipn + Vector128<byte>.Count);
+					ip += Vector128<byte>.Count * 2;
+
+					vi0 = Sse2.Average(vi0, vi2);
+					vi1 = Sse2.Average(vi1, vi3);
+
+					var vs0 = Ssse3.MultiplyAddAdjacent(vi0, vone);
+					var vs1 = Ssse3.MultiplyAddAdjacent(vi1, vone);
+
+					vs0 = Sse2.ShiftRightLogical(vs0, 1);
+					vs1 = Sse2.ShiftRightLogical(vs1, 1);
+
+					vi0 = Sse2.PackUnsignedSaturate(vs0, vs1);
+
+					Sse2.Store(op, vi0);
+					op += Vector128<byte>.Count;
+
+				} while (ip <= ipe);
+				ipe += Vector128<byte>.Count * 2;
+			}
+			else
+#endif
 
 			if (IntPtr.Size == sizeof(ulong) && stride > sizeof(ulong))
 			{

@@ -1,7 +1,10 @@
 ﻿using System;
 using System.IO;
-using System.Buffers;
 using System.Runtime.InteropServices;
+
+#if !BUILTIN_SPAN
+using System.Buffers;
+#endif
 
 using STATSTG = System.Runtime.InteropServices.ComTypes.STATSTG;
 
@@ -9,7 +12,7 @@ namespace PhotoSauce.Interop.Wic
 {
 	internal static class StreamAsIStreamExtension
 	{
-		private class StreamAsIStream : IStream
+		private sealed class StreamAsIStream : IStream
 		{
 			private readonly Stream stream;
 
