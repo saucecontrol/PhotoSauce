@@ -143,9 +143,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 					ipe -= Vector256<byte>.Count;
 					do
 					{
-						byte* ipn = ip + stride;
 						var vi0 = Avx.LoadVector256(ip);
-						var vi2 = Avx.LoadVector256(ipn);
+						var vi2 = Avx.LoadVector256(ip + stride);
 						ip += Vector256<byte>.Count;
 
 						var va0 = Avx2.MultiplyHigh(Avx2.Shuffle(vi0, vshufa).AsUInt16(), vscale);
@@ -204,9 +203,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 					ipe -= Vector128<byte>.Count;
 					do
 					{
-						byte* ipn = ip + stride;
 						var vi0 = Sse2.LoadVector128(ip);
-						var vi2 = Sse2.LoadVector128(ipn);
+						var vi2 = Sse2.LoadVector128(ip + stride);
 						ip += Vector128<byte>.Count;
 
 						var va0 = Sse2.MultiplyHigh(Ssse3.Shuffle(vi0, vshufa).AsUInt16(), vscale);
@@ -386,7 +384,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			else
 #endif
 
-			if (IntPtr.Size == sizeof(ulong) && stride > sizeof(ulong) * 2)
+			if (IntPtr.Size == sizeof(ulong) && stride >= sizeof(ulong) * 2)
 			{
 				const ulong mask0 = 0xfffffffful;
 				const ulong mask1 = 0xfffffffful << 32;
@@ -635,7 +633,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			else
 #endif
 
-			if (IntPtr.Size == sizeof(ulong) && stride > sizeof(ulong))
+			if (IntPtr.Size == sizeof(ulong) && stride >= sizeof(ulong))
 			{
 				ulong m = maskb;
 

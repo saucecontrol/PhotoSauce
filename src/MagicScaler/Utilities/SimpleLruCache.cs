@@ -8,7 +8,7 @@ namespace PhotoSauce.MagicScaler
 		bool TryAddRef();
 	}
 
-	internal sealed class SimpleLruCache<TKey, TValue> where TKey : IEquatable<TKey> where TValue : class, IMultiDisposable
+	internal sealed class SimpleLruCache<TKey, TValue> where TKey : IEquatable<TKey> where TValue : IMultiDisposable
 	{
 		private const int maxItems = 8;
 
@@ -33,7 +33,7 @@ namespace PhotoSauce.MagicScaler
 		private CacheNode? tail = null;
 		private volatile int count = 0;
 
-		private bool tryGetInternal(TKey key, [NotNullWhen(true)] out TValue? value)
+		private bool tryGetInternal(TKey key, [MaybeNullWhen(false)] out TValue value)
 		{
 			for (var curr = head; !(curr is null); curr = curr.Next)
 			{
@@ -85,7 +85,7 @@ namespace PhotoSauce.MagicScaler
 			return false;
 		}
 
-		public bool TryGet(TKey key, [NotNullWhen(true)] out TValue? value)
+		public bool TryGet(TKey key, [MaybeNullWhen(false)] out TValue value)
 		{
 			lock (sync)
 			{
