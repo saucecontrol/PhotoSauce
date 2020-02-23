@@ -78,8 +78,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 					byte* op = (byte*)pbBuffer + y * cbStride;
 					if (Format.NumericRepresentation == PixelNumericRepresentation.Float)
 #if HWINTRINSICS
-						if (Avx.IsSupported && cb > (uint)Vector256<byte>.Count * 4)
-							copyPixelsAvx(bstart, op, bstride, cb);
+						if (HWIntrinsics.IsSupported && cb >= (uint)Vector128<byte>.Count * 4)
+							copyPixelsIntrinsic(bstart, op, bstride, cb);
 						else
 #endif
 							copyPixelsFloat(bstart, op, bstride, cb);
@@ -145,80 +145,91 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		unsafe private void copyPixelsAvx(byte* bstart, byte* opstart, uint bstride, uint cb)
+		unsafe private void copyPixelsIntrinsic(byte* bstart, byte* opstart, uint bstride, uint cb)
 		{
 			uint stride = bstride / sizeof(float);
 			float* op = (float*)opstart;
 			float* ip = (float*)bstart, ipe = (float*)(bstart + cb);
 
-			var vt0 = vec0;
-			var vt1 = vec1;
-			var vt2 = vec2;
-
-			var vm0 = Avx.BroadcastVector128ToVector256((float*)&vt0);
-			var vm1 = Avx.BroadcastVector128ToVector256((float*)&vt1);
-			var vm2 = Avx.BroadcastVector128ToVector256((float*)&vt2);
-			var voff = Vector256.Create(fchromaOffset);
-
-			ipe -= Vector256<float>.Count;
-			while (ip <= ipe)
+			if (Avx.IsSupported)
 			{
-				var viy = Avx.LoadVector256(ip);
-				var vib = Avx.LoadVector256(ip + stride);
-				var vir = Avx.LoadVector256(ip + stride * 2);
-				var viz = Vector256<float>.Zero;
-				ip += Vector256<float>.Count;
+				var vc0 = Vector256.Create(vec0.Y);
+				var vc1 = Vector256.Create(vec1.Y);
+				var vc2 = Vector256.Create(vec1.Z);
+				var vc3 = Vector256.Create(vec2.Z);
+				var voff = Vector256.Create(-fchromaOffset);
 
-				vib = Avx.Subtract(vib, voff);
-				vir = Avx.Subtract(vir, voff);
+				ipe -= Vector256<float>.Count;
+				while (ip <= ipe)
+				{
+					var viy = Avx.LoadVector256(ip);
+					var vib = Avx.Add(voff, Avx.LoadVector256(ip + stride));
+					var vir = Avx.Add(voff, Avx.LoadVector256(ip + stride * 2));
+					ip += Vector256<float>.Count;
 
-				var vyr0 = Avx.UnpackLow(viy, vir);
-				var vyr1 = Avx.UnpackHigh(viy, vir);
-				var vbz0 = Avx.UnpackLow(vib, viz);
-				var vbz1 = Avx.UnpackHigh(vib, viz);
+					var vt0 = HWIntrinsics.MultiplyAdd(viy, vib, vc0);
+					var vt1 = HWIntrinsics.MultiplyAdd(HWIntrinsics.MultiplyAdd(viy, vib, vc1), vir, vc2);
+					var vt2 = HWIntrinsics.MultiplyAdd(viy, vir, vc3);
+					var vt3 = Vector256<float>.Zero;
 
-				var vi0 = Avx.UnpackLow(vyr0, vbz0);
-				var vi1 = Avx.UnpackHigh(vyr0, vbz0);
-				var vi2 = Avx.UnpackLow(vyr1, vbz1);
-				var vi3 = Avx.UnpackHigh(vyr1, vbz1);
+					var vte = Avx.UnpackLow(vt0, vt2);
+					var vto = Avx.UnpackLow(vt1, vt3);
 
-				var vo0 = Avx.Permute2x128(vi0, vi1, 0b_0010_0000);
-				var vo2 = Avx.Permute2x128(vi0, vi1, 0b_0011_0001);
+					var vtll = Avx.UnpackLow(vte, vto);
+					var vtlh = Avx.UnpackHigh(vte, vto);
 
-				var vr0 = Avx.DotProduct(vo0, vm0, 0b_0111_0001);
-				var vr1 = Avx.DotProduct(vo0, vm1, 0b_0111_0010);
-				var vr2 = Avx.DotProduct(vo0, vm2, 0b_0111_0100);
-				vo0 = Avx.Blend(vr0, vr1, 0b_0010_0010);
-				vo0 = Avx.Blend(vo0, vr2, 0b_0100_0100);
-				Avx.Store(op, vo0);
+					vte = Avx.UnpackHigh(vt0, vt2);
+					vto = Avx.UnpackHigh(vt1, vt3);
 
-				vr0 = Avx.DotProduct(vo2, vm0, 0b_0111_0001);
-				vr1 = Avx.DotProduct(vo2, vm1, 0b_0111_0010);
-				vr2 = Avx.DotProduct(vo2, vm2, 0b_0111_0100);
-				vo2 = Avx.Blend(vr0, vr1, 0b_0010_0010);
-				vo2 = Avx.Blend(vo2, vr2, 0b_0100_0100);
-				Avx.Store(op + Vector256<float>.Count * 2, vo2);
+					var vthl = Avx.UnpackLow(vte, vto);
+					var vthh = Avx.UnpackHigh(vte, vto);
 
-				var vo1 = Avx.Permute2x128(vi2, vi3, 0b_0010_0000);
-				var vo3 = Avx.Permute2x128(vi2, vi3, 0b_0011_0001);
+					Avx.Store(op, Avx.Permute2x128(vtll, vtlh, HWIntrinsics.PermuteMaskLowLow2x128));
+					Avx.Store(op + Vector256<float>.Count, Avx.Permute2x128(vthl, vthh, HWIntrinsics.PermuteMaskLowLow2x128));
+					Avx.Store(op + Vector256<float>.Count * 2, Avx.Permute2x128(vtll, vtlh, HWIntrinsics.PermuteMaskHighHigh2x128));
+					Avx.Store(op + Vector256<float>.Count * 3, Avx.Permute2x128(vthl, vthh, HWIntrinsics.PermuteMaskHighHigh2x128));
 
-				vr0 = Avx.DotProduct(vo1, vm0, 0b_0111_0001);
-				vr1 = Avx.DotProduct(vo1, vm1, 0b_0111_0010);
-				vr2 = Avx.DotProduct(vo1, vm2, 0b_0111_0100);
-				vo1 = Avx.Blend(vr0, vr1, 0b_0010_0010);
-				vo1 = Avx.Blend(vo1, vr2, 0b_0100_0100);
-				Avx.Store(op + Vector256<float>.Count, vo1);
-
-				vr0 = Avx.DotProduct(vo3, vm0, 0b_0111_0001);
-				vr1 = Avx.DotProduct(vo3, vm1, 0b_0111_0010);
-				vr2 = Avx.DotProduct(vo3, vm2, 0b_0111_0100);
-				vo3 = Avx.Blend(vr0, vr1, 0b_0010_0010);
-				vo3 = Avx.Blend(vo3, vr2, 0b_0100_0100);
-				Avx.Store(op + Vector256<float>.Count * 3, vo3);
-
-				op += Vector256<float>.Count * 4;
+					op += Vector256<float>.Count * 4;
+				}
+				ipe += Vector256<float>.Count;
 			}
-			ipe += Vector256<float>.Count;
+			else
+			{
+				var vc0 = Vector128.Create(vec0.Y);
+				var vc1 = Vector128.Create(vec1.Y);
+				var vc2 = Vector128.Create(vec1.Z);
+				var vc3 = Vector128.Create(vec2.Z);
+				var voff = Vector128.Create(-fchromaOffset);
+
+				ipe -= Vector128<float>.Count;
+				while (ip <= ipe)
+				{
+					var viy = Sse.LoadVector128(ip);
+					var vib = Sse.Add(voff, Sse.LoadVector128(ip + stride));
+					var vir = Sse.Add(voff, Sse.LoadVector128(ip + stride * 2));
+					ip += Vector128<float>.Count;
+
+					var vt0 = HWIntrinsics.MultiplyAdd(viy, vib, vc0);
+					var vt1 = HWIntrinsics.MultiplyAdd(HWIntrinsics.MultiplyAdd(viy, vib, vc1), vir, vc2);
+					var vt2 = HWIntrinsics.MultiplyAdd(viy, vir, vc3);
+					var vt3 = Vector128<float>.Zero;
+
+					var vte = Sse.UnpackLow(vt0, vt2);
+					var vto = Sse.UnpackLow(vt1, vt3);
+
+					Sse.Store(op, Sse.UnpackLow(vte, vto));
+					Sse.Store(op + Vector128<float>.Count, Sse.UnpackHigh(vte, vto));
+
+					vte = Sse.UnpackHigh(vt0, vt2);
+					vto = Sse.UnpackHigh(vt1, vt3);
+
+					Sse.Store(op + Vector128<float>.Count * 2, Sse.UnpackLow(vte, vto));
+					Sse.Store(op + Vector128<float>.Count * 3, Sse.UnpackHigh(vte, vto));
+
+					op += Vector128<float>.Count * 4;
+				}
+				ipe += Vector128<float>.Count;
+			}
 
 			if (ip < ipe)
 				copyPixelsFloat((byte*)ip, (byte*)op, bstride, (uint)(ipe - ip) * sizeof(float));

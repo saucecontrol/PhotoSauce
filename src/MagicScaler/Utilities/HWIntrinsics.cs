@@ -37,6 +37,8 @@ namespace PhotoSauce.MagicScaler
 		public const byte BlendMaskAlpha = 0b_1000_1000;
 		public const byte ShuffleMaskAlpha = 0b_11_11_11_11;
 		public const byte PermuteMaskDeinterleave4x64 = 0b_11_01_10_00;
+		public const byte PermuteMaskLowLow2x128 = 0b_0010_0000;
+		public const byte PermuteMaskHighHigh2x128 = 0b_0011_0001;
 
 		public static ReadOnlySpan<byte> PermuteMaskDeinterleave8x32 => new byte[] { 0, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 5, 0, 0, 0, 2, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0 };
 		public static ReadOnlySpan<byte> PermuteMaskOddEven8x32 => new byte[] { 1, 0, 0, 0, 3, 0, 0, 0, 5, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 6, 0, 0, 0 };
@@ -91,12 +93,30 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		unsafe public static Vector128<float> MultiplyAdd(in Vector128<float> va, in Vector128<float> vm0, in Vector128<float> vm1)
+		{
+			if (Fma.IsSupported)
+				return Fma.MultiplyAdd(vm1, vm0, va);
+			else
+				return Sse.Add(va, Sse.Multiply(vm0, vm1));
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		unsafe public static Vector256<float> MultiplyAdd(Vector256<float> va, Vector256<float> vm, float* mp)
 		{
 			if (Fma.IsSupported)
 				return Fma.MultiplyAdd(Avx.LoadVector256(mp), vm, va);
 			else
 				return Avx.Add(va, Avx.Multiply(vm, Avx.LoadVector256(mp)));
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		unsafe public static Vector256<float> MultiplyAdd(in Vector256<float> va, in Vector256<float> vm0, in Vector256<float> vm1)
+		{
+			if (Fma.IsSupported)
+				return Fma.MultiplyAdd(vm1, vm0, va);
+			else
+				return Avx.Add(va, Avx.Multiply(vm0, vm1));
 		}
 #endif
 	}
