@@ -71,7 +71,7 @@ namespace PhotoSauce.MagicScaler
 				throw new FileNotFoundException("File not found", imgPath);
 
 			using var ctx = new PipelineContext(new ProcessImageSettings());
-			ctx.ImageContainer = WicImageContainer.Create(imgPath, ctx.WicContext);
+			ctx.ImageContainer = WicImageDecoder.Load(imgPath, ctx.WicContext);
 
 			return fromWicImage(ctx, fi.Length, fi.LastWriteTimeUtc);
 		}
@@ -82,14 +82,17 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>Constructs a new <see cref="ImageFileInfo" /> instance by reading the metadata from an image file contained in a <see cref="ReadOnlySpan{T}" />.</summary>
 		/// <param name="imgBuffer">The buffer containing the image data.</param>
 		/// <param name="lastModified">The last modified date of the image container.</param>
-		public static ImageFileInfo Load(ReadOnlySpan<byte> imgBuffer, DateTime lastModified)
+		unsafe public static ImageFileInfo Load(ReadOnlySpan<byte> imgBuffer, DateTime lastModified)
 		{
 			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
 
-			using var ctx = new PipelineContext(new ProcessImageSettings());
-			ctx.ImageContainer = WicImageContainer.Create(imgBuffer, ctx.WicContext);
+			fixed (byte* pbBuffer = imgBuffer)
+			{
+				using var ctx = new PipelineContext(new ProcessImageSettings());
+				ctx.ImageContainer = WicImageDecoder.Load(pbBuffer, imgBuffer.Length, ctx.WicContext);
 
-			return fromWicImage(ctx, imgBuffer.Length, lastModified);
+				return fromWicImage(ctx, imgBuffer.Length, lastModified);
+			}
 		}
 
 		/// <inheritdoc cref="Load(Stream, DateTime)" />
@@ -105,7 +108,7 @@ namespace PhotoSauce.MagicScaler
 			if (imgStream.Length <= 0 || imgStream.Position >= imgStream.Length) throw new ArgumentException("Input Stream is empty or positioned at its end", nameof(imgStream));
 
 			using var ctx = new PipelineContext(new ProcessImageSettings());
-			ctx.ImageContainer = WicImageContainer.Create(imgStream, ctx.WicContext);
+			ctx.ImageContainer = WicImageDecoder.Load(imgStream, ctx.WicContext);
 
 			return fromWicImage(ctx, imgStream.Length, lastModified);
 		}

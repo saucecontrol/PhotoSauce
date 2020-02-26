@@ -55,7 +55,7 @@ namespace PhotoSauce.MagicScaler
 			checkOutStream(outStream);
 
 			using var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicImageContainer.Create(imgPath, ctx.WicContext);
+			ctx.ImageContainer = WicImageDecoder.Load(imgPath, ctx.WicContext);
 
 			buildPipeline(ctx);
 			return WriteOutput(ctx, outStream);
@@ -65,17 +65,20 @@ namespace PhotoSauce.MagicScaler
 
 		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
 		/// <param name="imgBuffer">A buffer containing a supported input image container.</param>
-		public static ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
+		unsafe public static ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
 			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
 			if (settings is null) throw new ArgumentNullException(nameof(settings));
 			checkOutStream(outStream);
 
-			using var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicImageContainer.Create(imgBuffer, ctx.WicContext);
+			fixed (byte* pbBuffer = imgBuffer)
+			{
+				using var ctx = new PipelineContext(settings);
+				ctx.ImageContainer = WicImageDecoder.Load(pbBuffer, imgBuffer.Length, ctx.WicContext);
 
-			buildPipeline(ctx);
-			return WriteOutput(ctx, outStream);
+				buildPipeline(ctx);
+				return WriteOutput(ctx, outStream);
+			}
 		}
 
 		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
@@ -87,7 +90,7 @@ namespace PhotoSauce.MagicScaler
 			checkOutStream(outStream);
 
 			using var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicImageContainer.Create(imgStream, ctx.WicContext);
+			ctx.ImageContainer = WicImageDecoder.Load(imgStream, ctx.WicContext);
 
 			buildPipeline(ctx);
 			return WriteOutput(ctx, outStream);
@@ -136,7 +139,7 @@ namespace PhotoSauce.MagicScaler
 			if (settings is null) throw new ArgumentNullException(nameof(settings));
 
 			var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicImageContainer.Create(imgPath, ctx.WicContext);
+			ctx.ImageContainer = WicImageDecoder.Load(imgPath, ctx.WicContext);
 
 			buildPipeline(ctx, false);
 			return new ProcessingPipeline(ctx);
@@ -144,16 +147,19 @@ namespace PhotoSauce.MagicScaler
 
 		/// <inheritdoc cref="BuildPipeline(string, ProcessImageSettings)" />
 		/// <param name="imgBuffer">A buffer containing a supported input image container.</param>
-		public static ProcessingPipeline BuildPipeline(ReadOnlySpan<byte> imgBuffer, ProcessImageSettings settings)
+		unsafe public static ProcessingPipeline BuildPipeline(ReadOnlySpan<byte> imgBuffer, ProcessImageSettings settings)
 		{
 			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
 			if (settings is null) throw new ArgumentNullException(nameof(settings));
 
-			var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicImageContainer.Create(imgBuffer, ctx.WicContext);
+			fixed (byte* pbBuffer = imgBuffer)
+			{
+				var ctx = new PipelineContext(settings);
+				ctx.ImageContainer = WicImageDecoder.Load(pbBuffer, imgBuffer.Length, ctx.WicContext, true);
 
-			buildPipeline(ctx, false);
-			return new ProcessingPipeline(ctx);
+				buildPipeline(ctx, false);
+				return new ProcessingPipeline(ctx);
+			}
 		}
 
 		/// <inheritdoc cref="BuildPipeline(string, ProcessImageSettings)" />
@@ -164,7 +170,7 @@ namespace PhotoSauce.MagicScaler
 			checkInStream(imgStream);
 
 			var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicImageContainer.Create(imgStream, ctx.WicContext);
+			ctx.ImageContainer = WicImageDecoder.Load(imgStream, ctx.WicContext);
 
 			buildPipeline(ctx, false);
 			return new ProcessingPipeline(ctx);
@@ -208,7 +214,7 @@ namespace PhotoSauce.MagicScaler
 			MagicTransforms.AddExternalFormatConverter(ctx);
 			WicTransforms.AddIndexedColorConverter(ctx);
 
-			var enc = new WicEncoder(ctx, ostm.AsIStream());
+			var enc = new WicImageEncoder(ctx, ostm.AsIStream());
 			enc.WriteSource(ctx);
 
 			return new ProcessImageResult(ctx.UsedSettings, ctx.Stats);

@@ -7,9 +7,10 @@ using PhotoSauce.Interop.Wic;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal class WicPipelineContext : IDisposable
+	internal sealed class WicPipelineContext : IDisposable
 	{
 		private readonly ComHandleCollection comHandles = new ComHandleCollection(8);
+		private SafeHandle? unmanagedMemory = null;
 
 		public IWICColorContext? SourceColorContext { get; set; }
 		public IWICColorContext? DestColorContext { get; set; }
@@ -17,10 +18,47 @@ namespace PhotoSauce.MagicScaler
 
 		public T AddRef<T>(T comHandle) where T : class => comHandles.AddRef(comHandle);
 
-		public void Dispose() => comHandles.Dispose();
+		public SafeHandle AddUnmanagedMemory(int cb)
+		{
+			if (!(unmanagedMemory is null)) throw new InvalidOperationException("Memory already allocated");
+
+			return unmanagedMemory = new SafeHGlobalHandle(Marshal.AllocHGlobal(cb), cb);
+		}
+
+		public void Dispose()
+		{
+			comHandles.Dispose();
+			unmanagedMemory?.Dispose();
+		}
+
+		private sealed class SafeHGlobalHandle : SafeHandle
+		{
+			private readonly int count;
+
+			public override bool IsInvalid => handle == IntPtr.Zero;
+
+			public SafeHGlobalHandle(IntPtr handle, int cb) : base(IntPtr.Zero, true)
+			{
+				SetHandle(handle);
+				GC.AddMemoryPressure(cb);
+				count = cb;
+			}
+
+			protected override bool ReleaseHandle()
+			{
+				if (IsInvalid)
+					return false;
+
+				Marshal.FreeHGlobal(handle);
+				GC.RemoveMemoryPressure(count);
+				handle = IntPtr.Zero;
+
+				return true;
+			}
+		}
 	}
 
-	internal class ComHandleCollection : IDisposable
+	internal sealed class ComHandleCollection : IDisposable
 	{
 		private readonly Stack<object> comHandles;
 

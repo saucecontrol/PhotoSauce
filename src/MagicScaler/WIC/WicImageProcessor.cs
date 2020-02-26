@@ -15,23 +15,26 @@ namespace PhotoSauce.MagicScaler
 		public static ProcessImageResult ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
 		{
 			using var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicImageContainer.Create(imgPath, ctx.WicContext);
+			ctx.ImageContainer = WicImageDecoder.Load(imgPath, ctx.WicContext);
 
 			return processImage(ctx, outStream);
 		}
 
-		public static ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
+		unsafe public static ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
-			using var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicImageContainer.Create(imgBuffer, ctx.WicContext);
+			fixed (byte* pbBuffer = imgBuffer)
+			{
+				using var ctx = new PipelineContext(settings);
+				ctx.ImageContainer = WicImageDecoder.Load(pbBuffer, imgBuffer.Length, ctx.WicContext);
 
-			return processImage(ctx, outStream);
+				return processImage(ctx, outStream);
+			}
 		}
 
 		public static ProcessImageResult ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings)
 		{
 			using var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicImageContainer.Create(imgStream, ctx.WicContext);
+			ctx.ImageContainer = WicImageDecoder.Load(imgStream, ctx.WicContext);
 
 			return processImage(ctx, outStream);
 		}
@@ -56,7 +59,7 @@ namespace PhotoSauce.MagicScaler
 			MagicTransforms.AddPad(ctx);
 			WicTransforms.AddIndexedColorConverter(ctx);
 
-			var enc = new WicEncoder(ctx, ostm.AsIStream());
+			var enc = new WicImageEncoder(ctx, ostm.AsIStream());
 			enc.WriteSource(ctx);
 
 			return new ProcessImageResult(ctx.UsedSettings, ctx.Stats);
