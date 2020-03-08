@@ -216,7 +216,7 @@ namespace PhotoSauce.MagicScaler
 			else
 #endif
 			{
-				var vzero = Vector<float>.Zero;
+				var vzero = VectorF.Zero;
 
 				ipe -= VectorF.Count;
 				while (ip <= ipe)

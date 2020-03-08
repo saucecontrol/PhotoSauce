@@ -511,12 +511,14 @@ namespace PhotoSauce.MagicScaler
 				{
 #if VECTOR_CONVERT
 					int unrollCount = Vector<byte>.Count;
+					var vmin = new Vector<short>(byte.MinValue);
+					var vmax = new Vector<short>(byte.MaxValue);
+					var vscale = new VectorF(byte.MaxValue);
 #else
 					int unrollCount = VectorF.Count;
-#endif
-
 					var vmin = new VectorF(byte.MinValue);
 					var vmax = new VectorF(byte.MaxValue);
+#endif
 					var vround = new VectorF(0.5f);
 
 					ipe -= unrollCount;
@@ -528,24 +530,23 @@ namespace PhotoSauce.MagicScaler
 						var vf2 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count * 2);
 						var vf3 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count * 3);
 
-						vf0 = vf0 * vmax + vround;
-						vf1 = vf1 * vmax + vround;
-						vf2 = vf2 * vmax + vround;
-						vf3 = vf3 * vmax + vround;
+						vf0 = vf0 * vscale + vround;
+						vf1 = vf1 * vscale + vround;
+						vf2 = vf2 * vscale + vround;
+						vf3 = vf3 * vscale + vround;
 
-						vf0 = vf0.Clamp(vmin, vmax);
-						vf1 = vf1.Clamp(vmin, vmax);
-						vf2 = vf2.Clamp(vmin, vmax);
-						vf3 = vf3.Clamp(vmin, vmax);
-
-						var vi0 = Vector.AsVectorUInt32(Vector.ConvertToInt32(vf0));
-						var vi1 = Vector.AsVectorUInt32(Vector.ConvertToInt32(vf1));
-						var vi2 = Vector.AsVectorUInt32(Vector.ConvertToInt32(vf2));
-						var vi3 = Vector.AsVectorUInt32(Vector.ConvertToInt32(vf3));
+						var vi0 = Vector.ConvertToInt32(vf0);
+						var vi1 = Vector.ConvertToInt32(vf1);
+						var vi2 = Vector.ConvertToInt32(vf2);
+						var vi3 = Vector.ConvertToInt32(vf3);
 
 						var vs0 = Vector.Narrow(vi0, vi1);
 						var vs1 = Vector.Narrow(vi2, vi3);
-						var vb = Vector.Narrow(vs0, vs1);
+
+						vs0 = vs0.Clamp(vmin, vmax);
+						vs1 = vs1.Clamp(vmin, vmax);
+
+						var vb = Vector.Narrow(Vector.AsVectorUInt16(vs0), Vector.AsVectorUInt16(vs1));
 						Unsafe.WriteUnaligned(op, vb);
 #else
 						var v = Unsafe.ReadUnaligned<VectorF>(ip) * vmax + vround;

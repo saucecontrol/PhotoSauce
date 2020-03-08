@@ -86,10 +86,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					var va = Avx.Shuffle(vi, vi, HWIntrinsics.ShuffleMaskAlpha);
 
 					va = Avx.Subtract(vone, va);
-					if (Fma.IsSupported)
-						vi = Fma.MultiplyAdd(vmat, va, vi);
-					else
-						vi = Avx.Add(vi, Avx.Multiply(vmat, va));
+					vi = HWIntrinsics.MultiplyAdd(vi, vmat, va);
 
 					Avx.Store(ip, vi);
 					ip += Vector256<float>.Count;
@@ -102,10 +99,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					var va = Sse.Shuffle(vi, vi, HWIntrinsics.ShuffleMaskAlpha);
 
 					va = Sse.Subtract(vone.GetLower(), va);
-					if (Fma.IsSupported)
-						vi = Fma.MultiplyAdd(vmat.GetLower(), va, vi);
-					else
-						vi = Sse.Add(vi, Sse.Multiply(vmat.GetLower(), va));
+					vi = HWIntrinsics.MultiplyAdd(vi, vmat.GetLower(), va);
 
 					Sse.Store(ip, vi);
 					ip += Vector128<float>.Count;

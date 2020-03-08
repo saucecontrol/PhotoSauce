@@ -134,7 +134,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					var vshufa = Avx2.BroadcastVector128ToVector256((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask8bitAlpha)));
 					var vmaske = Avx2.BroadcastVector128ToVector256((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask8bitEven)));
 					var vmasko = Avx2.BroadcastVector128ToVector256((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask8bitOdd)));
-					var vmaskp = Avx2.BroadcastVector128ToVector256((int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.PermuteMaskOddEven8x32)));
+					var vmaskp = Avx2.BroadcastVector128ToVector256((int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.PermuteMaskEvenOdd8x32)) + Vector128<int>.Count);
 
 					var vmaska = Vector256.Create(bitMaskAlpha).AsByte();
 					var vscale = Vector256.Create(scaleAlpha);
@@ -144,23 +144,23 @@ namespace PhotoSauce.MagicScaler.Transforms
 					do
 					{
 						var vi0 = Avx.LoadVector256(ip);
-						var vi2 = Avx.LoadVector256(ip + stride);
+						var vi1 = Avx.LoadVector256(ip + stride);
 						ip += Vector256<byte>.Count;
 
 						var va0 = Avx2.MultiplyHigh(Avx2.Shuffle(vi0, vshufa).AsUInt16(), vscale);
-						var va2 = Avx2.MultiplyHigh(Avx2.Shuffle(vi2, vshufa).AsUInt16(), vscale);
+						var va1 = Avx2.MultiplyHigh(Avx2.Shuffle(vi1, vshufa).AsUInt16(), vscale);
 
 						var ve0 = Avx2.MultiplyHigh(Avx2.Shuffle(vi0, vmaske).AsUInt16(), va0);
-						var ve2 = Avx2.MultiplyHigh(Avx2.Shuffle(vi2, vmaske).AsUInt16(), va2);
+						var ve1 = Avx2.MultiplyHigh(Avx2.Shuffle(vi1, vmaske).AsUInt16(), va1);
 
-						ve0 = Avx2.Average(ve0, ve2);
+						ve0 = Avx2.Average(ve0, ve1);
 						var ve = Avx2.MultiplyAddAdjacent(ve0.AsInt16(), vone);
 
 						vi0 = Avx2.Or(vi0, vmaska);
-						vi2 = Avx2.Or(vi2, vmaska);
+						vi1 = Avx2.Or(vi1, vmaska);
 
 						var vo0 = Avx2.MultiplyHigh(Avx2.Shuffle(vi0, vmasko).AsUInt16(), va0);
-						var vo2 = Avx2.MultiplyHigh(Avx2.Shuffle(vi2, vmasko).AsUInt16(), va2);
+						var vo2 = Avx2.MultiplyHigh(Avx2.Shuffle(vi1, vmasko).AsUInt16(), va1);
 
 						vo0 = Avx2.Average(vo0, vo2);
 						var vo = Avx2.MultiplyAddAdjacent(vo0.AsInt16(), vone);
@@ -204,25 +204,25 @@ namespace PhotoSauce.MagicScaler.Transforms
 					do
 					{
 						var vi0 = Sse2.LoadVector128(ip);
-						var vi2 = Sse2.LoadVector128(ip + stride);
+						var vi1 = Sse2.LoadVector128(ip + stride);
 						ip += Vector128<byte>.Count;
 
 						var va0 = Sse2.MultiplyHigh(Ssse3.Shuffle(vi0, vshufa).AsUInt16(), vscale);
-						var va2 = Sse2.MultiplyHigh(Ssse3.Shuffle(vi2, vshufa).AsUInt16(), vscale);
+						var va1 = Sse2.MultiplyHigh(Ssse3.Shuffle(vi1, vshufa).AsUInt16(), vscale);
 
 						var ve0 = Sse2.MultiplyHigh(Ssse3.Shuffle(vi0, vmaske).AsUInt16(), va0);
-						var ve2 = Sse2.MultiplyHigh(Ssse3.Shuffle(vi2, vmaske).AsUInt16(), va2);
+						var ve1 = Sse2.MultiplyHigh(Ssse3.Shuffle(vi1, vmaske).AsUInt16(), va1);
 
-						ve0 = Sse2.Average(ve0, ve2);
+						ve0 = Sse2.Average(ve0, ve1);
 						var ve = Sse2.MultiplyAddAdjacent(ve0.AsInt16(), vone);
 
 						vi0 = Sse2.Or(vi0, vmaska);
-						vi2 = Sse2.Or(vi2, vmaska);
+						vi1 = Sse2.Or(vi1, vmaska);
 
 						var vo0 = Sse2.MultiplyHigh(Ssse3.Shuffle(vi0, vmasko).AsUInt16(), va0);
-						var vo2 = Sse2.MultiplyHigh(Ssse3.Shuffle(vi2, vmasko).AsUInt16(), va2);
+						var vo1 = Sse2.MultiplyHigh(Ssse3.Shuffle(vi1, vmasko).AsUInt16(), va1);
 
-						vo0 = Sse2.Average(vo0, vo2);
+						vo0 = Sse2.Average(vo0, vo1);
 						var vo = Sse2.MultiplyAddAdjacent(vo0.AsInt16(), vone);
 
 						ulong* iat = (ulong*)iatstart;

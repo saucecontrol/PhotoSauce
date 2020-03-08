@@ -4,6 +4,7 @@ using System.Numerics;
 #if HWINTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 #endif
 
@@ -20,7 +21,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		private const float fchromaOffset = (float)ichromaOffset / byte.MaxValue;
 
 		private readonly PixelSource sourceCb, sourceCr;
-		private readonly Vector4 vec0, vec1, vec2;
+		private readonly float coeffCb0, coeffCb1, coeffCr0, coeffCr1;
 
 		private ArraySegment<byte> lineBuff;
 
@@ -38,16 +39,12 @@ namespace PhotoSauce.MagicScaler.Transforms
 			sourceCr = srcCr;
 
 			if (videoLevels)
-			{
-				matrix.M22 *= byte.MaxValue / videoChromaScale;
-				matrix.M23 *= byte.MaxValue / videoChromaScale;
-				matrix.M31 *= byte.MaxValue / videoChromaScale;
-				matrix.M32 *= byte.MaxValue / videoChromaScale;
-			}
+				matrix *= byte.MaxValue / videoChromaScale;
 
-			vec0 = new Vector4(matrix.M13, matrix.M23, matrix.M33, 0f);
-			vec1 = new Vector4(matrix.M12, matrix.M22, matrix.M32, 0f);
-			vec2 = new Vector4(matrix.M11, matrix.M21, matrix.M31, 0f);
+			coeffCb0 = matrix.M23;
+			coeffCb1 = matrix.M22;
+			coeffCr0 = matrix.M32;
+			coeffCr1 = matrix.M31;
 
 			Format = srcY.Format.FormatGuid == Consts.GUID_WICPixelFormat8bppY ? PixelFormat.FromGuid(Consts.GUID_WICPixelFormat24bppBGR) : PixelFormat.Bgrx128BppFloat;
 			if (HWIntrinsics.IsAvxSupported)
@@ -94,10 +91,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 			byte* op = opstart;
 			byte* ip0 = bstart, ip1 = bstart + bstride, ip2 = bstart + bstride * 2, ipe = ip0 + cb;
 
-			int c0 = Fix15(vec0.Y);
-			int c1 = Fix15(vec1.Y);
-			int c2 = Fix15(vec1.Z);
-			int c3 = Fix15(vec2.Z);
+			int c0 = Fix15(coeffCb0);
+			int c1 = Fix15(coeffCb1);
+			int c2 = Fix15(coeffCr0);
+			int c3 = Fix15(coeffCr1);
 
 			while (ip0 < ipe)
 			{
@@ -121,10 +118,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 			float* op = (float*)opstart;
 			float* ip0 = (float*)bstart, ip1 = (float*)(bstart + bstride), ip2 = (float*)(bstart + bstride * 2), ipe = (float*)(bstart + cb);
 
-			float c0 = vec0.Y;
-			float c1 = vec1.Y;
-			float c2 = vec1.Z;
-			float c3 = vec2.Z;
+			float c0 = coeffCb0;
+			float c1 = coeffCb1;
+			float c2 = coeffCr0;
+			float c3 = coeffCr1;
 
 			var voff = new Vector4(0f, fchromaOffset, fchromaOffset, 0f);
 			float fzero = voff.X, foff = voff.Y;
@@ -151,21 +148,26 @@ namespace PhotoSauce.MagicScaler.Transforms
 			float* op = (float*)opstart;
 			float* ip = (float*)bstart, ipe = (float*)(bstart + cb);
 
-			if (Avx.IsSupported)
+			if (Avx2.IsSupported)
 			{
-				var vc0 = Vector256.Create(vec0.Y);
-				var vc1 = Vector256.Create(vec1.Y);
-				var vc2 = Vector256.Create(vec1.Z);
-				var vc3 = Vector256.Create(vec2.Z);
+				var vc0 = Vector256.Create(coeffCb0);
+				var vc1 = Vector256.Create(coeffCb1);
+				var vc2 = Vector256.Create(coeffCr0);
+				var vc3 = Vector256.Create(coeffCr1);
 				var voff = Vector256.Create(-fchromaOffset);
+				var vmaskp = Avx.LoadVector256((int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.PermuteMaskEvenOdd8x32)));
 
 				ipe -= Vector256<float>.Count;
-				while (ip <= ipe)
+				do
 				{
 					var viy = Avx.LoadVector256(ip);
 					var vib = Avx.Add(voff, Avx.LoadVector256(ip + stride));
 					var vir = Avx.Add(voff, Avx.LoadVector256(ip + stride * 2));
 					ip += Vector256<float>.Count;
+
+					viy = Avx2.PermuteVar8x32(viy, vmaskp);
+					vib = Avx2.PermuteVar8x32(vib, vmaskp);
+					vir = Avx2.PermuteVar8x32(vir, vmaskp);
 
 					var vt0 = HWIntrinsics.MultiplyAdd(viy, vib, vc0);
 					var vt1 = HWIntrinsics.MultiplyAdd(HWIntrinsics.MultiplyAdd(viy, vib, vc1), vir, vc2);
@@ -175,34 +177,29 @@ namespace PhotoSauce.MagicScaler.Transforms
 					var vte = Avx.UnpackLow(vt0, vt2);
 					var vto = Avx.UnpackLow(vt1, vt3);
 
-					var vtll = Avx.UnpackLow(vte, vto);
-					var vtlh = Avx.UnpackHigh(vte, vto);
+					Avx.Store(op, Avx.UnpackLow(vte, vto));
+					Avx.Store(op + Vector256<float>.Count, Avx.UnpackHigh(vte, vto));
 
 					vte = Avx.UnpackHigh(vt0, vt2);
 					vto = Avx.UnpackHigh(vt1, vt3);
 
-					var vthl = Avx.UnpackLow(vte, vto);
-					var vthh = Avx.UnpackHigh(vte, vto);
-
-					Avx.Store(op, Avx.Permute2x128(vtll, vtlh, HWIntrinsics.PermuteMaskLowLow2x128));
-					Avx.Store(op + Vector256<float>.Count, Avx.Permute2x128(vthl, vthh, HWIntrinsics.PermuteMaskLowLow2x128));
-					Avx.Store(op + Vector256<float>.Count * 2, Avx.Permute2x128(vtll, vtlh, HWIntrinsics.PermuteMaskHighHigh2x128));
-					Avx.Store(op + Vector256<float>.Count * 3, Avx.Permute2x128(vthl, vthh, HWIntrinsics.PermuteMaskHighHigh2x128));
-
+					Avx.Store(op + Vector256<float>.Count * 2, Avx.UnpackLow(vte, vto));
+					Avx.Store(op + Vector256<float>.Count * 3, Avx.UnpackHigh(vte, vto));
 					op += Vector256<float>.Count * 4;
-				}
+
+				} while (ip <= ipe);
 				ipe += Vector256<float>.Count;
 			}
 			else
 			{
-				var vc0 = Vector128.Create(vec0.Y);
-				var vc1 = Vector128.Create(vec1.Y);
-				var vc2 = Vector128.Create(vec1.Z);
-				var vc3 = Vector128.Create(vec2.Z);
+				var vc0 = Vector128.Create(coeffCb0);
+				var vc1 = Vector128.Create(coeffCb1);
+				var vc2 = Vector128.Create(coeffCr0);
+				var vc3 = Vector128.Create(coeffCr1);
 				var voff = Vector128.Create(-fchromaOffset);
 
 				ipe -= Vector128<float>.Count;
-				while (ip <= ipe)
+				do
 				{
 					var viy = Sse.LoadVector128(ip);
 					var vib = Sse.Add(voff, Sse.LoadVector128(ip + stride));
@@ -225,9 +222,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 					Sse.Store(op + Vector128<float>.Count * 2, Sse.UnpackLow(vte, vto));
 					Sse.Store(op + Vector128<float>.Count * 3, Sse.UnpackHigh(vte, vto));
-
 					op += Vector128<float>.Count * 4;
-				}
+
+				} while (ip <= ipe);
 				ipe += Vector128<float>.Count;
 			}
 
