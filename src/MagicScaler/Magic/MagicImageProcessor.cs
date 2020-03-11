@@ -55,7 +55,7 @@ namespace PhotoSauce.MagicScaler
 			checkOutStream(outStream);
 
 			using var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicImageDecoder.Load(imgPath, ctx.WicContext);
+			ctx.ImageContainer = WicImageDecoder.Load(imgPath, ctx);
 
 			buildPipeline(ctx);
 			return WriteOutput(ctx, outStream);
@@ -74,7 +74,7 @@ namespace PhotoSauce.MagicScaler
 			fixed (byte* pbBuffer = imgBuffer)
 			{
 				using var ctx = new PipelineContext(settings);
-				ctx.ImageContainer = WicImageDecoder.Load(pbBuffer, imgBuffer.Length, ctx.WicContext);
+				ctx.ImageContainer = WicImageDecoder.Load(pbBuffer, imgBuffer.Length, ctx);
 
 				buildPipeline(ctx);
 				return WriteOutput(ctx, outStream);
@@ -90,7 +90,7 @@ namespace PhotoSauce.MagicScaler
 			checkOutStream(outStream);
 
 			using var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicImageDecoder.Load(imgStream, ctx.WicContext);
+			ctx.ImageContainer = WicImageDecoder.Load(imgStream, ctx);
 
 			buildPipeline(ctx);
 			return WriteOutput(ctx, outStream);
@@ -139,7 +139,7 @@ namespace PhotoSauce.MagicScaler
 			if (settings is null) throw new ArgumentNullException(nameof(settings));
 
 			var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicImageDecoder.Load(imgPath, ctx.WicContext);
+			ctx.ImageContainer = WicImageDecoder.Load(imgPath, ctx);
 
 			buildPipeline(ctx, false);
 			return new ProcessingPipeline(ctx);
@@ -155,7 +155,7 @@ namespace PhotoSauce.MagicScaler
 			fixed (byte* pbBuffer = imgBuffer)
 			{
 				var ctx = new PipelineContext(settings);
-				ctx.ImageContainer = WicImageDecoder.Load(pbBuffer, imgBuffer.Length, ctx.WicContext, true);
+				ctx.ImageContainer = WicImageDecoder.Load(pbBuffer, imgBuffer.Length, ctx, true);
 
 				buildPipeline(ctx, false);
 				return new ProcessingPipeline(ctx);
@@ -170,7 +170,7 @@ namespace PhotoSauce.MagicScaler
 			checkInStream(imgStream);
 
 			var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicImageDecoder.Load(imgStream, ctx.WicContext);
+			ctx.ImageContainer = WicImageDecoder.Load(imgStream, ctx);
 
 			buildPipeline(ctx, false);
 			return new ProcessingPipeline(ctx);

@@ -10,11 +10,35 @@ namespace PhotoSauce.Interop.Wic
 
 		public static class Metadata
 		{
-			public const string InteropIndexExifPath = "/ifd/exif/interop/{ushort=1}";
-			public const string InteropIndexJpegPath = "/app1" + InteropIndexExifPath;
+			public const string InteropIndexExif = "/ifd/exif/interop/{ushort=1}";
+			public const string InteropIndexJpeg = "/app1" + InteropIndexExif;
+
 			public const string OrientationWindowsPolicy = "System.Photo.Orientation";
-			public const string OrientationExifPath = "/ifd/{ushort=274}";
-			public const string OrientationJpegPath = "/app1" + OrientationExifPath;
+			public const string OrientationExif = "/ifd/{ushort=274}";
+			public const string OrientationJpeg = "/app1" + OrientationExif;
+
+			public static class Gif
+			{
+				public const string LogicalScreenWidth = "/logscrdesc/Width";
+				public const string LogicalScreenHeight = "/logscrdesc/Height";
+				public const string PixelAspectRatio = "/logscrdesc/PixelAspectRatio";
+				public const string GlobalPaletteFlag = "/logscrdesc/GlobalColorTableFlag";
+				public const string BackgroundColorIndex = "/logscrdesc/BackgroundColorIndex";
+
+				public const string AppExtension = "/appext/application";
+				public const string AppExtensionData = "/appext/data";
+
+				public const string FrameLeft = "/imgdesc/Left";
+				public const string FrameTop = "/imgdesc/Top";
+				public const string FrameWidth = "/imgdesc/Width";
+				public const string FrameHeight = "/imgdesc/Height";
+				public const string FramePaletteFlag = "/imgdesc/LocalColorTableFlag";
+
+				public const string FrameDelay = "/grctlext/Delay";
+				public const string FrameDisposal = "/grctlext/Disposal";
+				public const string TransparencyFlag = "/grctlext/TransparencyFlag";
+				public const string TransparentColorIndex = "/grctlext/TransparentColorIndex";
+			}
 		}
 	}
 
@@ -35,9 +59,21 @@ namespace PhotoSauce.Interop.Wic
 			return hr >= 0 ? ccc : 0u;
 		}
 
+		public static bool TryGetMetadataQueryReader(this IWICBitmapDecoder decoder, [NotNullWhen(true)] out IWICMetadataQueryReader? rdr)
+		{
+			int hr = ProxyFunctions.GetMetadataQueryReader(decoder, out rdr);
+			return hr >= 0;
+		}
+
 		public static bool TryGetMetadataQueryReader(this IWICBitmapFrameDecode frame, [NotNullWhen(true)] out IWICMetadataQueryReader? rdr)
 		{
 			int hr = ProxyFunctions.GetMetadataQueryReader(frame, out rdr);
+			return hr >= 0;
+		}
+
+		public static bool TryGetMetadataQueryWriter(this IWICBitmapEncoder encoder, [NotNullWhen(true)] out IWICMetadataQueryWriter? wri)
+		{
+			int hr = ProxyFunctions.GetMetadataQueryWriter(encoder, out wri);
 			return hr >= 0;
 		}
 
@@ -91,6 +127,15 @@ namespace PhotoSauce.Interop.Wic
 			return hr >= 0;
 		}
 
+		[return: MaybeNull]
+		public static T GetValueOrDefault<T>(this IWICMetadataQueryReader meta, string name)
+		{
+			if (meta.TryGetMetadataByName(name, out var pv) && pv.TryGetValue(out T val))
+				return val;
+
+			return default;
+		}
+
 		public static void Write<T>(this IPropertyBag2 bag, string name, T val) where T : unmanaged
 		{
 			var prop = new PROPBAG2 { pstrName = name };
@@ -99,7 +144,7 @@ namespace PhotoSauce.Interop.Wic
 			if (typeof(T) == typeof(bool))
 			{
 				pvar.vt = VarEnum.VT_BOOL;
-				pvar.int16Value = (bool)(object)val ? (short)-1 : (short)0;
+				pvar.int16Value = (short)((bool)(object)val ? -1 : 0);
 			}
 			else if (typeof(T) == typeof(byte))
 			{

@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Buffers;
+using System.Drawing;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 using PhotoSauce.Interop.Wic;
+using PhotoSauce.MagicScaler.Transforms;
 
 namespace PhotoSauce.MagicScaler
 {
@@ -21,7 +24,6 @@ namespace PhotoSauce.MagicScaler
 		public ReadOnlySpan<byte> IccProfile => ColorProfileSource.ParsedProfile.ProfileBytes;
 
 		public bool SupportsNativeScale { get; }
-		//public bool SupportsNativeTransform { get; }
 		public bool SupportsPlanarProcessing { get; }
 
 		public WICJpegYCrCbSubsamplingOption ChromaSubsampling { get; }
@@ -38,41 +40,35 @@ namespace PhotoSauce.MagicScaler
 
 		public WicImageFrame(WicImageContainer decoder, uint index)
 		{
-			if (index >= (uint)decoder.FrameCount) throw new IndexOutOfRangeException("Frame index does not exist");
-
 			WicFrame = comHandles.AddRef(decoder.WicDecoder.GetFrame(index));
 			WicSource = WicFrame;
-			WicFrame.GetSize(out uint frameWidth, out uint frameHeight);
 			container = decoder;
-
-			if (decoder.IsRawContainer && index == 0 && decoder.WicDecoder.TryGetPreview(out var preview))
-			{
-				using var pvwSource = new ComHandle<IWICBitmapSource>(preview);
-				preview.GetSize(out uint pw, out uint ph);
-
-				if (pw == frameWidth && ph == frameHeight)
-					WicSource = comHandles.AddOwnRef(preview);
-			}
 
 			WicFrame.GetResolution(out double dpix, out double dpiy);
 			DpiX = dpix;
 			DpiY = dpiy;
 
-			if (PixelFormat.FromGuid(WicSource.GetPixelFormat()).NumericRepresentation == PixelNumericRepresentation.Indexed)
+			WicFrame.GetSize(out uint frameWidth, out uint frameHeight);
+
+			if (WicFrame.TryGetMetadataQueryReader(out var metareader))
 			{
-				using var wicpal = new ComHandle<IWICPalette>(Wic.Factory.CreatePalette());
-				var pal = wicpal.ComObject;
-				WicSource.CopyPalette(pal);
+				WicMetadataReader = comHandles.AddRef(metareader);
 
-				var newFormat = Consts.GUID_WICPixelFormat24bppBGR;
-				if (pal.HasAlpha())
-					newFormat = Consts.GUID_WICPixelFormat32bppBGRA;
-				else if (pal.IsGrayscale() || pal.IsBlackWhite())
-					newFormat = Consts.GUID_WICPixelFormat8bppGray;
+				string orientationPath =
+					MagicImageProcessor.EnableXmpOrientation ? Wic.Metadata.OrientationWindowsPolicy :
+					container.ContainerFormat == FileFormat.Jpeg ? Wic.Metadata.OrientationJpeg :
+					Wic.Metadata.OrientationExif;
 
-				var conv = comHandles.AddRef(Wic.Factory.CreateFormatConverter());
-				conv.Initialize(WicSource, newFormat, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
-				WicSource = conv;
+				ExifOrientation = ((Orientation)metareader.GetValueOrDefault<ushort>(orientationPath)).Clamp();
+			}
+
+			if (decoder.IsRawContainer && index == 0 && decoder.WicDecoder.TryGetPreview(out var preview))
+			{
+				using var pvwSource = ComHandle.Wrap(preview);
+				preview.GetSize(out uint pw, out uint ph);
+
+				if (pw == frameWidth && ph == frameHeight)
+					WicSource = comHandles.AddOwnRef(preview);
 			}
 
 			if (WicSource is IWICBitmapSourceTransform trans)
@@ -81,14 +77,19 @@ namespace PhotoSauce.MagicScaler
 				trans.GetClosestSize(ref pw, ref ph);
 
 				SupportsNativeScale = pw < frameWidth || ph < frameHeight;
-				//SupportsNativeTransform = trans.DoesSupportTransform(WICBitmapTransformOptions.WICBitmapTransformRotate270);
 			}
 
 			if (WicSource is IWICPlanarBitmapSourceTransform ptrans)
 			{
 				var desc = ArrayPool<WICBitmapPlaneDescription>.Shared.Rent(WicTransforms.PlanarPixelFormats.Length);
 
-				SupportsPlanarProcessing = ptrans.DoesSupportTransform(ref frameWidth, ref frameHeight, WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault, WicTransforms.PlanarPixelFormats, desc, (uint)WicTransforms.PlanarPixelFormats.Length);
+				uint twidth = frameWidth, theight = frameHeight;
+				SupportsPlanarProcessing = ptrans.DoesSupportTransform(
+					ref twidth, ref theight,
+					WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault,
+					WicTransforms.PlanarPixelFormats, desc, (uint)WicTransforms.PlanarPixelFormats.Length
+				);
+
 				ChromaSubsampling =
 					desc[1].Width < desc[0].Width && desc[1].Height < desc[0].Height ? WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling420 :
 					desc[1].Width < desc[0].Width ? WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling422 :
@@ -98,21 +99,127 @@ namespace PhotoSauce.MagicScaler
 				ArrayPool<WICBitmapPlaneDescription>.Shared.Return(desc);
 			}
 
-			if (WicFrame.TryGetMetadataQueryReader(out var metareader))
+			if (PixelFormat.FromGuid(WicSource.GetPixelFormat()).NumericRepresentation == PixelNumericRepresentation.Indexed)
 			{
-				WicMetadataReader = comHandles.AddRef(metareader);
+				var newFormat = Consts.GUID_WICPixelFormat24bppBGR;
+				if (container.ContainerFormat == FileFormat.Gif && container.FrameCount > 1)
+				{
+					newFormat = Consts.GUID_WICPixelFormat32bppBGRA;
+				}
+				else
+				{
+					using var wicpal = ComHandle.Wrap(Wic.Factory.CreatePalette());
+					var pal = wicpal.ComObject;
+					WicSource.CopyPalette(pal);
 
-				string orientationPath =
-					MagicImageProcessor.EnableXmpOrientation ? Wic.Metadata.OrientationWindowsPolicy :
-					decoder.ContainerFormat == FileFormat.Jpeg ? Wic.Metadata.OrientationJpegPath :
-					Wic.Metadata.OrientationExifPath;
+					if (pal.HasAlpha())
+						newFormat = Consts.GUID_WICPixelFormat32bppBGRA;
+					else if (pal.IsGrayscale() || pal.IsBlackWhite())
+						newFormat = Consts.GUID_WICPixelFormat8bppGray;
+				}
 
-				if (metareader.TryGetMetadataByName(orientationPath, out var pvorient) && pvorient.UnmanagedType == VarEnum.VT_UI2)
-					ExifOrientation = (Orientation)Math.Min(Math.Max((ushort)Orientation.Normal, (ushort)pvorient.Value!), (ushort)Orientation.Rotate270);
+				var conv = comHandles.AddRef(Wic.Factory.CreateFormatConverter());
+				conv.Initialize(WicSource, newFormat, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
+				WicSource = conv;
+			}
+
+			if (container is WicGifContainer gif)
+			{
+				Debug.Assert(WicMetadataReader != null);
+
+				if (index > 0)
+					setupGifAnimationContext(gif, (int)(index - 1));
+
+				var finfo = getGifFrameInfo(gif, WicSource, WicMetadataReader);
+				var lastDisp = gif.AnimationContext?.LastDisposal ?? GifDisposalMethod.RestoreBackground;
+				if (!finfo.FullScreen && lastDisp == GifDisposalMethod.RestoreBackground)
+				{
+					var innerArea = new PixelArea(finfo.Left, finfo.Top, (int)frameWidth, (int)frameHeight);
+					var outerArea = new PixelArea(0, 0, gif.ScreenWidth, gif.ScreenHeight);
+					var bgColor = finfo.Alpha ? Color.Empty : Color.FromArgb((int)gif.BackgroundColor);
+
+					WicSource = new PadTransformInternal(WicSource.AsPixelSource(nameof(IWICBitmapFrameDecode)), bgColor, innerArea, outerArea).WicSource;
+				}
+				else if (lastDisp != GifDisposalMethod.RestoreBackground)
+				{
+					Debug.Assert(gif.AnimationContext?.FrameBufferSource != null);
+
+					var ani = gif.AnimationContext;
+					var fbuff = ani.FrameBufferSource;
+
+					ani.FrameOverlay?.Dispose();
+					ani.FrameOverlay = new OverlayTransform(fbuff, WicSource.AsPixelSource(nameof(IWICBitmapFrameDecode)), finfo.Left, finfo.Top, finfo.Alpha);
+
+					WicSource = ani.FrameOverlay.WicSource;
+				}
 			}
 		}
 
 		public void Dispose() => comHandles.Dispose();
+
+		unsafe private static void setupGifAnimationContext(WicGifContainer cont, int playTo)
+		{
+			const int bytesPerPixel = 4;
+
+			var anictx = cont.AnimationContext ??= new GifAnimationContext();
+			if (anictx.LastFrame > playTo)
+				anictx.LastFrame = -1;
+
+			for (; anictx.LastFrame < playTo; anictx.LastFrame++)
+			{
+				using var frame = ComHandle.Wrap(cont.WicDecoder.GetFrame((uint)(anictx.LastFrame + 1)));
+				using var meta = ComHandle.Wrap(frame.ComObject.GetMetadataQueryReader());
+
+				var ldisp = anictx.LastDisposal;
+				anictx.LastDisposal = ((GifDisposalMethod)meta.ComObject.GetValueOrDefault<byte>(Wic.Metadata.Gif.FrameDisposal)).Clamp();
+
+				if (anictx.LastDisposal != GifDisposalMethod.Preserve)
+					continue;
+
+				using var conv = ComHandle.Wrap(Wic.Factory.CreateFormatConverter());
+				conv.ComObject.Initialize(frame.ComObject, Consts.GUID_WICPixelFormat32bppBGRA, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
+
+				var finfo = getGifFrameInfo(cont, conv.ComObject, meta.ComObject);
+				var fbuff = anictx.FrameBufferSource ??= new GifFrameBufferSource(cont.ScreenWidth, cont.ScreenHeight);
+				var bspan = fbuff.Span;
+
+				fixed (byte* buff = bspan)
+				{
+					// Most GIF viewers clear the background to transparent instead of the background color when the next frame has transparency
+					bool ftrans = meta.ComObject.GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
+					if (!finfo.FullScreen && ldisp == GifDisposalMethod.RestoreBackground)
+						MemoryMarshal.Cast<byte, uint>(bspan).Fill(ftrans ? 0 : cont.BackgroundColor);
+
+					// Similarly, they overwrite a background color with transparent pixels but overlay instead when the previous frame is preserved
+					var ptr = (IntPtr)(buff + finfo.Top * fbuff.Stride + finfo.Left * bytesPerPixel);
+					if (!ftrans || ldisp == GifDisposalMethod.RestoreBackground)
+					{
+						conv.ComObject.CopyPixels(WICRect.Null, (uint)fbuff.Stride, (uint)bspan.Length, ptr);
+					}
+					else
+					{
+						using var overlay = new OverlayTransform(fbuff, conv.ComObject.AsPixelSource(nameof(IWICBitmapFrameDecode)), finfo.Left, finfo.Top, true, true);
+						overlay.CopyPixels(new PixelArea(finfo.Left, finfo.Top, finfo.Width, finfo.Height), fbuff.Stride, bspan.Length, ptr);
+					}
+				}
+			}
+		}
+
+		private static (int Left, int Top, int Width, int Height, bool Alpha, bool FullScreen) getGifFrameInfo(WicGifContainer cont, IWICBitmapSource frame, IWICMetadataQueryReader meta)
+		{
+			frame.GetSize(out uint width, out uint height);
+
+			int left = 0, top = 0;
+			bool trans = meta.GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
+			bool full = width == cont.ScreenWidth && height == cont.ScreenHeight;
+			if (!full)
+			{
+				left = meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameLeft);
+				top = meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameTop);
+			}
+
+			return (left, top, (int)width, (int)height, trans, full);
+		}
 
 		private WicColorProfile getColorProfile()
 		{
@@ -166,9 +273,7 @@ namespace PhotoSauce.MagicScaler
 					if (
 						ecs == ExifColorSpace.AdobeRGB || (
 						ecs == ExifColorSpace.Uncalibrated
-						&& WicMetadataReader.TryGetMetadataByName(container.ContainerFormat == FileFormat.Jpeg ? Wic.Metadata.InteropIndexJpegPath : Wic.Metadata.InteropIndexExifPath, out var interopIdx)
-						&& interopIdx.UnmanagedType == VarEnum.VT_LPSTR
-						&& (string)interopIdx.Value! == "R03")
+						&& WicMetadataReader.GetValueOrDefault<string>(container.ContainerFormat == FileFormat.Jpeg ? Wic.Metadata.InteropIndexJpeg : Wic.Metadata.InteropIndexExif) == "R03")
 					) return WicColorProfile.AdobeRgb.Value;
 				}
 			}

@@ -75,7 +75,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			Settings = settings.Clone();
 
-			// HACK this quiets the nullable warnings for now but needs refactoring
+			// https://github.com/dotnet/runtime/issues/31877
 			UsedSettings = null!;
 			ImageContainer = null!;
 			ImageFrame = null!;

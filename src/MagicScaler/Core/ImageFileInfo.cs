@@ -2,6 +2,8 @@
 using System.IO;
 using System.Collections.Generic;
 
+using PhotoSauce.Interop.Wic;
+
 namespace PhotoSauce.MagicScaler
 {
 	/// <summary>Represents basic information about an image container.</summary>
@@ -17,7 +19,7 @@ namespace PhotoSauce.MagicScaler
 			/// <summary>True if the image frame contains transparency data, otherwise false.</summary>
 			public bool HasAlpha { get; }
 			/// <summary>
-			/// The stored <a href="https://magnushoff.com/jpeg-orientation.html">Exif orientation</a> for the image frame.
+			/// The stored <a href="https://magnushoff.com/articles/jpeg-orientation/">Exif orientation</a> for the image frame.
 			/// The <see cref="Width" /> and <see cref="Height" /> values reflect the corrected orientation, not the stored orientation.
 			/// </summary>
 			public Orientation ExifOrientation { get; }
@@ -71,7 +73,7 @@ namespace PhotoSauce.MagicScaler
 				throw new FileNotFoundException("File not found", imgPath);
 
 			using var ctx = new PipelineContext(new ProcessImageSettings());
-			ctx.ImageContainer = WicImageDecoder.Load(imgPath, ctx.WicContext);
+			ctx.ImageContainer = WicImageDecoder.Load(imgPath, ctx);
 
 			return fromWicImage(ctx, fi.Length, fi.LastWriteTimeUtc);
 		}
@@ -89,7 +91,7 @@ namespace PhotoSauce.MagicScaler
 			fixed (byte* pbBuffer = imgBuffer)
 			{
 				using var ctx = new PipelineContext(new ProcessImageSettings());
-				ctx.ImageContainer = WicImageDecoder.Load(pbBuffer, imgBuffer.Length, ctx.WicContext);
+				ctx.ImageContainer = WicImageDecoder.Load(pbBuffer, imgBuffer.Length, ctx);
 
 				return fromWicImage(ctx, imgBuffer.Length, lastModified);
 			}
@@ -108,31 +110,58 @@ namespace PhotoSauce.MagicScaler
 			if (imgStream.Length <= 0 || imgStream.Position >= imgStream.Length) throw new ArgumentException("Input Stream is empty or positioned at its end", nameof(imgStream));
 
 			using var ctx = new PipelineContext(new ProcessImageSettings());
-			ctx.ImageContainer = WicImageDecoder.Load(imgStream, ctx.WicContext);
+			ctx.ImageContainer = WicImageDecoder.Load(imgStream, ctx);
 
 			return fromWicImage(ctx, imgStream.Length, lastModified);
 		}
 
 		private static ImageFileInfo fromWicImage(PipelineContext ctx, long fileSize, DateTime fileDate)
 		{
-			var frames = new FrameInfo[ctx.ImageContainer.FrameCount];
+			var cont = (WicImageContainer)ctx.ImageContainer;
+			var cfmt = cont.ContainerFormat;
+			var frames = cfmt == FileFormat.Gif ? getGifFrameInfo(cont) : getFrameInfo(cont);
+
+			return new ImageFileInfo(cfmt, frames, fileSize, fileDate);
+		}
+
+		private static FrameInfo[] getFrameInfo(WicImageContainer cont)
+		{
+			var frames = new FrameInfo[cont.FrameCount];
 			for (int i = 0; i < frames.Length; i++)
 			{
-				using var frame = (WicImageFrame)ctx.ImageContainer.GetFrame(i);
+				using var frame = (WicImageFrame)cont.GetFrame(i);
+				frame.WicSource.GetSize(out uint width, out uint height);
 
-				ctx.ImageFrame = frame;
-				ctx.Source = frame.Source;
-
-				int width = ctx.Source.Width;
-				int height = ctx.Source.Height;
-				var orient = ctx.ImageFrame.ExifOrientation;
+				var pixfmt = PixelFormat.FromGuid(frame.WicSource.GetPixelFormat());
+				var orient = frame.ExifOrientation;
 				if (orient.SwapsDimensions())
 					(width, height) = (height, width);
 
-				frames[i] = new FrameInfo(width, height, ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None, orient);
+				frames[i] = new FrameInfo((int)width, (int)height, pixfmt.AlphaRepresentation != PixelAlphaRepresentation.None, orient);
 			}
 
-			return new ImageFileInfo(ctx.ImageContainer.ContainerFormat, frames, fileSize, fileDate);
+			return frames;
+		}
+
+		private static FrameInfo[] getGifFrameInfo(WicImageContainer cont)
+		{
+			using var cmeta = ComHandle.Wrap(cont.WicDecoder.GetMetadataQueryReader());
+			int cwidth = cmeta.ComObject.GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenWidth);
+			int cheight = cmeta.ComObject.GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenHeight);
+
+			bool alpha = cont.FrameCount > 1;
+			if (!alpha)
+			{
+				using var frame = ComHandle.Wrap(cont.WicDecoder.GetFrame(0));
+				using var fmeta = ComHandle.Wrap(frame.ComObject.GetMetadataQueryReader());
+				alpha = fmeta.ComObject.GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
+			}
+
+			var frames = new FrameInfo[cont.FrameCount];
+			for (int i = 0; i < frames.Length; i++)
+				frames[i] = new FrameInfo(cwidth, cheight, alpha, Orientation.Normal);
+
+			return frames;
 		}
 	}
 }

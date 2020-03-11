@@ -35,6 +35,10 @@ namespace PhotoSauce.MagicScaler
 			return opt;
 		}
 
+		public static Orientation Clamp(this Orientation o) => o < Orientation.Normal? Orientation.Normal : o > Orientation.Rotate270 ? Orientation.Rotate270 : o;
+
+		public static GifDisposalMethod Clamp(this GifDisposalMethod m) => m < GifDisposalMethod.Preserve || m > GifDisposalMethod.RestorePrevious ? GifDisposalMethod.Preserve : m;
+
 		public static bool SwapsDimensions(this Orientation o) => o > Orientation.FlipVertical;
 
 		public static bool RequiresCache(this Orientation o) => o > Orientation.FlipHorizontal;

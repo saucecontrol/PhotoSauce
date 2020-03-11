@@ -295,14 +295,14 @@ namespace PhotoSauce.MagicScaler
 
 			uint count = 10u;
 			var formats = new object[count];
-			using var cenum = new ComHandle<IEnumUnknown>(Wic.Factory.CreateComponentEnumerator(WICComponentType.WICPixelFormat, WICComponentEnumerateOptions.WICComponentEnumerateDefault));
+			using var cenum = ComHandle.Wrap(Wic.Factory.CreateComponentEnumerator(WICComponentType.WICPixelFormat, WICComponentEnumerateOptions.WICComponentEnumerateDefault));
 
 			do
 			{
 				count = cenum.ComObject.Next(count, formats);
 				for (int i = 0; i < count; i++)
 				{
-					using var pixh = new ComHandle<IWICPixelFormatInfo2>(formats[i]);
+					using var pixh = ComHandle.QueryInterface<IWICPixelFormatInfo2>(formats[i]);
 					var pix = pixh.ComObject;
 
 					uint cch = pix.GetFriendlyName(0, null);

@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+
 using PhotoSauce.MagicScaler.Transforms;
 
 namespace PhotoSauce.MagicScaler

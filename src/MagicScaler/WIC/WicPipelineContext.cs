@@ -96,22 +96,29 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	internal readonly struct ComHandle<T> : IDisposable where T : class
+	internal static class ComHandle
 	{
-		public T ComObject { get; }
-
-		public ComHandle(object obj)
+		internal readonly struct ComDisposer<T> : IDisposable where T : class
 		{
-			Debug.Assert(Marshal.IsComObject(obj), "Not a COM object");
-			if (!(obj is T com)) throw new ArgumentException("Interface not supported: " + typeof(T).Name, nameof(obj));
+			public T ComObject { get; }
 
-			ComObject = com;
+			public ComDisposer(object obj)
+			{
+				Debug.Assert(Marshal.IsComObject(obj), "Not a COM object");
+				if (!(obj is T com)) throw new ArgumentException("Interface not supported: " + typeof(T).Name, nameof(obj));
+
+				ComObject = com;
+			}
+
+			public void Dispose()
+			{
+				if (!(ComObject is null) && Marshal.IsComObject(ComObject))
+					Marshal.ReleaseComObject(ComObject);
+			}
 		}
 
-		public void Dispose()
-		{
-			if (!(ComObject is null) && Marshal.IsComObject(ComObject))
-				Marshal.ReleaseComObject(ComObject);
-		}
+		public static ComDisposer<T> Wrap<T>(T obj) where T : class => new ComDisposer<T>(obj);
+
+		public static ComDisposer<T> QueryInterface<T>(object obj) where T : class => new ComDisposer<T>(obj);
 	}
 }

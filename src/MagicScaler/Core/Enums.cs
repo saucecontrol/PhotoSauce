@@ -115,7 +115,7 @@ namespace PhotoSauce.MagicScaler
 		Rotate270 = 8
 	}
 
-	/// <summary>Defines the modes that control <a href="https://magnushoff.com/jpeg-orientation.html">Exif Orientation</a> correction.</summary>
+	/// <summary>Defines the modes that control <a href="https://magnushoff.com/articles/jpeg-orientation/">Exif Orientation</a> correction.</summary>
 	public enum OrientationMode
 	{
 		/// <summary>Correct the image orientation according to the Exif tag on load.  Save the output in normal orientation.  This option ensures maximum compatibility with viewer software.</summary>
@@ -158,5 +158,13 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>4:4:0 Y'CbCr subsampling.  Not supported by the JPEG encoder.</summary>
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		Subsample440 = 4
+	}
+
+	internal enum GifDisposalMethod
+	{
+		Undefined = 0,
+		Preserve = 1,
+		RestoreBackground = 2,
+		RestorePrevious = 3
 	}
 }

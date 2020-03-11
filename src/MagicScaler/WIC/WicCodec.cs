@@ -31,33 +31,33 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		public static WicImageContainer Load(string fileName, WicPipelineContext ctx)
+		public static WicImageContainer Load(string fileName, PipelineContext ctx)
 		{
 			var dec = createDecoder(fn => Wic.Factory.CreateDecoderFromFilename(fn, null, GenericAccessRights.GENERIC_READ, WICDecodeOptions.WICDecodeMetadataCacheOnDemand), fileName);
-			return new WicImageContainer(dec, ctx);
+			return WicImageContainer.Create(dec, ctx);
 		}
 
-		public static WicImageContainer Load(Stream inStream, WicPipelineContext ctx)
+		public static WicImageContainer Load(Stream inStream, PipelineContext ctx)
 		{
 			var dec = createDecoder(stm => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand), inStream.AsIStream());
-			return new WicImageContainer(dec, ctx);
+			return WicImageContainer.Create(dec, ctx);
 		}
 
-		unsafe public static WicImageContainer Load(byte* pbBuffer, int cbBuffer, WicPipelineContext ctx, bool ownCopy = false)
+		unsafe public static WicImageContainer Load(byte* pbBuffer, int cbBuffer, PipelineContext ctx, bool ownCopy = false)
 		{
-			var istm = ctx.AddRef(Wic.Factory.CreateStream());
+			var istm = ctx.WicContext.AddRef(Wic.Factory.CreateStream());
 			var ptr = (IntPtr)pbBuffer;
 
 			if (ownCopy)
 			{
-				ptr = ctx.AddUnmanagedMemory(cbBuffer).DangerousGetHandle();
+				ptr = ctx.WicContext.AddUnmanagedMemory(cbBuffer).DangerousGetHandle();
 				Buffer.MemoryCopy(pbBuffer, ptr.ToPointer(), cbBuffer, cbBuffer);
 			}
 
 			istm.InitializeFromMemory(ptr, (uint)cbBuffer);
 
 			var dec = createDecoder(stm => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand), istm);
-			return new WicImageContainer(dec, ctx);
+			return WicImageContainer.Create(dec, ctx);
 		}
 	}
 
@@ -116,7 +116,7 @@ namespace PhotoSauce.MagicScaler
 
 				if (ctx.Settings.OrientationMode == OrientationMode.Preserve && ctx.ImageFrame.ExifOrientation != Orientation.Normal)
 				{
-					string orientationPath = ctx.Settings.SaveFormat == FileFormat.Jpeg ? Wic.Metadata.OrientationJpegPath : Wic.Metadata.OrientationExifPath;
+					string orientationPath = ctx.Settings.SaveFormat == FileFormat.Jpeg ? Wic.Metadata.OrientationJpeg : Wic.Metadata.OrientationExif;
 					metawriter.TrySetMetadataByName(orientationPath, new PropVariant((ushort)ctx.ImageFrame.ExifOrientation));
 				}
 			}
@@ -204,7 +204,7 @@ namespace PhotoSauce.MagicScaler
 
 		private static IWICColorContext getDefaultColorContext(Guid pixelFormat)
 		{
-			using var pfi = new ComHandle<IWICPixelFormatInfo>(Wic.Factory.CreateComponentInfo(pixelFormat));
+			using var pfi = ComHandle.QueryInterface<IWICPixelFormatInfo>(Wic.Factory.CreateComponentInfo(pixelFormat));
 			return pfi.ComObject.GetColorContext();
 		}
 

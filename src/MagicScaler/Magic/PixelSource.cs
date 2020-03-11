@@ -91,15 +91,14 @@ namespace PhotoSauce.MagicScaler
 
 	internal class PixelSourceContainer : IImageContainer
 	{
-		private readonly PixelSourceFrame frame;
+		private readonly IPixelSource pixelSource;
 
 		public FileFormat ContainerFormat => FileFormat.Unknown;
-
 		public int FrameCount => 1;
 
-		public PixelSourceContainer(IPixelSource source) => frame = new PixelSourceFrame(source);
+		public PixelSourceContainer(IPixelSource source) => pixelSource = source;
 
-		public IImageFrame GetFrame(int index) => index == 0 ? frame : throw new IndexOutOfRangeException();
+		public IImageFrame GetFrame(int index) => index == 0 ? new PixelSourceFrame(pixelSource) : throw new IndexOutOfRangeException();
 	}
 
 	internal class NoopPixelSource : PixelSource

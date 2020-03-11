@@ -15,7 +15,7 @@ namespace PhotoSauce.MagicScaler
 		public static ProcessImageResult ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
 		{
 			using var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicImageDecoder.Load(imgPath, ctx.WicContext);
+			ctx.ImageContainer = WicImageDecoder.Load(imgPath, ctx);
 
 			return processImage(ctx, outStream);
 		}
@@ -25,7 +25,7 @@ namespace PhotoSauce.MagicScaler
 			fixed (byte* pbBuffer = imgBuffer)
 			{
 				using var ctx = new PipelineContext(settings);
-				ctx.ImageContainer = WicImageDecoder.Load(pbBuffer, imgBuffer.Length, ctx.WicContext);
+				ctx.ImageContainer = WicImageDecoder.Load(pbBuffer, imgBuffer.Length, ctx);
 
 				return processImage(ctx, outStream);
 			}
@@ -34,7 +34,7 @@ namespace PhotoSauce.MagicScaler
 		public static ProcessImageResult ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings)
 		{
 			using var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicImageDecoder.Load(imgStream, ctx.WicContext);
+			ctx.ImageContainer = WicImageDecoder.Load(imgStream, ctx);
 
 			return processImage(ctx, outStream);
 		}
