@@ -6,6 +6,8 @@ using System.Web.Hosting;
 using System.Collections;
 using System.Threading.Tasks;
 
+using PhotoSauce.MagicScaler;
+
 namespace PhotoSauce.WebRSize
 {
 	/// <summary>A base <see cref="VirtualPathProvider"/> that adds memory caching and async operation.</summary>
@@ -57,6 +59,9 @@ namespace PhotoSauce.WebRSize
 
 		/// <inheritdoc cref="GetDirectory(string)" />
 		protected virtual Task<VirtualDirectory> GetDirectoryAsyncInternal(string virtualDir) => CacheHelper.CompletedTask<VirtualDirectory>.Default;
+
+		/// <inheritdoc cref="GetImageInfoAsync(string)" />
+		protected virtual Task<ImageFileInfo> GetImageInfoAsyncInternal(string virtualPath) => CacheHelper.GetImageInfoAsync(this, virtualPath);
 
 		/// <inheritdoc />
 		public override bool FileExists(string virtualPath) => IsPathCaptured(virtualPath) ? FileExistsInternal(virtualPath) : Previous.FileExists(virtualPath);
@@ -113,6 +118,17 @@ namespace PhotoSauce.WebRSize
 				return CacheHelper.GetOrAddAsync(string.Concat("wsvppd_", virtualDir), () => GetDirectoryAsyncInternal(virtualDir));
 
 			return AsyncPrevious?.GetDirectoryAsync(virtualDir) ?? Task.FromResult(Previous.GetDirectory(virtualDir));
+		}
+
+		/// <summary>Get the basic metadata associated with an image file at the given <paramref name="virtualPath" />.</summary>
+		/// <param name="virtualPath">The virtual path of the image file.</param>
+		/// <returns>The <see cref="ImageFileInfo" />.</returns>
+		public virtual Task<ImageFileInfo> GetImageInfoAsync(string virtualPath)
+		{
+			if (IsPathCaptured(virtualPath))
+				return CacheHelper.GetOrAddAsync(string.Concat("wsvppfi_", virtualPath), () => GetImageInfoAsyncInternal(virtualPath));
+
+			return AsyncPrevious?.GetImageInfoAsync(virtualPath) ?? CacheHelper.GetImageInfoAsync(Previous, virtualPath);
 		}
 	}
 

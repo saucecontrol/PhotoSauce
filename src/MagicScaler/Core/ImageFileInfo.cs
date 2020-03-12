@@ -56,7 +56,12 @@ namespace PhotoSauce.MagicScaler
 			ContainerType = FileFormat.Unknown;
 		}
 
-		private ImageFileInfo(FileFormat containerType, IReadOnlyList<FrameInfo> frames, long fileSize, DateTime fileDate)
+		/// <summary>Constructs a new <see cref="ImageFileInfo" /> instance the specified values.</summary>
+		/// <param name="containerType">The <see cref="FileFormat" /> of the image container.</param>
+		/// <param name="frames">A list containing one <see cref="FrameInfo" /> per image frame in the container.</param>
+		/// <param name="fileSize">The size in bytes of the image file.</param>
+		/// <param name="fileDate">The last modified date of the image file.</param>
+		public ImageFileInfo(FileFormat containerType, IReadOnlyList<FrameInfo> frames, long fileSize, DateTime fileDate)
 		{
 			ContainerType = containerType;
 			Frames = frames;

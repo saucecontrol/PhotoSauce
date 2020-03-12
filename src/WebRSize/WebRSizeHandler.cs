@@ -15,8 +15,11 @@ namespace PhotoSauce.WebRSize
 	/// <summary>An <see cref="IHttpHandler" /> implementation that performs a dynamic image processing operation, returns the result to the client, and queues caching the result.</summary>
 	public class WebRSizeHandler : HttpTaskAsyncHandler
 	{
+		internal static WebRSizeHandler Instance = new WebRSizeHandler();
+
 		private struct QueueReleaser : IDisposable { public void Dispose() => sem.Release(); }
 
+		private static readonly bool diskCacheEnabled = WebRSizeConfig.Current.DiskCache.Enabled;
 		private static readonly SemaphoreSlim sem = new SemaphoreSlim(Environment.ProcessorCount, Environment.ProcessorCount);
 		private static readonly ConcurrentDictionary<string, Task<ArraySegment<byte>>> tdic = new ConcurrentDictionary<string, Task<ArraySegment<byte>>>();
 		private static readonly Lazy<Type> mpbvfType = new Lazy<Type>(() => Assembly.GetAssembly(typeof(HostingEnvironment)).GetType("System.Web.Hosting.MapPathBasedVirtualFile", true));
@@ -31,6 +34,9 @@ namespace PhotoSauce.WebRSize
 		{
 			oimg.TryGetBuffer(out var bytes);
 			tcs.SetResult(bytes);
+
+			if (!diskCacheEnabled)
+				return;
 
 			HostingEnvironment.QueueBackgroundWorkItem(async __ => { try {
 				var fi = new FileInfo(cachePath);

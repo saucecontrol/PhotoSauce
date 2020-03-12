@@ -16,7 +16,7 @@ namespace PhotoSauce.WebRSize
 		internal const string CachePathKey            = "wscachepath";
 		internal const string NotFoundPath            = "/404/notfound.png";
 
-		private static readonly WebRSizeHandler handler = new WebRSizeHandler();
+		private static readonly bool diskCacheEnabled = WebRSizeConfig.Current.DiskCache.Enabled;
 		private static readonly ImageFolder[] imageFolders = WebRSizeConfig.Current.ImageFolders.OfType<ImageFolder>().ToArray();
 		private static readonly Lazy<ICacheFileNamingStrategy> namingStrategy = new Lazy<ICacheFileNamingStrategy>(() => (ICacheFileNamingStrategy)Activator.CreateInstance(WebRSizeConfig.Current.DiskCache.NamingStrategy));
 
@@ -26,7 +26,7 @@ namespace PhotoSauce.WebRSize
 			var vpp = HostingEnvironment.VirtualPathProvider;
 
 			string path = ctx.Request.Path;
-			bool exists = vpp is CachingAsyncVirtualPathProvider vppAsync ? await vppAsync.FileExistsAsync(path) : vpp.FileExists(path);
+			bool exists = vpp is CachingAsyncVirtualPathProvider vppAE ? await vppAE.FileExistsAsync(path).ConfigureAwait(false) : vpp.FileExists(path);
 
 			var folderConfig = imageFolders.FirstOrDefault(f => ctx.Request.Path.StartsWith(f.Path, StringComparison.OrdinalIgnoreCase));
 			if (folderConfig is null)
@@ -63,7 +63,7 @@ namespace PhotoSauce.WebRSize
 				s.SaveFormat = FileFormat.Png;
 			}
 
-			ifi ??= await CacheHelper.GetImageInfoAsync(path);
+			ifi = vpp is CachingAsyncVirtualPathProvider vppAF ? await vppAF.GetImageInfoAsync(path).ConfigureAwait(false) : await CacheHelper.GetImageInfoAsync(vpp, path).ConfigureAwait(false);
 			s.NormalizeFrom(ifi);
 
 			if (!folderConfig.AllowEnlarge && s.ResizeMode != CropScaleMode.Max)
@@ -99,7 +99,7 @@ namespace PhotoSauce.WebRSize
 			string cacheVPath = namingStrategy.Value.GetCacheFilePath(path, s);
 			string cachePath = HostingEnvironment.MapPath(cacheVPath);
 
-			if (File.Exists(cachePath))
+			if (diskCacheEnabled && File.Exists(cachePath))
 			{
 				ctx.RewritePath(cacheVPath, null, string.Empty, false);
 				return;
@@ -110,7 +110,7 @@ namespace PhotoSauce.WebRSize
 
 			ctx.Items[ProcessImageSettingsKey] = s;
 			ctx.Items[CachePathKey] = cachePath;
-			ctx.RemapHandler(handler);
+			ctx.RemapHandler(WebRSizeHandler.Instance);
 		}
 
 		/// <inheritdoc />

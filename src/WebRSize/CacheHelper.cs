@@ -42,13 +42,12 @@ namespace PhotoSauce.WebRSize
 			return val;
 		}
 
-		public static Task<ImageFileInfo> GetImageInfoAsync(string path)
+		public static Task<ImageFileInfo> GetImageInfoAsync(VirtualPathProvider vpp, string path)
 		{
-			return GetOrAddAsync(string.Concat("wrfi_", path), async () => {
-				var vpp = HostingEnvironment.VirtualPathProvider;
-
+			return GetOrAddAsync(string.Concat("wsvppfi_", path), async () => {
 				var file = vpp is CachingAsyncVirtualPathProvider vppAsync ? await vppAsync.GetFileAsync(path).ConfigureAwait(false) : vpp.GetFile(path);
 				var afile = file as AsyncVirtualFile;
+
 				using var stream = afile != null ? await afile.OpenAsync().ConfigureAwait(false) : file.Open();
 				return ImageFileInfo.Load(stream, afile != null ? afile.LastModified : DateTime.MinValue);
 			}, () => MakeVirtualPathDependency(path));

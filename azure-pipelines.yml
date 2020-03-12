@@ -9,19 +9,19 @@ steps:
 - checkout: self
   submodules: true
 
-- task: NuGetAuthenticate@0
-  condition: ne(variables['Build.Reason'], 'PullRequest')
-
 - task: UseDotNet@2
   displayName: Ensure 3.1 SDK
   inputs:
     version: 3.1.x
-    performMultiLevelLookup: true
+    includePreviewVersions: true
 
 - script: |
     dotnet build src\MagicScaler -c Dist --version-suffix ci$(Build.BuildNumber)
     dotnet build src\WebRSize -c Dist --version-suffix ci$(Build.BuildNumber)
   displayName: Build
+
+- task: NuGetAuthenticate@0
+  condition: ne(variables['Build.Reason'], 'PullRequest')
 
 - script: |
     dotnet nuget push --api-key AzureArtifacts --source https://pkgs.dev.azure.com/saucecontrol/PhotoSauce/_packaging/photosauce_ci/nuget/v3/index.json out\bin\MagicScaler\Dist\PhotoSauce.MagicScaler.*.nupkg
