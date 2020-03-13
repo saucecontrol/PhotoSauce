@@ -240,6 +240,10 @@ namespace PhotoSauce.MagicScaler
 				ctx.PlanarContext = new PipelineContext.PlanarPipelineContext(planarFrame.PixelSource.AsPixelSource(), planarFrame.PixelSourceCb.AsPixelSource(), planarFrame.PixelSourceCr.AsPixelSource());
 				ctx.Source = ctx.PlanarContext.SourceY;
 			}
+			else
+			{
+				ctx.Source = ctx.ImageFrame.PixelSource.AsPixelSource();
+			}
 
 			MagicTransforms.AddColorProfileReader(ctx);
 
