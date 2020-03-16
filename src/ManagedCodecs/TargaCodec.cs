@@ -10,7 +10,7 @@ using PhotoSauce.MagicScaler;
 
 namespace PhotoSauce.ManagedCodecs
 {
-	/// <summary>Represents a TGA image file.</summary>
+	/// <summary>Represents a TARGA image file.</summary>
 	public sealed class TargaContainer : IImageContainer, IDisposable
 	{
 		private readonly Image decodedImage;
@@ -24,24 +24,18 @@ namespace PhotoSauce.ManagedCodecs
 		public int FrameCount => 1;
 
 		/// <inheritdoc />
-		public IImageFrame GetFrame(int index) => index == 0 ? new TargaFrame(decodedImage) : throw new IndexOutOfRangeException("Invalid frame index");
+		public IImageFrame GetFrame(int index) => index == 0 ? new TargaFrame(decodedImage.Frames.RootFrame) : throw new IndexOutOfRangeException("Invalid frame index");
 
 		/// <summary>Loads a TGA image from the specified path.</summary>
 		/// <param name="imgPath">The path to the image file.</param>
 		/// <returns>A <see cref="TargaContainer"/> encapsulating the image.</returns>
 		public static TargaContainer Load(string imgPath)
 		{
-			int bpp = 0;
-			using (var fs = File.OpenRead(imgPath))
-			{
-				var info = Image.Identify(fs, out var fmt);
-				if (fmt.Name != "TGA")
-					throw new InvalidDataException("Not a TGA image");
+			var info = Image.Identify(imgPath, out var fmt);
+			if (fmt.Name != "TGA")
+				throw new InvalidDataException("Not a TARGA image");
 
-				bpp = info.PixelType.BitsPerPixel;
-			}
-
-			return bpp switch
+			return info.PixelType.BitsPerPixel switch
 			{
 				 8 => new TargaContainer(Image.Load<L8>(imgPath)),
 				24 => new TargaContainer(Image.Load<Bgr24>(imgPath)),
@@ -49,15 +43,16 @@ namespace PhotoSauce.ManagedCodecs
 			};
 		}
 
+		/// <inheritdoc />
 		public void Dispose() => decodedImage.Dispose();
 	}
 
 	/// <summary>Gives access to the pixels in a TGA file.</summary>
 	public sealed class TargaFrame : IImageFrame
 	{
-		private readonly Image decodedImage;
+		private readonly ImageFrame decodedFrame;
 
-		internal TargaFrame(Image image) => decodedImage = image;
+		internal TargaFrame(ImageFrame frame) => decodedFrame = frame;
 
 		/// <inheritdoc />
 		public double DpiX => 96;
@@ -72,18 +67,23 @@ namespace PhotoSauce.ManagedCodecs
 		public ReadOnlySpan<byte> IccProfile => default;
 
 		/// <inheritdoc />
-		public IPixelSource PixelSource => new ImagePixelSource(decodedImage, decodedImage.Frames.RootFrame);
+		public IPixelSource PixelSource => new ImagePixelSource(decodedFrame);
 
 		/// <inheritdoc />
-		public void Dispose() => decodedImage.Dispose();
+		public void Dispose() => decodedFrame.Dispose();
 	}
 
 	internal sealed class ImagePixelSource : IPixelSource
 	{
-		private readonly Image decodedImage;
 		private readonly ImageFrame decodedFrame;
 
-		public ImagePixelSource(Image image, ImageFrame frame) => (decodedImage, decodedFrame) = (image, frame);
+		public ImagePixelSource(ImageFrame frame) => decodedFrame = frame;
+
+		private int bytesPerPixel => decodedFrame switch {
+			ImageFrame<L8>    _ => 1,
+			ImageFrame<Bgr24> _ => 3,
+			                  _ => 4
+		};
 
 		public Guid Format => decodedFrame switch {
 			ImageFrame<L8>    _ => PixelFormats.Grey8bpp,
@@ -98,8 +98,7 @@ namespace PhotoSauce.ManagedCodecs
 		public void CopyPixels(System.Drawing.Rectangle sourceArea, int cbStride, Span<byte> buffer)
 		{
 			var (rx, ry, rw, rh) = (sourceArea.X, sourceArea.Y, sourceArea.Width, sourceArea.Height);
-			int bpp = decodedImage.PixelType.BitsPerPixel / 8;
-			int cb = rw * bpp;
+			int cb = rw * bytesPerPixel;
 
 			if (rx < 0 || ry < 0 || rw < 0 || rh < 0 || rx + rw > Width || ry + rh > Height)
 				throw new ArgumentOutOfRangeException(nameof(sourceArea), "Requested area does not fall within the image bounds");
