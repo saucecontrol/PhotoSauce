@@ -142,7 +142,7 @@ namespace PhotoSauce.MagicScaler
 				var oformat = Consts.GUID_WICPixelFormat24bppBGR;
 				WicEncoderFrame.SetPixelFormat(ref oformat);
 
-				var planes = new[] { ctx.PlanarContext.SourceY.WicSource, ctx.PlanarContext.SourceCb.WicSource, ctx.PlanarContext.SourceCr.WicSource };
+				var planes = new[] { ctx.PlanarContext.SourceY.AsIWICBitmapSource(), ctx.PlanarContext.SourceCb.AsIWICBitmapSource(), ctx.PlanarContext.SourceCr.AsIWICBitmapSource() };
 				((IWICPlanarBitmapFrameEncode)WicEncoderFrame).WriteSource(planes, (uint)planes.Length, WICRect.Null);
 			}
 			else
@@ -163,16 +163,16 @@ namespace PhotoSauce.MagicScaler
 					}
 
 					var conv = ctx.WicContext.AddRef(Wic.Factory.CreateFormatConverter());
-					conv.Initialize(ctx.Source.WicSource, oformat, WICBitmapDitherType.WICBitmapDitherTypeNone, pal, 0.0, ptt);
+					conv.Initialize(ctx.Source.AsIWICBitmapSource(), oformat, WICBitmapDitherType.WICBitmapDitherTypeNone, pal, 0.0, ptt);
 					ctx.Source = conv.AsPixelSource($"{nameof(IWICFormatConverter)}: {ctx.Source.Format.Name}->{PixelFormat.FromGuid(oformat).Name}", false);
 				}
-				else if (oformat == Consts.GUID_WICPixelFormat8bppIndexed)
+				else if (oformat == PixelFormat.Indexed8Bpp.FormatGuid)
 				{
 					Debug.Assert(ctx.WicContext.DestPalette != null);
 					WicEncoderFrame.SetPalette(ctx.WicContext.DestPalette);
 				}
 
-				WicEncoderFrame.WriteSource(ctx.Source.WicSource, WICRect.Null);
+				WicEncoderFrame.WriteSource(ctx.Source.AsIWICBitmapSource(), WICRect.Null);
 			}
 
 			WicEncoderFrame.Commit();
@@ -182,7 +182,7 @@ namespace PhotoSauce.MagicScaler
 
 	internal class WicColorProfile
 	{
-		public static readonly Lazy<WicColorProfile> Cmyk = new Lazy<WicColorProfile>(() => new WicColorProfile(getDefaultColorContext(Consts.GUID_WICPixelFormat32bppCMYK), null!));
+		public static readonly Lazy<WicColorProfile> Cmyk = new Lazy<WicColorProfile>(() => new WicColorProfile(getDefaultColorContext(PixelFormat.Cmyk32Bpp.FormatGuid), null!));
 		public static readonly Lazy<WicColorProfile> Srgb = new Lazy<WicColorProfile>(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sRgbV4.Value), ColorProfile.sRGB));
 		public static readonly Lazy<WicColorProfile> Grey = new Lazy<WicColorProfile>(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sGreyV4.Value), ColorProfile.sGrey));
 		public static readonly Lazy<WicColorProfile> SrgbCompact = new Lazy<WicColorProfile>(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sRgbCompact.Value), ColorProfile.sRGB));

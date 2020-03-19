@@ -45,6 +45,9 @@ namespace PhotoSauce.MagicScaler
 
 			ctx.ImageFrame = frame;
 			ctx.Source = frame.Source;
+
+			MagicTransforms.AddGifFrameBuffer(ctx);
+
 			ctx.FinalizeSettings();
 
 			WicTransforms.AddColorProfileReader(ctx);

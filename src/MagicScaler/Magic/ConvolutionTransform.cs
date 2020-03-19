@@ -3,8 +3,6 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-using PhotoSauce.Interop.Wic;
-
 namespace PhotoSauce.MagicScaler.Transforms
 {
 	unsafe internal interface IConvolver
@@ -21,17 +19,17 @@ namespace PhotoSauce.MagicScaler.Transforms
 		IConvolver IntrinsicImpl { get; }
 	}
 
-	internal class ConvolutionTransform<TPixel, TWeight> : PixelSource, IDisposable where TPixel : unmanaged where TWeight : unmanaged
+	internal class ConvolutionTransform<TPixel, TWeight> : ChainedPixelSource, IDisposable where TPixel : unmanaged where TWeight : unmanaged
 	{
 		protected static readonly IReadOnlyDictionary<Guid, IConvolver> ProcessorMap = new Dictionary<Guid, IConvolver> {
-			[Consts.GUID_WICPixelFormat32bppCMYK          ] = Convolver4ChanByte.Instance,
-			[Consts.GUID_WICPixelFormat32bppPBGRA         ] = Convolver4ChanByte.Instance,
-			[Consts.GUID_WICPixelFormat32bppBGRA          ] = ConvolverBgraByte.Instance,
-			[Consts.GUID_WICPixelFormat24bppBGR           ] = ConvolverBgrByte.Instance,
-			[Consts.GUID_WICPixelFormat8bppGray           ] = Convolver1ChanByte.Instance,
-			[Consts.GUID_WICPixelFormat8bppY              ] = Convolver1ChanByte.Instance,
-			[Consts.GUID_WICPixelFormat8bppCb             ] = Convolver1ChanByte.Instance,
-			[Consts.GUID_WICPixelFormat8bppCr             ] = Convolver1ChanByte.Instance,
+			[PixelFormat.Cmyk32Bpp.FormatGuid             ] = Convolver4ChanByte.Instance,
+			[PixelFormat.Pbgra32Bpp.FormatGuid            ] = Convolver4ChanByte.Instance,
+			[PixelFormat.Bgra32Bpp.FormatGuid             ] = ConvolverBgraByte.Instance,
+			[PixelFormat.Bgr24Bpp.FormatGuid              ] = ConvolverBgrByte.Instance,
+			[PixelFormat.Grey8Bpp.FormatGuid              ] = Convolver1ChanByte.Instance,
+			[PixelFormat.Y8Bpp.FormatGuid                 ] = Convolver1ChanByte.Instance,
+			[PixelFormat.Cb8Bpp.FormatGuid                ] = Convolver1ChanByte.Instance,
+			[PixelFormat.Cr8Bpp.FormatGuid                ] = Convolver1ChanByte.Instance,
 			[PixelFormat.Pbgra64BppLinearUQ15.FormatGuid  ] = Convolver4ChanUQ15.Instance,
 			[PixelFormat.Bgr48BppLinearUQ15.FormatGuid    ] = ConvolverBgrUQ15.Instance,
 			[PixelFormat.Grey16BppLinearUQ15.FormatGuid   ] = Convolver1ChanUQ15.Instance,
@@ -58,9 +56,12 @@ namespace PhotoSauce.MagicScaler.Transforms
 		protected KernelMap<TWeight> XMap, YMap;
 
 		private readonly bool bufferSource;
-		private readonly int inWidth;
 
 		private ArraySegment<byte> lineBuff;
+
+		public override PixelFormat Format { get; }
+		public override int Width { get; }
+		public override int Height { get; }
 
 		public static ConvolutionTransform<TPixel, TWeight> CreateResize(PixelSource src, int width, int height, InterpolationSettings interpolatorx, InterpolationSettings interpolatory, bool offsetX, bool offsetY)
 		{
@@ -82,7 +83,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		protected ConvolutionTransform(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, bool lumaMode = false) : base(source)
 		{
-			var infmt = Format;
+			var infmt = source.Format;
 			var workfmt = infmt;
 			if (lumaMode)
 			{
@@ -91,7 +92,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 				workfmt = infmt.NumericRepresentation == PixelNumericRepresentation.Float ? PixelFormat.Grey32BppFloat :
 				          infmt.NumericRepresentation == PixelNumericRepresentation.Fixed ? PixelFormat.Grey16BppUQ15 :
-				          infmt.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger ? PixelFormat.FromGuid(Consts.GUID_WICPixelFormat8bppGray) :
+				          infmt.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger ? PixelFormat.Grey8Bpp :
 				          throw new NotSupportedException("Unsupported pixel format: " + infmt.Name);
 			}
 
@@ -102,6 +103,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 				Format = workfmt = PixelFormat.Bgrx128BppLinearFloat;
 			else if (workfmt == PixelFormat.Bgr96BppFloat)
 				Format = workfmt = PixelFormat.Bgrx128BppFloat;
+			else
+				Format = infmt;
 
 			YProcessor = ProcessorMap[workfmt.FormatGuid];
 
@@ -116,7 +119,6 @@ namespace PhotoSauce.MagicScaler.Transforms
 			if (XMap.Channels != XProcessor.MapChannels || YMap.Channels != YProcessor.MapChannels)
 				throw new NotSupportedException("Map and Processor channel counts don't match");
 
-			inWidth = Width;
 			Width = mapx.Pixels;
 			Height = mapy.Pixels;
 
@@ -130,7 +132,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				if (workfmt.IsBinaryCompatibleWith(infmt))
 					WorkBuff = SrcBuff;
 				else
-					WorkBuff = new PixelBuffer(mapy.Samples, MathUtil.PowerOfTwoCeiling(inWidth * workfmt.BytesPerPixel, IntPtr.Size), true);
+					WorkBuff = new PixelBuffer(mapy.Samples, MathUtil.PowerOfTwoCeiling(source.Width * workfmt.BytesPerPixel, IntPtr.Size), true);
 			}
 			else
 			{
@@ -184,11 +186,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 					for (int ly = 0; ly < cli; ly++)
 					{
 						Profiler.PauseTiming();
-						Source.CopyPixels(new PixelArea(0, fli + ly, inWidth, 1), BufferStride, BufferStride, (IntPtr)bp);
+						PrevSource.CopyPixels(new PixelArea(0, fli + ly, PrevSource.Width, 1), bspan.Length, bspan.Length, (IntPtr)bp);
 						Profiler.ResumeTiming();
 
 						if (bp != wp)
-							GreyConverter.ConvertLine(Format.FormatGuid, bp, wp, SrcBuff!.Stride, WorkBuff!.Stride);
+							GreyConverter.ConvertLine(Format, bp, wp, SrcBuff!.Stride, WorkBuff!.Stride);
 
 						XProcessor.ConvolveSourceLine(wp, tp, ispan.Length - ly * IntBuff.Stride, mapxstart, XMap.Samples, lines);
 
@@ -231,7 +233,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		public override string? ToString() => $"{XProcessor}: {Format.Name}";
 	}
 
-	internal class UnsharpMaskTransform<TPixel, TWeight> : ConvolutionTransform<TPixel, TWeight> where TPixel : unmanaged where TWeight : unmanaged
+	internal sealed class UnsharpMaskTransform<TPixel, TWeight> : ConvolutionTransform<TPixel, TWeight> where TPixel : unmanaged where TWeight : unmanaged
 	{
 		private readonly IConvolver processor;
 		private readonly float amount, threshold;

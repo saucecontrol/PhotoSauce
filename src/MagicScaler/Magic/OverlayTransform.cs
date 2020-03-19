@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler.Transforms
 {
-	internal class OverlayTransform : PixelSource, IDisposable
+	internal sealed class OverlayTransform : ChainedPixelSource, IDisposable
 	{
 		const int bytesPerPixel = 4;
 
@@ -52,7 +52,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				if (!passthrough || tw < prc.Width || cy < inner.Y || cy >= inner.Y + inner.Height)
 				{
 					Profiler.PauseTiming();
-					Source.CopyPixels(new PixelArea(prc.X, cy, prc.Width, 1), cbStride, cbBufferSize, (IntPtr)pb);
+					PrevSource.CopyPixels(new PixelArea(prc.X, cy, prc.Width, 1), cbStride, cbBufferSize, (IntPtr)pb);
 					Profiler.ResumeTiming();
 				}
 
@@ -148,5 +148,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			BufferPool.Return(lineBuff);
 			lineBuff = default;
 		}
+
+		public override string ToString() => nameof(OverlayTransform);
 	}
 }

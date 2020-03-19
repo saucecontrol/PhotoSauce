@@ -8,13 +8,11 @@ using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 #endif
 
-using PhotoSauce.Interop.Wic;
-
 using static PhotoSauce.MagicScaler.MathUtil;
 
 namespace PhotoSauce.MagicScaler.Transforms
 {
-	internal class PlanarConversionTransform : PixelSource, IDisposable
+	internal sealed class PlanarConversionTransform : ChainedPixelSource, IDisposable
 	{
 		private const int ichromaOffset = 128;
 		private const float videoChromaScale = 224f;
@@ -24,6 +22,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 		private readonly float coeffCb0, coeffCb1, coeffCr0, coeffCr1;
 
 		private ArraySegment<byte> lineBuff;
+
+		public override PixelFormat Format { get; }
 
 		public PlanarConversionTransform(PixelSource srcY, PixelSource srcCb, PixelSource srcCr, Matrix4x4 matrix, bool videoLevels) : base(srcY)
 		{
@@ -46,11 +46,13 @@ namespace PhotoSauce.MagicScaler.Transforms
 			coeffCr0 = matrix.M32;
 			coeffCr1 = matrix.M31;
 
-			Format = srcY.Format.FormatGuid == Consts.GUID_WICPixelFormat8bppY ? PixelFormat.FromGuid(Consts.GUID_WICPixelFormat24bppBGR) : PixelFormat.Bgrx128BppFloat;
-			if (HWIntrinsics.IsAvxSupported)
-				BufferStride = PowerOfTwoCeiling(BufferStride, HWIntrinsics.VectorCount<byte>());
+			Format = srcY.Format == PixelFormat.Y8Bpp ? PixelFormat.Bgr24Bpp : PixelFormat.Bgrx128BppFloat;
 
-			lineBuff = BufferPool.Rent(BufferStride * 3, true);
+			int bufferStride = BufferStride;
+			if (HWIntrinsics.IsAvxSupported)
+				bufferStride = PowerOfTwoCeiling(bufferStride, HWIntrinsics.VectorCount<byte>());
+
+			lineBuff = BufferPool.Rent(bufferStride * 3, true);
 		}
 
 		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
@@ -59,15 +61,15 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			fixed (byte* bstart = &lineBuff.Array[lineBuff.Offset])
 			{
-				uint cb = (uint)DivCeiling(prc.Width * Source.Format.BitsPerPixel, 8);
-				uint bstride = (uint)BufferStride;
+				uint cb = (uint)DivCeiling(prc.Width * PrevSource.Format.BitsPerPixel, 8);
+				uint bstride = (uint)lineBuff.Count / 3u;
 
 				for (int y = 0; y < prc.Height; y++)
 				{
 					var lrc = new PixelArea(prc.X, prc.Y + y, prc.Width, 1);
 
 					Profiler.PauseTiming();
-					Source.CopyPixels(lrc, (int)bstride, (int)bstride, (IntPtr)bstart);
+					PrevSource.CopyPixels(lrc, (int)bstride, (int)bstride, (IntPtr)bstart);
 					sourceCb.CopyPixels(lrc, (int)bstride, (int)bstride, (IntPtr)(bstart + bstride));
 					sourceCr.CopyPixels(lrc, (int)bstride, (int)bstride, (IntPtr)(bstart + bstride * 2));
 					Profiler.ResumeTiming();
@@ -238,5 +240,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			BufferPool.Return(lineBuff);
 			lineBuff = default;
 		}
+
+		public override string ToString() => nameof(PlanarConversionTransform);
 	}
 }

@@ -232,6 +232,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 				op += channels;
 			}
 		}
+
+		public override string ToString() => nameof(Convolver4ChanVector);
 	}
 
 	internal sealed partial class Convolver3ChanVector : IConvolver
@@ -350,6 +352,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 		}
 
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy) => throw new NotImplementedException();
+
+		public override string ToString() => nameof(Convolver3ChanVector);
 	}
 
 	internal sealed partial class Convolver1ChanVector : IConvolver
@@ -595,5 +599,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				op += channels;
 			}
 		}
+
+		public override string ToString() => nameof(Convolver1ChanVector);
 	}
 }

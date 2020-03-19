@@ -2,6 +2,8 @@
 using System.Runtime.InteropServices;
 using System.Diagnostics.CodeAnalysis;
 
+using PhotoSauce.MagicScaler;
+
 namespace PhotoSauce.Interop.Wic
 {
 	internal static class Wic
@@ -46,6 +48,32 @@ namespace PhotoSauce.Interop.Wic
 	{
 		public static bool RequiresCache(this WICBitmapTransformOptions opt) =>
 			opt != WICBitmapTransformOptions.WICBitmapTransformRotate0 && opt != WICBitmapTransformOptions.WICBitmapTransformFlipHorizontal;
+
+		public static WICBitmapTransformOptions ToWicTransformOptions(this Orientation o)
+		{
+			int orientation = (int)o;
+
+			var opt = WICBitmapTransformOptions.WICBitmapTransformRotate0;
+			if (orientation == 3 || orientation == 4)
+				opt = WICBitmapTransformOptions.WICBitmapTransformRotate180;
+			else if (orientation == 6 || orientation == 7)
+				opt = WICBitmapTransformOptions.WICBitmapTransformRotate90;
+			else if (orientation == 5 || orientation == 8)
+				opt = WICBitmapTransformOptions.WICBitmapTransformRotate270;
+
+			if (orientation == 2 || orientation == 4 || orientation == 5 || orientation == 7)
+				opt |= WICBitmapTransformOptions.WICBitmapTransformFlipHorizontal;
+
+			return opt;
+		}
+
+		public static bool IsSubsampledX(this WICJpegYCrCbSubsamplingOption o) => MiscExtensions.IsSubsampledX((ChromaSubsampleMode)o);
+
+		public static bool IsSubsampledY(this WICJpegYCrCbSubsamplingOption o) => MiscExtensions.IsSubsampledY((ChromaSubsampleMode)o);
+
+		public static WICRect ToWicRect(in this PixelArea a) => new WICRect { X = a.X, Y = a.Y, Width = a.Width, Height = a.Height };
+
+		public static PixelArea ToPixelArea(in this WICRect r) => new PixelArea(r.X, r.Y, r.Width, r.Height);
 
 		public static bool TryGetPreview(this IWICBitmapDecoder dec, [NotNullWhen(true)] out IWICBitmapSource? pvw)
 		{

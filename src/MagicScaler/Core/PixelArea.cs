@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Drawing;
 
-using PhotoSauce.Interop.Wic;
-
 namespace PhotoSauce.MagicScaler
 {
 	internal readonly struct PixelArea : IEquatable<PixelArea>
@@ -15,8 +13,6 @@ namespace PhotoSauce.MagicScaler
 		public static PixelArea FromGdiRect(Rectangle r) => new PixelArea(r.X, r.Y, r.Width, r.Height);
 
 		public static PixelArea FromGdiSize(Size s) => new PixelArea(0, 0, s.Width, s.Height);
-
-		public static PixelArea FromWicRect(WICRect r) => new PixelArea(r.X, r.Y, r.Width, r.Height);
 
 		public PixelArea(int x, int y, int width, int height)
 		{
@@ -72,8 +68,6 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		public Rectangle ToGdiRect() => new Rectangle(X, Y, Width, Height);
-
-		public WICRect ToWicRect() => new WICRect { X = X, Y = Y, Width = Width, Height = Height };
 
 		public bool Equals(PixelArea other) => X == other.X && Y == other.Y && Width == other.Width && Height == other.Height;
 		public override bool Equals(object? obj) => obj is PixelArea other && Equals(other);

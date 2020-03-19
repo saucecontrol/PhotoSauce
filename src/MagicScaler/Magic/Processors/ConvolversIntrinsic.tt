@@ -392,6 +392,8 @@ if (t.channels == 1) {
 <#
 }
 #>
+
+		public override string ToString() => nameof(Convolver<#= t.name #>Intrinsic);
 	}
 
 	internal sealed partial class Convolver<#= t.name #>Vector : IVectorConvolver

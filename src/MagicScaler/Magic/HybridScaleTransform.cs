@@ -11,7 +11,7 @@ using static PhotoSauce.MagicScaler.MathUtil;
 
 namespace PhotoSauce.MagicScaler.Transforms
 {
-	internal class HybridScaleTransform : PixelSource, IDisposable
+	internal sealed class HybridScaleTransform : ChainedPixelSource, IDisposable
 	{
 #pragma warning disable IDE0044
 		// read from static prevents JIT from inlining the const value with the FastAvg helpers, which causes redundant 64-bit immediate loads
@@ -22,16 +22,19 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		private ArraySegment<byte> lineBuff;
 
+		public override int Width { get; }
+		public override int Height { get; }
+
 		public HybridScaleTransform(PixelSource source, int hybridScale) : base(source)
 		{
 			if (hybridScale == 0 || (hybridScale & (hybridScale - 1)) != 0) throw new ArgumentException("Must be power of two", nameof(hybridScale));
 			scale = hybridScale;
 
-			BufferStride = PowerOfTwoCeiling(PowerOfTwoCeiling(Width, scale) * Format.BytesPerPixel, IntPtr.Size);
-			lineBuff = BufferPool.Rent(BufferStride * scale);
+			int bufferStride = PowerOfTwoCeiling(PowerOfTwoCeiling(source.Width, scale) * source.Format.BytesPerPixel, IntPtr.Size);
+			lineBuff = BufferPool.Rent(bufferStride * scale);
 
-			Width = DivCeiling(Source.Width, scale);
-			Height = DivCeiling(Source.Height, scale);
+			Width = DivCeiling(PrevSource.Width, scale);
+			Height = DivCeiling(PrevSource.Height, scale);
 		}
 
 		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
@@ -41,18 +44,18 @@ namespace PhotoSauce.MagicScaler.Transforms
 			fixed (byte* bstart = &lineBuff.Array[lineBuff.Offset])
 			{
 				int iw = prc.Width * scale;
-				int iiw = Math.Min(iw, Source.Width - prc.X * scale);
-				uint bpp = (uint)Source.Format.BytesPerPixel;
+				int iiw = Math.Min(iw, PrevSource.Width - prc.X * scale);
+				uint bpp = (uint)PrevSource.Format.BytesPerPixel;
 				uint stride = (uint)iw * bpp;
 
 				for (int y = 0; y < prc.Height; y++)
 				{
 					int iy = (prc.Y + y) * scale;
 					int ih = scale;
-					int iih = Math.Min(ih, Source.Height - iy);
+					int iih = Math.Min(ih, PrevSource.Height - iy);
 
 					Profiler.PauseTiming();
-					Source.CopyPixels(new PixelArea(prc.X * scale, iy, iiw, iih), (int)stride, lineBuff.Count, (IntPtr)bstart);
+					PrevSource.CopyPixels(new PixelArea(prc.X * scale, iy, iiw, iih), (int)stride, lineBuff.Count, (IntPtr)bstart);
 					Profiler.ResumeTiming();
 
 					for (int i = 0; iiw < iw && i < iih; i++)

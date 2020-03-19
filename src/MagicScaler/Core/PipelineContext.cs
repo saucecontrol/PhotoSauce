@@ -2,8 +2,6 @@
 using System.Linq;
 using System.Collections.Generic;
 
-using PhotoSauce.Interop.Wic;
-
 namespace PhotoSauce.MagicScaler
 {
 	internal class PipelineContext : IDisposable
@@ -17,9 +15,9 @@ namespace PhotoSauce.MagicScaler
 
 			public PlanarPipelineContext(PixelSource sourceY, PixelSource sourceCb, PixelSource sourceCr)
 			{
-				if (sourceY.Format.FormatGuid != Consts.GUID_WICPixelFormat8bppY) throw new ArgumentException("Invalid pixel format", nameof(sourceY));
-				if (sourceCb.Format.FormatGuid != Consts.GUID_WICPixelFormat8bppCb) throw new ArgumentException("Invalid pixel format", nameof(sourceCb));
-				if (sourceCr.Format.FormatGuid != Consts.GUID_WICPixelFormat8bppCr) throw new ArgumentException("Invalid pixel format", nameof(sourceCr));
+				if (sourceY.Format != PixelFormat.Y8Bpp) throw new ArgumentException("Invalid pixel format", nameof(sourceY));
+				if (sourceCb.Format != PixelFormat.Cb8Bpp) throw new ArgumentException("Invalid pixel format", nameof(sourceCb));
+				if (sourceCr.Format != PixelFormat.Cr8Bpp) throw new ArgumentException("Invalid pixel format", nameof(sourceCr));
 
 				SourceY = sourceY;
 				SourceCb = sourceCb;

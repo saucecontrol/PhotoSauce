@@ -7,12 +7,11 @@ using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 #endif
 
-using PhotoSauce.Interop.Wic;
 using static PhotoSauce.MagicScaler.MathUtil;
 
 namespace PhotoSauce.MagicScaler.Transforms
 {
-	internal class ColorMatrixTransformInternal : PixelSource
+	internal sealed class ColorMatrixTransformInternal : ChainedPixelSource
 	{
 		private readonly Vector4 vec0, vec1, vec2, vec3;
 
@@ -27,7 +26,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			Profiler.PauseTiming();
-			Source.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
+			PrevSource.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
 			Profiler.ResumeTiming();
 
 			if (Format.NumericRepresentation == PixelNumericRepresentation.Float)
@@ -210,6 +209,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 #endif
+
+		public override string ToString() => nameof(ColorMatrixTransform);
 	}
 
 	/// <summary>Transforms an image according to coefficients in a <see cref="Matrix4x4" />.</summary>
@@ -233,8 +234,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			if (matrix != default && !matrix.IsIdentity)
 			{
-				var fmt = matrix.M44 < 1f || ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None ? Consts.GUID_WICPixelFormat32bppBGRA : Consts.GUID_WICPixelFormat24bppBGR;
-				if (ctx.Source.Format.FormatGuid != fmt)
+				var fmt = matrix.M44 < 1f || ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None ? PixelFormat.Bgra32Bpp : PixelFormat.Bgr24Bpp;
+				if (ctx.Source.Format != fmt)
 					ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, fmt));
 
 				ctx.Source = new ColorMatrixTransformInternal(ctx.Source, matrix);

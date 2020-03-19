@@ -8,20 +8,23 @@ using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 #endif
 
-using PhotoSauce.Interop.Wic;
 using static PhotoSauce.MagicScaler.MathUtil;
 
 namespace PhotoSauce.MagicScaler.Transforms
 {
-	internal class MatteTransform : PixelSource
+	internal sealed class MatteTransform : ChainedPixelSource
 	{
 		private readonly uint matteB, matteG, matteR, matteA;
 		private readonly uint matteValue32;
 		private readonly ulong matteValue64;
 		private readonly Vector4 vmatte;
 
+		public override PixelFormat Format { get; }
+
 		public MatteTransform(PixelSource source, Color color) : base(source)
 		{
+			Format = source.Format;
+
 			if (Format.ColorRepresentation != PixelColorRepresentation.Bgr || Format.AlphaRepresentation == PixelAlphaRepresentation.None)
 				throw new NotSupportedException("Pixel format not supported.  Must be BGRA");
 
@@ -48,7 +51,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			Profiler.PauseTiming();
-			Source.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
+			PrevSource.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
 			Profiler.ResumeTiming();
 
 			if (Format == PixelFormat.Pbgra128BppLinearFloat || Format == PixelFormat.Bgrx128BppLinearFloat)
@@ -60,7 +63,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					applyMatteLinearFloat(prc, (float*)pbBuffer, cbStride / sizeof(float));
 			else if (Format == PixelFormat.Pbgra64BppLinearUQ15)
 				applyMatteLinear(prc, (ushort*)pbBuffer, cbStride / sizeof(ushort));
-			else if (Format.FormatGuid == Consts.GUID_WICPixelFormat32bppBGRA)
+			else if (Format == PixelFormat.Bgra32Bpp)
 				applyMatteCompanded(prc, (byte*)pbBuffer, cbStride);
 			else
 				throw new NotSupportedException("Pixel format not supported.");
@@ -223,5 +226,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				}
 			}
 		}
+
+		public override string ToString() => nameof(MatteTransform);
 	}
 }

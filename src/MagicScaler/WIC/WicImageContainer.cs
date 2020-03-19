@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Buffers;
 using System.Buffers.Binary;
-using System.Runtime.CompilerServices;
 
 using PhotoSauce.Interop.Wic;
 using PhotoSauce.MagicScaler.Transforms;
@@ -51,7 +50,7 @@ namespace PhotoSauce.MagicScaler
 
 	internal class GifAnimationContext : IDisposable
 	{
-		public GifFrameBufferSource? FrameBufferSource;
+		public FrameBufferSource? FrameBufferSource;
 		public OverlayTransform? FrameOverlay;
 		public GifDisposalMethod LastDisposal;
 		public int LastFrame = -1;
@@ -60,50 +59,6 @@ namespace PhotoSauce.MagicScaler
 		{
 			FrameBufferSource?.Dispose();
 			FrameOverlay?.Dispose();
-		}
-	}
-
-	class GifFrameBufferSource : PixelSource, IDisposable
-	{
-		private ArraySegment<byte> frameBuff;
-
-		public int Stride { get; }
-
-		public Span<byte> Span => frameBuff.AsSpan();
-
-		public GifFrameBufferSource(int width, int height) : base()
-		{
-			Format = PixelFormat.FromGuid(Consts.GUID_WICPixelFormat32bppBGRA);
-
-			Width = width;
-			Height = height;
-			Stride = MathUtil.PowerOfTwoCeiling(width * Format.BytesPerPixel, HWIntrinsics.VectorCount<byte>());
-
-			frameBuff = BufferPool.Rent(Stride * height, true);
-		}
-
-		public override string ToString() => nameof(GifFrameBufferSource);
-
-		public void Dispose()
-		{
-			BufferPool.Return(frameBuff);
-			frameBuff = default;
-		}
-
-		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
-		{
-			if (frameBuff.Array is null) throw new ObjectDisposedException(nameof(GifFrameBufferSource));
-
-			int bpp = Format.BytesPerPixel;
-			int cb = prc.Width * bpp;
-
-			fixed (byte* buff = &frameBuff.Array[frameBuff.Offset])
-			{
-				byte* pb = buff + prc.Y * Stride + prc.X * bpp;
-
-				for (int y = 0; y < prc.Height; y++)
-					Unsafe.CopyBlockUnaligned((byte*)pbBuffer + y * cbStride, pb + y * Stride, (uint)cb);
-			}
 		}
 	}
 

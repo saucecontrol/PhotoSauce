@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Buffers;
-using System.Drawing;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 using PhotoSauce.Interop.Wic;
@@ -11,12 +9,13 @@ namespace PhotoSauce.MagicScaler
 {
 	internal class WicImageFrame : IImageFrame
 	{
-		private readonly WicImageContainer container;
 		private readonly ComHandleCollection comHandles = new ComHandleCollection(4);
 
 		private PixelSource? source;
 		private IPixelSource? isource;
 		private WicColorProfile? colorProfile;
+
+		public readonly WicImageContainer Container;
 
 		public double DpiX { get; }
 		public double DpiY { get; }
@@ -42,7 +41,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			WicFrame = comHandles.AddRef(decoder.WicDecoder.GetFrame(index));
 			WicSource = WicFrame;
-			container = decoder;
+			Container = decoder;
 
 			WicFrame.GetResolution(out double dpix, out double dpiy);
 			DpiX = dpix;
@@ -56,7 +55,7 @@ namespace PhotoSauce.MagicScaler
 
 				string orientationPath =
 					MagicImageProcessor.EnableXmpOrientation ? Wic.Metadata.OrientationWindowsPolicy :
-					container.ContainerFormat == FileFormat.Jpeg ? Wic.Metadata.OrientationJpeg :
+					Container.ContainerFormat == FileFormat.Jpeg ? Wic.Metadata.OrientationJpeg :
 					Wic.Metadata.OrientationExif;
 
 				ExifOrientation = ((Orientation)metareader.GetValueOrDefault<ushort>(orientationPath)).Clamp();
@@ -101,10 +100,10 @@ namespace PhotoSauce.MagicScaler
 
 			if (PixelFormat.FromGuid(WicSource.GetPixelFormat()).NumericRepresentation == PixelNumericRepresentation.Indexed)
 			{
-				var newFormat = Consts.GUID_WICPixelFormat24bppBGR;
-				if (container.ContainerFormat == FileFormat.Gif && container.FrameCount > 1)
+				var newFormat = PixelFormat.Bgr24Bpp;
+				if (Container.ContainerFormat == FileFormat.Gif && Container.FrameCount > 1)
 				{
-					newFormat = Consts.GUID_WICPixelFormat32bppBGRA;
+					newFormat = PixelFormat.Bgra32Bpp;
 				}
 				else
 				{
@@ -113,51 +112,20 @@ namespace PhotoSauce.MagicScaler
 					WicSource.CopyPalette(pal);
 
 					if (pal.HasAlpha())
-						newFormat = Consts.GUID_WICPixelFormat32bppBGRA;
+						newFormat = PixelFormat.Bgra32Bpp;
 					else if (pal.IsGrayscale() || pal.IsBlackWhite())
-						newFormat = Consts.GUID_WICPixelFormat8bppGray;
+						newFormat = PixelFormat.Grey8Bpp;
 				}
 
 				var conv = comHandles.AddRef(Wic.Factory.CreateFormatConverter());
-				conv.Initialize(WicSource, newFormat, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
+				conv.Initialize(WicSource, newFormat.FormatGuid, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
 				WicSource = conv;
-			}
-
-			if (container is WicGifContainer gif)
-			{
-				Debug.Assert(WicMetadataReader != null);
-
-				if (index > 0)
-					setupGifAnimationContext(gif, (int)(index - 1));
-
-				var finfo = getGifFrameInfo(gif, WicSource, WicMetadataReader);
-				var lastDisp = gif.AnimationContext?.LastDisposal ?? GifDisposalMethod.RestoreBackground;
-				if (!finfo.FullScreen && lastDisp == GifDisposalMethod.RestoreBackground)
-				{
-					var innerArea = new PixelArea(finfo.Left, finfo.Top, (int)frameWidth, (int)frameHeight);
-					var outerArea = new PixelArea(0, 0, gif.ScreenWidth, gif.ScreenHeight);
-					var bgColor = finfo.Alpha ? Color.Empty : Color.FromArgb((int)gif.BackgroundColor);
-
-					WicSource = new PadTransformInternal(WicSource.AsPixelSource(nameof(IWICBitmapFrameDecode)), bgColor, innerArea, outerArea).WicSource;
-				}
-				else if (lastDisp != GifDisposalMethod.RestoreBackground)
-				{
-					Debug.Assert(gif.AnimationContext?.FrameBufferSource != null);
-
-					var ani = gif.AnimationContext;
-					var fbuff = ani.FrameBufferSource;
-
-					ani.FrameOverlay?.Dispose();
-					ani.FrameOverlay = new OverlayTransform(fbuff, WicSource.AsPixelSource(nameof(IWICBitmapFrameDecode)), finfo.Left, finfo.Top, finfo.Alpha);
-
-					WicSource = ani.FrameOverlay.WicSource;
-				}
 			}
 		}
 
 		public void Dispose() => comHandles.Dispose();
 
-		unsafe private static void setupGifAnimationContext(WicGifContainer cont, int playTo)
+		unsafe public static void SetupGifAnimationContext(WicGifContainer cont, int playTo)
 		{
 			const int bytesPerPixel = 4;
 
@@ -179,33 +147,37 @@ namespace PhotoSauce.MagicScaler
 				using var conv = ComHandle.Wrap(Wic.Factory.CreateFormatConverter());
 				conv.ComObject.Initialize(frame.ComObject, Consts.GUID_WICPixelFormat32bppBGRA, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
 
-				var finfo = getGifFrameInfo(cont, conv.ComObject, meta.ComObject);
-				var fbuff = anictx.FrameBufferSource ??= new GifFrameBufferSource(cont.ScreenWidth, cont.ScreenHeight);
+				var finfo = GetGifFrameInfo(cont, conv.ComObject, meta.ComObject);
+				var fbuff = anictx.FrameBufferSource ??= new FrameBufferSource(cont.ScreenWidth, cont.ScreenHeight);
 				var bspan = fbuff.Span;
 
-				fixed (byte* buff = bspan)
-				{
-					// Most GIF viewers clear the background to transparent instead of the background color when the next frame has transparency
-					bool ftrans = meta.ComObject.GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
-					if (!finfo.FullScreen && ldisp == GifDisposalMethod.RestoreBackground)
-						MemoryMarshal.Cast<byte, uint>(bspan).Fill(ftrans ? 0 : cont.BackgroundColor);
+				fbuff.ResumeTiming();
 
-					// Similarly, they overwrite a background color with transparent pixels but overlay instead when the previous frame is preserved
-					var ptr = (IntPtr)(buff + finfo.Top * fbuff.Stride + finfo.Left * bytesPerPixel);
+				// Most GIF viewers clear the background to transparent instead of the background color when the next frame has transparency
+				bool ftrans = meta.ComObject.GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
+				if (!finfo.FullScreen && ldisp == GifDisposalMethod.RestoreBackground)
+					MemoryMarshal.Cast<byte, uint>(bspan).Fill(ftrans ? 0 : cont.BackgroundColor);
+
+				// Similarly, they overwrite a background color with transparent pixels but overlay instead when the previous frame is preserved
+				var fspan = bspan.Slice(finfo.Top * fbuff.Stride + finfo.Left * bytesPerPixel);
+				fixed (byte* buff = fspan)
+				{
 					if (!ftrans || ldisp == GifDisposalMethod.RestoreBackground)
 					{
-						conv.ComObject.CopyPixels(WICRect.Null, (uint)fbuff.Stride, (uint)bspan.Length, ptr);
+						conv.ComObject.CopyPixels(WICRect.Null, (uint)fbuff.Stride, (uint)fspan.Length, (IntPtr)buff);
 					}
 					else
 					{
 						using var overlay = new OverlayTransform(fbuff, conv.ComObject.AsPixelSource(nameof(IWICBitmapFrameDecode)), finfo.Left, finfo.Top, true, true);
-						overlay.CopyPixels(new PixelArea(finfo.Left, finfo.Top, finfo.Width, finfo.Height), fbuff.Stride, bspan.Length, ptr);
+						overlay.CopyPixels(new PixelArea(finfo.Left, finfo.Top, finfo.Width, finfo.Height), fbuff.Stride, fspan.Length, (IntPtr)buff);
 					}
 				}
+
+				fbuff.PauseTiming();
 			}
 		}
 
-		private static (int Left, int Top, int Width, int Height, bool Alpha, bool FullScreen) getGifFrameInfo(WicGifContainer cont, IWICBitmapSource frame, IWICMetadataQueryReader meta)
+		public static (int Left, int Top, int Width, int Height, bool Alpha, bool FullScreen) GetGifFrameInfo(WicGifContainer cont, IWICBitmapSource frame, IWICMetadataQueryReader meta)
 		{
 			frame.GetSize(out uint width, out uint height);
 
@@ -273,7 +245,7 @@ namespace PhotoSauce.MagicScaler
 					if (
 						ecs == ExifColorSpace.AdobeRGB || (
 						ecs == ExifColorSpace.Uncalibrated
-						&& WicMetadataReader.GetValueOrDefault<string>(container.ContainerFormat == FileFormat.Jpeg ? Wic.Metadata.InteropIndexJpeg : Wic.Metadata.InteropIndexExif) == "R03")
+						&& WicMetadataReader.GetValueOrDefault<string>(Container.ContainerFormat == FileFormat.Jpeg ? Wic.Metadata.InteropIndexJpeg : Wic.Metadata.InteropIndexExif) == "R03")
 					) return WicColorProfile.AdobeRgb.Value;
 				}
 			}

@@ -2,13 +2,15 @@
 
 namespace PhotoSauce.MagicScaler.Transforms
 {
-	internal class ConversionTransform : PixelSource, IDisposable
+	internal sealed class ConversionTransform : ChainedPixelSource, IDisposable
 	{
 		private readonly IConversionProcessor processor;
 
 		private ArraySegment<byte> lineBuff;
 
-		public ConversionTransform(PixelSource source, ColorProfile? sourceProfile, ColorProfile? destProfile, Guid destFormat, bool videoLevels = false) : base(source)
+		public override PixelFormat Format { get; }
+
+		public ConversionTransform(PixelSource source, ColorProfile? sourceProfile, ColorProfile? destProfile, PixelFormat destFormat, bool videoLevels = false) : base(source)
 		{
 			var srcProfile = sourceProfile as CurveProfile ?? ColorProfile.sRGB;
 			var dstProfile = destProfile as CurveProfile ?? ColorProfile.sRGB;
@@ -16,7 +18,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			processor = null!;
 
-			Format = PixelFormat.FromGuid(destFormat);
+			Format = destFormat;
 			if (srcFormat.BitsPerPixel != Format.BitsPerPixel)
 			{
 				lineBuff = BufferPool.Rent(BufferStride, true);
@@ -105,7 +107,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
-			if (Source.Format.BitsPerPixel != Format.BitsPerPixel)
+			if (PrevSource.Format.BitsPerPixel != Format.BitsPerPixel)
 				copyPixelsBuffered(prc, cbStride, cbBufferSize, pbBuffer);
 			else
 				copyPixelsDirect(prc, cbStride, cbBufferSize, pbBuffer);
@@ -117,12 +119,12 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			fixed (byte* bstart = &lineBuff.Array[lineBuff.Offset])
 			{
-				int cb = MathUtil.DivCeiling(prc.Width * Source.Format.BitsPerPixel, 8);
+				int cb = MathUtil.DivCeiling(prc.Width * PrevSource.Format.BitsPerPixel, 8);
 
 				for (int y = 0; y < prc.Height; y++)
 				{
 					Profiler.PauseTiming();
-					Source.CopyPixels(new PixelArea(prc.X, prc.Y + y, prc.Width, 1), BufferStride, BufferStride, (IntPtr)bstart);
+					PrevSource.CopyPixels(new PixelArea(prc.X, prc.Y + y, prc.Width, 1), lineBuff.Count, lineBuff.Count, (IntPtr)bstart);
 					Profiler.ResumeTiming();
 
 					byte* op = (byte*)pbBuffer + y * cbStride;
@@ -133,14 +135,14 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		unsafe private void copyPixelsDirect(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
-			int cb = MathUtil.DivCeiling(prc.Width * Source.Format.BitsPerPixel, 8);
+			int cb = MathUtil.DivCeiling(prc.Width * PrevSource.Format.BitsPerPixel, 8);
 
 			for (int y = 0; y < prc.Height; y++)
 			{
 				byte* op = (byte*)pbBuffer + y * cbStride;
 
 				Profiler.PauseTiming();
-				Source.CopyPixels(new PixelArea(prc.X, prc.Y + y, prc.Width, 1), cbStride, cb, (IntPtr)op);
+				PrevSource.CopyPixels(new PixelArea(prc.X, prc.Y + y, prc.Width, 1), cbStride, cb, (IntPtr)op);
 				Profiler.ResumeTiming();
 
 				processor.ConvertLine(op, op, cb);
@@ -153,7 +155,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			lineBuff = default;
 		}
 
-		public override string ToString() => $"{nameof(ConversionTransform)}: {Source.Format.Name}->{Format.Name}";
+		public override string ToString() => $"{nameof(ConversionTransform)}: {PrevSource.Format.Name}->{Format.Name}";
 	}
 
 	/// <summary>Converts an image to an alternate pixel format.</summary>
@@ -176,7 +178,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			MagicTransforms.AddExternalFormatConverter(ctx);
 
 			if (ctx.Source.Format.FormatGuid != outFormat)
-				ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, outFormat));
+				ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, PixelFormat.FromGuid(outFormat)));
 
 			Source = ctx.Source;
 		}

@@ -144,16 +144,20 @@ namespace PhotoSauce.MagicScaler
 			buffCr.Dispose();
 		}
 
-		private class PlanarCachePixelSource : PixelSource
+		private sealed class PlanarCachePixelSource : PixelSource
 		{
 			private readonly WicPlanarCache cacheSource;
 			private readonly WicPlane cachePlane;
 
-			public PlanarCachePixelSource(WicPlanarCache cache, WicPlane plane, WICBitmapPlaneDescription planeDesc)
+			public override PixelFormat Format { get; }
+			public override int Width { get; }
+			public override int Height { get; }
+
+			public PlanarCachePixelSource(WicPlanarCache cache, WicPlane plane, WICBitmapPlaneDescription planeDesc) : base()
 			{
+				Format = PixelFormat.FromGuid(planeDesc.Format);
 				Width = (int)planeDesc.Width;
 				Height = (int)planeDesc.Height;
-				Format = PixelFormat.FromGuid(planeDesc.Format);
 
 				cacheSource = cache;
 				cachePlane = plane;

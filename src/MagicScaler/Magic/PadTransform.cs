@@ -3,11 +3,14 @@ using System.Drawing;
 
 namespace PhotoSauce.MagicScaler.Transforms
 {
-	internal class PadTransformInternal : PixelSource
+	internal sealed class PadTransformInternal : ChainedPixelSource
 	{
 		private readonly int bytesPerPixel;
 		private readonly uint fill;
 		private readonly PixelArea inner;
+
+		public override int Width { get; }
+		public override int Height { get; }
 
 		public PadTransformInternal(PixelSource source, Color color, PixelArea innerArea, PixelArea outerArea) : base(source)
 		{
@@ -53,13 +56,15 @@ namespace PhotoSauce.MagicScaler.Transforms
 				if (tw > 0 && cy >= inner.Y && cy < inner.Y + inner.Height)
 				{
 					Profiler.PauseTiming();
-					Source.CopyPixels(new PixelArea(tx, cy - inner.Y, tw, 1), cbStride, cbBufferSize, (IntPtr)(pb + cx * bytesPerPixel));
+					PrevSource.CopyPixels(new PixelArea(tx, cy - inner.Y, tw, 1), cbStride, cbBufferSize, (IntPtr)(pb + cx * bytesPerPixel));
 					Profiler.ResumeTiming();
 				}
 
 				pb += cbStride;
 			}
 		}
+
+		public override string ToString() => nameof(PadTransform);
 	}
 
 	/// <summary>Adds solid-colored padding pixels to an image.</summary>

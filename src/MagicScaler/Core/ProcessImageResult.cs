@@ -25,8 +25,6 @@ namespace PhotoSauce.MagicScaler
 
 	internal sealed class SourceStatsProfiler : IPixelSourceProfiler
 	{
-		private const string namespacePrefix = nameof(PhotoSauce) + "." + nameof(MagicScaler) + ".";
-
 		private int callCount = 0;
 		private long pixelCount = 0;
 		private readonly Stopwatch timer = new Stopwatch();
@@ -40,7 +38,7 @@ namespace PhotoSauce.MagicScaler
 			pixelCount += prc.Width * prc.Height;
 		}
 
-		public string SourceName => source.ToString()!.Replace(namespacePrefix, null);
+		public string SourceName => source.ToString()!;
 
 		public PixelSourceStats Stats => new PixelSourceStats(SourceName, callCount, pixelCount, (double)timer.ElapsedTicks / Stopwatch.Frequency * 1000);
 

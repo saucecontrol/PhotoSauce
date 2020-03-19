@@ -131,5 +131,8 @@ namespace PhotoSauce.MagicScaler
 			if (pixels.IsValueCreated)
 				pixels.Value.Dispose();
 		}
+
+		/// <inheritdoc />
+		public override string ToString() => nameof(TestPatternPixelSource);
 	}
 }

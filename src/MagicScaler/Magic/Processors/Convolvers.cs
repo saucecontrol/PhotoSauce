@@ -286,6 +286,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 				}
 			}
 		}
+
+		public override string ToString() => nameof(ConvolverBgraByte);
 	}
 
 	internal sealed class Convolver4ChanByte : IConvolver
@@ -447,6 +449,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 				}
 			}
 		}
+
+		public override string ToString() => nameof(Convolver4ChanByte);
 	}
 
 	internal sealed class Convolver4ChanUQ15 : IConvolver
@@ -617,6 +621,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 				}
 			}
 		}
+
+		public override string ToString() => nameof(Convolver4ChanUQ15);
 	}
 
 	internal sealed class ConvolverBgrByte : IConvolver
@@ -771,6 +777,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 				}
 			}
 		}
+
+		public override string ToString() => nameof(ConvolverBgrByte);
 	}
 
 	internal sealed class ConvolverBgrUQ15 : IConvolver
@@ -934,6 +942,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 				}
 			}
 		}
+
+		public override string ToString() => nameof(ConvolverBgrUQ15);
 	}
 
 	internal sealed class Convolver1ChanByte : IConvolver
@@ -1051,6 +1061,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 				}
 			}
 		}
+
+		public override string ToString() => nameof(Convolver1ChanByte);
 	}
 
 	internal sealed class Convolver1ChanUQ15 : IConvolver
@@ -1175,5 +1187,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				}
 			}
 		}
+
+		public override string ToString() => nameof(Convolver1ChanUQ15);
 	}
 }

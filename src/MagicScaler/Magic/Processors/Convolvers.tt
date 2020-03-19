@@ -521,6 +521,8 @@ if (t.pixelType == "ushort") {
 <#
 }
 #>
+
+		public override string ToString() => nameof(Convolver<#= t.name #><#= t.suffix #>);
 	}
 <#
 }

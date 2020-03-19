@@ -11,30 +11,11 @@ using System.Collections.Specialized;
 #endif
 
 using Blake2Fast;
-using PhotoSauce.Interop.Wic;
 
 namespace PhotoSauce.MagicScaler
 {
 	internal static class MiscExtensions
 	{
-		public static WICBitmapTransformOptions ToWicTransformOptions(this Orientation o)
-		{
-			int orientation = (int)o;
-
-			var opt = WICBitmapTransformOptions.WICBitmapTransformRotate0;
-			if (orientation == 3 || orientation == 4)
-				opt = WICBitmapTransformOptions.WICBitmapTransformRotate180;
-			else if (orientation == 6 || orientation == 7)
-				opt = WICBitmapTransformOptions.WICBitmapTransformRotate90;
-			else if (orientation == 5 || orientation == 8)
-				opt = WICBitmapTransformOptions.WICBitmapTransformRotate270;
-
-			if (orientation == 2 || orientation == 4 || orientation == 5 || orientation == 7)
-				opt |= WICBitmapTransformOptions.WICBitmapTransformFlipHorizontal;
-
-			return opt;
-		}
-
 		public static Orientation Clamp(this Orientation o) => o < Orientation.Normal? Orientation.Normal : o > Orientation.Rotate270 ? Orientation.Rotate270 : o;
 
 		public static GifDisposalMethod Clamp(this GifDisposalMethod m) => m < GifDisposalMethod.Preserve || m > GifDisposalMethod.RestorePrevious ? GifDisposalMethod.Preserve : m;
@@ -49,13 +30,9 @@ namespace PhotoSauce.MagicScaler
 
 		public static Orientation Invert(this Orientation o) => o == Orientation.Rotate270 ? Orientation.Rotate90 : o == Orientation.Rotate90 ? Orientation.Rotate270 : o;
 
-		public static bool IsSubsampledX(this ChromaSubsampleMode o) => IsSubsampledX((WICJpegYCrCbSubsamplingOption)o);
+		public static bool IsSubsampledX(this ChromaSubsampleMode o) => o == ChromaSubsampleMode.Subsample420 || o == ChromaSubsampleMode.Subsample422;
 
-		public static bool IsSubsampledY(this ChromaSubsampleMode o) => IsSubsampledY((WICJpegYCrCbSubsamplingOption)o);
-
-		public static bool IsSubsampledX(this WICJpegYCrCbSubsamplingOption o) => o == WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling420 || o == WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling422;
-
-		public static bool IsSubsampledY(this WICJpegYCrCbSubsamplingOption o) => o == WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling420 || o == WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling440;
+		public static bool IsSubsampledY(this ChromaSubsampleMode o) => o == ChromaSubsampleMode.Subsample420 || o == ChromaSubsampleMode.Subsample440;
 
 		public static bool InsensitiveEquals(this string s1, string s2) => string.Equals(s1, s2, StringComparison.OrdinalIgnoreCase);
 

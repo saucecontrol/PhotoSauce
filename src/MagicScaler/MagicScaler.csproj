@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<VersionPrefix>0.10.3</VersionPrefix>
+		<VersionPrefix>0.10.4</VersionPrefix>
 		<TargetFrameworks>net46;net472;netcoreapp2.1;netcoreapp3.0;netstandard2.0;netstandard2.1</TargetFrameworks>
 	</PropertyGroup>
 
@@ -37,6 +37,7 @@
 
 	<ItemGroup Condition="'$(TargetFramework)'=='net46'">
 		<PackageReference Include="System.ValueTuple" Version="4.5.0" />
+		<PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" />
 	</ItemGroup>
 
 	<ItemGroup Condition="$(DefineConstants.Contains('NETFRAMEWORK'))">
