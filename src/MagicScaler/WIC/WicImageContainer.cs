@@ -52,7 +52,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		public FrameBufferSource? FrameBufferSource;
 		public OverlayTransform? FrameOverlay;
-		public GifDisposalMethod LastDisposal;
+		public GifDisposalMethod LastDisposal = GifDisposalMethod.RestoreBackground;
 		public int LastFrame = -1;
 
 		public void Dispose()

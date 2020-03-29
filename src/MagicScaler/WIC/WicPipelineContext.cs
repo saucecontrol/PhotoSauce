@@ -9,7 +9,7 @@ namespace PhotoSauce.MagicScaler
 {
 	internal sealed class WicPipelineContext : IDisposable
 	{
-		private readonly ComHandleCollection comHandles = new ComHandleCollection(8);
+		private readonly ComHandleCollection comHandles = new ComHandleCollection(4);
 		private SafeHandle? unmanagedMemory = null;
 
 		public IWICColorContext? SourceColorContext { get; set; }

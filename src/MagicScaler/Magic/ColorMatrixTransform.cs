@@ -154,15 +154,15 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			int chan = Format.ChannelCount;
 
-			var vt0 = vec0;
-			var vt1 = vec1;
-			var vt2 = vec2;
-			var vt3 = vec3;
+			var vt0 = Unsafe.ReadUnaligned<Vector128<float>>(ref Unsafe.As<float, byte>(ref Unsafe.AsRef(vec0.X)));
+			var vt1 = Unsafe.ReadUnaligned<Vector128<float>>(ref Unsafe.As<float, byte>(ref Unsafe.AsRef(vec1.X)));
+			var vt2 = Unsafe.ReadUnaligned<Vector128<float>>(ref Unsafe.As<float, byte>(ref Unsafe.AsRef(vec2.X)));
+			var vt3 = Unsafe.ReadUnaligned<Vector128<float>>(ref Unsafe.As<float, byte>(ref Unsafe.AsRef(vec3.X)));
 
-			var vm0 = Avx.BroadcastVector128ToVector256((float*)&vt0);
-			var vm1 = Avx.BroadcastVector128ToVector256((float*)&vt1);
-			var vm2 = Avx.BroadcastVector128ToVector256((float*)&vt2);
-			var vm3 = Avx.BroadcastVector128ToVector256((float*)&vt3);
+			var vm0 = Avx.InsertVector128(vt0.ToVector256Unsafe(), vt0, 1);
+			var vm1 = Avx.InsertVector128(vt1.ToVector256Unsafe(), vt1, 1);
+			var vm2 = Avx.InsertVector128(vt2.ToVector256Unsafe(), vt2, 1);
+			var vm3 = Avx.InsertVector128(vt3.ToVector256Unsafe(), vt3, 1);
 
 			var vone = Vector256.Create(1f);
 

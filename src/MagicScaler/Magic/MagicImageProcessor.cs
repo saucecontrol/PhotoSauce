@@ -212,10 +212,22 @@ namespace PhotoSauce.MagicScaler
 		internal static ProcessImageResult WriteOutput(PipelineContext ctx, Stream ostm)
 		{
 			MagicTransforms.AddExternalFormatConverter(ctx);
-			WicTransforms.AddIndexedColorConverter(ctx);
 
-			var enc = new WicImageEncoder(ctx, ostm.AsIStream());
-			enc.WriteSource(ctx);
+			using var enc = new WicImageEncoder(ctx.Settings.SaveFormat, ostm.AsIStream());
+
+			if (ctx.Settings.SaveFormat == FileFormat.Gif && ctx.Settings.FrameIndex == 0 && ctx.ImageContainer.FrameCount > 1)
+			{
+				enc.WriteAnimatedGif(ctx);
+			}
+			else
+			{
+				WicTransforms.AddIndexedColorConverter(ctx);
+
+				using var frm = new WicImageEncoderFrame(ctx, enc);
+				frm.WriteSource(ctx);
+			}
+
+			enc.WicEncoder.Commit();
 
 			return new ProcessImageResult(ctx.UsedSettings, ctx.Stats);
 		}
@@ -224,6 +236,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			ctx.ImageFrame = ctx.ImageContainer.GetFrame(ctx.Settings.FrameIndex);
 
+			bool anigif = ctx.Settings.SaveFormat == FileFormat.Gif && ctx.Settings.FrameIndex == 0 && ctx.ImageContainer.FrameCount > 1;
 			bool processPlanar = false;
 			var wicFrame = ctx.ImageFrame as WicImageFrame;
 
@@ -246,7 +259,7 @@ namespace PhotoSauce.MagicScaler
 			}
 
 			MagicTransforms.AddColorProfileReader(ctx);
-			MagicTransforms.AddGifFrameBuffer(ctx);
+			MagicTransforms.AddGifFrameBuffer(ctx, !anigif);
 
 			ctx.FinalizeSettings();
 			ctx.Settings.UnsharpMask = ctx.UsedSettings.UnsharpMask;

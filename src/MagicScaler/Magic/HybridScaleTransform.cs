@@ -31,7 +31,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			scale = hybridScale;
 
 			int bufferStride = PowerOfTwoCeiling(PowerOfTwoCeiling(source.Width, scale) * source.Format.BytesPerPixel, IntPtr.Size);
-			lineBuff = BufferPool.Rent(bufferStride * scale);
+			lineBuff = BufferPool.Rent(bufferStride * scale, true);
 
 			Width = DivCeiling(PrevSource.Width, scale);
 			Height = DivCeiling(PrevSource.Height, scale);

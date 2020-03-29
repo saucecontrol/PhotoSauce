@@ -45,6 +45,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 				copyPixelsDirect(prc, cbStride, cbBufferSize, pbBuffer);
 		}
 
+		protected override void Reset() => srcBuff?.Reset();
+
 		unsafe private void copyPixelsDirect(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			Profiler.PauseTiming();

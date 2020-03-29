@@ -62,8 +62,10 @@ namespace PhotoSauce.MagicScaler
 			MagicTransforms.AddPad(ctx);
 			WicTransforms.AddIndexedColorConverter(ctx);
 
-			var enc = new WicImageEncoder(ctx, ostm.AsIStream());
-			enc.WriteSource(ctx);
+			using var enc = new WicImageEncoder(ctx.Settings.SaveFormat, ostm.AsIStream());
+			using var frm = new WicImageEncoderFrame(ctx, enc);
+			frm.WriteSource(ctx);
+			enc.WicEncoder.Commit();
 
 			return new ProcessImageResult(ctx.UsedSettings, ctx.Stats);
 		}

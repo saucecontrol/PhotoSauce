@@ -123,11 +123,15 @@ namespace PhotoSauce.MagicScaler
 
 		public bool ContainsRange(int first, int lines) => first >= start && first + lines <= start + loaded;
 
+		public void Reset() => start = loaded = consumed = 0;
+
 		public void Dispose()
 		{
+			Reset();
+
 			BufferPool.Return(buffer);
 			buffer = default;
-			capacity = start = loaded = consumed = 0;
+			capacity = 0;
 		}
 	}
 

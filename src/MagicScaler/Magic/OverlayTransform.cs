@@ -15,13 +15,15 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		private readonly PixelSource overSource;
 		private readonly int offsX, offsY;
-		private readonly bool passthrough;
+		private readonly bool copyBase;
 
 		private ArraySegment<byte> lineBuff;
 
+		protected override bool Passthrough => false;
+
 		public OverlayTransform(PixelSource source, PixelSource over, int left, int top, bool alpha, bool replay = false) : base(source)
 		{
-			if (Format.NumericRepresentation != PixelNumericRepresentation.UnsignedInteger || Format.ChannelCount != bytesPerPixel || Format.BitsPerPixel != bytesPerPixel * 8)
+			if (Format.NumericRepresentation != PixelNumericRepresentation.UnsignedInteger || Format.ChannelCount != bytesPerPixel || Format.BytesPerPixel != bytesPerPixel)
 				throw new NotSupportedException("Pixel format not supported.");
 
 			if (over.Format != Format)
@@ -30,7 +32,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			overSource = over;
 			offsX = left;
 			offsY = top;
-			passthrough = replay;
+			copyBase = !replay;
 
 			if (alpha)
 				lineBuff = BufferPool.Rent(over.Width * bytesPerPixel, true);
@@ -49,7 +51,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			{
 				int cy = prc.Y + y;
 
-				if (!passthrough || tw < prc.Width || cy < inner.Y || cy >= inner.Y + inner.Height)
+				if (copyBase || tw < prc.Width || cy < inner.Y || cy >= inner.Y + inner.Height)
 				{
 					Profiler.PauseTiming();
 					PrevSource.CopyPixels(new PixelArea(prc.X, cy, prc.Width, 1), cbStride, cbBufferSize, (IntPtr)pb);

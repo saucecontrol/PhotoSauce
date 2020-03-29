@@ -63,7 +63,7 @@ namespace PhotoSauce.WebRSize
 				s.SaveFormat = FileFormat.Png;
 			}
 
-			ifi = vpp is CachingAsyncVirtualPathProvider vppAF ? await vppAF.GetImageInfoAsync(path).ConfigureAwait(false) : await CacheHelper.GetImageInfoAsync(vpp, path).ConfigureAwait(false);
+			ifi ??= vpp is CachingAsyncVirtualPathProvider vppAF ? await vppAF.GetImageInfoAsync(path).ConfigureAwait(false) : await CacheHelper.GetImageInfoAsync(vpp, path).ConfigureAwait(false);
 			s.NormalizeFrom(ifi);
 
 			if (!folderConfig.AllowEnlarge && s.ResizeMode != CropScaleMode.Max)

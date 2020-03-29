@@ -165,6 +165,13 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
+		protected override void Reset()
+		{
+			IntBuff.Reset();
+			SrcBuff?.Reset();
+			WorkBuff?.Reset();
+		}
+
 		unsafe private void loadBuffer(int first, int lines)
 		{
 			Debug.Assert((!bufferSource && lineBuff.Array != null) || (WorkBuff != null && SrcBuff != null));

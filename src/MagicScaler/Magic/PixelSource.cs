@@ -80,7 +80,7 @@ namespace PhotoSauce.MagicScaler
 
 	internal abstract class ChainedPixelSource : PixelSource
 	{
-		protected PixelSource PrevSource { get; }
+		protected PixelSource PrevSource { get; private set; }
 
 		protected int BufferStride => MathUtil.PowerOfTwoCeiling(PrevSource.Width * PrevSource.Format.BytesPerPixel, IntPtr.Size);
 
@@ -89,6 +89,29 @@ namespace PhotoSauce.MagicScaler
 		public override PixelFormat Format => PrevSource.Format;
 		public override int Width => PrevSource.Width;
 		public override int Height => PrevSource.Height;
+
+		protected virtual bool Passthrough => true;
+		protected virtual void Reset() { }
+
+		public void ReInit(PixelSource newSource)
+		{
+			Reset();
+
+			if (newSource == this)
+				return;
+
+			var prev = PrevSource;
+			if (prev is ChainedPixelSource chain && chain.Passthrough)
+			{
+				chain.ReInit(newSource);
+				return;
+			}
+
+			if (prev.Format != newSource.Format || prev.Width != newSource.Width || prev.Height != newSource.Height)
+				throw new NotSupportedException("New source is not compatible with current pipeline.");
+
+			PrevSource = newSource;
+		}
 	}
 
 	internal sealed class NoopPixelSource : PixelSource
@@ -114,9 +137,9 @@ namespace PhotoSauce.MagicScaler
 		public override int Width { get; }
 		public override int Height { get; }
 
-		public FrameBufferSource(int width, int height) : base()
+		public FrameBufferSource(int width, int height, PixelFormat format) : base()
 		{
-			Format = PixelFormat.Bgra32Bpp;
+			Format = format;
 			Width = width;
 			Height = height;
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 using PhotoSauce.Interop.Wic;
@@ -125,10 +126,8 @@ namespace PhotoSauce.MagicScaler
 
 		public void Dispose() => comHandles.Dispose();
 
-		unsafe public static void SetupGifAnimationContext(WicGifContainer cont, int playTo)
+		public static void ReplayGifAnimationContext(WicGifContainer cont, int playTo)
 		{
-			const int bytesPerPixel = 4;
-
 			var anictx = cont.AnimationContext ??= new GifAnimationContext();
 			if (anictx.LastFrame > playTo)
 				anictx.LastFrame = -1;
@@ -138,50 +137,61 @@ namespace PhotoSauce.MagicScaler
 				using var frame = ComHandle.Wrap(cont.WicDecoder.GetFrame((uint)(anictx.LastFrame + 1)));
 				using var meta = ComHandle.Wrap(frame.ComObject.GetMetadataQueryReader());
 
-				var ldisp = anictx.LastDisposal;
-				anictx.LastDisposal = ((GifDisposalMethod)meta.ComObject.GetValueOrDefault<byte>(Wic.Metadata.Gif.FrameDisposal)).Clamp();
-
-				if (anictx.LastDisposal != GifDisposalMethod.Preserve)
-					continue;
-
-				using var conv = ComHandle.Wrap(Wic.Factory.CreateFormatConverter());
-				conv.ComObject.Initialize(frame.ComObject, Consts.GUID_WICPixelFormat32bppBGRA, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
-
-				var finfo = GetGifFrameInfo(cont, conv.ComObject, meta.ComObject);
-				var fbuff = anictx.FrameBufferSource ??= new FrameBufferSource(cont.ScreenWidth, cont.ScreenHeight);
-				var bspan = fbuff.Span;
-
-				fbuff.ResumeTiming();
-
-				// Most GIF viewers clear the background to transparent instead of the background color when the next frame has transparency
-				bool ftrans = meta.ComObject.GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
-				if (!finfo.FullScreen && ldisp == GifDisposalMethod.RestoreBackground)
-					MemoryMarshal.Cast<byte, uint>(bspan).Fill(ftrans ? 0 : cont.BackgroundColor);
-
-				// Similarly, they overwrite a background color with transparent pixels but overlay instead when the previous frame is preserved
-				var fspan = bspan.Slice(finfo.Top * fbuff.Stride + finfo.Left * bytesPerPixel);
-				fixed (byte* buff = fspan)
+				var disp = ((GifDisposalMethod)meta.ComObject.GetValueOrDefault<byte>(Wic.Metadata.Gif.FrameDisposal)).Clamp();
+				if (disp == GifDisposalMethod.Preserve)
 				{
-					if (!ftrans || ldisp == GifDisposalMethod.RestoreBackground)
-					{
-						conv.ComObject.CopyPixels(WICRect.Null, (uint)fbuff.Stride, (uint)fspan.Length, (IntPtr)buff);
-					}
-					else
-					{
-						using var overlay = new OverlayTransform(fbuff, conv.ComObject.AsPixelSource(nameof(IWICBitmapFrameDecode)), finfo.Left, finfo.Top, true, true);
-						overlay.CopyPixels(new PixelArea(finfo.Left, finfo.Top, finfo.Width, finfo.Height), fbuff.Stride, fspan.Length, (IntPtr)buff);
-					}
+					using var conv = ComHandle.Wrap(Wic.Factory.CreateFormatConverter());
+					conv.ComObject.Initialize(frame.ComObject, Consts.GUID_WICPixelFormat32bppBGRA, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
+
+					UpdateGifAnimationContext(cont, conv.ComObject, meta.ComObject);
 				}
 
-				fbuff.PauseTiming();
+				anictx.LastDisposal = disp;
 			}
 		}
 
-		public static (int Left, int Top, int Width, int Height, bool Alpha, bool FullScreen) GetGifFrameInfo(WicGifContainer cont, IWICBitmapSource frame, IWICMetadataQueryReader meta)
+		unsafe public static void UpdateGifAnimationContext(WicGifContainer cont, IWICBitmapSource src, IWICMetadataQueryReader meta)
+		{
+			Debug.Assert(cont.AnimationContext != null);
+			var anictx = cont.AnimationContext;
+
+			const int bytesPerPixel = 4;
+
+			var finfo = GetGifFrameInfo(cont, src, meta);
+			var fbuff = anictx.FrameBufferSource ??= new FrameBufferSource(cont.ScreenWidth, cont.ScreenHeight, PixelFormat.Bgra32Bpp);
+			var bspan = fbuff.Span;
+
+			fbuff.ResumeTiming();
+
+			// Most GIF viewers clear the background to transparent instead of the background color when the next frame has transparency
+			bool ftrans = meta.GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
+			if (!finfo.FullScreen && anictx.LastDisposal == GifDisposalMethod.RestoreBackground)
+				MemoryMarshal.Cast<byte, uint>(bspan).Fill(ftrans ? 0 : cont.BackgroundColor);
+
+			// Similarly, they overwrite a background color with transparent pixels but overlay instead when the previous frame is preserved
+			var fspan = bspan.Slice(finfo.Top * fbuff.Stride + finfo.Left * bytesPerPixel);
+			fixed (byte* buff = fspan)
+			{
+				if (!ftrans || anictx.LastDisposal == GifDisposalMethod.RestoreBackground)
+				{
+					src.CopyPixels(WICRect.Null, (uint)fbuff.Stride, (uint)fspan.Length, (IntPtr)buff);
+				}
+				else
+				{
+					using var overlay = new OverlayTransform(fbuff, src.AsPixelSource(nameof(IWICBitmapFrameDecode)), finfo.Left, finfo.Top, true, true);
+					overlay.CopyPixels(new PixelArea(finfo.Left, finfo.Top, finfo.Width, finfo.Height), fbuff.Stride, fspan.Length, (IntPtr)buff);
+				}
+			}
+
+			fbuff.PauseTiming();
+		}
+
+		public static (int Left, int Top, int Width, int Height, bool Alpha, bool FullScreen, GifDisposalMethod Disposal) GetGifFrameInfo(WicGifContainer cont, IWICBitmapSource frame, IWICMetadataQueryReader meta)
 		{
 			frame.GetSize(out uint width, out uint height);
 
 			int left = 0, top = 0;
+			var disp = ((GifDisposalMethod)meta.GetValueOrDefault<byte>(Wic.Metadata.Gif.FrameDisposal)).Clamp();
 			bool trans = meta.GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
 			bool full = width == cont.ScreenWidth && height == cont.ScreenHeight;
 			if (!full)
@@ -190,7 +200,7 @@ namespace PhotoSauce.MagicScaler
 				top = meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameTop);
 			}
 
-			return (left, top, (int)width, (int)height, trans, full);
+			return (left, top, (int)width, (int)height, trans, full, disp);
 		}
 
 		private WicColorProfile getColorProfile()

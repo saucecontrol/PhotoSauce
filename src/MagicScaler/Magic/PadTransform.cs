@@ -5,22 +5,23 @@ namespace PhotoSauce.MagicScaler.Transforms
 {
 	internal sealed class PadTransformInternal : ChainedPixelSource
 	{
-		private readonly int bytesPerPixel;
+		private readonly bool passthrough;
 		private readonly uint fill;
 		private readonly PixelArea inner;
 
 		public override int Width { get; }
 		public override int Height { get; }
 
-		public PadTransformInternal(PixelSource source, Color color, PixelArea innerArea, PixelArea outerArea) : base(source)
-		{
-			bytesPerPixel = Format.BitsPerPixel / 8;
+		protected override bool Passthrough => passthrough;
 
-			if (Format.NumericRepresentation != PixelNumericRepresentation.UnsignedInteger || Format.ChannelCount != bytesPerPixel)
+		public PadTransformInternal(PixelSource source, Color color, PixelArea innerArea, PixelArea outerArea, bool replay = false) : base(source)
+		{
+			if (Format.NumericRepresentation != PixelNumericRepresentation.UnsignedInteger || Format.ChannelCount != Format.BytesPerPixel)
 				throw new NotSupportedException("Pixel format not supported.");
 
 			fill = (uint)color.ToArgb();
 
+			passthrough = !replay;
 			inner = innerArea;
 			Width = outerArea.Width;
 			Height = outerArea.Height;
@@ -28,6 +29,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
+			int bpp = Format.BytesPerPixel;
 			int tx = Math.Max(prc.X - inner.X, 0);
 			int tw = Math.Min(prc.Width, Math.Min(Math.Max(prc.X + prc.Width - inner.X, 0), inner.Width - tx));
 			int cx = Math.Max(inner.X - prc.X, 0);
@@ -39,7 +41,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 				if (tw < prc.Width || cy < inner.Y || cy >= inner.Y + inner.Height)
 				{
-					switch (bytesPerPixel)
+					switch (bpp)
 					{
 						case 1:
 							new Span<byte>(pb, prc.Width).Fill((byte)fill);
@@ -56,7 +58,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				if (tw > 0 && cy >= inner.Y && cy < inner.Y + inner.Height)
 				{
 					Profiler.PauseTiming();
-					PrevSource.CopyPixels(new PixelArea(tx, cy - inner.Y, tw, 1), cbStride, cbBufferSize, (IntPtr)(pb + cx * bytesPerPixel));
+					PrevSource.CopyPixels(new PixelArea(tx, cy - inner.Y, tw, 1), cbStride, cbBufferSize, (IntPtr)(pb + cx * bpp));
 					Profiler.ResumeTiming();
 				}
 

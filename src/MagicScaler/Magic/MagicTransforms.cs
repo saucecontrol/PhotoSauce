@@ -403,42 +403,55 @@ namespace PhotoSauce.MagicScaler.Transforms
 			ctx.PlanarContext = null;
 		}
 
-		public static void AddGifFrameBuffer(PipelineContext ctx)
+		public static void AddGifFrameBuffer(PipelineContext ctx, bool replay = true)
 		{
-			if (ctx.ImageFrame is WicImageFrame wicFrame && wicFrame.Container is WicGifContainer gif)
+			if (!(ctx.ImageFrame is WicImageFrame wicFrame) || !(wicFrame.Container is WicGifContainer gif))
+				return;
+
+			Debug.Assert(wicFrame.WicMetadataReader != null);
+
+			if (replay && ctx.Settings.FrameIndex > 0)
+				WicImageFrame.ReplayGifAnimationContext(gif, ctx.Settings.FrameIndex - 1);
+
+			var finfo = WicImageFrame.GetGifFrameInfo(gif, wicFrame.WicSource, wicFrame.WicMetadataReader);
+			var ldisp = gif.AnimationContext?.LastDisposal ?? GifDisposalMethod.RestoreBackground;
+
+			bool useBuffer = !replay && finfo.Disposal == GifDisposalMethod.Preserve;
+			if (!replay)
 			{
-				Debug.Assert(wicFrame.WicMetadataReader != null);
+				var anictx = gif.AnimationContext ??= new GifAnimationContext();
 
-				if (ctx.Settings.FrameIndex > 0)
-				{
-					WicImageFrame.SetupGifAnimationContext(gif, ctx.Settings.FrameIndex - 1);
-					
-					if (gif.AnimationContext?.FrameBufferSource != null)
-						ctx.Source = gif.AnimationContext.FrameBufferSource;
-				}
+				if (finfo.Disposal == GifDisposalMethod.Preserve)
+					WicImageFrame.UpdateGifAnimationContext(gif, wicFrame.WicSource, wicFrame.WicMetadataReader);
 
-				var finfo = WicImageFrame.GetGifFrameInfo(gif, wicFrame.WicSource, wicFrame.WicMetadataReader);
-				var lastDisp = gif.AnimationContext?.LastDisposal ?? GifDisposalMethod.RestoreBackground;
-				if (!finfo.FullScreen && lastDisp == GifDisposalMethod.RestoreBackground)
-				{
-					var innerArea = new PixelArea(finfo.Left, finfo.Top, wicFrame.Source.Width, wicFrame.Source.Height);
-					var outerArea = new PixelArea(0, 0, gif.ScreenWidth, gif.ScreenHeight);
-					var bgColor = finfo.Alpha ? Color.Empty : Color.FromArgb((int)gif.BackgroundColor);
+				anictx.LastDisposal = finfo.Disposal;
+				anictx.LastFrame = ctx.Settings.FrameIndex;
 
-					ctx.Source = new PadTransformInternal(wicFrame.Source, bgColor, innerArea, outerArea);
-				}
-				else if (lastDisp != GifDisposalMethod.RestoreBackground)
-				{
-					Debug.Assert(gif.AnimationContext?.FrameBufferSource != null);
+				ldisp = finfo.Disposal;
+			}
 
-					var ani = gif.AnimationContext;
-					var fbuff = ani.FrameBufferSource;
+			if (gif.AnimationContext != null && gif.AnimationContext.FrameBufferSource != null && ldisp != GifDisposalMethod.RestoreBackground)
+				ctx.Source = gif.AnimationContext.FrameBufferSource;
 
-					ani.FrameOverlay?.Dispose();
-					ani.FrameOverlay = new OverlayTransform(fbuff, wicFrame.Source, finfo.Left, finfo.Top, finfo.Alpha);
+			if (!finfo.FullScreen && ldisp == GifDisposalMethod.RestoreBackground && !useBuffer)
+			{
+				var innerArea = new PixelArea(finfo.Left, finfo.Top, wicFrame.Source.Width, wicFrame.Source.Height);
+				var outerArea = new PixelArea(0, 0, gif.ScreenWidth, gif.ScreenHeight);
+				var bgColor = finfo.Alpha ? Color.Empty : Color.FromArgb((int)gif.BackgroundColor);
 
-					ctx.Source = ani.FrameOverlay;
-				}
+				ctx.Source = new PadTransformInternal(wicFrame.Source, bgColor, innerArea, outerArea, true);
+			}
+			else if (ldisp != GifDisposalMethod.RestoreBackground && !useBuffer)
+			{
+				Debug.Assert(gif.AnimationContext?.FrameBufferSource != null);
+
+				var ani = gif.AnimationContext;
+				var fbuff = ani.FrameBufferSource;
+
+				ani.FrameOverlay?.Dispose();
+				ani.FrameOverlay = new OverlayTransform(fbuff, wicFrame.Source, finfo.Left, finfo.Top, finfo.Alpha);
+
+				ctx.Source = ani.FrameOverlay;
 			}
 		}
 	}
