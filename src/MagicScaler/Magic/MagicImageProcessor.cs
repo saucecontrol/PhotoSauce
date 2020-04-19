@@ -236,7 +236,9 @@ namespace PhotoSauce.MagicScaler
 		{
 			ctx.ImageFrame = ctx.ImageContainer.GetFrame(ctx.Settings.FrameIndex);
 
-			bool anigif = ctx.Settings.SaveFormat == FileFormat.Gif && ctx.Settings.FrameIndex == 0 && ctx.ImageContainer.FrameCount > 1;
+			bool anigif =
+				(ctx.Settings.SaveFormat == FileFormat.Gif || (ctx.Settings.SaveFormat == FileFormat.Auto && ctx.ImageContainer.ContainerFormat == FileFormat.Gif))
+				&& ctx.Settings.FrameIndex == 0 && ctx.ImageContainer.FrameCount > 1;
 			bool processPlanar = false;
 			var wicFrame = ctx.ImageFrame as WicImageFrame;
 
@@ -255,7 +257,7 @@ namespace PhotoSauce.MagicScaler
 			}
 			else
 			{
-				ctx.Source = ctx.ImageFrame.PixelSource.AsPixelSource(); 
+				ctx.Source = ctx.ImageFrame.PixelSource.AsPixelSource();
 			}
 
 			MagicTransforms.AddColorProfileReader(ctx);

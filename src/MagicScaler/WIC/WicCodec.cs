@@ -206,7 +206,7 @@ namespace PhotoSauce.MagicScaler
 
 			bool copySourceMetadata = ctx.ImageFrame is WicImageFrame srcFrame && srcFrame.WicMetadataReader != null && ctx.Settings.MetadataNames != Enumerable.Empty<string>();
 			bool writeOrientation = ctx.Settings.OrientationMode == OrientationMode.Preserve && ctx.ImageFrame.ExifOrientation != Orientation.Normal;
-			bool writeColorContext = ctx.WicContext.DestColorContext != null && (ctx.Settings.ColorProfileMode == ColorProfileMode.NormalizeAndEmbed || ctx.Settings.ColorProfileMode == ColorProfileMode.Preserve);
+			bool writeColorContext = ctx.Settings.ColorProfileMode == ColorProfileMode.NormalizeAndEmbed || ctx.Settings.ColorProfileMode == ColorProfileMode.Preserve;
 
 			if ((copySourceMetadata || writeOrientation) && frame.TryGetMetadataQueryWriter(out var metawriter))
 			{
@@ -230,13 +230,15 @@ namespace PhotoSauce.MagicScaler
 
 			if (writeColorContext)
 			{
-				var cc = ctx.WicContext.DestColorContext;
+				Debug.Assert(ctx.WicContext.DestColorContext != null || ctx.DestColorProfile != null);
+
+				var cc = ctx.WicContext.DestColorContext ?? ctx.WicContext.AddRef(WicColorProfile.CreateContextFromProfile(ctx.DestColorProfile!.ProfileBytes));
 				if (ctx.DestColorProfile == ColorProfile.sRGB)
 					cc = WicColorProfile.SrgbCompact.Value.WicColorContext;
 				else if (ctx.DestColorProfile == ColorProfile.sGrey)
 					cc = WicColorProfile.GreyCompact.Value.WicColorContext;
 
-				frame.TrySetColorContexts(cc!);
+				frame.TrySetColorContexts(cc);
 			}
 		}
 
@@ -295,7 +297,7 @@ namespace PhotoSauce.MagicScaler
 		public void Dispose() => encoderFrame.Dispose();
 	}
 
-	internal class WicColorProfile
+	internal sealed class WicColorProfile
 	{
 		public static readonly Lazy<WicColorProfile> Cmyk = new Lazy<WicColorProfile>(() => new WicColorProfile(getDefaultColorContext(PixelFormat.Cmyk32Bpp.FormatGuid), null!));
 		public static readonly Lazy<WicColorProfile> Srgb = new Lazy<WicColorProfile>(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sRgbV4.Value), ColorProfile.sRGB));

@@ -61,7 +61,7 @@ namespace PhotoSauce.MagicScaler
 				return;
 
 			var newFormat = PixelFormat.Bgr24Bpp;
-			if (curFormat.AlphaRepresentation == PixelAlphaRepresentation.Associated && allowPbgra && ctx.Settings.BlendingMode != GammaMode.Linear && ctx.Settings.MatteColor.IsEmpty)
+			if (allowPbgra && curFormat.AlphaRepresentation == PixelAlphaRepresentation.Associated && ctx.Settings.BlendingMode != GammaMode.Linear && ctx.Settings.MatteColor.IsEmpty)
 				newFormat = PixelFormat.Pbgra32Bpp;
 			else if (curFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
 				newFormat = PixelFormat.Bgra32Bpp;

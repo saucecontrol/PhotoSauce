@@ -56,6 +56,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 			[PixelFormat.Y32BppFloat] = PixelFormat.Y32BppLinearFloat,
 			[PixelFormat.Bgrx128BppFloat] = PixelFormat.Bgrx128BppLinearFloat,
 			[PixelFormat.Pbgra128BppFloat] = PixelFormat.Pbgra128BppLinearFloat,
+			[PixelFormat.Grey32BppLinearFloat] = PixelFormat.Grey32BppLinearFloat,
+			[PixelFormat.Y32BppLinearFloat] = PixelFormat.Y32BppLinearFloat,
+			[PixelFormat.Bgrx128BppLinearFloat] = PixelFormat.Bgrx128BppLinearFloat,
+			[PixelFormat.Pbgra128BppLinearFloat] = PixelFormat.Pbgra128BppLinearFloat,
 		};
 
 		public static void AddInternalFormatConverter(PipelineContext ctx, PixelValueEncoding enc = PixelValueEncoding.Unspecified, bool allow96bppFloat = false)
@@ -332,26 +336,16 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			if (ctx.ImageFrame is WicImageFrame wicFrame)
 			{
-				ctx.WicContext.SourceColorContext = wicFrame.ColorProfileSource.WicColorContext;
 				ctx.SourceColorProfile = wicFrame.ColorProfileSource.ParsedProfile;
+				ctx.WicContext.SourceColorContext = wicFrame.ColorProfileSource.WicColorContext;
+				ctx.WicContext.DestColorContext = ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed ? WicColorProfile.GetDefaultFor(fmt).WicColorContext : ctx.WicContext.SourceColorContext;
 			}
 			else
 			{
 				var profile = ColorProfile.Cache.GetOrAdd(ctx.ImageFrame.IccProfile);
-				if (profile.IsValid && profile.IsCompatibleWith(fmt) && !profile.IsSrgb)
-				{
-					ctx.WicContext.SourceColorContext = ctx.WicContext.AddRef(WicColorProfile.CreateContextFromProfile(profile.ProfileBytes));
-					ctx.SourceColorProfile = profile;
-				}
-				else
-				{
-					var wicProfile = WicColorProfile.GetDefaultFor(fmt);
-					ctx.WicContext.SourceColorContext = wicProfile.WicColorContext;
-					ctx.SourceColorProfile = wicProfile.ParsedProfile;
-				}
+				ctx.SourceColorProfile = profile.IsValid && profile.IsCompatibleWith(fmt) && !profile.IsSrgb ? profile : ColorProfile.GetDefaultFor(fmt);
 			}
 
-			ctx.WicContext.DestColorContext = ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed ? WicColorProfile.GetDefaultFor(fmt).WicColorContext : ctx.WicContext.SourceColorContext;
 			ctx.DestColorProfile = ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed ? ColorProfile.GetDefaultFor(fmt) : ctx.SourceColorProfile;
 		}
 
@@ -363,6 +357,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 			if (ctx.SourceColorProfile.ProfileType > ColorProfileType.Matrix || ctx.DestColorProfile.ProfileType > ColorProfileType.Matrix)
 			{
 				AddExternalFormatConverter(ctx);
+
+				ctx.WicContext.SourceColorContext ??= ctx.WicContext.AddRef(WicColorProfile.CreateContextFromProfile(ctx.SourceColorProfile.ProfileBytes));
+				ctx.WicContext.DestColorContext ??= ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed ? WicColorProfile.GetDefaultFor(ctx.Source.Format).WicColorContext : ctx.WicContext.SourceColorContext;
+
 				WicTransforms.AddColorspaceConverter(ctx);
 
 				return;
