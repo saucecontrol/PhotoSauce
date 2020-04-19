@@ -160,6 +160,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 				var vmaskp = Avx.LoadVector256((int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.PermuteMaskEvenOdd8x32)));
 
 				ipe -= Vector256<float>.Count;
+
+				LoopTop:
 				do
 				{
 					var viy = Avx.LoadVector256(ip);
@@ -190,7 +192,14 @@ namespace PhotoSauce.MagicScaler.Transforms
 					op += Vector256<float>.Count * 4;
 
 				} while (ip <= ipe);
-				ipe += Vector256<float>.Count;
+
+				if (ip < ipe + Vector256<float>.Count)
+				{
+					var offs = GetOffset(ip, ipe);
+					ip = SubtractOffset(ip, offs);
+					op = SubtractOffset(op, Multiply(offs, 4));
+					goto LoopTop;
+				}
 			}
 			else
 			{
@@ -201,6 +210,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 				var voff = Vector128.Create(-fchromaOffset);
 
 				ipe -= Vector128<float>.Count;
+
+				LoopTop:
 				do
 				{
 					var viy = Sse.LoadVector128(ip);
@@ -227,11 +238,15 @@ namespace PhotoSauce.MagicScaler.Transforms
 					op += Vector128<float>.Count * 4;
 
 				} while (ip <= ipe);
-				ipe += Vector128<float>.Count;
-			}
 
-			if (ip < ipe)
-				copyPixelsFloat((byte*)ip, (byte*)op, bstride, (uint)(ipe - ip) * sizeof(float));
+				if (ip < ipe + Vector128<float>.Count)
+				{
+					var offs = GetOffset(ip, ipe);
+					ip = SubtractOffset(ip, offs);
+					op = SubtractOffset(op, Multiply(offs, 4));
+					goto LoopTop;
+				}
+			}
 		}
 #endif
 

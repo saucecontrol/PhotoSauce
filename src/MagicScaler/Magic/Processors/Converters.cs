@@ -34,23 +34,33 @@ namespace PhotoSauce.MagicScaler
 
 		private NarrowingConverter() { }
 
-#if HWINTRINSICS
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-#endif
 		unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, int cb)
 		{
 			ushort* ip = (ushort*)istart, ipe = (ushort*)(istart + cb);
 			byte* op = ostart;
 
 #if HWINTRINSICS
+			if (HWIntrinsics.IsSupported && cb >= HWIntrinsics.VectorCount<byte>() * 2)
+				convertIntrinsic(ip, ipe, op);
+			else
+#endif
+				convertScalar(ip, ipe, op);
+		}
+
+#if HWINTRINSICS
+		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+		unsafe private void convertIntrinsic(ushort* ip, ushort* ipe, byte* op)
+		{
 			if (Avx2.IsSupported)
 			{
-				ipe -= Vector256<byte>.Count;
-				while (ip <= ipe)
+				ipe -= Vector256<ushort>.Count * 2;
+
+				LoopTop:
+				do
 				{
 					var vs0 = Avx.LoadVector256(ip);
 					var vs1 = Avx.LoadVector256(ip + Vector256<ushort>.Count);
-					ip += Vector256<byte>.Count;
+					ip += Vector256<ushort>.Count * 2;
 
 					vs0 = Avx2.ShiftRightLogical(vs0, 8);
 					vs1 = Avx2.ShiftRightLogical(vs1, 8);
@@ -60,17 +70,27 @@ namespace PhotoSauce.MagicScaler
 
 					Avx.Store(op, vb0);
 					op += Vector256<byte>.Count;
+
+				} while (ip <= ipe);
+
+				if (ip < ipe + Vector256<ushort>.Count * 2)
+				{
+					var offs = GetOffset(ip, ipe);
+					ip = SubtractOffset(ip, offs);
+					op = SubtractOffset(op, ConvertOffset<ushort, byte>(offs));
+					goto LoopTop;
 				}
-				ipe += Vector256<byte>.Count;
 			}
-			else if (Sse2.IsSupported)
+			else
 			{
-				ipe -= Vector128<byte>.Count;
-				while (ip <= ipe)
+				ipe -= Vector128<ushort>.Count * 2;
+
+				LoopTop:
+				do
 				{
 					var vs0 = Sse2.LoadVector128(ip);
 					var vs1 = Sse2.LoadVector128(ip + Vector128<ushort>.Count);
-					ip += Vector128<byte>.Count;
+					ip += Vector128<ushort>.Count * 2;
 
 					vs0 = Sse2.ShiftRightLogical(vs0, 8);
 					vs1 = Sse2.ShiftRightLogical(vs1, 8);
@@ -79,11 +99,22 @@ namespace PhotoSauce.MagicScaler
 
 					Sse2.Store(op, vb0);
 					op += Vector128<byte>.Count;
+
+				} while (ip <= ipe);
+
+				if (ip < ipe + Vector128<ushort>.Count * 2)
+				{
+					var offs = GetOffset(ip, ipe);
+					ip = SubtractOffset(ip, offs);
+					op = SubtractOffset(op, ConvertOffset<ushort, byte>(offs));
+					goto LoopTop;
 				}
-				ipe += Vector128<byte>.Count;
 			}
+		}
 #endif
 
+		unsafe private void convertScalar(ushort* ip, ushort* ipe, byte* op)
+		{
 			while (ip < ipe)
 			{
 				byte o0 = (byte)(ip[0] >> 8);
@@ -151,7 +182,11 @@ namespace PhotoSauce.MagicScaler
 
 		private sealed class NoopProcessor : IConversionProcessor<float, float>
 		{
-			unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, int cb) { }
+			unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, int cb)
+			{
+				if (istart != ostart)
+					Buffer.MemoryCopy(istart, ostart, cb, cb);
+			}
 		}
 	}
 

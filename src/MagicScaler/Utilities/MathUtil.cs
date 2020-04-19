@@ -199,10 +199,38 @@ namespace PhotoSauce.MagicScaler
 #endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static double Lerp(double l, double h, double d) => l + (h - l) * d;
+		unsafe public static IntPtr GetOffset<T>(T* cur, T* tgt) where T : unmanaged =>
+			Unsafe.ByteOffset(ref Unsafe.AsRef<T>(tgt), ref Unsafe.AsRef<T>(cur));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static float Lerp(float l, float h, float d) => l + (h - l) * d;
+		unsafe public static T* SubtractOffset<T>(T* ptr, IntPtr off) where T : unmanaged =>
+			(T*)Unsafe.AsPointer(ref Unsafe.SubtractByteOffset(ref Unsafe.AsRef<T>(ptr), off));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IntPtr ConvertOffset<TFrom, TTo>(IntPtr offset) where TFrom : unmanaged where TTo : unmanaged
+		{
+			if (Unsafe.SizeOf<TFrom>() > Unsafe.SizeOf<TTo>())
+				return Divide(offset, Unsafe.SizeOf<TFrom>() / Unsafe.SizeOf<TTo>());
+			else if (Unsafe.SizeOf<TFrom>() < Unsafe.SizeOf<TTo>())
+				return Multiply(offset, Unsafe.SizeOf<TTo>() / Unsafe.SizeOf<TFrom>());
+			else
+				return offset;
+		}
+
+		// TODO use nint -- https://github.com/dotnet/csharplang/issues/435
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		unsafe public static IntPtr Multiply(IntPtr x, int y) =>
+			(IntPtr)(IntPtr.Size == sizeof(ulong) ? (void*)((ulong)x * (ulong)y) : (void*)((uint)x * (uint)y));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		unsafe public static IntPtr Divide(IntPtr x, int y) =>
+			(IntPtr)(IntPtr.Size == sizeof(ulong) ? (void*)((ulong)x / (ulong)y) : (void*)((uint)x / (uint)y));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static double Lerp(double l, double h, double d) => (h - l) * d + l;
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static float Lerp(float l, float h, float d) => (h - l) * d + l;
 
 		public static bool IsRoughlyEqualTo(this double x, double y) => Math.Abs(x - y) < 0.0001;
 

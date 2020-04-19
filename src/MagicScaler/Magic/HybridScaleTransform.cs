@@ -163,9 +163,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 						vi1 = Avx2.Or(vi1, vmaska);
 
 						var vo0 = Avx2.MultiplyHigh(Avx2.Shuffle(vi0, vmasko).AsUInt16(), va0);
-						var vo2 = Avx2.MultiplyHigh(Avx2.Shuffle(vi1, vmasko).AsUInt16(), va1);
+						var vo1 = Avx2.MultiplyHigh(Avx2.Shuffle(vi1, vmasko).AsUInt16(), va1);
 
-						vo0 = Avx2.Average(vo0, vo2);
+						vo0 = Avx2.Average(vo0, vo1);
 						var vo = Avx2.MultiplyAddAdjacent(vo0.AsInt16(), vone);
 
 						ulong* iat = (ulong*)iatstart;
@@ -468,13 +468,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 					var vi3 = Sse2.LoadVector128(ipn + 12);
 					ip += 24;
 
-					vi0 = Ssse3.Shuffle(vi0, vmaskb);
-					vi1 = Ssse3.Shuffle(vi1, vmaskb);
-					vi2 = Ssse3.Shuffle(vi2, vmaskb);
-					vi3 = Ssse3.Shuffle(vi3, vmaskb);
-
 					vi0 = Sse2.Average(vi0, vi2);
 					vi1 = Sse2.Average(vi1, vi3);
+
+					vi0 = Ssse3.Shuffle(vi0, vmaskb);
+					vi1 = Ssse3.Shuffle(vi1, vmaskb);
 
 					var vs0 = Ssse3.MultiplyAddAdjacent(vi0, vone);
 					var vs1 = Ssse3.MultiplyAddAdjacent(vi1, vone);
@@ -509,19 +507,15 @@ namespace PhotoSauce.MagicScaler.Transforms
 					ulong i3 = *(ulong*)(ip + stride + 6);
 					ip += 12;
 
+					i0 = FastAvgD(i0, i2, m);
+					i1 = FastAvgU(i1, i3, m);
+
 					i0 = FastAvgU(i0, i0 >> 24, m);
-					i1 = FastAvgU(i1, i1 << 24, m);
-					i2 = FastAvgD(i2, i2 >> 24, m);
-					i3 = FastAvgD(i3, i3 << 24, m);
+					i1 = FastAvgD(i1, i1 << 24, m);
 
 					i0 &= mask0;
-					i2 &= mask0;
 					i1 &= mask1;
-					i3 &= mask1;
 					i0 |= i1;
-					i2 |= i3;
-
-					i0 = rup ? FastAvgU(i0, i2, m) : FastAvgD(i0, i2, m);
 
 					*(ulong*)op = i0;
 					op += 6;

@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 #if HWINTRINSICS
@@ -61,122 +60,175 @@ namespace PhotoSauce.MagicScaler
 				valueTable = videoRange ? LookupTables.MakeVideoInverseGamma(LookupTables.Alpha) : LookupTables.Alpha;
 			}
 
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
+			{
+				byte* ip = ipstart, ipe = ipstart + cb;
+				float* op = (float*)opstart;
+
+#if HWINTRINSICS
+				if (HWIntrinsics.IsSupported && cb >= HWIntrinsics.VectorCount<byte>())
+					convertIntrinsic(ip, ipe, op);
+				else
+#elif VECTOR_CONVERT
+				if (cb >= Vector<byte>.Count)
+					convertVector(ip, ipe, op);
+				else
+#endif
+					convertScalar(ip, ipe, op);
+			}
+
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+			unsafe private void convertIntrinsic(byte* ip, byte* ipe, float* op)
+			{
+				if (Avx2.IsSupported)
+				{
+					var vscal = Vector256.Create(scale);
+					var voffs = Vector256.Create(-offset * scale);
+					ipe -= Vector256<byte>.Count;
+
+					LoopTop:
+					do
+					{
+						var vi0 = Avx2.ConvertToVector256Int32(ip);
+						var vi1 = Avx2.ConvertToVector256Int32(ip + Vector256<int>.Count);
+						var vi2 = Avx2.ConvertToVector256Int32(ip + Vector256<int>.Count * 2);
+						var vi3 = Avx2.ConvertToVector256Int32(ip + Vector256<int>.Count * 3);
+						ip += Vector256<byte>.Count;
+
+						var vf0 = Avx.ConvertToVector256Single(vi0);
+						var vf1 = Avx.ConvertToVector256Single(vi1);
+						var vf2 = Avx.ConvertToVector256Single(vi2);
+						var vf3 = Avx.ConvertToVector256Single(vi3);
+
+						vf0 = HWIntrinsics.MultiplyAdd(voffs, vf0, vscal);
+						vf1 = HWIntrinsics.MultiplyAdd(voffs, vf1, vscal);
+						vf2 = HWIntrinsics.MultiplyAdd(voffs, vf2, vscal);
+						vf3 = HWIntrinsics.MultiplyAdd(voffs, vf3, vscal);
+
+						Avx.Store(op, vf0);
+						Avx.Store(op + Vector256<float>.Count, vf1);
+						Avx.Store(op + Vector256<float>.Count * 2, vf2);
+						Avx.Store(op + Vector256<float>.Count * 3, vf3);
+						op += Vector256<float>.Count * 4;
+
+					} while (ip <= ipe);
+
+					if (ip < ipe + Vector256<byte>.Count)
+					{
+						var offs = GetOffset(ip, ipe);
+						ip = SubtractOffset(ip, offs);
+						op = SubtractOffset(op, ConvertOffset<byte, float>(offs));
+						goto LoopTop;
+					}
+				}
+				else
+				{
+					var vscal = Vector128.Create(scale);
+					var voffs = Vector128.Create(-offset * scale);
+					var vzero = Vector128<byte>.Zero;
+					ipe -= Vector128<byte>.Count;
+
+					LoopTop:
+					do
+					{
+						Vector128<int> vi0, vi1, vi2, vi3;
+						if (Sse41.IsSupported)
+						{
+							vi0 = Sse41.ConvertToVector128Int32(ip);
+							vi1 = Sse41.ConvertToVector128Int32(ip + Vector128<int>.Count);
+							vi2 = Sse41.ConvertToVector128Int32(ip + Vector128<int>.Count * 2);
+							vi3 = Sse41.ConvertToVector128Int32(ip + Vector128<int>.Count * 3);
+						}
+						else
+						{
+							var vb = Sse2.LoadVector128(ip);
+							var vs0 = Sse2.UnpackLow(vb, vzero).AsInt16();
+							var vs1 = Sse2.UnpackHigh(vb, vzero).AsInt16();
+							vi0 = Sse2.UnpackLow(vs0, vzero.AsInt16()).AsInt32();
+							vi1 = Sse2.UnpackHigh(vs0, vzero.AsInt16()).AsInt32();
+							vi2 = Sse2.UnpackLow(vs1, vzero.AsInt16()).AsInt32();
+							vi3 = Sse2.UnpackHigh(vs1, vzero.AsInt16()).AsInt32();
+						}
+						ip += Vector128<byte>.Count;
+
+						var vf0 = Sse2.ConvertToVector128Single(vi0);
+						var vf1 = Sse2.ConvertToVector128Single(vi1);
+						var vf2 = Sse2.ConvertToVector128Single(vi2);
+						var vf3 = Sse2.ConvertToVector128Single(vi3);
+
+						vf0 = HWIntrinsics.MultiplyAdd(voffs, vf0, vscal);
+						vf1 = HWIntrinsics.MultiplyAdd(voffs, vf1, vscal);
+						vf2 = HWIntrinsics.MultiplyAdd(voffs, vf2, vscal);
+						vf3 = HWIntrinsics.MultiplyAdd(voffs, vf3, vscal);
+
+						Sse.Store(op, vf0);
+						Sse.Store(op + Vector128<float>.Count, vf1);
+						Sse.Store(op + Vector128<float>.Count * 2, vf2);
+						Sse.Store(op + Vector128<float>.Count * 3, vf3);
+						op += Vector128<float>.Count * 4;
+
+					} while (ip <= ipe);
+
+					if (ip < ipe + Vector128<byte>.Count)
+					{
+						var offs = GetOffset(ip, ipe);
+						ip = SubtractOffset(ip, offs);
+						op = SubtractOffset(op, ConvertOffset<byte, float>(offs));
+						goto LoopTop;
+					}
+				}
+			}
+
+#elif VECTOR_CONVERT
+			unsafe private void convertVector(byte* ip, byte* ipe, float* op)
+			{
+				var vscal = new VectorF(scale);
+				var voffs = new VectorF(-offset * scale);
+				ipe -= Vector<byte>.Count;
+
+				LoopTop:
+				do
+				{
+					var vb = Unsafe.ReadUnaligned<Vector<byte>>(ip);
+					Vector.Widen(vb, out var vs0, out var vs1);
+					Vector.Widen(vs0, out var vi0, out var vi1);
+					Vector.Widen(vs1, out var vi2, out var vi3);
+					ip += Vector<byte>.Count;
+
+					var vf0 = Vector.ConvertToSingle(Vector.AsVectorInt32(vi0));
+					var vf1 = Vector.ConvertToSingle(Vector.AsVectorInt32(vi1));
+					var vf2 = Vector.ConvertToSingle(Vector.AsVectorInt32(vi2));
+					var vf3 = Vector.ConvertToSingle(Vector.AsVectorInt32(vi3));
+
+					vf0 = vf0 * vscal + voffs;
+					vf1 = vf1 * vscal + voffs;
+					vf2 = vf2 * vscal + voffs;
+					vf3 = vf3 * vscal + voffs;
+
+					Unsafe.WriteUnaligned(op, vf0);
+					Unsafe.WriteUnaligned(op + VectorF.Count, vf1);
+					Unsafe.WriteUnaligned(op + VectorF.Count * 2, vf2);
+					Unsafe.WriteUnaligned(op + VectorF.Count * 3, vf3);
+					op += VectorF.Count * 4;
+
+				} while (ip <= ipe);
+
+				if (ip < ipe + Vector<byte>.Count)
+				{
+					var offs = GetOffset(ip, ipe);
+					ip = SubtractOffset(ip, offs);
+					op = SubtractOffset(op, ConvertOffset<byte, float>(offs));
+					goto LoopTop;
+				}
+			}
 #endif
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
+
+			unsafe private void convertScalar(byte* ip, byte* ipe, float* op)
 			{
 				fixed (float* atstart = &valueTable[0])
 				{
-					byte* ip = ipstart, ipe = ipstart + cb;
-					float* op = (float*)opstart, at = atstart;
-
-#if HWINTRINSICS
-					if (Avx2.IsSupported)
-					{
-						var vscal = Vector256.Create(scale);
-						var voffs = Fma.IsSupported ? Vector256.Create(offset * scale) : Vector256.Create(offset);
-
-						ipe -= Vector256<byte>.Count;
-						while (ip <= ipe)
-						{
-							var vi0 = Avx2.ConvertToVector256Int32(ip);
-							var vi1 = Avx2.ConvertToVector256Int32(ip + Vector256<int>.Count);
-							var vi2 = Avx2.ConvertToVector256Int32(ip + Vector256<int>.Count * 2);
-							var vi3 = Avx2.ConvertToVector256Int32(ip + Vector256<int>.Count * 3);
-							ip += Vector256<byte>.Count;
-
-							var vf0 = Avx.ConvertToVector256Single(vi0);
-							var vf1 = Avx.ConvertToVector256Single(vi1);
-							var vf2 = Avx.ConvertToVector256Single(vi2);
-							var vf3 = Avx.ConvertToVector256Single(vi3);
-
-							if (Fma.IsSupported)
-							{
-								vf0 = Fma.MultiplySubtract(vf0, vscal, voffs);
-								vf1 = Fma.MultiplySubtract(vf1, vscal, voffs);
-								vf2 = Fma.MultiplySubtract(vf2, vscal, voffs);
-								vf3 = Fma.MultiplySubtract(vf3, vscal, voffs);
-							}
-							else
-							{
-								vf0 = Avx.Multiply(Avx.Subtract(vf0, voffs), vscal);
-								vf1 = Avx.Multiply(Avx.Subtract(vf1, voffs), vscal);
-								vf2 = Avx.Multiply(Avx.Subtract(vf2, voffs), vscal);
-								vf3 = Avx.Multiply(Avx.Subtract(vf3, voffs), vscal);
-							}
-
-							Avx.Store(op, vf0);
-							Avx.Store(op + Vector256<int>.Count, vf1);
-							Avx.Store(op + Vector256<int>.Count * 2, vf2);
-							Avx.Store(op + Vector256<int>.Count * 3, vf3);
-							op += Vector256<byte>.Count;
-						}
-						ipe += Vector256<byte>.Count;
-					}
-					else if (Sse41.IsSupported)
-					{
-						var vscal = Vector128.Create(scale);
-						var voffs = Vector128.Create(offset);
-
-						ipe -= Vector128<byte>.Count;
-						while (ip <= ipe)
-						{
-							var vi0 = Sse41.ConvertToVector128Int32(ip);
-							var vi1 = Sse41.ConvertToVector128Int32(ip + Vector128<int>.Count);
-							var vi2 = Sse41.ConvertToVector128Int32(ip + Vector128<int>.Count * 2);
-							var vi3 = Sse41.ConvertToVector128Int32(ip + Vector128<int>.Count * 3);
-							ip += Vector128<byte>.Count;
-
-							var vf0 = Sse2.ConvertToVector128Single(vi0);
-							var vf1 = Sse2.ConvertToVector128Single(vi1);
-							var vf2 = Sse2.ConvertToVector128Single(vi2);
-							var vf3 = Sse2.ConvertToVector128Single(vi3);
-
-							vf0 = Sse.Multiply(Sse.Subtract(vf0, voffs), vscal);
-							vf1 = Sse.Multiply(Sse.Subtract(vf1, voffs), vscal);
-							vf2 = Sse.Multiply(Sse.Subtract(vf2, voffs), vscal);
-							vf3 = Sse.Multiply(Sse.Subtract(vf3, voffs), vscal);
-
-							Sse.Store(op, vf0);
-							Sse.Store(op + Vector128<int>.Count, vf1);
-							Sse.Store(op + Vector128<int>.Count * 2, vf2);
-							Sse.Store(op + Vector128<int>.Count * 3, vf3);
-							op += Vector128<byte>.Count;
-						}
-						ipe += Vector128<byte>.Count;
-					}
-#elif VECTOR_CONVERT
-					var vscal = new VectorF(scale);
-					var voffs = new VectorF(offset);
-
-					ipe -= Vector<byte>.Count;
-					while (ip <= ipe)
-					{
-						var vb = Unsafe.ReadUnaligned<Vector<byte>>(ip);
-						Vector.Widen(vb, out var vs0, out var vs1);
-						Vector.Widen(vs0, out var vi0, out var vi1);
-						Vector.Widen(vs1, out var vi2, out var vi3);
-						ip += Vector<byte>.Count;
-
-						var vf0 = Vector.ConvertToSingle(Vector.AsVectorInt32(vi0));
-						var vf1 = Vector.ConvertToSingle(Vector.AsVectorInt32(vi1));
-						var vf2 = Vector.ConvertToSingle(Vector.AsVectorInt32(vi2));
-						var vf3 = Vector.ConvertToSingle(Vector.AsVectorInt32(vi3));
-
-						vf0 = (vf0 - voffs) * vscal;
-						vf1 = (vf1 - voffs) * vscal;
-						vf2 = (vf2 - voffs) * vscal;
-						vf3 = (vf3 - voffs) * vscal;
-
-						Unsafe.WriteUnaligned(op, vf0);
-						Unsafe.WriteUnaligned(op + VectorF.Count, vf1);
-						Unsafe.WriteUnaligned(op + VectorF.Count * 2, vf2);
-						Unsafe.WriteUnaligned(op + VectorF.Count * 3, vf3);
-						op += Vector<byte>.Count;
-					}
-					ipe += Vector<byte>.Count;
-#endif
+					float* at = atstart;
 
 					ipe -= 8;
 					while (ip <= ipe)
@@ -215,110 +267,141 @@ namespace PhotoSauce.MagicScaler
 
 		private sealed class WideningImpl3A : IConversionProcessor<byte, float>
 		{
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
+			{
+				byte* ip = ipstart, ipe = ipstart + cb;
+				float* op = (float*)opstart;
+
+#if HWINTRINSICS
+				if (Sse41.IsSupported && cb >= HWIntrinsics.VectorCount<byte>())
+					convertIntrinsic(ip, ipe, op);
+				else
+#endif
+					convertScalar(ip, ipe, op);
+			}
+
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+			unsafe private void convertIntrinsic(byte* ip, byte* ipe, float* op)
+			{
+				if (Avx2.IsSupported)
+				{
+					var vscale = Vector256.Create(1f / byte.MaxValue);
+					ipe -= Vector256<byte>.Count;
+
+					LoopTop:
+					do
+					{
+						var vi0 = Avx2.ConvertToVector256Int32(ip);
+						var vi1 = Avx2.ConvertToVector256Int32(ip + Vector256<int>.Count);
+						var vi2 = Avx2.ConvertToVector256Int32(ip + Vector256<int>.Count * 2);
+						var vi3 = Avx2.ConvertToVector256Int32(ip + Vector256<int>.Count * 3);
+						ip += Vector256<byte>.Count;
+
+						var vf0 = Avx.ConvertToVector256Single(vi0);
+						var vf1 = Avx.ConvertToVector256Single(vi1);
+						var vf2 = Avx.ConvertToVector256Single(vi2);
+						var vf3 = Avx.ConvertToVector256Single(vi3);
+
+						vf0 = Avx.Multiply(vf0, vscale);
+						vf1 = Avx.Multiply(vf1, vscale);
+						vf2 = Avx.Multiply(vf2, vscale);
+						vf3 = Avx.Multiply(vf3, vscale);
+
+						var vfa0 = Avx.Shuffle(vf0, vf0, HWIntrinsics.ShuffleMaskAlpha);
+						var vfa1 = Avx.Shuffle(vf1, vf1, HWIntrinsics.ShuffleMaskAlpha);
+						var vfa2 = Avx.Shuffle(vf2, vf2, HWIntrinsics.ShuffleMaskAlpha);
+						var vfa3 = Avx.Shuffle(vf3, vf3, HWIntrinsics.ShuffleMaskAlpha);
+
+						vf0 = Avx.Multiply(vf0, vfa0);
+						vf1 = Avx.Multiply(vf1, vfa1);
+						vf2 = Avx.Multiply(vf2, vfa2);
+						vf3 = Avx.Multiply(vf3, vfa3);
+
+						vf0 = Avx.Blend(vf0, vfa0, HWIntrinsics.BlendMaskAlpha);
+						vf1 = Avx.Blend(vf1, vfa1, HWIntrinsics.BlendMaskAlpha);
+						vf2 = Avx.Blend(vf2, vfa2, HWIntrinsics.BlendMaskAlpha);
+						vf3 = Avx.Blend(vf3, vfa3, HWIntrinsics.BlendMaskAlpha);
+
+						Avx.Store(op, vf0);
+						Avx.Store(op + Vector256<float>.Count, vf1);
+						Avx.Store(op + Vector256<float>.Count * 2, vf2);
+						Avx.Store(op + Vector256<float>.Count * 3, vf3);
+						op += Vector256<float>.Count * 4;
+
+					} while (ip <= ipe);
+
+					if (ip < ipe + Vector256<byte>.Count)
+					{
+						var offs = GetOffset(ip, ipe);
+						ip = SubtractOffset(ip, offs);
+						op = SubtractOffset(op, ConvertOffset<byte, float>(offs));
+						goto LoopTop;
+					}
+				}
+				else // Sse4.1
+				{
+					var vscale = Vector128.Create(1f / byte.MaxValue);
+					ipe -= Vector128<byte>.Count;
+
+					LoopTop:
+					do
+					{
+						var vi0 = Sse41.ConvertToVector128Int32(ip);
+						var vi1 = Sse41.ConvertToVector128Int32(ip + Vector128<int>.Count);
+						var vi2 = Sse41.ConvertToVector128Int32(ip + Vector128<int>.Count * 2);
+						var vi3 = Sse41.ConvertToVector128Int32(ip + Vector128<int>.Count * 3);
+						ip += Vector128<byte>.Count;
+
+						var vf0 = Sse2.ConvertToVector128Single(vi0);
+						var vf1 = Sse2.ConvertToVector128Single(vi1);
+						var vf2 = Sse2.ConvertToVector128Single(vi2);
+						var vf3 = Sse2.ConvertToVector128Single(vi3);
+
+						vf0 = Sse.Multiply(vf0, vscale);
+						vf1 = Sse.Multiply(vf1, vscale);
+						vf2 = Sse.Multiply(vf2, vscale);
+						vf3 = Sse.Multiply(vf3, vscale);
+
+						var vfa0 = Sse.Shuffle(vf0, vf0, HWIntrinsics.ShuffleMaskAlpha);
+						var vfa1 = Sse.Shuffle(vf1, vf1, HWIntrinsics.ShuffleMaskAlpha);
+						var vfa2 = Sse.Shuffle(vf2, vf2, HWIntrinsics.ShuffleMaskAlpha);
+						var vfa3 = Sse.Shuffle(vf3, vf3, HWIntrinsics.ShuffleMaskAlpha);
+
+						vf0 = Sse.Multiply(vf0, vfa0);
+						vf1 = Sse.Multiply(vf1, vfa1);
+						vf2 = Sse.Multiply(vf2, vfa2);
+						vf3 = Sse.Multiply(vf3, vfa3);
+
+						vf0 = Sse41.Blend(vf0, vfa0, HWIntrinsics.BlendMaskAlpha);
+						vf1 = Sse41.Blend(vf1, vfa1, HWIntrinsics.BlendMaskAlpha);
+						vf2 = Sse41.Blend(vf2, vfa2, HWIntrinsics.BlendMaskAlpha);
+						vf3 = Sse41.Blend(vf3, vfa3, HWIntrinsics.BlendMaskAlpha);
+
+						Sse.Store(op, vf0);
+						Sse.Store(op + Vector128<float>.Count, vf1);
+						Sse.Store(op + Vector128<float>.Count * 2, vf2);
+						Sse.Store(op + Vector128<float>.Count * 3, vf3);
+						op += Vector128<float>.Count * 4;
+
+					} while (ip <= ipe);
+
+					if (ip < ipe + Vector128<byte>.Count)
+					{
+						var offs = GetOffset(ip, ipe);
+						ip = SubtractOffset(ip, offs);
+						op = SubtractOffset(op, ConvertOffset<byte, float>(offs));
+						goto LoopTop;
+					}
+				}
+			}
 #endif
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
+
+			unsafe private void convertScalar(byte* ip, byte* ipe, float* op)
 			{
 				fixed (float* atstart = &LookupTables.Alpha[0])
 				{
-					byte* ip = ipstart, ipe = ipstart + cb;
-					float* op = (float*)opstart, at = atstart;
-
-#if HWINTRINSICS
-					if (Avx2.IsSupported)
-					{
-						var vscale = Vector256.Create(1f / byte.MaxValue);
-
-						ipe -= Vector256<byte>.Count;
-						while (ip <= ipe)
-						{
-							var vi0 = Avx2.ConvertToVector256Int32(ip);
-							var vi1 = Avx2.ConvertToVector256Int32(ip + Vector256<int>.Count);
-							var vi2 = Avx2.ConvertToVector256Int32(ip + Vector256<int>.Count * 2);
-							var vi3 = Avx2.ConvertToVector256Int32(ip + Vector256<int>.Count * 3);
-							ip += Vector256<byte>.Count;
-
-							var vf0 = Avx.ConvertToVector256Single(vi0);
-							var vf1 = Avx.ConvertToVector256Single(vi1);
-							var vf2 = Avx.ConvertToVector256Single(vi2);
-							var vf3 = Avx.ConvertToVector256Single(vi3);
-
-							vf0 = Avx.Multiply(vf0, vscale);
-							vf1 = Avx.Multiply(vf1, vscale);
-							vf2 = Avx.Multiply(vf2, vscale);
-							vf3 = Avx.Multiply(vf3, vscale);
-
-							var vfa0 = Avx.Shuffle(vf0, vf0, HWIntrinsics.ShuffleMaskAlpha);
-							var vfa1 = Avx.Shuffle(vf1, vf1, HWIntrinsics.ShuffleMaskAlpha);
-							var vfa2 = Avx.Shuffle(vf2, vf2, HWIntrinsics.ShuffleMaskAlpha);
-							var vfa3 = Avx.Shuffle(vf3, vf3, HWIntrinsics.ShuffleMaskAlpha);
-
-							vf0 = Avx.Multiply(vf0, vfa0);
-							vf1 = Avx.Multiply(vf1, vfa1);
-							vf2 = Avx.Multiply(vf2, vfa2);
-							vf3 = Avx.Multiply(vf3, vfa3);
-
-							vf0 = Avx.Blend(vf0, vfa0, HWIntrinsics.BlendMaskAlpha);
-							vf1 = Avx.Blend(vf1, vfa1, HWIntrinsics.BlendMaskAlpha);
-							vf2 = Avx.Blend(vf2, vfa2, HWIntrinsics.BlendMaskAlpha);
-							vf3 = Avx.Blend(vf3, vfa3, HWIntrinsics.BlendMaskAlpha);
-
-							Avx.Store(op, vf0);
-							Avx.Store(op + Vector256<int>.Count, vf1);
-							Avx.Store(op + Vector256<int>.Count * 2, vf2);
-							Avx.Store(op + Vector256<int>.Count * 3, vf3);
-							op += Vector256<byte>.Count;
-						}
-						ipe += Vector256<byte>.Count;
-					}
-					else if (Sse41.IsSupported)
-					{
-						var vscale = Vector128.Create(1f / byte.MaxValue);
-
-						ipe -= Vector128<byte>.Count;
-						while (ip <= ipe)
-						{
-							var vi0 = Sse41.ConvertToVector128Int32(ip);
-							var vi1 = Sse41.ConvertToVector128Int32(ip + Vector128<int>.Count);
-							var vi2 = Sse41.ConvertToVector128Int32(ip + Vector128<int>.Count * 2);
-							var vi3 = Sse41.ConvertToVector128Int32(ip + Vector128<int>.Count * 3);
-							ip += Vector128<byte>.Count;
-
-							var vf0 = Sse2.ConvertToVector128Single(vi0);
-							var vf1 = Sse2.ConvertToVector128Single(vi1);
-							var vf2 = Sse2.ConvertToVector128Single(vi2);
-							var vf3 = Sse2.ConvertToVector128Single(vi3);
-
-							vf0 = Sse.Multiply(vf0, vscale);
-							vf1 = Sse.Multiply(vf1, vscale);
-							vf2 = Sse.Multiply(vf2, vscale);
-							vf3 = Sse.Multiply(vf3, vscale);
-
-							var vfa0 = Sse.Shuffle(vf0, vf0, HWIntrinsics.ShuffleMaskAlpha);
-							var vfa1 = Sse.Shuffle(vf1, vf1, HWIntrinsics.ShuffleMaskAlpha);
-							var vfa2 = Sse.Shuffle(vf2, vf2, HWIntrinsics.ShuffleMaskAlpha);
-							var vfa3 = Sse.Shuffle(vf3, vf3, HWIntrinsics.ShuffleMaskAlpha);
-
-							vf0 = Sse.Multiply(vf0, vfa0);
-							vf1 = Sse.Multiply(vf1, vfa1);
-							vf2 = Sse.Multiply(vf2, vfa2);
-							vf3 = Sse.Multiply(vf3, vfa3);
-
-							vf0 = Sse41.Blend(vf0, vfa0, HWIntrinsics.BlendMaskAlpha);
-							vf1 = Sse41.Blend(vf1, vfa1, HWIntrinsics.BlendMaskAlpha);
-							vf2 = Sse41.Blend(vf2, vfa2, HWIntrinsics.BlendMaskAlpha);
-							vf3 = Sse41.Blend(vf3, vfa3, HWIntrinsics.BlendMaskAlpha);
-
-							Sse.Store(op, vf0);
-							Sse.Store(op + Vector128<int>.Count, vf1);
-							Sse.Store(op + Vector128<int>.Count * 2, vf2);
-							Sse.Store(op + Vector128<int>.Count * 3, vf3);
-							op += Vector128<byte>.Count;
-						}
-						ipe += Vector128<byte>.Count;
-					}
-#endif
+					float* at = atstart;
 
 					while (ip < ipe)
 					{
@@ -384,7 +467,7 @@ namespace PhotoSauce.MagicScaler
 							Avx.Store(op + Vector256<float>.Count, vf1);
 							Avx.Store(op + Vector256<float>.Count * 2, vf2);
 							Avx.Store(op + Vector256<float>.Count * 3, vf3);
-							op += Vector256<byte>.Count;
+							op += Vector256<float>.Count * 4;
 						}
 						ipe += Vector256<byte>.Count * 3 / 4 + 2;
 					}
@@ -415,7 +498,7 @@ namespace PhotoSauce.MagicScaler
 							Sse.Store(op + Vector128<float>.Count, vf1);
 							Sse.Store(op + Vector128<float>.Count * 2, vf2);
 							Sse.Store(op + Vector128<float>.Count * 3, vf3);
-							op += Vector128<byte>.Count;
+							op += Vector128<float>.Count * 4;
 						}
 						ipe += Vector128<byte>.Count * 3 / 4 + 1;
 					}
@@ -439,28 +522,40 @@ namespace PhotoSauce.MagicScaler
 
 		private sealed class NarrowingImpl : IConversionProcessor<float, byte>
 		{
-#if HWINTRINSICS
-			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-#endif
 			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
 				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb);
 				byte* op = opstart;
 
 #if HWINTRINSICS
+				if (HWIntrinsics.IsSupported && cb >= HWIntrinsics.VectorCount<byte>() * 4)
+					convertIntrinsic(ip, ipe, op);
+				else
+#endif
+				if (cb >= Vector<byte>.Count * 4)
+					convertVector(ip, ipe, op);
+				else
+					convertScalar(ip, ipe, op);
+			}
+
+#if HWINTRINSICS
+			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+			unsafe private void convertIntrinsic(float* ip, float* ipe, byte* op)
+			{
 				if (Avx2.IsSupported)
 				{
 					var vscale = Vector256.Create((float)byte.MaxValue);
 					var vmaskp = Avx.LoadVector256((int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.PermuteMaskDeinterleave8x32)));
+					ipe -= Vector256<float>.Count * 4;
 
-					ipe -= Vector256<byte>.Count;
-					while (ip <= ipe)
+					LoopTop:
+					do
 					{
 						var vf0 = Avx.Multiply(vscale, Avx.LoadVector256(ip));
 						var vf1 = Avx.Multiply(vscale, Avx.LoadVector256(ip + Vector256<float>.Count));
 						var vf2 = Avx.Multiply(vscale, Avx.LoadVector256(ip + Vector256<float>.Count * 2));
 						var vf3 = Avx.Multiply(vscale, Avx.LoadVector256(ip + Vector256<float>.Count * 3));
-						ip += Vector256<byte>.Count;
+						ip += Vector256<float>.Count * 4;
 
 						var vi0 = Avx.ConvertToVector256Int32(vf0);
 						var vi1 = Avx.ConvertToVector256Int32(vf1);
@@ -475,21 +570,30 @@ namespace PhotoSauce.MagicScaler
 
 						Avx.Store(op, vb0);
 						op += Vector256<byte>.Count;
+
+					} while (ip <= ipe);
+
+					if (ip < ipe + Vector256<float>.Count * 4)
+					{
+						var offs = GetOffset(ip, ipe);
+						ip = SubtractOffset(ip, offs);
+						op = SubtractOffset(op, ConvertOffset<float, byte>(offs));
+						goto LoopTop;
 					}
-					ipe += Vector256<byte>.Count;
 				}
-				else if (Sse2.IsSupported)
+				else // Sse2
 				{
 					var vscale = Vector128.Create((float)byte.MaxValue);
+					ipe -= Vector128<float>.Count * 4;
 
-					ipe -= Vector128<byte>.Count;
-					while (ip <= ipe)
+					LoopTop:
+					do
 					{
-						var vf0 = Sse.Multiply(vscale, Sse.LoadVector128(ip));
-						var vf1 = Sse.Multiply(vscale, Sse.LoadVector128(ip + Vector128<float>.Count));
-						var vf2 = Sse.Multiply(vscale, Sse.LoadVector128(ip + Vector128<float>.Count * 2));
-						var vf3 = Sse.Multiply(vscale, Sse.LoadVector128(ip + Vector128<float>.Count * 3));
-						ip += Vector128<byte>.Count;
+						var vf0 = Sse.Multiply(Sse.LoadVector128(ip), vscale);
+						var vf1 = Sse.Multiply(Sse.LoadVector128(ip + Vector128<float>.Count), vscale);
+						var vf2 = Sse.Multiply(Sse.LoadVector128(ip + Vector128<float>.Count * 2), vscale);
+						var vf3 = Sse.Multiply(Sse.LoadVector128(ip + Vector128<float>.Count * 3), vscale);
+						ip += Vector128<float>.Count * 4;
 
 						var vi0 = Sse2.ConvertToVector128Int32(vf0);
 						var vi1 = Sse2.ConvertToVector128Int32(vf1);
@@ -503,75 +607,95 @@ namespace PhotoSauce.MagicScaler
 
 						Sse2.Store(op, vb0);
 						op += Vector128<byte>.Count;
+
+					} while (ip <= ipe) ;
+
+					if (ip < ipe + Vector128<float>.Count * 4)
+					{
+						var offs = GetOffset(ip, ipe);
+						ip = SubtractOffset(ip, offs);
+						op = SubtractOffset(op, ConvertOffset<float, byte>(offs));
+						goto LoopTop;
 					}
-					ipe += Vector128<byte>.Count;
 				}
-				else
+			}
 #endif
+
+			unsafe private void convertVector(float* ip, float* ipe, byte* op)
+			{
+#if VECTOR_CONVERT
+				int unrollCount = Vector<byte>.Count;
+				var vmin = new Vector<short>(byte.MinValue);
+				var vmax = new Vector<short>(byte.MaxValue);
+				var vscale = new VectorF(byte.MaxValue);
+#else
+				int unrollCount = VectorF.Count;
+				var vmin = new VectorF(byte.MinValue);
+				var vmax = new VectorF(byte.MaxValue);
+#endif
+				var vround = new VectorF(0.5f);
+				ipe -= unrollCount;
+
+				LoopTop:
+				do
 				{
 #if VECTOR_CONVERT
-					int unrollCount = Vector<byte>.Count;
-					var vmin = new Vector<short>(byte.MinValue);
-					var vmax = new Vector<short>(byte.MaxValue);
-					var vscale = new VectorF(byte.MaxValue);
-#else
-					int unrollCount = VectorF.Count;
-					var vmin = new VectorF(byte.MinValue);
-					var vmax = new VectorF(byte.MaxValue);
-#endif
-					var vround = new VectorF(0.5f);
+					var vf0 = Unsafe.ReadUnaligned<VectorF>(ip);
+					var vf1 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count);
+					var vf2 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count * 2);
+					var vf3 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count * 3);
 
-					ipe -= unrollCount;
-					while (ip <= ipe)
+					vf0 = vf0 * vscale + vround;
+					vf1 = vf1 * vscale + vround;
+					vf2 = vf2 * vscale + vround;
+					vf3 = vf3 * vscale + vround;
+
+					var vi0 = Vector.ConvertToInt32(vf0);
+					var vi1 = Vector.ConvertToInt32(vf1);
+					var vi2 = Vector.ConvertToInt32(vf2);
+					var vi3 = Vector.ConvertToInt32(vf3);
+
+					var vs0 = Vector.Narrow(vi0, vi1);
+					var vs1 = Vector.Narrow(vi2, vi3);
+
+					vs0 = vs0.Clamp(vmin, vmax);
+					vs1 = vs1.Clamp(vmin, vmax);
+
+					var vb = Vector.Narrow(Vector.AsVectorUInt16(vs0), Vector.AsVectorUInt16(vs1));
+					Unsafe.WriteUnaligned(op, vb);
+#else
+					var v = Unsafe.ReadUnaligned<VectorF>(ip) * vmax + vround;
+					v = v.Clamp(vmin, vmax);
+
+					op[0] = (byte)v[0];
+					op[1] = (byte)v[1];
+					op[2] = (byte)v[2];
+					op[3] = (byte)v[3];
+
+					if (VectorF.Count == 8)
 					{
-#if VECTOR_CONVERT
-						var vf0 = Unsafe.ReadUnaligned<VectorF>(ip);
-						var vf1 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count);
-						var vf2 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count * 2);
-						var vf3 = Unsafe.ReadUnaligned<VectorF>(ip + VectorF.Count * 3);
-
-						vf0 = vf0 * vscale + vround;
-						vf1 = vf1 * vscale + vround;
-						vf2 = vf2 * vscale + vround;
-						vf3 = vf3 * vscale + vround;
-
-						var vi0 = Vector.ConvertToInt32(vf0);
-						var vi1 = Vector.ConvertToInt32(vf1);
-						var vi2 = Vector.ConvertToInt32(vf2);
-						var vi3 = Vector.ConvertToInt32(vf3);
-
-						var vs0 = Vector.Narrow(vi0, vi1);
-						var vs1 = Vector.Narrow(vi2, vi3);
-
-						vs0 = vs0.Clamp(vmin, vmax);
-						vs1 = vs1.Clamp(vmin, vmax);
-
-						var vb = Vector.Narrow(Vector.AsVectorUInt16(vs0), Vector.AsVectorUInt16(vs1));
-						Unsafe.WriteUnaligned(op, vb);
-#else
-						var v = Unsafe.ReadUnaligned<VectorF>(ip) * vmax + vround;
-						v = v.Clamp(vmin, vmax);
-
-						op[0] = (byte)v[0];
-						op[1] = (byte)v[1];
-						op[2] = (byte)v[2];
-						op[3] = (byte)v[3];
-
-						if (VectorF.Count == 8)
-						{
-							op[4] = (byte)v[4];
-							op[5] = (byte)v[5];
-							op[6] = (byte)v[6];
-							op[7] = (byte)v[7];
-						}
-#endif
-
-						ip += unrollCount;
-						op += unrollCount;
+						op[4] = (byte)v[4];
+						op[5] = (byte)v[5];
+						op[6] = (byte)v[6];
+						op[7] = (byte)v[7];
 					}
-					ipe += unrollCount;
-				}
+#endif
+					ip += unrollCount;
+					op += unrollCount;
 
+				} while (ip <= ipe);
+
+				if (ip < ipe + unrollCount)
+				{
+					var offs = GetOffset(ip, ipe);
+					ip = SubtractOffset(ip, offs);
+					op = SubtractOffset(op, ConvertOffset<float, byte>(offs));
+					goto LoopTop;
+				}
+			}
+
+			unsafe private void convertScalar(float* ip, float* ipe, byte* op)
+			{
 				while (ip < ipe)
 				{
 					op[0] = FixToByte(ip[0]);
@@ -583,15 +707,23 @@ namespace PhotoSauce.MagicScaler
 
 		private sealed class NarrowingImpl3A : IConversionProcessor<float, byte>
 		{
-#if HWINTRINSICS
-			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-#endif
 			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
 				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb);
 				byte* op = opstart;
 
 #if HWINTRINSICS
+				if (Sse41.IsSupported && cb >= HWIntrinsics.VectorCount<byte>() * 4)
+					convertIntrinsic(ip, ipe, op);
+				else
+#endif
+					convertScalar(ip, ipe, op);
+			}
+
+#if HWINTRINSICS
+			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+			private unsafe void convertIntrinsic(float* ip, float* ipe, byte* op)
+			{
 				if (Avx2.IsSupported)
 				{
 					var vzero = Vector256<float>.Zero;
@@ -599,15 +731,16 @@ namespace PhotoSauce.MagicScaler
 					var vscale = Vector256.Create((float)byte.MaxValue);
 
 					var vmaskp = Avx.LoadVector256((int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.PermuteMaskDeinterleave8x32)));
+					ipe -= Vector256<float>.Count * 4;
 
-					ipe -= Vector256<byte>.Count;
-					while (ip <= ipe)
+					LoopTop:
+					do
 					{
 						var vf0 = Avx.LoadVector256(ip);
 						var vf1 = Avx.LoadVector256(ip + Vector256<float>.Count);
 						var vf2 = Avx.LoadVector256(ip + Vector256<float>.Count * 2);
 						var vf3 = Avx.LoadVector256(ip + Vector256<float>.Count * 3);
-						ip += Vector256<byte>.Count;
+						ip += Vector256<float>.Count * 4;
 
 						var vfa0 = Avx.Shuffle(vf0, vf0, HWIntrinsics.ShuffleMaskAlpha);
 						var vfa1 = Avx.Shuffle(vf1, vf1, HWIntrinsics.ShuffleMaskAlpha);
@@ -652,23 +785,32 @@ namespace PhotoSauce.MagicScaler
 
 						Avx.Store(op, vb0);
 						op += Vector256<byte>.Count;
+
+					} while (ip <= ipe);
+
+					if (ip < ipe + Vector256<float>.Count * 4)
+					{
+						var offs = GetOffset(ip, ipe);
+						ip = SubtractOffset(ip, offs);
+						op = SubtractOffset(op, ConvertOffset<float, byte>(offs));
+						goto LoopTop;
 					}
-					ipe += Vector256<byte>.Count;
 				}
-				else if (Sse41.IsSupported)
+				else // Sse41
 				{
 					var vzero = Vector128<float>.Zero;
 					var vmin = Vector128.Create(0.5f / byte.MaxValue);
 					var vscale = Vector128.Create((float)byte.MaxValue);
+					ipe -= Vector128<float>.Count * 4;
 
-					ipe -= Vector128<byte>.Count;
-					while (ip <= ipe)
+					LoopTop:
+					do
 					{
 						var vf0 = Sse.LoadVector128(ip);
 						var vf1 = Sse.LoadVector128(ip + Vector128<float>.Count);
 						var vf2 = Sse.LoadVector128(ip + Vector128<float>.Count * 2);
 						var vf3 = Sse.LoadVector128(ip + Vector128<float>.Count * 3);
-						ip += Vector128<byte>.Count;
+						ip += Vector128<float>.Count * 4;
 
 						var vfa0 = Sse.Shuffle(vf0, vf0, HWIntrinsics.ShuffleMaskAlpha);
 						var vfa1 = Sse.Shuffle(vf1, vf1, HWIntrinsics.ShuffleMaskAlpha);
@@ -712,11 +854,22 @@ namespace PhotoSauce.MagicScaler
 
 						Sse2.Store(op, vb0);
 						op += Vector128<byte>.Count;
+
+					} while (ip <= ipe);
+
+					if (ip < ipe + Vector128<float>.Count * 4)
+					{
+						var offs = GetOffset(ip, ipe);
+						ip = SubtractOffset(ip, offs);
+						op = SubtractOffset(op, ConvertOffset<float, byte>(offs));
+						goto LoopTop;
 					}
-					ipe += Vector128<byte>.Count;
 				}
+			}
 #endif
 
+			unsafe private void convertScalar(float* ip, float* ipe, byte* op)
+			{
 				float fmax = new Vector4(byte.MaxValue).X, fround = new Vector4(0.5f).X, fmin = fround / fmax;
 
 				while (ip < ipe)
@@ -763,14 +916,14 @@ namespace PhotoSauce.MagicScaler
 					var vmaskq = Avx.LoadVector256((int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.PermuteMask3xTo3Chan)));
 					var vmasks = Avx2.BroadcastVector128ToVector256((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3xTo3Chan)));
 
-					ipe -= Vector256<byte>.Count;
+					ipe -= Vector256<float>.Count * 4;
 					do
 					{
 						var vf0 = Avx.Multiply(Avx.LoadVector256(ip), vscale);
 						var vf1 = Avx.Multiply(Avx.LoadVector256(ip + Vector256<float>.Count), vscale);
 						var vf2 = Avx.Multiply(Avx.LoadVector256(ip + Vector256<float>.Count * 2), vscale);
 						var vf3 = Avx.Multiply(Avx.LoadVector256(ip + Vector256<float>.Count * 3), vscale);
-						ip += Vector256<byte>.Count;
+						ip += Vector256<float>.Count * 4;
 
 						var vi0 = Avx.ConvertToVector256Int32(vf0);
 						var vi1 = Avx.ConvertToVector256Int32(vf1);
@@ -798,22 +951,23 @@ namespace PhotoSauce.MagicScaler
 						Sse2.StoreScalar((long*)(op + Vector128<byte>.Count), vb0.GetUpper().AsInt64());
 						op += Vector256<byte>.Count * 3 / 4;
 						break;
+
 					} while (true);
-					ipe += Vector256<byte>.Count;
+					ipe += Vector256<float>.Count * 4;
 				}
 				else if (Ssse3.IsSupported && ipe >= ip + Vector128<byte>.Count)
 				{
 					var vscale = Vector128.Create((float)byte.MaxValue);
 					var vmasks = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3xTo3Chan)));
 
-					ipe -= Vector128<byte>.Count;
+					ipe -= Vector128<float>.Count * 4;
 					do
 					{
 						var vf0 = Sse.Multiply(Sse.LoadVector128(ip), vscale);
 						var vf1 = Sse.Multiply(Sse.LoadVector128(ip + Vector128<float>.Count), vscale);
 						var vf2 = Sse.Multiply(Sse.LoadVector128(ip + Vector128<float>.Count * 2), vscale);
 						var vf3 = Sse.Multiply(Sse.LoadVector128(ip + Vector128<float>.Count * 3), vscale);
-						ip += Vector128<byte>.Count;
+						ip += Vector128<float>.Count * 4;
 
 						var vi0 = Sse2.ConvertToVector128Int32(vf0);
 						var vi1 = Sse2.ConvertToVector128Int32(vf1);
@@ -840,8 +994,9 @@ namespace PhotoSauce.MagicScaler
 						Sse.StoreScalar((float*)(op + sizeof(long)), Sse2.UnpackHigh(vl0, vl0).AsSingle()); // https://github.com/dotnet/corefx/issues/41816
 						op += Vector128<byte>.Count * 3 / 4;
 						break;
+
 					} while (true);
-					ipe += Vector128<byte>.Count;
+					ipe += Vector128<float>.Count * 4;
 				}
 				else
 #endif
@@ -892,89 +1047,95 @@ namespace PhotoSauce.MagicScaler
 
 		public static class Interpolating
 		{
-#if HWINTRINSICS
-			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-#endif
 			unsafe public static void ConvertFloat(byte* ipstart, byte* opstart, float* lutstart, int lutmax, int cb)
 			{
-				Debug.Assert(ipstart == opstart);
-
 				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb);
-				float* lp = lutstart;
+				float* op = (float*)opstart, lp = lutstart;
 
 #if HWINTRINSICS
-				if (Avx2.IsSupported)
-				{
-					var vlmax = Vector256.Create((float)lutmax);
-					var vzero = Vector256<float>.Zero;
-					var vione = Vector256.Create(1);
-
-					ipe -= Vector256<float>.Count;
-					while (ip <= ipe)
-					{
-						var vf = Avx.Multiply(vlmax, Avx.LoadVector256(ip));
-						vf = Avx.Min(Avx.Max(vzero, vf), vlmax);
-
-						var vi = Avx.ConvertToVector256Int32WithTruncation(vf);
-						var vp = Avx.ConvertToVector256Single(vi);
-
-						var vl = Avx2.GatherVector256(lp, vi, sizeof(float));
-						var vh = Avx2.GatherVector256(lp, Avx2.Add(vi, vione), sizeof(float));
-
-						vf = HWIntrinsics.Lerp(vl, vh, Avx.Subtract(vf, vp));
-
-						Avx.Store(ip, vf);
-						ip += Vector256<float>.Count;
-					}
-					ipe += Vector256<float>.Count;
-
-					float fmin = vzero.ToScalar(), flmax = vlmax.ToScalar();
-					while (ip < ipe)
-					{
-						float f = (*ip * flmax).Clamp(fmin, flmax);
-						uint i = (uint)f;
-
-						*ip++ = Lerp(lp[i], lp[i + 1], f - i);
-					}
-				}
+				if (Avx2.IsSupported && cb >= HWIntrinsics.VectorCount<byte>())
+					convertFloatAvx2(ip, ipe, op, lp, lutmax);
 				else
 #endif
+					convertFloatScalar(ip, ipe, op, lp, lutmax);
+			}
+
+#if HWINTRINSICS
+			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+			unsafe private static void convertFloatAvx2(float* ip, float* ipe, float* op, float* lp, int lutmax)
+			{
+				var vlmax = Vector256.Create((float)lutmax);
+				var vzero = Vector256<float>.Zero;
+				var vione = Vector256.Create(1);
+				ipe -= Vector256<float>.Count;
+
+				LoopTop:
+				do
 				{
-					var vlmax = new Vector4(lutmax);
-					var vzero = Vector4.Zero;
+					var vf = Avx.Multiply(vlmax, Avx.LoadVector256(ip));
+					ip += Vector256<float>.Count;
 
-					ipe -= 4;
-					while (ip <= ipe)
-					{
-						var vf = (Unsafe.ReadUnaligned<Vector4>(ip) * vlmax).Clamp(vzero, vlmax);
+					vf = Avx.Min(Avx.Max(vzero, vf), vlmax);
 
-						float f0 = vf.X;
-						float f1 = vf.Y;
-						float f2 = vf.Z;
-						float f3 = vf.W;
+					var vi = Avx.ConvertToVector256Int32WithTruncation(vf);
+					var vp = Avx.ConvertToVector256Single(vi);
 
-						uint i0 = (uint)f0;
-						uint i1 = (uint)f1;
-						uint i2 = (uint)f2;
-						uint i3 = (uint)f3;
+					var vl = Avx2.GatherVector256(lp, vi, sizeof(float));
+					var vh = Avx2.GatherVector256(lp, Avx2.Add(vi, vione), sizeof(float));
 
-						ip[0] = Lerp(lp[i0], lp[i0 + 1], f0 - (int)i0);
-						ip[1] = Lerp(lp[i1], lp[i1 + 1], f1 - (int)i1);
-						ip[2] = Lerp(lp[i2], lp[i2 + 1], f2 - (int)i2);
-						ip[3] = Lerp(lp[i3], lp[i3 + 1], f3 - (int)i3);
+					vf = HWIntrinsics.Lerp(vl, vh, Avx.Subtract(vf, vp));
 
-						ip += 4;
-					}
-					ipe += 4;
+					Avx.Store(op, vf);
+					op += Vector256<float>.Count;
 
-					float fmin = vzero.X, flmax = vlmax.X;
-					while (ip < ipe)
-					{
-						float f = (*ip * flmax).Clamp(fmin, flmax);
-						uint i = (uint)f;
+				} while (ip <= ipe);
 
-						*ip++ = Lerp(lp[i], lp[i + 1], f - i);
-					}
+				if (ip < ipe + Vector256<float>.Count)
+				{
+					var offs = GetOffset(ip, ipe);
+					ip = SubtractOffset(ip, offs);
+					op = SubtractOffset(op, offs);
+					goto LoopTop;
+				}
+			}
+#endif
+
+			unsafe private static void convertFloatScalar(float* ip, float* ipe, float* op, float* lp, int lutmax)
+			{
+				var vlmax = new Vector4(lutmax);
+				var vzero = Vector4.Zero;
+
+				ipe -= 4;
+				while (ip <= ipe)
+				{
+					var vf = (Unsafe.ReadUnaligned<Vector4>(ip) * vlmax).Clamp(vzero, vlmax);
+					ip += 4;
+
+					float f0 = vf.X;
+					float f1 = vf.Y;
+					float f2 = vf.Z;
+					float f3 = vf.W;
+
+					uint i0 = (uint)f0;
+					uint i1 = (uint)f1;
+					uint i2 = (uint)f2;
+					uint i3 = (uint)f3;
+
+					op[0] = Lerp(lp[i0], lp[i0 + 1], f0 - (int)i0);
+					op[1] = Lerp(lp[i1], lp[i1 + 1], f1 - (int)i1);
+					op[2] = Lerp(lp[i2], lp[i2 + 1], f2 - (int)i2);
+					op[3] = Lerp(lp[i3], lp[i3 + 1], f3 - (int)i3);
+					op += 4;
+				}
+				ipe += 4;
+
+				float fmin = vzero.X, flmax = vlmax.X;
+				while (ip < ipe)
+				{
+					float f = (*ip++ * flmax).Clamp(fmin, flmax);
+					uint i = (uint)f;
+
+					*op++ = Lerp(lp[i], lp[i + 1], f - i);
 				}
 			}
 
@@ -983,76 +1144,98 @@ namespace PhotoSauce.MagicScaler
 #endif
 			unsafe public static void ConvertFloat3A(byte* ipstart, byte* opstart, float* lutstart, int lutmax, int cb)
 			{
-				Debug.Assert(ipstart == opstart);
-
 				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb);
-				float* lp = lutstart;
+				float* op = (float*)opstart, lp = lutstart;
 
 #if HWINTRINSICS
-				if (Avx2.IsSupported)
-				{
-					var vgmsk = Avx.BroadcastVector128ToVector256((float*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.GatherMask3x)));
-					var vgmax = Vector256.Create((float)lutmax);
-					var vzero = Vector256<float>.Zero;
-					var vfone = Vector256.Create(1f);
-					var vione = Vector256.Create(1);
-
-					ipe -= Vector256<float>.Count;
-					while (ip <= ipe)
-					{
-						var vf = Avx.Max(vzero, Avx.LoadVector256(ip));
-						var va = Avx.Shuffle(vf, vf, HWIntrinsics.ShuffleMaskAlpha);
-
-						vf = Avx.Multiply(vf, Avx.Multiply(vgmax, Avx.Reciprocal(va)));
-						vf = Avx.Min(vf, vgmax);
-
-						var vi = Avx.ConvertToVector256Int32WithTruncation(vf);
-						var vfi = Avx.ConvertToVector256Single(vi);
-
-						var vl = Avx2.GatherMaskVector256(vfone, lp, vi, vgmsk, sizeof(float));
-						var vh = Avx2.GatherMaskVector256(vfone, lp, Avx2.Add(vi, vione), vgmsk, sizeof(float));
-
-						vf = HWIntrinsics.Lerp(vl, vh, Avx.Subtract(vf, vfi));
-						vf = Avx.Multiply(vf, va);
-
-						Avx.Store(ip, vf);
-						ip += Vector256<float>.Count;
-					}
-					ipe += Vector256<float>.Count;
-				}
+				if (Avx2.IsSupported && cb >= HWIntrinsics.VectorCount<byte>())
+					convertFloat3AIntrinsic(ip, ipe, op, lp, lutmax);
+				else
 #endif
+					convertFloat3AScalar(ip, ipe, op, lp, lutmax);
+			}
+
+#if HWINTRINSICS
+			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+			unsafe private static void convertFloat3AIntrinsic(float* ip, float* ipe, float* op, float* lp, int lutmax)
+			{
+				var vgmsk = Avx.BroadcastVector128ToVector256((float*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.GatherMask3x)));
+				var vgmax = Vector256.Create((float)lutmax);
+				var vzero = Vector256<float>.Zero;
+				var vfone = Vector256.Create(1f);
+				var vione = Vector256.Create(1);
+				ipe -= Vector256<float>.Count;
+
+				LoopTop:
+				do
 				{
-					var vlmax = new Vector4(lutmax);
-					var vzero = Vector4.Zero;
-					float famin = new Vector4(1 / 1024f).X;
+					var vf = Avx.Max(vzero, Avx.LoadVector256(ip));
+					ip += Vector256<float>.Count;
 
-					while (ip < ipe)
+					var va = Avx.Shuffle(vf, vf, HWIntrinsics.ShuffleMaskAlpha);
+
+					vf = Avx.Multiply(vf, Avx.Multiply(vgmax, Avx.Reciprocal(va)));
+					vf = Avx.Min(vf, vgmax);
+
+					var vi = Avx.ConvertToVector256Int32WithTruncation(vf);
+					var vfi = Avx.ConvertToVector256Single(vi);
+
+					var vl = Avx2.GatherMaskVector256(vfone, lp, vi, vgmsk, sizeof(float));
+					var vh = Avx2.GatherMaskVector256(vfone, lp, Avx2.Add(vi, vione), vgmsk, sizeof(float));
+
+					vf = HWIntrinsics.Lerp(vl, vh, Avx.Subtract(vf, vfi));
+					vf = Avx.Multiply(vf, va);
+
+					Avx.Store(op, vf);
+					op += Vector256<float>.Count;
+
+				} while (ip <= ipe);
+
+				if (ip < ipe + Vector256<float>.Count)
+				{
+					var offs = GetOffset(ip, ipe);
+					ip = SubtractOffset(ip, offs);
+					op = SubtractOffset(op, offs);
+					goto LoopTop;
+				}
+			}
+#endif
+
+			unsafe private static void convertFloat3AScalar(float* ip, float* ipe, float* op, float* lp, int lutmax)
+			{
+				var vlmax = new Vector4(lutmax);
+				var vzero = Vector4.Zero;
+				float famin = new Vector4(1 / 1024f).X;
+
+				while (ip < ipe)
+				{
+					var vf = Unsafe.ReadUnaligned<Vector4>(ip);
+					ip += 4;
+
+					float f3 = vf.W;
+					if (f3 < famin)
 					{
-						var vf = Unsafe.ReadUnaligned<Vector4>(ip);
-
-						float f3 = vf.W;
-						if (f3 < famin)
-						{
-							Unsafe.WriteUnaligned(ip, vzero);
-						}
-						else
-						{
-							vf = (vf * vlmax / f3).Clamp(vzero, vlmax);
-
-							float f0 = vf.X;
-							float f1 = vf.Y;
-							float f2 = vf.Z;
-
-							uint i0 = (uint)f0;
-							uint i1 = (uint)f1;
-							uint i2 = (uint)f2;
-
-							ip[0] = Lerp(lp[i0], lp[i0 + 1], f0 - (int)i0) * f3;
-							ip[1] = Lerp(lp[i1], lp[i1 + 1], f1 - (int)i1) * f3;
-							ip[2] = Lerp(lp[i2], lp[i2 + 1], f2 - (int)i2) * f3;
-						}
-						ip += 4;
+						Unsafe.WriteUnaligned(op, vzero);
 					}
+					else
+					{
+						var va = new Vector4(vlmax.X / f3);
+						vf = (vf * va).Clamp(vzero, vlmax);
+
+						float f0 = vf.X;
+						float f1 = vf.Y;
+						float f2 = vf.Z;
+
+						uint i0 = (uint)f0;
+						uint i1 = (uint)f1;
+						uint i2 = (uint)f2;
+
+						op[0] = Lerp(lp[i0], lp[i0 + 1], f0 - (int)i0) * f3;
+						op[1] = Lerp(lp[i1], lp[i1 + 1], f1 - (int)i1) * f3;
+						op[2] = Lerp(lp[i2], lp[i2 + 1], f2 - (int)i2) * f3;
+						op[3] = f3;
+					}
+					op += 4;
 				}
 			}
 		}

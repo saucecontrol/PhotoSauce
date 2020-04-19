@@ -72,49 +72,58 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Vector256<float> Lerp(Vector256<float> l, Vector256<float> h, Vector256<float> d)
+		public static Vector256<float> Lerp(in Vector256<float> vl, in Vector256<float> vh, in Vector256<float> vd)
 		{
-			var diff = Avx.Subtract(h, l);
+			var diff = Avx.Subtract(vh, vl);
 			if (Fma.IsSupported)
-				return Fma.MultiplyAdd(diff, d, l);
+				return Fma.MultiplyAdd(diff, vd, vl);
 			else
-				return Avx.Add(Avx.Multiply(diff, d), l);
+				return Avx.Add(Avx.Multiply(diff, vd), vl);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		unsafe public static Vector128<float> MultiplyAdd(Vector128<float> va, Vector128<float> vm, float* mp)
+		unsafe public static Vector128<float> MultiplyAdd(in Vector128<float> va, in Vector128<float> vm, float* mp)
 		{
 			if (Fma.IsSupported)
 				return Fma.MultiplyAdd(Sse.LoadVector128(mp), vm, va);
 			else
-				return Sse.Add(va, Sse.Multiply(vm, Sse.LoadVector128(mp)));
+				return Sse.Add(Sse.Multiply(vm, Sse.LoadVector128(mp)), va);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		unsafe public static Vector128<float> MultiplyAdd(in Vector128<float> va, in Vector128<float> vm0, in Vector128<float> vm1)
+		public static Vector128<float> MultiplyAdd(in Vector128<float> va, in Vector128<float> vm0, in Vector128<float> vm1)
 		{
 			if (Fma.IsSupported)
 				return Fma.MultiplyAdd(vm1, vm0, va);
 			else
-				return Sse.Add(va, Sse.Multiply(vm0, vm1));
+				return Sse.Add(Sse.Multiply(vm0, vm1), va);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		unsafe public static Vector256<float> MultiplyAdd(Vector256<float> va, Vector256<float> vm, float* mp)
+		unsafe public static Vector256<float> MultiplyAdd(in Vector256<float> va, in Vector256<float> vm, float* mp)
 		{
 			if (Fma.IsSupported)
 				return Fma.MultiplyAdd(Avx.LoadVector256(mp), vm, va);
 			else
-				return Avx.Add(va, Avx.Multiply(vm, Avx.LoadVector256(mp)));
+				return Avx.Add(Avx.Multiply(vm, Avx.LoadVector256(mp)), va);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		unsafe public static Vector256<float> MultiplyAdd(in Vector256<float> va, in Vector256<float> vm0, in Vector256<float> vm1)
+		public static Vector256<float> MultiplyAdd(in Vector256<float> va, in Vector256<float> vm0, in Vector256<float> vm1)
 		{
 			if (Fma.IsSupported)
 				return Fma.MultiplyAdd(vm1, vm0, va);
 			else
-				return Avx.Add(va, Avx.Multiply(vm0, vm1));
+				return Avx.Add(Avx.Multiply(vm0, vm1), va);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Vector128<uint> BlendVariable(in Vector128<uint> vl, in Vector128<uint> vr, in Vector128<uint> vm)
+		{
+			if (Sse41.IsSupported)
+				return Sse41.BlendVariable(vl, vr, vm);
+			else
+				return Sse2.Or(Sse2.And(vr, vm), Sse2.AndNot(vm, vl));
 		}
 #endif
 	}

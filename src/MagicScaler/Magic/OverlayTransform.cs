@@ -3,8 +3,9 @@
 #if HWINTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
+
+using static PhotoSauce.MagicScaler.MathUtil;
 #endif
 
 namespace PhotoSauce.MagicScaler.Transforms
@@ -92,45 +93,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 				uint* op = (uint*)pbBuffer;
 
 #if HWINTRINSICS
-				var shuffleMaskAlpha = (ReadOnlySpan<byte>)(new byte[] { 3, 3, 3, 3, 7, 7, 7, 7, 11, 11, 11, 11, 15, 15, 15, 15 });
-
-				if (Avx2.IsSupported && prc.Width >= Vector256<uint>.Count)
+				if (HWIntrinsics.IsSupported && prc.Width >= HWIntrinsics.VectorCount<uint>())
 				{
-					var vshufa = Avx2.BroadcastVector128ToVector256((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(shuffleMaskAlpha)));
-
-					ipe -= Vector256<uint>.Count;
-					do
-					{
-						var vi = Avx.LoadVector256(ip);
-						ip += Vector256<uint>.Count;
-
-						var va = Avx2.Shuffle(vi.AsByte(), vshufa).AsUInt32();
-						var vo = Avx2.Or(Avx2.And(va, vi), Avx2.AndNot(va, Avx.LoadVector256(op)));
-
-						Avx.Store(op, vo);
-						op += Vector256<uint>.Count;
-
-					} while (ip <= ipe);
-					ipe += Vector256<uint>.Count;
-				}
-				else if (Ssse3.IsSupported && prc.Width >= Vector128<uint>.Count)
-				{
-					var vshufa = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(shuffleMaskAlpha)));
-
-					ipe -= Vector128<uint>.Count;
-					do
-					{
-						var vi = Sse2.LoadVector128(ip);
-						ip += Vector128<uint>.Count;
-
-						var va = Ssse3.Shuffle(vi.AsByte(), vshufa).AsUInt32();
-						var vo = Sse2.Or(Sse2.And(va, vi), Sse2.AndNot(va, Sse2.LoadVector128(op)));
-
-						Sse2.Store(op, vo);
-						op += Vector128<uint>.Count;
-
-					} while (ip <= ipe);
-					ipe += Vector128<uint>.Count;
+					copyPixelsIntrinsic(ip, ipe, op);
+					return;
 				}
 #endif
 
@@ -144,6 +110,67 @@ namespace PhotoSauce.MagicScaler.Transforms
 				}
 			}
 		}
+
+#if HWINTRINSICS
+		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+		private unsafe void copyPixelsIntrinsic(uint* ip, uint* ipe, uint* op)
+		{
+			if (Avx2.IsSupported)
+			{
+				var vzero = Vector256<uint>.Zero;
+				ipe -= Vector256<uint>.Count;
+
+				LoopTop:
+				do
+				{
+					var vi = Avx.LoadVector256(ip);
+					ip += Vector256<uint>.Count;
+
+					var vm = Avx2.CompareEqual(Avx2.ShiftRightLogical(vi, 24), vzero);
+					var vo = Avx2.BlendVariable(vi, Avx.LoadVector256(op), vm);
+
+					Avx.Store(op, vo);
+					op += Vector256<uint>.Count;
+
+				} while (ip <= ipe);
+
+				if (ip < ipe + Vector256<uint>.Count)
+				{
+					var offs = GetOffset(ip, ipe);
+					ip = SubtractOffset(ip, offs);
+					op = SubtractOffset(op, offs);
+					goto LoopTop;
+				}
+			}
+			else
+			{
+				var vzero = Vector128<uint>.Zero;
+				ipe -= Vector128<uint>.Count;
+
+				LoopTop:
+				do
+				{
+					var vi = Sse2.LoadVector128(ip);
+					ip += Vector128<uint>.Count;
+
+					var vm = Sse2.CompareEqual(Sse2.ShiftRightLogical(vi, 24), vzero);
+					var vo = HWIntrinsics.BlendVariable(vi, Sse2.LoadVector128(op), vm);
+
+					Sse2.Store(op, vo);
+					op += Vector128<uint>.Count;
+
+				} while (ip <= ipe);
+
+				if (ip < ipe + Vector128<uint>.Count)
+				{
+					var offs = GetOffset(ip, ipe);
+					ip = SubtractOffset(ip, offs);
+					op = SubtractOffset(op, offs);
+					goto LoopTop;
+				}
+			}
+		}
+#endif
 
 		public void Dispose()
 		{
