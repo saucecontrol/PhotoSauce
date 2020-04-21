@@ -217,7 +217,9 @@ namespace PhotoSauce.MagicScaler
 
 			if (ctx.Settings.SaveFormat == FileFormat.Gif && ctx.Settings.FrameIndex == 0 && ctx.ImageContainer.FrameCount > 1)
 			{
-				enc.WriteAnimatedGif(ctx);
+				var gif = new WicAnimatedGifEncoder(ctx, enc);
+				gif.WriteGlobalMetadata();
+				gif.WriteFrames();
 			}
 			else
 			{

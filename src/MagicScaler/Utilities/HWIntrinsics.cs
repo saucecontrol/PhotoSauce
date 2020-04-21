@@ -118,13 +118,17 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Vector128<uint> BlendVariable(in Vector128<uint> vl, in Vector128<uint> vr, in Vector128<uint> vm)
+		public static Vector128<byte> BlendVariable(in Vector128<byte> vl, in Vector128<byte> vr, in Vector128<byte> vm)
 		{
 			if (Sse41.IsSupported)
 				return Sse41.BlendVariable(vl, vr, vm);
 			else
 				return Sse2.Or(Sse2.And(vr, vm), Sse2.AndNot(vm, vl));
 		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Vector128<uint> BlendVariable(in Vector128<uint> vl, in Vector128<uint> vr, in Vector128<uint> vm) =>
+			BlendVariable(vl.AsByte(), vr.AsByte(), vm.AsByte()).AsUInt32();
 #endif
 	}
 }

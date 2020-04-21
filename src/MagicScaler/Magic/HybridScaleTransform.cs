@@ -80,7 +80,6 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 					int ratio = scale;
 					uint cb = stride;
-					bool flip = ((prc.Y + y) & 1) != 0;
 					while (ratio > 1)
 					{
 						byte* ip = bstart, op = bstart;
@@ -92,20 +91,19 @@ namespace PhotoSauce.MagicScaler.Transforms
 							switch (bpp)
 							{
 								case 3:
-									process3(ip, op, cb, flip);
+									process3(ip, op, cb);
 									break;
 								case 4:
 									if (Format.AlphaRepresentation == PixelAlphaRepresentation.Unassociated)
-										process4A(ip, op, cb, flip);
+										process4A(ip, op, cb);
 									else
-										process4(ip, op, cb, flip);
+										process4(ip, op, cb);
 									break;
 								default:
-									process(ip, op, cb, flip);
+									process(ip, op, cb);
 									break;
 							}
 
-							flip = !flip;
 							ip += cb * 2;
 							op += cb / 2;
 						}
@@ -120,7 +118,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-		unsafe private void process4A(byte* ipstart, byte* opstart, uint stride, bool rup)
+		unsafe private void process4A(byte* ipstart, byte* opstart, uint stride)
 		{
 			byte* ip = ipstart, ipe = ipstart + stride;
 			byte* op = opstart;
@@ -303,7 +301,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-		unsafe private void process4(byte* ipstart, byte* opstart, uint stride, bool rup)
+		unsafe private void process4(byte* ipstart, byte* opstart, uint stride)
 		{
 			byte* ip = ipstart, ipe = ipstart + stride;
 			byte* op = opstart;
@@ -324,13 +322,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 					var vi3 = Avx.LoadVector256(ipn + Vector256<byte>.Count);
 					ip += Vector256<byte>.Count * 2;
 
-					vi0 = Avx2.Shuffle(vi0, vmaskb);
-					vi1 = Avx2.Shuffle(vi1, vmaskb);
-					vi2 = Avx2.Shuffle(vi2, vmaskb);
-					vi3 = Avx2.Shuffle(vi3, vmaskb);
-
 					vi0 = Avx2.Average(vi0, vi2);
 					vi1 = Avx2.Average(vi1, vi3);
+
+					vi0 = Avx2.Shuffle(vi0, vmaskb);
+					vi1 = Avx2.Shuffle(vi1, vmaskb);
 
 					var vs0 = Avx2.MultiplyAddAdjacent(vi0, vone);
 					var vs1 = Avx2.MultiplyAddAdjacent(vi1, vone);
@@ -362,13 +358,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 					var vi3 = Sse2.LoadVector128(ipn + Vector128<byte>.Count);
 					ip += Vector128<byte>.Count * 2;
 
-					vi0 = Ssse3.Shuffle(vi0, vmaskb);
-					vi1 = Ssse3.Shuffle(vi1, vmaskb);
-					vi2 = Ssse3.Shuffle(vi2, vmaskb);
-					vi3 = Ssse3.Shuffle(vi3, vmaskb);
-
 					vi0 = Sse2.Average(vi0, vi2);
 					vi1 = Sse2.Average(vi1, vi3);
+
+					vi0 = Ssse3.Shuffle(vi0, vmaskb);
+					vi1 = Ssse3.Shuffle(vi1, vmaskb);
 
 					var vs0 = Ssse3.MultiplyAddAdjacent(vi0, vone);
 					var vs1 = Ssse3.MultiplyAddAdjacent(vi1, vone);
@@ -402,19 +396,15 @@ namespace PhotoSauce.MagicScaler.Transforms
 					ulong i3 = *(ulong*)(ip + stride + sizeof(ulong));
 					ip += sizeof(ulong) * 2;
 
-					i0 = FastAvgU(i0, i0 >> 32, m);
-					i1 = FastAvgU(i1, i1 << 32, m);
-					i2 = FastAvgD(i2, i2 >> 32, m);
-					i3 = FastAvgD(i3, i3 << 32, m);
+					i0 = FastAvgU(i0, i2, m);
+					i1 = FastAvgU(i1, i3, m);
+
+					i0 = FastAvgD(i0, i0 >> 32, m);
+					i1 = FastAvgD(i1, i1 << 32, m);
 
 					i0 &= mask0;
-					i2 &= mask0;
 					i1 &= mask1;
-					i3 &= mask1;
 					i0 |= i1;
-					i2 |= i3;
-
-					i0 = rup ? FastAvgU(i0, i2, m) : FastAvgD(i0, i2, m);
 
 					*(ulong*)op = i0;
 					op += sizeof(ulong);
@@ -426,17 +416,17 @@ namespace PhotoSauce.MagicScaler.Transforms
 			while (ip < ipe)
 			{
 				uint i0 = *(uint*)ip;
-				uint i1 = *(uint*)(ip + sizeof(uint));
-
-				i0 = FastAvgBytesU(i0, i1);
-
 				uint i2 = *(uint*)(ip + stride);
+
+				i0 = FastAvgBytesU(i0, i2);
+
+				uint i1 = *(uint*)(ip + sizeof(uint));
 				uint i3 = *(uint*)(ip + stride + sizeof(uint));
 				ip += sizeof(uint) * 2;
 
-				i1 = FastAvgBytesD(i2, i3);
+				i1 = FastAvgBytesU(i1, i3);
 
-				i0 = rup ? FastAvgBytesU(i0, i1) : FastAvgBytesD(i0, i1);
+				i0 = FastAvgBytesD(i0, i1);
 
 				*(uint*)op = i0;
 				op += sizeof(uint);
@@ -446,7 +436,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-		unsafe private void process3(byte* ipstart, byte* opstart, uint stride, bool rup)
+		unsafe private void process3(byte* ipstart, byte* opstart, uint stride)
 		{
 			byte* ip = ipstart, ipe = ipstart + stride;
 			byte* op = opstart;
@@ -507,10 +497,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 					ulong i3 = *(ulong*)(ip + stride + 6);
 					ip += 12;
 
-					i0 = FastAvgD(i0, i2, m);
+					i0 = FastAvgU(i0, i2, m);
 					i1 = FastAvgU(i1, i3, m);
 
-					i0 = FastAvgU(i0, i0 >> 24, m);
+					i0 = FastAvgD(i0, i0 >> 24, m);
 					i1 = FastAvgD(i1, i1 << 24, m);
 
 					i0 &= mask0;
@@ -527,17 +517,17 @@ namespace PhotoSauce.MagicScaler.Transforms
 			do
 			{
 				uint i0 = *(uint*)ip;
-				uint i1 = *(uint*)(ip + 3);
-
-				i0 = FastAvgBytesU(i0, i1);
-
 				uint i2 = *(uint*)(ip + stride);
+
+				i0 = FastAvgBytesU(i0, i2);
+
+				uint i1 = *(uint*)(ip + 3);
 				uint i3 = *(uint*)(ip + stride + 3);
 				ip += 6;
 
-				i1 = FastAvgBytesD(i2, i3);
+				i1 = FastAvgBytesU(i1, i3);
 
-				i0 = rup ? FastAvgBytesU(i0, i1) : FastAvgBytesD(i0, i1);
+				i0 = FastAvgBytesD(i0, i1);
 
 				if (ip >= ipe)
 					goto LastPixel;
@@ -558,7 +548,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-		unsafe private void process(byte* ipstart, byte* opstart, uint stride, bool rup)
+		unsafe private void process(byte* ipstart, byte* opstart, uint stride)
 		{
 			byte* ip = ipstart, ipe = ipstart + stride;
 			byte* op = opstart;
@@ -641,10 +631,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 					ulong i1 = *(ulong*)(ip + stride);
 					ip += sizeof(ulong);
 
-					i0 = FastAvgU(i0, i0 >> 8, m);
-					i1 = FastAvgD(i1, i1 << 8, m) >> 8;
-
-					i0 = rup ? FastAvgU(i0, i1, m) : FastAvgD(i0, i1, m);
+					i0 = FastAvgU(i0, i1, m);
+					i0 = FastAvgD(i0, i0 >> 8, m);
 
 					op[0] = (byte)i0; i0 >>= 16;
 					op[1] = (byte)i0; i0 >>= 16;
@@ -666,10 +654,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 				uint i1 = *(uint*)(ip + stride);
 				ip += sizeof(uint);
 
-				i0 = FastAvgBytesU(i0, i0 >> 8);
-				i1 = FastAvgBytesD(i1, i1 << 8) >> 8;
-
-				i0 = rup ? FastAvgBytesU(i0, i1) : FastAvgBytesD(i0, i1);
+				i0 = FastAvgBytesU(i0, i1);
+				i0 = FastAvgBytesD(i0, i0 >> 8);
 
 				op[0] = (byte)i0; i0 >>= 16;
 				op[1] = (byte)i0;
@@ -683,10 +669,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 				uint i1 = *(ushort*)(ip + stride);
 				ip += sizeof(ushort);
 
-				i0 = FastAvgBytesU(i0, i0 >> 8);
-				i1 = FastAvgBytesD(i1, i1 << 8) >> 8;
-
-				i0 = rup ? FastAvgBytesU(i0, i1) : FastAvgBytesD(i0, i1);
+				i0 = FastAvgBytesU(i0, i1);
+				i0 = FastAvgBytesD(i0, i0 >> 8);
 
 				*op = (byte)i0;
 				op += sizeof(byte);
