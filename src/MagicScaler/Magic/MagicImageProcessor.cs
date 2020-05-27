@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Buffers;
 using System.Numerics;
 using System.ComponentModel;
 
@@ -209,7 +210,7 @@ namespace PhotoSauce.MagicScaler
 
 #pragma warning restore 1573
 
-		internal static ProcessImageResult WriteOutput(PipelineContext ctx, Stream ostm)
+		unsafe internal static ProcessImageResult WriteOutput(PipelineContext ctx, Stream ostm)
 		{
 			MagicTransforms.AddExternalFormatConverter(ctx);
 
@@ -223,7 +224,35 @@ namespace PhotoSauce.MagicScaler
 			}
 			else
 			{
-				WicTransforms.AddIndexedColorConverter(ctx);
+				var curFormat = ctx.Source.Format;
+
+				if (ctx.Settings.IndexedColor && curFormat.NumericRepresentation != PixelNumericRepresentation.Indexed && curFormat.ColorRepresentation != PixelColorRepresentation.Grey)
+				{
+					if (curFormat != PixelFormat.Bgra32Bpp)
+						ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, PixelFormat.Bgra32Bpp));
+
+					using var quant = new OctreeQuantizer();
+					using var buffC = new FrameBufferSource(ctx.Source.Width, ctx.Source.Height, ctx.Source.Format);
+					fixed (byte* pbuff = buffC.Span)
+						ctx.Source.CopyPixels(ctx.Source.Area, buffC.Stride, buffC.Span.Length, (IntPtr)pbuff);
+
+					var buffI = ctx.AddDispose(new FrameBufferSource(ctx.Source.Width, ctx.Source.Height, PixelFormat.Indexed8Bpp));
+
+					quant.CreateHistorgram(buffC.Span, buffC.Width, buffC.Height, buffC.Stride);
+					quant.Quantize(buffC.Span, buffI.Span, buffC.Width, buffC.Height, buffC.Stride, buffI.Stride);
+					var palette = quant.Palette;
+
+					var palarray = ArrayPool<uint>.Shared.Rent(palette.Length);
+					palette.CopyTo(palarray);
+
+					var wicpal = ctx.WicContext.AddRef(Wic.Factory.CreatePalette());
+					wicpal.InitializeCustom(palarray, (uint)palette.Length);
+
+					ArrayPool<uint>.Shared.Return(palarray);
+
+					ctx.WicContext.DestPalette = wicpal;
+					ctx.Source = buffI;
+				}
 
 				using var frm = new WicImageEncoderFrame(ctx, enc);
 				frm.WriteSource(ctx);

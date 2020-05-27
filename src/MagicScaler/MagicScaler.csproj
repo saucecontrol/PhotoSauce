@@ -2,7 +2,9 @@
 
 	<PropertyGroup>
 		<VersionPrefix>0.10.4</VersionPrefix>
-		<TargetFrameworks>net46;net472;netcoreapp2.1;netcoreapp3.0;netstandard2.0;netstandard2.1</TargetFrameworks>
+		<TargetFrameworks>net461;net472;netcoreapp2.1;netcoreapp3.0;netstandard2.0;netstandard2.1</TargetFrameworks>
+		<RestoreAdditionalProjectSources>https://dotnet.myget.org/F/roslyn/api/v3/index.json</RestoreAdditionalProjectSources>
+		<LangVersion>preview</LangVersion>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -20,11 +22,15 @@
 		<Nullable Condition="$(DefineConstants.Contains('BUILTIN_NULLABLE'))">enable</Nullable>
 	</PropertyGroup>
 
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Net.Compilers.Toolset" Version="3.7.0-2.20258.1" PrivateAssets="all" />
+	</ItemGroup>
+
 	<ItemGroup Condition="!$(DefineConstants.Contains('BUILTIN_SPAN'))">
-		<PackageReference Include="System.Buffers" Version="4.4.0" />
-		<PackageReference Include="System.Memory" Version="4.5.3" />
-		<PackageReference Include="System.Numerics.Vectors" Version="4.4.0" />
-		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.2" />
+		<PackageReference Include="System.Buffers" Version="4.5.1" />
+		<PackageReference Include="System.Memory" Version="4.5.4" />
+		<PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
+		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.3" />
 	</ItemGroup>
 
 	<ItemGroup Condition="$(DefineConstants.Contains('SYSTEM_DRAWING')) And !$(DefineConstants.Contains('NETFRAMEWORK'))">
@@ -32,15 +38,16 @@
 	</ItemGroup>
 
 	<ItemGroup Condition="$(DefineConstants.Contains('BUILTIN_SPAN')) And '$(TargetFramework)'!='netcoreapp3.0'">
-		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.0" />
+		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.1" />
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)'=='net46'">
+	<ItemGroup Condition="'$(TargetFramework)'=='net461'">
 		<PackageReference Include="System.ValueTuple" Version="4.5.0" />
 		<PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" />
 	</ItemGroup>
 
 	<ItemGroup Condition="$(DefineConstants.Contains('NETFRAMEWORK'))">
+		<PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.0" />
 		<Reference Include="System.Configuration" />
 		<Reference Include="System.Drawing" />
 	</ItemGroup>

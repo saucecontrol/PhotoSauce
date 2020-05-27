@@ -199,6 +199,15 @@ namespace PhotoSauce.MagicScaler
 #endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static int Log2(this float x) =>
+#if HIWINTRINSICS
+			(int)MathF.Log2(x);
+#else
+			(int)Floor(Log(x, 2d));
+#endif
+
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		unsafe public static IntPtr GetOffset<T>(T* cur, T* tgt) where T : unmanaged =>
 			Unsafe.ByteOffset(ref Unsafe.AsRef<T>(tgt), ref Unsafe.AsRef<T>(cur));
 

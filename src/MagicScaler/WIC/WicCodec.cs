@@ -403,17 +403,24 @@ namespace PhotoSauce.MagicScaler
 
 		private void writeFrame(BufferFrame src)
 		{
-			var curFormat = ctx.Source.Format;
-			var newFormat = PixelFormat.Indexed8Bpp;
-			bool alpha = src.Trans || src.Disposal != GifDisposalMethod.RestoreBackground;
+			using var quant = new OctreeQuantizer();
+			using var buffI = new FrameBufferSource(ctx.Source.Width, ctx.Source.Height, PixelFormat.Indexed8Bpp);
+			var buffC = src.Source;
 
-			using var pal = ComHandle.Wrap(Wic.Factory.CreatePalette());
-			pal.ComObject.InitializeFromBitmap(wicSource, 256u, alpha);
-			ctx.WicContext.DestPalette = pal.ComObject;
+			quant.CreateHistorgram(buffC.Span, buffC.Width, buffC.Height, buffC.Stride);
+			quant.Quantize(buffC.Span, buffI.Span, buffC.Width, buffC.Height, buffC.Stride, buffI.Stride);
+			var palette = quant.Palette;
 
-			using var conv = ComHandle.Wrap(Wic.Factory.CreateFormatConverter());
-			conv.ComObject.Initialize(wicSource, newFormat.FormatGuid, WICBitmapDitherType.WICBitmapDitherTypeErrorDiffusion, pal.ComObject, 25.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
-			ctx.Source = conv.ComObject.AsPixelSource($"{nameof(IWICFormatConverter)}: {curFormat.Name}->{newFormat.Name}", false);
+			var palarray = ArrayPool<uint>.Shared.Rent(palette.Length);
+			palette.CopyTo(palarray);
+
+			using var wicpal = ComHandle.Wrap(Wic.Factory.CreatePalette());
+			wicpal.ComObject.InitializeCustom(palarray, (uint)palette.Length);
+
+			ArrayPool<uint>.Shared.Return(palarray);
+
+			ctx.WicContext.DestPalette = wicpal.ComObject;
+			ctx.Source = buffI;
 
 			using var frm = new WicImageEncoderFrame(ctx, encoder, src.Area);
 
@@ -427,11 +434,8 @@ namespace PhotoSauce.MagicScaler
 			if (src.Area.Y != 0)
 				fm.SetMetadataByName(Wic.Metadata.Gif.FrameTop, new PropVariant((ushort)src.Area.Y));
 
-			if (alpha)
-			{
-				fm.SetMetadataByName(Wic.Metadata.Gif.TransparencyFlag, new PropVariant(true));
-				fm.SetMetadataByName(Wic.Metadata.Gif.TransparentColorIndex, new PropVariant((byte)(pal.ComObject.GetColorCount() - 1)));
-			}
+			fm.SetMetadataByName(Wic.Metadata.Gif.TransparencyFlag, new PropVariant(true));
+			fm.SetMetadataByName(Wic.Metadata.Gif.TransparentColorIndex, new PropVariant((byte)(palette.Length - 1)));
 
 			frm.WriteSource(ctx, src.Area);
 		}

@@ -19,27 +19,27 @@ namespace PhotoSauce.WebRSize
 
 		public static Task<T> GetOrAddAsync<T>(string cacheKey, Func<Task<T>> getValue = null, Func<CacheDependency> getDepedency = null)
 		{
-			if (HttpRuntime.Cache[cacheKey] is Task<T> val)
-				return val;
+			if (HttpRuntime.Cache[cacheKey] is Task<T> task)
+				return task;
 
 			if (getValue is null)
 				return CompletedTask<T>.Default;
 
-			lock (cacheItemLocks.GetOrAdd(cacheKey, __ => new object()))
+			lock (cacheItemLocks.GetOrAdd(cacheKey, _ => new object()))
 			{
-				val = HttpRuntime.Cache[cacheKey] as Task<T>;
-				if (val is null)
+				task = HttpRuntime.Cache[cacheKey] as Task<T>;
+				if (task is null)
 				{
-					val = getValue();
+					task = getValue();
 					var dependency = getDepedency is null ? null : getDepedency();
 
-					HttpRuntime.Cache.Insert(cacheKey, val, dependency, DateTime.UtcNow.AddSeconds(60), Cache.NoSlidingExpiration);
-					val.ContinueWith(_ => HttpRuntime.Cache.Remove(cacheKey), TaskContinuationOptions.NotOnRanToCompletion);
+					HttpRuntime.Cache.Insert(cacheKey, task, dependency, DateTime.UtcNow.AddSeconds(60), Cache.NoSlidingExpiration);
+					task.ContinueWith((_, k) => HttpRuntime.Cache.Remove((string)k), cacheKey, TaskContinuationOptions.NotOnRanToCompletion);
 				}
 			}
 			cacheItemLocks.TryRemove(cacheKey, out _);
 
-			return val;
+			return task;
 		}
 
 		public static Task<ImageFileInfo> GetImageInfoAsync(VirtualPathProvider vpp, string path)

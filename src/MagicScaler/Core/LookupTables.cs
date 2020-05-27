@@ -83,12 +83,48 @@ namespace PhotoSauce.MagicScaler
 			return Tuple.Create(igtf, igtq);
 		});
 
+		private static readonly Lazy<uint[]> octreeIndexTable = new Lazy<uint[]>(() => {
+			var oit = new uint[256 * 3];
+
+			for (uint i = 0; i < 256; i++)
+			{
+				uint b = 0, g = 0, r = 0;
+
+				for (int p = 0; p < 8; p++)
+				{
+					uint m = i & (1u << p);
+					int s = 23 - (p << 2);
+
+					if (s < 0)
+					{
+						s = -s;
+						b |= m >> s + 2;
+						g |= m >> s;
+						r |= m >> s + 1;
+					}
+					else
+					{
+						b |= m << s - 2;
+						g |= m << s;
+						r |= m << s - 1;
+					}
+				}
+
+				oit[i      ] = b;
+				oit[i + 256] = g;
+				oit[i + 512] = r;
+			}
+
+			return oit;
+		});
+
 		public static float[] Alpha => alphaTable.Value;
 		public static int[] InverseAlpha => inverseAlphaTable.Value;
 		public static float[] SrgbGamma => gammaTable.Value.Item1;
 		public static byte[] SrgbGammaUQ15 => gammaTable.Value.Item2;
 		public static float[] SrgbInverseGamma => inverseGammaTable.Value.Item1;
 		public static ushort[] SrgbInverseGammaUQ15 => inverseGammaTable.Value.Item2;
+		public static uint[] OctreeIndexTable => octreeIndexTable.Value;
 
 		public static void Fixup<T>(T[] t, int maxValid)
 		{

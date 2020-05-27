@@ -98,7 +98,7 @@ namespace PhotoSauce.MagicScaler
 			pal.InitializeFromBitmap(ctx.Source.AsIWICBitmapSource(), 256u, curFormat.AlphaRepresentation != PixelAlphaRepresentation.None);
 			ctx.WicContext.DestPalette = pal;
 
-			conv.Initialize(ctx.Source.AsIWICBitmapSource(), newFormat.FormatGuid, WICBitmapDitherType.WICBitmapDitherTypeErrorDiffusion, pal, 10.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
+			conv.Initialize(ctx.Source.AsIWICBitmapSource(), newFormat.FormatGuid, WICBitmapDitherType.WICBitmapDitherTypeErrorDiffusion, pal, 33.33, WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
 			ctx.Source = conv.AsPixelSource($"{nameof(IWICFormatConverter)}: {curFormat.Name}->{newFormat.Name}", false);
 		}
 

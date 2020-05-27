@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<VersionPrefix>0.5.2</VersionPrefix>
-		<TargetFrameworks>net46;net472</TargetFrameworks>
+		<TargetFrameworks>net461;net472</TargetFrameworks>
 	</PropertyGroup>
 
 	<ItemGroup>
