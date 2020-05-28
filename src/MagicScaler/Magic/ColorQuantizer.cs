@@ -134,13 +134,14 @@ namespace PhotoSauce.MagicScaler
 				{
 					byte* pline = pimage + y * instride;
 					byte* poutline = poutbuff + y * outstride;
+					int* perrline = (int*)perrbuff + 4;
 
 #if HWINTRINSICS
 					if (Sse2.IsSupported)
-						remapSse2(pline, (int*)perrbuff + 4, poutline, pilut, ptree, ppal, ref nextFree, width);
+						remapSse2(pline, perrline, poutline, pilut, ptree, ppal, ref nextFree, width);
 					else
 #endif
-						remapScalar(pline, (int*)perrbuff + 4, poutline, pilut, ptree, ppal, ref nextFree, width);
+						remapScalar(pline, perrline, poutline, pilut, ptree, ppal, ref nextFree, width);
 				}
 			}
 
@@ -585,7 +586,7 @@ namespace PhotoSauce.MagicScaler
 			transnode.Sums[3] = byte.MaxValue;
 
 			var vpmax = Vector128.Create((int)byte.MaxValue);
-			var vprnd = Vector128.Create(3);
+			var vprnd = Vector128.Create(7);
 			var vzero = Vector128<int>.Zero;
 
 			nuint level = leafLevel, minLevel = minLeafLevel;
@@ -614,8 +615,8 @@ namespace PhotoSauce.MagicScaler
 				else
 					vpix = Sse2.UnpackLow(Sse2.UnpackLow(Sse2.LoadScalarVector128((int*)ip).AsByte(), vzero.AsByte()).AsInt16(), vzero.AsInt16()).AsInt32();
 
-				var verr = Sse2.Add(Sse2.Add(vprnd, Sse2.LoadVector128(ep)), Sse2.Add(Sse2.ShiftLeftLogical(vnerr, 1), vnerr));
-				vpix = Sse2.Add(vpix, Sse2.ShiftRightArithmetic(verr, 3));
+				var verr = Sse2.Add(Sse2.Add(vprnd, Sse2.LoadVector128(ep)), Sse2.Subtract(Sse2.ShiftLeftLogical(vnerr, 3), vnerr));
+				vpix = Sse2.Add(vpix, Sse2.ShiftRightArithmetic(verr, 4));
 				vpix = Sse2.Min(vpix.AsInt16(), vpmax.AsInt16()).AsInt32();
 				vpix = Sse2.Max(vpix.AsInt16(), vzero.AsInt16()).AsInt32();
 
@@ -698,8 +699,8 @@ namespace PhotoSauce.MagicScaler
 
 				*op++ = (byte)psums[3];
 
-				Sse2.Store(ep - Vector128<int>.Count, Sse2.Add(vdiff, vperr));
-				vperr = Sse2.Add(Sse2.Add(vdiff, vdiff), vnerr);
+				Sse2.Store(ep - Vector128<int>.Count, Sse2.Add(vperr, Sse2.Add(vdiff, vdiff)));
+				vperr = Sse2.Add(Sse2.ShiftLeftLogical(vdiff, 2), vnerr);
 				vnerr = vdiff;
 
 				Sse2.Store(ep, vperr);
@@ -737,9 +738,9 @@ namespace PhotoSauce.MagicScaler
 					goto Found;
 				}
 
-				cb = (nuint)(((ip[0] << 3) + ep[0] + nerb + nerb + nerb + 3).Clamp(0, 2047) >> 3);
-				cg = (nuint)(((ip[1] << 3) + ep[1] + nerg + nerg + nerg + 3).Clamp(0, 2047) >> 3);
-				cr = (nuint)(((ip[2] << 3) + ep[2] + nerr + nerr + nerr + 3).Clamp(0, 2047) >> 3);
+				cb = (nuint)(((ip[0] << 4) + ep[0] + (nerb << 3) - nerb + 7).Clamp(0, 4095) >> 4);
+				cg = (nuint)(((ip[1] << 4) + ep[1] + (nerg << 3) - nerg + 7).Clamp(0, 4095) >> 4);
+				cr = (nuint)(((ip[2] << 4) + ep[2] + (nerr << 3) - nerr + 7).Clamp(0, 4095) >> 4);
 				uint cpix = 0xffu << 24 | (uint)cr << 16 | (uint)cg << 8 | (uint)cb;
 
 				if (ppix == cpix)
@@ -820,13 +821,13 @@ namespace PhotoSauce.MagicScaler
 				int dr = (byte)(ppix >> 16) - psums[2];
 				*op++ = (byte)psums[3];
 
-				ep[-4] = perb + db;
-				ep[-3] = perg + dg;
-				ep[-2] = perr + dr;
+				ep[-4] = perb + db + db;
+				ep[-3] = perg + dg + dg;
+				ep[-2] = perr + dr + dr;
 
-				perb = db + db + nerb;
-				perg = dg + dg + nerg;
-				perr = dr + dr + nerr;
+				perb = (db << 2) + nerb;
+				perg = (dg << 2) + nerg;
+				perr = (dr << 2) + nerr;
 
 				nerb = db;
 				nerg = dg;
