@@ -412,6 +412,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 				WicImageFrame.ReplayGifAnimationContext(gif, ctx.Settings.FrameIndex - 1);
 
 			var finfo = WicImageFrame.GetGifFrameInfo(gif, wicFrame.WicSource, wicFrame.WicMetadataReader);
+			if (finfo.Disposal == GifDisposalMethod.RestorePrevious && ctx.Settings.FrameIndex == 0)
+				finfo.Disposal = GifDisposalMethod.Preserve;
+
 			var ldisp = gif.AnimationContext?.LastDisposal ?? GifDisposalMethod.RestoreBackground;
 
 			bool useBuffer = !replay && finfo.Disposal == GifDisposalMethod.Preserve;

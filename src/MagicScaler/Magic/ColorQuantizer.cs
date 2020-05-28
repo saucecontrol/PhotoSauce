@@ -122,27 +122,25 @@ namespace PhotoSauce.MagicScaler
 
 			nuint nextFree = makePaletteMap();
 
-			var pbuff = BufferPool.Rent(((int)width + 2) * 16 * 2, true);
+			var pbuff = BufferPool.Rent(((int)width + 2) * 16, true);
 			pbuff.AsSpan().Clear();
 
-			fixed (byte* pimage = image, poutbuff = outbuff, plinebuff = pbuff.AsSpan())
+			fixed (byte* pimage = image, poutbuff = outbuff, perrbuff = pbuff.AsSpan())
 			fixed (uint* pilut = &LookupTables.OctreeIndexTable[0])
 			fixed (uint* ppal = MemoryMarshal.Cast<byte, uint>(palBuffer))
 			fixed (OctreeNode* ptree = MemoryMarshal.Cast<byte, OctreeNode>(nodeBuffer))
 			{
 				for (nint y = 0; y < height; y++)
 				{
-					uint* pline = (uint*)(pimage + y * instride);
+					byte* pline = pimage + y * instride;
 					byte* poutline = poutbuff + y * outstride;
-
-					loadBuffer(pline, plinebuff, width);
 
 #if HWINTRINSICS
 					if (Sse2.IsSupported)
-						remapSse2((uint*)plinebuff, poutline, pilut, ptree, ppal, ref nextFree, width);
+						remapSse2(pline, (int*)perrbuff + 4, poutline, pilut, ptree, ppal, ref nextFree, width);
 					else
 #endif
-						remapScalar((uint*)plinebuff, poutline, pilut, ptree, ppal, ref nextFree, width);
+						remapScalar(pline, (int*)perrbuff + 4, poutline, pilut, ptree, ppal, ref nextFree, width);
 				}
 			}
 
@@ -580,114 +578,8 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private static void loadBuffer(uint* pline, byte* plinebuff, nint width)
-		{
-			byte* ip = (byte*)pline, ipe = (byte*)(pline + width);
-			int* op = (int*)plinebuff;
-
-			nint stride = (width + 1) * 4;
-
 #if HWINTRINSICS
-			if (Avx2.IsSupported)
-			{
-				ipe -= sizeof(uint) * 8;
-				while (ip <= ipe)
-				{
-					var iv0 = Avx2.ConvertToVector256Int32(ip);
-					var iv1 = Avx2.ConvertToVector256Int32(ip + sizeof(uint) * 2);
-					var iv2 = Avx2.ConvertToVector256Int32(ip + sizeof(uint) * 4);
-					var iv3 = Avx2.ConvertToVector256Int32(ip + sizeof(uint) * 6);
-					ip += sizeof(uint) * 8;
-
-					int* ep = op + stride;
-					iv0 = Avx2.Add(Avx2.ShiftLeftLogical(iv0, 3), Avx.LoadVector256(ep));
-					iv1 = Avx2.Add(Avx2.ShiftLeftLogical(iv1, 3), Avx.LoadVector256(ep + Vector256<int>.Count));
-					iv2 = Avx2.Add(Avx2.ShiftLeftLogical(iv2, 3), Avx.LoadVector256(ep + Vector256<int>.Count * 2));
-					iv3 = Avx2.Add(Avx2.ShiftLeftLogical(iv3, 3), Avx.LoadVector256(ep + Vector256<int>.Count * 3));
-
-					Avx.Store(op, iv0);
-					Avx.Store(op + Vector256<int>.Count, iv1);
-					Avx.Store(op + Vector256<int>.Count * 2, iv2);
-					Avx.Store(op + Vector256<int>.Count * 3, iv3);
-					op += Vector256<int>.Count * 4;
-				}
-				ipe += sizeof(uint) * 8;
-
-				while (ip < ipe)
-				{
-					var iv0 = Sse41.ConvertToVector128Int32(ip);
-					ip += sizeof(uint);
-
-					iv0 = Sse2.Add(Sse2.ShiftLeftLogical(iv0, 3), Sse2.LoadVector128(op + stride));
-
-					Sse2.Store(op, iv0);
-					op += Vector128<int>.Count;
-				}
-			}
-			else if (Sse2.IsSupported)
-			{
-				var vzero = Vector128<byte>.Zero;
-
-				ipe -= sizeof(uint) * 4;
-				while (ip <= ipe)
-				{
-					var iv0 = Sse2.LoadScalarVector128((int*)(ip));
-					var iv1 = Sse2.LoadScalarVector128((int*)(ip + sizeof(uint)));
-					var iv2 = Sse2.LoadScalarVector128((int*)(ip + sizeof(uint) * 2));
-					var iv3 = Sse2.LoadScalarVector128((int*)(ip + sizeof(uint) * 3));
-					ip += sizeof(uint) * 4;
-
-					iv0 = Sse2.UnpackLow(Sse2.UnpackLow(iv0.AsByte(), vzero).AsInt16(), vzero.AsInt16()).AsInt32();
-					iv1 = Sse2.UnpackLow(Sse2.UnpackLow(iv1.AsByte(), vzero).AsInt16(), vzero.AsInt16()).AsInt32();
-					iv2 = Sse2.UnpackLow(Sse2.UnpackLow(iv2.AsByte(), vzero).AsInt16(), vzero.AsInt16()).AsInt32();
-					iv3 = Sse2.UnpackLow(Sse2.UnpackLow(iv3.AsByte(), vzero).AsInt16(), vzero.AsInt16()).AsInt32();
-
-					int* ep = op + stride;
-					iv0 = Sse2.Add(Sse2.ShiftLeftLogical(iv0, 3), Sse2.LoadVector128(ep));
-					iv1 = Sse2.Add(Sse2.ShiftLeftLogical(iv1, 3), Sse2.LoadVector128(ep + Vector128<int>.Count));
-					iv2 = Sse2.Add(Sse2.ShiftLeftLogical(iv2, 3), Sse2.LoadVector128(ep + Vector128<int>.Count * 2));
-					iv3 = Sse2.Add(Sse2.ShiftLeftLogical(iv3, 3), Sse2.LoadVector128(ep + Vector128<int>.Count * 3));
-
-					Sse2.Store(op, iv0);
-					Sse2.Store(op + Vector128<int>.Count, iv1);
-					Sse2.Store(op + Vector128<int>.Count * 2, iv2);
-					Sse2.Store(op + Vector128<int>.Count * 3, iv3);
-					op += Vector128<int>.Count * 4;
-				}
-				ipe += sizeof(uint) * 4;
-
-				while (ip < ipe)
-				{
-					var iv0 = Sse2.LoadScalarVector128((int*)ip);
-					ip += sizeof(uint);
-
-					iv0 = Sse2.UnpackLow(Sse2.UnpackLow(iv0.AsByte(), vzero).AsInt16(), vzero.AsInt16()).AsInt32();
-					iv0 = Sse2.Add(Sse2.ShiftLeftLogical(iv0, 3), Sse2.LoadVector128(op + stride));
-
-					Sse2.Store(op, iv0);
-					op += Vector128<int>.Count;
-				}
-
-			}
-			else
-#endif
-			{
-				while (ip < ipe)
-				{
-					int* ep = op + stride;
-					op[0] = (ip[0] << 3) + ep[0];
-					op[1] = (ip[1] << 3) + ep[1];
-					op[2] = (ip[2] << 3) + ep[2];
-					op[3] = (ip[3] << 3);
-
-					ip += 4;
-					op += 4;
-				}
-			}
-		}
-
-#if HWINTRINSICS
-		unsafe private void remapSse2(uint* pimage, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
+		unsafe private void remapSse2(byte* pimage, int* perr, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
 		{
 			var transnode = new OctreeNode();
 			transnode.Sums[3] = byte.MaxValue;
@@ -699,23 +591,31 @@ namespace PhotoSauce.MagicScaler
 			nuint level = leafLevel, minLevel = minLeafLevel;
 			var prnod = default(OctreeNode*);
 
-			int* ip = (int*)pimage, ipe = ip + cp * Vector128<int>.Count;
+			byte* ip = pimage, ipe = ip + cp * sizeof(uint);
 			byte* op = pout;
-			nint stride = cp * Vector128<int>.Count;
+			int* ep = perr;
 
 			var vppix = vzero;
 			var vperr = vzero;
+			var vnerr = vzero;
 
 			do
 			{
-				if (ip[3] < alphaThreshold << 3)
+				if (ip[3] < alphaThreshold)
 				{
 					vppix = vzero;
 					prnod = &transnode;
 					goto Found;
 				}
 
-				var vpix = Sse2.ShiftRightArithmetic(Sse2.Add(Sse2.Add(vperr, vprnd), Sse2.LoadVector128(ip)), 3);
+				Vector128<int> vpix;
+				if (Sse41.IsSupported)
+					vpix = Sse41.ConvertToVector128Int32(ip);
+				else
+					vpix = Sse2.UnpackLow(Sse2.UnpackLow(Sse2.LoadScalarVector128((int*)ip).AsByte(), vzero.AsByte()).AsInt16(), vzero.AsInt16()).AsInt32();
+
+				var verr = Sse2.Add(Sse2.Add(vprnd, Sse2.LoadVector128(ep)), Sse2.Add(Sse2.ShiftLeftLogical(vnerr, 1), vnerr));
+				vpix = Sse2.Add(vpix, Sse2.ShiftRightArithmetic(verr, 3));
 				vpix = Sse2.Min(vpix.AsInt16(), vpmax.AsInt16()).AsInt32();
 				vpix = Sse2.Max(vpix.AsInt16(), vzero.AsInt16()).AsInt32();
 
@@ -792,24 +692,24 @@ namespace PhotoSauce.MagicScaler
 				}
 
 				Found:
+				ip += sizeof(uint);
 				int* psums = (int*)((ushort*)prnod + 8);
 				var vdiff = Sse2.Subtract(vppix, Sse2.LoadVector128(psums));
 
 				*op++ = (byte)psums[3];
 
-				Sse2.Store(ip + stride, Sse2.Add(vperr, vdiff));
-				*(ip + stride + 3) = 0;
-				ip += Vector128<int>.Count;
+				Sse2.Store(ep - Vector128<int>.Count, Sse2.Add(vdiff, vperr));
+				vperr = Sse2.Add(Sse2.Add(vdiff, vdiff), vnerr);
+				vnerr = vdiff;
 
-				vperr = Sse2.Add(vdiff, Sse2.ShiftLeftLogical(vdiff, 1));
+				Sse2.Store(ep, vperr);
+				ep += Vector128<int>.Count;
 
 			} while (ip < ipe);
-
-			Sse2.Store(ip + stride, vperr);
 		}
 #endif
 
-		unsafe private void remapScalar(uint* pimage, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
+		unsafe private void remapScalar(byte* pimage, int* perror, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
 		{
 			var transnode = new OctreeNode();
 			transnode.Sums[3] = byte.MaxValue;
@@ -818,17 +718,18 @@ namespace PhotoSauce.MagicScaler
 			uint ppix = 0;
 			var prnod = default(OctreeNode*);
 
-			int* ip = (int*)pimage, ipe = ip + cp * 4;
+			byte* ip = pimage, ipe = ip + cp * sizeof(uint);
 			byte* op = pout;
-			nint stride = cp * 4;
+			int* ep = perror;
 
-			int errb = 0, errg = 0, errr = 0;
+			int perb = 0, perg = 0, perr = 0;
+			int nerb = 0, nerg = 0, nerr = 0;
 
 			do
 			{
 				nuint cb, cg, cr;
 
-				if (ip[3] < alphaThreshold << 3)
+				if (ip[3] < alphaThreshold)
 				{
 					ppix = 0;
 					cb = cg = cr = 0;
@@ -836,9 +737,9 @@ namespace PhotoSauce.MagicScaler
 					goto Found;
 				}
 
-				cb = (nuint)((ip[0] + errb + 3).Clamp(0, 2047) >> 3);
-				cg = (nuint)((ip[1] + errg + 3).Clamp(0, 2047) >> 3);
-				cr = (nuint)((ip[2] + errr + 3).Clamp(0, 2047) >> 3);
+				cb = (nuint)(((ip[0] << 3) + ep[0] + nerb + nerb + nerb + 3).Clamp(0, 2047) >> 3);
+				cg = (nuint)(((ip[1] << 3) + ep[1] + nerg + nerg + nerg + 3).Clamp(0, 2047) >> 3);
+				cr = (nuint)(((ip[2] << 3) + ep[2] + nerr + nerr + nerr + 3).Clamp(0, 2047) >> 3);
 				uint cpix = 0xffu << 24 | (uint)cr << 16 | (uint)cg << 8 | (uint)cb;
 
 				if (ppix == cpix)
@@ -911,6 +812,7 @@ namespace PhotoSauce.MagicScaler
 				}
 
 				Found:
+				ip += sizeof(uint);
 				int* psums = (int*)((ushort*)prnod + 8);
 
 				int db = (byte)(ppix      ) - psums[0];
@@ -918,20 +820,24 @@ namespace PhotoSauce.MagicScaler
 				int dr = (byte)(ppix >> 16) - psums[2];
 				*op++ = (byte)psums[3];
 
-				*(ip + stride) = errb + db;
-				*(ip + stride + 1) = errg + dg;
-				*(ip + stride + 2) = errr + dr;
-				ip += 4;
+				ep[-4] = perb + db;
+				ep[-3] = perg + dg;
+				ep[-2] = perr + dr;
 
-				errb = db + (db << 1);
-				errg = dg + (dg << 1);
-				errr = dr + (dr << 1);
+				perb = db + db + nerb;
+				perg = dg + dg + nerg;
+				perr = dr + dr + nerr;
+
+				nerb = db;
+				nerg = dg;
+				nerr = dr;
+
+				ep[0] = perb;
+				ep[1] = perg;
+				ep[2] = perr;
+				ep += 4;
 
 			} while (ip < ipe);
-
-			*(ip + stride) = errb;
-			*(ip + stride + 1) = errg;
-			*(ip + stride + 2) = errr;
 		}
 
 		unsafe private void getNodeCounts(Span<int> counts)
@@ -1075,9 +981,9 @@ namespace PhotoSauce.MagicScaler
 			if (Vector.IsHardwareAccelerated && maxFree > Vector<ushort>.Count)
 			{
 				var slots = (ReadOnlySpan<byte>)(new byte[] {
-				 8, 0,  9, 0, 10, 0, 11, 0, 12, 0, 13, 0, 14, 0, 15, 0,
-				16, 0, 17, 0, 18, 0, 19, 0, 20, 0, 21, 0, 22, 0, 23, 0
-			});
+					 8, 0,  9, 0, 10, 0, 11, 0, 12, 0, 13, 0, 14, 0, 15, 0,
+					16, 0, 17, 0, 18, 0, 19, 0, 20, 0, 21, 0, 22, 0, 23, 0
+				});
 				var vslot = Unsafe.ReadUnaligned<Vector<ushort>>(ref MemoryMarshal.GetReference(slots));
 				var vincr = new Vector<ushort>((ushort)Vector<ushort>.Count);
 
