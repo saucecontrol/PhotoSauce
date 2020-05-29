@@ -405,7 +405,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			using var quant = new OctreeQuantizer();
 			using var buffI = new FrameBufferSource(ctx.Source.Width, ctx.Source.Height, PixelFormat.Indexed8Bpp);
-			var buffC = src.Source;
+			var buffC = encodeFrame.Source;
 
 			quant.CreateHistorgram(buffC.Span, buffC.Width, buffC.Height, buffC.Stride);
 			quant.Quantize(buffC.Span, buffI.Span, buffC.Width, buffC.Height, buffC.Stride, buffI.Stride);
