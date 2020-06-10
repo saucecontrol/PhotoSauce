@@ -3,7 +3,6 @@ using System.IO;
 using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
 using PhotoSauce.MagicScaler;

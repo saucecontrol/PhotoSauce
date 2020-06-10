@@ -2,19 +2,12 @@
 
 	<PropertyGroup>
 		<VersionPrefix>0.0.1</VersionPrefix>
-		<TargetFrameworks>net46;net472;netcoreapp2.1;netcoreapp3.1;netstandard2.0;netstandard2.1</TargetFrameworks>
+		<TargetFrameworks>net461;net472;netcoreapp2.1;netcoreapp3.1;netstandard2.0;netstandard2.1</TargetFrameworks>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\MagicScaler\MagicScaler.csproj" />
-	</ItemGroup>
-
-	<PropertyGroup>
-		<RestoreAdditionalProjectSources>https://www.myget.org/F/sixlabors/api/v3/index.json</RestoreAdditionalProjectSources>
-	</PropertyGroup>
-
-	<ItemGroup>
-		<PackageReference Include="SixLabors.ImageSharp" Version="1.0.0-unstable*" />
+		<PackageReference Include="SixLabors.ImageSharp" Version="1.0.0-rc0002" />
 	</ItemGroup>
 
 </Project>

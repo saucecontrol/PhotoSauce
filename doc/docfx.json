@@ -5,7 +5,7 @@
         {
           "src": "../",
           "files": [
-            "out/bin/MagicScaler/Dist/**\/PhotoSauce.MagicScaler.dll"
+            "out/bin/MagicScaler/Dist/netcoreapp3.0/PhotoSauce.MagicScaler.dll"
           ]
         }
       ],

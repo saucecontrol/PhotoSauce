@@ -54,11 +54,17 @@
             or the <a href="https://docs.microsoft.com/en-us/windows/win32/wic/-wic-codec-metadataquerylanguage">Metadata Query Language Overview</a> for explicit path syntax.
             </remarks>
         </member>
-        <member name="ColorProfileMode">
+        <member name="ColorProfileMode.Normalize">
             <remarks>
             Possible output color spaces are <a href="https://en.wikipedia.org/wiki/SRGB">sRGB</a>, <a href="https://en.wikipedia.org/wiki/Adobe_RGB_color_space">Adobe RGB (1998)</a>,
             or <a href="https://en.wikipedia.org/wiki/Display_P3">Display P3</a>.
             An output color space other than sRGB will be used only if the input image is in an alternate color space and the output codec supports embedding an ICC profile.
+            </remarks>
+        </member>
+        <member name="ColorProfileMode.Preserve">
+            <remarks>
+            Be aware that the embedded profile may be very large -- in the case of thumbnails, often larger than the thumbnail image itself.
+            If the output format does not support embedded profiles, no color space conversion will be performed, and the profile will be discarded.
             </remarks>
         </member>
 </doc>

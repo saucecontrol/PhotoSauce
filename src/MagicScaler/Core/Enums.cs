@@ -81,13 +81,13 @@ namespace PhotoSauce.MagicScaler
 	public enum ColorProfileMode
 	{
 		/// <summary>Convert the input image to a well-known RGB color space during processing.  A minimal compatible color profile will be embedded unless the output image is in the the sRGB color space.</summary>
-		/// <include file='Docs/Remarks.xml' path='doc/member[@name="ColorProfileMode"]/*'/>
+		/// <include file='Docs/Remarks.xml' path='doc/member[@name="ColorProfileMode.Normalize"]/*'/>
 		Normalize,
 		/// <summary>Convert the input image to a well-known RGB color space during processing.  A minimal compatible color profile will be embedded for the output color space, including sRGB.</summary>
-		/// <include file='Docs/Remarks.xml' path='doc/member[@name="ColorProfileMode"]/*'/>
+		/// <include file='Docs/Remarks.xml' path='doc/member[@name="ColorProfileMode.Normalize"]/*'/>
 		NormalizeAndEmbed,
-		/// <summary>Preserve the input image color space during processing.  Embed the source image's ICC profile in the output image.  If the output format does not support embedded profiles, it will be discarded.</summary>
-		/// <ramarks>Be aware that the embedded profile may be very large -- in the case of thumbnails, often larger than the thumbnail image itself.</ramarks>
+		/// <summary>Preserve the input image color space during processing and embed the source image's ICC profile in the output image.  CMYK images will be converted to Adobe RGB.</summary>
+		/// <include file='Docs/Remarks.xml' path='doc/member[@name="ColorProfileMode.Preserve"]/*'/>
 		Preserve,
 		/// <summary>Convert the input image to the <a href="https://en.wikipedia.org/wiki/SRGB">sRGB color space</a> during processing.  Output an untagged sRGB image.</summary>
 		ConvertToSrgb,
