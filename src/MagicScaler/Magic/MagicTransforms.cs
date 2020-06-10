@@ -224,9 +224,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 			if (fmt.NumericRepresentation == PixelNumericRepresentation.Float && fmt.Encoding == PixelValueEncoding.Companded)
 				AddInternalFormatConverter(ctx, PixelValueEncoding.Linear);
 
-			ctx.Source = new MatteTransform(ctx.Source, ctx.Settings.MatteColor);
+			ctx.Source = new MatteTransform(ctx.Source, ctx.Settings.MatteColor, !ctx.IsAnimatedGifPipeline);
 
-			if (ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None && ctx.Settings.MatteColor.A == byte.MaxValue)
+			if (!ctx.IsAnimatedGifPipeline && ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None && ctx.Settings.MatteColor.A == byte.MaxValue)
 			{
 				var oldFmt = ctx.Source.Format;
 				var newFmt = oldFmt == PixelFormat.Pbgra64BppLinearUQ15 ? PixelFormat.Bgr48BppLinearUQ15

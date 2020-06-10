@@ -69,6 +69,11 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
+		public bool IsAnimatedGifPipeline =>
+			ImageContainer is WicGifContainer &&
+			(Settings.SaveFormat == FileFormat.Gif || Settings.SaveFormat == FileFormat.Auto) &&
+			Settings.FrameIndex == 0 && ImageContainer.FrameCount > 1;
+
 		public PipelineContext(ProcessImageSettings settings)
 		{
 			Settings = settings.Clone();

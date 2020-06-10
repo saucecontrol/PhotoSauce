@@ -90,7 +90,7 @@ namespace PhotoSauce.MagicScaler
 		public override int Width => PrevSource.Width;
 		public override int Height => PrevSource.Height;
 
-		protected virtual bool Passthrough => true;
+		public virtual bool Passthrough => true;
 		protected virtual void Reset() { }
 
 		public void ReInit(PixelSource newSource)

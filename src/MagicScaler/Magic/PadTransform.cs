@@ -12,7 +12,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		public override int Width { get; }
 		public override int Height { get; }
 
-		protected override bool Passthrough => passthrough;
+		public override bool Passthrough => passthrough;
 
 		public PadTransformInternal(PixelSource source, Color color, PixelArea innerArea, PixelArea outerArea, bool replay = false) : base(source)
 		{

@@ -107,7 +107,7 @@ namespace PhotoSauce.MagicScaler
 				}
 
 				var weights = MemoryMarshal.Cast<byte, ReducibleNode>(listBuffer).Slice(0, (int)reducibleCount);
-				var warray = ArrayPool<ReducibleNode>.Shared.Rent(maxHistogramSize /*weights.Length*/);
+				var warray = ArrayPool<ReducibleNode>.Shared.Rent(maxHistogramSize);
 
 				weights.CopyTo(warray);
 				Array.Sort(warray, 0, weights.Length);
@@ -118,6 +118,7 @@ namespace PhotoSauce.MagicScaler
 				ArrayPool<ReducibleNode>.Shared.Return(warray);
 			}
 
+			bool dither = isSubsampled || nc[(int)level] > maxPaletteSize;
 			nuint nextFree = makePaletteMap(level);
 
 			var pbuff = BufferPool.Rent(((int)width + 2) * 16, true);
@@ -134,12 +135,14 @@ namespace PhotoSauce.MagicScaler
 					byte* poutline = poutbuff + y * outstride;
 					int* perrline = (int*)perrbuff + 4;
 
+					if (!dither)
+						remap(pline, poutline, pilut, ptree, ppal, ref nextFree, width);
 #if HWINTRINSICS
-					if (Sse2.IsSupported)
-						remapSse2(pline, perrline, poutline, pilut, ptree, ppal, ref nextFree, width);
-					else
+					else if (Sse2.IsSupported)
+						remapDitherSse2(pline, perrline, poutline, pilut, ptree, ppal, ref nextFree, width);
 #endif
-						remapScalar(pline, perrline, poutline, pilut, ptree, ppal, ref nextFree, width);
+					else
+						remapDitherScalar(pline, perrline, poutline, pilut, ptree, ppal, ref nextFree, width);
 				}
 			}
 
@@ -610,7 +613,7 @@ namespace PhotoSauce.MagicScaler
 		}
 
 #if HWINTRINSICS
-		unsafe private void remapSse2(byte* pimage, int* perr, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
+		unsafe private void remapDitherSse2(byte* pimage, int* perr, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
 		{
 			var transnode = new OctreeNode();
 			transnode.Sums[3] = byte.MaxValue;
@@ -749,7 +752,7 @@ namespace PhotoSauce.MagicScaler
 		}
 #endif
 
-		unsafe private void remapScalar(byte* pimage, int* perror, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
+		unsafe private void remapDitherScalar(byte* pimage, int* perror, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
 		{
 			var transnode = new OctreeNode();
 			transnode.Sums[3] = byte.MaxValue;
@@ -886,6 +889,90 @@ namespace PhotoSauce.MagicScaler
 			ep[-4] = perb;
 			ep[-3] = perg;
 			ep[-2] = perr;
+		}
+
+		unsafe private void remap(byte* pimage, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
+		{
+			var transnode = new OctreeNode();
+			transnode.Sums[3] = byte.MaxValue;
+
+			nuint level = leafLevel;
+			uint ppix = 0;
+			var prnod = default(OctreeNode*);
+
+			byte* ip = pimage, ipe = ip + cp * sizeof(uint);
+			byte* op = pout;
+
+			do
+			{
+				if ((byte)ip[3] < alphaThreshold)
+				{
+					ppix = 0;
+					prnod = &transnode;
+					goto Found;
+				}
+
+				uint cpix = *(uint*)ip;
+				if (ppix == cpix)
+					goto Found;
+
+				ppix = cpix;
+				nuint idx = pilut[(nuint)(byte)ppix] | pilut[(nuint)(byte)(ppix >> 8) + 256] | pilut[(nuint)(byte)(ppix >> 16) + 512];
+				nuint next = idx & 7;
+
+				var pnode = ptree + next;
+				for (nuint i = 0; i <= level; i++)
+				{
+					idx >>= 3;
+					nuint child = idx & 7;
+
+					ushort* children = (ushort*)pnode;
+					next = children[child];
+					if (next == 0)
+					{
+						uint* sums = (uint*)(children + 8);
+						if ((byte)sums[3] == byte.MaxValue)
+						{
+							for (nuint j = 1; j < 8; j++)
+							{
+								nuint sibling = children[child ^ j];
+								if (sibling != 0)
+								{
+									var snode = ptree + sibling;
+									uint* ssums = (uint*)((ushort*)snode + 8);
+									if ((byte)ssums[3] == byte.MaxValue)
+									{
+										next = sibling;
+										nuint mask = child ^ sibling;
+										idx = (child & mask) | (idx & ~mask);
+										break;
+									}
+									else
+									{
+										prnod = snode;
+										goto Found;
+									}
+								}
+							}
+						}
+						else
+						{
+							break;
+						}
+					}
+
+					pnode = ptree + next;
+				}
+
+				prnod = pnode;
+
+				Found:
+				ip += sizeof(uint);
+
+				int* psums = (int*)((ushort*)prnod + 8);
+				*op++ = (byte)psums[3];
+
+			} while (ip < ipe);
 		}
 
 		unsafe private void getNodeCounts(Span<int> counts)

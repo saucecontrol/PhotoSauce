@@ -380,7 +380,7 @@ namespace PhotoSauce.MagicScaler
 
 			MagicTransforms.AddGifFrameBuffer(ctx, false);
 
-			if (lastSource is ChainedPixelSource chain)
+			if (lastSource is ChainedPixelSource chain && chain.Passthrough)
 			{
 				chain.ReInit(ctx.Source);
 				ctx.Source = chain;

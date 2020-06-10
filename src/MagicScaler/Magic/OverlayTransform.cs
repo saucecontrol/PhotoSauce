@@ -20,7 +20,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		private ArraySegment<byte> lineBuff;
 
-		protected override bool Passthrough => false;
+		public override bool Passthrough => false;
 
 		public OverlayTransform(PixelSource source, PixelSource over, int left, int top, bool alpha, bool replay = false) : base(source)
 		{

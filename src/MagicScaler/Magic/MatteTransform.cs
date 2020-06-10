@@ -21,14 +21,14 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public override PixelFormat Format { get; }
 
-		public MatteTransform(PixelSource source, Color color) : base(source)
+		public MatteTransform(PixelSource source, Color color, bool allowFormatChange) : base(source)
 		{
 			Format = source.Format;
 
 			if (Format.ColorRepresentation != PixelColorRepresentation.Bgr || Format.AlphaRepresentation == PixelAlphaRepresentation.None)
 				throw new NotSupportedException("Pixel format not supported.  Must be BGRA");
 
-			if (Format == PixelFormat.Pbgra128BppLinearFloat && color.A == byte.MaxValue)
+			if (allowFormatChange && Format == PixelFormat.Pbgra128BppLinearFloat && color.A == byte.MaxValue)
 				Format = PixelFormat.Bgrx128BppLinearFloat;
 
 			var igtq = LookupTables.SrgbInverseGammaUQ15;
