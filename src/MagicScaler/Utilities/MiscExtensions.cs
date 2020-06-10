@@ -56,13 +56,13 @@ namespace PhotoSauce.MagicScaler
 
 		public static void TryReturn<T>(this ArrayPool<T> pool, T[]? buff)
 		{
-			if (!(buff is null))
+			if (buff is not null)
 				pool.Return(buff);
 		}
 
 		public static Guid FinalizeToGuid<T>(this T hasher) where T : IBlake2Incremental
 		{
-			Span<byte> hash = stackalloc byte[hasher.DigestLength];
+			var hash = (Span<byte>)stackalloc byte[hasher.DigestLength];
 			hasher.Finish(hash);
 
 			return MemoryMarshal.Read<Guid>(hash);

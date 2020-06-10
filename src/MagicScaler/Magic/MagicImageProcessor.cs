@@ -148,6 +148,7 @@ namespace PhotoSauce.MagicScaler
 
 		/// <inheritdoc cref="BuildPipeline(string, ProcessImageSettings)" />
 		/// <param name="imgBuffer">A buffer containing a supported input image container.</param>
+		[Obsolete("Use Stream overload, with MemoryStream or UnmanagedMemoryStream", true), EditorBrowsable(EditorBrowsableState.Never)]
 		unsafe public static ProcessingPipeline BuildPipeline(ReadOnlySpan<byte> imgBuffer, ProcessImageSettings settings)
 		{
 			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
@@ -272,7 +273,7 @@ namespace PhotoSauce.MagicScaler
 			bool outputPlanar = closedPipeline;
 			var wicFrame = ctx.ImageFrame as WicImageFrame;
 
-			if (wicFrame != null)
+			if (wicFrame is not null)
 			{
 				processPlanar = EnablePlanarPipeline && wicFrame.SupportsPlanarProcessing && ctx.Settings.Interpolation.WeightingFunction.Support >= 0.5;
 				bool profilingPassThrough = processPlanar || (wicFrame.SupportsNativeScale && ctx.Settings.HybridScaleRatio > 1);
@@ -302,7 +303,7 @@ namespace PhotoSauce.MagicScaler
 
 			if (processPlanar)
 			{
-				if (wicFrame != null && !ctx.Settings.AutoCrop && ctx.Settings.HybridScaleRatio == 1)
+				if (wicFrame is not null && !ctx.Settings.AutoCrop && ctx.Settings.HybridScaleRatio == 1)
 				{
 					var orCrop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height);
 
@@ -328,7 +329,7 @@ namespace PhotoSauce.MagicScaler
 					&& ctx.Settings.OuterSize == ctx.Settings.InnerSize
 					&& ctx.DestColorProfile == ctx.SourceColorProfile;
 
-				if (wicFrame != null)
+				if (wicFrame is not null)
 					WicTransforms.AddPlanarCache(ctx);
 
 				MagicTransforms.AddPlanarCropper(ctx);

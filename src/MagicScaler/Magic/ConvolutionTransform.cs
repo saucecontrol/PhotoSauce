@@ -174,7 +174,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		unsafe private void loadBuffer(int first, int lines)
 		{
-			Debug.Assert((!bufferSource && lineBuff.Array != null) || (WorkBuff != null && SrcBuff != null));
+			Debug.Assert((!bufferSource && lineBuff.Array is not null) || (WorkBuff is not null && SrcBuff is not null));
 
 			fixed (byte* mapxstart = XMap.Map)
 			{
@@ -257,7 +257,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		private UnsharpMaskTransform(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, UnsharpMaskSettings ss) : base(source, mapx, mapy, true)
 		{
-			Debug.Assert(SrcBuff != null && WorkBuff != null);
+			Debug.Assert(SrcBuff is not null && WorkBuff is not null);
 
 			processor = ProcessorMap[Format];
 			if (HWIntrinsics.IsSupported && processor is IVectorConvolver vc)

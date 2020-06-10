@@ -28,7 +28,7 @@ namespace PhotoSauce.MagicScaler
 				hasher.Update(iwf.UniqueID);
 				hasher.Update(interpolator.Blur);
 
-				Span<byte> hash = stackalloc byte[Unsafe.SizeOf<Guid>()];
+				var hash = (Span<byte>)stackalloc byte[Unsafe.SizeOf<Guid>()];
 				hasher.Finish(hash);
 				var key = MemoryMarshal.Read<Guid>(hash);
 

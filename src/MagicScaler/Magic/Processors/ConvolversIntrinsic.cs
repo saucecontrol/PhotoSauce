@@ -30,16 +30,16 @@ namespace PhotoSauce.MagicScaler.Transforms
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
-			float* tp = (float*)tstart, tpe = (float*)(tstart + (uint)cb);
+			float* tp = (float*)tstart, tpe = (float*)(tstart + (nuint)cb);
 			uint* pmapx = (uint*)mapxstart;
-			uint kstride = (uint)smapx * channels;
-			uint tstride = (uint)smapy * channels;
-			uint vcnt = kstride / (uint)VectorSse.Count;
+			nuint kstride = (nuint)smapx * channels;
+			nuint tstride = (nuint)smapy * channels;
+			nuint vcnt = kstride / (nuint)VectorSse.Count;
 
 			while (tp < tpe)
 			{
-				uint ix = *pmapx++;
-				uint lcnt = vcnt;
+				nuint ix = *pmapx++;
+				nuint lcnt = vcnt;
 
 				float* ip = (float*)istart + ix * channels;
 				float* mp = (float*)(mapxstart + *pmapx++);
@@ -153,14 +153,14 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			float* op = (float*)ostart;
-			uint tstride = (uint)smapy * channels;
-			uint vcnt = tstride / (uint)VectorSse.Count;
+			nuint tstride = (nuint)smapy * channels;
+			nuint vcnt = tstride / (nuint)VectorSse.Count, nox = (nuint)ox;
 
-			for (int xc = ox + ow; ox < xc; ox++)
+			for (nuint xc = nox + (nuint)ow; nox < xc; nox++)
 			{
-				uint lcnt = vcnt;
+				nuint lcnt = vcnt;
 
-				float* tp = (float*)tstart + (uint)ox * tstride;
+				float* tp = (float*)tstart + nox * tstride;
 				float* mp = (float*)pmapy;
 
 				VectorSse av0;
@@ -243,16 +243,16 @@ namespace PhotoSauce.MagicScaler.Transforms
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
-			float* tp = (float*)tstart, tpe = (float*)(tstart + (uint)cb);
+			float* tp = (float*)tstart, tpe = (float*)(tstart + (nuint)cb);
 			uint* pmapx = (uint*)mapxstart;
-			uint kstride = (uint)smapx * channels;
-			uint tstride = (uint)smapy * 4;
-			uint vcnt = kstride / (uint)VectorSse.Count;
+			nuint kstride = (nuint)smapx * channels;
+			nuint tstride = (nuint)smapy * 4;
+			nuint vcnt = kstride / (nuint)VectorSse.Count;
 
 			while (tp < tpe)
 			{
-				uint ix = *pmapx++;
-				uint lcnt = vcnt;
+				nuint ix = *pmapx++;
+				nuint lcnt = vcnt;
 
 				float* ip = (float*)istart + ix * channels;
 				float* mp = (float*)(mapxstart + *pmapx++);
@@ -338,16 +338,16 @@ namespace PhotoSauce.MagicScaler.Transforms
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
-			float* tp = (float*)tstart, tpe = (float*)(tstart + (uint)cb);
+			float* tp = (float*)tstart, tpe = (float*)(tstart + (nuint)cb);
 			uint* pmapx = (uint*)mapxstart;
-			uint kstride = (uint)smapx * channels;
-			uint tstride = (uint)smapy * channels;
-			uint vcnt = kstride / (uint)VectorSse.Count;
+			nuint kstride = (nuint)smapx * channels;
+			nuint tstride = (nuint)smapy * channels;
+			nuint vcnt = kstride / (nuint)VectorSse.Count;
 
 			while (tp < tpe)
 			{
-				uint ix = *pmapx++;
-				uint lcnt = vcnt;
+				nuint ix = *pmapx++;
+				nuint lcnt = vcnt;
 
 				float* ip = (float*)istart + ix * channels;
 				float* mp = (float*)(mapxstart + *pmapx++);
@@ -461,14 +461,14 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			float* op = (float*)ostart;
-			uint tstride = (uint)smapy * channels;
-			uint vcnt = tstride / (uint)VectorSse.Count;
+			nuint tstride = (nuint)smapy * channels;
+			nuint vcnt = tstride / (nuint)VectorSse.Count, nox = (nuint)ox;
 
-			for (int xc = ox + ow; ox < xc; ox++)
+			for (nuint xc = nox + (nuint)ow; nox < xc; nox++)
 			{
-				uint lcnt = vcnt;
+				nuint lcnt = vcnt;
 
-				float* tp = (float*)tstart + (uint)ox * tstride;
+				float* tp = (float*)tstart + nox * tstride;
 				float* mp = (float*)pmapy;
 
 				VectorSse av0;

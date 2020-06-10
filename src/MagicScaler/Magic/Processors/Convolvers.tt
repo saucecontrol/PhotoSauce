@@ -126,17 +126,17 @@ foreach (var t in ta) {
 		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
 		{
 			<#= t.interType #>* tp = (<#= t.interType #>*)tstart, tpe = (<#= t.interType #>*)(tstart + cb);
-			<#= t.weighType #>* pmapx = (<#= t.weighType #>*)mapxstart;
-			int tstride = smapy * channels;
+			uint* pmapx = (uint*)mapxstart;
+			nuint tstride = (nuint)smapy * channels;
 
 			while (tp < tpe)
 			{
 				<#= t.interType #><# for (int j = 0; j < t.channels - (t.alpha ? 1 : 0); j++) {#><#= j > 0 ? "," : "" #> a<#= j #> = 0<# } if (t.alpha) { #>, aa = 0, aw = 0<# } #>;
 
-				int ix = *<#= t.weighType == "int" ? "" : "(int*)" #>pmapx++;
+				nuint ix = *<#= t.weighType == "int" ? "" : "(int*)" #>pmapx++;
 				<#= t.pixelType #>* ip = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>istart + ix * channels;
 				<#= t.pixelType #>* ipe = ip + smapx * channels - <#= t.xUnroll > 1 ? $"{t.xUnroll} * " : "" #>channels;
-				<#= t.weighType #>* mp = pmapx;
+				<#= t.weighType #>* mp = (<#= t.weighType #>*)pmapx;
 				pmapx += smapx;
 
 				while (ip <= ipe)
@@ -279,13 +279,13 @@ if (t.alpha) {
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			<#= t.pixelType #>* op = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>ostart;
-			int tstride = smapy * channels;
+			nuint tstride = (nuint)smapy * channels, nox = (nuint)ox;
 
-			for (int xc = ox + ow; ox < xc; ox++)
+			for (nuint xc = nox + (nuint)ow; nox < xc; nox++)
 			{
 				<#= t.interType #><# for (int j = 0; j < t.channels - (t.alpha ? 1 : 0); j++) {#><#= j > 0 ? "," : "" #> a<#= j #> = 0<# } if (t.alpha) { #>, aa = 0, aw = 0<# } #>;
 
-				<#= t.interType #>* tp = (<#= t.interType #>*)tstart + ox * tstride;
+				<#= t.interType #>* tp = (<#= t.interType #>*)tstart + nox * tstride;
 				<#= t.interType #>* tpe = tp + tstride - <#= t.yUnroll > 1 ? $"{t.yUnroll} * " : "" #>channels;
 				<#= t.weighType #>* mp = (<#= t.weighType #>*)pmapy;
 
@@ -474,7 +474,7 @@ WriteLine(null);
 if (t.pixelType == "ushort") {
 	for (int j = 0; j < t.channels - (t.alpha || t.channels == 4 ? 1 : 0); j++) {
 #>
-					c<#= j #> = gt[(uint)ClampToUQ15One((uint)c<#= j #>)];
+					c<#= j #> = gt[(nuint)ClampToUQ15One((uint)c<#= j #>)];
 <#
 	}
 	WriteLine(null);
@@ -484,7 +484,7 @@ if (t.pixelType == "ushort") {
 <#
 for (int j = 0; j < t.channels - (t.alpha || t.channels == 4 ? 1 : 0); j++) {
 #>
-					op[<#= j #>] = <#= t.pixelType == "ushort" ? "igt[(uint)" : "" #>ClampToByte(c<#= j #> + dif)<#= t.pixelType == "ushort" ? "]" : "" #>;
+					op[<#= j #>] = <#= t.pixelType == "ushort" ? "igt[(nuint)" : "" #>ClampToByte(c<#= j #> + dif)<#= t.pixelType == "ushort" ? "]" : "" #>;
 <#
 }
 if (t.alpha || t.channels == 4) {

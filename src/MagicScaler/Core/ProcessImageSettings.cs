@@ -109,7 +109,7 @@ namespace PhotoSauce.MagicScaler
 
 		internal bool IndexedColor => SaveFormat == FileFormat.Png8 || SaveFormat == FileFormat.Gif;
 
-		internal bool IsNormalized => imageInfo != null;
+		internal bool IsNormalized => imageInfo is not null;
 
 		internal bool IsEmpty =>
 			OuterSize       == empty.OuterSize       &&
@@ -468,7 +468,7 @@ namespace PhotoSauce.MagicScaler
 			var whole = new Rectangle(0, 0, imgWidth, imgHeight);
 			AutoCrop = Crop.IsEmpty || Crop != Rectangle.Intersect(whole, Crop);
 
-			if (Width == 0 || Height == 0)
+			if ((Width == 0 || Height == 0) && (ResizeMode == CropScaleMode.Pad || ResizeMode == CropScaleMode.Stretch))
 				ResizeMode = CropScaleMode.Crop;
 
 			if (OuterSize.IsEmpty)
@@ -603,7 +603,7 @@ namespace PhotoSauce.MagicScaler
 			foreach (string m in MetadataNames ?? Enumerable.Empty<string>())
 				hash.Update(m.AsSpan());
 
-			Span<byte> hbuff = stackalloc byte[hash.DigestLength];
+			var hbuff = (Span<byte>)stackalloc byte[hash.DigestLength];
 			hash.Finish(hbuff);
 
 			return CacheHash.Encode(hbuff);

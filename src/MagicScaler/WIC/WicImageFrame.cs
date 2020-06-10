@@ -174,7 +174,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				if (!ftrans || anictx.LastDisposal == GifDisposalMethod.RestoreBackground)
 				{
-					src.CopyPixels(WICRect.Null, (uint)fbuff.Stride, (uint)fspan.Length, (IntPtr)buff);
+					src.CopyPixels(new WICRect { Width = finfo.Width, Height = finfo.Height }, (uint)fbuff.Stride, (uint)fspan.Length, (IntPtr)buff);
 				}
 				else
 				{
@@ -193,12 +193,15 @@ namespace PhotoSauce.MagicScaler
 			int left = 0, top = 0;
 			var disp = ((GifDisposalMethod)meta.GetValueOrDefault<byte>(Wic.Metadata.Gif.FrameDisposal)).Clamp();
 			bool trans = meta.GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
-			bool full = width == cont.ScreenWidth && height == cont.ScreenHeight;
+			bool full = width >= cont.ScreenWidth && height >= cont.ScreenHeight;
 			if (!full)
 			{
 				left = meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameLeft);
 				top = meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameTop);
 			}
+
+			width = Math.Min(width, cont.ScreenWidth - (uint)left);
+			height = Math.Min(height, cont.ScreenHeight - (uint)top);
 
 			return (left, top, (int)width, (int)height, trans, full, disp);
 		}

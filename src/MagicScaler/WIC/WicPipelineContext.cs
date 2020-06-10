@@ -20,7 +20,7 @@ namespace PhotoSauce.MagicScaler
 
 		public SafeHandle AddUnmanagedMemory(int cb)
 		{
-			if (!(unmanagedMemory is null)) throw new InvalidOperationException("Memory already allocated");
+			if (unmanagedMemory is not null) throw new InvalidOperationException("Memory already allocated");
 
 			return unmanagedMemory = new SafeHGlobalHandle(Marshal.AllocHGlobal(cb), cb);
 		}
@@ -90,7 +90,7 @@ namespace PhotoSauce.MagicScaler
 			while (comHandles.Count > 0)
 			{
 				object h = comHandles.Pop();
-				if (h != null && Marshal.IsComObject(h))
+				if (h is not null && Marshal.IsComObject(h))
 					Marshal.ReleaseComObject(h);
 			}
 		}
@@ -112,7 +112,7 @@ namespace PhotoSauce.MagicScaler
 
 			public void Dispose()
 			{
-				if (!(ComObject is null) && Marshal.IsComObject(ComObject))
+				if (ComObject is not null && Marshal.IsComObject(ComObject))
 					Marshal.ReleaseComObject(ComObject);
 			}
 		}

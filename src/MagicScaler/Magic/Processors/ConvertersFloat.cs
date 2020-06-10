@@ -233,14 +233,14 @@ namespace PhotoSauce.MagicScaler
 					ipe -= 8;
 					while (ip <= ipe)
 					{
-						float o0 = at[(uint)ip[0]];
-						float o1 = at[(uint)ip[1]];
-						float o2 = at[(uint)ip[2]];
-						float o3 = at[(uint)ip[3]];
-						float o4 = at[(uint)ip[4]];
-						float o5 = at[(uint)ip[5]];
-						float o6 = at[(uint)ip[6]];
-						float o7 = at[(uint)ip[7]];
+						float o0 = at[(nuint)ip[0]];
+						float o1 = at[(nuint)ip[1]];
+						float o2 = at[(nuint)ip[2]];
+						float o3 = at[(nuint)ip[3]];
+						float o4 = at[(nuint)ip[4]];
+						float o5 = at[(nuint)ip[5]];
+						float o6 = at[(nuint)ip[6]];
+						float o7 = at[(nuint)ip[7]];
 						ip += 8;
 
 						op[0] = o0;
@@ -257,7 +257,7 @@ namespace PhotoSauce.MagicScaler
 
 					while (ip < ipe)
 					{
-						op[0] = at[(uint)ip[0]];
+						op[0] = at[(nuint)ip[0]];
 						ip++;
 						op++;
 					}
@@ -405,10 +405,10 @@ namespace PhotoSauce.MagicScaler
 
 					while (ip < ipe)
 					{
-						float o0 = at[(uint)ip[0]];
-						float o1 = at[(uint)ip[1]];
-						float o2 = at[(uint)ip[2]];
-						float o3 = at[(uint)ip[3]];
+						float o0 = at[(nuint)ip[0]];
+						float o1 = at[(nuint)ip[1]];
+						float o2 = at[(nuint)ip[2]];
+						float o3 = at[(nuint)ip[3]];
 						ip += 4;
 
 						op[0] = o0 * o3;
@@ -506,9 +506,9 @@ namespace PhotoSauce.MagicScaler
 
 					while (ip < ipe)
 					{
-						float o0 = at[(uint)ip[0]];
-						float o1 = at[(uint)ip[1]];
-						float o2 = at[(uint)ip[2]];
+						float o0 = at[(nuint)ip[0]];
+						float o1 = at[(nuint)ip[1]];
+						float o2 = at[(nuint)ip[2]];
 						ip += 3;
 
 						op[0] = o0;

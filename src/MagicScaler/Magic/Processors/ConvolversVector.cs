@@ -29,9 +29,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			float* tp = (float*)tstart, tpe = (float*)(tstart + (uint)cb);
 			uint* pmapx = (uint*)mapxstart;
-			uint kstride = (uint)smapx * channels;
-			uint tstride = (uint)smapy * channels;
-			uint vcnt = kstride / vector4Count;
+			nuint kstride = (nuint)smapx * channels;
+			nuint tstride = (nuint)smapy * channels;
+			nuint vcnt = kstride / vector4Count;
 
 			float* buff = tp;
 			if (VectorF.Count == 8 && vcnt >= 2)
@@ -42,8 +42,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			while (tp < tpe)
 			{
-				uint ix = *pmapx++;
-				uint lcnt = vcnt;
+				nuint ix = *pmapx++;
+				nuint lcnt = vcnt;
 
 				float* ip = (float*)istart + ix * channels;
 				float* mp = (float*)(mapxstart + *pmapx++);
@@ -157,8 +157,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			float* op = (float*)ostart;
-			uint tstride = (uint)smapy * channels;
-			uint vcnt = tstride / vector4Count;
+			nuint tstride = (nuint)smapy * channels;
+			nuint vcnt = tstride / vector4Count, nox = (nuint)ox;
 
 			float* buff = op;
 			if (VectorF.Count == 8 && vcnt >= 2)
@@ -167,11 +167,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 				buff = tmp;
 			}
 
-			for (int xc = ox + ow; ox < xc; ox++)
+			for (nuint xc = nox + (nuint)ow; nox < xc; nox++)
 			{
-				uint lcnt = vcnt;
+				nuint lcnt = vcnt;
 
-				float* tp = (float*)tstart + (uint)ox * tstride;
+				float* tp = (float*)tstart + nox * tstride;
 				float* mp = (float*)pmapy;
 
 				Vector4 av0;
@@ -252,9 +252,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			float* tp = (float*)tstart, tpe = (float*)(tstart + (uint)cb);
 			uint* pmapx = (uint*)mapxstart;
-			uint kstride = (uint)smapx * channels;
-			uint tstride = (uint)smapy * 4;
-			uint vcnt = kstride / vector4Count;
+			nuint kstride = (nuint)smapx * channels;
+			nuint tstride = (nuint)smapy * 4;
+			nuint vcnt = kstride / vector4Count;
 
 			float* buff = tp;
 			if (VectorF.Count == 8 && vcnt >= 12)
@@ -265,8 +265,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			while (tp < tpe)
 			{
-				uint ix = *pmapx++;
-				uint lcnt = vcnt;
+				nuint ix = *pmapx++;
+				nuint lcnt = vcnt;
 
 				float* ip = (float*)istart + ix * channels, ipe = ip + kstride;
 				float* mp = (float*)(mapxstart + *pmapx++);
@@ -372,9 +372,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			float* tp = (float*)tstart, tpe = (float*)(tstart + (uint)cb);
 			uint* pmapx = (uint*)mapxstart;
-			uint kstride = (uint)smapx * channels;
-			uint tstride = (uint)smapy * channels;
-			uint vcnt = kstride / vector4Count;
+			nuint kstride = (nuint)smapx * channels;
+			nuint tstride = (nuint)smapy * channels;
+			nuint vcnt = kstride / vector4Count;
 
 			var m4 = Vector4.Zero;
 			var mF = VectorF.Zero;
@@ -386,8 +386,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			while (tp < tpe)
 			{
-				uint ix = *pmapx++;
-				uint lcnt = vcnt;
+				nuint ix = *pmapx++;
+				nuint lcnt = vcnt;
 
 				float* ip = (float*)istart + ix * channels, ipe = ip + kstride;
 				float* mp = (float*)(mapxstart + *pmapx++);
@@ -512,8 +512,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			float* op = (float*)ostart;
-			uint tstride = (uint)smapy * channels;
-			uint vcnt = tstride / vector4Count;
+			nuint tstride = (nuint)smapy * channels;
+			nuint vcnt = tstride / vector4Count, nox = (nuint)ox;
 
 			var m4 = Vector4.Zero;
 			var mF = VectorF.Zero;
@@ -523,11 +523,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 			else
 				m4 = Vector4.One;
 
-			for (int xc = ox + ow; ox < xc; ox++)
+			for (nuint xc = nox + (nuint)ow; nox < xc; nox++)
 			{
-				uint lcnt = vcnt;
+				nuint lcnt = vcnt;
 
-				float* tp = (float*)tstart + (uint)ox * tstride, tpe = tp + tstride;
+				float* tp = (float*)tstart + nox * tstride, tpe = tp + tstride;
 				float* mp = (float*)pmapy;
 
 				float a0;

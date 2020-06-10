@@ -35,7 +35,7 @@ namespace PhotoSauce.MagicScaler
 
 		private bool tryGetInternal(TKey key, [MaybeNullWhen(false)] out TValue value)
 		{
-			for (var curr = head; !(curr is null); curr = curr.Next)
+			for (var curr = head; curr is not null; curr = curr.Next)
 			{
 				if (curr.Key.Equals(key))
 				{
@@ -44,7 +44,7 @@ namespace PhotoSauce.MagicScaler
 					var prev = curr.Prev;
 					var next = curr.Next;
 
-					if (!(prev is null))
+					if (prev is not null)
 					{
 						prev.Next = next;
 
@@ -71,7 +71,7 @@ namespace PhotoSauce.MagicScaler
 
 					if (prev is null)
 					{
-						if (!(next is null))
+						if (next is not null)
 							next.Prev = null;
 
 						head = next;
@@ -109,7 +109,7 @@ namespace PhotoSauce.MagicScaler
 					var node = new CacheNode(key, value);
 
 					node.Next = head;
-					if (!(head is null))
+					if (head is not null)
 						head.Prev = node;
 
 					head = node;

@@ -98,7 +98,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public static void AddPlanarExternalFormatConverter(PipelineContext ctx)
 		{
-			Debug.Assert(ctx.PlanarContext != null);
+			Debug.Assert(ctx.PlanarContext is not null);
 
 			AddExternalFormatConverter(ctx);
 			ctx.PlanarContext.SourceY = ctx.Source;
@@ -129,7 +129,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			var fmt = ctx.Source.Format;
 			bool offsetX = false, offsetY = false;
-			if (ctx.ImageFrame is IYccImageFrame frame && ctx.PlanarContext != null && fmt.Encoding == PixelValueEncoding.Unspecified)
+			if (ctx.ImageFrame is IYccImageFrame frame && ctx.PlanarContext is not null && fmt.Encoding == PixelValueEncoding.Unspecified)
 			{
 				offsetX = frame.ChromaPosition.HasFlag(ChromaPosition.CositedHorizontal) && ctx.PlanarContext.ChromaSubsampling.IsSubsampledX();
 				offsetY = frame.ChromaPosition.HasFlag(ChromaPosition.CositedVertical) && ctx.PlanarContext.ChromaSubsampling.IsSubsampledY();
@@ -145,7 +145,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public static void AddPlanarHighQualityScaler(PipelineContext ctx, ChromaSubsampleMode subsample)
 		{
-			Debug.Assert(ctx.PlanarContext != null);
+			Debug.Assert(ctx.PlanarContext is not null);
 
 			AddHighQualityScaler(ctx);
 			ctx.PlanarContext.SourceY = ctx.Source;
@@ -177,7 +177,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public static void AddPlanarHybridScaler(PipelineContext ctx)
 		{
-			Debug.Assert(ctx.PlanarContext != null);
+			Debug.Assert(ctx.PlanarContext is not null);
 
 			int ratio = ctx.Settings.HybridScaleRatio;
 			if (ratio == 1)
@@ -258,7 +258,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public static void AddPlanarCropper(PipelineContext ctx)
 		{
-			Debug.Assert(ctx.PlanarContext != null);
+			Debug.Assert(ctx.PlanarContext is not null);
 
 			var crop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height);
 			if (crop == ctx.Source.Area)
@@ -311,7 +311,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public static void AddPlanarExifFlipRotator(PipelineContext ctx)
 		{
-			Debug.Assert(ctx.PlanarContext != null);
+			Debug.Assert(ctx.PlanarContext is not null);
 
 			var orientation = ctx.Orientation;
 			if (orientation == Orientation.Normal)
@@ -383,7 +383,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public static void AddPlanarConverter(PipelineContext ctx)
 		{
-			Debug.Assert(ctx.PlanarContext != null);
+			Debug.Assert(ctx.PlanarContext is not null);
 
 			if (ctx.Source.Format.Encoding == PixelValueEncoding.Linear || ctx.PlanarContext.SourceCb.Format.NumericRepresentation != ctx.Source.Format.NumericRepresentation)
 			{
@@ -411,7 +411,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			if (!(ctx.ImageFrame is WicImageFrame wicFrame) || !(wicFrame.Container is WicGifContainer gif))
 				return;
 
-			Debug.Assert(wicFrame.WicMetadataReader != null);
+			Debug.Assert(wicFrame.WicMetadataReader is not null);
 
 			if (replay && ctx.Settings.FrameIndex > 0)
 				WicImageFrame.ReplayGifAnimationContext(gif, ctx.Settings.FrameIndex - 1);
@@ -436,7 +436,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				ldisp = finfo.Disposal;
 			}
 
-			if (gif.AnimationContext != null && gif.AnimationContext.FrameBufferSource != null && ldisp != GifDisposalMethod.RestoreBackground)
+			if (gif.AnimationContext is not null && gif.AnimationContext.FrameBufferSource is not null && ldisp != GifDisposalMethod.RestoreBackground)
 				ctx.Source = gif.AnimationContext.FrameBufferSource;
 
 			if (!finfo.FullScreen && ldisp == GifDisposalMethod.RestoreBackground && !useBuffer)
@@ -449,7 +449,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 			else if (ldisp != GifDisposalMethod.RestoreBackground && !useBuffer)
 			{
-				Debug.Assert(gif.AnimationContext?.FrameBufferSource != null);
+				Debug.Assert(gif.AnimationContext?.FrameBufferSource is not null);
 
 				var ani = gif.AnimationContext;
 				var fbuff = ani.FrameBufferSource;

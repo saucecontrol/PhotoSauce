@@ -47,7 +47,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static string Create(string data)
 		{
-			Span<byte> hash = stackalloc byte[DigestLength];
+			var hash = (Span<byte>)stackalloc byte[DigestLength];
 			Blake2b.ComputeAndWriteHash(DigestLength, MemoryMarshal.AsBytes(data.AsSpan()), hash);
 
 			return Encode(hash);

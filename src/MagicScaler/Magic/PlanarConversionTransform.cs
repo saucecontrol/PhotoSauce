@@ -195,9 +195,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 				if (ip < ipe + Vector256<float>.Count)
 				{
-					var offs = GetOffset(ip, ipe);
+					nint offs = GetOffset(ip, ipe);
 					ip = SubtractOffset(ip, offs);
-					op = SubtractOffset(op, Multiply(offs, 4));
+					op = SubtractOffset(op, offs * 4);
 					goto LoopTop;
 				}
 			}
@@ -241,9 +241,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 				if (ip < ipe + Vector128<float>.Count)
 				{
-					var offs = GetOffset(ip, ipe);
+					nint offs = GetOffset(ip, ipe);
 					ip = SubtractOffset(ip, offs);
-					op = SubtractOffset(op, Multiply(offs, 4));
+					op = SubtractOffset(op, offs * 4);
 					goto LoopTop;
 				}
 			}

@@ -52,19 +52,19 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip <= ipe)
 				{
-					ushort o0 = igt[(uint)ip[0]];
-					ushort o1 = igt[(uint)ip[1]];
-					ushort o2 = igt[(uint)ip[2]];
-					ushort o3 = igt[(uint)ip[3]];
+					ushort o0 = igt[(nuint)ip[0]];
+					ushort o1 = igt[(nuint)ip[1]];
+					ushort o2 = igt[(nuint)ip[2]];
+					ushort o3 = igt[(nuint)ip[3]];
 					op[0] = o0;
 					op[1] = o1;
 					op[2] = o2;
 					op[3] = o3;
 
-					o0 = igt[(uint)ip[4]];
-					o1 = igt[(uint)ip[5]];
-					o2 = igt[(uint)ip[6]];
-					o3 = igt[(uint)ip[7]];
+					o0 = igt[(nuint)ip[4]];
+					o1 = igt[(nuint)ip[5]];
+					o2 = igt[(nuint)ip[6]];
+					o3 = igt[(nuint)ip[7]];
 					op[4] = o0;
 					op[5] = o1;
 					op[6] = o2;
@@ -77,7 +77,7 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip < ipe)
 				{
-					op[0] = igt[(uint)ip[0]];
+					op[0] = igt[(nuint)ip[0]];
 					ip++;
 					op++;
 				}
@@ -139,14 +139,14 @@ namespace PhotoSauce.MagicScaler
 				ipe -= 8;
 				while (ip <= ipe)
 				{
-					float o0 = igt[(uint)ip[0]];
-					float o1 = igt[(uint)ip[1]];
-					float o2 = igt[(uint)ip[2]];
-					float o3 = igt[(uint)ip[3]];
-					float o4 = igt[(uint)ip[4]];
-					float o5 = igt[(uint)ip[5]];
-					float o6 = igt[(uint)ip[6]];
-					float o7 = igt[(uint)ip[7]];
+					float o0 = igt[(nuint)ip[0]];
+					float o1 = igt[(nuint)ip[1]];
+					float o2 = igt[(nuint)ip[2]];
+					float o3 = igt[(nuint)ip[3]];
+					float o4 = igt[(nuint)ip[4]];
+					float o5 = igt[(nuint)ip[5]];
+					float o6 = igt[(nuint)ip[6]];
+					float o7 = igt[(nuint)ip[7]];
 					ip += 8;
 
 					op[0] = o0;
@@ -163,7 +163,7 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip < ipe)
 				{
-					op[0] = igt[(uint)ip[0]];
+					op[0] = igt[(nuint)ip[0]];
 					ip++;
 					op++;
 				}
@@ -196,9 +196,9 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip < ipe)
 				{
-					uint i0 = igt[(uint)ip[0]];
-					uint i1 = igt[(uint)ip[1]];
-					uint i2 = igt[(uint)ip[2]];
+					uint i0 = igt[(nuint)ip[0]];
+					uint i1 = igt[(nuint)ip[1]];
+					uint i2 = igt[(nuint)ip[2]];
 					uint i3 = FastFix15(ip[3]);
 					ip += 4;
 
@@ -299,10 +299,10 @@ namespace PhotoSauce.MagicScaler
 
 					while (ip < ipe)
 					{
-						float o0 = igt[(uint)ip[0]];
-						float o1 = igt[(uint)ip[1]];
-						float o2 = igt[(uint)ip[2]];
-						float o3 =  at[(uint)ip[3]];
+						float o0 = igt[(nuint)ip[0]];
+						float o1 = igt[(nuint)ip[1]];
+						float o2 = igt[(nuint)ip[2]];
+						float o3 =  at[(nuint)ip[3]];
 						ip += 4;
 
 						op[0] = o0 * o3;
@@ -340,9 +340,9 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip < ipe)
 				{
-					float o0 = igt[(uint)ip[0]];
-					float o1 = igt[(uint)ip[1]];
-					float o2 = igt[(uint)ip[2]];
+					float o0 = igt[(nuint)ip[0]];
+					float o1 = igt[(nuint)ip[1]];
+					float o2 = igt[(nuint)ip[2]];
 					ip += 3;
 
 					op[0] = o0;
@@ -410,7 +410,7 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip < ipe)
 				{
-					op[0] = gt[(uint)ClampToUQ15One((uint)ip[0])];
+					op[0] = gt[(nuint)ClampToUQ15One((uint)ip[0])];
 					ip++;
 					op++;
 				}
@@ -514,10 +514,10 @@ namespace PhotoSauce.MagicScaler
 					var vi = v;
 #endif
 
-					byte o0 = gt[(uint)vi[0]];
-					byte o1 = gt[(uint)vi[1]];
-					byte o2 = gt[(uint)vi[2]];
-					byte o3 = gt[(uint)vi[3]];
+					byte o0 = gt[(nuint)vi[0]];
+					byte o1 = gt[(nuint)vi[1]];
+					byte o2 = gt[(nuint)vi[2]];
+					byte o3 = gt[(nuint)vi[3]];
 					op[0] = o0;
 					op[1] = o1;
 					op[2] = o2;
@@ -525,10 +525,10 @@ namespace PhotoSauce.MagicScaler
 
 					if (VectorF.Count == 8)
 					{
-						o0 = gt[(uint)vi[4]];
-						o1 = gt[(uint)vi[5]];
-						o2 = gt[(uint)vi[6]];
-						o3 = gt[(uint)vi[7]];
+						o0 = gt[(nuint)vi[4]];
+						o1 = gt[(nuint)vi[5]];
+						o2 = gt[(nuint)vi[6]];
+						o3 = gt[(nuint)vi[7]];
 						op[4] = o0;
 						op[5] = o1;
 						op[6] = o2;
@@ -551,7 +551,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				while (ip < ipe)
 				{
-					op[0] = gt[(uint)FixToUQ15One(ip[0])];
+					op[0] = gt[(nuint)FixToUQ15One(ip[0])];
 					ip++;
 					op++;
 				}
@@ -597,9 +597,9 @@ namespace PhotoSauce.MagicScaler
 						uint i1 = ip[1];
 						uint i2 = ip[2];
 
-						byte o0 = gt[(uint)UnFixToUQ15One(i0 * o3i)];
-						byte o1 = gt[(uint)UnFixToUQ15One(i1 * o3i)];
-						byte o2 = gt[(uint)UnFixToUQ15One(i2 * o3i)];
+						byte o0 = gt[(nuint)UnFixToUQ15One(i0 * o3i)];
+						byte o1 = gt[(nuint)UnFixToUQ15One(i1 * o3i)];
+						byte o2 = gt[(nuint)UnFixToUQ15One(i2 * o3i)];
 
 						op[0] = o0;
 						op[1] = o1;
@@ -737,9 +737,9 @@ namespace PhotoSauce.MagicScaler
 					else
 					{
 						float f3i = UQ15One / f3;
-						byte o0 = gt[(uint)ClampToUQ15One((int)(ip[0] * f3i + fround))];
-						byte o1 = gt[(uint)ClampToUQ15One((int)(ip[1] * f3i + fround))];
-						byte o2 = gt[(uint)ClampToUQ15One((int)(ip[2] * f3i + fround))];
+						byte o0 = gt[(nuint)ClampToUQ15One((int)(ip[0] * f3i + fround))];
+						byte o1 = gt[(nuint)ClampToUQ15One((int)(ip[1] * f3i + fround))];
+						byte o2 = gt[(nuint)ClampToUQ15One((int)(ip[2] * f3i + fround))];
 						byte o3 = ClampToByte((int)(f3 * fmax + fround));
 						op[0] = o0;
 						op[1] = o1;
@@ -860,18 +860,18 @@ namespace PhotoSauce.MagicScaler
 						var vi = v;
 #endif
 
-						byte o0 = gt[(uint)vi[0]];
-						byte o1 = gt[(uint)vi[1]];
-						byte o2 = gt[(uint)vi[2]];
+						byte o0 = gt[(nuint)vi[0]];
+						byte o1 = gt[(nuint)vi[1]];
+						byte o2 = gt[(nuint)vi[2]];
 						op[0] = o0;
 						op[1] = o1;
 						op[2] = o2;
 
 						if (VectorF.Count == 8)
 						{
-							o0 = gt[(uint)vi[4]];
-							o1 = gt[(uint)vi[5]];
-							o2 = gt[(uint)vi[6]];
+							o0 = gt[(nuint)vi[4]];
+							o1 = gt[(nuint)vi[5]];
+							o2 = gt[(nuint)vi[6]];
 							op[3] = o0;
 							op[4] = o1;
 							op[5] = o2;
@@ -883,9 +883,9 @@ namespace PhotoSauce.MagicScaler
 
 				while (ip < ipe)
 				{
-					op[0] = gt[(uint)FixToUQ15One(ip[0])];
-					op[1] = gt[(uint)FixToUQ15One(ip[1])];
-					op[2] = gt[(uint)FixToUQ15One(ip[2])];
+					op[0] = gt[(nuint)FixToUQ15One(ip[0])];
+					op[1] = gt[(nuint)FixToUQ15One(ip[1])];
+					op[2] = gt[(nuint)FixToUQ15One(ip[2])];
 
 					ip += 4;
 					op += 3;

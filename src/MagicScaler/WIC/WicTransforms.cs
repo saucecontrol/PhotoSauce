@@ -226,7 +226,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddPlanarConverter(PipelineContext ctx)
 		{
-			Debug.Assert(ctx.PlanarContext != null);
+			Debug.Assert(ctx.PlanarContext is not null);
 
 			var planes = new[] { ctx.PlanarContext.SourceY.AsIWICBitmapSource(), ctx.PlanarContext.SourceCb.AsIWICBitmapSource(), ctx.PlanarContext.SourceCr.AsIWICBitmapSource() };
 			var conv = (IWICPlanarFormatConverter)ctx.WicContext.AddRef(Wic.Factory.CreateFormatConverter());

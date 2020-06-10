@@ -45,8 +45,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 			{
 				int iw = prc.Width * scale;
 				int iiw = Math.Min(iw, PrevSource.Width - prc.X * scale);
-				uint bpp = (uint)PrevSource.Format.BytesPerPixel;
-				uint stride = (uint)iw * bpp;
+				int bpp = PrevSource.Format.BytesPerPixel;
+				int stride = iw * bpp;
 
 				for (int y = 0; y < prc.Height; y++)
 				{
@@ -76,10 +76,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 					}
 
 					for (; iih < ih; iih++)
-						Unsafe.CopyBlock(bstart + iih * stride, bstart + (iih - 1) * stride, stride);
+						Unsafe.CopyBlock(bstart + iih * stride, bstart + (iih - 1) * stride, (uint)stride);
 
 					int ratio = scale;
-					uint cb = stride;
+					uint cb = (uint)stride;
 					while (ratio > 1)
 					{
 						byte* ip = bstart, op = bstart;
@@ -118,7 +118,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-		unsafe private void process4A(byte* ipstart, byte* opstart, uint stride)
+		unsafe private void process4A(byte* ipstart, byte* opstart, nuint stride)
 		{
 			byte* ip = ipstart, ipe = ipstart + stride;
 			byte* op = opstart;
@@ -128,7 +128,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			const ushort scaleAlpha = (UQ15One << 8) / byte.MaxValue;
 			const ulong bitMaskAlpha = 0xffff0000ffff0000ul;
 
-			if (Avx2.IsSupported && stride >= (uint)Vector256<byte>.Count)
+			if (Avx2.IsSupported && stride >= (nuint)Vector256<byte>.Count)
 			{
 				fixed (int* iatstart = LookupTables.InverseAlpha)
 				{
@@ -189,7 +189,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					ipe += Vector256<byte>.Count;
 				}
 			}
-			else if (Sse41.IsSupported && stride >= (uint)Vector128<byte>.Count)
+			else if (Sse41.IsSupported && stride >= (nuint)Vector128<byte>.Count)
 			{
 				fixed (int* iatstart = LookupTables.InverseAlpha)
 				{
@@ -301,13 +301,13 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-		unsafe private void process4(byte* ipstart, byte* opstart, uint stride)
+		unsafe private void process4(byte* ipstart, byte* opstart, nuint stride)
 		{
 			byte* ip = ipstart, ipe = ipstart + stride;
 			byte* op = opstart;
 
 #if HWINTRINSICS
-			if (Avx2.IsSupported && stride >= (uint)Vector256<byte>.Count * 2)
+			if (Avx2.IsSupported && stride >= (nuint)Vector256<byte>.Count * 2)
 			{
 				var vmaskb = Avx2.BroadcastVector128ToVector256((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask4ChanPairs)));
 				var vone = Vector256.Create((sbyte)1);
@@ -343,7 +343,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				} while (ip <= ipe);
 				ipe += Vector256<byte>.Count * 2;
 			}
-			else if (Ssse3.IsSupported && stride >= (uint)Vector128<byte>.Count * 2)
+			else if (Ssse3.IsSupported && stride >= (nuint)Vector128<byte>.Count * 2)
 			{
 				var vmaskb = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask4ChanPairs)));
 				var vone = Vector128.Create((sbyte)1);
@@ -381,10 +381,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 			else
 #endif
 
-			if (IntPtr.Size == sizeof(ulong) && stride >= sizeof(ulong) * 2)
+			if (sizeof(nuint) == sizeof(ulong) && stride >= sizeof(ulong) * 2)
 			{
 				const ulong mask0 = 0xfffffffful;
-				const ulong mask1 = 0xfffffffful << 32;
+				const ulong mask1 = mask0 << 32;
 				ulong m = maskb;
 
 				ipe -= sizeof(ulong) * 2;
@@ -436,13 +436,13 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-		unsafe private void process3(byte* ipstart, byte* opstart, uint stride)
+		unsafe private void process3(byte* ipstart, byte* opstart, nuint stride)
 		{
 			byte* ip = ipstart, ipe = ipstart + stride;
 			byte* op = opstart;
 
 #if HWINTRINSICS
-			if (Ssse3.IsSupported && stride > (uint)Vector128<byte>.Count * 2)
+			if (Ssse3.IsSupported && stride > (nuint)Vector128<byte>.Count * 2)
 			{
 				var vmaskb = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3ChanPairs)));
 				var vmaskw = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3xTo3Chan)));
@@ -482,7 +482,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			else
 #endif
 
-			if (IntPtr.Size == sizeof(ulong) && stride > sizeof(ulong) * 2)
+			if (sizeof(nuint) == sizeof(ulong) && stride > sizeof(ulong) * 2)
 			{
 				const ulong mask0 = 0xfffffful;
 				const ulong mask1 = 0xfffffful << 24;
@@ -548,13 +548,13 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-		unsafe private void process(byte* ipstart, byte* opstart, uint stride)
+		unsafe private void process(byte* ipstart, byte* opstart, nuint stride)
 		{
 			byte* ip = ipstart, ipe = ipstart + stride;
 			byte* op = opstart;
 
 #if HWINTRINSICS
-			if (Avx2.IsSupported && stride >= (uint)Vector256<byte>.Count * 2)
+			if (Avx2.IsSupported && stride >= (nuint)Vector256<byte>.Count * 2)
 			{
 				var vone = Vector256.Create((sbyte)1);
 
@@ -586,7 +586,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				} while (ip <= ipe);
 				ipe += Vector256<byte>.Count * 2;
 			}
-			else if (Ssse3.IsSupported && stride >= (uint)Vector128<byte>.Count * 2)
+			else if (Ssse3.IsSupported && stride >= (nuint)Vector128<byte>.Count * 2)
 			{
 				var vone = Vector128.Create((sbyte)1);
 
@@ -620,7 +620,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			else
 #endif
 
-			if (IntPtr.Size == sizeof(ulong) && stride >= sizeof(ulong))
+			if (sizeof(nuint) == sizeof(ulong) && stride >= sizeof(ulong))
 			{
 				ulong m = maskb;
 

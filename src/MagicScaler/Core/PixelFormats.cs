@@ -55,12 +55,12 @@ namespace PhotoSauce.MagicScaler
 		public readonly PixelAlphaRepresentation AlphaRepresentation;
 		public readonly PixelValueEncoding Encoding;
 
-		public bool Equals(PixelFormat? other) => !(other is null) && FormatGuid == other.FormatGuid;
+		public bool Equals(PixelFormat? other) => other is not null && FormatGuid == other.FormatGuid;
 
 		public static bool operator ==(PixelFormat left, PixelFormat right) => left.Equals(right);
 		public static bool operator !=(PixelFormat left, PixelFormat right) => !left.Equals(right);
 
-		public override bool Equals(object? o) => o is PixelFormat pf ? Equals(pf) : false;
+		public override bool Equals(object? o) => o is PixelFormat pf && Equals(pf);
 		public override int GetHashCode() => FormatGuid.GetHashCode();
 
 		public int BytesPerPixel => MathUtil.DivCeiling(BitsPerPixel, 8);
