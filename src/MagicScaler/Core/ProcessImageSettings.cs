@@ -566,6 +566,9 @@ namespace PhotoSauce.MagicScaler
 			if (!Sharpen)
 				UnsharpMask = UnsharpMaskSettings.None;
 
+			if (ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed && (SaveFormat == FileFormat.Bmp || SaveFormat == FileFormat.Gif))
+				ColorProfileMode = ColorProfileMode.ConvertToSrgb;
+
 			imageInfo = img;
 		}
 

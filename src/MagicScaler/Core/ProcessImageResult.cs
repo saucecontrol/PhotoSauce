@@ -86,6 +86,7 @@ namespace PhotoSauce.MagicScaler
 		public ProcessImageSettings Settings { get; }
 
 		/// <summary>Basic instrumentation for the operation.  There will be one <see cref="PixelSourceStats" /> instance for each pipeline step.</summary>
+		/// <remarks>This collection will be empty unless <see cref="MagicImageProcessor.EnablePixelSourceStats" /> is set to <c>true</c>.</remarks>
 		public IEnumerable<PixelSourceStats> Stats { get; }
 	}
 

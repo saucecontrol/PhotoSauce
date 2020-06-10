@@ -53,16 +53,13 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>Convert values to linear RGB before blending.  This is more mathematically correct and more visually pleasing in most cases.</summary>
 		Linear,
 		/// <summary>Blend gamma-companded R'G'B' values directly.  This is usually a poor choice but may be used for compatibility with other software or where speed is more important than image quality.</summary>
-		Companded,
-		/// <summary>Same as <see cref="Companded" />.</summary>
-		[Obsolete("Replaced by " + nameof(GammaMode) + "." + nameof(Companded), true), EditorBrowsable(EditorBrowsableState.Never)]
-		sRGB = Companded
+		Companded
 	}
 
 	/// <summary>Defines known image container formats for auto-detection and output configuration.</summary>
 	public enum FileFormat
 	{
-		/// <summary>Set output container format automatically based on input format and image contents.</summary>
+		/// <summary>Set output container format automatically based on input format and image contents.  The container format will be a web-friendly format (JPEG, PNG, or GIF).</summary>
 		Auto,
 		/// <summary>A JPEG container.</summary>
 		Jpeg,
@@ -83,13 +80,17 @@ namespace PhotoSauce.MagicScaler
 	/// <summary>Defines the modes that control <a href="https://en.wikipedia.org/wiki/ICC_profile">ICC Color Profile</a> handling.</summary>
 	public enum ColorProfileMode
 	{
-		/// <summary>Convert the input image to the <a href="https://en.wikipedia.org/wiki/SRGB">sRGB color space</a> during processing.  Output an untagged sRGB image.</summary>
+		/// <summary>Convert the input image to a well-known RGB color space during processing.  A minimal compatible color profile will be embedded unless the output image is in the the sRGB color space.</summary>
+		/// <include file='Docs/Remarks.xml' path='doc/member[@name="ColorProfileMode"]/*'/>
 		Normalize,
-		/// <summary>Convert the input image to the <a href="https://en.wikipedia.org/wiki/SRGB">sRGB color space</a> during processing.  Embed a compact sRGB profile in the output.</summary>
-		/// <remarks>This option ensures maximum compatibility with web browsers and other software but results in slightly larger (+456 bytes) output files.</remarks>
+		/// <summary>Convert the input image to a well-known RGB color space during processing.  A minimal compatible color profile will be embedded for the output color space, including sRGB.</summary>
+		/// <include file='Docs/Remarks.xml' path='doc/member[@name="ColorProfileMode"]/*'/>
 		NormalizeAndEmbed,
-		/// <summary>Preserve the input image color space during processing.  Embed the ICC profile in the output image.  If the output format does not support embedded profiles, it will be discarded.</summary>
+		/// <summary>Preserve the input image color space during processing.  Embed the source image's ICC profile in the output image.  If the output format does not support embedded profiles, it will be discarded.</summary>
+		/// <ramarks>Be aware that the embedded profile may be very large -- in the case of thumbnails, often larger than the thumbnail image itself.</ramarks>
 		Preserve,
+		/// <summary>Convert the input image to the <a href="https://en.wikipedia.org/wiki/SRGB">sRGB color space</a> during processing.  Output an untagged sRGB image.</summary>
+		ConvertToSrgb,
 		/// <summary>Ignore any embedded profiles and treat the image as <a href="https://en.wikipedia.org/wiki/SRGB">sRGB</a> data.  Do not tag the output image.</summary>
 		Ignore = 0xff
 	}

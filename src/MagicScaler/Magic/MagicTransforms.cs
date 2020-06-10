@@ -332,21 +332,26 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public static void AddColorProfileReader(PipelineContext ctx)
 		{
-			var fmt = ctx.ImageFrame is IYccImageFrame ? PixelFormat.FromGuid(PixelFormats.Bgr24bpp) : ctx.Source.Format;
+			var mode = ctx.Settings.ColorProfileMode;
+			if (mode == ColorProfileMode.Ignore)
+				return;
+
+			var fmt = ctx.ImageFrame is IYccImageFrame ? PixelFormat.Bgr24Bpp : ctx.Source.Format;
 
 			if (ctx.ImageFrame is WicImageFrame wicFrame)
 			{
-				ctx.SourceColorProfile = wicFrame.ColorProfileSource.ParsedProfile;
-				ctx.WicContext.SourceColorContext = wicFrame.ColorProfileSource.WicColorContext;
-				ctx.WicContext.DestColorContext = ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed ? WicColorProfile.GetDefaultFor(fmt).WicColorContext : ctx.WicContext.SourceColorContext;
+				var profile = WicColorProfile.GetSourceProfile(wicFrame.ColorProfileSource, mode);
+				ctx.SourceColorProfile = profile.ParsedProfile;
+				ctx.WicContext.SourceColorContext = profile.WicColorContext;
+				ctx.WicContext.DestColorContext = WicColorProfile.GetDestProfile(wicFrame.ColorProfileSource, mode).WicColorContext;
 			}
 			else
 			{
 				var profile = ColorProfile.Cache.GetOrAdd(ctx.ImageFrame.IccProfile);
-				ctx.SourceColorProfile = profile.IsValid && profile.IsCompatibleWith(fmt) && !profile.IsSrgb ? profile : ColorProfile.GetDefaultFor(fmt);
+				ctx.SourceColorProfile = profile.IsValid && profile.IsCompatibleWith(fmt) ? ColorProfile.GetSourceProfile(profile, mode) : ColorProfile.GetDefaultFor(fmt);
 			}
 
-			ctx.DestColorProfile = ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed ? ColorProfile.GetDefaultFor(fmt) : ctx.SourceColorProfile;
+			ctx.DestColorProfile = ColorProfile.GetDestProfile(ctx.SourceColorProfile, mode);
 		}
 
 		public static void AddColorspaceConverter(PipelineContext ctx)
@@ -359,7 +364,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				AddExternalFormatConverter(ctx);
 
 				ctx.WicContext.SourceColorContext ??= ctx.WicContext.AddRef(WicColorProfile.CreateContextFromProfile(ctx.SourceColorProfile.ProfileBytes));
-				ctx.WicContext.DestColorContext ??= ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed ? WicColorProfile.GetDefaultFor(ctx.Source.Format).WicColorContext : ctx.WicContext.SourceColorContext;
+				ctx.WicContext.DestColorContext ??= ctx.WicContext.AddRef(WicColorProfile.CreateContextFromProfile(ctx.DestColorProfile.ProfileBytes));
 
 				WicTransforms.AddColorspaceConverter(ctx);
 

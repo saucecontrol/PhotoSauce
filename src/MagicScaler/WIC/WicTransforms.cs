@@ -13,11 +13,11 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddColorProfileReader(PipelineContext ctx)
 		{
-			if (!(ctx.ImageFrame is WicImageFrame wicFrame))
+			if (!(ctx.ImageFrame is WicImageFrame wicFrame) || ctx.Settings.ColorProfileMode == ColorProfileMode.Ignore)
 				return;
 
-			ctx.WicContext.SourceColorContext = wicFrame.ColorProfileSource.WicColorContext;
-			ctx.WicContext.DestColorContext = ctx.Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed ? WicColorProfile.GetDefaultFor(ctx.Source.Format).WicColorContext : ctx.WicContext.SourceColorContext;
+			ctx.WicContext.SourceColorContext = WicColorProfile.GetSourceProfile(wicFrame.ColorProfileSource, ctx.Settings.ColorProfileMode).WicColorContext;
+			ctx.WicContext.DestColorContext = WicColorProfile.GetDestProfile(wicFrame.ColorProfileSource, ctx.Settings.ColorProfileMode).WicColorContext;
 		}
 
 		public static void AddColorspaceConverter(PipelineContext ctx)
@@ -35,8 +35,8 @@ namespace PhotoSauce.MagicScaler
 			var curFormat = ctx.Source.Format;
 			if (curFormat.ColorRepresentation == PixelColorRepresentation.Cmyk)
 			{
-				var sRgbContext = WicColorProfile.Srgb.Value;
-				Debug.Assert(ctx.WicContext.SourceColorContext != null);
+				var rgbColorContext = ctx.Settings.ColorProfileMode == ColorProfileMode.ConvertToSrgb ? WicColorProfile.Srgb.Value : WicColorProfile.AdobeRgb.Value;
+				ctx.WicContext.SourceColorContext ??= WicColorProfile.Cmyk.Value.WicColorContext;
 
 				// TODO WIC doesn't support proper CMYKA conversion with color profile
 				if (curFormat.AlphaRepresentation == PixelAlphaRepresentation.None)
@@ -46,15 +46,15 @@ namespace PhotoSauce.MagicScaler
 						ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, PixelFormat.Cmyk32Bpp));
 
 					var trans = ctx.WicContext.AddRef(Wic.Factory.CreateColorTransformer());
-					if (trans.TryInitialize(ctx.Source.AsIWICBitmapSource(), ctx.WicContext.SourceColorContext, sRgbContext.WicColorContext, Consts.GUID_WICPixelFormat24bppBGR))
+					if (trans.TryInitialize(ctx.Source.AsIWICBitmapSource(), ctx.WicContext.SourceColorContext, rgbColorContext.WicColorContext, Consts.GUID_WICPixelFormat24bppBGR))
 					{
 						ctx.Source = trans.AsPixelSource(nameof(IWICColorTransform));
 						curFormat = ctx.Source.Format;
 					}
 				}
 
-				ctx.WicContext.DestColorContext = ctx.WicContext.SourceColorContext = sRgbContext.WicColorContext;
-				ctx.DestColorProfile = ctx.SourceColorProfile = sRgbContext.ParsedProfile;
+				ctx.WicContext.DestColorContext = ctx.WicContext.SourceColorContext = rgbColorContext.WicColorContext;
+				ctx.DestColorProfile = ctx.SourceColorProfile = rgbColorContext.ParsedProfile;
 			}
 
 			if (curFormat == PixelFormat.Y8Bpp || curFormat == PixelFormat.Cb8Bpp || curFormat == PixelFormat.Cr8Bpp)

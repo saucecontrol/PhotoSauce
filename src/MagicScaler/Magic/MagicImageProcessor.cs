@@ -263,11 +263,13 @@ namespace PhotoSauce.MagicScaler
 			return new ProcessImageResult(ctx.UsedSettings, ctx.Stats);
 		}
 
-		private static void buildPipeline(PipelineContext ctx, bool outputPlanar = true)
+		private static void buildPipeline(PipelineContext ctx, bool closedPipeline = true)
 		{
 			ctx.ImageFrame = ctx.ImageContainer.GetFrame(ctx.Settings.FrameIndex);
+			ctx.Settings.ColorProfileMode = closedPipeline ? ctx.Settings.ColorProfileMode : ColorProfileMode.ConvertToSrgb;
 
 			bool processPlanar = false;
+			bool outputPlanar = closedPipeline;
 			var wicFrame = ctx.ImageFrame as WicImageFrame;
 
 			if (wicFrame != null)

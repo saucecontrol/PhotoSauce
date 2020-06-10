@@ -220,10 +220,10 @@ namespace PhotoSauce.MagicScaler
 
 			ArrayPool<IWICColorContext>.Shared.Return(profiles);
 
-			return match ?? WicColorProfile.GetDefaultFor(fmt);
+			return match;
 		}
 
-		private WicColorProfile? matchProfile(ReadOnlySpan<IWICColorContext> profiles, PixelFormat fmt)
+		private WicColorProfile matchProfile(ReadOnlySpan<IWICColorContext> profiles, PixelFormat fmt)
 		{
 			foreach (var cc in profiles)
 			{
@@ -236,18 +236,11 @@ namespace PhotoSauce.MagicScaler
 					if (cb > 1024 * 1024 * 4)
 						continue;
 
-					var buff = ArrayPool<byte>.Shared.Rent((int)cb);
-
-					cc.GetProfileBytes(cb, buff);
-					var cpi = ColorProfile.Cache.GetOrAdd(new ReadOnlySpan<byte>(buff, 0, (int)cb));
-
-					ArrayPool<byte>.Shared.Return(buff);
-
-					// Use the profile only if it matches the frame's pixel format.  Ignore embedded sRGB-compatible profiles -- they will be upgraded to the internal sRGB/sGrey definintion.
-					if (cpi.IsValid && cpi.IsCompatibleWith(fmt) && !cpi.IsSrgb)
+					var cpi = WicColorProfile.GetProfileFromContext(cc, cb);
+					if (cpi.IsValid && cpi.IsCompatibleWith(fmt))
 						return new WicColorProfile(cc, cpi);
 				}
-				else if (cct == WICColorContextType.WICColorContextExifColorSpace && WicMetadataReader != null)
+				else if (cct == WICColorContextType.WICColorContextExifColorSpace && WicMetadataReader is not null)
 				{
 					// Although WIC defines the non-standard AdobeRGB ExifColorSpace value, most software (including Adobe's) only supports the Uncalibrated/InteropIndex=R03 convention.
 					// http://ninedegreesbelow.com/photography/embedded-color-space-information.html
@@ -260,7 +253,7 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			return null;
+			return WicColorProfile.GetDefaultFor(fmt);
 		}
 	}
 }

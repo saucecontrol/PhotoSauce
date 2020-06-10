@@ -85,7 +85,7 @@ namespace PhotoSauce.MagicScaler
 
 		private static ProcessImageResult processImage(Stream istm, Stream ostm, ProcessImageSettings s)
 		{
-			using var img = Image.FromStream(istm, s.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed, false);
+			using var img = Image.FromStream(istm, s.ColorProfileMode != ColorProfileMode.Ignore, false);
 
 			if (s.FrameIndex > 0)
 			{

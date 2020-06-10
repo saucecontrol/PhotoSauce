@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<VersionPrefix>0.10.4</VersionPrefix>
+		<VersionPrefix>0.11.0</VersionPrefix>
 		<TargetFrameworks>net461;net472;netcoreapp2.1;netcoreapp3.0;netstandard2.0;netstandard2.1</TargetFrameworks>
 		<RestoreAdditionalProjectSources>https://dotnet.myget.org/F/roslyn/api/v3/index.json</RestoreAdditionalProjectSources>
 		<LangVersion>preview</LangVersion>
@@ -64,6 +64,8 @@
 		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\IBlake2Incremental.cs" Link="External\Blake2Fast\%(FileName)%(Extension)" />
 		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\ThrowHelper.cs" Link="External\Blake2Fast\%(FileName)%(Extension)" />
 		<EmbeddedResource Include="$(BaseModulesPath)CompactProfiles\profiles\AdobeCompat-v2.icc" Link="Resources\%(FileName)%(Extension)" />
+		<EmbeddedResource Include="$(BaseModulesPath)CompactProfiles\profiles\DisplayP3Compat-v2-micro.icc" Link="Resources\%(FileName)%(Extension)" />
+		<EmbeddedResource Include="$(BaseModulesPath)CompactProfiles\profiles\DisplayP3Compat-v4.icc" Link="Resources\%(FileName)%(Extension)" />
 		<EmbeddedResource Include="$(BaseModulesPath)CompactProfiles\profiles\sGrey-v2-micro.icc" Link="Resources\%(FileName)%(Extension)" />
 		<EmbeddedResource Include="$(BaseModulesPath)CompactProfiles\profiles\sGrey-v4.icc" Link="Resources\%(FileName)%(Extension)" />
 		<EmbeddedResource Include="$(BaseModulesPath)CompactProfiles\profiles\sRGB-v2-micro.icc" Link="Resources\%(FileName)%(Extension)" />

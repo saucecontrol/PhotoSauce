@@ -101,6 +101,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			var fmt = ctx.Settings.SaveFormat;
 			var encArea = area.IsEmpty ? ctx.Source.Area : area;
+			var colorMode = ctx.Settings.ColorProfileMode;
 
 			var bag = default(IPropertyBag2);
 			encoder.WicEncoder.CreateNewFrame(out var frame, ref bag);
@@ -126,9 +127,9 @@ namespace PhotoSauce.MagicScaler
 			frame.SetSize((uint)encArea.Width, (uint)encArea.Height);
 			frame.SetResolution(ctx.Settings.DpiX > 0d ? ctx.Settings.DpiX : ctx.ImageFrame.DpiX, ctx.Settings.DpiY > 0d ? ctx.Settings.DpiY : ctx.ImageFrame.DpiY);
 
-			bool copySourceMetadata = ctx.ImageFrame is WicImageFrame srcFrame && srcFrame.WicMetadataReader != null && ctx.Settings.MetadataNames != Enumerable.Empty<string>();
+			bool copySourceMetadata = ctx.ImageFrame is WicImageFrame srcFrame && srcFrame.WicMetadataReader is not null && ctx.Settings.MetadataNames != Enumerable.Empty<string>();
 			bool writeOrientation = ctx.Settings.OrientationMode == OrientationMode.Preserve && ctx.ImageFrame.ExifOrientation != Orientation.Normal;
-			bool writeColorContext = ctx.Settings.ColorProfileMode == ColorProfileMode.NormalizeAndEmbed || ctx.Settings.ColorProfileMode == ColorProfileMode.Preserve;
+			bool writeColorContext = colorMode == ColorProfileMode.NormalizeAndEmbed || colorMode == ColorProfileMode.Preserve || (colorMode == ColorProfileMode.Normalize && ctx.DestColorProfile != ColorProfile.sRGB && ctx.DestColorProfile != ColorProfile.sGrey);
 
 			if ((copySourceMetadata || writeOrientation) && frame.TryGetMetadataQueryWriter(out var metawriter))
 			{
@@ -138,7 +139,7 @@ namespace PhotoSauce.MagicScaler
 					var wicFrame = (WicImageFrame)ctx.ImageFrame;
 					foreach (string prop in ctx.Settings.MetadataNames)
 					{
-						if (wicFrame.WicMetadataReader!.TryGetMetadataByName(prop, out var pvar) && !(pvar.Value is null))
+						if (wicFrame.WicMetadataReader!.TryGetMetadataByName(prop, out var pvar) && pvar.Value is not null)
 							metawriter.TrySetMetadataByName(prop, pvar);
 					}
 				}
@@ -152,15 +153,19 @@ namespace PhotoSauce.MagicScaler
 
 			if (writeColorContext)
 			{
-				Debug.Assert(ctx.WicContext.DestColorContext != null || ctx.DestColorProfile != null);
+				Debug.Assert(ctx.WicContext.DestColorContext is not null || ctx.DestColorProfile is not null);
 
-				var cc = ctx.WicContext.DestColorContext ?? ctx.WicContext.AddRef(WicColorProfile.CreateContextFromProfile(ctx.DestColorProfile!.ProfileBytes));
+				var cc = ctx.WicContext.DestColorContext;
 				if (ctx.DestColorProfile == ColorProfile.sRGB)
 					cc = WicColorProfile.SrgbCompact.Value.WicColorContext;
 				else if (ctx.DestColorProfile == ColorProfile.sGrey)
 					cc = WicColorProfile.GreyCompact.Value.WicColorContext;
+				else if (ctx.DestColorProfile == ColorProfile.AdobeRgb)
+					cc = WicColorProfile.AdobeRgb.Value.WicColorContext;
+				else if (ctx.DestColorProfile == ColorProfile.DisplayP3)
+					cc = WicColorProfile.DisplayP3Compact.Value.WicColorContext;
 
-				frame.TrySetColorContexts(cc);
+				frame.TrySetColorContexts(cc ?? ctx.WicContext.AddRef(WicColorProfile.CreateContextFromProfile(ctx.DestColorProfile!.ProfileBytes)));
 			}
 		}
 
@@ -169,7 +174,7 @@ namespace PhotoSauce.MagicScaler
 			var wicFrame = WicEncoderFrame;
 			var wicRect = area.ToWicRect();
 
-			if (ctx.PlanarContext != null)
+			if (ctx.PlanarContext is not null)
 			{
 				var oformat = Consts.GUID_WICPixelFormat24bppBGR;
 				wicFrame.SetPixelFormat(ref oformat);
@@ -206,7 +211,7 @@ namespace PhotoSauce.MagicScaler
 				}
 				else if (oformat == PixelFormat.Indexed8Bpp.FormatGuid)
 				{
-					Debug.Assert(ctx.WicContext.DestPalette != null);
+					Debug.Assert(ctx.WicContext.DestPalette is not null);
 
 					wicFrame.SetPalette(ctx.WicContext.DestPalette);
 				}
@@ -222,12 +227,14 @@ namespace PhotoSauce.MagicScaler
 
 	internal sealed class WicColorProfile
 	{
-		public static readonly Lazy<WicColorProfile> Cmyk = new Lazy<WicColorProfile>(() => new WicColorProfile(getDefaultColorContext(PixelFormat.Cmyk32Bpp.FormatGuid), null!));
+		public static readonly Lazy<WicColorProfile> Cmyk = new Lazy<WicColorProfile>(() => new WicColorProfile(getDefaultColorContext(PixelFormat.Cmyk32Bpp.FormatGuid), null));
 		public static readonly Lazy<WicColorProfile> Srgb = new Lazy<WicColorProfile>(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sRgbV4.Value), ColorProfile.sRGB));
 		public static readonly Lazy<WicColorProfile> Grey = new Lazy<WicColorProfile>(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sGreyV4.Value), ColorProfile.sGrey));
+		public static readonly Lazy<WicColorProfile> DisplayP3 = new Lazy<WicColorProfile>(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.DisplayP3V4.Value), ColorProfile.sGrey));
 		public static readonly Lazy<WicColorProfile> SrgbCompact = new Lazy<WicColorProfile>(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sRgbCompact.Value), ColorProfile.sRGB));
 		public static readonly Lazy<WicColorProfile> GreyCompact = new Lazy<WicColorProfile>(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sGreyCompact.Value), ColorProfile.sGrey));
 		public static readonly Lazy<WicColorProfile> AdobeRgb = new Lazy<WicColorProfile>(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.AdobeRgb.Value), ColorProfile.AdobeRgb));
+		public static readonly Lazy<WicColorProfile> DisplayP3Compact = new Lazy<WicColorProfile>(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.DisplayP3Compact.Value), ColorProfile.AdobeRgb));
 
 		public static WicColorProfile GetDefaultFor(PixelFormat fmt) => fmt.ColorRepresentation switch {
 			PixelColorRepresentation.Cmyk => Cmyk.Value,
@@ -235,11 +242,52 @@ namespace PhotoSauce.MagicScaler
 			_ => Srgb.Value
 		};
 
+		public static WicColorProfile GetSourceProfile(WicColorProfile wicprof, ColorProfileMode mode)
+		{
+			var prof = ColorProfile.GetSourceProfile(wicprof.ParsedProfile, mode);
+			return MapKnownProfile(prof) ?? wicprof;
+		}
+
+		public static WicColorProfile GetDestProfile(WicColorProfile wicprof, ColorProfileMode mode)
+		{
+			var prof = ColorProfile.GetDestProfile(wicprof.ParsedProfile, mode);
+			return MapKnownProfile(prof) ?? wicprof;
+		}
+
+		public static WicColorProfile? MapKnownProfile(ColorProfile prof)
+		{
+			if (prof == ColorProfile.sGrey)
+				return Grey.Value;
+			if (prof == ColorProfile.sRGB)
+				return Srgb.Value;
+			if (prof == ColorProfile.AdobeRgb)
+				return AdobeRgb.Value;
+			if (prof == ColorProfile.DisplayP3)
+				return DisplayP3.Value;
+
+			return null;
+		}
+
 		public static IWICColorContext CreateContextFromProfile(byte[] profile)
 		{
 			var cc = Wic.Factory.CreateColorContext();
 			cc.InitializeFromMemory(profile, (uint)profile.Length);
 			return cc;
+		}
+
+		public static ColorProfile GetProfileFromContext(IWICColorContext cc, uint cb)
+		{
+			if (cb == 0u)
+				cb = cc.GetProfileBytes(0, null);
+
+			var buff = ArrayPool<byte>.Shared.Rent((int)cb);
+
+			cc.GetProfileBytes(cb, buff);
+			var cpi = ColorProfile.Cache.GetOrAdd(new ReadOnlySpan<byte>(buff, 0, (int)cb));
+
+			ArrayPool<byte>.Shared.Return(buff);
+
+			return cpi;
 		}
 
 		private static IWICColorContext getDefaultColorContext(Guid pixelFormat)
@@ -251,10 +299,10 @@ namespace PhotoSauce.MagicScaler
 		public IWICColorContext WicColorContext { get; }
 		public ColorProfile ParsedProfile { get; }
 
-		public WicColorProfile(IWICColorContext ctx, ColorProfile prof)
+		public WicColorProfile(IWICColorContext cc, ColorProfile? prof)
 		{
-			WicColorContext = ctx;
-			ParsedProfile = prof;
+			WicColorContext = cc;
+			ParsedProfile = prof ?? GetProfileFromContext(cc, 0);
 		}
 	}
 
