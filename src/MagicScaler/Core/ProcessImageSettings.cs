@@ -508,6 +508,11 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
+			if (width == 0 && (ResizeMode == CropScaleMode.Contain || ResizeMode == CropScaleMode.Max))
+				width = int.MaxValue;
+			if (height == 0 && (ResizeMode == CropScaleMode.Contain || ResizeMode == CropScaleMode.Max))
+				height = int.MaxValue;
+
 			wrat = width > 0 ? (double)Crop.Width / width : (double)Crop.Height / height;
 			hrat = height > 0 ? (double)Crop.Height / height : wrat;
 
