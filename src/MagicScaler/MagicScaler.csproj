@@ -1,9 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<VersionPrefix>0.11.0</VersionPrefix>
+		<VersionPrefix>0.11.1</VersionPrefix>
 		<TargetFrameworks>net461;net472;netcoreapp2.1;netcoreapp3.0;netstandard2.0;netstandard2.1</TargetFrameworks>
-		<RestoreAdditionalProjectSources>https://dotnet.myget.org/F/roslyn/api/v3/index.json</RestoreAdditionalProjectSources>
 		<LangVersion>preview</LangVersion>
 	</PropertyGroup>
 
@@ -21,10 +20,6 @@
 		<NoWarn Condition="'$(TargetFramework)'=='netstandard2.0'">$(NoWarn);IDT001</NoWarn><!-- https://github.com/dotnet/standard/issues/1527 -->
 		<Nullable Condition="$(DefineConstants.Contains('BUILTIN_NULLABLE'))">enable</Nullable>
 	</PropertyGroup>
-
-	<ItemGroup>
-		<PackageReference Include="Microsoft.Net.Compilers.Toolset" Version="3.7.0-2.20258.1" PrivateAssets="all" />
-	</ItemGroup>
 
 	<ItemGroup Condition="!$(DefineConstants.Contains('BUILTIN_SPAN'))">
 		<PackageReference Include="System.Buffers" Version="4.5.1" />
@@ -47,7 +42,6 @@
 	</ItemGroup>
 
 	<ItemGroup Condition="$(DefineConstants.Contains('NETFRAMEWORK'))">
-		<PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.0" />
 		<Reference Include="System.Configuration" />
 		<Reference Include="System.Drawing" />
 	</ItemGroup>

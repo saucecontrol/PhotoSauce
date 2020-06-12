@@ -10,9 +10,9 @@ steps:
   submodules: true
 
 - task: UseDotNet@2
-  displayName: Ensure 3.1 SDK
+  displayName: Ensure 5.0 SDK
   inputs:
-    version: 3.1.x
+    version: 5.0.x
     includePreviewVersions: true
 
 - script: |
