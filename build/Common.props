@@ -41,6 +41,7 @@
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)'!='Debug'">
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
 		<Deterministic>true</Deterministic>
 		<DebugSymbols>true</DebugSymbols>
 		<DebugType>portable</DebugType>
