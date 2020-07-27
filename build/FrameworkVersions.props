@@ -1,0 +1,40 @@
+<Project>
+
+	<Choose>
+		<When Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(TargetFramework), '^net(?:coreapp)?\d+\.\d+$'))">
+			<PropertyGroup>
+				<NetCoreVersion>$([System.Text.RegularExpressions.Regex]::Match($(TargetFramework), `\d+\.\d+$`))</NetCoreVersion>
+				<NetFrameworkVersion>0</NetFrameworkVersion>
+				<NetStandardVersion Condition="$(NetCoreVersion)&lt;2.0">1.6</NetStandardVersion>
+				<NetStandardVersion Condition="$(NetCoreVersion)&gt;=2.0">2.0</NetStandardVersion>
+				<NetStandardVersion Condition="$(NetCoreVersion)&gt;=3.0">2.1</NetStandardVersion>
+			</PropertyGroup>
+		</When>
+		<When Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(TargetFramework), '^net4\d+$'))">
+			<PropertyGroup>
+				<NetCoreVersion>0</NetCoreVersion>
+				<NetFrameworkVersion>4.$([System.Text.RegularExpressions.Regex]::Match($(TargetFramework), `^net4(\d+)$`).Groups[1].Value)</NetFrameworkVersion>
+				<NetStandardVersion Condition="$(NetFrameworkVersion)&lt;4.5">0</NetStandardVersion>
+				<NetStandardVersion Condition="$(NetFrameworkVersion)&gt;=4.5">1.1</NetStandardVersion>
+				<NetStandardVersion Condition="$(NetFrameworkVersion)&gt;=4.51">1.2</NetStandardVersion>
+				<NetStandardVersion Condition="$(NetFrameworkVersion)&gt;=4.6">1.3</NetStandardVersion>
+				<NetStandardVersion Condition="$(NetFrameworkVersion)&gt;=4.61">2.0</NetStandardVersion>
+			</PropertyGroup>
+		</When>
+		<When Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(TargetFramework), '^netstandard\d+\.\d+$'))">
+			<PropertyGroup>
+				<NetCoreVersion>0</NetCoreVersion>
+				<NetFrameworkVersion>0</NetFrameworkVersion>
+				<NetStandardVersion>$([System.Text.RegularExpressions.Regex]::Match($(TargetFramework), `\d+\.\d+$`))</NetStandardVersion>
+			</PropertyGroup>
+		</When>
+		<Otherwise>
+			<PropertyGroup>
+				<NetCoreVersion>0</NetCoreVersion>
+				<NetFrameworkVersion>0</NetFrameworkVersion>
+				<NetStandardVersion>0</NetStandardVersion>
+			</PropertyGroup>
+		</Otherwise>
+	</Choose>
+
+</Project>

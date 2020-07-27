@@ -1,24 +1,25 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<VersionPrefix>0.11.1</VersionPrefix>
-		<TargetFrameworks>net461;net472;netcoreapp2.1;netcoreapp3.0;netstandard2.0;netstandard2.1</TargetFrameworks>
+		<VersionPrefix>0.12.0</VersionPrefix>
+		<TargetFrameworks>net461;net472;netcoreapp2.1;netcoreapp3.0;net5.0;netstandard2.0;netstandard2.1</TargetFrameworks>
 		<LangVersion>preview</LangVersion>
 	</PropertyGroup>
 
 	<PropertyGroup>
-		<DefineConstants Condition="$(TargetFramework.StartsWith('netcoreapp')) Or '$(TargetFramework)'=='netstandard2.1'">$(DefineConstants);BUILTIN_MATHF;BUILTIN_SPAN</DefineConstants>
-		<DefineConstants Condition="$(TargetFramework.StartsWith('netcoreapp')) Or '$(TargetFramework)'=='netstandard2.1' Or '$(TargetFramework)'=='net472'">$(DefineConstants);VECTOR_CONVERT</DefineConstants>
-		<DefineConstants Condition="$(TargetFramework.StartsWith('net4')) Or ('$(TargetFramework)'=='netcoreapp3.0' And '$(Configuration)'!='Dist')">$(DefineConstants);SYSTEM_DRAWING</DefineConstants>
-		<DefineConstants Condition="'$(TargetFramework)'=='netcoreapp3.0' Or '$(TargetFramework)'=='netstandard2.1'">$(DefineConstants);BUILTIN_NULLABLE</DefineConstants>
-		<DefineConstants Condition="'$(TargetFramework)'=='netcoreapp3.0'">$(DefineConstants);HWINTRINSICS</DefineConstants>
-		<DefineConstants Condition="'$(Configuration)'!='Dist'">$(DefineConstants);GUARDRAILS</DefineConstants>
+		<DefineConstants Condition="$(NetCoreVersion)&gt;=2.1 Or $(NetStandardVersion)&gt;=2.1">$(DefineConstants);BUILTIN_MATHF;BUILTIN_SPAN</DefineConstants>
+		<DefineConstants Condition="$(NetCoreVersion)&gt;=2.1 Or $(NetStandardVersion)&gt;=2.1 Or $(NetFrameworkVersion)&gt;=4.72">$(DefineConstants);VECTOR_CONVERT</DefineConstants>
+		<DefineConstants Condition="$(NetFrameworkVersion)&gt;4.0 Or ($(NetCoreVersion)&gt;=3.0 And '$(Configuration)'!='Dist')">$(DefineConstants);SYSTEM_DRAWING</DefineConstants>
+		<DefineConstants Condition="$(NetCoreVersion)&gt;=3.0 Or $(NetStandardVersion)&gt;=2.1">$(DefineConstants);CSHARP8_ATTRIBUTES</DefineConstants>
+		<DefineConstants Condition="$(NetCoreVersion)&gt;=3.0">$(DefineConstants);HWINTRINSICS</DefineConstants>
+		<DefineConstants Condition="$(NetCoreVersion)&gt;=5.0">$(DefineConstants);SPAN_SORT;CSHARP9_ATTRIBUTES</DefineConstants>
+		<DefineConstants Condition="'$(Configuration)'!='Dist'">$(DefineConstants);GUARDRAILS;WICPROCESSOR</DefineConstants>
 	</PropertyGroup>
 
 	<PropertyGroup>
 		<NoWarn Condition="'$(TargetFramework)'=='netcoreapp2.1' Or '$(TargetFramework)'=='netstandard2.1'">$(NoWarn);0618</NoWarn><!-- VarEnum spuriously marked obsolete -->
 		<NoWarn Condition="'$(TargetFramework)'=='netstandard2.0'">$(NoWarn);IDT001</NoWarn><!-- https://github.com/dotnet/standard/issues/1527 -->
-		<Nullable Condition="$(DefineConstants.Contains('BUILTIN_NULLABLE'))">enable</Nullable>
+		<Nullable Condition="$(DefineConstants.Contains('CSHARP8_ATTRIBUTES'))">enable</Nullable>
 	</PropertyGroup>
 
 	<ItemGroup Condition="!$(DefineConstants.Contains('BUILTIN_SPAN'))">
@@ -32,11 +33,11 @@
 		<PackageReference Include="System.Drawing.Common" Version="4.7.0" />
 	</ItemGroup>
 
-	<ItemGroup Condition="$(DefineConstants.Contains('BUILTIN_SPAN')) And '$(TargetFramework)'!='netcoreapp3.0'">
+	<ItemGroup Condition="$(DefineConstants.Contains('BUILTIN_SPAN')) And $(NetCoreVersion)&lt;3.0">
 		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.1" />
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)'=='net461'">
+	<ItemGroup Condition="$(DefineConstants.Contains('NETFRAMEWORK')) And $(NetFrameworkVersion)&lt;4.7">
 		<PackageReference Include="System.ValueTuple" Version="4.5.0" />
 		<PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" />
 	</ItemGroup>

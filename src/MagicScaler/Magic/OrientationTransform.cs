@@ -204,8 +204,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 						*(ushort*)pe = *(ushort*)pp;
 						*(ushort*)pp = t0;
 
-						pe -= 2;
-						pp += 2;
+						pe -= sizeof(ushort);
+						pp += sizeof(ushort);
 					}
 					break;
 				case 3:
@@ -230,8 +230,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 						*(uint*)pe = *(uint*)pp;
 						*(uint*)pp = t0;
 
-						pe -= 4;
-						pp += 4;
+						pe -= sizeof(uint);
+						pp += sizeof(uint);
 					}
 					break;
 				case 16:
@@ -242,8 +242,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 						Unsafe.WriteUnaligned(pe, Unsafe.ReadUnaligned<Vector4>(pp));
 						Unsafe.WriteUnaligned(pp, t0);
 
-						pe -= Unsafe.SizeOf<Vector4>();
-						pp += Unsafe.SizeOf<Vector4>();
+						pe -= sizeof(Vector4);
+						pp += sizeof(Vector4);
 					}
 					break;
 			}

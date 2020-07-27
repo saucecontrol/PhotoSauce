@@ -216,12 +216,12 @@ namespace PhotoSauce.MagicScaler
 			(T*)Unsafe.AsPointer(ref Unsafe.SubtractByteOffset(ref Unsafe.AsRef<T>(ptr), off));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static nint ConvertOffset<TFrom, TTo>(nint offset) where TFrom : unmanaged where TTo : unmanaged
+		unsafe public static nint ConvertOffset<TFrom, TTo>(nint offset) where TFrom : unmanaged where TTo : unmanaged
 		{
-			if (Unsafe.SizeOf<TFrom>() > Unsafe.SizeOf<TTo>())
-				return offset / (Unsafe.SizeOf<TFrom>() / Unsafe.SizeOf<TTo>());
-			else if (Unsafe.SizeOf<TFrom>() < Unsafe.SizeOf<TTo>())
-				return offset * (Unsafe.SizeOf<TTo>() / Unsafe.SizeOf<TFrom>());
+			if (sizeof(TFrom) > sizeof(TTo))
+				return offset / (sizeof(TFrom) / sizeof(TTo));
+			else if (sizeof(TFrom) < sizeof(TTo))
+				return offset * (sizeof(TTo) / sizeof(TFrom));
 			else
 				return offset;
 		}

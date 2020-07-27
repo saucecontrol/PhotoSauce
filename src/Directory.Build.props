@@ -1,6 +1,7 @@
 <Project>
 
 	<Import Project="$(MSBuildThisFileDirectory)..\build\Common.props" />
+	<Import Project="$(MSBuildThisFileDirectory)..\build\FrameworkVersions.props" />
 
 	<PropertyGroup>
 		<Nullable>annotations</Nullable>

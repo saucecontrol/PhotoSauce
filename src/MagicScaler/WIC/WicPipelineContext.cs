@@ -40,8 +40,7 @@ namespace PhotoSauce.MagicScaler
 			public SafeHGlobalHandle(IntPtr handle, int cb) : base(IntPtr.Zero, true)
 			{
 				SetHandle(handle);
-				GC.AddMemoryPressure(cb);
-				count = cb;
+				GC.AddMemoryPressure(count = cb);
 			}
 
 			protected override bool ReleaseHandle()

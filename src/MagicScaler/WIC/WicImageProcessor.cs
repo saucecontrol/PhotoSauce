@@ -1,5 +1,6 @@
 ﻿#pragma warning disable CS1591 // XML Comments
 
+#if WICPROCESSOR
 using System;
 using System.IO;
 using System.ComponentModel;
@@ -71,3 +72,4 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 }
+#endif

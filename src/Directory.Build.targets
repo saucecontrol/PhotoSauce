@@ -21,6 +21,7 @@
 		<ItemGroup>
 			<AssemblyInfoLines Include="[assembly:System.CLSCompliant(true)]" />
 			<AssemblyInfoLines Include="[assembly:System.Runtime.InteropServices.ComVisible(false)]" />
+			<AssemblyInfoLines Include="[module:System.Runtime.CompilerServices.SkipLocalsInit]" />
 		</ItemGroup>
 
 		<WriteLinesToFile File="$(AssemblyInfoFile)" Lines="@(AssemblyInfoLines)" Overwrite="true" />

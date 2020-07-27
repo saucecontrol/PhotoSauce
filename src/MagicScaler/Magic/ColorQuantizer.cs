@@ -69,7 +69,7 @@ namespace PhotoSauce.MagicScaler
 
 		unsafe public void Quantize(Span<byte> image, Span<byte> outbuff, nint width, nint height, nint instride, nint outstride)
 		{
-			var nc = (Span<int>)stackalloc int[8];
+			var nc = (Span<int>)stackalloc int[] { 0, 0, 0, 0, 0, 0, 0, 0 };
 			getNodeCounts(nc);
 
 			uint level = leafLevel;
@@ -93,9 +93,10 @@ namespace PhotoSauce.MagicScaler
 				leafLevel = level;
 			}
 
-			if (nc[(int)level] > targetColors)
+			int histogramColors = nc[(int)level];
+			if (histogramColors > targetColors)
 			{
-				var listBuffer = BufferPool.Rent(Unsafe.SizeOf<ReducibleNode>() * nc[(int)level]);
+				var listBuffer = BufferPool.Rent(sizeof(ReducibleNode) * histogramColors);
 				nuint reducibleCount = 0;
 
 				fixed (OctreeNode* ptree = MemoryMarshal.Cast<byte, OctreeNode>(nodeBuffer))
@@ -107,18 +108,23 @@ namespace PhotoSauce.MagicScaler
 				}
 
 				var weights = MemoryMarshal.Cast<byte, ReducibleNode>(listBuffer).Slice(0, (int)reducibleCount);
+				int reduceCount = histogramColors - targetColors;
+
+#if SPAN_SORT
+				weights.Sort();
+				finalReduce(weights.Slice(0, reduceCount));
+#else
 				var warray = ArrayPool<ReducibleNode>.Shared.Rent(maxHistogramSize);
 
 				weights.CopyTo(warray);
 				Array.Sort(warray, 0, weights.Length);
-
-				int reduceCount = nc[(int)level] - targetColors;
 				finalReduce(warray.AsSpan(0, reduceCount));
 
 				ArrayPool<ReducibleNode>.Shared.Return(warray);
+#endif
 			}
 
-			bool dither = isSubsampled || nc[(int)level] > maxPaletteSize;
+			bool dither = isSubsampled || histogramColors > maxPaletteSize;
 			nuint nextFree = makePaletteMap(level);
 
 			var pbuff = BufferPool.Rent(((int)width + 2) * 16, true);
@@ -280,7 +286,7 @@ namespace PhotoSauce.MagicScaler
 								sums[2] += csums[2];
 								sums[3] += csums[3] & 0x1fffffff;
 
-								Unsafe.InitBlockUnaligned(cnode, 0, (uint)Unsafe.SizeOf<OctreeNode>());
+								Unsafe.InitBlockUnaligned(cnode, 0, (uint)sizeof(OctreeNode));
 								*pnext++ = (ushort)child;
 							}
 						}
@@ -346,7 +352,7 @@ namespace PhotoSauce.MagicScaler
 								sums[3] += csums[3];
 							}
 
-							Unsafe.InitBlockUnaligned(cnode, 0, (uint)Unsafe.SizeOf<OctreeNode>());
+							Unsafe.InitBlockUnaligned(cnode, 0, (uint)sizeof(OctreeNode));
 						}
 					}
 
@@ -435,7 +441,7 @@ namespace PhotoSauce.MagicScaler
 
 			leafLevel = Math.Max(leafLevel, minLeafLevel);
 
-			var palMap = BufferPool.Rent(Unsafe.SizeOf<OctreeNode>() * maxHistogramSize, true);
+			var palMap = BufferPool.Rent(sizeof(OctreeNode) * maxHistogramSize, true);
 			palMap.AsSpan().Clear();
 
 			nuint mapidx = 8;
