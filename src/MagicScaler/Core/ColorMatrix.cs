@@ -8,7 +8,7 @@ namespace PhotoSauce.MagicScaler
 	public static class ColorMatrix
 	{
 		/// <summary>Converts a color image to greyscale using the <a href="https://en.wikipedia.org/wiki/Rec._601">Rec. 601</a> luma coefficients.</summary>
-		public static readonly Matrix4x4 Grey = new Matrix4x4(
+		public static readonly Matrix4x4 Grey = new (
 			(float)Rec601Luma.R, (float)Rec601Luma.R, (float)Rec601Luma.R, 0,
 			(float)Rec601Luma.G, (float)Rec601Luma.G, (float)Rec601Luma.G, 0,
 			(float)Rec601Luma.B, (float)Rec601Luma.B, (float)Rec601Luma.B, 0,
@@ -16,7 +16,7 @@ namespace PhotoSauce.MagicScaler
 		);
 
 		/// <summary>Applies <a href="https://en.wikipedia.org/wiki/Photographic_print_toning#Sepia_toning">sepia toning</a> to an image.</summary>
-		public static readonly Matrix4x4 Sepia = new Matrix4x4(
+		public static readonly Matrix4x4 Sepia = new (
 			0.393f, 0.349f, 0.272f, 0,
 			0.769f, 0.686f, 0.534f, 0,
 			0.189f, 0.168f, 0.131f, 0,
@@ -24,7 +24,7 @@ namespace PhotoSauce.MagicScaler
 		);
 
 		/// <summary>An example of a stylized matrix, with a teal tint, increased contrast, and overblown highlights.</summary>
-		public static readonly Matrix4x4 Polaroid = new Matrix4x4(
+		public static readonly Matrix4x4 Polaroid = new (
 			 1.438f, -0.062f, -0.062f, 0,
 			-0.122f,  1.378f, -0.122f, 0,
 			-0.016f, -0.016f,  1.483f, 0,
@@ -32,7 +32,7 @@ namespace PhotoSauce.MagicScaler
 		);
 
 		/// <summary>Inverts the channel values of an image, producing a color or greyscale negative.</summary>
-		public static readonly Matrix4x4 Negative = new Matrix4x4(
+		public static readonly Matrix4x4 Negative = new (
 			-1,  0,  0, 0,
 			 0, -1,  0, 0,
 			 0,  0, -1, 0,

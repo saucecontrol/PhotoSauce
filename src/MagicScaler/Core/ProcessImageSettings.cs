@@ -43,27 +43,27 @@ namespace PhotoSauce.MagicScaler
 	public readonly struct InterpolationSettings
 	{
 		/// <summary>A predefined <see cref="PointInterpolator" />.</summary>
-		public static readonly InterpolationSettings NearestNeighbor = new InterpolationSettings(new PointInterpolator());
+		public static readonly InterpolationSettings NearestNeighbor = new (new PointInterpolator());
 		/// <summary>A predefined <see cref="BoxInterpolator" />.</summary>
-		public static readonly InterpolationSettings Average = new InterpolationSettings(new BoxInterpolator());
+		public static readonly InterpolationSettings Average = new (new BoxInterpolator());
 		/// <summary>A predefined <see cref="LinearInterpolator" />.  Also known as Bilinear in some software.</summary>
-		public static readonly InterpolationSettings Linear = new InterpolationSettings(new LinearInterpolator());
+		public static readonly InterpolationSettings Linear = new (new LinearInterpolator());
 		/// <summary>A predefined Hermite (b=0, c=0) <see cref="CubicInterpolator" />.</summary>
-		public static readonly InterpolationSettings Hermite = new InterpolationSettings(new CubicInterpolator(0d, 0d));
+		public static readonly InterpolationSettings Hermite = new (new CubicInterpolator(0d, 0d));
 		/// <summary>A predefined <see cref="QuadraticInterpolator" /> with properties similar to a Catmull-Rom Cubic.</summary>
-		public static readonly InterpolationSettings Quadratic = new InterpolationSettings(new QuadraticInterpolator());
+		public static readonly InterpolationSettings Quadratic = new (new QuadraticInterpolator());
 		/// <summary>A predefined Mitchell-Netravali (b=1/3, c=1/3) Cubic interpolator.</summary>
-		public static readonly InterpolationSettings Mitchell = new InterpolationSettings(new CubicInterpolator(1d/3d, 1d/3d));
+		public static readonly InterpolationSettings Mitchell = new (new CubicInterpolator(1d/3d, 1d/3d));
 		/// <summary>A predefined Catmull-Rom (b=0, c=1/2) <see cref="CubicInterpolator" />.</summary>
-		public static readonly InterpolationSettings CatmullRom = new InterpolationSettings(new CubicInterpolator());
+		public static readonly InterpolationSettings CatmullRom = new (new CubicInterpolator());
 		/// <summary>A predefined Cardinal (b=0, c=1) <see cref="CubicInterpolator" />.  Also known as Bicubic in some software.</summary>
-		public static readonly InterpolationSettings Cubic = new InterpolationSettings(new CubicInterpolator(0d, 1d));
+		public static readonly InterpolationSettings Cubic = new (new CubicInterpolator(0d, 1d));
 		/// <summary>A predefined smoothing <see cref="CubicInterpolator" />.  Similar to Photoshop's "Bicubic Smoother".</summary>
-		public static readonly InterpolationSettings CubicSmoother = new InterpolationSettings(new CubicInterpolator(0d, 0.625), 1.15);
+		public static readonly InterpolationSettings CubicSmoother = new (new CubicInterpolator(0d, 0.625), 1.15);
 		/// <summary>A predefined 3-lobed <see cref="LanczosInterpolator" />.</summary>
-		public static readonly InterpolationSettings Lanczos = new InterpolationSettings(new LanczosInterpolator());
+		public static readonly InterpolationSettings Lanczos = new (new LanczosInterpolator());
 		/// <summary>A predefined <see cref="Spline36Interpolator" />.</summary>
-		public static readonly InterpolationSettings Spline36 = new InterpolationSettings(new Spline36Interpolator());
+		public static readonly InterpolationSettings Spline36 = new (new Spline36Interpolator());
 
 		private readonly double blur;
 
@@ -92,11 +92,11 @@ namespace PhotoSauce.MagicScaler
 	/// <summary>Defines settings for a <see cref="MagicImageProcessor" /> pipeline operation.</summary>
 	public sealed class ProcessImageSettings
 	{
-		private static readonly Lazy<Regex> cropExpression = new Lazy<Regex>(() => new Regex(@"^(\d+,){2}-?\d+,-?\d+$", RegexOptions.Compiled));
-		private static readonly Lazy<Regex> cropBasisExpression = new Lazy<Regex>(() => new Regex(@"^\d+,\d+$", RegexOptions.Compiled));
-		private static readonly Lazy<Regex> anchorExpression = new Lazy<Regex>(() => new Regex(@"^(top|middle|bottom)?\-?(left|center|right)?$", RegexOptions.Compiled | RegexOptions.IgnoreCase));
-		private static readonly Lazy<Regex> subsampleExpression = new Lazy<Regex>(() => new Regex(@"^4(20|22|44)$", RegexOptions.Compiled));
-		private static readonly ProcessImageSettings empty = new ProcessImageSettings();
+		private static readonly Lazy<Regex> cropExpression = new (() => new Regex(@"^(\d+,){2}-?\d+,-?\d+$", RegexOptions.Compiled));
+		private static readonly Lazy<Regex> cropBasisExpression = new (() => new Regex(@"^\d+,\d+$", RegexOptions.Compiled));
+		private static readonly Lazy<Regex> anchorExpression = new (() => new Regex(@"^(top|middle|bottom)?\-?(left|center|right)?$", RegexOptions.Compiled | RegexOptions.IgnoreCase));
+		private static readonly Lazy<Regex> subsampleExpression = new (() => new Regex(@"^4(20|22|44)$", RegexOptions.Compiled));
+		private static readonly ProcessImageSettings empty = new ();
 
 		private InterpolationSettings interpolation;
 		private UnsharpMaskSettings unsharpMask;

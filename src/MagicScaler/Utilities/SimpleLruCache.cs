@@ -27,7 +27,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private readonly object sync = new object();
+		private readonly object sync = new ();
 
 		private CacheNode? head = null;
 		private CacheNode? tail = null;

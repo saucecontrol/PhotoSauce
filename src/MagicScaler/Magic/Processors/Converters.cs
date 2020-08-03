@@ -30,7 +30,7 @@ namespace PhotoSauce.MagicScaler
 
 	internal sealed class NarrowingConverter : IConversionProcessor<ushort, byte>
 	{
-		public static readonly NarrowingConverter Instance = new NarrowingConverter();
+		public static readonly NarrowingConverter Instance = new ();
 
 		private NarrowingConverter() { }
 
@@ -134,7 +134,7 @@ namespace PhotoSauce.MagicScaler
 
 	internal sealed class VideoLevelsConverter : IConversionProcessor<byte, byte>
 	{
-		public static readonly VideoLevelsConverter Instance = new VideoLevelsConverter();
+		public static readonly VideoLevelsConverter Instance = new ();
 
 		private VideoLevelsConverter() { }
 
@@ -170,9 +170,9 @@ namespace PhotoSauce.MagicScaler
 
 	internal sealed class NoopConverter : IConverter<float, float>
 	{
-		public static readonly NoopConverter Instance = new NoopConverter();
+		public static readonly NoopConverter Instance = new ();
 
-		private static readonly NoopProcessor processor = new NoopProcessor();
+		private static readonly NoopProcessor processor = new ();
 
 		private NoopConverter() { }
 
@@ -194,8 +194,8 @@ namespace PhotoSauce.MagicScaler
 	{
 		public static readonly IConverter<ushort, byte> Instance = new UQ15Converter();
 
-		private static readonly UQ15Processor processor = new UQ15Processor();
-		private static readonly UQ15Processor3A processor3A = new UQ15Processor3A();
+		private static readonly UQ15Processor processor = new ();
+		private static readonly UQ15Processor3A processor3A = new ();
 
 		private UQ15Converter() { }
 

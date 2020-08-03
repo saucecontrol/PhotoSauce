@@ -19,7 +19,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		internal static class Cache
 		{
-			private static readonly ConcurrentDictionary<Guid, WeakReference<ColorProfile>> dic = new ConcurrentDictionary<Guid, WeakReference<ColorProfile>>();
+			private static readonly ConcurrentDictionary<Guid, WeakReference<ColorProfile>> dic = new ();
 
 			private static ColorProfile addOrUpdate(Guid guid, ReadOnlySpan<byte> bytes)
 			{
@@ -94,9 +94,9 @@ namespace PhotoSauce.MagicScaler
 			Lab
 		}
 
-		private static readonly ColorProfile invalidProfile = new ColorProfile();
+		private static readonly ColorProfile invalidProfile = new ();
 
-		private static readonly Lazy<MatrixProfile> srgb = new Lazy<MatrixProfile>(() => {
+		private static readonly Lazy<MatrixProfile> srgb = new (() => {
 			var m = new Matrix4x4(
 				0.43602939f, 0.22243797f, 0.01389754f, 0,
 				0.38510027f, 0.71694100f, 0.09707674f, 0,
@@ -109,11 +109,11 @@ namespace PhotoSauce.MagicScaler
 			return new MatrixProfile(IccProfiles.sRgbV4.Value, m, im, curve, ProfileColorSpace.Rgb, ProfileColorSpace.Xyz);
 		});
 
-		private static readonly Lazy<CurveProfile> sgrey = new Lazy<CurveProfile>(() =>
+		private static readonly Lazy<CurveProfile> sgrey = new (() =>
 			new CurveProfile(IccProfiles.sGreyV4.Value, sRGB.Curve, ProfileColorSpace.Grey, ProfileColorSpace.Xyz)
 		);
 
-		private static readonly Lazy<MatrixProfile> adobeRgb = new Lazy<MatrixProfile>(() => {
+		private static readonly Lazy<MatrixProfile> adobeRgb = new (() => {
 			var m = new Matrix4x4(
 				0.60974189f, 0.31111293f, 0.01946551f, 0,
 				0.20527343f, 0.62567449f, 0.06087462f, 0,
@@ -126,7 +126,7 @@ namespace PhotoSauce.MagicScaler
 			return new MatrixProfile(IccProfiles.AdobeRgb.Value, m, im, curve, ProfileColorSpace.Rgb, ProfileColorSpace.Xyz);
 		});
 
-		private static readonly Lazy<MatrixProfile> displayP3 = new Lazy<MatrixProfile>(() => {
+		private static readonly Lazy<MatrixProfile> displayP3 = new (() => {
 			var m = new Matrix4x4(
 				0.51511960f, 0.24118953f, -0.00105045f, 0,
 				0.29197886f, 0.69224341f,  0.04187909f, 0,
@@ -643,7 +643,7 @@ namespace PhotoSauce.MagicScaler
 
 	internal class CurveProfile : ColorProfile
 	{
-		private readonly ConcurrentDictionary<(Type, Type, ConverterDirection, bool), IConverter> converterCache = new ConcurrentDictionary<(Type, Type, ConverterDirection, bool), IConverter>();
+		private readonly ConcurrentDictionary<(Type, Type, ConverterDirection, bool), IConverter> converterCache = new ();
 
 		public bool IsLinear { get; }
 		public ProfileCurve Curve { get; }
@@ -728,12 +728,12 @@ namespace PhotoSauce.MagicScaler
 			return buff;
 		}
 
-		public static readonly Lazy<byte[]> sRgbV4 = new Lazy<byte[]>(() => getResourceBinary("sRGB-v4.icc"));
-		public static readonly Lazy<byte[]> sRgbCompact = new Lazy<byte[]>(() => getResourceBinary("sRGB-v2-micro.icc"));
-		public static readonly Lazy<byte[]> sGreyV4 = new Lazy<byte[]>(() => getResourceBinary("sGrey-v4.icc"));
-		public static readonly Lazy<byte[]> sGreyCompact = new Lazy<byte[]>(() => getResourceBinary("sRGB-v2-micro.icc"));
-		public static readonly Lazy<byte[]> AdobeRgb = new Lazy<byte[]>(() => getResourceBinary("AdobeCompat-v2.icc"));
-		public static readonly Lazy<byte[]> DisplayP3V4 = new Lazy<byte[]>(() => getResourceBinary("DisplayP3Compat-v4.icc"));
-		public static readonly Lazy<byte[]> DisplayP3Compact = new Lazy<byte[]>(() => getResourceBinary("DisplayP3Compat-v2-micro.icc"));
+		public static readonly Lazy<byte[]> sRgbV4 = new (() => getResourceBinary("sRGB-v4.icc"));
+		public static readonly Lazy<byte[]> sRgbCompact = new (() => getResourceBinary("sRGB-v2-micro.icc"));
+		public static readonly Lazy<byte[]> sGreyV4 = new (() => getResourceBinary("sGrey-v4.icc"));
+		public static readonly Lazy<byte[]> sGreyCompact = new (() => getResourceBinary("sRGB-v2-micro.icc"));
+		public static readonly Lazy<byte[]> AdobeRgb = new (() => getResourceBinary("AdobeCompat-v2.icc"));
+		public static readonly Lazy<byte[]> DisplayP3V4 = new (() => getResourceBinary("DisplayP3Compat-v4.icc"));
+		public static readonly Lazy<byte[]> DisplayP3Compact = new (() => getResourceBinary("DisplayP3Compat-v2-micro.icc"));
 	}
 }

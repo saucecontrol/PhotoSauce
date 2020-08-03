@@ -54,7 +54,7 @@ foreach (var t in ta) {
 	{
 		private const uint channels = <#= t.channels #>;
 
-		public static readonly Convolver<#= t.name #>Intrinsic Instance = new Convolver<#= t.name #>Intrinsic();
+		public static readonly Convolver<#= t.name #>Intrinsic Instance = new ();
 
 		private Convolver<#= t.name #>Intrinsic() { }
 

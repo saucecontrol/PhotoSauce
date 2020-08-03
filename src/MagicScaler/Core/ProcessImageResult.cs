@@ -27,7 +27,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		private int callCount = 0;
 		private long pixelCount = 0;
-		private readonly Stopwatch timer = new Stopwatch();
+		private readonly Stopwatch timer = new ();
 		private readonly PixelSource source;
 
 		public SourceStatsProfiler(PixelSource src) => source = src;

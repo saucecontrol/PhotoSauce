@@ -116,7 +116,7 @@ foreach (var t in ta) {
 	{
 		private const int channels = <#= t.channels #>;
 
-		public static readonly Convolver<#= t.name #><#= t.suffix #> Instance = new Convolver<#= t.name #><#= t.suffix #>();
+		public static readonly Convolver<#= t.name #><#= t.suffix #> Instance = new ();
 
 		private Convolver<#= t.name #><#= t.suffix #>() { }
 

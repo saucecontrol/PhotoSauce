@@ -19,7 +19,7 @@
 		<PackageTags>Image Resize Resample Process Crop Sharpen Rotate Flip WIC JPEG JPG PNG GIF TIFF</PackageTags>
 		<PackageReleaseNotes>See $(RepositoryUrl)/releases for release-specific notes.</PackageReleaseNotes>
 
-		<LangVersion>8</LangVersion>
+		<LangVersion>preview</LangVersion>
 		<Features>strict</Features>
 		<Nullable>annotations</Nullable>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>

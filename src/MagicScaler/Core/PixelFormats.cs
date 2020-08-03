@@ -89,9 +89,9 @@ namespace PhotoSauce.MagicScaler
 			Encoding = encoding;
 		}
 
-		private static readonly Lazy<ReadOnlyDictionary<Guid, PixelFormat>> cache = new Lazy<ReadOnlyDictionary<Guid, PixelFormat>>(getFormatCache);
+		private static readonly Lazy<ReadOnlyDictionary<Guid, PixelFormat>> cache = new (getFormatCache);
 
-		public static readonly PixelFormat Y8Bpp = new PixelFormat(
+		public static readonly PixelFormat Y8Bpp = new (
 			guid: new Guid(0x91B4DB54, 0x2DF9, 0x42F0, 0xB4, 0x49, 0x29, 0x09, 0xBB, 0x3D, 0xF8, 0x8E),
 			name: "8bpp Y",
 			bpp: 8,
@@ -102,7 +102,7 @@ namespace PhotoSauce.MagicScaler
 			wicNative: true
 		);
 
-		public static readonly PixelFormat Cb8Bpp = new PixelFormat(
+		public static readonly PixelFormat Cb8Bpp = new (
 			guid: new Guid(0x1339F224, 0x6BFE, 0x4C3E, 0x93, 0x02, 0xE4, 0xF3, 0xA6, 0xD0, 0xCA, 0x2A),
 			name: "8bpp Cb",
 			bpp: 8,
@@ -111,7 +111,7 @@ namespace PhotoSauce.MagicScaler
 			wicNative: true
 		);
 
-		public static readonly PixelFormat Cr8Bpp = new PixelFormat(
+		public static readonly PixelFormat Cr8Bpp = new (
 			guid: new Guid(0xB8145053, 0x2116, 0x49F0, 0x88, 0x35, 0xED, 0x84, 0x4B, 0x20, 0x5C, 0x51),
 			name: "8bpp Cr",
 			bpp: 8,
@@ -120,7 +120,7 @@ namespace PhotoSauce.MagicScaler
 			wicNative: true
 		);
 
-		public static readonly PixelFormat Indexed8Bpp = new PixelFormat(
+		public static readonly PixelFormat Indexed8Bpp = new (
 			guid: new Guid(0x6FDDC324, 0x4E03, 0x4BFE, 0xB1, 0x85, 0x3D, 0x77, 0x76, 0x8D, 0xC9, 0x04),
 			name: "8bpp Indexed",
 			bpp: 8,
@@ -129,7 +129,7 @@ namespace PhotoSauce.MagicScaler
 			wicNative: true
 		);
 
-		public static readonly PixelFormat Grey8Bpp = new PixelFormat(
+		public static readonly PixelFormat Grey8Bpp = new (
 			guid: new Guid(0x6FDDC324, 0x4E03, 0x4BFE, 0xB1, 0x85, 0x3D, 0x77, 0x76, 0x8D, 0xC9, 0x08),
 			name: "8bpp Grey",
 			bpp: 8,
@@ -140,7 +140,7 @@ namespace PhotoSauce.MagicScaler
 			wicNative: true
 		);
 
-		public static readonly PixelFormat Bgr24Bpp = new PixelFormat(
+		public static readonly PixelFormat Bgr24Bpp = new (
 			guid: new Guid(0x6FDDC324, 0x4E03, 0x4BFE, 0xB1, 0x85, 0x3D, 0x77, 0x76, 0x8D, 0xC9, 0x0C),
 			name: "24bpp BGR",
 			bpp: 24,
@@ -151,7 +151,7 @@ namespace PhotoSauce.MagicScaler
 			wicNative: true
 		);
 
-		public static readonly PixelFormat Bgrx32Bpp = new PixelFormat(
+		public static readonly PixelFormat Bgrx32Bpp = new (
 			guid: new Guid(0x6FDDC324, 0x4E03, 0x4BFE, 0xB1, 0x85, 0x3D, 0x77, 0x76, 0x8D, 0xC9, 0x0E),
 			name: "32bpp BGRX",
 			bpp: 32,
@@ -162,7 +162,7 @@ namespace PhotoSauce.MagicScaler
 			wicNative: true
 		);
 
-		public static readonly PixelFormat Bgra32Bpp = new PixelFormat(
+		public static readonly PixelFormat Bgra32Bpp = new (
 			guid: new Guid(0x6FDDC324, 0x4E03, 0x4BFE, 0xB1, 0x85, 0x3D, 0x77, 0x76, 0x8D, 0xC9, 0x0F),
 			name: "32bpp BGRA",
 			bpp: 32,
@@ -174,7 +174,7 @@ namespace PhotoSauce.MagicScaler
 			wicNative: true
 		);
 
-		public static readonly PixelFormat Pbgra32Bpp = new PixelFormat(
+		public static readonly PixelFormat Pbgra32Bpp = new (
 			guid: new Guid(0x6FDDC324, 0x4E03, 0x4BFE, 0xB1, 0x85, 0x3D, 0x77, 0x76, 0x8D, 0xC9, 0x10),
 			name: "32bpp pBGRA",
 			bpp: 32,
@@ -186,7 +186,7 @@ namespace PhotoSauce.MagicScaler
 			wicNative: true
 		);
 
-		public static readonly PixelFormat Cmyk32Bpp = new PixelFormat(
+		public static readonly PixelFormat Cmyk32Bpp = new (
 			guid: new Guid(0x6FDDC324, 0x4E03, 0x4BFE, 0xB1, 0x85, 0x3D, 0x77, 0x76, 0x8D, 0xC9, 0x1C),
 			name: "32bpp CMYK",
 			bpp: 32,
@@ -196,7 +196,7 @@ namespace PhotoSauce.MagicScaler
 			wicNative: true
 		);
 
-		public static readonly PixelFormat Grey16BppUQ15 = new PixelFormat(
+		public static readonly PixelFormat Grey16BppUQ15 = new (
 			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0x9F),
 			name: "16bpp Grey UQ15",
 			bpp: 16,
@@ -206,7 +206,7 @@ namespace PhotoSauce.MagicScaler
 			encoding: PixelValueEncoding.Companded
 		);
 
-		public static readonly PixelFormat Grey16BppLinearUQ15 = new PixelFormat(
+		public static readonly PixelFormat Grey16BppLinearUQ15 = new (
 			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA0),
 			name: "16bpp Grey UQ15 Linear",
 			bpp: 16,
@@ -216,7 +216,7 @@ namespace PhotoSauce.MagicScaler
 			encoding: PixelValueEncoding.Linear
 		);
 
-		public static readonly PixelFormat Grey32BppFloat = new PixelFormat(
+		public static readonly PixelFormat Grey32BppFloat = new (
 			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0x9E),
 			name: "32bpp Grey Float",
 			bpp: 32,
@@ -226,7 +226,7 @@ namespace PhotoSauce.MagicScaler
 			encoding: PixelValueEncoding.Companded
 		);
 
-		public static readonly PixelFormat Grey32BppLinearFloat = new PixelFormat(
+		public static readonly PixelFormat Grey32BppLinearFloat = new (
 			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA1),
 			name: "32bpp Grey Float Linear",
 			bpp: 32,
@@ -236,7 +236,7 @@ namespace PhotoSauce.MagicScaler
 			encoding: PixelValueEncoding.Linear
 		);
 
-		public static readonly PixelFormat Bgr48BppLinearUQ15 = new PixelFormat(
+		public static readonly PixelFormat Bgr48BppLinearUQ15 = new (
 			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA2),
 			name: "48bpp BGR UQ15 Linear",
 			bpp: 48,
@@ -246,7 +246,7 @@ namespace PhotoSauce.MagicScaler
 			encoding: PixelValueEncoding.Linear
 		);
 
-		public static readonly PixelFormat Bgr96BppFloat = new PixelFormat(
+		public static readonly PixelFormat Bgr96BppFloat = new (
 			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA3),
 			name: "96bpp BGR Float",
 			bpp: 96,
@@ -256,7 +256,7 @@ namespace PhotoSauce.MagicScaler
 			encoding: PixelValueEncoding.Companded
 		);
 
-		public static readonly PixelFormat Bgr96BppLinearFloat = new PixelFormat(
+		public static readonly PixelFormat Bgr96BppLinearFloat = new (
 			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA4),
 			name: "96bpp BGR Float Linear",
 			bpp: 96,
@@ -266,7 +266,7 @@ namespace PhotoSauce.MagicScaler
 			encoding: PixelValueEncoding.Linear
 		);
 
-		public static readonly PixelFormat Pbgra64BppLinearUQ15 = new PixelFormat(
+		public static readonly PixelFormat Pbgra64BppLinearUQ15 = new (
 			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA6),
 			name: "64bpp pBGRA UQ15 Linear",
 			bpp: 64,
@@ -277,7 +277,7 @@ namespace PhotoSauce.MagicScaler
 			encoding: PixelValueEncoding.Linear
 		);
 
-		public static readonly PixelFormat Pbgra128BppFloat = new PixelFormat(
+		public static readonly PixelFormat Pbgra128BppFloat = new (
 			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA7),
 			name: "128bpp pBGRA Float",
 			bpp: 128,
@@ -288,7 +288,7 @@ namespace PhotoSauce.MagicScaler
 			encoding: PixelValueEncoding.Companded
 		);
 
-		public static readonly PixelFormat Pbgra128BppLinearFloat = new PixelFormat(
+		public static readonly PixelFormat Pbgra128BppLinearFloat = new (
 			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA8),
 			name: "128bpp pBGRA Float Linear",
 			bpp: 128,
@@ -299,7 +299,7 @@ namespace PhotoSauce.MagicScaler
 			encoding: PixelValueEncoding.Linear
 		);
 
-		public static readonly PixelFormat Y16BppLinearUQ15 = new PixelFormat(
+		public static readonly PixelFormat Y16BppLinearUQ15 = new (
 			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xA9),
 			name: "16bpp Y UQ15 Linear",
 			bpp: 16,
@@ -309,7 +309,7 @@ namespace PhotoSauce.MagicScaler
 			encoding: PixelValueEncoding.Linear
 		);
 
-		public static readonly PixelFormat Y32BppFloat = new PixelFormat(
+		public static readonly PixelFormat Y32BppFloat = new (
 			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xAA),
 			name: "32bpp Y Float",
 			bpp: 32,
@@ -319,7 +319,7 @@ namespace PhotoSauce.MagicScaler
 			encoding: PixelValueEncoding.Companded
 		);
 
-		public static readonly PixelFormat Y32BppLinearFloat = new PixelFormat(
+		public static readonly PixelFormat Y32BppLinearFloat = new (
 			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xAB),
 			name: "32bpp Y Float Linear",
 			bpp: 32,
@@ -329,7 +329,7 @@ namespace PhotoSauce.MagicScaler
 			encoding: PixelValueEncoding.Linear
 		);
 
-		public static readonly PixelFormat Cb32BppFloat = new PixelFormat(
+		public static readonly PixelFormat Cb32BppFloat = new (
 			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xAF),
 			name: "32bpp Cb Float",
 			bpp: 32,
@@ -337,7 +337,7 @@ namespace PhotoSauce.MagicScaler
 			numericRepresentation: PixelNumericRepresentation.Float
 		);
 
-		public static readonly PixelFormat Cr32BppFloat = new PixelFormat(
+		public static readonly PixelFormat Cr32BppFloat = new (
 			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xB0),
 			name: "32bpp Cr Float",
 			bpp: 32,
@@ -345,7 +345,7 @@ namespace PhotoSauce.MagicScaler
 			numericRepresentation: PixelNumericRepresentation.Float
 		);
 
-		public static readonly PixelFormat Bgrx128BppFloat = new PixelFormat(
+		public static readonly PixelFormat Bgrx128BppFloat = new (
 			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xAD),
 			name: "128bpp BGRX Float",
 			bpp: 128,
@@ -355,7 +355,7 @@ namespace PhotoSauce.MagicScaler
 			encoding: PixelValueEncoding.Companded
 		);
 
-		public static readonly PixelFormat Bgrx128BppLinearFloat = new PixelFormat(
+		public static readonly PixelFormat Bgrx128BppLinearFloat = new (
 			guid: new Guid(0xC175220D, 0x375B, 0x48C9, 0x8D, 0xD9, 0x1D, 0x28, 0x24, 0xFE, 0x88, 0xAE),
 			name: "128bpp BGRX Float Linear",
 			bpp: 128,

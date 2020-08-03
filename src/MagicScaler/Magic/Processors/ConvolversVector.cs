@@ -18,7 +18,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		private const uint channels = 4;
 		private const uint vector4Count = 4;
 
-		public static readonly Convolver4ChanVector Instance = new Convolver4ChanVector();
+		public static readonly Convolver4ChanVector Instance = new ();
 
 		private Convolver4ChanVector() { }
 
@@ -241,7 +241,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		private const uint channels = 3;
 		private const uint vector4Count = 4;
 
-		public static readonly Convolver3ChanVector Instance = new Convolver3ChanVector();
+		public static readonly Convolver3ChanVector Instance = new ();
 
 		private Convolver3ChanVector() { }
 
@@ -361,7 +361,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		private const uint channels = 1;
 		private const uint vector4Count = 4;
 
-		public static readonly Convolver1ChanVector Instance = new Convolver1ChanVector();
+		public static readonly Convolver1ChanVector Instance = new ();
 
 		private Convolver1ChanVector() { }
 

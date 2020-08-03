@@ -18,7 +18,7 @@ namespace PhotoSauce.WebRSize
 
 		private static readonly bool diskCacheEnabled = WebRSizeConfig.Current.DiskCache.Enabled;
 		private static readonly ImageFolder[] imageFolders = WebRSizeConfig.Current.ImageFolders.OfType<ImageFolder>().ToArray();
-		private static readonly Lazy<ICacheFileNamingStrategy> namingStrategy = new Lazy<ICacheFileNamingStrategy>(() => (ICacheFileNamingStrategy)Activator.CreateInstance(WebRSizeConfig.Current.DiskCache.NamingStrategy));
+		private static readonly Lazy<ICacheFileNamingStrategy> namingStrategy = new (() => (ICacheFileNamingStrategy)Activator.CreateInstance(WebRSizeConfig.Current.DiskCache.NamingStrategy));
 
 		private async Task mapRequest(object sender, EventArgs e)
 		{

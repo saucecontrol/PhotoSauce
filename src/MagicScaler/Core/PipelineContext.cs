@@ -31,7 +31,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private readonly Stack<IDisposable> disposeHandles = new Stack<IDisposable>(16);
+		private readonly Stack<IDisposable> disposeHandles = new (capacity: 16);
 
 		private PixelSource? source;
 		private List<PixelSource>? allSources;
@@ -62,7 +62,7 @@ namespace PhotoSauce.MagicScaler
 
 				if (MagicImageProcessor.EnablePixelSourceStats)
 				{
-					allSources ??= new List<PixelSource>(8);
+					allSources ??= new List<PixelSource>(capacity: 8);
 					if (!allSources.Contains(source))
 						allSources.Add(source);
 				}
