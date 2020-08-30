@@ -79,7 +79,7 @@ namespace PhotoSauce.MagicScaler
 			if (typeof(T) != typeof(int) && typeof(T) != typeof(float))
 				throw new NotSupportedException(nameof(T) + " must be int or float");
 
-			if (mbuff.Length == 0 || mbuff.Length < kernel.Length * channels)
+			if (mbuff.IsEmpty || mbuff.Length < kernel.Length * channels)
 				throw new ArgumentException("Buffer too small", nameof(mbuff));
 
 			if (typeof(T) == typeof(float))

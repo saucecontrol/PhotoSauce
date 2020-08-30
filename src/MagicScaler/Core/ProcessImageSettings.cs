@@ -14,7 +14,7 @@ namespace PhotoSauce.MagicScaler
 	public readonly struct UnsharpMaskSettings
 	{
 		/// <summary>No sharpening.</summary>
-		public static readonly UnsharpMaskSettings None = default;
+		public static readonly UnsharpMaskSettings None;
 
 		/// <summary>The amount of sharpening.  This value represents a percentage of the difference between the blurred image and the original image.</summary>
 		/// <value>Typical values are between <c>25</c> and <c>200</c>.</value>

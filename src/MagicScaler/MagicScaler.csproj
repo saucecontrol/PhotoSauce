@@ -6,18 +6,17 @@
 	</PropertyGroup>
 
 	<PropertyGroup>
-		<DefineConstants Condition="$(NetCoreVersion)&gt;=2.1 Or $(NetStandardVersion)&gt;=2.1">$(DefineConstants);BUILTIN_MATHF;BUILTIN_SPAN</DefineConstants>
-		<DefineConstants Condition="$(NetCoreVersion)&gt;=2.1 Or $(NetStandardVersion)&gt;=2.1 Or $(NetFrameworkVersion)&gt;=4.72">$(DefineConstants);VECTOR_CONVERT</DefineConstants>
-		<DefineConstants Condition="$(NetFrameworkVersion)&gt;4.0 Or ($(NetCoreVersion)&gt;=3.0 And '$(Configuration)'!='Dist')">$(DefineConstants);SYSTEM_DRAWING</DefineConstants>
-		<DefineConstants Condition="$(NetCoreVersion)&gt;=3.0 Or $(NetStandardVersion)&gt;=2.1">$(DefineConstants);CSHARP8_ATTRIBUTES</DefineConstants>
-		<DefineConstants Condition="$(NetCoreVersion)&gt;=3.0">$(DefineConstants);HWINTRINSICS</DefineConstants>
-		<DefineConstants Condition="$(NetCoreVersion)&gt;=5.0">$(DefineConstants);SPAN_SORT;CSHARP9_ATTRIBUTES</DefineConstants>
+		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetCoreVersion), '2.1')) Or $([MSBuild]::VersionGreaterThanOrEquals($(NetStandardVersion), '2.1'))">$(DefineConstants);BUILTIN_MATHF;BUILTIN_SPAN</DefineConstants>
+		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetCoreVersion), '2.1')) Or $([MSBuild]::VersionGreaterThanOrEquals($(NetStandardVersion), '2.1')) Or $([MSBuild]::VersionGreaterThanOrEquals($(NetFrameworkVersion), '4.7.2'))">$(DefineConstants);VECTOR_CONVERT</DefineConstants>
+		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetFrameworkVersion), '4.0')) Or ($([MSBuild]::VersionGreaterThanOrEquals($(NetCoreVersion), '3.0')) And '$(Configuration)'!='Dist')">$(DefineConstants);SYSTEM_DRAWING</DefineConstants>
+		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetStandardVersion), '2.1'))">$(DefineConstants);CSHARP8_ATTRIBUTES</DefineConstants>
+		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetCoreVersion), '3.0'))">$(DefineConstants);HWINTRINSICS</DefineConstants>
+		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetCoreVersion), '5.0'))">$(DefineConstants);SPAN_SORT;CSHARP9_ATTRIBUTES</DefineConstants>
 		<DefineConstants Condition="'$(Configuration)'!='Dist'">$(DefineConstants);GUARDRAILS;WICPROCESSOR</DefineConstants>
 	</PropertyGroup>
 
 	<PropertyGroup>
 		<NoWarn Condition="'$(TargetFramework)'=='netcoreapp2.1' Or '$(TargetFramework)'=='netstandard2.1'">$(NoWarn);0618</NoWarn><!-- VarEnum spuriously marked obsolete -->
-		<NoWarn Condition="'$(TargetFramework)'=='netstandard2.0'">$(NoWarn);IDT001</NoWarn><!-- https://github.com/dotnet/standard/issues/1527 -->
 		<Nullable Condition="$(DefineConstants.Contains('CSHARP8_ATTRIBUTES'))">enable</Nullable>
 	</PropertyGroup>
 
@@ -32,11 +31,11 @@
 		<PackageReference Include="System.Drawing.Common" Version="4.7.0" />
 	</ItemGroup>
 
-	<ItemGroup Condition="$(DefineConstants.Contains('BUILTIN_SPAN')) And $(NetCoreVersion)&lt;3.0">
+	<ItemGroup Condition="$(DefineConstants.Contains('BUILTIN_SPAN')) And $([MSBuild]::VersionLessThan($(NetCoreVersion), '3.0'))">
 		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.1" />
 	</ItemGroup>
 
-	<ItemGroup Condition="$(DefineConstants.Contains('NETFRAMEWORK')) And $(NetFrameworkVersion)&lt;4.7">
+	<ItemGroup Condition="$(DefineConstants.Contains('NETFRAMEWORK')) And $([MSBuild]::VersionLessThan($(NetFrameworkVersion), '4.7'))">
 		<PackageReference Include="System.ValueTuple" Version="4.5.0" />
 		<PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" />
 	</ItemGroup>
@@ -44,11 +43,6 @@
 	<ItemGroup Condition="$(DefineConstants.Contains('NETFRAMEWORK'))">
 		<Reference Include="System.Configuration" />
 		<Reference Include="System.Drawing" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
-		<PackageDownload Include="NETStandard.Library.Ref" Version="[2.1.0]" />
-		<InheritDocReference Include="$([MSBuild]::EnsureTrailingSlash('$(NugetPackageRoot)'))netstandard.library.ref\2.1.0\ref\netstandard2.1\netstandard.xml" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -74,6 +68,11 @@
 		<Compile Update="Magic\Processors\Convolvers.cs" DependentUpon="Convolvers.tt" DesignTime="True" AutoGen="True" />
 		<Compile Update="Magic\Processors\ConvolversVector.cs" DependentUpon="ConvolversVector.tt" DesignTime="True" AutoGen="True" />
 		<Compile Update="Magic\Processors\ConvolversIntrinsic.cs" DependentUpon="ConvolversIntrinsic.tt" DesignTime="True" AutoGen="True" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<InternalsVisibleTo Include="$(Company).WebRSize" />
+		<InternalsVisibleTo Include="$(Company).ManagedCodecs" />
 	</ItemGroup>
 
 </Project>

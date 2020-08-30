@@ -19,11 +19,11 @@ namespace PhotoSauce.MagicScaler
 
 		/// <summary>True to check for <c>Orientation</c> tag in XMP metadata in addition to the default Exif metadata location, false to check Exif only.</summary>
 		/// <value>Default value: <c>false</c></value>
-		public static bool EnableXmpOrientation { get; set; } = false;
+		public static bool EnableXmpOrientation { get; set; }
 
 		/// <summary>True to enable internal <see cref="IPixelSource"/> instrumentation, false to disable.  When disabled, no <see cref="PixelSourceStats" /> will be collected for the pipeline stages.</summary>
 		/// <value>Default value: <c>false</c></value>
-		public static bool EnablePixelSourceStats { get; set; } = false;
+		public static bool EnablePixelSourceStats { get; set; }
 
 		/// <summary>Overrides the default <a href="https://en.wikipedia.org/wiki/SIMD">SIMD</a> support detection to force floating point processing on or off.</summary>
 		/// <include file='Docs/Remarks.xml' path='doc/member[@name="EnableSimd"]/*'/>

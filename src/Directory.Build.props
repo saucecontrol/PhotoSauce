@@ -10,6 +10,7 @@
 
 	<PropertyGroup Condition="'$(Configuration)'!='Debug'">
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<NoWarn Condition="'$(TargetFramework)'=='netstandard2.0'">$(NoWarn);IDT001</NoWarn><!-- https://github.com/dotnet/standard/issues/1527 -->
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)'=='Dist'">
@@ -20,9 +21,18 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 	</PropertyGroup>
 
+	<ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
+		<PackageDownload Include="NETStandard.Library.Ref" Version="[2.1.0]" />
+		<InheritDocReference Include="$([MSBuild]::EnsureTrailingSlash('$(NugetPackageRoot)'))netstandard.library.ref\2.1.0\ref\netstandard2.1\netstandard.xml" />
+	</ItemGroup>
+
 	<ItemGroup Condition="'$(Configuration)'=='Dist'">
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="all" />
 		<PackageReference Include="SauceControl.InheritDoc" Version="1.0.0" PrivateAssets="all" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)'!='Dist'">
+		<InternalsVisibleTo Include="$(MSBuildProjectName).Test" />
 	</ItemGroup>
 
 </Project>

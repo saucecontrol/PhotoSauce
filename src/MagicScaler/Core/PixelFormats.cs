@@ -372,7 +372,8 @@ namespace PhotoSauce.MagicScaler
 			var dic = typeof(PixelFormat)
 				.GetFields(BindingFlags.Public | BindingFlags.Static)
 				.Where(f => f.FieldType == typeof(PixelFormat))
-				.ToDictionary(f => ((PixelFormat)f.GetValue(null)!).FormatGuid, f => (PixelFormat)f.GetValue(null)!);
+				.Select(f => (PixelFormat)f.GetValue(null)!)
+				.ToDictionary(f => f.FormatGuid, f => f);
 
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 			{

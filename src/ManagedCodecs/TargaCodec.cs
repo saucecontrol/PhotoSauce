@@ -17,13 +17,11 @@ namespace PhotoSauce.ManagedCodecs
 		private TargaContainer(Image image) => decodedImage = image;
 
 		/// <inheritdoc />
-		public FileFormat ContainerFormat => FileFormat.Bmp;
+		public FileFormat ContainerFormat => FileFormat.Unknown;
 
-		/// <inheritdoc />
-		public int FrameCount => 1;
+		int IImageContainer.FrameCount => 1;
 
-		/// <inheritdoc />
-		public IImageFrame GetFrame(int index) => index == 0 ? new TargaFrame(decodedImage.Frames.RootFrame) : throw new IndexOutOfRangeException("Invalid frame index");
+		IImageFrame IImageContainer.GetFrame(int index) => index == 0 ? new TargaFrame(decodedImage.Frames.RootFrame) : throw new IndexOutOfRangeException("Invalid frame index");
 
 		/// <summary>Loads a TGA image from the specified path.</summary>
 		/// <param name="imgPath">The path to the image file.</param>
@@ -53,17 +51,13 @@ namespace PhotoSauce.ManagedCodecs
 
 		internal TargaFrame(ImageFrame frame) => decodedFrame = frame;
 
-		/// <inheritdoc />
-		public double DpiX => 96;
+		double IImageFrame.DpiX => 96;
 
-		/// <inheritdoc />
-		public double DpiY => 96;
+		double IImageFrame.DpiY => 96;
 
-		/// <inheritdoc />
-		public Orientation ExifOrientation => Orientation.Normal;
+		Orientation IImageFrame.ExifOrientation => Orientation.Normal;
 
-		/// <inheritdoc />
-		public ReadOnlySpan<byte> IccProfile => default;
+		ReadOnlySpan<byte> IImageFrame.IccProfile => default;
 
 		/// <inheritdoc />
 		public IPixelSource PixelSource => new ImagePixelSource(decodedFrame);

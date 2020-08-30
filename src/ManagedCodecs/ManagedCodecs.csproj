@@ -2,12 +2,12 @@
 
 	<PropertyGroup>
 		<VersionPrefix>0.0.1</VersionPrefix>
-		<TargetFrameworks>net461;net472;netcoreapp2.1;netcoreapp3.1;netstandard2.0;netstandard2.1</TargetFrameworks>
+		<TargetFrameworks>net461;net472;netcoreapp2.1;netcoreapp3.1;net5.0;netstandard2.0;netstandard2.1</TargetFrameworks>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\MagicScaler\MagicScaler.csproj" />
-		<PackageReference Include="SixLabors.ImageSharp" Version="1.0.0-rc0002" />
+		<PackageReference Include="SixLabors.ImageSharp" Version="1.0.1" />
 	</ItemGroup>
 
 </Project>

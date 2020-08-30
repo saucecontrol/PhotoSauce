@@ -8,6 +8,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#if !CSHARP9_ATTRIBUTES
+using System.ComponentModel;
+#endif
+
 #if !CSHARP8_ATTRIBUTES
 namespace System.Diagnostics.CodeAnalysis
 {
@@ -212,5 +216,8 @@ namespace System.Runtime.CompilerServices
 
     [AttributeUsage(AttributeTargets.Module | AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Constructor | AttributeTargets.Method | AttributeTargets.Property | AttributeTargets.Event, Inherited = false)]
     internal sealed class SkipLocalsInitAttribute : Attribute { }
+
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    internal static class IsExternalInit { }
 }
 #endif

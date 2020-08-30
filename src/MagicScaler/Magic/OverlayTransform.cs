@@ -113,7 +113,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		private unsafe void copyPixelsIntrinsic(uint* ip, uint* ipe, uint* op)
+		private unsafe static void copyPixelsIntrinsic(uint* ip, uint* ipe, uint* op)
 		{
 			if (Avx2.IsSupported)
 			{

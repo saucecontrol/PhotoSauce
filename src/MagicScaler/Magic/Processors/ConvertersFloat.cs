@@ -282,7 +282,7 @@ namespace PhotoSauce.MagicScaler
 
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-			unsafe private void convertIntrinsic(byte* ip, byte* ipe, float* op)
+			unsafe private static void convertIntrinsic(byte* ip, byte* ipe, float* op)
 			{
 				if (Avx2.IsSupported)
 				{
@@ -397,7 +397,7 @@ namespace PhotoSauce.MagicScaler
 			}
 #endif
 
-			unsafe private void convertScalar(byte* ip, byte* ipe, float* op)
+			unsafe private static void convertScalar(byte* ip, byte* ipe, float* op)
 			{
 				fixed (float* atstart = &LookupTables.Alpha[0])
 				{
@@ -540,7 +540,7 @@ namespace PhotoSauce.MagicScaler
 
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-			unsafe private void convertIntrinsic(float* ip, float* ipe, byte* op)
+			unsafe private static void convertIntrinsic(float* ip, float* ipe, byte* op)
 			{
 				if (Avx2.IsSupported)
 				{
@@ -621,7 +621,7 @@ namespace PhotoSauce.MagicScaler
 			}
 #endif
 
-			unsafe private void convertVector(float* ip, float* ipe, byte* op)
+			unsafe private static void convertVector(float* ip, float* ipe, byte* op)
 			{
 #if VECTOR_CONVERT
 				int unrollCount = Vector<byte>.Count;
@@ -694,7 +694,7 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			unsafe private void convertScalar(float* ip, float* ipe, byte* op)
+			unsafe private static void convertScalar(float* ip, float* ipe, byte* op)
 			{
 				while (ip < ipe)
 				{
@@ -722,7 +722,7 @@ namespace PhotoSauce.MagicScaler
 
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-			private unsafe void convertIntrinsic(float* ip, float* ipe, byte* op)
+			private unsafe static void convertIntrinsic(float* ip, float* ipe, byte* op)
 			{
 				if (Avx2.IsSupported)
 				{
@@ -868,7 +868,7 @@ namespace PhotoSauce.MagicScaler
 			}
 #endif
 
-			unsafe private void convertScalar(float* ip, float* ipe, byte* op)
+			unsafe private static void convertScalar(float* ip, float* ipe, byte* op)
 			{
 				float fmax = new Vector4(byte.MaxValue).X, fround = new Vector4(0.5f).X, fmin = fround / fmax;
 

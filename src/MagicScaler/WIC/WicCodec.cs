@@ -39,13 +39,13 @@ namespace PhotoSauce.MagicScaler
 
 		public static WicImageContainer Load(string fileName, PipelineContext ctx)
 		{
-			var dec = createDecoder(fn => Wic.Factory.CreateDecoderFromFilename(fn, null, GenericAccessRights.GENERIC_READ, WICDecodeOptions.WICDecodeMetadataCacheOnDemand), fileName);
+			var dec = createDecoder(static fn => Wic.Factory.CreateDecoderFromFilename(fn, null, GenericAccessRights.GENERIC_READ, WICDecodeOptions.WICDecodeMetadataCacheOnDemand), fileName);
 			return WicImageContainer.Create(dec, ctx);
 		}
 
 		public static WicImageContainer Load(Stream inStream, PipelineContext ctx)
 		{
-			var dec = createDecoder(stm => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand), inStream.AsIStream());
+			var dec = createDecoder(static stm => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand), inStream.AsIStream());
 			return WicImageContainer.Create(dec, ctx);
 		}
 
@@ -62,7 +62,7 @@ namespace PhotoSauce.MagicScaler
 
 			istm.InitializeFromMemory(ptr, (uint)cbBuffer);
 
-			var dec = createDecoder(stm => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand), istm);
+			var dec = createDecoder(static stm => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand), istm);
 			return WicImageContainer.Create(dec, ctx);
 		}
 	}
@@ -324,13 +324,12 @@ namespace PhotoSauce.MagicScaler
 		private readonly WicImageEncoder encoder;
 		private readonly PixelSource lastSource;
 		private readonly BufferFrame[] frames = new BufferFrame[3];
-		private readonly BufferFrame encodeFrame;
 		private readonly IWICBitmapSource wicSource;
 		private readonly int lastFrame;
 
-		private int currentFrame = 0;
+		private int currentFrame;
 
-		public BufferFrame EncodeFrame => encodeFrame;
+		public BufferFrame EncodeFrame { get; }
 		public BufferFrame Current => frames[currentFrame % 3];
 		public BufferFrame? Previous => currentFrame == 0 ? null : frames[(currentFrame - 1) % 3];
 		public BufferFrame? Next => currentFrame == lastFrame ? null : frames[(currentFrame + 1) % 3];
@@ -343,13 +342,13 @@ namespace PhotoSauce.MagicScaler
 			lastSource = ctx.Source;
 			lastFrame = ctx.ImageContainer.FrameCount - 1;
 
-			encodeFrame = new BufferFrame(lastSource.Width, lastSource.Height, lastSource.Format);
+			EncodeFrame = new BufferFrame(lastSource.Width, lastSource.Height, lastSource.Format);
 			for (int i = 0; i < frames.Length; i++)
 				frames[i] = new BufferFrame(lastSource.Width, lastSource.Height, lastSource.Format);
 
 			loadFrame(Current);
-			Current.Source.Span.CopyTo(encodeFrame.Source.Span);
-			wicSource = encodeFrame.Source.AsIWICBitmapSource();
+			Current.Source.Span.CopyTo(EncodeFrame.Source.Span);
+			wicSource = EncodeFrame.Source.AsIWICBitmapSource();
 
 			moveToFrame(1);
 			loadFrame(Next!);
@@ -453,7 +452,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			using var quant = new OctreeQuantizer();
 			using var buffI = new FrameBufferSource(ctx.Source.Width, ctx.Source.Height, PixelFormat.Indexed8Bpp);
-			var buffC = encodeFrame.Source;
+			var buffC = EncodeFrame.Source;
 
 			quant.CreateHistorgram(buffC.Span, buffC.Width, buffC.Height, buffC.Stride);
 			quant.Quantize(buffC.Span, buffI.Span, buffC.Width, buffC.Height, buffC.Stride, buffI.Stride);

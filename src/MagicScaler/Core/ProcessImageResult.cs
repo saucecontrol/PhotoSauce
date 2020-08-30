@@ -25,8 +25,8 @@ namespace PhotoSauce.MagicScaler
 
 	internal sealed class SourceStatsProfiler : IPixelSourceProfiler
 	{
-		private int callCount = 0;
-		private long pixelCount = 0;
+		private int callCount;
+		private long pixelCount;
 		private readonly Stopwatch timer = new ();
 		private readonly PixelSource source;
 

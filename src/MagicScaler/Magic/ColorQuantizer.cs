@@ -19,8 +19,8 @@ namespace PhotoSauce.MagicScaler
 		private const int maxSamples = 1 << 20;
 		private const int minLeafLevel = 3;
 
-		private bool isSubsampled = false;
 		private uint leafLevel = 7;
+		private bool isSubsampled;
 
 		private ArraySegment<byte> nodeBuffer, palBuffer;
 
@@ -1046,7 +1046,7 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		unsafe private float lutLerp(float* gt, float val)
+		unsafe private static float lutLerp(float* gt, float val)
 		{
 			nuint ival = (nuint)val;
 

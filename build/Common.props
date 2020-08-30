@@ -19,7 +19,7 @@
 		<PackageTags>Image Resize Resample Process Crop Sharpen Rotate Flip WIC JPEG JPG PNG GIF TIFF</PackageTags>
 		<PackageReleaseNotes>See $(RepositoryUrl)/releases for release-specific notes.</PackageReleaseNotes>
 
-		<LangVersion>preview</LangVersion>
+		<LangVersion>9</LangVersion>
 		<Features>strict</Features>
 		<Nullable>annotations</Nullable>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -38,6 +38,7 @@
 
 		<AssemblyInfoFile>$(IntDir)_AssemblyInfo.cs</AssemblyInfoFile>
 		<AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)$(Company).snk</AssemblyOriginatorKeyFile>
+		<PublicKey>00240000048000009400000006020000002400005253413100040000010001002551a36626955fc14bf9c290f0af78c2efc12ae0b487b78006cfdbe45c50668ecb5e84a2c4634001823825a3657d5ddec503d2047e8430c904cdac14303514e0fdba77c925c0e5d7aab5ad13e22d2b81c70a3a6b92358b414d9ff45c13e3f1acef16e3ad1f7e582fc590a0796706d446ecf346649db8337b290a5d601e5324c2</PublicKey>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)'!='Debug'">
@@ -54,10 +55,6 @@
 	<ItemGroup Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">
 		<None Include="$(MSBuildThisFileDirectory)$(Company).png" Pack="true" PackagePath="package" />
 		<SourceRoot Include="$(RepositoryRoot)" />
-	</ItemGroup>
-
-	<ItemGroup Condition="$(TargetFramework.StartsWith('net4'))">
-		<PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.0" PrivateAssets="all" />
 	</ItemGroup>
 
 </Project>

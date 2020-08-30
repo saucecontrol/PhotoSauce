@@ -118,7 +118,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-		unsafe private void process4A(byte* ipstart, byte* opstart, nuint stride)
+		unsafe private static void process4A(byte* ipstart, byte* opstart, nuint stride)
 		{
 			byte* ip = ipstart, ipe = ipstart + stride;
 			byte* op = opstart;
@@ -301,7 +301,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-		unsafe private void process4(byte* ipstart, byte* opstart, nuint stride)
+		unsafe private static void process4(byte* ipstart, byte* opstart, nuint stride)
 		{
 			byte* ip = ipstart, ipe = ipstart + stride;
 			byte* op = opstart;
@@ -436,7 +436,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-		unsafe private void process3(byte* ipstart, byte* opstart, nuint stride)
+		unsafe private static void process3(byte* ipstart, byte* opstart, nuint stride)
 		{
 			byte* ip = ipstart, ipe = ipstart + stride;
 			byte* op = opstart;
@@ -548,7 +548,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-		unsafe private void process(byte* ipstart, byte* opstart, nuint stride)
+		unsafe private static void process(byte* ipstart, byte* opstart, nuint stride)
 		{
 			byte* ip = ipstart, ipe = ipstart + stride;
 			byte* op = opstart;

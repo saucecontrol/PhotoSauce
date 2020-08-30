@@ -49,7 +49,7 @@ namespace PhotoSauce.MagicScaler
 
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		unsafe private void convertIntrinsic(ushort* ip, ushort* ipe, byte* op)
+		unsafe private static void convertIntrinsic(ushort* ip, ushort* ipe, byte* op)
 		{
 			if (Avx2.IsSupported)
 			{
@@ -113,7 +113,7 @@ namespace PhotoSauce.MagicScaler
 		}
 #endif
 
-		unsafe private void convertScalar(ushort* ip, ushort* ipe, byte* op)
+		unsafe private static void convertScalar(ushort* ip, ushort* ipe, byte* op)
 		{
 			while (ip < ipe)
 			{

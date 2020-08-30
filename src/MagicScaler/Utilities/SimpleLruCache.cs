@@ -17,21 +17,17 @@ namespace PhotoSauce.MagicScaler
 			public readonly TKey Key;
 			public readonly TValue Value;
 
-			public CacheNode? Prev = null;
-			public CacheNode? Next = null;
+			public CacheNode? Prev;
+			public CacheNode? Next;
 
-			public CacheNode(TKey key, TValue value)
-			{
-				Key = key;
-				Value = value;
-			}
+			public CacheNode(TKey key, TValue value) => (Key, Value) = (key, value);
 		}
 
 		private readonly object sync = new ();
 
-		private CacheNode? head = null;
-		private CacheNode? tail = null;
-		private volatile int count = 0;
+		private CacheNode? head;
+		private CacheNode? tail;
+		private volatile int count;
 
 		private bool tryGetInternal(TKey key, [MaybeNullWhen(false)] out TValue value)
 		{

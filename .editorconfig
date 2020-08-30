@@ -3,3 +3,10 @@ root = true
 [*]
 indent_style = tab
 indent_size = 4
+
+[*.cs]
+csharp_style_deconstructed_variable_declaration = true:silent
+csharp_style_prefer_range_operator = true:silent
+
+# Do not catch general exception types
+dotnet_diagnostic.CA1031.severity = silent
