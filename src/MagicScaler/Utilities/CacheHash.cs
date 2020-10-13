@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 using Blake2Fast;
 
@@ -27,11 +28,7 @@ namespace PhotoSauce.MagicScaler
 				throw new ArgumentException($"Hash must be at least {DigestLength} bytes");
 
 			var b32 = base32Table;
-#if BUILTIN_SPAN
-			Span<char> hash = stackalloc char[8];
-#else
-			char* hash = stackalloc char[8];
-#endif
+			var hash = (Span<char>)stackalloc char[8];
 
 			hash[0] = (char)b32[  bhash[0]         >> 3];
 			hash[1] = (char)b32[((bhash[0] & 0x07) << 2) | (bhash[1] >> 6)];
@@ -42,7 +39,11 @@ namespace PhotoSauce.MagicScaler
 			hash[6] = (char)b32[((bhash[3] & 0x03) << 3) | (bhash[4] >> 5)];
 			hash[7] = (char)b32[  bhash[4] & 0x1f];
 
+#if BUILTIN_SPAN
 			return new string(hash);
+#else
+			return new string((char*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(hash)), 0, 8);
+#endif
 		}
 
 		public static string Create(string data)

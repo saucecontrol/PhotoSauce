@@ -26,7 +26,7 @@ namespace PhotoSauce.WebRSize
 		/// <param name="settings">The processing settings.</param>
 		/// <param name="includeResolution">True to include the output width and height in the file name, false to omit.</param>
 		/// <returns>The updated cache file path.</returns>
-		protected string WrapFileName(string newPath, ProcessImageSettings settings, bool includeResolution = true)
+		protected static string WrapFileName(string newPath, ProcessImageSettings settings, bool includeResolution = true)
 		{
 			string file = VirtualPathUtility.GetFileName(newPath);
 			var sb = new StringBuilder(128);

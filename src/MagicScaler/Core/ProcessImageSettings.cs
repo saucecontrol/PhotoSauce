@@ -361,12 +361,12 @@ namespace PhotoSauce.MagicScaler
 
 			foreach (var group in anchorExpression.Value.Match(dic.GetValueOrDefault("anchor") ?? string.Empty).Groups.Cast<Group>())
 			{
-				if (Enum.TryParse(group.Value, true, out CropAnchor anchor))
+				if (Enum.TryParse(group!.Value, true, out CropAnchor anchor))
 					s.Anchor |= anchor;
 			}
 
 			foreach (var cap in subsampleExpression.Value.Match(dic.GetValueOrDefault("subsample") ?? string.Empty).Captures.Cast<Capture>())
-				s.JpegSubsampleMode = Enum.TryParse(string.Concat("Subsample", cap.Value), true, out ChromaSubsampleMode csub) ? csub : s.JpegSubsampleMode;
+				s.JpegSubsampleMode = Enum.TryParse(string.Concat("Subsample", cap!.Value), true, out ChromaSubsampleMode csub) ? csub : s.JpegSubsampleMode;
 
 			string? colorName = dic.GetValueOrDefault("bgcolor") ?? dic.GetValueOrDefault("bg");
 			if (!string.IsNullOrWhiteSpace(colorName) && ColorParser.TryParse(colorName, out var color))
@@ -580,7 +580,7 @@ namespace PhotoSauce.MagicScaler
 		internal string GetCacheHash()
 		{
 			if (imageInfo is null) throw new InvalidOperationException("Hash is only valid for normalized settings.");
-			if (!(Interpolation.WeightingFunction is IUniquelyIdentifiable uif)) throw new InvalidOperationException("Hash is only valid for internal interpolators.");
+			if (Interpolation.WeightingFunction is not IUniquelyIdentifiable uif) throw new InvalidOperationException("Hash is only valid for internal interpolators.");
 
 			var hash = Blake2b.CreateIncrementalHasher(CacheHash.DigestLength);
 			hash.Update(imageInfo.FileSize);

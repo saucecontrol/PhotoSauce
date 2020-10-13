@@ -622,7 +622,7 @@ namespace PhotoSauce.MagicScaler
 		unsafe private void remapDitherSse2(byte* pimage, int* perr, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
 		{
 			var transnode = new OctreeNode();
-			transnode.Sums[3] = byte.MaxValue;
+			transnode.Sums[3] = maxPaletteSize - 1;
 
 			var vpmax = Vector128.Create((int)byte.MaxValue);
 			var vprnd = Vector128.Create(7);
@@ -761,7 +761,7 @@ namespace PhotoSauce.MagicScaler
 		unsafe private void remapDitherScalar(byte* pimage, int* perror, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
 		{
 			var transnode = new OctreeNode();
-			transnode.Sums[3] = byte.MaxValue;
+			transnode.Sums[3] = maxPaletteSize - 1;
 
 			nuint level = leafLevel;
 			var prnod = default(OctreeNode*);
@@ -900,7 +900,7 @@ namespace PhotoSauce.MagicScaler
 		unsafe private void remap(byte* pimage, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
 		{
 			var transnode = new OctreeNode();
-			transnode.Sums[3] = byte.MaxValue;
+			transnode.Sums[3] = maxPaletteSize - 1;
 
 			nuint level = leafLevel;
 			uint ppix = 0;
@@ -1078,7 +1078,7 @@ namespace PhotoSauce.MagicScaler
 			fixed (uint* ppal = MemoryMarshal.Cast<byte, uint>(palBuffer))
 			{
 				uint dist = uint.MaxValue;
-				uint pidx = byte.MaxValue;
+				uint pidx = maxPaletteSize - 1;
 
 				for (nuint i = 0; i < maxPaletteSize - 1; i++)
 				{

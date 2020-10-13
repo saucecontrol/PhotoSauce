@@ -37,15 +37,6 @@ namespace PhotoSauce.WebRSize
 				dic = folderConfig.DefaultSettings.ToDictionary().Coalesce(dic);
 
 			var s = ProcessImageSettings.FromDictionary(dic);
-
-			int rw = s.Width, rh = s.Height;
-			if (double.TryParse(dic.GetValueOrDefault("devicepixelratio") ?? dic.GetValueOrDefault("dpr"), out double dpr))
-			{
-				dpr = dpr.Clamp(1d, 5d);
-				s.Width = (int)Math.Floor(s.Width * dpr);
-				s.Height = (int)Math.Floor(s.Height * dpr);
-			}
-
 			if (exists && s.IsEmpty && !folderConfig.ForceProcessing)
 				return;
 
@@ -64,22 +55,43 @@ namespace PhotoSauce.WebRSize
 			}
 
 			ifi ??= vpp is CachingAsyncVirtualPathProvider vppAF ? await vppAF.GetImageInfoAsync(path).ConfigureAwait(false) : await CacheHelper.GetImageInfoAsync(vpp, path).ConfigureAwait(false);
+
+			int rw = s.Width, rh = s.Height;
+			if (double.TryParse(dic.GetValueOrDefault("devicepixelratio") ?? dic.GetValueOrDefault("dpr"), out double dpr))
+			{
+				dpr = dpr.Clamp(1d, 5d);
+				if (dpr > 1d)
+				{
+					var frame = ifi.Frames[s.FrameIndex];
+					int nw = (int)Math.Floor(s.Width * dpr), nh = (int)Math.Floor(s.Height * dpr);
+
+					if (folderConfig.AllowEnlarge || (nw <= frame.Width && nh <= frame.Height))
+					{
+						s.Width = nw;
+						s.Height = nh;
+					}
+				}
+			}
+
+			var originalCrop = s.Crop;
 			s.NormalizeFrom(ifi);
 
-			if (!folderConfig.AllowEnlarge && s.ResizeMode != CropScaleMode.Max)
+			if (!folderConfig.AllowEnlarge && s.ResizeMode != CropScaleMode.Pad)
 			{
 				var frame = ifi.Frames[s.FrameIndex];
 				if (s.Width > frame.Width)
 				{
 					s.Width = frame.Width;
 					s.Height = 0;
-					s.Fixup(frame.Width, frame.Height);
+					s.Crop = originalCrop;
+					s.NormalizeFrom(ifi);
 				}
 				if (s.Height > frame.Height)
 				{
 					s.Width = 0;
 					s.Height = frame.Height;
-					s.Fixup(frame.Width, frame.Height);
+					s.Crop = originalCrop;
+					s.NormalizeFrom(ifi);
 				}
 			}
 
