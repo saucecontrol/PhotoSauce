@@ -44,6 +44,7 @@ namespace PhotoSauce.MagicScaler
 		public static ReadOnlySpan<byte> PermuteMask3xTo3Chan => new byte[] { 0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0 };
 		public static ReadOnlySpan<byte> ShuffleMask3ChanPairs => new byte[] { 0, 3, 1, 4, 2, 5, 0x80, 0x80, 6, 9, 7, 10, 8, 11, 0x80, 0x80 };
 		public static ReadOnlySpan<byte> ShuffleMask4ChanPairs => new byte[] { 0, 4, 1, 5, 2, 6, 3, 7, 8, 12, 9, 13, 10, 14, 11, 15 };
+		public static ReadOnlySpan<byte> ShuffleMask3To3xChan => new byte[] { 0, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80 };
 		public static ReadOnlySpan<byte> ShuffleMask3xTo3Chan => new byte[] { 0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80 };
 		public static ReadOnlySpan<byte> ShuffleMask8bitAlpha => new byte[] { 3, 3, 7, 7, 3, 3, 7, 7, 11, 11, 15, 15, 11, 11, 15, 15 };
 		public static ReadOnlySpan<byte> ShuffleMask8bitEven => new byte[] { 0x80, 0, 0x80, 4, 0x80, 2, 0x80, 6, 0x80, 8, 0x80, 12, 0x80, 10, 0x80, 14 };

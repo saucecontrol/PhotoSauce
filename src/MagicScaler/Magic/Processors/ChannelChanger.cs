@@ -1,5 +1,12 @@
 ﻿using System;
 
+#if HWINTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
+#endif
+
 namespace PhotoSauce.MagicScaler.Transforms
 {
 	internal static class ChannelChanger<T> where T : unmanaged
@@ -46,6 +53,35 @@ namespace PhotoSauce.MagicScaler.Transforms
 			{
 				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
 
+#if HWINTRINSICS
+				if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count)
+				{
+					var mask = (ReadOnlySpan<byte>)(new byte[] {
+						 0,  0,  0,  1,  1,  1,  2,  2,  2,  3,  3,  3,  4,  4,  4,  5,
+						 5,  5,  6,  6,  6,  7,  7,  7,  8,  8,  8,  9,  9,  9, 10, 10,
+						10, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14, 15, 15, 15
+					});
+					byte* pmask = (byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(mask));
+
+					var vmask0 = Sse2.LoadVector128(pmask);
+					var vmask1 = Sse2.LoadVector128(pmask + Vector128<byte>.Count);
+					var vmask2 = Sse2.LoadVector128(pmask + Vector128<byte>.Count * 2);
+
+					ipe -= Vector128<byte>.Count;
+					while (ip <= ipe)
+					{
+						var v0 = Sse2.LoadVector128((byte*)ip);
+						ip += Vector128<byte>.Count;
+
+						Sse2.Store((byte*)op, Ssse3.Shuffle(v0, vmask0));
+						Sse2.Store((byte*)op + Vector128<byte>.Count, Ssse3.Shuffle(v0, vmask1));
+						Sse2.Store((byte*)op + Vector128<byte>.Count * 2, Ssse3.Shuffle(v0, vmask2));
+						op += Vector128<byte>.Count * 3;
+					}
+					ipe += Vector128<byte>.Count;
+				}
+#endif
+
 				while (ip < ipe)
 				{
 					var i0 = *ip;
@@ -70,6 +106,32 @@ namespace PhotoSauce.MagicScaler.Transforms
 				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
 				var alpha = maxalpha;
 
+#if HWINTRINSICS
+				if (typeof(T) == typeof(byte) && Sse2.IsSupported && cb > Vector128<byte>.Count)
+				{
+					var vfill = Vector128.Create(byte.MaxValue);
+
+					ipe -= Vector128<byte>.Count;
+					while (ip <= ipe)
+					{
+						var v0 = Sse2.LoadVector128((byte*)ip);
+						ip += Vector128<byte>.Count;
+
+						var vll = Sse2.UnpackLow(v0, v0);
+						var vlh = Sse2.UnpackHigh(v0, v0);
+						var vhl = Sse2.UnpackLow(v0, vfill);
+						var vhh = Sse2.UnpackHigh(v0, vfill);
+
+						Sse2.Store((byte*)op, Sse2.UnpackLow(vll, vhl));
+						Sse2.Store((byte*)op + Vector128<byte>.Count, Sse2.UnpackHigh(vll, vhl));
+						Sse2.Store((byte*)op + Vector128<byte>.Count * 2, Sse2.UnpackLow(vlh, vhh));
+						Sse2.Store((byte*)op + Vector128<byte>.Count * 3, Sse2.UnpackHigh(vlh, vhh));
+						op += Vector128<byte>.Count * 4;
+					}
+					ipe += Vector128<byte>.Count;
+				}
+#endif
+
 				while (ip < ipe)
 				{
 					var i0 = *ip;
@@ -92,8 +154,40 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
-				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb) - 3, op = (T*)opstart;
+				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
 
+#if HWINTRINSICS
+				if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count * 3)
+				{
+					var mask = (ReadOnlySpan<byte>)(new byte[] {
+						   0,    3,    6,    9,   12,  15,  0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+						0x80, 0x80, 0x80, 0x80, 0x80, 0x80,    2,    5,    8,   11,   14, 0x80, 0x80, 0x80, 0x80, 0x80,
+						0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,    1,    4,    7,   10,   13
+					});
+					byte* pmask = (byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(mask));
+
+					var vmask0 = Sse2.LoadVector128(pmask);
+					var vmask1 = Sse2.LoadVector128(pmask + Vector128<byte>.Count);
+					var vmask2 = Sse2.LoadVector128(pmask + Vector128<byte>.Count * 2);
+
+					ipe -= Vector128<byte>.Count * 3;
+					while (ip <= ipe)
+					{
+						var v0 = Sse2.LoadVector128((byte*)ip);
+						var v1 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count);
+						var v2 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count * 2);
+						ip += Vector128<byte>.Count * 3;
+
+						v0 = Sse2.Or(Sse2.Or(Ssse3.Shuffle(v0, vmask0), Ssse3.Shuffle(v1, vmask1)), Ssse3.Shuffle(v2, vmask2));
+
+						Sse2.Store((byte*)op, v0);
+						op += Vector128<byte>.Count;
+					}
+					ipe += Vector128<byte>.Count * 3;
+				}
+#endif
+
+				ipe -= 3;
 				while (ip <= ipe)
 				{
 					op[0] = ip[0];
@@ -112,9 +206,43 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
-				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb) - 3, op = (T*)opstart;
+				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
 				var alpha = maxalpha;
 
+#if HWINTRINSICS
+				if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count * 3)
+				{
+					var vmask = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3To3xChan)));
+					var vfill = Vector128.Create(0xff000000u).AsByte();
+
+					ipe -= Vector128<byte>.Count * 3;
+					while (ip <= ipe)
+					{
+						var v0 = Sse2.LoadVector128((byte*)ip);
+						var v1 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count);
+						var v2 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count * 2);
+						var v3 = Sse2.ShiftRightLogical128BitLane(v2, 4);
+						ip += Vector128<byte>.Count * 3;
+
+						v2 = Ssse3.AlignRight(v2, v1, 8);
+						v1 = Ssse3.AlignRight(v1, v0, 12);
+
+						v0 = Sse2.Or(Ssse3.Shuffle(v0, vmask), vfill);
+						v1 = Sse2.Or(Ssse3.Shuffle(v1, vmask), vfill);
+						v2 = Sse2.Or(Ssse3.Shuffle(v2, vmask), vfill);
+						v3 = Sse2.Or(Ssse3.Shuffle(v3, vmask), vfill);
+
+						Sse2.Store((byte*)op, v0);
+						Sse2.Store((byte*)op + Vector128<byte>.Count, v1);
+						Sse2.Store((byte*)op + Vector128<byte>.Count * 2, v2);
+						Sse2.Store((byte*)op + Vector128<byte>.Count * 3, v3);
+						op += Vector128<byte>.Count * 4;
+					}
+					ipe += Vector128<byte>.Count * 3;
+				}
+#endif
+
+				ipe -= 3;
 				while (ip <= ipe)
 				{
 					op[0] = ip[0];
@@ -136,8 +264,39 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
-				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb) - 4, op = (T*)opstart;
+				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
 
+#if HWINTRINSICS
+				if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count * 4)
+				{
+					var mask = (ReadOnlySpan<byte>)(new byte[] { 0, 4, 8, 12, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 });
+					var vmask = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(mask)));
+
+					ipe -= Vector128<byte>.Count * 4;
+					while (ip <= ipe)
+					{
+						var v0 = Sse2.LoadVector128((byte*)ip);
+						var v1 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count);
+						var v2 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count * 2);
+						var v3 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count * 3);
+						ip += Vector128<byte>.Count * 4;
+
+						v0 = Ssse3.Shuffle(v0, vmask);
+						v1 = Ssse3.Shuffle(v1, vmask);
+						v2 = Ssse3.Shuffle(v2, vmask);
+						v3 = Ssse3.Shuffle(v3, vmask);
+
+						var vl = Sse2.UnpackLow(v0.AsUInt32(), v1.AsUInt32()).AsUInt64();
+						var vh = Sse2.UnpackLow(v2.AsUInt32(), v3.AsUInt32()).AsUInt64();
+
+						Sse2.Store((byte*)op, Sse2.UnpackLow(vl, vh).AsByte());
+						op += Vector128<byte>.Count;
+					}
+					ipe += Vector128<byte>.Count * 4;
+				}
+#endif
+
+				ipe -= 4;
 				while (ip <= ipe)
 				{
 					op[0] = ip[0];
@@ -156,8 +315,42 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
 			{
-				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb) - 4, op = (T*)opstart;
+				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
 
+#if HWINTRINSICS
+				if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count * 4)
+				{
+					var vmasko = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3xTo3Chan)));
+					var vmaske = Ssse3.AlignRight(vmasko, vmasko, 12).AsByte();
+
+					ipe -= Vector128<byte>.Count * 4;
+					while (ip <= ipe)
+					{
+						var v0 = Sse2.LoadVector128((byte*)ip);
+						var v1 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count);
+						var v2 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count * 2);
+						var v3 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count * 3);
+						ip += Vector128<byte>.Count * 4;
+
+						v0 = Ssse3.Shuffle(v0, vmaske);
+						v1 = Ssse3.Shuffle(v1, vmasko);
+						v2 = Ssse3.Shuffle(v2, vmaske);
+						v3 = Ssse3.Shuffle(v3, vmasko);
+
+						v0 = Ssse3.AlignRight(v1, v0, 4);
+						v1 = Sse2.Or(Sse2.ShiftRightLogical128BitLane(v1, 4), Sse2.ShiftLeftLogical128BitLane(v2, 4));
+						v2 = Ssse3.AlignRight(v3, v2, 12);
+
+						Sse2.Store((byte*)op, v0);
+						Sse2.Store((byte*)op + Vector128<byte>.Count, v1);
+						Sse2.Store((byte*)op + Vector128<byte>.Count * 2, v2);
+						op += Vector128<byte>.Count * 3;
+					}
+					ipe += Vector128<byte>.Count * 4;
+				}
+#endif
+
+				ipe -= 4;
 				while (ip <= ipe)
 				{
 					op[0] = ip[0];
