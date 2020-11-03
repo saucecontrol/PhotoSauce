@@ -104,7 +104,7 @@ namespace PhotoSauce.MagicScaler
 			var usedSettings = s.Clone();
 
 			bool alpha = ((ImageFlags)img.Flags).HasFlag(ImageFlags.HasAlpha);
-			var pixelFormat = alpha && s.MatteColor.A < byte.MaxValue ? GdiPixelFormat.Format32bppArgb : GdiPixelFormat.Format24bppRgb;
+			var pixelFormat = alpha && s.MatteColor.IsTransparent() ? GdiPixelFormat.Format32bppArgb : GdiPixelFormat.Format24bppRgb;
 			var mode = s.Interpolation.WeightingFunction.Support < 0.1 ? InterpolationMode.NearestNeighbor :
 			           s.Interpolation.WeightingFunction.Support < 1.0 ? s.ScaleRatio > 1.0 ? InterpolationMode.Bilinear : InterpolationMode.NearestNeighbor :
 			           s.Interpolation.WeightingFunction.Support > 1.0 ? s.ScaleRatio > 1.0 || s.Interpolation.Blur > 1.0 ? InterpolationMode.HighQualityBicubic : InterpolationMode.Bicubic :

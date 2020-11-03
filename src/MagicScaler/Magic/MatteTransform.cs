@@ -28,7 +28,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			if (Format.ColorRepresentation != PixelColorRepresentation.Bgr || Format.AlphaRepresentation == PixelAlphaRepresentation.None)
 				throw new NotSupportedException("Pixel format not supported.  Must be BGRA");
 
-			if (allowFormatChange && Format == PixelFormat.Pbgra128BppLinearFloat && color.A == byte.MaxValue)
+			if (allowFormatChange && Format == PixelFormat.Pbgra128BppLinearFloat && !color.IsTransparent())
 				Format = PixelFormat.Bgrx128BppLinearFloat;
 
 			var igtq = LookupTables.SrgbInverseGammaUQ15;

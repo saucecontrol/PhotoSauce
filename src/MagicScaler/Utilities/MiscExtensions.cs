@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Drawing;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Diagnostics.CodeAnalysis;
@@ -35,6 +36,10 @@ namespace PhotoSauce.MagicScaler
 		public static bool IsSubsampledY(this ChromaSubsampleMode o) => o == ChromaSubsampleMode.Subsample420 || o == ChromaSubsampleMode.Subsample440;
 
 		public static bool InsensitiveEquals(this string s1, string s2) => string.Equals(s1, s2, StringComparison.OrdinalIgnoreCase);
+
+		public static bool IsTransparent(this Color c) => c.A < byte.MaxValue;
+
+		public static bool IsGrey(this Color c) => c.R == c.G && c.G == c.B;
 
 		public static string GetFileExtension(this FileFormat fmt, string? preferredExtension = null)
 		{

@@ -226,7 +226,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			ctx.Source = new MatteTransform(ctx.Source, ctx.Settings.MatteColor, !ctx.IsAnimatedGifPipeline);
 
-			if (!ctx.IsAnimatedGifPipeline && ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None && ctx.Settings.MatteColor.A == byte.MaxValue)
+			if (!ctx.IsAnimatedGifPipeline && ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None && !ctx.Settings.MatteColor.IsTransparent())
 			{
 				var oldFmt = ctx.Source.Format;
 				var newFmt = oldFmt == PixelFormat.Pbgra64BppLinearUQ15 ? PixelFormat.Bgr48BppLinearUQ15
@@ -243,6 +243,12 @@ namespace PhotoSauce.MagicScaler.Transforms
 				return;
 
 			AddExternalFormatConverter(ctx);
+
+			var fmt = ctx.Source.Format;
+			if (fmt.AlphaRepresentation == PixelAlphaRepresentation.None && ctx.Settings.MatteColor.IsTransparent())
+				ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, PixelFormat.Bgra32Bpp));
+			else if (fmt.ColorRepresentation == PixelColorRepresentation.Grey && !ctx.Settings.MatteColor.IsGrey())
+				ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, PixelFormat.Bgr24Bpp));
 
 			ctx.Source = new PadTransformInternal(ctx.Source, ctx.Settings.MatteColor, PixelArea.FromGdiRect(ctx.Settings.InnerRect), PixelArea.FromGdiSize(ctx.Settings.OuterSize));
 		}
@@ -408,7 +414,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public static void AddGifFrameBuffer(PipelineContext ctx, bool replay = true)
 		{
-			if (!(ctx.ImageFrame is WicImageFrame wicFrame) || !(wicFrame.Container is WicGifContainer gif))
+			if (ctx.ImageFrame is not WicImageFrame wicFrame || wicFrame.Container is not WicGifContainer gif)
 				return;
 
 			Debug.Assert(wicFrame.WicMetadataReader is not null);
