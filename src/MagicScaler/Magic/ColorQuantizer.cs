@@ -21,10 +21,11 @@ namespace PhotoSauce.MagicScaler
 
 		private uint leafLevel = 7;
 		private bool isSubsampled;
+		private int palEntries = maxPaletteSize;
 
 		private ArraySegment<byte> nodeBuffer, palBuffer;
 
-		public ReadOnlySpan<uint> Palette => MemoryMarshal.Cast<byte, uint>(palBuffer);
+		public ReadOnlySpan<uint> Palette => MemoryMarshal.Cast<byte, uint>(palBuffer).Slice(0, palEntries);
 
 		public OctreeQuantizer()
 		{
@@ -436,7 +437,10 @@ namespace PhotoSauce.MagicScaler
 					}
 				}
 
-				Unsafe.InitBlockUnaligned(ppal + (maxPaletteSize - 1), 0, sizeof(uint));
+				ppal[palidx] = 0x00ff00ffu;
+				palEntries = (int)palidx + 1;
+
+				Unsafe.InitBlockUnaligned(ppal + palEntries, 0, (maxPaletteSize - (uint)palEntries) * sizeof(uint));
 			}
 
 			leafLevel = Math.Max(leafLevel, minLeafLevel);
@@ -622,7 +626,7 @@ namespace PhotoSauce.MagicScaler
 		unsafe private void remapDitherSse2(byte* pimage, int* perr, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
 		{
 			var transnode = new OctreeNode();
-			transnode.Sums[3] = maxPaletteSize - 1;
+			transnode.Sums[3] = (uint)palEntries - 1;
 
 			var vpmax = Vector128.Create((int)byte.MaxValue);
 			var vprnd = Vector128.Create(7);
@@ -761,7 +765,7 @@ namespace PhotoSauce.MagicScaler
 		unsafe private void remapDitherScalar(byte* pimage, int* perror, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
 		{
 			var transnode = new OctreeNode();
-			transnode.Sums[3] = maxPaletteSize - 1;
+			transnode.Sums[3] = (uint)palEntries - 1;
 
 			nuint level = leafLevel;
 			var prnod = default(OctreeNode*);
@@ -900,7 +904,7 @@ namespace PhotoSauce.MagicScaler
 		unsafe private void remap(byte* pimage, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
 		{
 			var transnode = new OctreeNode();
-			transnode.Sums[3] = maxPaletteSize - 1;
+			transnode.Sums[3] = (uint)palEntries - 1;
 
 			nuint level = leafLevel;
 			uint ppix = 0;
@@ -1078,9 +1082,10 @@ namespace PhotoSauce.MagicScaler
 			fixed (uint* ppal = MemoryMarshal.Cast<byte, uint>(palBuffer))
 			{
 				uint dist = uint.MaxValue;
-				uint pidx = maxPaletteSize - 1;
+				uint pidx = (uint)palEntries - 1;
+				nuint plen = pidx;
 
-				for (nuint i = 0; i < maxPaletteSize - 1; i++)
+				for (nuint i = 0; i < plen; i++)
 				{
 					uint pc = ppal[i];
 					int pb = (byte)(pc);
