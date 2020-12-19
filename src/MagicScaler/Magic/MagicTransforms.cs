@@ -306,8 +306,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			if (orientation == Orientation.Normal)
 				return;
 
-			if (orientation.RequiresCache())
-				AddExternalFormatConverter(ctx);
+			AddExternalFormatConverter(ctx);
 
 			ctx.Source = new OrientationTransformInternal(ctx.Source, orientation);
 			ctx.Orientation = Orientation.Normal;

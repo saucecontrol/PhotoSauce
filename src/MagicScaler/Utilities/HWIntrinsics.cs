@@ -36,6 +36,10 @@ namespace PhotoSauce.MagicScaler
 #if HWINTRINSICS
 		public const byte BlendMaskAlpha = 0b_1000_1000;
 		public const byte ShuffleMaskAlpha = 0b_11_11_11_11;
+		public const byte ShuffleMaskLoPairs = 0b_01_00_01_00;
+		public const byte ShuffleMaskHiPairs = 0b_11_10_11_10;
+		public const byte ShuffleMaskEvPairs = 0b_10_00_10_00;
+		public const byte ShuffleMaskOdPairs = 0b_11_01_11_01;
 		public const byte PermuteMaskDeinterleave4x64 = 0b_11_01_10_00;
 
 		public static ReadOnlySpan<byte> PermuteMaskDeinterleave8x32 => new byte[] { 0, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 5, 0, 0, 0, 2, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0 };

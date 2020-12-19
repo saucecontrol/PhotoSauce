@@ -1,14 +1,18 @@
 ﻿using System;
-using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
+
+#if HWINTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 
 namespace PhotoSauce.MagicScaler.Transforms
 {
 	internal sealed class OrientationTransformInternal : ChainedPixelSource, IDisposable
 	{
 		private readonly Orientation orient;
-		private readonly PixelBuffer? srcBuff;
+		private readonly PixelBuffer? outBuff;
 		private readonly int bytesPerPixel;
 
 		private ArraySegment<byte> lineBuff;
@@ -19,7 +23,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		public OrientationTransformInternal(PixelSource source, Orientation orientation) : base(source)
 		{
 			bytesPerPixel = source.Format.BytesPerPixel;
-			if (!(bytesPerPixel == 1 || bytesPerPixel == 2 || bytesPerPixel == 3 || bytesPerPixel == 4 || bytesPerPixel == 16))
+			if (!(bytesPerPixel == 1 || bytesPerPixel == 3 || bytesPerPixel == 4))
 				throw new NotSupportedException("Pixel format not supported.");
 
 			Width = source.Width;
@@ -28,13 +32,14 @@ namespace PhotoSauce.MagicScaler.Transforms
 			orient = orientation;
 			if (orient.SwapsDimensions())
 			{
-				lineBuff = BufferPool.Rent(BufferStride);
+				int buffLines = HWIntrinsics.IsSupported ? bytesPerPixel == 1 ? 8 : 4 : 1;
+				lineBuff = BufferPool.Rent(BufferStride * buffLines);
 				(Width, Height) = (Height, Width);
 			}
 
 			int bufferStride = MathUtil.PowerOfTwoCeiling(Width * bytesPerPixel, IntPtr.Size);
 			if (orient.RequiresCache())
-				srcBuff = new PixelBuffer(Height, bufferStride);
+				outBuff = new PixelBuffer(Height, bufferStride);
 		}
 
 		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
@@ -45,7 +50,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				copyPixelsDirect(prc, cbStride, cbBufferSize, pbBuffer);
 		}
 
-		protected override void Reset() => srcBuff?.Reset();
+		protected override void Reset() => outBuff?.Reset();
 
 		unsafe private void copyPixelsDirect(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
@@ -55,7 +60,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			if (orient == Orientation.FlipHorizontal)
 			{
-				int cb = prc.Width * bytesPerPixel;
+				nint cb = prc.Width * bytesPerPixel;
 				byte* pb = (byte*)pbBuffer;
 
 				for (int y = 0; y < prc.Height; y++)
@@ -68,12 +73,12 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		unsafe private void copyPixelsBuffered(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
-			if (srcBuff is null) throw new ObjectDisposedException(nameof(OrientationTransformInternal));
+			if (outBuff is null) throw new ObjectDisposedException(nameof(OrientationTransformInternal));
 
-			if (!srcBuff.ContainsLine(0))
+			if (!outBuff.ContainsLine(0))
 			{
 				int fl = 0, lc = Height;
-				fixed (byte* bstart = srcBuff.PrepareLoad(ref fl, ref lc))
+				fixed (byte* bstart = outBuff.PrepareLoad(ref fl, ref lc))
 				{
 					if (orient.SwapsDimensions())
 						loadBufferTransposed(bstart);
@@ -86,54 +91,84 @@ namespace PhotoSauce.MagicScaler.Transforms
 			{
 				int line = prc.Y + y;
 
-				var lspan = srcBuff.PrepareRead(line, 1).Slice(prc.X * bytesPerPixel, prc.Width * bytesPerPixel);
+				var lspan = outBuff.PrepareRead(line, 1).Slice(prc.X * bytesPerPixel, prc.Width * bytesPerPixel);
 				Unsafe.CopyBlockUnaligned(ref Unsafe.AsRef<byte>((byte*)pbBuffer + y * cbStride), ref MemoryMarshal.GetReference(lspan), (uint)lspan.Length);
 			}
 		}
 
 		unsafe private void loadBufferReversed(byte* bstart)
 		{
-			byte* pb = bstart + (Height - 1) * srcBuff!.Stride;
+			byte* pb = bstart + (Height - 1) * outBuff!.Stride;
 
 			for (int y = 0; y < Height; y++)
 			{
 				Profiler.PauseTiming();
-				PrevSource.CopyPixels(new PixelArea(0, y, PrevSource.Width, 1), srcBuff.Stride, srcBuff.Stride, (IntPtr)pb);
+				PrevSource.CopyPixels(new PixelArea(0, y, PrevSource.Width, 1), outBuff.Stride, outBuff.Stride, (IntPtr)pb);
 				Profiler.ResumeTiming();
 
 				if (orient == Orientation.Rotate180)
 					flipLine(pb, PrevSource.Width * bytesPerPixel);
 
-				pb -= srcBuff.Stride;
+				pb -= outBuff.Stride;
 			}
 		}
 
 		unsafe private void loadBufferTransposed(byte* bstart)
 		{
-			byte* bp = bstart;
-			int colStride = srcBuff!.Stride;
-			int rowStride = bytesPerPixel;
+			var buffSpan = lineBuff.AsSpan();
+			int lineBuffStride = BufferStride;
+			int lineBuffHeight = buffSpan.Length / lineBuffStride;
 
-			if (orient == Orientation.Transverse || orient == Orientation.Rotate270)
+			fixed (byte* lstart = buffSpan)
 			{
-				bp += (PrevSource.Width - 1) * colStride;
-				colStride = -colStride;
-			}
+				byte* bp = bstart, lp = lstart;
+				nint colStride = outBuff!.Stride;
+				nint rowStride = bytesPerPixel;
+				nint bufStride = lineBuffStride;
 
-			if (orient == Orientation.Transverse || orient == Orientation.Rotate90)
-			{
-				bp += (PrevSource.Height - 1) * rowStride;
-				rowStride = -rowStride;
-			}
+				if (orient == Orientation.Transverse || orient == Orientation.Rotate270)
+				{
+					bp += (PrevSource.Width - 1) * colStride;
+					colStride = -colStride;
+				}
+				else if (orient == Orientation.Transverse || orient == Orientation.Rotate90)
+				{
+					bp += (PrevSource.Height - 1) * rowStride;
+					lp += (lineBuffHeight - 1) * bufStride;
+					rowStride = -rowStride;
+					bufStride = -bufStride;
+				}
 
-			int cb = PrevSource.Width * bytesPerPixel;
+				nint cb = PrevSource.Width * bytesPerPixel;
+				nint stripOffs = rowStride < 0 ? (lineBuffHeight - 1) * rowStride : 0;
 
-			fixed (byte* lp = lineBuff.AsSpan())
-			{
-				for (int y = 0; y < PrevSource.Height; y++)
+				int y = 0;
+				for (; y <= PrevSource.Height - lineBuffHeight; y += lineBuffHeight)
 				{
 					Profiler.PauseTiming();
-					PrevSource.CopyPixels(new PixelArea(0, y, PrevSource.Width, 1), cb, cb, (IntPtr)lp);
+					PrevSource.CopyPixels(new PixelArea(0, y, PrevSource.Width, lineBuffHeight), lineBuffStride, lineBuff.Count, (IntPtr)lstart);
+					Profiler.ResumeTiming();
+
+					byte* op = bp + y * rowStride + stripOffs;
+
+					switch (bytesPerPixel)
+					{
+						case 1:
+							transposeStrip1(lp, op, bufStride, colStride, cb);
+							break;
+						case 3:
+							transposeStrip3(lp, op, bufStride, colStride, cb);
+							break;
+						case 4:
+							transposeStrip4(lp, op, bufStride, colStride, cb);
+							break;
+					}
+				}
+
+				for (; y < PrevSource.Height; y++)
+				{
+					Profiler.PauseTiming();
+					PrevSource.CopyPixels(new PixelArea(0, y, PrevSource.Width, 1), lineBuffStride, lineBuffStride, (IntPtr)lp);
 					Profiler.ResumeTiming();
 
 					byte* ip = lp, ipe = lp + cb;
@@ -147,15 +182,6 @@ namespace PhotoSauce.MagicScaler.Transforms
 								*op = *ip;
 
 								ip++;
-								op += colStride;
-							}
-							break;
-						case 2:
-							while (ip < ipe)
-							{
-								*(ushort*)op = *(ushort*)ip;
-
-								ip += 2;
 								op += colStride;
 							}
 							break;
@@ -183,13 +209,256 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
-		unsafe private void flipLine(byte* bp, int cb)
+		unsafe static void transposeStrip1(byte* ipb, byte* opb, nint rowStride, nint colStride, nint cb)
 		{
-			byte* pp = bp, pe = pp + cb - bytesPerPixel;
+			byte* ip = ipb, ipe = ip + cb;
+			byte* op = opb;
+
+#if HWINTRINSICS
+			if (Sse2.IsSupported && cb >= Vector128<byte>.Count)
+			{
+				ipe -= Vector128<byte>.Count;
+				do
+				{
+					byte* ipt = ip;
+					var vi0 = Sse2.LoadVector128(ipt);
+					var vi1 = Sse2.LoadVector128(ipt + rowStride);
+					ipt += rowStride * 2;
+					var vi2 = Sse2.LoadVector128(ipt);
+					var vi3 = Sse2.LoadVector128(ipt + rowStride);
+					ipt += rowStride * 2;
+
+					var vi0l = Sse2.UnpackLow (vi0, vi1).AsUInt16();
+					var vi0h = Sse2.UnpackHigh(vi0, vi1).AsUInt16();
+					var vi1l = Sse2.UnpackLow (vi2, vi3).AsUInt16();
+					var vi1h = Sse2.UnpackHigh(vi2, vi3).AsUInt16();
+
+					var vi0ll = Sse2.UnpackLow (vi0l, vi1l).AsUInt32();
+					var vi0lh = Sse2.UnpackHigh(vi0l, vi1l).AsUInt32();
+					var vi0hl = Sse2.UnpackLow (vi0h, vi1h).AsUInt32();
+					var vi0hh = Sse2.UnpackHigh(vi0h, vi1h).AsUInt32();
+
+					vi0 = Sse2.LoadVector128(ipt);
+					vi1 = Sse2.LoadVector128(ipt + rowStride);
+					ipt += rowStride * 2;
+					vi2 = Sse2.LoadVector128(ipt);
+					vi3 = Sse2.LoadVector128(ipt + rowStride);
+					ip += Vector128<byte>.Count;
+
+					vi0l = Sse2.UnpackLow (vi0, vi1).AsUInt16();
+					vi0h = Sse2.UnpackHigh(vi0, vi1).AsUInt16();
+					vi1l = Sse2.UnpackLow (vi2, vi3).AsUInt16();
+					vi1h = Sse2.UnpackHigh(vi2, vi3).AsUInt16();
+
+					var vi1ll = Sse2.UnpackLow (vi0l, vi1l).AsUInt32();
+					var vi1lh = Sse2.UnpackHigh(vi0l, vi1l).AsUInt32();
+					var vi1hl = Sse2.UnpackLow (vi0h, vi1h).AsUInt32();
+					var vi1hh = Sse2.UnpackHigh(vi0h, vi1h).AsUInt32();
+
+					store1x8Pair(op, colStride, Sse2.UnpackLow (vi0ll, vi1ll).AsUInt64());
+					op += colStride * 2;
+					store1x8Pair(op, colStride, Sse2.UnpackHigh(vi0ll, vi1ll).AsUInt64());
+					op += colStride * 2;
+					store1x8Pair(op, colStride, Sse2.UnpackLow (vi0lh, vi1lh).AsUInt64());
+					op += colStride * 2;
+					store1x8Pair(op, colStride, Sse2.UnpackHigh(vi0lh, vi1lh).AsUInt64());
+					op += colStride * 2;
+					store1x8Pair(op, colStride, Sse2.UnpackLow (vi0hl, vi1hl).AsUInt64());
+					op += colStride * 2;
+					store1x8Pair(op, colStride, Sse2.UnpackHigh(vi0hl, vi1hl).AsUInt64());
+					op += colStride * 2;
+					store1x8Pair(op, colStride, Sse2.UnpackLow (vi0hh, vi1hh).AsUInt64());
+					op += colStride * 2;
+					store1x8Pair(op, colStride, Sse2.UnpackHigh(vi0hh, vi1hh).AsUInt64());
+					op += colStride * 2;
+
+				} while (ip <= ipe);
+				ipe += Vector128<byte>.Count;
+			}
+#endif
+			while (ip < ipe)
+			{
+				byte* ipt = ip++;
+				op[0] = *(ipt);
+				op[1] = *(ipt + rowStride);
+				ipt += rowStride * 2;
+				op[2] = *(ipt);
+				op[3] = *(ipt + rowStride);
+				ipt += rowStride * 2;
+				op[4] = *(ipt);
+				op[5] = *(ipt + rowStride);
+				ipt += rowStride * 2;
+				op[6] = *(ipt);
+				op[7] = *(ipt + rowStride);
+
+				op += colStride;
+			}
+
+#if HWINTRINSICS
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			static void store1x8Pair(byte* op, nint colStride, Vector128<ulong> vec)
+			{
+				Sse2.StoreScalar((ulong*)(op), vec);
+				Sse2.StoreScalar((ulong*)(op + colStride), Sse2.ShiftRightLogical128BitLane(vec, 8));
+			}
+#endif
+		}
+
+		unsafe private static void transposeStrip3(byte* ipb, byte* opb, nint bufStride, nint colStride, nint cb)
+		{
+			byte* ip = ipb, ipe = ip + cb;
+			byte* op = opb;
+
+#if HWINTRINSICS
+			if (Ssse3.IsSupported && cb >= Vector128<byte>.Count)
+			{
+				var mask = (ReadOnlySpan<byte>)(new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0 });
+				var blendmask = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(mask)));
+				var shuf3to3x = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3To3xChan)));
+				var shuf3xto3 = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3xTo3Chan)));
+
+				ipe -= Vector128<byte>.Count;
+				do
+				{
+					var vi0 = Sse2.LoadVector128(ip);
+					var vi1 = Sse2.LoadVector128(ip + bufStride);
+					var vi2 = Sse2.LoadVector128(ip + bufStride * 2);
+					var vi3 = Sse2.LoadVector128(ip + bufStride * 3);
+					ip += Vector128<byte>.Count * 3 / 4;
+
+					vi0 = Ssse3.Shuffle(vi0, shuf3to3x);
+					vi1 = Ssse3.Shuffle(vi1, shuf3to3x);
+					vi2 = Ssse3.Shuffle(vi2, shuf3to3x);
+					vi3 = Ssse3.Shuffle(vi3, shuf3to3x);
+
+					var vi0l = Sse.Shuffle(vi0.AsSingle(), vi1.AsSingle(), HWIntrinsics.ShuffleMaskLoPairs);
+					var vi0h = Sse.Shuffle(vi0.AsSingle(), vi1.AsSingle(), HWIntrinsics.ShuffleMaskHiPairs);
+					var vi1l = Sse.Shuffle(vi2.AsSingle(), vi3.AsSingle(), HWIntrinsics.ShuffleMaskLoPairs);
+					var vi1h = Sse.Shuffle(vi2.AsSingle(), vi3.AsSingle(), HWIntrinsics.ShuffleMaskHiPairs);
+
+					var vi0e = Sse.Shuffle(vi0l, vi1l, HWIntrinsics.ShuffleMaskEvPairs).AsByte();
+					var vi0o = Sse.Shuffle(vi0l, vi1l, HWIntrinsics.ShuffleMaskOdPairs).AsByte();
+					var vi1e = Sse.Shuffle(vi0h, vi1h, HWIntrinsics.ShuffleMaskEvPairs).AsByte();
+					var vi1o = Sse.Shuffle(vi0h, vi1h, HWIntrinsics.ShuffleMaskOdPairs).AsByte();
+
+					vi0 = Ssse3.Shuffle(vi0e, shuf3xto3);
+					vi1 = Ssse3.Shuffle(vi0o, shuf3xto3);
+					vi2 = Ssse3.Shuffle(vi1e, shuf3xto3);
+					vi3 = Ssse3.Shuffle(vi1o, shuf3xto3);
+
+					store3x4(op, vi0, blendmask);
+					store3x4(op + colStride, vi1, blendmask);
+					op += colStride * 2;
+					store3x4(op, vi2, blendmask);
+					store3x4(op + colStride, vi3, blendmask);
+					op += colStride * 2;
+
+				} while (ip <= ipe);
+				ipe += Vector128<byte>.Count;
+			}
+#endif
+			while (ip < ipe)
+			{
+				*(ushort*)(op + 0) = *(ushort*)(ip);
+				*(op + 2) = *(ip + 2);
+				*(ushort*)(op + 3) = *(ushort*)(ip + bufStride);
+				*(op + 5) = *(ip + bufStride + 2);
+				*(ushort*)(op + 6) = *(ushort*)(ip + bufStride * 2);
+				*(op + 8) = *(ip + bufStride * 2 + 2);
+				*(ushort*)(op + 9) = *(ushort*)(ip + bufStride * 3);
+				*(op + 11) = *(ip + bufStride * 3 + 2);
+
+				ip += 3;
+				op += colStride;
+			}
+
+#if HWINTRINSICS
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			static void store3x4(byte* op, in Vector128<byte> vi, in Vector128<byte> vm) =>
+				Sse2.Store(op, HWIntrinsics.BlendVariable(Sse2.LoadVector128(op), vi, vm));
+#endif
+		}
+
+		unsafe private static void transposeStrip4(byte* ipb, byte* opb, nint bufStride, nint colStride, nint cb)
+		{
+			byte* ip = ipb, ipe = ip + cb;
+			byte* op = opb;
+
+#if HWINTRINSICS
+			if (Sse.IsSupported && cb >= Vector128<byte>.Count)
+			{
+				ipe -= Vector128<byte>.Count;
+				do
+				{
+					var vi0 = Sse.LoadVector128((float*)(ip));
+					var vi1 = Sse.LoadVector128((float*)(ip + bufStride));
+					var vi2 = Sse.LoadVector128((float*)(ip + bufStride * 2));
+					var vi3 = Sse.LoadVector128((float*)(ip + bufStride * 3));
+					ip += Vector128<byte>.Count;
+
+					var vi0l = Sse.Shuffle(vi0, vi1, HWIntrinsics.ShuffleMaskLoPairs);
+					var vi0h = Sse.Shuffle(vi0, vi1, HWIntrinsics.ShuffleMaskHiPairs);
+					var vi1l = Sse.Shuffle(vi2, vi3, HWIntrinsics.ShuffleMaskLoPairs);
+					var vi1h = Sse.Shuffle(vi2, vi3, HWIntrinsics.ShuffleMaskHiPairs);
+
+					var vi0e = Sse.Shuffle(vi0l, vi1l, HWIntrinsics.ShuffleMaskEvPairs);
+					var vi0o = Sse.Shuffle(vi0l, vi1l, HWIntrinsics.ShuffleMaskOdPairs);
+					var vi1e = Sse.Shuffle(vi0h, vi1h, HWIntrinsics.ShuffleMaskEvPairs);
+					var vi1o = Sse.Shuffle(vi0h, vi1h, HWIntrinsics.ShuffleMaskOdPairs);
+
+					Sse.Store((float*)(op), vi0e);
+					Sse.Store((float*)(op + colStride), vi0o);
+					op += colStride * 2;
+					Sse.Store((float*)(op), vi1e);
+					Sse.Store((float*)(op + colStride), vi1o);
+					op += colStride * 2;
+
+				} while (ip <= ipe);
+				ipe += Vector128<byte>.Count;
+			}
+#endif
+			while (ip < ipe)
+			{
+				*((uint*)op) = *(uint*)ip;
+				*((uint*)op + 1) = *(uint*)(ip + bufStride);
+				*((uint*)op + 2) = *(uint*)(ip + bufStride * 2);
+				*((uint*)op + 3) = *(uint*)(ip + bufStride * 3);
+
+				ip += sizeof(uint);
+				op += colStride;
+			}
+		}
+
+		unsafe private void flipLine(byte* bp, nint cb)
+		{
+			byte* pp = bp, pe = pp + cb;
 
 			switch (bytesPerPixel)
 			{
 				case 1:
+#if HWINTRINSICS
+					if (Ssse3.IsSupported && cb >= Vector128<byte>.Count)
+					{
+						var mask = (ReadOnlySpan<byte>)(new byte[] { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 });
+						var vshuf = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(mask)));
+
+						pe -= Vector128<byte>.Count;
+						do
+						{
+							var vs = Sse2.LoadVector128(pp);
+							var ve = Sse2.LoadVector128(pe);
+
+							Sse2.Store(pe, Ssse3.Shuffle(vs, vshuf));
+							Sse2.Store(pp, Ssse3.Shuffle(ve, vshuf));
+
+							pe -= Vector128<byte>.Count;
+							pp += Vector128<byte>.Count;
+
+						} while (pp <= pe);
+						pe += Vector128<byte>.Count;
+					}
+#endif
+					pe -= 1;
 					while (pp < pe)
 					{
 						byte t0 = *pe;
@@ -197,18 +466,34 @@ namespace PhotoSauce.MagicScaler.Transforms
 						*pp++ = t0;
 					}
 					break;
-				case 2:
-					while (pp < pe)
-					{
-						ushort t0 = *(ushort*)pe;
-						*(ushort*)pe = *(ushort*)pp;
-						*(ushort*)pp = t0;
-
-						pe -= sizeof(ushort);
-						pp += sizeof(ushort);
-					}
-					break;
 				case 3:
+#if HWINTRINSICS
+					if (Ssse3.IsSupported && cb > Vector128<byte>.Count * 2)
+					{
+						var mask = (ReadOnlySpan<byte>)(new byte[] { 0, 13, 14, 15, 10, 11, 12, 7, 8, 9, 4, 5, 6, 1, 2, 3 });
+						var vshufs = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(mask)));
+						var vshufe = Sse2.ShiftRightLogical128BitLane(vshufs, 1);
+
+						pe -= Vector128<byte>.Count;
+						do
+						{
+							var vs = Sse2.LoadVector128(pp);
+							var ve = Ssse3.Shuffle(Sse2.LoadVector128(pe), vshufe);
+
+							var vsa = Ssse3.AlignRight(vs, ve, 15);
+							var vea = Ssse3.AlignRight(ve, vs, 15);
+
+							Sse2.Store(pe, Ssse3.Shuffle(vsa, vshufs));
+							Sse2.Store(pp, Ssse3.AlignRight(vea, vea, 1));
+
+							pe -= 15;
+							pp += 15;
+
+						} while ((pe - pp) > Vector128<byte>.Count);
+						pe += Vector128<byte>.Count;
+					}
+#endif
+					pe -= 3;
 					while (pp < pe)
 					{
 						ushort t0 = *(ushort*)pe;
@@ -224,6 +509,26 @@ namespace PhotoSauce.MagicScaler.Transforms
 					}
 					break;
 				case 4:
+#if HWINTRINSICS
+					if (Sse2.IsSupported && cb >= Vector128<byte>.Count)
+					{
+						pe -= Vector128<byte>.Count;
+						do
+						{
+							var vs = Sse2.LoadVector128(pp);
+							var ve = Sse2.LoadVector128(pe);
+
+							Sse2.Store(pe, Sse2.Shuffle(vs.AsUInt32(), 0b_00_01_10_11).AsByte());
+							Sse2.Store(pp, Sse2.Shuffle(ve.AsUInt32(), 0b_00_01_10_11).AsByte());
+
+							pe -= Vector128<byte>.Count;
+							pp += Vector128<byte>.Count;
+
+						} while (pp <= pe);
+						pe += Vector128<byte>.Count;
+					}
+#endif
+					pe -= 4;
 					while (pp < pe)
 					{
 						uint t0 = *(uint*)pe;
@@ -234,24 +539,12 @@ namespace PhotoSauce.MagicScaler.Transforms
 						pp += sizeof(uint);
 					}
 					break;
-				case 16:
-					while (pp < pe)
-					{
-						Vector4 t0 = Unsafe.ReadUnaligned<Vector4>(pe);
-
-						Unsafe.WriteUnaligned(pe, Unsafe.ReadUnaligned<Vector4>(pp));
-						Unsafe.WriteUnaligned(pp, t0);
-
-						pe -= sizeof(Vector4);
-						pp += sizeof(Vector4);
-					}
-					break;
 			}
 		}
 
 		public void Dispose()
 		{
-			srcBuff?.Dispose();
+			outBuff?.Dispose();
 
 			BufferPool.Return(lineBuff);
 			lineBuff = default;
