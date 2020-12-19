@@ -24,7 +24,7 @@ namespace PhotoSauce.MagicScaler
 
 			fixed (byte* pcurr = src.Span, pprev = prev.Source.Span, pnext = next.Source.Span, penc = buffer.EncodeFrame.Source.Span)
 			{
-				int cb = src.Width * src.Format.BytesPerPixel;
+				nint cb = src.Width * src.Format.BytesPerPixel;
 				bool tfound = false;
 				uint al = (uint)src.Width, ar = al, at = 0u, ab = (uint)(src.Height - 1);
 
@@ -87,13 +87,13 @@ namespace PhotoSauce.MagicScaler
 
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		unsafe private static void denoiseLineAvx2(byte* pcurr, byte* pprev, byte* pnext, int cb)
+		unsafe private static void denoiseLineAvx2(byte* pcurr, byte* pprev, byte* pnext, nint cb)
 		{
 			byte* ip = pcurr, pp = pprev, np = pnext;
-			nuint cnt = 0, end = (nuint)cb - (nuint)Vector256<byte>.Count;
+			nint cnt = 0, end = cb - Vector256<byte>.Count;
 
-			var voffset = Vector256.Create((byte)0x80);
 			var vthresh = Vector256.Create(denoiseThreshold);
+			var vones = Avx2.CompareEqual(vthresh, vthresh);
 
 			LoopTop:
 			do
@@ -115,22 +115,17 @@ namespace PhotoSauce.MagicScaler
 				var voutmsk = Avx2.Or(vmaskp, vmaskn);
 				voutval = Avx2.Average(voutval, Avx2.BlendVariable(voutval, Avx2.Average(vprev, vnext), Avx2.And(vmaskp, vmaskn)));
 
-				var vcurrs = Avx2.Xor(vcurr, voffset).AsSByte();
-				var vprevs = Avx2.Xor(vprev, voffset).AsSByte();
-				var vnexts = Avx2.Xor(vnext, voffset).AsSByte();
-
-				var vsurlt = Avx2.And(Avx2.CompareGreaterThan(vcurrs, vprevs), Avx2.CompareGreaterThan(vcurrs, vnexts));
-				var vsurgt = Avx2.And(Avx2.CompareGreaterThan(vprevs, vcurrs), Avx2.CompareGreaterThan(vnexts, vcurrs));
-
-				voutmsk = Avx2.And(voutmsk, Avx2.Or(vsurlt, vsurgt).AsByte());
+				var vsurlt = Avx2.Xor(Avx2.CompareEqual(Avx2.Min(Avx2.Max(vprev, vnext), vcurr), vcurr), vones);
+				var vsurgt = Avx2.Xor(Avx2.CompareEqual(Avx2.Max(Avx2.Min(vprev, vnext), vcurr), vcurr), vones);
+				voutmsk = Avx2.And(voutmsk, Avx2.Or(vsurlt, vsurgt));
 				voutval = Avx2.BlendVariable(vcurr, voutval, voutmsk);
 
 				Avx.Store(ip + cnt, voutval);
-				cnt += (nuint)Vector256<byte>.Count;
+				cnt += Vector256<byte>.Count;
 
 			} while (cnt <= end);
 
-			if (cnt < end + (nuint)Vector256<byte>.Count)
+			if (cnt < end + Vector256<byte>.Count)
 			{
 				cnt = end;
 				goto LoopTop;
@@ -138,13 +133,13 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		unsafe private static void denoiseLineSse2(byte* pcurr, byte* pprev, byte* pnext, int cb)
+		unsafe private static void denoiseLineSse2(byte* pcurr, byte* pprev, byte* pnext, nint cb)
 		{
 			byte* ip = pcurr, pp = pprev, np = pnext;
-			nuint cnt = 0, end = (nuint)cb - (nuint)Vector128<byte>.Count;
+			nint cnt = 0, end = cb - Vector128<byte>.Count;
 
-			var voffset = Vector128.Create((byte)0x80);
 			var vthresh = Vector128.Create(denoiseThreshold);
+			var vones = Sse2.CompareEqual(vthresh, vthresh);
 
 			LoopTop:
 			do
@@ -166,22 +161,17 @@ namespace PhotoSauce.MagicScaler
 				var voutmsk = Sse2.Or(vmaskp, vmaskn);
 				voutval = Sse2.Average(voutval, HWIntrinsics.BlendVariable(voutval, Sse2.Average(vprev, vnext), Sse2.And(vmaskp, vmaskn)));
 
-				var vcurrs = Sse2.Xor(vcurr, voffset).AsSByte();
-				var vprevs = Sse2.Xor(vprev, voffset).AsSByte();
-				var vnexts = Sse2.Xor(vnext, voffset).AsSByte();
-
-				var vsurlt = Sse2.And(Sse2.CompareGreaterThan(vcurrs, vprevs), Sse2.CompareGreaterThan(vcurrs, vnexts));
-				var vsurgt = Sse2.And(Sse2.CompareGreaterThan(vprevs, vcurrs), Sse2.CompareGreaterThan(vnexts, vcurrs));
-
-				voutmsk = Sse2.And(voutmsk, Sse2.Or(vsurlt, vsurgt).AsByte());
+				var vsurlt = Sse2.Xor(Sse2.CompareEqual(Sse2.Min(Sse2.Max(vprev, vnext), vcurr), vcurr), vones);
+				var vsurgt = Sse2.Xor(Sse2.CompareEqual(Sse2.Max(Sse2.Min(vprev, vnext), vcurr), vcurr), vones);
+				voutmsk = Sse2.And(voutmsk, Sse2.Or(vsurlt, vsurgt));
 				voutval = HWIntrinsics.BlendVariable(vcurr, voutval, voutmsk);
 
 				Sse2.Store(ip + cnt, voutval);
-				cnt += (nuint)Vector128<byte>.Count;
+				cnt += Vector128<byte>.Count;
 
 			} while (cnt <= end);
 
-			if (cnt < end + (nuint)Vector128<byte>.Count)
+			if (cnt < end + Vector128<byte>.Count)
 			{
 				cnt = end;
 				goto LoopTop;
@@ -189,12 +179,11 @@ namespace PhotoSauce.MagicScaler
 		}
 #endif
 
-		unsafe private static void denoiseLineScalar(byte* pcurr, byte* pprev, byte* pnext, int cb)
+		unsafe private static void denoiseLineScalar(byte* pcurr, byte* pprev, byte* pnext, nint cb)
 		{
 			byte* ip = pcurr, pp = pprev, np = pnext;
-			nuint end = (nuint)cb;
 
-			for (nuint cnt = 0; cnt < end; cnt++)
+			for (nint cnt = 0; cnt < cb; cnt++)
 			{
 				int curr = ip[cnt];
 				int dprv = pp[cnt] - curr;
@@ -218,10 +207,10 @@ namespace PhotoSauce.MagicScaler
 
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		unsafe private static (uint eql, uint eqr) dedupeLineAvx2(byte* pcurr, byte* pprev, byte* penc, int cb, uint bg)
+		unsafe private static (uint eql, uint eqr) dedupeLineAvx2(byte* pcurr, byte* pprev, byte* penc, nint cb, uint bg)
 		{
 			byte* ip = pcurr, pp = pprev, op = penc;
-			nuint cnt = 0, end = (nuint)cb - (nuint)Vector256<byte>.Count;
+			nint cnt = 0, end = cb - Vector256<byte>.Count;
 
 			bool lfound = false;
 			uint eql = 0u, eqr = 0u;
@@ -237,7 +226,7 @@ namespace PhotoSauce.MagicScaler
 				vcurr = Avx2.BlendVariable(vcurr, vbg, veq);
 
 				Avx.Store(op + cnt, vcurr.AsByte());
-				cnt += (nuint)Vector256<byte>.Count;
+				cnt += Vector256<byte>.Count;
 
 				uint msk = (uint)Avx2.MoveMask(veq.AsByte());
 				if (msk == uint.MinValue)
@@ -265,7 +254,7 @@ namespace PhotoSauce.MagicScaler
 				}
 			} while (cnt <= end);
 
-			if (cnt < end + (nuint)Vector256<byte>.Count)
+			if (cnt < end + Vector256<byte>.Count)
 			{
 				uint offs = (uint)(cnt - end) / sizeof(uint);
 				if (!lfound)
@@ -279,10 +268,10 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		unsafe private static (uint eql, uint eqr) dedupeLineSse2(byte* pcurr, byte* pprev, byte* penc, int cb, uint bg)
+		unsafe private static (uint eql, uint eqr) dedupeLineSse2(byte* pcurr, byte* pprev, byte* penc, nint cb, uint bg)
 		{
 			byte* ip = pcurr, pp = pprev, op = penc;
-			nuint cnt = 0, end = (nuint)cb - (nuint)Vector128<byte>.Count;
+			nint cnt = 0, end = cb - Vector128<byte>.Count;
 
 			bool lfound = false;
 			uint eql = 0u, eqr = 0u;
@@ -298,7 +287,7 @@ namespace PhotoSauce.MagicScaler
 				vcurr = HWIntrinsics.BlendVariable(vcurr, vbg, veq);
 
 				Sse2.Store(op + cnt, vcurr.AsByte());
-				cnt += (nuint)Vector128<byte>.Count;
+				cnt += Vector128<byte>.Count;
 
 				uint msk = (uint)Sse2.MoveMask(veq.AsByte());
 				if (msk == ushort.MinValue)
@@ -326,7 +315,7 @@ namespace PhotoSauce.MagicScaler
 				}
 			} while (cnt <= end);
 
-			if (cnt < end + (nuint)Vector128<byte>.Count)
+			if (cnt < end + Vector128<byte>.Count)
 			{
 				uint offs = (uint)(cnt - end) / sizeof(uint);
 				if (!lfound)
@@ -340,21 +329,21 @@ namespace PhotoSauce.MagicScaler
 		}
 #endif
 
-		unsafe private static (uint eql, uint eqr) dedupeLineScalar(byte* pcurr, byte* pprev, byte* penc, int cb, uint bg)
+		unsafe private static (uint eql, uint eqr) dedupeLineScalar(byte* pcurr, byte* pprev, byte* penc, nint cb, uint bg)
 		{
-			uint* ip = (uint*)pcurr, pp = (uint*)pprev, op = (uint*)penc;
-			nuint end = (nuint)cb / sizeof(uint);
+			byte* ip = pcurr, pp = pprev, op = penc;
+			nint end = cb;
 
 			bool lfound = false;
 			uint eql = 0u, eqr = 0u;
 			if (pp != (byte*)0)
 				bg = 0u;
 
-			for (nuint cnt = 0; cnt < end; cnt++)
+			for (nint cnt = 0; cnt < end; cnt += sizeof(uint))
 			{
-				uint curr = ip[cnt];
-				bool peq = curr == (pp != (byte*)0 ? pp[cnt] : bg);
-				op[cnt] = peq ? bg : curr;
+				uint curr = *(uint*)(ip + cnt);
+				bool peq = curr == (pp != (byte*)0 ? *(uint*)(pp + cnt) : bg);
+				*(uint*)(op + cnt) = peq ? bg : curr;
 
 				if (!peq)
 				{

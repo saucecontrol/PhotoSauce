@@ -123,11 +123,11 @@ foreach (var t in ta) {
 		int IConvolver.Channels => channels;
 		int IConvolver.MapChannels => 1;
 
-		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
+		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
 		{
 			<#= t.interType #>* tp = (<#= t.interType #>*)tstart, tpe = (<#= t.interType #>*)(tstart + cb);
 			uint* pmapx = (uint*)mapxstart;
-			nuint tstride = (nuint)smapy * channels;
+			nint tstride = smapy * channels;
 
 			while (tp < tpe)
 			{
@@ -279,9 +279,9 @@ if (t.alpha) {
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			<#= t.pixelType #>* op = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>ostart;
-			nuint tstride = (nuint)smapy * channels, nox = (nuint)ox;
+			nint tstride = smapy * channels;
 
-			for (nuint xc = nox + (nuint)ow; nox < xc; nox++)
+			for (nint nox = ox, xc = nox + ow; nox < xc; nox++)
 			{
 				<#= t.interType #><# for (int j = 0; j < t.channels - (t.alpha ? 1 : 0); j++) {#><#= j > 0 ? "," : "" #> a<#= j #> = 0<# } if (t.alpha) { #>, aa = 0, aw = 0<# } #>;
 

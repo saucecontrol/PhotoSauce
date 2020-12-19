@@ -52,7 +52,7 @@ namespace PhotoSauce.MagicScaler
 			if (typeof(T) != typeof(float))
 				return 0;
 
-			int inc = channels == 3 ? 4 : (ksize >= 8 ? HWIntrinsics.VectorCount<T>() : 4) / channels;
+			int inc = channels == 3 ? 4 : (!HWIntrinsics.IsSupported && ksize >= 8 ? HWIntrinsics.VectorCount<T>() : 4) / channels;
 			int	pad = MathUtil.DivCeiling(ksize, inc) * inc - ksize;
 			int thresh = channels == 4 ? 1 : HWIntrinsics.IsSupported || channels == 1 ? 2 : 3;
 

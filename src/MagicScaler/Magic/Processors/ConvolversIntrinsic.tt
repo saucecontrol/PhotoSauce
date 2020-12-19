@@ -9,7 +9,7 @@ procDef[] ta = {
 		name = "4Chan",
 		channels = 4,
 		colors = 4,
-		xUnroll = 4,
+		xUnroll = 2,
 		yUnroll = 2
 	},
 	new procDef {
@@ -23,7 +23,7 @@ procDef[] ta = {
 		name = "1Chan",
 		channels = 1,
 		colors = 1,
-		xUnroll = 4,
+		xUnroll = 2,
 		yUnroll = 2
 	}
 };
@@ -52,58 +52,50 @@ foreach (var t in ta) {
 #>
 	internal sealed partial class Convolver<#= t.name #>Intrinsic : IConvolver
 	{
-		private const uint channels = <#= t.channels #>;
+		private const int channels = <#= t.channels #>;
 
 		public static readonly Convolver<#= t.name #>Intrinsic Instance = new();
 
 		private Convolver<#= t.name #>Intrinsic() { }
 
-		int IConvolver.Channels => (int)channels;
-		int IConvolver.MapChannels => (int)channels;
+		int IConvolver.Channels => channels;
+		int IConvolver.MapChannels => channels;
 
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, int cb, byte* mapxstart, int smapx, int smapy)
+		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
 		{
-			float* tp = (float*)tstart, tpe = (float*)(tstart + (nuint)cb);
+			float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
 			uint* pmapx = (uint*)mapxstart;
-			nuint kstride = (nuint)smapx * channels;
-			nuint tstride = (nuint)smapy * <#= t.channels == 3 ? "4" /* 3Chan to 3XChan x-over */ : "channels" #>;
-			nuint vcnt = kstride / (nuint)VectorSse.Count;
+			nint kstride = smapx * channels;
+			nint tstride = smapy * <#= t.channels == 3 ? "4" /* 3Chan to 3XChan x-over */ : "channels" #>;
+			nint vcnt = kstride / VectorSse.Count;
 
 			while (tp < tpe)
 			{
+				nint lcnt = vcnt;
 				nuint ix = *pmapx++;
-				nuint lcnt = vcnt;
 
 				float* ip = (float*)istart + ix * channels;
 				float* mp = (float*)(mapxstart + *pmapx++);
 
-				VectorSse av0<# for (int i = 1; t.channels == 3 && i < t.colors; i++) { #>, av<#= i #><# } #>;
-
-				if (Avx.IsSupported && lcnt >= <#= (t.channels == 3 ? 3 : 1) * 2 #>)
+				VectorSse av0<# for (int i = 1; i < (t.channels == 3 ? 3 : 2 ); i++) { #>, av<#= i #><# } #>;
+				if (Avx.IsSupported && lcnt >= <#= (t.channels == 3 ? 3 : 2) * 2 #>)
 				{
 <#
-for (int i = 0; i < (t.channels == 3 ? 3 : 1); i++) {
+for (int i = 0; i < (t.channels == 3 ? 3 : 2); i++) {
 #>
 					var ax<#= i #> = VectorAvx.Zero;
 <#
 }
 
-for (int unroll = t.xUnroll; unroll > 0; unroll -= (t.channels == 3 ? 3 : 1)) {
-	if (unroll == t.xUnroll) {
+for (int unroll = t.xUnroll; unroll > 0; unroll -= (t.channels == 3 ? 3 : 2)) {
 #>
 
-					for (; lcnt >= <#= unroll * 2 #>; lcnt -= <#= unroll * 2 #>)
-					{
-<#
-	} else {
-#>
-					<#= unroll < t.xUnroll - 1  ? "else " : "" #>if (lcnt >= <#= unroll * 2 #>)
+					do
 					{
 						lcnt -= <#= unroll * 2 #>;
 
 <#
-	}
 	for (int i = 0; i < unroll; i++) {
 #>
 						var iv<#= i #> = Avx.LoadVector256(ip<#= i != 0 ? $" + VectorAvx.Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
@@ -115,14 +107,32 @@ for (int unroll = t.xUnroll; unroll > 0; unroll -= (t.channels == 3 ? 3 : 1)) {
 <#
 	for (int i = 0; i < unroll; i++) {
 #>
-						ax<#= t.channels == 3 ? i : 0 #> = HWIntrinsics.MultiplyAdd(ax<#= t.channels == 3 ? i : 0 #>, iv<#= i #>, mp<#= i != 0 ? $" + VectorAvx.Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
+						ax<#= t.channels == 3 ? i : i % 2 #> = HWIntrinsics.MultiplyAdd(ax<#= t.channels == 3 ? i : i % 2 #>, iv<#= i #>, mp<#= i != 0 ? $" + VectorAvx.Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
 <#
 	}
 #>
 						mp += VectorAvx.Count<#= unroll > 1 ? $" * {unroll}" : "" #>;
-					}
+
+					} while (lcnt >= <#= unroll * 2 #>);
+
 <#
-	if (unroll == t.xUnroll || unroll == 1) WriteLine(null);
+	if (unroll == t.xUnroll && t.channels != 3) {
+#>
+					ax0 = Avx.Add(ax0, ax1);
+
+					if (lcnt >= 2)
+					{
+						lcnt -= 2;
+
+						var iv0 = Avx.LoadVector256(ip);
+						ip += VectorAvx.Count;
+
+						ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
+						mp += VectorAvx.Count;
+					}
+
+<#
+	}
 }
 
 if (t.channels == 3) {
@@ -140,23 +150,16 @@ if (t.channels == 3) {
 				}
 				else
 				{
-					av0<# for (int i = 1; t.channels == 3 && i < t.colors; i++) { #> = av<#= i #><# } #> = VectorSse.Zero;
+					av0<# for (int i = 1; i < (t.channels == 3 ? 3 : 2 ); i++) { #> = av<#= i #><# } #> = VectorSse.Zero;
 <#
 for (int unroll = t.xUnroll; t.channels != 3 && unroll > 0; unroll -= 2) {
-	if (unroll == t.xUnroll) {
 #>
 
-					for (; lcnt >= <#= unroll #>; lcnt -= <#= unroll #>)
-					{
-<#
-	} else {
-#>
-					<#= unroll < t.xUnroll - 2  ? "else " : "" #>if (lcnt >= <#= unroll #>)
+					while (lcnt >= <#= unroll #>)
 					{
 						lcnt -= <#= unroll #>;
 
 <#
-	}
 	for (int i = 0; i < unroll; i++) {
 #>
 						var iv<#= i #> = Sse.LoadVector128(ip<#= i != 0 ? $" + VectorSse.Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
@@ -168,14 +171,19 @@ for (int unroll = t.xUnroll; t.channels != 3 && unroll > 0; unroll -= 2) {
 <#
 	for (int i = 0; i < unroll; i++) {
 #>
-						av<#= t.channels == 3 ? i : 0 #> = HWIntrinsics.MultiplyAdd(av<#= t.channels == 3 ? i : 0 #>, iv<#= i #>, mp<#= i != 0 ? $" + VectorSse.Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
+						av<#= t.channels == 3 ? i : i % 2 #> = HWIntrinsics.MultiplyAdd(av<#= t.channels == 3 ? i : i % 2 #>, iv<#= i #>, mp<#= i != 0 ? $" + VectorSse.Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
 <#
 	}
 #>
 						mp += VectorSse.Count<#= unroll > 1 ? $" * {unroll}" : "" #>;
 					}
 <#
-	if (unroll == t.xUnroll || unroll == 1) WriteLine(null);
+}
+if (t.channels != 3) {
+#>
+
+					av0 = Sse.Add(av0, av1);
+<#
 }
 #>
 				}
@@ -184,8 +192,10 @@ for (int unroll = t.xUnroll; t.channels != 3 && unroll > 0; unroll -= 2) {
 int cxunroll = t.channels == 3 ? 3 : 1;
 if (t.channels == 3) {
 #>
-				for (; lcnt != 0; lcnt -= <#= cxunroll #>)
+				while (lcnt != 0)
 				{
+					lcnt -= <#= cxunroll #>;
+
 <#
 } else {
 #>
@@ -252,42 +262,34 @@ if (t.yUnroll > 0) {
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			float* op = (float*)ostart;
-			nuint tstride = (nuint)smapy * channels;
-			nuint vcnt = tstride / (nuint)VectorSse.Count, nox = (nuint)ox;
+			nint tstride = smapy * channels;
+			nint vcnt = tstride / VectorSse.Count;
 
-			for (nuint xc = nox + (nuint)ow; nox < xc; nox++)
+			for (nint nox = ox, xc = nox + ow; nox < xc; nox++)
 			{
-				nuint lcnt = vcnt;
+				nint lcnt = vcnt;
 
 				float* tp = (float*)tstart + nox * tstride;
 				float* mp = (float*)pmapy;
 
-				VectorSse av0<# for (int i = 1; t.channels == 3 && i < t.colors; i++) { #>, av<#= i #><# } #>;
-
-				if (Avx.IsSupported && lcnt >= <#= (t.channels == 3 ? 3 : 1) * 2 #>)
+				VectorSse av0<# for (int i = 1; i < (t.channels == 3 ? 3 : 2 ); i++) { #>, av<#= i #><# } #>;
+				if (Avx.IsSupported && lcnt >= <#= (t.channels == 3 ? 3 : 2) * 2 #>)
 				{
 <#
-for (int i = 0; i < (t.channels == 3 ? 3 : 1); i++) {
+for (int i = 0; i < (t.channels == 3 ? 3 : 2); i++) {
 #>
 					var ax<#= i #> = VectorAvx.Zero;
 <#
 }
 
-for (int unroll = t.yUnroll; unroll > 0; unroll -= (t.channels == 3 ? 3 : 1)) {
-	if (unroll == t.yUnroll) {
+for (int unroll = t.yUnroll; unroll > 0; unroll -= (t.channels == 3 ? 3 : 2)) {
 #>
 
-					for (; lcnt >= <#= unroll * 2 #>; lcnt -= <#= unroll * 2 #>)
-					{
-<#
-	} else {
-#>
-					if (lcnt >= <#= unroll * 2 #>)
+					do
 					{
 						lcnt -= <#= unroll * 2 #>;
 
 <#
-	}
 	for (int i = 0; i < unroll; i++) {
 #>
 						var iv<#= i #> = Avx.LoadVector256(tp<#= i != 0 ? $" + VectorAvx.Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
@@ -299,37 +301,48 @@ for (int unroll = t.yUnroll; unroll > 0; unroll -= (t.channels == 3 ? 3 : 1)) {
 <#
 	for (int i = 0; i < unroll; i++) {
 #>
-						ax<#= t.channels == 3 ? i : 0 #> = HWIntrinsics.MultiplyAdd(ax<#= t.channels == 3 ? i : 0 #>, iv<#= i #>, mp<#= i != 0 ? $" + VectorAvx.Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
+						ax<#= t.channels == 3 ? i : i % 2 #> = HWIntrinsics.MultiplyAdd(ax<#= t.channels == 3 ? i : i % 2 #>, iv<#= i #>, mp<#= i != 0 ? $" + VectorAvx.Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
 <#
 	}
 #>
 						mp += VectorAvx.Count<#= unroll > 1 ? $" * {unroll}" : "" #>;
-					}
+
+					} while (lcnt >= <#= unroll * 2 #>);
+
 <#
-	if (unroll == t.yUnroll || unroll == 1) WriteLine(null);
+	if (unroll == t.xUnroll && t.channels != 3) {
+#>
+					ax0 = Avx.Add(ax0, ax1);
+
+					if (lcnt >= 2)
+					{
+						lcnt -= 2;
+
+						var iv0 = Avx.LoadVector256(tp);
+						tp += VectorAvx.Count;
+
+						ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
+						mp += VectorAvx.Count;
+					}
+
+<#
+	}
 }
 #>
 					av0 = Sse.Add(ax0.GetLower(), ax0.GetUpper());
 				}
 				else
 				{
-					av0<# for (int i = 1; t.channels == 3 && i < t.colors; i++) { #> = av<#= i #><# } #> = VectorSse.Zero;
-
+					av0<# for (int i = 1; i < (t.channels == 3 ? 3 : 2 ); i++) { #> = av<#= i #><# } #> = VectorSse.Zero;
 <#
 for (int unroll = t.yUnroll; t.channels != 3 && unroll > 0; unroll -= 2) {
-	if (unroll == t.yUnroll) {
 #>
-					for (; lcnt >= <#= unroll #>; lcnt -= <#= unroll #>)
-					{
-<#
-	} else {
-#>
-					<#= unroll < t.yUnroll - 2  ? "else " : "" #>if (lcnt >= <#= unroll #>)
+
+					while (lcnt >= <#= unroll #>)
 					{
 						lcnt -= <#= unroll #>;
 
 <#
-	}
 	for (int i = 0; i < unroll; i++) {
 #>
 						var iv<#= i #> = Sse.LoadVector128(tp<#= i != 0 ? $" + VectorSse.Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
@@ -341,14 +354,19 @@ for (int unroll = t.yUnroll; t.channels != 3 && unroll > 0; unroll -= 2) {
 <#
 	for (int i = 0; i < unroll; i++) {
 #>
-						av<#= t.channels == 3 ? i : 0 #> = HWIntrinsics.MultiplyAdd(av<#= t.channels == 3 ? i : 0 #>, iv<#= i #>, mp<#= i != 0 ? $" + VectorSse.Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
+						av<#= t.channels == 3 ? i : i % 2 #> = HWIntrinsics.MultiplyAdd(av<#= t.channels == 3 ? i : i % 2 #>, iv<#= i #>, mp<#= i != 0 ? $" + VectorSse.Count{(i > 1 ? $" * {i}" : "")}" : "" #>);
 <#
 	}
 #>
 						mp += VectorSse.Count<#= unroll > 1 ? $" * {unroll}" : "" #>;
 					}
 <#
-	if (unroll == t.yUnroll && unroll != 2) WriteLine(null);
+}
+if (t.channels != 3) {
+#>
+
+					av0 = Sse.Add(av0, av1);
+<#
 }
 #>
 				}

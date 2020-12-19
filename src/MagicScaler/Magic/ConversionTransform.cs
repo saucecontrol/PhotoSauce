@@ -19,8 +19,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 			processor = null!;
 
 			Format = destFormat;
-			lineBuff = BufferPool.Rent(BufferStride, true);
-			lineBuff.AsSpan().Clear();
+			if (srcFormat.BitsPerPixel != Format.BitsPerPixel)
+			{
+				lineBuff = BufferPool.Rent(BufferStride, true);
+				lineBuff.AsSpan().Clear();
+			}
 
 			if (srcFormat.ColorRepresentation == PixelColorRepresentation.Cmyk && srcFormat.BitsPerPixel == 64 && Format.BitsPerPixel == 32)
 			{
@@ -102,7 +105,15 @@ namespace PhotoSauce.MagicScaler.Transforms
 				throw new NotSupportedException("Unsupported pixel format");
 		}
 
-		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		{
+			if (PrevSource.Format.BitsPerPixel != Format.BitsPerPixel)
+				copyPixelsBuffered(prc, cbStride, cbBufferSize, pbBuffer);
+			else
+				copyPixelsDirect(prc, cbStride, cbBufferSize, pbBuffer);
+		}
+
+		unsafe private void copyPixelsBuffered(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			if (lineBuff.Array is null) throw new ObjectDisposedException(nameof(ConversionTransform));
 
@@ -119,6 +130,22 @@ namespace PhotoSauce.MagicScaler.Transforms
 					byte* op = (byte*)pbBuffer + y * cbStride;
 					processor.ConvertLine(bstart, op, cb);
 				}
+			}
+		}
+
+		unsafe private void copyPixelsDirect(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		{
+			int cb = MathUtil.DivCeiling(prc.Width * PrevSource.Format.BitsPerPixel, 8);
+
+			for (int y = 0; y < prc.Height; y++)
+			{
+				byte* op = (byte*)pbBuffer + y * cbStride;
+
+				Profiler.PauseTiming();
+				PrevSource.CopyPixels(new PixelArea(prc.X, prc.Y + y, prc.Width, 1), cbStride, cb, (IntPtr)op);
+				Profiler.ResumeTiming();
+
+				processor.ConvertLine(op, op, cb);
 			}
 		}
 

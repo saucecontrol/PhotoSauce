@@ -49,7 +49,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			private Change1to3Chan() { }
 
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
 			{
 				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
 
@@ -68,7 +68,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					var vmask2 = Sse2.LoadVector128(pmask + Vector128<byte>.Count * 2);
 
 					ipe -= Vector128<byte>.Count;
-					while (ip <= ipe)
+					do
 					{
 						var v0 = Sse2.LoadVector128((byte*)ip);
 						ip += Vector128<byte>.Count;
@@ -77,7 +77,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 						Sse2.Store((byte*)op + Vector128<byte>.Count, Ssse3.Shuffle(v0, vmask1));
 						Sse2.Store((byte*)op + Vector128<byte>.Count * 2, Ssse3.Shuffle(v0, vmask2));
 						op += Vector128<byte>.Count * 3;
-					}
+
+					} while (ip <= ipe);
 					ipe += Vector128<byte>.Count;
 				}
 #endif
@@ -101,7 +102,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			private Change1to4Chan() { }
 
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
 			{
 				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
 				var alpha = maxalpha;
@@ -112,7 +113,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					var vfill = Vector128.Create(byte.MaxValue);
 
 					ipe -= Vector128<byte>.Count;
-					while (ip <= ipe)
+					do
 					{
 						var v0 = Sse2.LoadVector128((byte*)ip);
 						ip += Vector128<byte>.Count;
@@ -127,7 +128,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 						Sse2.Store((byte*)op + Vector128<byte>.Count * 2, Sse2.UnpackLow(vlh, vhh));
 						Sse2.Store((byte*)op + Vector128<byte>.Count * 3, Sse2.UnpackHigh(vlh, vhh));
 						op += Vector128<byte>.Count * 4;
-					}
+
+					} while (ip <= ipe);
 					ipe += Vector128<byte>.Count;
 				}
 #endif
@@ -152,7 +154,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			private Change3to1Chan() { }
 
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
 			{
 				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
 
@@ -171,7 +173,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					var vmask2 = Sse2.LoadVector128(pmask + Vector128<byte>.Count * 2);
 
 					ipe -= Vector128<byte>.Count * 3;
-					while (ip <= ipe)
+					do
 					{
 						var v0 = Sse2.LoadVector128((byte*)ip);
 						var v1 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count);
@@ -182,7 +184,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 						Sse2.Store((byte*)op, v0);
 						op += Vector128<byte>.Count;
-					}
+
+					} while (ip <= ipe);
 					ipe += Vector128<byte>.Count * 3;
 				}
 #endif
@@ -204,7 +207,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			private Change3to4Chan() { }
 
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
 			{
 				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
 				var alpha = maxalpha;
@@ -216,7 +219,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					var vfill = Vector128.Create(0xff000000u).AsByte();
 
 					ipe -= Vector128<byte>.Count * 3;
-					while (ip <= ipe)
+					do
 					{
 						var v0 = Sse2.LoadVector128((byte*)ip);
 						var v1 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count);
@@ -237,7 +240,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 						Sse2.Store((byte*)op + Vector128<byte>.Count * 2, v2);
 						Sse2.Store((byte*)op + Vector128<byte>.Count * 3, v3);
 						op += Vector128<byte>.Count * 4;
-					}
+
+					} while (ip <= ipe);
 					ipe += Vector128<byte>.Count * 3;
 				}
 #endif
@@ -262,7 +266,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			private Change4to1Chan() { }
 
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
 			{
 				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
 
@@ -273,7 +277,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					var vmask = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(mask)));
 
 					ipe -= Vector128<byte>.Count * 4;
-					while (ip <= ipe)
+					do
 					{
 						var v0 = Sse2.LoadVector128((byte*)ip);
 						var v1 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count);
@@ -291,7 +295,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 						Sse2.Store((byte*)op, Sse2.UnpackLow(vl, vh).AsByte());
 						op += Vector128<byte>.Count;
-					}
+
+					} while (ip <= ipe);
 					ipe += Vector128<byte>.Count * 4;
 				}
 #endif
@@ -313,7 +318,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			private Change4to3Chan() { }
 
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
 			{
 				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
 
@@ -324,7 +329,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					var vmaske = Ssse3.AlignRight(vmasko, vmasko, 12).AsByte();
 
 					ipe -= Vector128<byte>.Count * 4;
-					while (ip <= ipe)
+					do
 					{
 						var v0 = Sse2.LoadVector128((byte*)ip);
 						var v1 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count);
@@ -345,7 +350,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 						Sse2.Store((byte*)op + Vector128<byte>.Count, v1);
 						Sse2.Store((byte*)op + Vector128<byte>.Count * 2, v2);
 						op += Vector128<byte>.Count * 3;
-					}
+
+					} while (ip <= ipe);
 					ipe += Vector128<byte>.Count * 4;
 				}
 #endif

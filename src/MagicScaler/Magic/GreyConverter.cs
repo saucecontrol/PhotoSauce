@@ -83,7 +83,7 @@ namespace PhotoSauce.MagicScaler
 				throw new NotSupportedException("Unsupported pixel format");
 		}
 
-		unsafe private static void bgrToGreyByte(byte* ipstart, byte* opstart, int cb)
+		unsafe private static void bgrToGreyByte(byte* ipstart, byte* opstart, nint cb)
 		{
 			byte* ip = ipstart, ipe = ipstart + cb - 3, op = opstart;
 
@@ -97,7 +97,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private static void bgrToGreyUQ15(byte* ipstart, byte* opstart, int cb)
+		unsafe private static void bgrToGreyUQ15(byte* ipstart, byte* opstart, nint cb)
 		{
 			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15[0])
 			{
@@ -115,7 +115,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private static void bgrToGreyFloat(byte* ipstart, byte* opstart, int cb, bool linear)
+		unsafe private static void bgrToGreyFloat(byte* ipstart, byte* opstart, nint cb, bool linear)
 		{
 			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - 3, op = (float*)opstart;
 			var clum = linear ? Rec709Luma.Coefficients : Rec601Luma.Coefficients;
@@ -131,7 +131,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private static void bgrxToGreyByte(byte* ipstart, byte* opstart, int cb)
+		unsafe private static void bgrxToGreyByte(byte* ipstart, byte* opstart, nint cb)
 		{
 			byte* ip = ipstart, ipe = ipstart + cb - 4, op = opstart;
 
@@ -145,7 +145,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private static void bgrxToGreyUQ15(byte* ipstart, byte* opstart, int cb)
+		unsafe private static void bgrxToGreyUQ15(byte* ipstart, byte* opstart, nint cb)
 		{
 			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15[0])
 			{
@@ -163,7 +163,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private static void bgrxToGreyFloat(byte* ipstart, byte* opstart, int cb, bool linear)
+		unsafe private static void bgrxToGreyFloat(byte* ipstart, byte* opstart, nint cb, bool linear)
 		{
 			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - 4, op = (float*)opstart;
 			var clum = new Vector4(linear ? Rec709Luma.Coefficients : Rec601Luma.Coefficients, 0f);
@@ -175,7 +175,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private static void greyLinearToGreyUQ15(byte* ipstart, byte* opstart, int cb)
+		unsafe private static void greyLinearToGreyUQ15(byte* ipstart, byte* opstart, nint cb)
 		{
 			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15[0])
 			{
@@ -183,14 +183,14 @@ namespace PhotoSauce.MagicScaler
 				byte* gt = gtstart;
 
 				while (ip < ipe)
-					*op++ = gt[(uint)ClampToUQ15One((uint)*ip++)];
+					*op++ = gt[(nuint)ClampToUQ15One((uint)*ip++)];
 			}
 		}
 
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-		unsafe private static void greyLinearToGreyFloat(byte* ipstart, byte* opstart, int cb)
+		unsafe private static void greyLinearToGreyFloat(byte* ipstart, byte* opstart, nint cb)
 		{
 			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb), op = (float*)opstart;
 

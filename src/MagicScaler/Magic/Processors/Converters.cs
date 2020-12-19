@@ -14,7 +14,7 @@ namespace PhotoSauce.MagicScaler
 
 	internal interface IConversionProcessor
 	{
-		unsafe void ConvertLine(byte* istart, byte* ostart, int cb);
+		unsafe void ConvertLine(byte* istart, byte* ostart, nint cb);
 	}
 
 	internal interface IConversionProcessor<TFrom, TTo> : IConversionProcessor where TFrom : unmanaged where TTo : unmanaged { }
@@ -34,7 +34,7 @@ namespace PhotoSauce.MagicScaler
 
 		private NarrowingConverter() { }
 
-		unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, int cb)
+		unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
 			ushort* ip = (ushort*)istart, ipe = (ushort*)(istart + cb);
 			byte* op = ostart;
@@ -138,7 +138,7 @@ namespace PhotoSauce.MagicScaler
 
 		private VideoLevelsConverter() { }
 
-		unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, int cb)
+		unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
 			byte* ip = istart, ipe = istart + cb - 4;
 			byte* op = ostart;
@@ -182,7 +182,7 @@ namespace PhotoSauce.MagicScaler
 
 		private sealed class NoopProcessor : IConversionProcessor<float, float>
 		{
-			unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, int cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
 				if (istart != ostart)
 					Buffer.MemoryCopy(istart, ostart, cb, cb);
@@ -205,7 +205,7 @@ namespace PhotoSauce.MagicScaler
 
 		private sealed class UQ15Processor : IConversionProcessor<ushort, byte>
 		{
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
 			{
 				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb) - 4;
 				byte* op = opstart;
@@ -237,7 +237,7 @@ namespace PhotoSauce.MagicScaler
 
 		private sealed class UQ15Processor3A : IConversionProcessor<ushort, byte>
 		{
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, int cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
 			{
 				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb);
 				byte* op = opstart;
