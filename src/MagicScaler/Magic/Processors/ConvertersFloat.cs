@@ -17,11 +17,11 @@ namespace PhotoSauce.MagicScaler
 	{
 		public sealed class Widening : IConverter<byte, float>
 		{
-			public static readonly Widening InstanceFullRange = new ();
-			public static readonly Widening InstanceVideoRange = new (videoRange: true);
+			public static readonly Widening InstanceFullRange = new();
+			public static readonly Widening InstanceVideoRange = new(videoRange: true);
 
-			private static readonly WideningImpl3A processor3A = new ();
-			private static readonly WideningImpl3X processor3X = new ();
+			private static readonly WideningImpl3A processor3A = new();
+			private static readonly WideningImpl3X processor3X = new();
 
 			private readonly WideningImpl processor;
 
@@ -34,11 +34,11 @@ namespace PhotoSauce.MagicScaler
 
 		public sealed class Narrowing : IConverter<float, byte>
 		{
-			public static readonly Narrowing Instance = new ();
+			public static readonly Narrowing Instance = new();
 
-			private static readonly NarrowingImpl processor = new ();
-			private static readonly NarrowingImpl3A processor3A = new ();
-			private static readonly NarrowingImpl3X processor3X = new ();
+			private static readonly NarrowingImpl processor = new();
+			private static readonly NarrowingImpl3A processor3A = new();
+			private static readonly NarrowingImpl3X processor3X = new();
 
 			private Narrowing() { }
 

@@ -23,13 +23,13 @@ namespace PhotoSauce.MagicScaler
 			public CacheNode(TKey key, TValue value) => (Key, Value) = (key, value);
 		}
 
-		private readonly object sync = new ();
+		private readonly object sync = new();
 
 		private CacheNode? head;
 		private CacheNode? tail;
 		private volatile int count;
 
-		private bool tryGetInternal(TKey key, [MaybeNullWhen(false)] out TValue value)
+		private bool tryGetInternal(TKey key, [NotNullWhen(true)] out TValue? value)
 		{
 			for (var curr = head; curr is not null; curr = curr.Next)
 			{
@@ -77,11 +77,11 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			value = default!;
+			value = default;
 			return false;
 		}
 
-		public bool TryGet(TKey key, [MaybeNullWhen(false)] out TValue value)
+		public bool TryGet(TKey key, [NotNullWhen(true)] out TValue? value)
 		{
 			lock (sync)
 			{

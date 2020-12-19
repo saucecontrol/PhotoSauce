@@ -2,7 +2,8 @@
 
 	<PropertyGroup>
 		<VersionPrefix>0.0.1</VersionPrefix>
-		<TargetFrameworks>net461;net472;netcoreapp2.1;netcoreapp3.1;net5.0;netstandard2.0;netstandard2.1</TargetFrameworks>
+		<TargetFrameworks>net472;netcoreapp3.1;net5.0</TargetFrameworks>
+		<TargetFrameworks Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">$(TargetFrameworks);net461;netcoreapp2.1;netstandard2.0;netstandard2.1</TargetFrameworks>
 	</PropertyGroup>
 
 	<ItemGroup>

@@ -13,7 +13,7 @@ namespace PhotoSauce.WebRSize
 	{
 		public static class CompletedTask<T> { public static readonly Task<T> Default = Task.FromResult(default(T)); }
 
-		private static readonly ConcurrentDictionary<string, object> cacheItemLocks = new ();
+		private static readonly ConcurrentDictionary<string, object> cacheItemLocks = new();
 
 		public static CacheDependency MakeVirtualPathDependency(params string[] paths) => HostingEnvironment.VirtualPathProvider.GetCacheDependency(string.Empty, paths, DateTime.UtcNow);
 

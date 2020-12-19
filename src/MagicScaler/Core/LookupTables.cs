@@ -16,7 +16,7 @@ namespace PhotoSauce.MagicScaler
 		public const int GammaLengthFloat = GammaScaleFloat + 2;
 		public const int InverseGammaLength = InverseGammaScale + 2;
 
-		private static readonly Lazy<float[]> alphaTable = new (() => {
+		private static readonly Lazy<float[]> alphaTable = new(() => {
 			var at = new float[InverseGammaLength];
 
 			for (int i = 0; i < at.Length; i++)
@@ -27,7 +27,7 @@ namespace PhotoSauce.MagicScaler
 			return at;
 		});
 
-		private static readonly Lazy<int[]> inverseAlphaTable = new (() => {
+		private static readonly Lazy<int[]> inverseAlphaTable = new(() => {
 			var iat = new int[1024];
 			int scale = (iat.Length / 2 - 1) << 22;
 
@@ -42,7 +42,7 @@ namespace PhotoSauce.MagicScaler
 		});
 
 		//http://www.w3.org/Graphics/Color/srgb
-		private static readonly Lazy<Tuple<float[], byte[]>> gammaTable = new (() => {
+		private static readonly Lazy<Tuple<float[], byte[]>> gammaTable = new(() => {
 			var gt = new float[GammaLengthFloat];
 
 			for (int i = 0; i < gt.Length; i++)
@@ -61,7 +61,7 @@ namespace PhotoSauce.MagicScaler
 			return Tuple.Create(gt, MakeUQ15Gamma(gt));
 		});
 
-		private static readonly Lazy<Tuple<float[], ushort[]>> inverseGammaTable = new (() => {
+		private static readonly Lazy<Tuple<float[], ushort[]>> inverseGammaTable = new(() => {
 			var igtf = new float[InverseGammaLength];
 			var igtq = new ushort[InverseGammaLength];
 
@@ -83,7 +83,7 @@ namespace PhotoSauce.MagicScaler
 			return Tuple.Create(igtf, igtq);
 		});
 
-		private static readonly Lazy<uint[]> octreeIndexTable = new (() => {
+		private static readonly Lazy<uint[]> octreeIndexTable = new(() => {
 			var oit = new uint[256 * 3];
 
 			for (uint i = 0; i < 256; i++)

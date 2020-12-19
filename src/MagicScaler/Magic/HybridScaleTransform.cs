@@ -55,7 +55,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					int iih = Math.Min(ih, PrevSource.Height - iy);
 
 					Profiler.PauseTiming();
-					PrevSource.CopyPixels(new PixelArea(prc.X * scale, iy, iiw, iih), (int)stride, lineBuff.Count, (IntPtr)bstart);
+					PrevSource.CopyPixels(new PixelArea(prc.X * scale, iy, iiw, iih), stride, lineBuff.Count, (IntPtr)bstart);
 					Profiler.ResumeTiming();
 
 					for (int i = 0; iiw < iw && i < iih; i++)

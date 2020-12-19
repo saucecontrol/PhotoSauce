@@ -52,7 +52,7 @@ foreach (var t in ta) {
 		private const uint channels = <#= t.channels #>;
 		private const uint vector4Count = 4;
 
-		public static readonly Convolver<#= t.name #>Vector Instance = new ();
+		public static readonly Convolver<#= t.name #>Vector Instance = new();
 
 		private Convolver<#= t.name #>Vector() { }
 

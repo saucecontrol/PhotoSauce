@@ -113,20 +113,19 @@ namespace PhotoSauce.Interop.Wic
 
 		public static bool TryGetMetadataByName(this IWICMetadataQueryReader meta, string name, [NotNullWhen(true)] out PropVariant? value)
 		{
+			value = null;
+
 			int hr = ProxyFunctions.GetMetadataByName(meta, name, IntPtr.Zero);
-			if (hr < 0)
+			if (hr >= 0)
 			{
-				value = null;
-				return false;
+				value = new PropVariant();
+
+				var pvMarshal = PropVariant.Marshaler.GetInstance(null);
+				var pvNative = pvMarshal.MarshalManagedToNative(value);
+				hr = ProxyFunctions.GetMetadataByName(meta, name, pvNative);
+				pvMarshal.MarshalNativeToManaged(pvNative);
+				pvMarshal.CleanUpNativeData(pvNative);
 			}
-
-			value = new PropVariant();
-
-			var pvMarshal = PropVariant.Marshaler.GetInstance(null);
-			var pvNative = pvMarshal.MarshalManagedToNative(value);
-			hr = ProxyFunctions.GetMetadataByName(meta, name, pvNative);
-			pvMarshal.MarshalNativeToManaged(pvNative);
-			pvMarshal.CleanUpNativeData(pvNative);
 
 			return hr >= 0;
 		}
@@ -156,10 +155,9 @@ namespace PhotoSauce.Interop.Wic
 			return hr >= 0;
 		}
 
-		[return: MaybeNull]
-		public static T GetValueOrDefault<T>(this IWICMetadataQueryReader meta, string name)
+		public static T? GetValueOrDefault<T>(this IWICMetadataQueryReader meta, string name)
 		{
-			if (meta.TryGetMetadataByName(name, out var pv) && pv.TryGetValue(out T val))
+			if (meta.TryGetMetadataByName(name, out var pv) && pv.TryGetValue(out T? val))
 				return val;
 
 			return default;

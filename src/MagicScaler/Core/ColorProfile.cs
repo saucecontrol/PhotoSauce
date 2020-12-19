@@ -19,7 +19,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		internal static class Cache
 		{
-			private static readonly ConcurrentDictionary<Guid, WeakReference<ColorProfile>> dic = new ();
+			private static readonly ConcurrentDictionary<Guid, WeakReference<ColorProfile>> dic = new();
 
 			private static ColorProfile addOrUpdate(Guid guid, ReadOnlySpan<byte> bytes)
 			{
@@ -56,32 +56,32 @@ namespace PhotoSauce.MagicScaler
 
 		private static class IccStrings
 		{
-			public const uint acsp = 0x61637370u;
-			public const uint RGB  = 0x52474220u;
-			public const uint GRAY = 0x47524159u;
-			public const uint CMYK = 0x434d594bu;
-			public const uint XYZ  = 0x58595a20u;
-			public const uint Lab  = 0x4C616220u;
+			public const uint acsp = 'a' << 24 | 'c' << 16 | 's' << 8 | 'p';
+			public const uint RGB  = 'R' << 24 | 'G' << 16 | 'B' << 8 | ' ';
+			public const uint GRAY = 'G' << 24 | 'R' << 16 | 'A' << 8 | 'Y';
+			public const uint CMYK = 'C' << 24 | 'M' << 16 | 'Y' << 8 | 'K';
+			public const uint XYZ  = 'X' << 24 | 'Y' << 16 | 'Z' << 8 | ' ';
+			public const uint Lab  = 'L' << 24 | 'a' << 16 | 'b' << 8 | ' ';
 		}
 
 		private static class IccTags
 		{
-			public const uint bXYZ = 0x6258595au;
-			public const uint gXYZ = 0x6758595au;
-			public const uint rXYZ = 0x7258595au;
-			public const uint bTRC = 0x62545243u;
-			public const uint gTRC = 0x67545243u;
-			public const uint rTRC = 0x72545243u;
-			public const uint kTRC = 0x6b545243u;
-			public const uint A2B0 = 0x41324230u;
-			public const uint B2A0 = 0x42324130u;
+			public const uint bXYZ = 'b' << 24 | 'X' << 16 | 'Y' << 8 | 'Z';
+			public const uint gXYZ = 'g' << 24 | 'X' << 16 | 'Y' << 8 | 'Z';
+			public const uint rXYZ = 'r' << 24 | 'X' << 16 | 'Y' << 8 | 'Z';
+			public const uint bTRC = 'b' << 24 | 'T' << 16 | 'R' << 8 | 'C';
+			public const uint gTRC = 'g' << 24 | 'T' << 16 | 'R' << 8 | 'C';
+			public const uint rTRC = 'r' << 24 | 'T' << 16 | 'R' << 8 | 'C';
+			public const uint kTRC = 'k' << 24 | 'T' << 16 | 'R' << 8 | 'C';
+			public const uint A2B0 = 'A' << 24 | '2' << 16 | 'B' << 8 | '0';
+			public const uint B2A0 = 'B' << 24 | '2' << 16 | 'A' << 8 | '0';
 		}
 
 		private static class IccTypes
 		{
-			public const uint XYZ  = 0x58595a20u;
-			public const uint curv = 0x63757276u;
-			public const uint para = 0x70617261u;
+			public const uint XYZ  = 'X' << 24 | 'Y' << 16 | 'Z' << 8 | ' ';
+			public const uint curv = 'c' << 24 | 'u' << 16 | 'r' << 8 | 'v';
+			public const uint para = 'p' << 24 | 'a' << 16 | 'r' << 8 | 'a';
 		}
 
 		internal enum ProfileColorSpace
@@ -94,9 +94,9 @@ namespace PhotoSauce.MagicScaler
 			Lab
 		}
 
-		private static readonly ColorProfile invalidProfile = new ();
+		private static readonly ColorProfile invalidProfile = new();
 
-		private static readonly Lazy<MatrixProfile> srgb = new (() => {
+		private static readonly Lazy<MatrixProfile> srgb = new(() => {
 			var m = new Matrix4x4(
 				0.43602939f, 0.22243797f, 0.01389754f, 0,
 				0.38510027f, 0.71694100f, 0.09707674f, 0,
@@ -109,11 +109,11 @@ namespace PhotoSauce.MagicScaler
 			return new MatrixProfile(IccProfiles.sRgbV4.Value, m, im, curve, ProfileColorSpace.Rgb, ProfileColorSpace.Xyz);
 		});
 
-		private static readonly Lazy<CurveProfile> sgrey = new (() =>
+		private static readonly Lazy<CurveProfile> sgrey = new(() =>
 			new CurveProfile(IccProfiles.sGreyV4.Value, sRGB.Curve, ProfileColorSpace.Grey, ProfileColorSpace.Xyz)
 		);
 
-		private static readonly Lazy<MatrixProfile> adobeRgb = new (() => {
+		private static readonly Lazy<MatrixProfile> adobeRgb = new(() => {
 			var m = new Matrix4x4(
 				0.60974189f, 0.31111293f, 0.01946551f, 0,
 				0.20527343f, 0.62567449f, 0.06087462f, 0,
@@ -126,7 +126,7 @@ namespace PhotoSauce.MagicScaler
 			return new MatrixProfile(IccProfiles.AdobeRgb.Value, m, im, curve, ProfileColorSpace.Rgb, ProfileColorSpace.Xyz);
 		});
 
-		private static readonly Lazy<MatrixProfile> displayP3 = new (() => {
+		private static readonly Lazy<MatrixProfile> displayP3 = new(() => {
 			var m = new Matrix4x4(
 				0.51511960f, 0.24118953f, -0.00105045f, 0,
 				0.29197886f, 0.69224341f,  0.04187909f, 0,
@@ -643,7 +643,7 @@ namespace PhotoSauce.MagicScaler
 
 	internal class CurveProfile : ColorProfile
 	{
-		private readonly ConcurrentDictionary<(Type, Type, ConverterDirection, bool), IConverter> converterCache = new ();
+		private readonly ConcurrentDictionary<(Type, Type, ConverterDirection, bool), IConverter> converterCache = new();
 
 		public bool IsLinear { get; }
 		public ProfileCurve Curve { get; }
@@ -728,12 +728,12 @@ namespace PhotoSauce.MagicScaler
 			return buff;
 		}
 
-		public static readonly Lazy<byte[]> sRgbV4 = new (() => getResourceBinary("sRGB-v4.icc"));
-		public static readonly Lazy<byte[]> sRgbCompact = new (() => getResourceBinary("sRGB-v2-micro.icc"));
-		public static readonly Lazy<byte[]> sGreyV4 = new (() => getResourceBinary("sGrey-v4.icc"));
-		public static readonly Lazy<byte[]> sGreyCompact = new (() => getResourceBinary("sRGB-v2-micro.icc"));
-		public static readonly Lazy<byte[]> AdobeRgb = new (() => getResourceBinary("AdobeCompat-v2.icc"));
-		public static readonly Lazy<byte[]> DisplayP3V4 = new (() => getResourceBinary("DisplayP3Compat-v4.icc"));
-		public static readonly Lazy<byte[]> DisplayP3Compact = new (() => getResourceBinary("DisplayP3Compat-v2-micro.icc"));
+		public static readonly Lazy<byte[]> sRgbV4 = new(() => getResourceBinary("sRGB-v4.icc"));
+		public static readonly Lazy<byte[]> sRgbCompact = new(() => getResourceBinary("sRGB-v2-micro.icc"));
+		public static readonly Lazy<byte[]> sGreyV4 = new(() => getResourceBinary("sGrey-v4.icc"));
+		public static readonly Lazy<byte[]> sGreyCompact = new(() => getResourceBinary("sRGB-v2-micro.icc"));
+		public static readonly Lazy<byte[]> AdobeRgb = new(() => getResourceBinary("AdobeCompat-v2.icc"));
+		public static readonly Lazy<byte[]> DisplayP3V4 = new(() => getResourceBinary("DisplayP3Compat-v4.icc"));
+		public static readonly Lazy<byte[]> DisplayP3Compact = new(() => getResourceBinary("DisplayP3Compat-v2-micro.icc"));
 	}
 }

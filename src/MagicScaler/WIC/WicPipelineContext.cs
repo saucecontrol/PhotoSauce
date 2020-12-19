@@ -9,7 +9,7 @@ namespace PhotoSauce.MagicScaler
 {
 	internal sealed class WicPipelineContext : IDisposable
 	{
-		private readonly ComHandleCollection comHandles = new (capacity: 4);
+		private readonly ComHandleCollection comHandles = new(capacity: 4);
 		private SafeHandle? unmanagedMemory = null;
 
 		public IWICColorContext? SourceColorContext { get; set; }
@@ -104,7 +104,7 @@ namespace PhotoSauce.MagicScaler
 			public ComDisposer(object obj)
 			{
 				Debug.Assert(Marshal.IsComObject(obj), "Not a COM object");
-				if (!(obj is T com)) throw new ArgumentException("Interface not supported: " + typeof(T).Name, nameof(obj));
+				if (obj is not T com) throw new ArgumentException("Interface not supported: " + typeof(T).Name, nameof(obj));
 
 				ComObject = com;
 			}
@@ -116,8 +116,8 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		public static ComDisposer<T> Wrap<T>(T obj) where T : class => new ComDisposer<T>(obj);
+		public static ComDisposer<T> Wrap<T>(T obj) where T : class => new(obj);
 
-		public static ComDisposer<T> QueryInterface<T>(object obj) where T : class => new ComDisposer<T>(obj);
+		public static ComDisposer<T> QueryInterface<T>(object obj) where T : class => new(obj);
 	}
 }

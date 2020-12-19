@@ -18,7 +18,7 @@ namespace PhotoSauce.MagicScaler
 		public const double R = 0.299;
 		public const double B = 0.114;
 		public const double G = 1 - R - B;
-		public static readonly Vector3 Coefficients = new ((float)B, (float)G, (float)R);
+		public static readonly Vector3 Coefficients = new((float)B, (float)G, (float)R);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte FromBgr(byte b, byte g, byte r)
@@ -36,7 +36,7 @@ namespace PhotoSauce.MagicScaler
 		public const double R = 0.2126;
 		public const double B = 0.0722;
 		public const double G = 1 - R - B;
-		public static readonly Vector3 Coefficients = new ((float)B, (float)G, (float)R);
+		public static readonly Vector3 Coefficients = new((float)B, (float)G, (float)R);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ushort FromBgr(ushort b, ushort g, ushort r)

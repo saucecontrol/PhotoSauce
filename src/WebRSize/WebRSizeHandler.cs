@@ -15,14 +15,14 @@ namespace PhotoSauce.WebRSize
 	/// <summary>An <see cref="IHttpHandler" /> implementation that performs a dynamic image processing operation, returns the result to the client, and queues caching the result.</summary>
 	public class WebRSizeHandler : HttpTaskAsyncHandler
 	{
-		internal static WebRSizeHandler Instance = new ();
+		internal static WebRSizeHandler Instance = new();
 
 		private struct QueueReleaser : IDisposable { public void Dispose() => semaphore.Release(); }
 
 		private static readonly bool diskCacheEnabled = WebRSizeConfig.Current.DiskCache.Enabled;
-		private static readonly SemaphoreSlim semaphore = new (Environment.ProcessorCount, Environment.ProcessorCount);
-		private static readonly ConcurrentDictionary<string, Task<ArraySegment<byte>>> tdic = new ();
-		private static readonly Lazy<Type> mpbvfType = new (() => Assembly.GetAssembly(typeof(HostingEnvironment)).GetType("System.Web.Hosting.MapPathBasedVirtualFile", true));
+		private static readonly SemaphoreSlim semaphore = new(Environment.ProcessorCount, Environment.ProcessorCount);
+		private static readonly ConcurrentDictionary<string, Task<ArraySegment<byte>>> tdic = new();
+		private static readonly Lazy<Type> mpbvfType = new(() => Assembly.GetAssembly(typeof(HostingEnvironment)).GetType("System.Web.Hosting.MapPathBasedVirtualFile", true));
 
 		private static Task<QueueReleaser> enterWorkQueueAsync()
 		{

@@ -14,8 +14,8 @@
 			<PropertyGroup>
 				<NetCoreVersion>0</NetCoreVersion>
 				<NetFrameworkVersion>$([System.Text.RegularExpressions.Regex]::Match($(TargetFramework), `^net(\d+)$`).Groups[1].Value)</NetFrameworkVersion>
-				<NetFrameworkVersion Condition="$(NetFrameworkVersion.Length)==2">$(NetFrameworkVersion[0]).$(NetFrameworkVersion[1])</NetFrameworkVersion>
 				<NetFrameworkVersion Condition="$(NetFrameworkVersion.Length)==3">$(NetFrameworkVersion[0]).$(NetFrameworkVersion[1]).$(NetFrameworkVersion[2])</NetFrameworkVersion>
+				<NetFrameworkVersion Condition="$(NetFrameworkVersion.Length)==2">$(NetFrameworkVersion[0]).$(NetFrameworkVersion[1])</NetFrameworkVersion>
 				<NetStandardVersion Condition="$([MSBuild]::VersionLessThan($(NetFrameworkVersion), '4.5'))">0</NetStandardVersion>
 				<NetStandardVersion Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetFrameworkVersion), '4.5'))">1.1</NetStandardVersion>
 				<NetStandardVersion Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetFrameworkVersion), '4.5.1'))">1.2</NetStandardVersion>

@@ -31,7 +31,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private readonly Stack<IDisposable> disposeHandles = new (capacity: 16);
+		private readonly Stack<IDisposable> disposeHandles = new(capacity: 16);
 
 		private PixelSource? source;
 		private List<PixelSource>? allSources;

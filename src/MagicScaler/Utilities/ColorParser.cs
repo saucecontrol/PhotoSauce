@@ -9,7 +9,7 @@ namespace PhotoSauce.MagicScaler
 {
 	internal static class ColorParser
 	{
-		private static readonly Lazy<IReadOnlyDictionary<string, Color>> namedColors = new (() =>
+		private static readonly Lazy<IReadOnlyDictionary<string, Color>> namedColors = new(() =>
 			typeof(Color)
 				.GetProperties(BindingFlags.Public | BindingFlags.Static)
 				.Where(p => p.PropertyType == typeof(Color))

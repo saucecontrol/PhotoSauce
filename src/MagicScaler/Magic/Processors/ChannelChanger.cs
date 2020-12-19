@@ -45,7 +45,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		private sealed class Change1to3Chan : IConversionProcessor<T, T>
 		{
-			public static readonly Change1to3Chan Instance = new ();
+			public static readonly Change1to3Chan Instance = new();
 
 			private Change1to3Chan() { }
 
@@ -97,7 +97,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		private sealed class Change1to4Chan : IConversionProcessor<T, T>
 		{
-			public static readonly Change1to4Chan Instance = new ();
+			public static readonly Change1to4Chan Instance = new();
 
 			private Change1to4Chan() { }
 
@@ -148,7 +148,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		private sealed class Change3to1Chan : IConversionProcessor<T, T>
 		{
-			public static readonly Change3to1Chan Instance = new ();
+			public static readonly Change3to1Chan Instance = new();
 
 			private Change3to1Chan() { }
 
@@ -200,7 +200,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		private sealed class Change3to4Chan : IConversionProcessor<T, T>
 		{
-			public static readonly Change3to4Chan Instance = new ();
+			public static readonly Change3to4Chan Instance = new();
 
 			private Change3to4Chan() { }
 
@@ -258,7 +258,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		private sealed class Change4to1Chan : IConversionProcessor<T, T>
 		{
-			public static readonly Change4to1Chan Instance = new ();
+			public static readonly Change4to1Chan Instance = new();
 
 			private Change4to1Chan() { }
 
@@ -309,7 +309,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		private sealed class Change4to3Chan : IConversionProcessor<T, T>
 		{
-			public static readonly Change4to3Chan Instance = new ();
+			public static readonly Change4to3Chan Instance = new();
 
 			private Change4to3Chan() { }
 

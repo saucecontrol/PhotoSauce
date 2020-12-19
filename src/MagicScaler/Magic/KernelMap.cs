@@ -13,11 +13,11 @@ namespace PhotoSauce.MagicScaler
 	{
 		private static class Cache
 		{
-			private static readonly SimpleLruCache<Guid, KernelMap<T>> lruCache = new ();
+			private static readonly SimpleLruCache<Guid, KernelMap<T>> lruCache = new();
 
 			public static KernelMap<T> GetOrAdd(int isize, int osize, InterpolationSettings interpolator, int ichannels, double offset)
 			{
-				if (!(interpolator.WeightingFunction is IUniquelyIdentifiable iwf))
+				if (interpolator.WeightingFunction is not IUniquelyIdentifiable iwf)
 					return KernelMap<T>.create(isize, osize, interpolator, ichannels, offset);
 
 				var hasher = Blake2b.CreateIncrementalHasher(Unsafe.SizeOf<Guid>());
@@ -41,11 +41,11 @@ namespace PhotoSauce.MagicScaler
 
 		private const int maxStackAlloc = 128;
 
-		private static readonly GaussianInterpolator blur_0_50 = new (sigma: 0.50);
-		private static readonly GaussianInterpolator blur_0_60 = new (sigma: 0.60);
-		private static readonly GaussianInterpolator blur_0_75 = new (sigma: 0.75);
-		private static readonly GaussianInterpolator blur_1_00 = new (sigma: 1.00);
-		private static readonly GaussianInterpolator blur_1_50 = new (sigma: 1.50);
+		private static readonly GaussianInterpolator blur_0_50 = new(sigma: 0.50);
+		private static readonly GaussianInterpolator blur_0_60 = new(sigma: 0.60);
+		private static readonly GaussianInterpolator blur_0_75 = new(sigma: 0.75);
+		private static readonly GaussianInterpolator blur_1_00 = new(sigma: 1.00);
+		private static readonly GaussianInterpolator blur_1_50 = new(sigma: 1.50);
 
 		private static int getPadding(int isize, int ksize, int channels)
 		{

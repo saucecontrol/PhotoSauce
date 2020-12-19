@@ -54,6 +54,7 @@
 
 	<ItemGroup Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">
 		<None Include="$(MSBuildThisFileDirectory)$(Company).png" Pack="true" PackagePath="package" />
+		<None Include="$(RepositoryRoot)license" Pack="true" PackagePath="package" />
 		<SourceRoot Include="$(RepositoryRoot)" />
 	</ItemGroup>
 
