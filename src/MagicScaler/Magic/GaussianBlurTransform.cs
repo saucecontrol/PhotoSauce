@@ -1,4 +1,6 @@
-﻿namespace PhotoSauce.MagicScaler.Transforms
+// Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
+
+namespace PhotoSauce.MagicScaler.Transforms
 {
 	/// <summary>Applies a <a href="https://en.wikipedia.org/wiki/Gaussian_blur">Gaussian blur</a> to an image.</summary>
 	public sealed class GaussianBlurTransform : PixelTransformInternalBase, IPixelTransformInternal

@@ -1,4 +1,4 @@
-﻿#pragma warning disable CS1591 // XML Comments
+// Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 #if WICPROCESSOR
 using System;

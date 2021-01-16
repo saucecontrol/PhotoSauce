@@ -1,4 +1,6 @@
-﻿using System.IO;
+// Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
+
+using System.IO;
 using System.Web;
 using System.Text;
 

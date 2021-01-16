@@ -1,4 +1,6 @@
-﻿using System.Numerics;
+// Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
+
+using System.Numerics;
 
 using PhotoSauce.MagicScaler.Transforms;
 

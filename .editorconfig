@@ -1,10 +1,13 @@
 root = true
 
 [*]
+charset = utf-8
+end_of_line = crlf
 indent_style = tab
 indent_size = 4
 
 [*.cs]
+file_header_template = Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 csharp_style_deconstructed_variable_declaration = true:silent
 csharp_style_prefer_range_operator = true:silent
 

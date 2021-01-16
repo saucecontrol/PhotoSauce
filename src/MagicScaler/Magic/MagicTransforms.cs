@@ -1,4 +1,6 @@
-﻿using System;
+// Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
+
+using System;
 using System.Drawing;
 using System.Diagnostics;
 using System.Collections.Generic;

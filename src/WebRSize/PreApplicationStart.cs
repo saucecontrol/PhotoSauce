@@ -1,4 +1,6 @@
-﻿using System.Web;
+// Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
+
+using System.Web;
 using System.Threading;
 
 [assembly: PreApplicationStartMethod(typeof(PhotoSauce.WebRSize.PreApplicationStart), nameof(PhotoSauce.WebRSize.PreApplicationStart.Start))]

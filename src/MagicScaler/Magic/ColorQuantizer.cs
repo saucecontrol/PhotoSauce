@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
+
+using System;
 using System.Buffers;
 using System.Numerics;
 using System.Runtime.InteropServices;
