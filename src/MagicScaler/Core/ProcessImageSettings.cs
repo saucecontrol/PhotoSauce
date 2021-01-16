@@ -149,7 +149,7 @@ namespace PhotoSauce.MagicScaler
 		/// <value>Default value: <c>96</c></value>
 		public double DpiY { get; set; } = 96d;
 		/// <summary>Determines whether automatic sharpening is applied during processing.  The sharpening settings are controlled by the <see cref="UnsharpMask"/> property.</summary>
-		/// <value>Default value: <c>true</c></value>
+		/// <value>Default value: <see langword="true" /></value>
 		public bool Sharpen { get; set; } = true;
 		/// <summary>Determines how automatic scaling and cropping is performed.</summary>
 		/// <remarks>Auto-cropping is performed only if a <see cref="Crop" /> value is not explicitly set.</remarks>

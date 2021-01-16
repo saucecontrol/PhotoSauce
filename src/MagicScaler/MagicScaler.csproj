@@ -11,15 +11,15 @@
 		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetCoreVersion), '2.1')) Or $([MSBuild]::VersionGreaterThanOrEquals($(NetStandardVersion), '2.1'))">$(DefineConstants);BUILTIN_MATHF;BUILTIN_SPAN</DefineConstants>
 		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetCoreVersion), '2.1')) Or $([MSBuild]::VersionGreaterThanOrEquals($(NetStandardVersion), '2.1')) Or $([MSBuild]::VersionGreaterThanOrEquals($(NetFrameworkVersion), '4.7.2'))">$(DefineConstants);VECTOR_CONVERT</DefineConstants>
 		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetFrameworkVersion), '4.0')) Or ($([MSBuild]::VersionGreaterThanOrEquals($(NetCoreVersion), '3.0')) And '$(Configuration)'!='Dist')">$(DefineConstants);SYSTEM_DRAWING</DefineConstants>
-		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetStandardVersion), '2.1'))">$(DefineConstants);CSHARP8_ATTRIBUTES</DefineConstants>
+		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetStandardVersion), '2.1'))">$(DefineConstants);BUILTIN_CSHARP8</DefineConstants>
 		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetCoreVersion), '3.0'))">$(DefineConstants);HWINTRINSICS</DefineConstants>
-		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetCoreVersion), '5.0'))">$(DefineConstants);SPAN_SORT;CSHARP9_ATTRIBUTES</DefineConstants>
+		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetCoreVersion), '5.0'))">$(DefineConstants);SPAN_SORT;BUILTIN_CSHARP9</DefineConstants>
 		<DefineConstants Condition="'$(Configuration)'!='Dist'">$(DefineConstants);GUARDRAILS;WICPROCESSOR</DefineConstants>
 	</PropertyGroup>
 
 	<PropertyGroup>
 		<NoWarn Condition="'$(TargetFramework)'=='netcoreapp2.1' Or '$(TargetFramework)'=='netstandard2.1'">$(NoWarn);0618</NoWarn><!-- VarEnum spuriously marked obsolete -->
-		<Nullable Condition="$(DefineConstants.Contains('CSHARP8_ATTRIBUTES'))">enable</Nullable>
+		<Nullable Condition="$(DefineConstants.Contains('BUILTIN_CSHARP8'))">enable</Nullable>
 	</PropertyGroup>
 
 	<ItemGroup Condition="!$(DefineConstants.Contains('BUILTIN_SPAN'))">

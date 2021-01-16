@@ -73,7 +73,7 @@ namespace PhotoSauce.MagicScaler
 			return ProcessImage(fs, outStream, settings);
 		}
 
-		unsafe public static ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
+		public static unsafe ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
 			fixed (byte* pbBuffer = imgBuffer)
 			using (var ms = new UnmanagedMemoryStream(pbBuffer, imgBuffer.Length, imgBuffer.Length, FileAccess.Read))

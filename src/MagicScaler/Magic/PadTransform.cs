@@ -29,7 +29,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			Height = outerArea.Height;
 		}
 
-		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			int bpp = Format.BytesPerPixel;
 			int tx = Math.Max(prc.X - inner.X, 0);

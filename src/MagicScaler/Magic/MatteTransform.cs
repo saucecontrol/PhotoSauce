@@ -50,7 +50,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			vmatte = new Vector4(mb, mg, mr, 1f) * new Vector4(maa);
 		}
 
-		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			Profiler.PauseTiming();
 			PrevSource.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
@@ -73,7 +73,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		unsafe private void applyMatteLinearAvx(in PixelArea prc, float* pixels, int stride)
+		private unsafe void applyMatteLinearAvx(in PixelArea prc, float* pixels, int stride)
 		{
 			var vmt = vmatte;
 			var vmat = Avx.BroadcastVector128ToVector256((float*)&vmt);
@@ -113,7 +113,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		}
 #endif
 
-		unsafe private void applyMatteLinearFloat(in PixelArea prc, float* pixels, int stride)
+		private unsafe void applyMatteLinearFloat(in PixelArea prc, float* pixels, int stride)
 		{
 			var vmat = vmatte;
 			var vone = Vector4.One;
@@ -136,7 +136,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
-		unsafe private void applyMatteLinear(in PixelArea prc, ushort* pixels, int stride)
+		private unsafe void applyMatteLinear(in PixelArea prc, ushort* pixels, int stride)
 		{
 			const ushort maxalpha = UQ15One;
 
@@ -174,7 +174,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
-		unsafe private void applyMatteCompanded(in PixelArea prc, byte* pixels, int stride)
+		private unsafe void applyMatteCompanded(in PixelArea prc, byte* pixels, int stride)
 		{
 			const uint maxalpha = byte.MaxValue;
 

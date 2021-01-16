@@ -52,7 +52,7 @@ namespace PhotoSauce.MagicScaler
 			});
 		}
 
-		unsafe private void drawPattern(Span<byte> buff)
+		private unsafe void drawPattern(Span<byte> buff)
 		{
 			const uint mask = 0xf0f0f0f0u; // limits the max intensity of color values
 

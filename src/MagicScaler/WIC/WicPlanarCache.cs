@@ -81,7 +81,7 @@ namespace PhotoSauce.MagicScaler
 		public PixelSource SourceCb => sourceCb;
 		public PixelSource SourceCr => sourceCr;
 
-		unsafe private void copyPixels(WicPlane plane, in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		private unsafe void copyPixels(WicPlane plane, in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			Debug.Assert(cbStride >= prc.Width);
 			Debug.Assert(cbBufferSize >= (prc.Height - 1) * cbStride + prc.Width);
@@ -103,7 +103,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private void loadBuffer(WicPlane plane, int line)
+		private unsafe void loadBuffer(WicPlane plane, int line)
 		{
 			int prcY = MathUtil.PowerOfTwoFloor(plane == WicPlane.Y ? line : line * subsampleRatioY, subsampleRatioY);
 

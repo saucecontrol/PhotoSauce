@@ -26,7 +26,7 @@ namespace PhotoSauce.MagicScaler
 			v2 = (byte)(v >> 16);
 		}
 
-		public static explicit operator triple(uint v) => new triple(v);
+		public static explicit operator triple(uint v) => new(v);
 	}
 
 	internal static class MathUtil
@@ -208,26 +208,6 @@ namespace PhotoSauce.MagicScaler
 			(int)Floor(Log(x, 2d));
 #endif
 
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		unsafe public static nint GetOffset<T>(T* cur, T* tgt) where T : unmanaged =>
-			Unsafe.ByteOffset(ref Unsafe.AsRef<T>(tgt), ref Unsafe.AsRef<T>(cur));
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		unsafe public static T* SubtractOffset<T>(T* ptr, nint off) where T : unmanaged =>
-			(T*)Unsafe.AsPointer(ref Unsafe.SubtractByteOffset(ref Unsafe.AsRef<T>(ptr), off));
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		unsafe public static nint ConvertOffset<TFrom, TTo>(nint offset) where TFrom : unmanaged where TTo : unmanaged
-		{
-			if (sizeof(TFrom) > sizeof(TTo))
-				return offset / (sizeof(TFrom) / sizeof(TTo));
-			else if (sizeof(TFrom) < sizeof(TTo))
-				return offset * (sizeof(TTo) / sizeof(TFrom));
-			else
-				return offset;
-		}
-
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static double Lerp(double l, double h, double d) => (h - l) * d + l;
 
@@ -236,7 +216,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static bool IsRoughlyEqualTo(this double x, double y) => Math.Abs(x - y) < 0.0001;
 
-		unsafe public static bool IsRouglyEqualTo(this Matrix4x4 m1, Matrix4x4 m2)
+		public static unsafe bool IsRouglyEqualTo(this Matrix4x4 m1, Matrix4x4 m2)
 		{
 			const float epsilon = 0.001f;
 

@@ -36,7 +36,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		public int Height => Source.Height;
 
 		/// <inheritdoc />
-		unsafe public void CopyPixels(Rectangle sourceArea, int cbStride, Span<byte> buffer)
+		public unsafe void CopyPixels(Rectangle sourceArea, int cbStride, Span<byte> buffer)
 		{
 			fixed (byte* pbBuffer = buffer)
 				Source.CopyPixels(PixelArea.FromGdiRect(sourceArea), cbStride, buffer.Length, (IntPtr)pbBuffer);

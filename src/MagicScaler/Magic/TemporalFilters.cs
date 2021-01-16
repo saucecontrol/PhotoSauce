@@ -11,11 +11,11 @@ using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal static class TemporalFilters
+	internal static unsafe class TemporalFilters
 	{
 		private const byte denoiseThreshold = 15;
 
-		unsafe public static void Dedupe(WicAnimatedGifEncoder buffer, uint bgcolor)
+		public static void Dedupe(WicAnimatedGifEncoder buffer, uint bgcolor)
 		{
 			var src = buffer.Current.Source;
 			if (src.Format != PixelFormat.Bgra32Bpp)
@@ -89,7 +89,7 @@ namespace PhotoSauce.MagicScaler
 
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		unsafe private static void denoiseLineAvx2(byte* pcurr, byte* pprev, byte* pnext, nint cb)
+		private static void denoiseLineAvx2(byte* pcurr, byte* pprev, byte* pnext, nint cb)
 		{
 			byte* ip = pcurr, pp = pprev, np = pnext;
 			nint cnt = 0, end = cb - Vector256<byte>.Count;
@@ -135,7 +135,7 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		unsafe private static void denoiseLineSse2(byte* pcurr, byte* pprev, byte* pnext, nint cb)
+		private static void denoiseLineSse2(byte* pcurr, byte* pprev, byte* pnext, nint cb)
 		{
 			byte* ip = pcurr, pp = pprev, np = pnext;
 			nint cnt = 0, end = cb - Vector128<byte>.Count;
@@ -181,7 +181,7 @@ namespace PhotoSauce.MagicScaler
 		}
 #endif
 
-		unsafe private static void denoiseLineScalar(byte* pcurr, byte* pprev, byte* pnext, nint cb)
+		private static void denoiseLineScalar(byte* pcurr, byte* pprev, byte* pnext, nint cb)
 		{
 			byte* ip = pcurr, pp = pprev, np = pnext;
 
@@ -209,7 +209,7 @@ namespace PhotoSauce.MagicScaler
 
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		unsafe private static (uint eql, uint eqr) dedupeLineAvx2(byte* pcurr, byte* pprev, byte* penc, nint cb, uint bg)
+		private static (uint eql, uint eqr) dedupeLineAvx2(byte* pcurr, byte* pprev, byte* penc, nint cb, uint bg)
 		{
 			byte* ip = pcurr, pp = pprev, op = penc;
 			nint cnt = 0, end = cb - Vector256<byte>.Count;
@@ -270,7 +270,7 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		unsafe private static (uint eql, uint eqr) dedupeLineSse2(byte* pcurr, byte* pprev, byte* penc, nint cb, uint bg)
+		private static (uint eql, uint eqr) dedupeLineSse2(byte* pcurr, byte* pprev, byte* penc, nint cb, uint bg)
 		{
 			byte* ip = pcurr, pp = pprev, op = penc;
 			nint cnt = 0, end = cb - Vector128<byte>.Count;
@@ -331,7 +331,7 @@ namespace PhotoSauce.MagicScaler
 		}
 #endif
 
-		unsafe private static (uint eql, uint eqr) dedupeLineScalar(byte* pcurr, byte* pprev, byte* penc, nint cb, uint bg)
+		private static (uint eql, uint eqr) dedupeLineScalar(byte* pcurr, byte* pprev, byte* penc, nint cb, uint bg)
 		{
 			byte* ip = pcurr, pp = pprev, op = penc;
 			nint end = cb;

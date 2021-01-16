@@ -1,4 +1,4 @@
-﻿// Borrowed from
+// Borrowed from
 //   https://github.com/dotnet/runtime/blob/master/src/libraries/System.Private.CoreLib/src/System/Diagnostics/CodeAnalysis/NullableAttributes.cs
 //   https://github.com/dotnet/runtime/blob/master/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/ModuleInitializerAttribute.cs
 //   https://github.com/dotnet/runtime/blob/master/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/SkipLocalsInitAttribute.cs
@@ -8,13 +8,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#if !CSHARP9_ATTRIBUTES
+#if !BUILTIN_CSHARP9
 using System.ComponentModel;
 #endif
 
-#if !CSHARP8_ATTRIBUTES
 namespace System.Diagnostics.CodeAnalysis
 {
+#if !BUILTIN_CSHARP8
     /// <summary>Specifies that null is allowed as an input even if the corresponding type disallows it.</summary>
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Parameter | AttributeTargets.Property, Inherited = false)]
 #if SYSTEM_PRIVATE_CORELIB
@@ -136,8 +136,9 @@ namespace System.Diagnostics.CodeAnalysis
         /// <summary>Gets the condition parameter value.</summary>
         public bool ParameterValue { get; }
     }
+#endif
 
-#if !CSHARP9_ATTRIBUTES
+#if !BUILTIN_CSHARP9
     /// <summary>Specifies that the method or property will ensure that the listed field and property members have not-null values.</summary>
     [AttributeUsage(AttributeTargets.Method | AttributeTargets.Property, Inherited = false, AllowMultiple = true)]
 #if SYSTEM_PRIVATE_CORELIB
@@ -206,9 +207,8 @@ namespace System.Diagnostics.CodeAnalysis
     }
 #endif
 }
-#endif
 
-#if !CSHARP9_ATTRIBUTES
+#if !BUILTIN_CSHARP9
 namespace System.Runtime.CompilerServices
 {
     [AttributeUsage(AttributeTargets.Method, Inherited = false)]

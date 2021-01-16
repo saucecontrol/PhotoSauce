@@ -44,7 +44,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				copyPixelsByte(prc, cbStride, pbBuffer);
 		}
 
-		unsafe private void copyPixelsByte(in PixelArea prc, int cbStride, IntPtr pbBuffer)
+		private unsafe void copyPixelsByte(in PixelArea prc, int cbStride, IntPtr pbBuffer)
 		{
 			int* pm = stackalloc[] {
 				Fix15(vec0.X), Fix15(vec0.Y), Fix15(vec0.Z), Fix15(vec0.W),
@@ -81,7 +81,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
-		unsafe private void copyPixelsFixed(in PixelArea prc, int cbStride, IntPtr pbBuffer)
+		private unsafe void copyPixelsFixed(in PixelArea prc, int cbStride, IntPtr pbBuffer)
 		{
 			int* pm = stackalloc[] {
 				Fix15(vec0.X), Fix15(vec0.Y), Fix15(vec0.Z), Fix15(vec0.W),
@@ -118,7 +118,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
-		unsafe private void copyPixelsFloat(in PixelArea prc, int cbStride, IntPtr pbBuffer)
+		private unsafe void copyPixelsFloat(in PixelArea prc, int cbStride, IntPtr pbBuffer)
 		{
 			int chan = Format.ChannelCount;
 			bool alpha = Format.AlphaRepresentation != PixelAlphaRepresentation.None;
@@ -152,7 +152,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		unsafe private void copyPixelsAvx(in PixelArea prc, int cbStride, IntPtr pbBuffer)
+		private unsafe void copyPixelsAvx(in PixelArea prc, int cbStride, IntPtr pbBuffer)
 		{
 			int chan = Format.ChannelCount;
 

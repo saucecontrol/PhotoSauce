@@ -12,9 +12,9 @@ namespace PhotoSauce.MagicScaler
 		public readonly int Width;
 		public readonly int Height;
 
-		public static PixelArea FromGdiRect(Rectangle r) => new PixelArea(r.X, r.Y, r.Width, r.Height);
+		public static PixelArea FromGdiRect(Rectangle r) => new(r.X, r.Y, r.Width, r.Height);
 
-		public static PixelArea FromGdiSize(Size s) => new PixelArea(0, 0, s.Width, s.Height);
+		public static PixelArea FromGdiSize(Size s) => new(0, 0, s.Width, s.Height);
 
 		public PixelArea(int x, int y, int width, int height)
 		{
@@ -69,7 +69,7 @@ namespace PhotoSauce.MagicScaler
 			return new PixelArea(x, y, width, height);
 		}
 
-		public Rectangle ToGdiRect() => new Rectangle(X, Y, Width, Height);
+		public Rectangle ToGdiRect() => new(X, Y, Width, Height);
 
 		public bool Equals(PixelArea other) => X == other.X && Y == other.Y && Width == other.Width && Height == other.Height;
 		public override bool Equals(object? obj) => obj is PixelArea other && Equals(other);

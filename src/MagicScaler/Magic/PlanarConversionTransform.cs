@@ -57,7 +57,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			lineBuff = BufferPool.Rent(bufferStride * 3, true);
 		}
 
-		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			if (lineBuff.Array is null) throw new ObjectDisposedException(nameof(PlanarConversionTransform));
 
@@ -90,7 +90,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
-		unsafe private void copyPixelsByte(byte* bstart, byte* opstart, uint bstride, uint cb)
+		private unsafe void copyPixelsByte(byte* bstart, byte* opstart, uint bstride, uint cb)
 		{
 			byte* op = opstart;
 			byte* ip0 = bstart, ip1 = bstart + bstride, ip2 = bstart + bstride * 2, ipe = ip0 + cb;
@@ -117,7 +117,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
-		unsafe private void copyPixelsFloat(byte* bstart, byte* opstart, uint bstride, uint cb)
+		private unsafe void copyPixelsFloat(byte* bstart, byte* opstart, uint bstride, uint cb)
 		{
 			float* op = (float*)opstart;
 			float* ip0 = (float*)bstart, ip1 = (float*)(bstart + bstride), ip2 = (float*)(bstart + bstride * 2), ipe = (float*)(bstart + cb);
@@ -146,7 +146,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		unsafe private void copyPixelsIntrinsic(byte* bstart, byte* opstart, uint bstride, uint cb)
+		private unsafe void copyPixelsIntrinsic(byte* bstart, byte* opstart, uint bstride, uint cb)
 		{
 			uint stride = bstride / sizeof(float);
 			float* op = (float*)opstart;
@@ -197,9 +197,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 				if (ip < ipe + Vector256<float>.Count)
 				{
-					nint offs = GetOffset(ip, ipe);
-					ip = SubtractOffset(ip, offs);
-					op = SubtractOffset(op, offs * 4);
+					nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+					ip = UnsafeUtil.SubtractOffset(ip, offs);
+					op = UnsafeUtil.SubtractOffset(op, offs * 4);
 					goto LoopTop;
 				}
 			}
@@ -243,9 +243,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 				if (ip < ipe + Vector128<float>.Count)
 				{
-					nint offs = GetOffset(ip, ipe);
-					ip = SubtractOffset(ip, offs);
-					op = SubtractOffset(op, offs * 4);
+					nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+					ip = UnsafeUtil.SubtractOffset(ip, offs);
+					op = UnsafeUtil.SubtractOffset(op, offs * 4);
 					goto LoopTop;
 				}
 			}

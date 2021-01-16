@@ -152,7 +152,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe public static void UpdateGifAnimationContext(WicGifContainer cont, IWICBitmapSource src, IWICMetadataQueryReader meta)
+		public static unsafe void UpdateGifAnimationContext(WicGifContainer cont, IWICBitmapSource src, IWICMetadataQueryReader meta)
 		{
 			Debug.Assert(cont.AnimationContext is not null);
 			var anictx = cont.AnimationContext;

@@ -15,7 +15,7 @@ namespace PhotoSauce.MagicScaler
 		public abstract int Width { get; }
 		public abstract int Height { get; }
 
-		public PixelArea Area => new PixelArea(0, 0, Width, Height);
+		public PixelArea Area => new(0, 0, Width, Height);
 
 		public PixelSourceStats? Stats => Profiler is SourceStatsProfiler ps ? ps.Stats : null;
 
@@ -161,7 +161,7 @@ namespace PhotoSauce.MagicScaler
 
 		public override string ToString() => nameof(FrameBufferSource);
 
-		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			if (frameBuff.Array is null) throw new ObjectDisposedException(nameof(FrameBufferSource));
 
@@ -171,7 +171,7 @@ namespace PhotoSauce.MagicScaler
 			ref byte buff = ref frameBuff.Array[frameBuff.Offset + prc.Y * Stride + prc.X * bpp];
 
 			for (int y = 0; y < prc.Height; y++)
-				Unsafe.CopyBlockUnaligned(ref Unsafe.AsRef<byte>((byte*)pbBuffer + y * cbStride), ref Unsafe.Add(ref buff, y * Stride), (uint)cb);
+				Unsafe.CopyBlockUnaligned(ref *((byte*)pbBuffer + y * cbStride), ref Unsafe.Add(ref buff, y * Stride), (uint)cb);
 		}
 	}
 
@@ -187,7 +187,7 @@ namespace PhotoSauce.MagicScaler
 
 			public PixelSourceFromIPixelSource(IPixelSource source) => (upstreamSource, Format) = (source, PixelFormat.FromGuid(source.Format));
 
-			unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer) =>
+			protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer) =>
 				upstreamSource.CopyPixels(prc.ToGdiRect(), cbStride, new Span<byte>(pbBuffer.ToPointer(), cbBufferSize));
 
 			public override string? ToString() => upstreamSource.ToString();
@@ -203,7 +203,7 @@ namespace PhotoSauce.MagicScaler
 			public int Width => source.Width;
 			public int Height => source.Height;
 
-			unsafe public void CopyPixels(Rectangle sourceArea, int cbStride, Span<byte> buffer)
+			public unsafe void CopyPixels(Rectangle sourceArea, int cbStride, Span<byte> buffer)
 			{
 				var prc = PixelArea.FromGdiRect(sourceArea);
 				int cbLine = MathUtil.DivCeiling(prc.Width * source.Format.BitsPerPixel, 8);

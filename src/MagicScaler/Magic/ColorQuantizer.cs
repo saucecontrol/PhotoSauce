@@ -1,7 +1,6 @@
-﻿// Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
+// Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
-using System.Buffers;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
@@ -13,7 +12,7 @@ using System.Runtime.Intrinsics.X86;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal class OctreeQuantizer : IDisposable
+	internal unsafe class OctreeQuantizer : IDisposable
 	{
 		private const int alphaThreshold = 85;
 		private const int maxHistogramSize = 8191;
@@ -35,7 +34,7 @@ namespace PhotoSauce.MagicScaler
 			palBuffer = BufferPool.Rent(sizeof(uint) * maxPaletteSize);
 		}
 
-		unsafe public void CreateHistorgram(Span<byte> image, nint width, nint height, nint stride)
+		public void CreateHistorgram(Span<byte> image, nint width, nint height, nint stride)
 		{
 			nint srx = 1;
 			float sry = 1f;
@@ -70,7 +69,7 @@ namespace PhotoSauce.MagicScaler
 			BufferPool.Return(listBuffer);
 		}
 
-		unsafe public void Quantize(Span<byte> image, Span<byte> outbuff, nint width, nint height, nint instride, nint outstride)
+		public void Quantize(Span<byte> image, Span<byte> outbuff, nint width, nint height, nint instride, nint outstride)
 		{
 			var nc = (Span<int>)stackalloc int[] { 0, 0, 0, 0, 0, 0, 0, 0 };
 			getNodeCounts(nc);
@@ -117,13 +116,11 @@ namespace PhotoSauce.MagicScaler
 				weights.Sort();
 				finalReduce(weights.Slice(0, reduceCount));
 #else
-				var warray = ArrayPool<ReducibleNode>.Shared.Rent(maxHistogramSize);
+				using var buff = new PoolArray<ReducibleNode>(maxHistogramSize);
+				weights.CopyTo(buff.Array);
 
-				weights.CopyTo(warray);
-				Array.Sort(warray, 0, weights.Length);
-				finalReduce(warray.AsSpan(0, reduceCount));
-
-				ArrayPool<ReducibleNode>.Shared.Return(warray);
+				Array.Sort(buff.Array, 0, weights.Length);
+				finalReduce(buff.Array.AsSpan(0, reduceCount));
 #endif
 			}
 
@@ -165,7 +162,7 @@ namespace PhotoSauce.MagicScaler
 			nodeBuffer = palBuffer = default;
 		}
 
-		unsafe private void updateHistogram(uint* pimage, uint* pilut, OctreeNode* ptree, ushort* plist, ref ushort* pfree, nint cp, nint sr)
+		private void updateHistogram(uint* pimage, uint* pilut, OctreeNode* ptree, ushort* plist, ref ushort* pfree, nint cp, nint sr)
 		{
 			nuint level = leafLevel;
 			nuint prnod = 0;
@@ -229,7 +226,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private void pruneTree(OctreeNode* ptree, ushort* pfree)
+		private void pruneTree(OctreeNode* ptree, ushort* pfree)
 		{
 #if HWINTRINSICS
 			var sumsMask = Vector128.Create(0xffffffffu, 0xffffffffu, 0xffffffffu, 0x1fffffffu);
@@ -302,7 +299,7 @@ namespace PhotoSauce.MagicScaler
 			*pnext = 0;
 		}
 
-		unsafe private void convertNodes(OctreeNode* ptree, float* igt, OctreeNode* node, uint currLevel, uint pruneLevel, float ftpix)
+		private void convertNodes(OctreeNode* ptree, float* igt, OctreeNode* node, uint currLevel, uint pruneLevel, float ftpix)
 		{
 			if (currLevel == leafLevel)
 			{
@@ -364,7 +361,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private void finalReduce(Span<ReducibleNode> nodes)
+		private void finalReduce(Span<ReducibleNode> nodes)
 		{
 			fixed (OctreeNode* ptree = MemoryMarshal.Cast<byte, OctreeNode>(nodeBuffer))
 			{
@@ -409,7 +406,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private nuint makePaletteMap(nuint minLevel)
+		private nuint makePaletteMap(nuint minLevel)
 		{
 			fixed (OctreeNode* ptree = MemoryMarshal.Cast<byte, OctreeNode>(nodeBuffer))
 			fixed (uint* ppal = MemoryMarshal.Cast<byte, uint>(palBuffer))
@@ -466,7 +463,7 @@ namespace PhotoSauce.MagicScaler
 			return mapidx;
 		}
 
-		unsafe private void populatePalette(OctreeNode* ptree, byte* gt, uint* ppal, OctreeNode* node, nuint minLevel, nuint currLevel, ref nuint nidx)
+		private void populatePalette(OctreeNode* ptree, byte* gt, uint* ppal, OctreeNode* node, nuint minLevel, nuint currLevel, ref nuint nidx)
 		{
 			if (currLevel == leafLevel)
 			{
@@ -520,7 +517,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private void migrateNodes(OctreeNode* ptree, OctreeNode* pmap, uint* pilut, OctreeNode* node, OctreeNode* nnode, nuint currLevel, ref nuint nidx)
+		private void migrateNodes(OctreeNode* ptree, OctreeNode* pmap, uint* pilut, OctreeNode* node, OctreeNode* nnode, nuint currLevel, ref nuint nidx)
 		{
 			var pnew = nnode;
 
@@ -572,7 +569,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private void addReducibleNodes(OctreeNode* ptree, ReducibleNode* preduce, float* gt, OctreeNode* node, ref nuint reducibleCount, uint currLevel, uint pruneLevel)
+		private void addReducibleNodes(OctreeNode* ptree, ReducibleNode* preduce, float* gt, OctreeNode* node, ref nuint reducibleCount, uint currLevel, uint pruneLevel)
 		{
 			ushort* children = (ushort*)node;
 			for (nuint i = 0; i < 8; i++)
@@ -625,7 +622,7 @@ namespace PhotoSauce.MagicScaler
 		}
 
 #if HWINTRINSICS
-		unsafe private void remapDitherSse2(byte* pimage, int* perr, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
+		private void remapDitherSse2(byte* pimage, int* perr, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
 		{
 			var transnode = new OctreeNode();
 			transnode.Sums[3] = (uint)palEntries - 1;
@@ -764,7 +761,7 @@ namespace PhotoSauce.MagicScaler
 		}
 #endif
 
-		unsafe private void remapDitherScalar(byte* pimage, int* perror, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
+		private void remapDitherScalar(byte* pimage, int* perror, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
 		{
 			var transnode = new OctreeNode();
 			transnode.Sums[3] = (uint)palEntries - 1;
@@ -903,7 +900,7 @@ namespace PhotoSauce.MagicScaler
 			ep[-2] = perr;
 		}
 
-		unsafe private void remap(byte* pimage, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
+		private void remap(byte* pimage, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
 		{
 			var transnode = new OctreeNode();
 			transnode.Sums[3] = (uint)palEntries - 1;
@@ -987,7 +984,7 @@ namespace PhotoSauce.MagicScaler
 			} while (ip < ipe);
 		}
 
-		unsafe private void getNodeCounts(Span<int> counts)
+		private void getNodeCounts(Span<int> counts)
 		{
 			fixed (OctreeNode* ptree = MemoryMarshal.Cast<byte, OctreeNode>(nodeBuffer))
 			fixed (int* pcounts = counts)
@@ -1002,7 +999,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private int getReservedCount()
+		private int getReservedCount()
 		{
 			if (!isSubsampled)
 				return 1;
@@ -1032,7 +1029,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private int getPixelCount()
+		private int getPixelCount()
 		{
 			fixed (OctreeNode* ptree = MemoryMarshal.Cast<byte, OctreeNode>(nodeBuffer))
 			{
@@ -1052,7 +1049,7 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		unsafe private static float lutLerp(float* gt, float val)
+		private static float lutLerp(float* gt, float val)
 		{
 			nuint ival = (nuint)val;
 
@@ -1060,7 +1057,7 @@ namespace PhotoSauce.MagicScaler
 		}
 
 #if HWINTRINSICS
-		unsafe private void initNode(OctreeNode* node, Vector128<int> color)
+		private void initNode(OctreeNode* node, Vector128<int> color)
 		{
 			int cb = Sse2.ConvertToInt32(color);
 			int cg = Sse2.Extract(color.AsUInt16(), 2);
@@ -1070,7 +1067,7 @@ namespace PhotoSauce.MagicScaler
 		}
 #endif
 
-		unsafe private void initNode(OctreeNode* node, uint color)
+		private void initNode(OctreeNode* node, uint color)
 		{
 			int cb = (byte)(color);
 			int cg = (byte)(color >>  8);
@@ -1079,7 +1076,7 @@ namespace PhotoSauce.MagicScaler
 			initNode(node, cb, cg, cr);
 		}
 
-		unsafe private void initNode(OctreeNode* node, int cb, int cg, int cr)
+		private void initNode(OctreeNode* node, int cb, int cg, int cr)
 		{
 			fixed (uint* ppal = MemoryMarshal.Cast<byte, uint>(palBuffer))
 			{
@@ -1163,7 +1160,7 @@ namespace PhotoSauce.MagicScaler
 			Unsafe.InitBlockUnaligned(ref Unsafe.Add(ref listPtr, sizeof(ushort)), 0, reserveNodes * sizeof(ushort));
 		}
 
-		unsafe private struct OctreeNode
+		private struct OctreeNode
 		{
 			const uint levelMask = 0xe0000000;
 			const uint sumsMask = 0x01ffffff;

@@ -54,7 +54,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		protected override void Reset() => outBuff?.Reset();
 
-		unsafe private void copyPixelsDirect(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		private unsafe void copyPixelsDirect(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			Profiler.PauseTiming();
 			PrevSource.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
@@ -73,7 +73,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
-		unsafe private void copyPixelsBuffered(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		private unsafe void copyPixelsBuffered(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			if (outBuff is null) throw new ObjectDisposedException(nameof(OrientationTransformInternal));
 
@@ -94,11 +94,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 				int line = prc.Y + y;
 
 				var lspan = outBuff.PrepareRead(line, 1).Slice(prc.X * bytesPerPixel, prc.Width * bytesPerPixel);
-				Unsafe.CopyBlockUnaligned(ref Unsafe.AsRef<byte>((byte*)pbBuffer + y * cbStride), ref MemoryMarshal.GetReference(lspan), (uint)lspan.Length);
+				Unsafe.CopyBlockUnaligned(ref *((byte*)pbBuffer + y * cbStride), ref MemoryMarshal.GetReference(lspan), (uint)lspan.Length);
 			}
 		}
 
-		unsafe private void loadBufferReversed(byte* bstart)
+		private unsafe void loadBufferReversed(byte* bstart)
 		{
 			byte* pb = bstart + (Height - 1) * outBuff!.Stride;
 
@@ -115,7 +115,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
-		unsafe private void loadBufferTransposed(byte* bstart)
+		private unsafe void loadBufferTransposed(byte* bstart)
 		{
 			var buffSpan = lineBuff.AsSpan();
 			int lineBuffStride = BufferStride;
@@ -211,7 +211,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
-		unsafe static void transposeStrip1(byte* ipb, byte* opb, nint rowStride, nint colStride, nint cb)
+		private static unsafe void transposeStrip1(byte* ipb, byte* opb, nint rowStride, nint colStride, nint cb)
 		{
 			byte* ip = ipb, ipe = ip + cb;
 			byte* op = opb;
@@ -306,7 +306,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 #endif
 		}
 
-		unsafe private static void transposeStrip3(byte* ipb, byte* opb, nint bufStride, nint colStride, nint cb)
+		private static unsafe void transposeStrip3(byte* ipb, byte* opb, nint bufStride, nint colStride, nint cb)
 		{
 			byte* ip = ipb, ipe = ip + cb;
 			byte* op = opb;
@@ -381,7 +381,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 #endif
 		}
 
-		unsafe private static void transposeStrip4(byte* ipb, byte* opb, nint bufStride, nint colStride, nint cb)
+		private static unsafe void transposeStrip4(byte* ipb, byte* opb, nint bufStride, nint colStride, nint cb)
 		{
 			byte* ip = ipb, ipe = ip + cb;
 			byte* op = opb;
@@ -431,7 +431,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
-		unsafe private void flipLine(byte* bp, nint cb)
+		private unsafe void flipLine(byte* bp, nint cb)
 		{
 			byte* pp = bp, pe = pp + cb;
 

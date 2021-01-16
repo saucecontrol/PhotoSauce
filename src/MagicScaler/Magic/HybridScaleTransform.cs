@@ -39,7 +39,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			Height = DivCeiling(PrevSource.Height, scale);
 		}
 
-		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			if (lineBuff.Array is null) throw new ObjectDisposedException(nameof(HybridScaleTransform));
 
@@ -120,7 +120,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-		unsafe private static void process4A(byte* ipstart, byte* opstart, nuint stride)
+		private static unsafe void process4A(byte* ipstart, byte* opstart, nuint stride)
 		{
 			byte* ip = ipstart, ipe = ipstart + stride;
 			byte* op = opstart;
@@ -303,7 +303,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-		unsafe private static void process4(byte* ipstart, byte* opstart, nuint stride)
+		private static unsafe void process4(byte* ipstart, byte* opstart, nuint stride)
 		{
 			byte* ip = ipstart, ipe = ipstart + stride;
 			byte* op = opstart;
@@ -438,7 +438,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-		unsafe private static void process3(byte* ipstart, byte* opstart, nuint stride)
+		private static unsafe void process3(byte* ipstart, byte* opstart, nuint stride)
 		{
 			byte* ip = ipstart, ipe = ipstart + stride;
 			byte* op = opstart;
@@ -550,7 +550,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-		unsafe private static void process(byte* ipstart, byte* opstart, nuint stride)
+		private static unsafe void process(byte* ipstart, byte* opstart, nuint stride)
 		{
 			byte* ip = ipstart, ipe = ipstart + stride;
 			byte* op = opstart;

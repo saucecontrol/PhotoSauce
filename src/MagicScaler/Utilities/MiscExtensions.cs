@@ -5,8 +5,10 @@ using System.Buffers;
 using System.Drawing;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.Diagnostics.CodeAnalysis;
 
+#if !BUILTIN_SPAN
+using System.IO;
+#endif
 #if NETFRAMEWORK
 using System.Linq;
 using System.Configuration;
@@ -96,5 +98,25 @@ namespace PhotoSauce.MagicScaler
 
 			return dic1;
 		}
+
+#if !BUILTIN_SPAN
+		public static int Read(this Stream stream, Span<byte> buffer)
+		{
+			using var buff = new PoolArray<byte>(buffer.Length);
+
+			int cb = stream.Read(buff.Array, 0, buff.Length);
+			buff.Array.AsSpan(0, cb).CopyTo(buffer);
+
+			return cb;
+		}
+
+		public static void Write(this Stream stream, ReadOnlySpan<byte> buffer)
+		{
+			using var buff = new PoolArray<byte>(buffer.Length);
+
+			buffer.CopyTo(buff.Span);
+			stream.Write(buff.Array, 0, buff.Length);
+		}
+#endif
 	}
 }

@@ -91,7 +91,7 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>Constructs a new <see cref="ImageFileInfo" /> instance by reading the metadata from an image file contained in a <see cref="ReadOnlySpan{T}" />.</summary>
 		/// <param name="imgBuffer">The buffer containing the image data.</param>
 		/// <param name="lastModified">The last modified date of the image container.</param>
-		unsafe public static ImageFileInfo Load(ReadOnlySpan<byte> imgBuffer, DateTime lastModified)
+		public static unsafe ImageFileInfo Load(ReadOnlySpan<byte> imgBuffer, DateTime lastModified)
 		{
 			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
 

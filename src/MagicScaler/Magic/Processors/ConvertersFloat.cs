@@ -50,7 +50,7 @@ namespace PhotoSauce.MagicScaler
 			public IConversionProcessor<float, byte> Processor3X => processor3X;
 		}
 
-		private sealed class WideningImpl : IConversionProcessor<byte, float>
+		private sealed unsafe class WideningImpl : IConversionProcessor<byte, float>
 		{
 			private readonly float scale;
 			private readonly float offset;
@@ -63,7 +63,7 @@ namespace PhotoSauce.MagicScaler
 				valueTable = videoRange ? LookupTables.MakeVideoInverseGamma(LookupTables.Alpha) : LookupTables.Alpha;
 			}
 
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
 			{
 				byte* ip = ipstart, ipe = ipstart + cb;
 				float* op = (float*)opstart;
@@ -82,7 +82,7 @@ namespace PhotoSauce.MagicScaler
 
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-			unsafe private void convertIntrinsic(byte* ip, byte* ipe, float* op)
+			private void convertIntrinsic(byte* ip, byte* ipe, float* op)
 			{
 				if (Avx2.IsSupported)
 				{
@@ -119,9 +119,9 @@ namespace PhotoSauce.MagicScaler
 
 					if (ip < ipe + Vector256<byte>.Count)
 					{
-						var offs = GetOffset(ip, ipe);
-						ip = SubtractOffset(ip, offs);
-						op = SubtractOffset(op, ConvertOffset<byte, float>(offs));
+						nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+						ip = UnsafeUtil.SubtractOffset(ip, offs);
+						op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<byte, float>(offs));
 						goto LoopTop;
 					}
 				}
@@ -175,16 +175,16 @@ namespace PhotoSauce.MagicScaler
 
 					if (ip < ipe + Vector128<byte>.Count)
 					{
-						var offs = GetOffset(ip, ipe);
-						ip = SubtractOffset(ip, offs);
-						op = SubtractOffset(op, ConvertOffset<byte, float>(offs));
+						nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+						ip = UnsafeUtil.SubtractOffset(ip, offs);
+						op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<byte, float>(offs));
 						goto LoopTop;
 					}
 				}
 			}
 
 #elif VECTOR_CONVERT
-			unsafe private void convertVector(byte* ip, byte* ipe, float* op)
+			private void convertVector(byte* ip, byte* ipe, float* op)
 			{
 				var vscal = new VectorF(scale);
 				var voffs = new VectorF(-offset * scale);
@@ -219,15 +219,15 @@ namespace PhotoSauce.MagicScaler
 
 				if (ip < ipe + Vector<byte>.Count)
 				{
-					var offs = GetOffset(ip, ipe);
-					ip = SubtractOffset(ip, offs);
-					op = SubtractOffset(op, ConvertOffset<byte, float>(offs));
+					nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+					ip = UnsafeUtil.SubtractOffset(ip, offs);
+					op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<byte, float>(offs));
 					goto LoopTop;
 				}
 			}
 #endif
 
-			unsafe private void convertScalar(byte* ip, byte* ipe, float* op)
+			private void convertScalar(byte* ip, byte* ipe, float* op)
 			{
 				fixed (float* atstart = &valueTable[0])
 				{
@@ -268,9 +268,9 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private sealed class WideningImpl3A : IConversionProcessor<byte, float>
+		private sealed unsafe class WideningImpl3A : IConversionProcessor<byte, float>
 		{
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
 			{
 				byte* ip = ipstart, ipe = ipstart + cb;
 				float* op = (float*)opstart;
@@ -285,7 +285,7 @@ namespace PhotoSauce.MagicScaler
 
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-			unsafe private static void convertIntrinsic(byte* ip, byte* ipe, float* op)
+			private static void convertIntrinsic(byte* ip, byte* ipe, float* op)
 			{
 				if (Avx2.IsSupported)
 				{
@@ -336,9 +336,9 @@ namespace PhotoSauce.MagicScaler
 
 					if (ip < ipe + Vector256<byte>.Count)
 					{
-						var offs = GetOffset(ip, ipe);
-						ip = SubtractOffset(ip, offs);
-						op = SubtractOffset(op, ConvertOffset<byte, float>(offs));
+						nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+						ip = UnsafeUtil.SubtractOffset(ip, offs);
+						op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<byte, float>(offs));
 						goto LoopTop;
 					}
 				}
@@ -391,16 +391,16 @@ namespace PhotoSauce.MagicScaler
 
 					if (ip < ipe + Vector128<byte>.Count)
 					{
-						var offs = GetOffset(ip, ipe);
-						ip = SubtractOffset(ip, offs);
-						op = SubtractOffset(op, ConvertOffset<byte, float>(offs));
+						nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+						ip = UnsafeUtil.SubtractOffset(ip, offs);
+						op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<byte, float>(offs));
 						goto LoopTop;
 					}
 				}
 			}
 #endif
 
-			unsafe private static void convertScalar(byte* ip, byte* ipe, float* op)
+			private static void convertScalar(byte* ip, byte* ipe, float* op)
 			{
 				fixed (float* atstart = &LookupTables.Alpha[0])
 				{
@@ -424,12 +424,12 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private sealed class WideningImpl3X : IConversionProcessor<byte, float>
+		private sealed unsafe class WideningImpl3X : IConversionProcessor<byte, float>
 		{
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
 			{
 				fixed (float* atstart = &LookupTables.Alpha[0])
 				{
@@ -523,9 +523,9 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private sealed class NarrowingImpl : IConversionProcessor<float, byte>
+		private sealed unsafe class NarrowingImpl : IConversionProcessor<float, byte>
 		{
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
 			{
 				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb);
 				byte* op = opstart;
@@ -543,7 +543,7 @@ namespace PhotoSauce.MagicScaler
 
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-			unsafe private static void convertIntrinsic(float* ip, float* ipe, byte* op)
+			private static void convertIntrinsic(float* ip, float* ipe, byte* op)
 			{
 				if (Avx2.IsSupported)
 				{
@@ -578,9 +578,9 @@ namespace PhotoSauce.MagicScaler
 
 					if (ip < ipe + Vector256<float>.Count * 4)
 					{
-						var offs = GetOffset(ip, ipe);
-						ip = SubtractOffset(ip, offs);
-						op = SubtractOffset(op, ConvertOffset<float, byte>(offs));
+						nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+						ip = UnsafeUtil.SubtractOffset(ip, offs);
+						op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<float, byte>(offs));
 						goto LoopTop;
 					}
 				}
@@ -615,16 +615,16 @@ namespace PhotoSauce.MagicScaler
 
 					if (ip < ipe + Vector128<float>.Count * 4)
 					{
-						var offs = GetOffset(ip, ipe);
-						ip = SubtractOffset(ip, offs);
-						op = SubtractOffset(op, ConvertOffset<float, byte>(offs));
+						nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+						ip = UnsafeUtil.SubtractOffset(ip, offs);
+						op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<float, byte>(offs));
 						goto LoopTop;
 					}
 				}
 			}
 #endif
 
-			unsafe private static void convertVector(float* ip, float* ipe, byte* op)
+			private static void convertVector(float* ip, float* ipe, byte* op)
 			{
 #if VECTOR_CONVERT
 				int unrollCount = Vector<byte>.Count;
@@ -690,14 +690,14 @@ namespace PhotoSauce.MagicScaler
 
 				if (ip < ipe + unrollCount)
 				{
-					var offs = GetOffset(ip, ipe);
-					ip = SubtractOffset(ip, offs);
-					op = SubtractOffset(op, ConvertOffset<float, byte>(offs));
+					nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+					ip = UnsafeUtil.SubtractOffset(ip, offs);
+					op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<float, byte>(offs));
 					goto LoopTop;
 				}
 			}
 
-			unsafe private static void convertScalar(float* ip, float* ipe, byte* op)
+			private static void convertScalar(float* ip, float* ipe, byte* op)
 			{
 				while (ip < ipe)
 				{
@@ -708,9 +708,9 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private sealed class NarrowingImpl3A : IConversionProcessor<float, byte>
+		private sealed unsafe class NarrowingImpl3A : IConversionProcessor<float, byte>
 		{
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
 			{
 				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb);
 				byte* op = opstart;
@@ -725,7 +725,7 @@ namespace PhotoSauce.MagicScaler
 
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-			private unsafe static void convertIntrinsic(float* ip, float* ipe, byte* op)
+			private unsafe void convertIntrinsic(float* ip, float* ipe, byte* op)
 			{
 				if (Avx2.IsSupported)
 				{
@@ -793,9 +793,9 @@ namespace PhotoSauce.MagicScaler
 
 					if (ip < ipe + Vector256<float>.Count * 4)
 					{
-						var offs = GetOffset(ip, ipe);
-						ip = SubtractOffset(ip, offs);
-						op = SubtractOffset(op, ConvertOffset<float, byte>(offs));
+						nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+						ip = UnsafeUtil.SubtractOffset(ip, offs);
+						op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<float, byte>(offs));
 						goto LoopTop;
 					}
 				}
@@ -862,16 +862,16 @@ namespace PhotoSauce.MagicScaler
 
 					if (ip < ipe + Vector128<float>.Count * 4)
 					{
-						var offs = GetOffset(ip, ipe);
-						ip = SubtractOffset(ip, offs);
-						op = SubtractOffset(op, ConvertOffset<float, byte>(offs));
+						nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+						ip = UnsafeUtil.SubtractOffset(ip, offs);
+						op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<float, byte>(offs));
 						goto LoopTop;
 					}
 				}
 			}
 #endif
 
-			unsafe private static void convertScalar(float* ip, float* ipe, byte* op)
+			private static void convertScalar(float* ip, float* ipe, byte* op)
 			{
 				float fmax = new Vector4(byte.MaxValue).X, fround = new Vector4(0.5f).X, fmin = fround / fmax;
 
@@ -901,12 +901,12 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private sealed class NarrowingImpl3X : IConversionProcessor<float, byte>
+		private sealed unsafe class NarrowingImpl3X : IConversionProcessor<float, byte>
 		{
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
 			{
 				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb);
 				byte* op = opstart;
@@ -1052,9 +1052,9 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		public static class Interpolating
+		public static unsafe class Interpolating
 		{
-			unsafe public static void ConvertFloat(byte* ipstart, byte* opstart, float* lutstart, int lutmax, nint cb)
+			public static void ConvertFloat(byte* ipstart, byte* opstart, float* lutstart, int lutmax, nint cb)
 			{
 				Debug.Assert(ipstart == opstart);
 
@@ -1071,7 +1071,7 @@ namespace PhotoSauce.MagicScaler
 
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-			unsafe private static void convertFloatAvx2(float* ip, float* ipe, float* lp, int lutmax)
+			private static void convertFloatAvx2(float* ip, float* ipe, float* lp, int lutmax)
 			{
 				var vlmax = Vector256.Create((float)lutmax);
 				var vzero = Vector256<float>.Zero;
@@ -1101,15 +1101,15 @@ namespace PhotoSauce.MagicScaler
 
 				if (ip < ipe + Vector256<float>.Count)
 				{
-					var offs = GetOffset(ip, ipe);
-					ip = SubtractOffset(ip, offs);
+					nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+					ip = UnsafeUtil.SubtractOffset(ip, offs);
 					Avx.Store(ip, vlast);
 					goto LoopTop;
 				}
 			}
 #endif
 
-			unsafe private static void convertFloatScalar(float* ip, float* ipe, float* lp, int lutmax)
+			private static void convertFloatScalar(float* ip, float* ipe, float* lp, int lutmax)
 			{
 				var vlmax = new Vector4(lutmax);
 				var vzero = Vector4.Zero;
@@ -1150,7 +1150,7 @@ namespace PhotoSauce.MagicScaler
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-			unsafe public static void ConvertFloat3A(byte* ipstart, byte* opstart, float* lutstart, int lutmax, nint cb)
+			public static void ConvertFloat3A(byte* ipstart, byte* opstart, float* lutstart, int lutmax, nint cb)
 			{
 				Debug.Assert(ipstart == opstart);
 
@@ -1167,7 +1167,7 @@ namespace PhotoSauce.MagicScaler
 
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-			unsafe private static void convertFloat3AAvx2(float* ip, float* ipe, float* lp, int lutmax)
+			private static void convertFloat3AAvx2(float* ip, float* ipe, float* lp, int lutmax)
 			{
 				var vgmsk = Avx.BroadcastVector128ToVector256((float*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.GatherMask3x)));
 				var vgmax = Vector256.Create((float)lutmax);
@@ -1203,15 +1203,15 @@ namespace PhotoSauce.MagicScaler
 
 				if (ip < ipe + Vector256<float>.Count)
 				{
-					var offs = GetOffset(ip, ipe);
-					ip = SubtractOffset(ip, offs);
+					nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+					ip = UnsafeUtil.SubtractOffset(ip, offs);
 					Avx.Store(ip, vlast);
 					goto LoopTop;
 				}
 			}
 #endif
 
-			unsafe private static void convertFloat3AScalar(float* ip, float* ipe, float* lp, int lutmax)
+			private static void convertFloat3AScalar(float* ip, float* ipe, float* lp, int lutmax)
 			{
 				var vlmax = new Vector4(lutmax);
 				var vzero = Vector4.Zero;

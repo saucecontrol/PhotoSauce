@@ -6,8 +6,6 @@ using System;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using System.Runtime.CompilerServices;
-
-using static PhotoSauce.MagicScaler.MathUtil;
 #endif
 
 namespace PhotoSauce.MagicScaler.Transforms
@@ -41,7 +39,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				lineBuff = BufferPool.Rent(over.Width * bytesPerPixel, true);
 		}
 
-		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			var inner = new PixelArea(offsX, offsY, overSource.Width, overSource.Height);
 
@@ -83,7 +81,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			Profiler.ResumeTiming();
 		}
 
-		unsafe private void copyPixelsBuffered(in PixelArea prc, IntPtr pbBuffer)
+		private unsafe void copyPixelsBuffered(in PixelArea prc, IntPtr pbBuffer)
 		{
 			fixed (byte* buff = &lineBuff.Array![lineBuff.Offset])
 			{
@@ -115,7 +113,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		private unsafe static void copyPixelsIntrinsic(uint* ip, uint* ipe, uint* op)
+		private static unsafe void copyPixelsIntrinsic(uint* ip, uint* ipe, uint* op)
 		{
 			if (Avx2.IsSupported)
 			{
@@ -138,9 +136,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 				if (ip < ipe + Vector256<uint>.Count)
 				{
-					var offs = GetOffset(ip, ipe);
-					ip = SubtractOffset(ip, offs);
-					op = SubtractOffset(op, offs);
+					nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+					ip = UnsafeUtil.SubtractOffset(ip, offs);
+					op = UnsafeUtil.SubtractOffset(op, offs);
 					goto LoopTop;
 				}
 			}
@@ -165,9 +163,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 				if (ip < ipe + Vector128<uint>.Count)
 				{
-					var offs = GetOffset(ip, ipe);
-					ip = SubtractOffset(ip, offs);
-					op = SubtractOffset(op, offs);
+					nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+					ip = UnsafeUtil.SubtractOffset(ip, offs);
+					op = UnsafeUtil.SubtractOffset(op, offs);
 					goto LoopTop;
 				}
 			}

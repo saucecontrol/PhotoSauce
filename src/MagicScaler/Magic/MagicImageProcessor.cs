@@ -16,20 +16,20 @@ namespace PhotoSauce.MagicScaler
 	{
 		/// <summary>True to allow <a href="https://en.wikipedia.org/wiki/YCbCr">Y'CbCr</a> images to be processed in their native planar format, false to force RGB conversion before processing.</summary>
 		/// <include file='Docs/Remarks.xml' path='doc/member[@name="EnablePlanarPipeline"]/*'/>
-		/// <value>Default value: <c>true</c></value>
+		/// <value>Default value: <see langword="true" /></value>
 		public static bool EnablePlanarPipeline { get; set; } = true;
 
 		/// <summary>True to check for <c>Orientation</c> tag in XMP metadata in addition to the default Exif metadata location, false to check Exif only.</summary>
-		/// <value>Default value: <c>false</c></value>
+		/// <value>Default value: <see langword="false" /></value>
 		public static bool EnableXmpOrientation { get; set; }
 
 		/// <summary>True to enable internal <see cref="IPixelSource"/> instrumentation, false to disable.  When disabled, no <see cref="PixelSourceStats" /> will be collected for the pipeline stages.</summary>
-		/// <value>Default value: <c>false</c></value>
+		/// <value>Default value: <see langword="false" /></value>
 		public static bool EnablePixelSourceStats { get; set; }
 
 		/// <summary>Overrides the default <a href="https://en.wikipedia.org/wiki/SIMD">SIMD</a> support detection to force floating point processing on or off.</summary>
 		/// <include file='Docs/Remarks.xml' path='doc/member[@name="EnableSimd"]/*'/>
-		/// <value>Default value: <c>true</c> if the runtime/JIT and hardware support hardware-accelerated <see cref="System.Numerics.Vector{T}" />, otherwise <c>false</c></value>
+		/// <value>Default value: <see langword="true" /> if the runtime/JIT and hardware support hardware-accelerated <see cref="System.Numerics.Vector{T}" />, otherwise <see langword="false" /></value>
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static bool EnableSimd { get; set; } = Vector.IsHardwareAccelerated && (Vector<float>.Count == 4 || Vector<float>.Count == 8);
 
@@ -68,7 +68,7 @@ namespace PhotoSauce.MagicScaler
 
 		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
 		/// <param name="imgBuffer">A buffer containing a supported input image container.</param>
-		unsafe public static ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
+		public static unsafe ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
 			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
 			if (settings is null) throw new ArgumentNullException(nameof(settings));
@@ -151,7 +151,7 @@ namespace PhotoSauce.MagicScaler
 		/// <inheritdoc cref="BuildPipeline(string, ProcessImageSettings)" />
 		/// <param name="imgBuffer">A buffer containing a supported input image container.</param>
 		[Obsolete("Use Stream overload, with MemoryStream or UnmanagedMemoryStream", true), EditorBrowsable(EditorBrowsableState.Never)]
-		unsafe public static ProcessingPipeline BuildPipeline(ReadOnlySpan<byte> imgBuffer, ProcessImageSettings settings)
+		public static unsafe ProcessingPipeline BuildPipeline(ReadOnlySpan<byte> imgBuffer, ProcessImageSettings settings)
 		{
 			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
 			if (settings is null) throw new ArgumentNullException(nameof(settings));
@@ -213,7 +213,7 @@ namespace PhotoSauce.MagicScaler
 
 #pragma warning restore 1573
 
-		unsafe internal static ProcessImageResult WriteOutput(PipelineContext ctx, Stream ostm)
+		internal static unsafe ProcessImageResult WriteOutput(PipelineContext ctx, Stream ostm)
 		{
 			MagicTransforms.AddExternalFormatConverter(ctx);
 

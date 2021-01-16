@@ -137,7 +137,7 @@ namespace PhotoSauce.MagicScaler
 			return start;
 		}
 
-		unsafe private static KernelMap<T> create(int isize, int osize, InterpolationSettings interpolator, int ichannels, double offset)
+		private static unsafe KernelMap<T> create(int isize, int osize, InterpolationSettings interpolator, int ichannels, double offset)
 		{
 			double support = interpolator.WeightingFunction.Support;
 			double cscale = Math.Min((double)osize / isize, 1d) / interpolator.Blur;

@@ -89,7 +89,7 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		unsafe public static Vector128<float> MultiplyAdd(in Vector128<float> va, in Vector128<float> vm, float* mp)
+		public static unsafe Vector128<float> MultiplyAdd(in Vector128<float> va, in Vector128<float> vm, float* mp)
 		{
 			if (Fma.IsSupported)
 				return Fma.MultiplyAdd(Sse.LoadVector128(mp), vm, va);
@@ -107,7 +107,7 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		unsafe public static Vector256<float> MultiplyAdd(in Vector256<float> va, in Vector256<float> vm, float* mp)
+		public static unsafe Vector256<float> MultiplyAdd(in Vector256<float> va, in Vector256<float> vm, float* mp)
 		{
 			if (Fma.IsSupported)
 				return Fma.MultiplyAdd(Avx.LoadVector256(mp), vm, va);

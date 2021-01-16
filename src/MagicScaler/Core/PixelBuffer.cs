@@ -65,7 +65,7 @@ namespace PhotoSauce.MagicScaler
 				Unsafe.InitBlockUnaligned(ref buffer.Array![buffer.Offset + cbKeep], 0, (uint)(buffer.Count - cbKeep));
 		}
 
-		unsafe private void slide(int cbKeep, int cbKill)
+		private unsafe void slide(int cbKeep, int cbKill)
 		{
 			fixed (byte* pb = &buffer.Array![buffer.Offset])
 				Buffer.MemoryCopy(pb + cbKill, pb, buffer.Count, cbKeep);
@@ -178,7 +178,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe public static ArraySegment<byte> Rent(int length, bool aligned = false)
+		public static ArraySegment<byte> Rent(int length, bool aligned = false)
 		{
 			int pad = aligned ? HWIntrinsics.VectorCount<byte>() - sizeof(nuint) : 0;
 			var buff = ArrayPool<byte>.Shared.Rent(length + pad);

@@ -51,7 +51,7 @@ namespace PhotoSauce.MagicScaler
 			return WicImageContainer.Create(dec, ctx);
 		}
 
-		unsafe public static WicImageContainer Load(byte* pbBuffer, int cbBuffer, PipelineContext ctx, bool ownCopy = false)
+		public static unsafe WicImageContainer Load(byte* pbBuffer, int cbBuffer, PipelineContext ctx, bool ownCopy = false)
 		{
 			var istm = ctx.WicContext.AddRef(Wic.Factory.CreateStream());
 			var ptr = (IntPtr)pbBuffer;
@@ -436,7 +436,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		unsafe private void loadFrame(BufferFrame frame)
+		private unsafe void loadFrame(BufferFrame frame)
 		{
 			var srcmeta = ((WicImageFrame)ctx.ImageFrame).WicMetadataReader!;
 

@@ -28,13 +28,13 @@ namespace PhotoSauce.MagicScaler
 			Processor3X = new Converter3X(inverseGammaTable);
 		}
 
-		private sealed class Converter : IConversionProcessor<TFrom, TTo>
+		private sealed unsafe class Converter : IConversionProcessor<TFrom, TTo>
 		{
 			private readonly TTo[] igt;
 
 			public Converter(TTo[] inverseGammaTable) => igt = inverseGammaTable;
 
-			unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
+			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
 				fixed (TTo* igtstart = &igt[0])
 				{
@@ -47,7 +47,7 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			unsafe private static void convertUQ15(byte* ipstart, byte* opstart, ushort* igtstart, nint cb)
+			private static void convertUQ15(byte* ipstart, byte* opstart, ushort* igtstart, nint cb)
 			{
 				byte* ip = ipstart, ipe = ipstart + cb - 8;
 				ushort* op = (ushort*)opstart, igt = igtstart;
@@ -85,7 +85,7 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			unsafe private static void convertFloat(byte* ipstart, byte* opstart, float* igtstart, nint cb)
+			private static void convertFloat(byte* ipstart, byte* opstart, float* igtstart, nint cb)
 			{
 				byte* ip = ipstart, ipe = ipstart + cb;
 				float* op = (float*)opstart, igt = igtstart;
@@ -100,7 +100,7 @@ namespace PhotoSauce.MagicScaler
 
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-			unsafe private static void convertFloatAvx2(byte*ip, byte* ipe, float* op, float* igt)
+			private static void convertFloatAvx2(byte*ip, byte* ipe, float* op, float* igt)
 			{
 				ipe -= Vector256<byte>.Count;
 
@@ -128,15 +128,15 @@ namespace PhotoSauce.MagicScaler
 
 				if (ip < ipe + Vector256<byte>.Count)
 				{
-					var offs = GetOffset(ip, ipe);
-					ip = SubtractOffset(ip, offs);
-					op = SubtractOffset(op, ConvertOffset<byte, float>(offs));
+					nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+					ip = UnsafeUtil.SubtractOffset(ip, offs);
+					op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<byte, float>(offs));
 					goto LoopTop;
 				}
 			}
 #endif
 
-			unsafe private static void convertFloatScalar(byte* ip, byte* ipe, float* op, float* igt)
+			private static void convertFloatScalar(byte* ip, byte* ipe, float* op, float* igt)
 			{
 				ipe -= 8;
 				while (ip <= ipe)
@@ -172,13 +172,13 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private sealed class Converter3A : IConversionProcessor<TFrom, TTo>
+		private sealed unsafe class Converter3A : IConversionProcessor<TFrom, TTo>
 		{
 			private readonly TTo[] igt;
 
 			public Converter3A(TTo[] inverseGammaTable) => igt = inverseGammaTable;
 
-			unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
+			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
 				fixed (TTo* igtstart = &igt[0])
 				{
@@ -191,7 +191,7 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			unsafe private static void convertUQ15(byte* ipstart, byte* opstart, ushort* igtstart, nint cb)
+			private static void convertUQ15(byte* ipstart, byte* opstart, ushort* igtstart, nint cb)
 			{
 				byte* ip = ipstart, ipe = ipstart + cb;
 				ushort* op = (ushort*)opstart, igt = igtstart;
@@ -216,7 +216,7 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			unsafe private static void convertFloat(byte* ipstart, byte* opstart, float* igtstart, nint cb)
+			private static void convertFloat(byte* ipstart, byte* opstart, float* igtstart, nint cb)
 			{
 				byte* ip = ipstart, ipe = ipstart + cb;
 				float* op = (float*)opstart, igt = igtstart;
@@ -231,7 +231,7 @@ namespace PhotoSauce.MagicScaler
 
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-			unsafe private static void convertFloatAvx2(byte* ip, byte* ipe, float* op, float* igt)
+			private static void convertFloatAvx2(byte* ip, byte* ipe, float* op, float* igt)
 			{
 				var vscale = Vector256.Create(1f / byte.MaxValue);
 				ipe -= Vector256<byte>.Count;
@@ -285,15 +285,15 @@ namespace PhotoSauce.MagicScaler
 
 				if (ip < ipe + Vector256<byte>.Count)
 				{
-					var offs = GetOffset(ip, ipe);
-					ip = SubtractOffset(ip, offs);
-					op = SubtractOffset(op, ConvertOffset<byte, float>(offs));
+					nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+					ip = UnsafeUtil.SubtractOffset(ip, offs);
+					op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<byte, float>(offs));
 					goto LoopTop;
 				}
 			}
 #endif
 
-			unsafe private static void convertFloatScalar(byte* ip, byte* ipe, float* op, float* igt)
+			private static void convertFloatScalar(byte* ip, byte* ipe, float* op, float* igt)
 			{
 				fixed (float* atstart = &LookupTables.Alpha[0])
 				{
@@ -317,13 +317,13 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private sealed class Converter3X : IConversionProcessor<TFrom, TTo>
+		private sealed unsafe class Converter3X : IConversionProcessor<TFrom, TTo>
 		{
 			private readonly TTo[] igt;
 
 			public Converter3X(TTo[] inverseGammaTable) => igt = inverseGammaTable;
 
-			unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
+			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
 				fixed (TTo* igtstart = &igt[0])
 				{
@@ -335,7 +335,7 @@ namespace PhotoSauce.MagicScaler
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-			unsafe private static void convertFloat(byte* ipstart, byte* opstart, float* igtstart, nint cb)
+			private static void convertFloat(byte* ipstart, byte* opstart, float* igtstart, nint cb)
 			{
 				byte* ip = ipstart, ipe = ipstart + cb;
 				float* op = (float*)opstart, igt = igtstart;
@@ -369,13 +369,13 @@ namespace PhotoSauce.MagicScaler
 			Processor3X = new Converter3X(gammaTable);
 		}
 
-		private sealed class Converter : IConversionProcessor<TFrom, TTo>
+		private sealed unsafe class Converter : IConversionProcessor<TFrom, TTo>
 		{
 			private readonly TTo[] gt;
 
 			public Converter(TTo[] gammaTable) => gt = gammaTable;
 
-			unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
+			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
 				fixed (TTo* gtstart = &gt[0])
 				{
@@ -388,7 +388,7 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			unsafe private static void convertUQ15(byte* ipstart, byte* opstart, byte* gtstart, nint cb)
+			private static void convertUQ15(byte* ipstart, byte* opstart, byte* gtstart, nint cb)
 			{
 				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb);
 				byte* op = opstart, gt = gtstart;
@@ -418,7 +418,7 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			unsafe private static void convertFloat(byte* ipstart, byte* opstart, byte* gtstart, nint cb)
+			private static void convertFloat(byte* ipstart, byte* opstart, byte* gtstart, nint cb)
 			{
 				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb);
 				byte* op = opstart, gt = gtstart;
@@ -436,7 +436,7 @@ namespace PhotoSauce.MagicScaler
 
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-			unsafe private static void convertFloatAvx2(float* ip, float* ipe, byte* op, byte* gt)
+			private static void convertFloatAvx2(float* ip, float* ipe, byte* op, byte* gt)
 			{
 				var vmin = Vector256<int>.Zero;
 				var vscale = Vector256.Create((float)UQ15One);
@@ -488,15 +488,15 @@ namespace PhotoSauce.MagicScaler
 
 				if (ip < ipe + Vector256<float>.Count * 4)
 				{
-					var offs = GetOffset(ip, ipe);
-					ip = SubtractOffset(ip, offs);
-					op = SubtractOffset(op, ConvertOffset<float, byte>(offs));
+					nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+					ip = UnsafeUtil.SubtractOffset(ip, offs);
+					op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<float, byte>(offs));
 					goto LoopTop;
 				}
 			}
 #endif
 
-			unsafe private static void convertFloatVector(float* ip, float* ipe, byte* op, byte* gt)
+			private static void convertFloatVector(float* ip, float* ipe, byte* op, byte* gt)
 			{
 				var vmin = VectorF.Zero;
 				var vmax = new VectorF(UQ15One);
@@ -542,14 +542,14 @@ namespace PhotoSauce.MagicScaler
 
 				if (ip < ipe + VectorF.Count)
 				{
-					var offs = GetOffset(ip, ipe);
-					ip = SubtractOffset(ip, offs);
-					op = SubtractOffset(op, ConvertOffset<float, byte>(offs));
+					nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+					ip = UnsafeUtil.SubtractOffset(ip, offs);
+					op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<float, byte>(offs));
 					goto LoopTop;
 				}
 			}
 
-			unsafe private static void convertFloatScalar(float* ip, float* ipe, byte* op, byte* gt)
+			private static void convertFloatScalar(float* ip, float* ipe, byte* op, byte* gt)
 			{
 				while (ip < ipe)
 				{
@@ -560,13 +560,13 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private sealed class Converter3A : IConversionProcessor<TFrom, TTo>
+		private sealed unsafe class Converter3A : IConversionProcessor<TFrom, TTo>
 		{
 			private readonly TTo[] gt;
 
 			public Converter3A(TTo[] gammaTable) => gt = gammaTable;
 
-			unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
+			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
 				fixed (TTo* gtstart = &gt[0])
 				{
@@ -579,7 +579,7 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			unsafe private static void convertUQ15(byte* ipstart, byte* opstart, byte* gtstart, nint cb)
+			private static void convertUQ15(byte* ipstart, byte* opstart, byte* gtstart, nint cb)
 			{
 				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb);
 				byte* op = opstart, gt = gtstart;
@@ -614,7 +614,7 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			unsafe private static void convertFloat(byte* ipstart, byte* opstart, byte* gtstart, nint cb)
+			private static void convertFloat(byte* ipstart, byte* opstart, byte* gtstart, nint cb)
 			{
 				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb);
 				byte* op = opstart, gt = gtstart;
@@ -629,7 +629,7 @@ namespace PhotoSauce.MagicScaler
 
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-			unsafe private static void convertFloatAvx2(float* ip, float* ipe, byte* op, byte* gt)
+			private static void convertFloatAvx2(float* ip, float* ipe, byte* op, byte* gt)
 			{
 				var vzero = Vector256<float>.Zero;
 				var vmin = Vector256.Create(0.5f / byte.MaxValue);
@@ -717,15 +717,15 @@ namespace PhotoSauce.MagicScaler
 
 				if (ip < ipe + Vector256<float>.Count * 4)
 				{
-					var offs = GetOffset(ip, ipe);
-					ip = SubtractOffset(ip, offs);
-					op = SubtractOffset(op, ConvertOffset<float, byte>(offs));
+					nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+					ip = UnsafeUtil.SubtractOffset(ip, offs);
+					op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<float, byte>(offs));
 					goto LoopTop;
 				}
 			}
 #endif
 
-			unsafe private static void convertFloatScalar(float* ip, float* ipe, byte* op, byte* gt)
+			private static void convertFloatScalar(float* ip, float* ipe, byte* op, byte* gt)
 			{
 				float fmax = new Vector4(byte.MaxValue).X, fround = new Vector4(0.5f).X, fmin = fround / fmax;
 
@@ -755,13 +755,13 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private sealed class Converter3X : IConversionProcessor<TFrom, TTo>
+		private sealed unsafe class Converter3X : IConversionProcessor<TFrom, TTo>
 		{
 			private readonly TTo[] gt;
 
 			public Converter3X(TTo[] gammaTable) => gt = gammaTable;
 
-			unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
+			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
 				fixed (TTo* gtstart = &gt[0])
 				{
@@ -770,7 +770,7 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			unsafe private static void convertFloat(byte* ipstart, byte* opstart, byte* gtstart, nint cb)
+			private static void convertFloat(byte* ipstart, byte* opstart, byte* gtstart, nint cb)
 			{
 				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb);
 				byte* op = opstart, gt = gtstart;

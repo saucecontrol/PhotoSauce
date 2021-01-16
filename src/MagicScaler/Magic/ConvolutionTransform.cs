@@ -7,13 +7,13 @@ using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler.Transforms
 {
-	unsafe internal interface IConvolver
+	internal interface IConvolver
 	{
 		int Channels { get; }
 		int MapChannels { get; }
-		void ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy);
-		void WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy);
-		void SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma);
+		unsafe void ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy);
+		unsafe void WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy);
+		unsafe void SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma);
 	}
 
 	internal interface IVectorConvolver
@@ -142,7 +142,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
-		unsafe protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			if (XMap is null)
 				throw new ObjectDisposedException(nameof(ConvolutionTransform<TPixel, TWeight>));
@@ -174,7 +174,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			WorkBuff?.Reset();
 		}
 
-		unsafe private void loadBuffer(int first, int lines)
+		private unsafe void loadBuffer(int first, int lines)
 		{
 			Debug.Assert((!bufferSource && lineBuff.Array is not null) || (WorkBuff is not null && SrcBuff is not null));
 
@@ -215,7 +215,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
-		unsafe protected virtual void ConvolveLine(byte* ostart, byte* pmapy, int smapy, int iy, int oy, int ox, int ow)
+		protected virtual unsafe void ConvolveLine(byte* ostart, byte* pmapy, int smapy, int iy, int oy, int ox, int ow)
 		{
 			fixed (byte* tstart = IntBuff.PrepareRead(iy, smapy))
 				YProcessor.WriteDestLine(tstart, ostart, ox, ow, pmapy, smapy);
@@ -271,7 +271,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			blurBuff = BufferPool.Rent(WorkBuff.Stride, true);
 		}
 
-		unsafe protected override void ConvolveLine(byte* ostart, byte* pmapy, int smapy, int iy, int oy, int ox, int ow)
+		protected override unsafe void ConvolveLine(byte* ostart, byte* pmapy, int smapy, int iy, int oy, int ox, int ow)
 		{
 			var bspan = SrcBuff!.PrepareRead(oy, 1);
 			var wspan = WorkBuff != SrcBuff ? WorkBuff!.PrepareRead(oy, 1) : bspan;

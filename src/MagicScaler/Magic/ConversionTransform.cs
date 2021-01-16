@@ -115,7 +115,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				copyPixelsDirect(prc, cbStride, cbBufferSize, pbBuffer);
 		}
 
-		unsafe private void copyPixelsBuffered(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		private unsafe void copyPixelsBuffered(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			if (lineBuff.Array is null) throw new ObjectDisposedException(nameof(ConversionTransform));
 
@@ -135,7 +135,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
-		unsafe private void copyPixelsDirect(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		private unsafe void copyPixelsDirect(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			int cb = MathUtil.DivCeiling(prc.Width * PrevSource.Format.BitsPerPixel, 8);
 
