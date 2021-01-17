@@ -776,7 +776,7 @@ namespace PhotoSauce.MagicScaler
 				byte* op = opstart, gt = gtstart;
 
 #if HWINTRINSICS
-				if (Avx2.IsSupported && cb >= Vector256<byte>.Count)
+				if (Avx2.IsSupported && ipe >= ip + Vector256<byte>.Count)
 				{
 					var vmin = Vector256<int>.Zero;
 					var vscale = Vector256.Create((float)UQ15One);

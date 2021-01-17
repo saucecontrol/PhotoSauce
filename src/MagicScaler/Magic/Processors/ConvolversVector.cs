@@ -269,7 +269,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					av0 = av1 = av2 = Vector4.Zero;
 				}
 
-				while (lcnt != 0)
+				while (lcnt >= 3)
 				{
 					lcnt -= 3;
 
@@ -285,15 +285,15 @@ namespace PhotoSauce.MagicScaler.Transforms
 				}
 
 				float a0, a1, a2;
-				if (vcnt == 0)
-				{
-					a0 = a1 = a2 = 0f;
-				}
-				else
+				if (vcnt >= 3)
 				{
 					a0 = av0.X + av0.W + av1.Z + av2.Y;
 					a1 = av0.Y + av1.X + av1.W + av2.Z;
 					a2 = av0.Z + av1.Y + av2.X + av2.W;
+				}
+				else
+				{
+					a0 = a1 = a2 = 0f;
 				}
 
 				while (ip < ipe)

@@ -1,16 +1,17 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
-using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
+
+using TerraFX.Interop;
 
 using PhotoSauce.Interop.Wic;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal class WicPlanarCache : IDisposable
+	internal unsafe class WicPlanarCache : IDisposable
 	{
 		private enum WicPlane { Y, Cb, Cr }
 
@@ -19,15 +20,14 @@ namespace PhotoSauce.MagicScaler
 		private readonly int strideY, strideC;
 		private readonly int buffHeight;
 
-		private readonly IWICPlanarBitmapSourceTransform sourceTransform;
 		private readonly WICBitmapTransformOptions sourceTransformOptions;
 		private readonly PlanarCachePixelSource sourceY, sourceCb, sourceCr;
 		private readonly PixelBuffer buffY, buffCb, buffCr;
 		private readonly WICRect scaledCrop;
 
-		private WICBitmapPlane[] sourcePlanes;
+		private IWICPlanarBitmapSourceTransform* sourceTransform;
 
-		public WicPlanarCache(IWICPlanarBitmapSourceTransform source, ReadOnlySpan<WICBitmapPlaneDescription> desc, WICBitmapTransformOptions transformOptions, uint width, uint height, in PixelArea crop)
+		public WicPlanarCache(IWICPlanarBitmapSourceTransform* source, ReadOnlySpan<WICBitmapPlaneDescription> desc, WICBitmapTransformOptions transformOptions, uint width, uint height, in PixelArea crop)
 		{
 			var descY = desc[0];
 			var descCb = desc[1];
@@ -70,18 +70,13 @@ namespace PhotoSauce.MagicScaler
 			sourceY = new PlanarCachePixelSource(this, WicPlane.Y, descY);
 			sourceCb = new PlanarCachePixelSource(this, WicPlane.Cb, descCb);
 			sourceCr = new PlanarCachePixelSource(this, WicPlane.Cr, descCr);
-
-			sourcePlanes = ArrayPool<WICBitmapPlane>.Shared.Rent(WicTransforms.PlanarPixelFormats.Length);
-			sourcePlanes[0] = new WICBitmapPlane { Format = descY.Format, cbStride = (uint)strideY };
-			sourcePlanes[1] = new WICBitmapPlane { Format = descCb.Format, cbStride = (uint)strideC };
-			sourcePlanes[2] = new WICBitmapPlane { Format = descCr.Format, cbStride = (uint)strideC };
 		}
 
 		public PixelSource SourceY => sourceY;
 		public PixelSource SourceCb => sourceCb;
 		public PixelSource SourceCr => sourceCr;
 
-		private unsafe void copyPixels(WicPlane plane, in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		private void copyPixels(WicPlane plane, in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			Debug.Assert(cbStride >= prc.Width);
 			Debug.Assert(cbBufferSize >= (prc.Height - 1) * cbStride + prc.Width);
@@ -99,11 +94,11 @@ namespace PhotoSauce.MagicScaler
 					loadBuffer(plane, line);
 
 				var lspan = buff.PrepareRead(line, 1).Slice(prc.X, prc.Width);
-				Unsafe.CopyBlockUnaligned(ref Unsafe.AsRef<byte>((byte*)pbBuffer + y * cbStride), ref MemoryMarshal.GetReference(lspan), (uint)lspan.Length);
+				Unsafe.CopyBlockUnaligned(ref *((byte*)pbBuffer + y * cbStride), ref MemoryMarshal.GetReference(lspan), (uint)lspan.Length);
 			}
 		}
 
-		private unsafe void loadBuffer(WicPlane plane, int line)
+		private void loadBuffer(WicPlane plane, int line)
 		{
 			int prcY = MathUtil.PowerOfTwoFloor(plane == WicPlane.Y ? line : line * subsampleRatioY, subsampleRatioY);
 
@@ -125,25 +120,28 @@ namespace PhotoSauce.MagicScaler
 
 			fixed (byte* pBuffY = spanY, pBuffCb = spanCb, pBuffCr = spanCr)
 			{
-				sourcePlanes[0].pbBuffer = (IntPtr)pBuffY;
-				sourcePlanes[1].pbBuffer = (IntPtr)pBuffCb;
-				sourcePlanes[2].pbBuffer = (IntPtr)pBuffCr;
-				sourcePlanes[0].cbBufferSize = (uint)spanY.Length;
-				sourcePlanes[1].cbBufferSize = (uint)spanCb.Length;
-				sourcePlanes[2].cbBufferSize = (uint)spanCr.Length;
+				var formats = WicTransforms.PlanarPixelFormats;
+				var sourcePlanes = stackalloc[] {
+					new WICBitmapPlane { Format = formats[0], pbBuffer = pBuffY, cbStride = (uint)strideY, cbBufferSize = (uint)spanY.Length },
+					new WICBitmapPlane { Format = formats[1], pbBuffer = pBuffCb, cbStride = (uint)strideC, cbBufferSize = (uint)spanCb.Length },
+					new WICBitmapPlane { Format = formats[2], pbBuffer = pBuffCr, cbStride = (uint)strideC, cbBufferSize = (uint)spanCr.Length }
+				};
 
-				sourceTransform.CopyPixels(sourceRect, scaledWidth, scaledHeight, sourceTransformOptions, WICPlanarOptions.WICPlanarOptionsDefault, sourcePlanes, (uint)WicTransforms.PlanarPixelFormats.Length);
+				HRESULT.Check(sourceTransform->CopyPixels(&sourceRect, scaledWidth, scaledHeight, sourceTransformOptions, WICPlanarOptions.WICPlanarOptionsDefault, sourcePlanes, (uint)WicTransforms.PlanarPixelFormats.Length));
 			}
 		}
 
 		public void Dispose()
 		{
-			ArrayPool<WICBitmapPlane>.Shared.TryReturn(sourcePlanes);
-			sourcePlanes = null!;
+			if (sourceTransform is null)
+				return;
 
 			buffY.Dispose();
 			buffCb.Dispose();
 			buffCr.Dispose();
+
+			sourceTransform->Release();
+			sourceTransform = null;
 		}
 
 		private sealed class PlanarCachePixelSource : PixelSource

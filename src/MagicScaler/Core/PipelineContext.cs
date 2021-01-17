@@ -93,6 +93,8 @@ namespace PhotoSauce.MagicScaler
 			return disposeHandle;
 		}
 
+		public void AddFrameDisposer() => AddDispose(new FrameDisposer(this));
+
 		public void FinalizeSettings()
 		{
 			Orientation = Settings.OrientationMode == OrientationMode.Normalize ? ImageFrame.ExifOrientation : Orientation.Normal;
@@ -112,8 +114,15 @@ namespace PhotoSauce.MagicScaler
 		{
 			while (disposeHandles.Count > 0)
 				disposeHandles.Pop().Dispose();
+		}
 
-			ImageFrame?.Dispose();
+		private struct FrameDisposer : IDisposable
+		{
+			private readonly PipelineContext ctx;
+
+			public FrameDisposer(PipelineContext owner) => ctx = owner;
+
+			public void Dispose() => ctx.ImageFrame?.Dispose();
 		}
 	}
 }

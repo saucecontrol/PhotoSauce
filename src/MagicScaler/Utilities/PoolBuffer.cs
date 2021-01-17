@@ -9,21 +9,21 @@ namespace PhotoSauce.MagicScaler
 {
 	internal readonly ref struct PoolBuffer<T> where T : struct
 	{
-		private readonly int length;
+		private readonly int byteLength;
 		private readonly byte[] array;
 
 		public PoolBuffer(int length, bool clear = false)
 		{
-			this.length = length;
-			array = ArrayPool<byte>.Shared.Rent(length * Unsafe.SizeOf<T>());
+			byteLength = length * Unsafe.SizeOf<T>();
+			array = ArrayPool<byte>.Shared.Rent(byteLength);
 
 			if (clear)
-				array.AsSpan(0, length).Clear();
+				array.AsSpan(0, byteLength).Clear();
 		}
 
-		public int Length => (int)((uint)length / (uint)Unsafe.SizeOf<T>());
+		public int Length => (int)((uint)byteLength / (uint)Unsafe.SizeOf<T>());
 
-		public Span<T> Span => MemoryMarshal.Cast<byte, T>(new Span<byte>(array, 0, length));
+		public Span<T> Span => MemoryMarshal.Cast<byte, T>(array.AsSpan(0, byteLength));
 
 		public void Dispose() => ArrayPool<byte>.Shared.TryReturn(array);
 	}
@@ -46,7 +46,7 @@ namespace PhotoSauce.MagicScaler
 
 		public int Length => length;
 
-		public Span<T> Span => new(array, 0, length);
+		public Span<T> Span => array.AsSpan(0, length);
 
 		public void Dispose() => ArrayPool<T>.Shared.TryReturn(array);
 	}

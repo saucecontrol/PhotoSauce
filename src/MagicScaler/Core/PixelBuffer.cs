@@ -178,7 +178,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		public static ArraySegment<byte> Rent(int length, bool aligned = false)
+		public static unsafe ArraySegment<byte> Rent(int length, bool aligned = false)
 		{
 			int pad = aligned ? HWIntrinsics.VectorCount<byte>() - sizeof(nuint) : 0;
 			var buff = ArrayPool<byte>.Shared.Rent(length + pad);

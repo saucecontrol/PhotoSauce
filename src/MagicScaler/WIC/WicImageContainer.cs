@@ -1,17 +1,23 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
-using System.Buffers;
 using System.Buffers.Binary;
+using System.Runtime.InteropServices;
+
+using TerraFX.Interop;
+using static TerraFX.Interop.Windows;
 
 using PhotoSauce.Interop.Wic;
 using PhotoSauce.MagicScaler.Transforms;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal class WicImageContainer : IImageContainer
+	internal unsafe class WicImageContainer : IImageContainer, IDisposable
 	{
-		public IWICBitmapDecoder WicDecoder { get; }
+		private readonly SafeHandle? handle;
+
+		public IWICBitmapDecoder* WicDecoder { get; private set; }
+
 		public FileFormat ContainerFormat { get; }
 		public int FrameCount { get; }
 
@@ -20,8 +26,9 @@ namespace PhotoSauce.MagicScaler
 				if (ContainerFormat != FileFormat.Unknown)
 					return false;
 
-				var guid = WicDecoder.GetContainerFormat();
-				return guid == Consts.GUID_ContainerFormatRaw || guid == Consts.GUID_ContainerFormatRaw2 || guid == Consts.GUID_ContainerFormatAdng;
+				var guid = default(Guid);
+				HRESULT.Check(WicDecoder->GetContainerFormat(&guid));
+				return guid == GUID_ContainerFormatRaw || guid == GUID_ContainerFormatRaw2 || guid == GUID_ContainerFormatAdng;
 			}
 		}
 
@@ -32,21 +39,38 @@ namespace PhotoSauce.MagicScaler
 			return new WicImageFrame(this, (uint)index);
 		}
 
-		public WicImageContainer(IWICBitmapDecoder dec, WicPipelineContext ctx, FileFormat fmt)
+		public WicImageContainer(IWICBitmapDecoder* dec, SafeHandle? src, FileFormat fmt)
 		{
-			WicDecoder = ctx.AddRef(dec);
+			WicDecoder = dec;
+			handle = src;
 
+			uint fcount;
+			HRESULT.Check(dec->GetFrameCount(&fcount));
+			FrameCount = (int)fcount;
 			ContainerFormat = fmt;
-			FrameCount = (int)dec.GetFrameCount();
 		}
 
-		public static WicImageContainer Create(IWICBitmapDecoder dec, PipelineContext ctx)
+		public static WicImageContainer Create(IWICBitmapDecoder* dec, SafeHandle? src = null)
 		{
-			var fmt = WicImageDecoder.FormatMap.GetValueOrDefault(dec.GetContainerFormat(), FileFormat.Unknown);
-			if (fmt == FileFormat.Gif)
-				return ctx.AddDispose(new WicGifContainer(dec, ctx.WicContext));
+			var guid = default(Guid);
+			HRESULT.Check(dec->GetContainerFormat(&guid));
 
-			return new WicImageContainer(dec, ctx.WicContext, fmt);
+			var fmt = WicImageDecoder.FormatMap.GetValueOrDefault(guid, FileFormat.Unknown);
+			if (fmt == FileFormat.Gif)
+				return new WicGifContainer(dec, src);
+
+			return new WicImageContainer(dec, src, fmt);
+		}
+
+		public virtual void Dispose()
+		{
+			if (WicDecoder is null)
+				return;
+
+			WicDecoder->Release();
+			WicDecoder = null;
+
+			handle?.Dispose();
 		}
 	}
 
@@ -64,7 +88,7 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	internal class WicGifContainer : WicImageContainer, IDisposable
+	internal unsafe class WicGifContainer : WicImageContainer, IDisposable
 	{
 		private static ReadOnlySpan<byte> animexts1_0 => new[] {
 			(byte)'A', (byte)'N', (byte)'I', (byte)'M', (byte)'E', (byte)'X', (byte)'T', (byte)'S', (byte)'1', (byte)'.', (byte)'0'
@@ -80,42 +104,49 @@ namespace PhotoSauce.MagicScaler
 
 		public GifAnimationContext? AnimationContext { get; set; }
 
-		public WicGifContainer(IWICBitmapDecoder dec, WicPipelineContext ctx) : base(dec, ctx, FileFormat.Gif)
+		public WicGifContainer(IWICBitmapDecoder* dec, SafeHandle? src) : base(dec, src, FileFormat.Gif)
 		{
-			using var wicmeta = ComHandle.Wrap(dec.GetMetadataQueryReader());
-			var meta = wicmeta.ComObject;
+			using var meta = default(ComPtr<IWICMetadataQueryReader>);
+			HRESULT.Check(dec->GetMetadataQueryReader(meta.GetAddressOf()));
 
 			ScreenWidth = meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenWidth);
 			ScreenHeight = meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenHeight);
 
 			if (meta.GetValueOrDefault<bool>(Wic.Metadata.Gif.GlobalPaletteFlag))
 			{
-				using var wicpal = ComHandle.Wrap(Wic.Factory.CreatePalette());
-				var pal = wicpal.ComObject;
-				dec.CopyPalette(pal);
+				using var pal = default(ComPtr<IWICPalette>);
+				HRESULT.Check(Wic.Factory->CreatePalette(pal.GetAddressOf()));
+				HRESULT.Check(dec->CopyPalette(pal));
 
-				uint pcc = pal.GetColorCount();
+				uint pcc;
+				HRESULT.Check(pal.Get()->GetColorCount(&pcc));
+
 				uint idx = meta.GetValueOrDefault<byte>(Wic.Metadata.Gif.BackgroundColorIndex);
 				if (idx < pcc)
 				{
-					var buff = ArrayPool<uint>.Shared.Rent((int)pcc);
-
-					pal.GetColors(pcc, buff);
-					BackgroundColor = buff[idx];
-
-					ArrayPool<uint>.Shared.Return(buff);
+					using var buff = new PoolBuffer<uint>((int)pcc);
+					fixed (uint* pbuff = buff.Span)
+					{
+						HRESULT.Check(pal.Get()->GetColors(pcc, pbuff, &pcc));
+						BackgroundColor = pbuff[idx];
+					}
 				}
 			}
 
-			var appext = meta.GetValueOrDefault<byte[]>(Wic.Metadata.Gif.AppExtension).AsSpan();
+			var sbuff = (Span<byte>)stackalloc byte[16];
+			var appext = meta.GetValueOrDefault(Wic.Metadata.Gif.AppExtension, sbuff);
 			if (appext.Length == 11 && netscape2_0.SequenceEqual(appext) || animexts1_0.SequenceEqual(appext))
 			{
-				var appdata = meta.GetValueOrDefault<byte[]>(Wic.Metadata.Gif.AppExtensionData).AsSpan();
+				var appdata = meta.GetValueOrDefault(Wic.Metadata.Gif.AppExtensionData, sbuff);
 				if (appdata.Length >= 4 && appdata[0] >= 3 && appdata[1] == 1)
 					LoopCount = BinaryPrimitives.ReadUInt16LittleEndian(appdata.Slice(2));
 			}
 		}
 
-		public void Dispose() => AnimationContext?.Dispose();
+		public override void Dispose()
+		{
+			AnimationContext?.Dispose();
+			base.Dispose();
+		}
 	}
 }

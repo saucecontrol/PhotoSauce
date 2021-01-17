@@ -1,16 +1,48 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
+using System.Threading;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+
+using TerraFX.Interop;
+using static TerraFX.Interop.Windows;
 
 using PhotoSauce.MagicScaler;
 
 namespace PhotoSauce.Interop.Wic
 {
-	internal static class Wic
+	internal static unsafe class Wic
 	{
-		public static readonly IWICImagingFactory Factory = new WICImagingFactory2() as IWICImagingFactory ?? throw new PlatformNotSupportedException("Windows Imaging Component (WIC) is not available on this platform.");
+		private static readonly Lazy<IntPtr> factory = new(() => {
+			int hr = S_FALSE;
+			using var wicfactory = default(ComPtr<IWICImagingFactory2>);
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+			{
+				// Before netcoreapp3.0, CoInitializeEx wasn't called on the main thread if a COM apartment model attribute was not present on Main().
+				// Checking the current state is enough to trigger the CoInitializeEx call.  https://github.com/dotnet/runtime/issues/10261
+				_ = Thread.CurrentThread.GetApartmentState();
+
+				var clsidWicFactory = CLSID_WICImagingFactory2;
+				var iidWicFactory = IID_IWICImagingFactory2;
+				hr = CoCreateInstance(&clsidWicFactory, null, (uint)CLSCTX.CLSCTX_INPROC_SERVER, &iidWicFactory, (void**)wicfactory.GetAddressOf());
+				if (FAILED(hr))
+				{
+					clsidWicFactory = CLSID_WICImagingFactory1;
+					iidWicFactory = IID_IWICImagingFactory;
+					if (SUCCEEDED(CoCreateInstance(&clsidWicFactory, null, (uint)CLSCTX.CLSCTX_INPROC_SERVER, &iidWicFactory, (void**)wicfactory.GetAddressOf())))
+						throw new PlatformNotSupportedException("The current WIC version is not supported. Please install the Windows platform update. See: https://support.microsoft.com/kb/2670838");
+				}
+			}
+
+			if (wicfactory.Get() is null)
+				throw new PlatformNotSupportedException("Windows Imaging Component (WIC) is not available on this platform.", Marshal.GetExceptionForHR(hr));
+
+			return (IntPtr)wicfactory.Detach();
+		});
+
+		public static IWICImagingFactory2* Factory => (IWICImagingFactory2*)factory.Value;
 
 		public static class Metadata
 		{
@@ -46,7 +78,7 @@ namespace PhotoSauce.Interop.Wic
 		}
 	}
 
-	internal static class WinCodecExtensions
+	internal static unsafe class WinCodecExtensions
 	{
 		public static bool RequiresCache(this WICBitmapTransformOptions opt) =>
 			opt != WICBitmapTransformOptions.WICBitmapTransformRotate0 && opt != WICBitmapTransformOptions.WICBitmapTransformFlipHorizontal;
@@ -73,124 +105,162 @@ namespace PhotoSauce.Interop.Wic
 
 		public static bool IsSubsampledY(this WICJpegYCrCbSubsamplingOption o) => MiscExtensions.IsSubsampledY((ChromaSubsampleMode)o);
 
-		public static WICRect ToWicRect(in this PixelArea a) => new WICRect { X = a.X, Y = a.Y, Width = a.Width, Height = a.Height };
+		public static WICRect ToWicRect(in this PixelArea a) => new() { X = a.X, Y = a.Y, Width = a.Width, Height = a.Height };
 
-		public static PixelArea ToPixelArea(in this WICRect r) => new PixelArea(r.X, r.Y, r.Width, r.Height);
+		public static PixelArea ToPixelArea(in this WICRect r) => new(r.X, r.Y, r.Width, r.Height);
 
-		public static bool TryGetPreview(this IWICBitmapDecoder dec, [NotNullWhen(true)] out IWICBitmapSource? pvw)
+		public static T GetValueOrDefault<T>(this ComPtr<IWICMetadataQueryReader> meta, string name) where T : unmanaged
 		{
-			int hr = ProxyFunctions.GetPreview(dec, out pvw);
-			return hr >= 0;
-		}
+			var pv = default(PROPVARIANT);
+			if (FAILED(meta.Get()->GetMetadataByName(name, &pv)))
+				return default;
 
-		public static uint GetColorContextCount(this IWICBitmapFrameDecode frame)
-		{
-			int hr = ProxyFunctions.GetColorContexts(frame, 0, null, out uint ccc);
-			return hr >= 0 ? ccc : 0u;
-		}
-
-		public static bool TryGetMetadataQueryReader(this IWICBitmapDecoder decoder, [NotNullWhen(true)] out IWICMetadataQueryReader? rdr)
-		{
-			int hr = ProxyFunctions.GetMetadataQueryReader(decoder, out rdr);
-			return hr >= 0;
-		}
-
-		public static bool TryGetMetadataQueryReader(this IWICBitmapFrameDecode frame, [NotNullWhen(true)] out IWICMetadataQueryReader? rdr)
-		{
-			int hr = ProxyFunctions.GetMetadataQueryReader(frame, out rdr);
-			return hr >= 0;
-		}
-
-		public static bool TryGetMetadataQueryWriter(this IWICBitmapEncoder encoder, [NotNullWhen(true)] out IWICMetadataQueryWriter? wri)
-		{
-			int hr = ProxyFunctions.GetMetadataQueryWriter(encoder, out wri);
-			return hr >= 0;
-		}
-
-		public static bool TryGetMetadataQueryWriter(this IWICBitmapFrameEncode frame, [NotNullWhen(true)] out IWICMetadataQueryWriter? wri)
-		{
-			int hr = ProxyFunctions.GetMetadataQueryWriter(frame, out wri);
-			return hr >= 0;
-		}
-
-		public static bool TryGetMetadataByName(this IWICMetadataQueryReader meta, string name, [NotNullWhen(true)] out PropVariant? value)
-		{
-			value = null;
-
-			int hr = ProxyFunctions.GetMetadataByName(meta, name, IntPtr.Zero);
-			if (hr >= 0)
-			{
-				value = new PropVariant();
-
-				var pvMarshal = PropVariant.Marshaler.GetInstance(null);
-				var pvNative = pvMarshal.MarshalManagedToNative(value);
-				hr = ProxyFunctions.GetMetadataByName(meta, name, pvNative);
-				pvMarshal.MarshalNativeToManaged(pvNative);
-				pvMarshal.CleanUpNativeData(pvNative);
-			}
-
-			return hr >= 0;
-		}
-
-		public static bool TrySetMetadataByName(this IWICMetadataQueryWriter meta, string name, PropVariant value)
-		{
-			var pvMarshal = PropVariant.Marshaler.GetInstance(null);
-			var pvNative = pvMarshal.MarshalManagedToNative(value);
-			int hr = ProxyFunctions.SetMetadataByName(meta, name, pvNative);
-			pvMarshal.CleanUpNativeData(pvNative);
-
-			return hr >= 0;
-		}
-
-		public static bool TryInitialize(this IWICColorTransform trans, IWICBitmapSource source, IWICColorContext ctxSrc, IWICColorContext ctxDest, Guid fmtDest)
-		{
-			int hr = ProxyFunctions.InitializeColorTransform(trans, source, ctxSrc, ctxDest, fmtDest);
-			if (hr < 0 && hr != (int)WinCodecError.ERROR_INVALID_PROFILE)
-				Marshal.ThrowExceptionForHR(hr);
-
-			return hr >= 0;
-		}
-
-		public static bool TrySetColorContexts(this IWICBitmapFrameEncode frame, params IWICColorContext[] contexts)
-		{
-			int hr = ProxyFunctions.SetColorContexts(frame, (uint)contexts.Length, contexts);
-			return hr >= 0;
-		}
-
-		public static T? GetValueOrDefault<T>(this IWICMetadataQueryReader meta, string name)
-		{
-			if (meta.TryGetMetadataByName(name, out var pv) && pv.TryGetValue(out T? val))
+			if (pv.TryGetValue(out T val))
 				return val;
+
+			Debug.Print($"VT: {pv.vt} unexpected for type: " + typeof(T).Name, nameof(T));
+			HRESULT.Check(PropVariantClear(&pv));
 
 			return default;
 		}
 
-		public static void Write<T>(this IPropertyBag2 bag, string name, T val) where T : unmanaged
+		public static Span<T> GetValueOrDefault<T>(this ComPtr<IWICMetadataQueryReader> meta, string name, Span<T> span) where T : unmanaged
 		{
-			var prop = new PROPBAG2 { pstrName = name };
-			var pvar = new UnmanagedPropVariant();
+			var pv = default(PROPVARIANT);
+			if (FAILED(meta.Get()->GetMetadataByName(name, &pv)))
+				return default;
 
-			if (typeof(T) == typeof(bool))
+			int len = 0;
+			if (typeof(T) == typeof(byte) || typeof(T) == typeof(sbyte))
 			{
-				pvar.vt = VarEnum.VT_BOOL;
-				pvar.int16Value = (short)((bool)(object)val ? -1 : 0);
+				if (pv.vt is (ushort)VARENUM.VT_BLOB or (ushort)(VARENUM.VT_UI1 | VARENUM.VT_VECTOR) or (ushort)(VARENUM.VT_I1 | VARENUM.VT_VECTOR))
+				{
+					len = (int)Math.Min(span.Length, pv.Anonymous.blob.cbSize);
+					new Span<T>(pv.Anonymous.blob.pBlobData, len).CopyTo(span);
+				}
+				if (pv.vt == (ushort)VARENUM.VT_LPSTR)
+				{
+					len = Math.Min(span.Length, new Span<byte>(pv.Anonymous.pszVal, int.MaxValue).IndexOf((byte)'\0'));
+					new Span<T>(pv.Anonymous.pszVal, len).CopyTo(span);
+				}
 			}
-			else if (typeof(T) == typeof(byte))
+			else if (typeof(T) == typeof(char))
 			{
-				pvar.vt = VarEnum.VT_UI1;
-				pvar.byteValue = (byte)(object)val;
-			}
-			else if (typeof(T) == typeof(float))
-			{
-				pvar.vt = VarEnum.VT_R4;
-				pvar.floatValue = (float)(object)val;
+				if (pv.vt == (ushort)VARENUM.VT_LPWSTR)
+				{
+					len = Math.Min(span.Length, new Span<char>(pv.Anonymous.pwszVal, int.MaxValue).IndexOf('\0'));
+					new Span<T>(pv.Anonymous.pwszVal, len).CopyTo(span);
+				}
+				if (pv.vt == (ushort)VARENUM.VT_LPSTR)
+				{
+					var str = new string(pv.Anonymous.pszVal);
+					len = Math.Min(span.Length, str.Length);
+					MemoryMarshal.Cast<char, T>(str.AsSpan()).Slice(0, len).CopyTo(span);
+				}
 			}
 			else
 			{
 				throw new ArgumentException("Marshaling not implemented for type: " + typeof(T).Name, nameof(T));
 			}
 
-			ProxyFunctions.PropertyBagWrite(bag, 1, prop, pvar);
+			HRESULT.Check(PropVariantClear(&pv));
+
+			return span.Slice(0, len);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryGetValue<T>(in this PROPVARIANT pv, out T val) where T : unmanaged
+		{
+			if (typeof(T) == typeof(bool))
+			{
+				if (pv.vt == (ushort)VARENUM.VT_BOOL)
+				{
+					val = (T)(object)(pv.Anonymous.boolVal != 0);
+					return true;
+				}
+			}
+			else if (typeof(T) == typeof(byte))
+			{
+				if (pv.vt == (ushort)VARENUM.VT_UI1)
+				{
+					val = (T)(object)pv.Anonymous.bVal;
+					return true;
+				}
+			}
+			else if (typeof(T) == typeof(ushort))
+			{
+				if (pv.vt == (ushort)VARENUM.VT_UI2)
+				{
+					val = (T)(object)pv.Anonymous.uiVal;
+					return true;
+				}
+			}
+			else
+			{
+				throw new ArgumentException("Marshaling not implemented for type: " + typeof(T).Name, nameof(T));
+			}
+
+			val = default;
+			return false;
+		}
+
+		public static void SetValue<T>(this ComPtr<IWICMetadataQueryWriter> meta, string name, T val) where T : unmanaged
+		{
+			var pv = default(PROPVARIANT);
+
+			if (typeof(T) == typeof(bool))
+			{
+				pv.vt = (ushort)VARENUM.VT_BOOL;
+				pv.Anonymous.boolVal = (short)((bool)(object)val ? -1 : 0);
+			}
+			else if (typeof(T) == typeof(byte))
+			{
+				pv.vt = (ushort)VARENUM.VT_UI1;
+				pv.Anonymous.bVal = (byte)(object)val;
+			}
+			else if (typeof(T) == typeof(ushort))
+			{
+				pv.vt = (ushort)VARENUM.VT_UI2;
+				pv.Anonymous.uiVal = (ushort)(object)val;
+			}
+			else
+			{
+				throw new ArgumentException("Marshaling not implemented for type: " + typeof(T).Name, nameof(T));
+			}
+
+			HRESULT.Check(meta.Get()->SetMetadataByName(name, &pv));
+		}
+
+		public static void Write<T>(this ComPtr<IPropertyBag2> bag, string name, T val) where T : unmanaged
+		{
+			var pvar = default(VARIANT);
+
+			if (typeof(T) == typeof(bool))
+			{
+				pvar.vt = (ushort)VARENUM.VT_BOOL;
+				pvar.Anonymous.iVal = (short)((bool)(object)val ? -1 : 0);
+			}
+			else if (typeof(T) == typeof(byte))
+			{
+				pvar.vt = (ushort)VARENUM.VT_UI1;
+				pvar.Anonymous.bVal = (byte)(object)val;
+			}
+			else if (typeof(T) == typeof(float))
+			{
+				pvar.vt = (ushort)VARENUM.VT_R4;
+				pvar.Anonymous.fltVal = (float)(object)val;
+			}
+			else
+			{
+				throw new ArgumentException("Marshaling not implemented for type: " + typeof(T).Name, nameof(T));
+			}
+
+			fixed (char* pname = name)
+			{
+				var prop = new PROPBAG2 { pstrName = (ushort*)pname };
+				HRESULT.Check(bag.Get()->Write(1, &prop, &pvar));
+			}
 		}
 	}
 }
+

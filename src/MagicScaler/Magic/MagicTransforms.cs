@@ -337,7 +337,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			ctx.Source = ctx.PlanarContext.SourceY;
 		}
 
-		public static void AddColorProfileReader(PipelineContext ctx)
+		public static unsafe void AddColorProfileReader(PipelineContext ctx)
 		{
 			var mode = ctx.Settings.ColorProfileMode;
 			if (mode == ColorProfileMode.Ignore)
@@ -361,7 +361,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			ctx.DestColorProfile = ColorProfile.GetDestProfile(ctx.SourceColorProfile, mode);
 		}
 
-		public static void AddColorspaceConverter(PipelineContext ctx)
+		public static unsafe void AddColorspaceConverter(PipelineContext ctx)
 		{
 			if (ctx.SourceColorProfile is null || ctx.DestColorProfile is null || ctx.SourceColorProfile == ctx.DestColorProfile)
 				return;
@@ -370,8 +370,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 			{
 				AddExternalFormatConverter(ctx);
 
-				ctx.WicContext.SourceColorContext ??= ctx.WicContext.AddRef(WicColorProfile.CreateContextFromProfile(ctx.SourceColorProfile.ProfileBytes));
-				ctx.WicContext.DestColorContext ??= ctx.WicContext.AddRef(WicColorProfile.CreateContextFromProfile(ctx.DestColorProfile.ProfileBytes));
+				if (ctx.WicContext.SourceColorContext is null)
+					ctx.WicContext.SourceColorContext = WicColorProfile.CreateContextFromProfile(ctx.SourceColorProfile.ProfileBytes);
+
+				if (ctx.WicContext.DestColorContext is null)
+					ctx.WicContext.DestColorContext = WicColorProfile.CreateContextFromProfile(ctx.DestColorProfile.ProfileBytes);
 
 				WicTransforms.AddColorspaceConverter(ctx);
 
@@ -413,7 +416,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			ctx.PlanarContext = null;
 		}
 
-		public static void AddGifFrameBuffer(PipelineContext ctx, bool replay = true)
+		public static unsafe void AddGifFrameBuffer(PipelineContext ctx, bool replay = true)
 		{
 			if (ctx.ImageFrame is not WicImageFrame wicFrame || wicFrame.Container is not WicGifContainer gif)
 				return;

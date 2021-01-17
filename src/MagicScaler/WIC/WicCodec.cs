@@ -9,95 +9,126 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
+using TerraFX.Interop;
+using static TerraFX.Interop.Windows;
+
 using PhotoSauce.Interop.Wic;
 using PhotoSauce.MagicScaler.Transforms;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal static class WicImageDecoder
+	internal static unsafe class WicImageDecoder
 	{
 		public static readonly IReadOnlyDictionary<Guid, FileFormat> FormatMap = new Dictionary<Guid, FileFormat> {
-			[Consts.GUID_ContainerFormatBmp] = FileFormat.Bmp,
-			[Consts.GUID_ContainerFormatGif] = FileFormat.Gif,
-			[Consts.GUID_ContainerFormatJpeg] = FileFormat.Jpeg,
-			[Consts.GUID_ContainerFormatPng] = FileFormat.Png,
-			[Consts.GUID_ContainerFormatTiff] = FileFormat.Tiff
+			[GUID_ContainerFormatBmp] = FileFormat.Bmp,
+			[GUID_ContainerFormatGif] = FileFormat.Gif,
+			[GUID_ContainerFormatJpeg] = FileFormat.Jpeg,
+			[GUID_ContainerFormatPng] = FileFormat.Png,
+			[GUID_ContainerFormatTiff] = FileFormat.Tiff
 		};
 
-		private static IWICBitmapDecoder createDecoder<T>(Func<T, IWICBitmapDecoder> factory, T arg)
+		private static IWICBitmapDecoder* createDecoder(IStream* pStream)
 		{
 			if (Thread.CurrentThread.GetApartmentState() == ApartmentState.STA)
-				throw new NotSupportedException($"WIC integration is not supported on an STA thread, such as the UI thread in a WinForms or WPF application. Use a background thread (e.g. using Task.Run()) instead.");
+				throw new NotSupportedException("WIC integration is not supported on an STA thread, such as the UI thread in a WinForms or WPF application. Use a background thread (e.g. using Task.Run()) instead.");
 
-			try
-			{
-				return factory(arg);
-			}
-			catch (COMException ex) when (ex.HResult == (int)WinCodecError.WINCODEC_ERR_COMPONENTNOTFOUND)
-			{
-				throw new InvalidDataException("Image format not supported.  Please ensure the input file is an image and that a WIC codec capable of reading the image is installed.", ex);
-			}
+			using var decoder = default(ComPtr<IWICBitmapDecoder>);
+			int hr = Wic.Factory->CreateDecoderFromStream(pStream, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand, decoder.GetAddressOf());
+			if (hr == WINCODEC_ERR_COMPONENTNOTFOUND)
+				throw new InvalidDataException("Image format not supported.  Please ensure the input file is an image and that a WIC codec capable of reading the image is installed.", Marshal.GetExceptionForHR(hr));
+
+			HRESULT.Check(hr);
+			return decoder.Detach();
 		}
 
-		public static WicImageContainer Load(string fileName, PipelineContext ctx)
+		public static WicImageContainer Load(string fileName)
 		{
-			var dec = createDecoder(static fn => Wic.Factory.CreateDecoderFromFilename(fn, null, GenericAccessRights.GENERIC_READ, WICDecodeOptions.WICDecodeMetadataCacheOnDemand), fileName);
-			return WicImageContainer.Create(dec, ctx);
+			using var stm = default(ComPtr<IWICStream>);
+			HRESULT.Check(Wic.Factory->CreateStream(stm.GetAddressOf()));
+			fixed (char* pname = fileName)
+				HRESULT.Check(stm.Get()->InitializeFromFilename((ushort*)pname, GENERIC_READ));
+
+			var dec = createDecoder((IStream*)stm.Get());
+			return WicImageContainer.Create(dec);
 		}
 
-		public static WicImageContainer Load(Stream inStream, PipelineContext ctx)
+		public static WicImageContainer Load(Stream inStream)
 		{
-			var dec = createDecoder(static stm => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand), inStream.AsIStream());
-			return WicImageContainer.Create(dec, ctx);
+			var gch = GCHandle.Alloc(inStream);
+			var sti = new IStreamImpl(gch);
+			using var ccw = new SafeHandleReleaser(new SafeComCallable<IStreamImpl>(sti));
+
+			var dec = createDecoder((IStream*)ccw.Handle!.DangerousGetHandle());
+			return WicImageContainer.Create(dec, ccw.Detach());
 		}
 
-		public static unsafe WicImageContainer Load(byte* pbBuffer, int cbBuffer, PipelineContext ctx, bool ownCopy = false)
+		public static WicImageContainer Load(byte* pbBuffer, int cbBuffer, bool ownCopy = false)
 		{
-			var istm = ctx.WicContext.AddRef(Wic.Factory.CreateStream());
+			using var stream = default(ComPtr<IWICStream>);
+			HRESULT.Check(Wic.Factory->CreateStream(stream.GetAddressOf()));
 			var ptr = (IntPtr)pbBuffer;
 
+			using var mem = default(SafeHandleReleaser);
 			if (ownCopy)
 			{
-				ptr = ctx.WicContext.AddUnmanagedMemory(cbBuffer).DangerousGetHandle();
+				ptr = mem.Attach(new SafeHGlobalHandle(cbBuffer)).DangerousGetHandle();
 				Buffer.MemoryCopy(pbBuffer, ptr.ToPointer(), cbBuffer, cbBuffer);
 			}
 
-			istm.InitializeFromMemory(ptr, (uint)cbBuffer);
+			HRESULT.Check(stream.Get()->InitializeFromMemory((byte*)ptr, (uint)cbBuffer));
 
-			var dec = createDecoder(static stm => Wic.Factory.CreateDecoderFromStream(stm, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand), istm);
-			return WicImageContainer.Create(dec, ctx);
+			var dec = createDecoder((IStream*)stream.Get());
+			return WicImageContainer.Create(dec, mem.Detach());
 		}
 	}
 
-	internal class WicImageEncoder : IDisposable
+	internal unsafe class WicImageEncoder : IDisposable
 	{
 		private static readonly IReadOnlyDictionary<FileFormat, Guid> formatMap = new Dictionary<FileFormat, Guid> {
-			[FileFormat.Bmp] = Consts.GUID_ContainerFormatBmp,
-			[FileFormat.Gif] = Consts.GUID_ContainerFormatGif,
-			[FileFormat.Jpeg] = Consts.GUID_ContainerFormatJpeg,
-			[FileFormat.Png] = Consts.GUID_ContainerFormatPng,
-			[FileFormat.Png8] = Consts.GUID_ContainerFormatPng,
-			[FileFormat.Tiff] = Consts.GUID_ContainerFormatTiff
+			[FileFormat.Bmp] = GUID_ContainerFormatBmp,
+			[FileFormat.Gif] = GUID_ContainerFormatGif,
+			[FileFormat.Jpeg] = GUID_ContainerFormatJpeg,
+			[FileFormat.Png] = GUID_ContainerFormatPng,
+			[FileFormat.Png8] = GUID_ContainerFormatPng,
+			[FileFormat.Tiff] = GUID_ContainerFormatTiff
 		};
 
-		private readonly ComHandle.ComDisposer<IWICBitmapEncoder> encoder;
+		private readonly SafeComCallable<IStreamImpl> ccw;
 
-		public IWICBitmapEncoder WicEncoder => encoder.ComObject;
+		public IWICBitmapEncoder* WicEncoder { get; private set; }
 
-		public WicImageEncoder(FileFormat format, IStream stm)
+		public WicImageEncoder(FileFormat format, Stream stm)
 		{
-			encoder = ComHandle.Wrap(Wic.Factory.CreateEncoder(formatMap.GetValueOrDefault(format, Consts.GUID_ContainerFormatPng), null));
-			encoder.ComObject.Initialize(stm, WICBitmapEncoderCacheOption.WICBitmapEncoderNoCache);
+			var fmt = formatMap.GetValueOrDefault(format, GUID_ContainerFormatPng);
+
+			var gch = GCHandle.Alloc(stm);
+			var sti = new IStreamImpl(gch);
+			ccw = new SafeComCallable<IStreamImpl>(sti);
+
+			using var encoder = default(ComPtr<IWICBitmapEncoder>);
+			HRESULT.Check(Wic.Factory->CreateEncoder(&fmt, null, encoder.GetAddressOf()));
+			HRESULT.Check(encoder.Get()->Initialize((IStream*)ccw.DangerousGetHandle(), WICBitmapEncoderCacheOption.WICBitmapEncoderNoCache));
+
+			WicEncoder = encoder.Detach();
 		}
 
-		public void Dispose() => encoder.Dispose();
+		public void Commit() => HRESULT.Check(WicEncoder->Commit());
+
+		public virtual void Dispose()
+		{
+			if (WicEncoder is null)
+				return;
+
+			WicEncoder->Release();
+			WicEncoder = null;
+
+			ccw.Dispose();
+		}
 	}
 
-	internal class WicImageEncoderFrame : IDisposable
+	internal unsafe class WicImageEncoderFrame : IDisposable
 	{
-		private readonly ComHandle.ComDisposer<IWICBitmapFrameEncode> encoderFrame;
-
-		public IWICBitmapFrameEncode WicEncoderFrame => encoderFrame.ComObject;
+		public IWICBitmapFrameEncode* WicEncoderFrame { get; private set; }
 
 		public WicImageEncoderFrame(PipelineContext ctx, WicImageEncoder encoder, PixelArea area = default)
 		{
@@ -105,51 +136,53 @@ namespace PhotoSauce.MagicScaler
 			var encArea = area.IsEmpty ? ctx.Source.Area : area;
 			var colorMode = ctx.Settings.ColorProfileMode;
 
-			var bag = default(IPropertyBag2);
-			encoder.WicEncoder.CreateNewFrame(out var frame, ref bag);
-			encoderFrame = ComHandle.Wrap(frame);
-
-			using (var cbag = ComHandle.Wrap(bag))
+			using var frame = default(ComPtr<IWICBitmapFrameEncode>);
+			using (var pbag = default(ComPtr<IPropertyBag2>))
 			{
+				HRESULT.Check(encoder.WicEncoder->CreateNewFrame(frame.GetAddressOf(), pbag.GetAddressOf()));
+
 				if (fmt == FileFormat.Jpeg)
-					bag.Write("ImageQuality", ctx.Settings.JpegQuality / 100f);
+					pbag.Write("ImageQuality", ctx.Settings.JpegQuality / 100f);
 
 				if (fmt == FileFormat.Jpeg && ctx.Settings.JpegSubsampleMode != ChromaSubsampleMode.Default)
-					bag.Write("JpegYCrCbSubsampling", (byte)ctx.Settings.JpegSubsampleMode);
+					pbag.Write("JpegYCrCbSubsampling", (byte)ctx.Settings.JpegSubsampleMode);
 
 				if (fmt == FileFormat.Tiff)
-					bag.Write("TiffCompressionMethod", (byte)WICTiffCompressionOption.WICTiffCompressionNone);
+					pbag.Write("TiffCompressionMethod", (byte)WICTiffCompressionOption.WICTiffCompressionNone);
 
 				if (fmt == FileFormat.Bmp && ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None)
-					bag.Write("EnableV5Header32bppBGRA", true);
+					pbag.Write("EnableV5Header32bppBGRA", true);
 
-				frame.Initialize(bag);
+				HRESULT.Check(frame.Get()->Initialize(pbag));
 			}
 
-			frame.SetSize((uint)encArea.Width, (uint)encArea.Height);
-			frame.SetResolution(ctx.Settings.DpiX > 0d ? ctx.Settings.DpiX : ctx.ImageFrame.DpiX, ctx.Settings.DpiY > 0d ? ctx.Settings.DpiY : ctx.ImageFrame.DpiY);
+			HRESULT.Check(frame.Get()->SetSize((uint)encArea.Width, (uint)encArea.Height));
+			HRESULT.Check(frame.Get()->SetResolution(ctx.Settings.DpiX > 0d ? ctx.Settings.DpiX : ctx.ImageFrame.DpiX, ctx.Settings.DpiY > 0d ? ctx.Settings.DpiY : ctx.ImageFrame.DpiY));
 
 			bool copySourceMetadata = ctx.ImageFrame is WicImageFrame srcFrame && srcFrame.WicMetadataReader is not null && ctx.Settings.MetadataNames != Enumerable.Empty<string>();
 			bool writeOrientation = ctx.Settings.OrientationMode == OrientationMode.Preserve && ctx.ImageFrame.ExifOrientation != Orientation.Normal;
 			bool writeColorContext = colorMode == ColorProfileMode.NormalizeAndEmbed || colorMode == ColorProfileMode.Preserve || (colorMode == ColorProfileMode.Normalize && ctx.DestColorProfile != ColorProfile.sRGB && ctx.DestColorProfile != ColorProfile.sGrey);
 
-			if ((copySourceMetadata || writeOrientation) && frame.TryGetMetadataQueryWriter(out var metawriter))
+			using var metawriter = default(ComPtr<IWICMetadataQueryWriter>);
+			if ((copySourceMetadata || writeOrientation) && SUCCEEDED(frame.Get()->GetMetadataQueryWriter(metawriter.GetAddressOf())))
 			{
-				using var cmeta = ComHandle.Wrap(metawriter);
 				if (copySourceMetadata)
 				{
 					var wicFrame = (WicImageFrame)ctx.ImageFrame;
 					foreach (string prop in ctx.Settings.MetadataNames)
 					{
-						if (wicFrame.WicMetadataReader!.TryGetMetadataByName(prop, out var pvar) && pvar.Value is not null)
-							metawriter.TrySetMetadataByName(prop, pvar);
+						var pv = default(PROPVARIANT);
+						if (SUCCEEDED(wicFrame.WicMetadataReader->GetMetadataByName(prop, &pv)) && pv.vt != (ushort)VARENUM.VT_EMPTY)
+							_ = metawriter.Get()->SetMetadataByName(prop, &pv);
 					}
 				}
 
 				if (writeOrientation)
 				{
 					string orientationPath = ctx.Settings.SaveFormat == FileFormat.Jpeg ? Wic.Metadata.OrientationJpeg : Wic.Metadata.OrientationExif;
-					metawriter.TrySetMetadataByName(orientationPath, new PropVariant((ushort)ctx.ImageFrame.ExifOrientation));
+					var pv = new PROPVARIANT { vt = (ushort)VARENUM.VT_UI2 };
+					pv.Anonymous.uiVal = (ushort)ctx.ImageFrame.ExifOrientation;
+					_ = metawriter.Get()->SetMetadataByName(orientationPath, &pv);
 				}
 			}
 
@@ -167,8 +200,17 @@ namespace PhotoSauce.MagicScaler
 				else if (ctx.DestColorProfile == ColorProfile.DisplayP3)
 					cc = WicColorProfile.DisplayP3Compact.Value.WicColorContext;
 
-				frame.TrySetColorContexts(cc ?? ctx.WicContext.AddRef(WicColorProfile.CreateContextFromProfile(ctx.DestColorProfile!.ProfileBytes)));
+				using var ccc = default(ComPtr<IWICColorContext>);
+				if (cc is null)
+				{
+					ccc.Attach(WicColorProfile.CreateContextFromProfile(ctx.DestColorProfile!.ProfileBytes));
+					cc = ccc;
+				}
+
+				_ = frame.Get()->SetColorContexts(1, &cc);
 			}
+
+			WicEncoderFrame = frame.Detach();
 		}
 
 		public void WriteSource(PipelineContext ctx, PixelArea area = default)
@@ -178,56 +220,71 @@ namespace PhotoSauce.MagicScaler
 
 			if (ctx.PlanarContext is not null)
 			{
-				var oformat = Consts.GUID_WICPixelFormat24bppBGR;
-				wicFrame.SetPixelFormat(ref oformat);
+				var oformat = GUID_WICPixelFormat24bppBGR;
+				HRESULT.Check(wicFrame->SetPixelFormat(&oformat));
 
-				var planes = ArrayPool<IWICBitmapSource>.Shared.Rent(3);
+				using var gchY = new WeakGCHandle(ctx.PlanarContext.SourceY);
+				using var gchCb = new WeakGCHandle(ctx.PlanarContext.SourceCb);
+				using var gchCr = new WeakGCHandle(ctx.PlanarContext.SourceCr);
 
-				planes[0] = ctx.PlanarContext.SourceY.AsIWICBitmapSource();
-				planes[1] = ctx.PlanarContext.SourceCb.AsIWICBitmapSource();
-				planes[2] = ctx.PlanarContext.SourceCr.AsIWICBitmapSource();
-				((IWICPlanarBitmapFrameEncode)wicFrame).WriteSource(planes, 3, area.IsEmpty ? ref WICRect.Null : ref wicRect);
+				var srcY = new IWICBitmapSourceImpl(gchY.Handle);
+				var srcCb = new IWICBitmapSourceImpl(gchCb.Handle);
+				var srcCr = new IWICBitmapSourceImpl(gchCr.Handle);
+				var planes = stackalloc[] { &srcY, &srcCb, &srcCr };
 
-				ArrayPool<IWICBitmapSource>.Shared.Return(planes);
+				using var pframe = default(ComPtr<IWICPlanarBitmapFrameEncode>);
+				HRESULT.Check(wicFrame->QueryInterface(__uuidof<IWICPlanarBitmapFrameEncode>(), (void**)pframe.GetAddressOf()));
+				HRESULT.Check(pframe.Get()->WriteSource((IWICBitmapSource**)planes, 3, area.IsEmpty ? null : &wicRect));
 			}
 			else
 			{
 				var oformat = ctx.Source.Format.FormatGuid;
-				wicFrame.SetPixelFormat(ref oformat);
+				HRESULT.Check(wicFrame->SetPixelFormat(&oformat));
 				if (oformat != ctx.Source.Format.FormatGuid)
 				{
-					var pal = default(IWICPalette);
 					var ptt = WICBitmapPaletteType.WICBitmapPaletteTypeCustom;
+					using var pal = default(ComPtr<IWICPalette>);
 					if (PixelFormat.FromGuid(oformat).NumericRepresentation == PixelNumericRepresentation.Indexed)
 					{
-						pal = ctx.WicContext.AddRef(Wic.Factory.CreatePalette());
-						pal.InitializePredefined(WICBitmapPaletteType.WICBitmapPaletteTypeFixedGray256, false);
+						HRESULT.Check(Wic.Factory->CreatePalette(pal.GetAddressOf()));
+						HRESULT.Check(pal.Get()->InitializePredefined(WICBitmapPaletteType.WICBitmapPaletteTypeFixedGray256, 0));
 						ptt = WICBitmapPaletteType.WICBitmapPaletteTypeFixedGray256;
 
-						wicFrame.SetPalette(pal);
+						HRESULT.Check(wicFrame->SetPalette(pal));
 					}
 
-					var conv = ctx.WicContext.AddRef(Wic.Factory.CreateFormatConverter());
-					conv.Initialize(ctx.Source.AsIWICBitmapSource(), oformat, WICBitmapDitherType.WICBitmapDitherTypeNone, pal, 0.0, ptt);
-					ctx.Source = conv.AsPixelSource($"{nameof(IWICFormatConverter)}: {ctx.Source.Format.Name}->{PixelFormat.FromGuid(oformat).Name}", false);
+					using var conv = default(ComPtr<IWICFormatConverter>);
+					HRESULT.Check(Wic.Factory->CreateFormatConverter(conv.GetAddressOf()));
+					HRESULT.Check(conv.Get()->Initialize(ctx.Source.AsIWICBitmapSource(ctx), &oformat, WICBitmapDitherType.WICBitmapDitherTypeNone, pal, 0.0, ptt));
+
+					ctx.Source = ctx.AddDispose(new ComPtr<IWICBitmapSource>((IWICBitmapSource*)conv.Get()).AsPixelSource(null, $"{nameof(IWICFormatConverter)}: {ctx.Source.Format.Name}->{PixelFormat.FromGuid(oformat).Name}", false));
 				}
 				else if (oformat == PixelFormat.Indexed8Bpp.FormatGuid)
 				{
 					Debug.Assert(ctx.WicContext.DestPalette is not null);
 
-					wicFrame.SetPalette(ctx.WicContext.DestPalette);
+					HRESULT.Check(wicFrame->SetPalette(ctx.WicContext.DestPalette));
 				}
 
-				wicFrame.WriteSource(ctx.Source.AsIWICBitmapSource(), area.IsEmpty ? ref WICRect.Null : ref wicRect);
+				using var gch = new WeakGCHandle(ctx.Source);
+				var src = new IWICBitmapSourceImpl(gch.Handle);
+				HRESULT.Check(wicFrame->WriteSource((IWICBitmapSource*)&src, area.IsEmpty ? null : &wicRect));
 			}
 
-			wicFrame.Commit();
+			HRESULT.Check(wicFrame->Commit());
 		}
 
-		public void Dispose() => encoderFrame.Dispose();
+		public virtual void Dispose()
+		{
+			if (WicEncoderFrame is null)
+				return;
+
+			WicEncoderFrame->Release();
+			WicEncoderFrame = null;
+		}
 	}
 
-	internal sealed class WicColorProfile
+	internal sealed unsafe class WicColorProfile : IDisposable
 	{
 		public static readonly Lazy<WicColorProfile> Cmyk = new(() => new WicColorProfile(getDefaultColorContext(PixelFormat.Cmyk32Bpp.FormatGuid), null));
 		public static readonly Lazy<WicColorProfile> Srgb = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sRgbV4.Value), ColorProfile.sRGB));
@@ -270,45 +327,64 @@ namespace PhotoSauce.MagicScaler
 			return null;
 		}
 
-		public static IWICColorContext CreateContextFromProfile(byte[] profile)
+		public static IWICColorContext* CreateContextFromProfile(Span<byte> profile)
 		{
-			var cc = Wic.Factory.CreateColorContext();
-			cc.InitializeFromMemory(profile, (uint)profile.Length);
-			return cc;
+			fixed (byte* pprop = profile)
+			{
+				using var cc = default(ComPtr<IWICColorContext>);
+				HRESULT.Check(Wic.Factory->CreateColorContext(cc.GetAddressOf()));
+				HRESULT.Check(cc.Get()->InitializeFromMemory(pprop, (uint)profile.Length));
+				return cc.Detach();
+			}
 		}
 
-		public static ColorProfile GetProfileFromContext(IWICColorContext cc, uint cb)
+		public static ColorProfile GetProfileFromContext(IWICColorContext* cc, uint cb)
 		{
 			if (cb == 0u)
-				cb = cc.GetProfileBytes(0, null);
+				HRESULT.Check(cc->GetProfileBytes(0, null, &cb));
 
-			var buff = ArrayPool<byte>.Shared.Rent((int)cb);
+			using var buff = new PoolBuffer<byte>((int)cb);
+			fixed (byte* pbuff = buff.Span)
+				HRESULT.Check(cc->GetProfileBytes(cb, pbuff, &cb));
 
-			cc.GetProfileBytes(cb, buff);
-			var cpi = ColorProfile.Cache.GetOrAdd(new ReadOnlySpan<byte>(buff, 0, (int)cb));
-
-			ArrayPool<byte>.Shared.Return(buff);
-
-			return cpi;
+			return ColorProfile.Cache.GetOrAdd(buff.Span);
 		}
 
-		private static IWICColorContext getDefaultColorContext(Guid pixelFormat)
+		private static IWICColorContext* getDefaultColorContext(Guid pixelFormat)
 		{
-			using var pfi = ComHandle.QueryInterface<IWICPixelFormatInfo>(Wic.Factory.CreateComponentInfo(pixelFormat));
-			return pfi.ComObject.GetColorContext();
+			using var wci = default(ComPtr<IWICComponentInfo>);
+			using var pfi = default(ComPtr<IWICPixelFormatInfo>);
+			HRESULT.Check(Wic.Factory->CreateComponentInfo(&pixelFormat, wci.GetAddressOf()));
+			HRESULT.Check(wci.As(&pfi));
+
+			using var wcc = default(ComPtr<IWICColorContext>);
+			HRESULT.Check(pfi.Get()->GetColorContext(wcc.GetAddressOf()));
+			return wcc.Detach();
 		}
 
-		public IWICColorContext WicColorContext { get; }
+		public IWICColorContext* WicColorContext { get; private set; }
 		public ColorProfile ParsedProfile { get; }
 
-		public WicColorProfile(IWICColorContext cc, ColorProfile? prof)
+		private readonly bool ownContext;
+
+		public WicColorProfile(IWICColorContext* cc, ColorProfile? prof, bool ownctx = false)
 		{
+			ownContext = ownctx;
 			WicColorContext = cc;
 			ParsedProfile = prof ?? GetProfileFromContext(cc, 0);
 		}
+
+		public void Dispose()
+		{
+			if (!ownContext || WicColorContext is null)
+				return;
+
+			WicColorContext->Release();
+			WicColorContext = null;
+		}
 	}
 
-	internal sealed class WicAnimatedGifEncoder
+	internal sealed unsafe class WicAnimatedGifEncoder
 	{
 		public class BufferFrame
 		{
@@ -326,7 +402,6 @@ namespace PhotoSauce.MagicScaler
 		private readonly WicImageEncoder encoder;
 		private readonly PixelSource lastSource;
 		private readonly BufferFrame[] frames = new BufferFrame[3];
-		private readonly IWICBitmapSource wicSource;
 		private readonly int lastFrame;
 
 		private int currentFrame;
@@ -350,7 +425,6 @@ namespace PhotoSauce.MagicScaler
 
 			loadFrame(Current);
 			Current.Source.Span.CopyTo(EncodeFrame.Source.Span);
-			wicSource = EncodeFrame.Source.AsIWICBitmapSource();
 
 			moveToFrame(1);
 			loadFrame(Next!);
@@ -360,30 +434,51 @@ namespace PhotoSauce.MagicScaler
 		{
 			var cnt = ctx.ImageContainer as WicGifContainer ?? throw new InvalidOperationException("Source must be a GIF");
 
-			using var decmeta = ComHandle.Wrap(cnt.WicDecoder.GetMetadataQueryReader());
-			using var encmeta = ComHandle.Wrap(encoder.WicEncoder.GetMetadataQueryWriter());
-			var dm = decmeta.ComObject;
-			var em = encmeta.ComObject;
+			using var decmeta = default(ComPtr<IWICMetadataQueryReader>);
+			using var encmeta = default(ComPtr<IWICMetadataQueryWriter>);
 
-			if (dm.TryGetMetadataByName(Wic.Metadata.Gif.AppExtension, out var appext))
-				em.SetMetadataByName(Wic.Metadata.Gif.AppExtension, appext);
-			if (dm.TryGetMetadataByName(Wic.Metadata.Gif.AppExtensionData, out var appdata))
-				em.SetMetadataByName(Wic.Metadata.Gif.AppExtensionData, appdata);
-			if (dm.TryGetMetadataByName(Wic.Metadata.Gif.PixelAspectRatio, out var aspect))
-				em.SetMetadataByName(Wic.Metadata.Gif.PixelAspectRatio, aspect);
+			HRESULT.Check(cnt.WicDecoder->GetMetadataQueryReader(decmeta.GetAddressOf()));
+			HRESULT.Check(encoder.WicEncoder->GetMetadataQueryWriter(encmeta.GetAddressOf()));
+
+			var pv = default(PROPVARIANT);
+
+			if (SUCCEEDED(decmeta.Get()->GetMetadataByName(Wic.Metadata.Gif.AppExtension, &pv)))
+			{
+				HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.AppExtension, &pv));
+				HRESULT.Check(PropVariantClear(&pv));
+			}
+
+			if (SUCCEEDED(decmeta.Get()->GetMetadataByName(Wic.Metadata.Gif.AppExtensionData, &pv)))
+			{
+				HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.AppExtensionData, &pv));
+				HRESULT.Check(PropVariantClear(&pv));
+			}
+
+			if (SUCCEEDED(decmeta.Get()->GetMetadataByName(Wic.Metadata.Gif.PixelAspectRatio, &pv)))
+			{
+				HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.PixelAspectRatio, &pv));
+				HRESULT.Check(PropVariantClear(&pv));
+			}
 
 			// TODO WIC ignores these and sets the logical screen descriptor dimensions from the first frame
-			//em.SetMetadataByName(Wic.Metadata.Gif.LogicalScreenWidth, new PropVariant((ushort)ctx.Source.Width));
-			//em.SetMetadataByName(Wic.Metadata.Gif.LogicalScreenHeight, new PropVariant((ushort)ctx.Source.Height));
+			//pv.vt = (ushort)VARENUM.VT_UI2;
+			//pv.Anonymous.uiVal = (ushort)ctx.Source.Width;
+			//HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.LogicalScreenWidth, &pv));
+			//pv.Anonymous.uiVal = (ushort)ctx.Source.Height;
+			//HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.LogicalScreenHeight, &pv));
 
-			if (dm.GetValueOrDefault<bool>(Wic.Metadata.Gif.GlobalPaletteFlag))
+			if (decmeta.GetValueOrDefault<bool>(Wic.Metadata.Gif.GlobalPaletteFlag))
 			{
-				using var pal = ComHandle.Wrap(Wic.Factory.CreatePalette());
-				cnt.WicDecoder.CopyPalette(pal.ComObject);
-				encoder.WicEncoder.SetPalette(pal.ComObject);
+				using var pal = default(ComPtr<IWICPalette>);
+				HRESULT.Check(Wic.Factory->CreatePalette(pal.GetAddressOf()));
+				HRESULT.Check(cnt.WicDecoder->CopyPalette(pal));
+				HRESULT.Check(encoder.WicEncoder->SetPalette(pal));
 
-				if (dm.TryGetMetadataByName(Wic.Metadata.Gif.PixelAspectRatio, out var bgidx))
-					em.SetMetadataByName(Wic.Metadata.Gif.BackgroundColorIndex, bgidx);
+				if (SUCCEEDED(decmeta.Get()->GetMetadataByName(Wic.Metadata.Gif.BackgroundColorIndex, &pv)))
+				{
+					HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.BackgroundColorIndex, &pv));
+					HRESULT.Check(PropVariantClear(&pv));
+				}
 			}
 		}
 
@@ -423,7 +518,7 @@ namespace PhotoSauce.MagicScaler
 			ctx.ImageFrame = ctx.ImageContainer.GetFrame(index);
 
 			if (ctx.ImageFrame is WicImageFrame wicFrame)
-				ctx.Source = wicFrame.WicSource.AsPixelSource(nameof(IWICBitmapFrameDecode), true);
+				ctx.Source = ComPtr<IWICBitmapSource>.Wrap(wicFrame.WicSource).AsPixelSource(null, nameof(IWICBitmapFrameDecode), false);
 			else
 				ctx.Source = ctx.ImageFrame.PixelSource.AsPixelSource();
 
@@ -436,9 +531,9 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private unsafe void loadFrame(BufferFrame frame)
+		private void loadFrame(BufferFrame frame)
 		{
-			var srcmeta = ((WicImageFrame)ctx.ImageFrame).WicMetadataReader!;
+			using var srcmeta = new ComPtr<IWICMetadataQueryReader>(((WicImageFrame)ctx.ImageFrame).WicMetadataReader);
 
 			frame.Disposal = (GifDisposalMethod)srcmeta.GetValueOrDefault<byte>(Wic.Metadata.Gif.FrameDisposal) == GifDisposalMethod.RestoreBackground ? GifDisposalMethod.RestoreBackground : GifDisposalMethod.Preserve;
 			frame.Delay = srcmeta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameDelay);
@@ -460,33 +555,33 @@ namespace PhotoSauce.MagicScaler
 			quant.Quantize(buffC.Span, buffI.Span, buffC.Width, buffC.Height, buffC.Stride, buffI.Stride);
 			var palette = quant.Palette;
 
-			var palarray = ArrayPool<uint>.Shared.Rent(palette.Length);
-			palette.CopyTo(palarray);
+			using var pal = default(ComPtr<IWICPalette>);
+			HRESULT.Check(Wic.Factory->CreatePalette(pal.GetAddressOf()));
 
-			using var wicpal = ComHandle.Wrap(Wic.Factory.CreatePalette());
-			wicpal.ComObject.InitializeCustom(palarray, (uint)palette.Length);
+			fixed(uint* ppal = palette)
+				HRESULT.Check(pal.Get()->InitializeCustom(ppal, (uint)palette.Length));
 
-			ArrayPool<uint>.Shared.Return(palarray);
-
-			ctx.WicContext.DestPalette = wicpal.ComObject;
+			ctx.WicContext.DestPalette = pal;
 			ctx.Source = buffI;
 
 			using var frm = new WicImageEncoderFrame(ctx, encoder, src.Area);
+			using var frmmeta = default(ComPtr<IWICMetadataQueryWriter>);
+			HRESULT.Check(frm.WicEncoderFrame->GetMetadataQueryWriter(frmmeta.GetAddressOf()));
 
-			using var frmmeta = ComHandle.Wrap(frm.WicEncoderFrame.GetMetadataQueryWriter());
-			var fm = frmmeta.ComObject;
-			fm.SetMetadataByName(Wic.Metadata.Gif.FrameDisposal, new PropVariant((byte)src.Disposal));
-			fm.SetMetadataByName(Wic.Metadata.Gif.FrameDelay, new PropVariant((ushort)src.Delay));
+			frmmeta.SetValue(Wic.Metadata.Gif.FrameDisposal, (byte)src.Disposal);
+			frmmeta.SetValue(Wic.Metadata.Gif.FrameDelay, (ushort)src.Delay);
 
 			if (src.Area.X != 0)
-				fm.SetMetadataByName(Wic.Metadata.Gif.FrameLeft, new PropVariant((ushort)src.Area.X));
+				frmmeta.SetValue(Wic.Metadata.Gif.FrameLeft, (ushort)src.Area.X);
 			if (src.Area.Y != 0)
-				fm.SetMetadataByName(Wic.Metadata.Gif.FrameTop, new PropVariant((ushort)src.Area.Y));
+				frmmeta.SetValue(Wic.Metadata.Gif.FrameTop, (ushort)src.Area.Y);
 
-			fm.SetMetadataByName(Wic.Metadata.Gif.TransparencyFlag, new PropVariant(true));
-			fm.SetMetadataByName(Wic.Metadata.Gif.TransparentColorIndex, new PropVariant((byte)(palette.Length - 1)));
+			frmmeta.SetValue(Wic.Metadata.Gif.TransparencyFlag, true);
+			frmmeta.SetValue(Wic.Metadata.Gif.TransparentColorIndex, (byte)(palette.Length - 1));
 
 			frm.WriteSource(ctx, src.Area);
+
+			ctx.WicContext.DestPalette = null;
 		}
 	}
 }

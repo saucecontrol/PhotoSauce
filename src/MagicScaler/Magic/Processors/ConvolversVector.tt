@@ -228,7 +228,7 @@ WriteLine(null);
 int cxunroll = t.channels == 3 ? 3 : 1;
 if (t.channels == 3) {
 #>
-				while (lcnt != 0)
+				while (lcnt >= 3)
 				{
 					lcnt -= <#= cxunroll #>;
 
@@ -281,15 +281,15 @@ if (t.channels == 1) {
 #>
 
 				float a0, a1, a2;
-				if (vcnt == 0)
-				{
-					a0 = a1 = a2 = 0f;
-				}
-				else
+				if (vcnt >= 3)
 				{
 					a0 = av0.X + av0.W + av1.Z + av2.Y;
 					a1 = av0.Y + av1.X + av1.W + av2.Z;
 					a2 = av0.Z + av1.Y + av2.X + av2.W;
+				}
+				else
+				{
+					a0 = a1 = a2 = 0f;
 				}
 <#
 }

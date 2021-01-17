@@ -1,11 +1,11 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 #if WICPROCESSOR
+#pragma warning disable CS1591
 using System;
 using System.IO;
 using System.ComponentModel;
 
-using PhotoSauce.Interop.Wic;
 using PhotoSauce.MagicScaler.Transforms;
 
 namespace PhotoSauce.MagicScaler
@@ -16,7 +16,7 @@ namespace PhotoSauce.MagicScaler
 		public static ProcessImageResult ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
 		{
 			using var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicImageDecoder.Load(imgPath, ctx);
+			ctx.ImageContainer = ctx.AddDispose(WicImageDecoder.Load(imgPath));
 
 			return processImage(ctx, outStream);
 		}
@@ -26,7 +26,7 @@ namespace PhotoSauce.MagicScaler
 			fixed (byte* pbBuffer = imgBuffer)
 			{
 				using var ctx = new PipelineContext(settings);
-				ctx.ImageContainer = WicImageDecoder.Load(pbBuffer, imgBuffer.Length, ctx);
+				ctx.ImageContainer = ctx.AddDispose(WicImageDecoder.Load(pbBuffer, imgBuffer.Length));
 
 				return processImage(ctx, outStream);
 			}
@@ -35,7 +35,7 @@ namespace PhotoSauce.MagicScaler
 		public static ProcessImageResult ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings)
 		{
 			using var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicImageDecoder.Load(imgStream, ctx);
+			ctx.ImageContainer = ctx.AddDispose(WicImageDecoder.Load(imgStream));
 
 			return processImage(ctx, outStream);
 		}
@@ -44,6 +44,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			var frame = (WicImageFrame)ctx.ImageContainer.GetFrame(ctx.Settings.FrameIndex);
 
+			ctx.AddFrameDisposer();
 			ctx.ImageFrame = frame;
 			ctx.Source = frame.Source;
 
@@ -63,10 +64,10 @@ namespace PhotoSauce.MagicScaler
 			MagicTransforms.AddPad(ctx);
 			WicTransforms.AddIndexedColorConverter(ctx);
 
-			using var enc = new WicImageEncoder(ctx.Settings.SaveFormat, ostm.AsIStream());
+			using var enc = new WicImageEncoder(ctx.Settings.SaveFormat, ostm);
 			using var frm = new WicImageEncoderFrame(ctx, enc);
 			frm.WriteSource(ctx);
-			enc.WicEncoder.Commit();
+			enc.Commit();
 
 			return new ProcessImageResult(ctx.UsedSettings, ctx.Stats);
 		}

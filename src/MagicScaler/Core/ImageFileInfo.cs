@@ -4,6 +4,8 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 
+using TerraFX.Interop;
+
 using PhotoSauce.Interop.Wic;
 
 namespace PhotoSauce.MagicScaler
@@ -79,8 +81,10 @@ namespace PhotoSauce.MagicScaler
 			if (!fi.Exists)
 				throw new FileNotFoundException("File not found", imgPath);
 
+			using var fs = File.OpenRead(imgPath);
+			using var stb = new StreamBufferInjector(fs);
 			using var ctx = new PipelineContext(new ProcessImageSettings());
-			ctx.ImageContainer = WicImageDecoder.Load(imgPath, ctx);
+			ctx.ImageContainer = ctx.AddDispose(WicImageDecoder.Load(fs));
 
 			return fromWicImage(ctx, fi.Length, fi.LastWriteTimeUtc);
 		}
@@ -98,7 +102,7 @@ namespace PhotoSauce.MagicScaler
 			fixed (byte* pbBuffer = imgBuffer)
 			{
 				using var ctx = new PipelineContext(new ProcessImageSettings());
-				ctx.ImageContainer = WicImageDecoder.Load(pbBuffer, imgBuffer.Length, ctx);
+				ctx.ImageContainer = ctx.AddDispose(WicImageDecoder.Load(pbBuffer, imgBuffer.Length));
 
 				return fromWicImage(ctx, imgBuffer.Length, lastModified);
 			}
@@ -116,8 +120,9 @@ namespace PhotoSauce.MagicScaler
 			if (!imgStream.CanSeek || !imgStream.CanRead) throw new ArgumentException("Input Stream must allow Seek and Read", nameof(imgStream));
 			if (imgStream.Length <= 0 || imgStream.Position >= imgStream.Length) throw new ArgumentException("Input Stream is empty or positioned at its end", nameof(imgStream));
 
+			using var stb = new StreamBufferInjector(imgStream);
 			using var ctx = new PipelineContext(new ProcessImageSettings());
-			ctx.ImageContainer = WicImageDecoder.Load(imgStream, ctx);
+			ctx.ImageContainer = ctx.AddDispose(WicImageDecoder.Load(imgStream));
 
 			return fromWicImage(ctx, imgStream.Length, lastModified);
 		}
@@ -131,15 +136,20 @@ namespace PhotoSauce.MagicScaler
 			return new ImageFileInfo(cfmt, frames, fileSize, fileDate);
 		}
 
-		private static FrameInfo[] getFrameInfo(WicImageContainer cont)
+		private static unsafe FrameInfo[] getFrameInfo(WicImageContainer cont)
 		{
 			var frames = new FrameInfo[cont.FrameCount];
 			for (int i = 0; i < frames.Length; i++)
 			{
 				using var frame = (WicImageFrame)cont.GetFrame(i);
-				frame.WicSource.GetSize(out uint width, out uint height);
 
-				var pixfmt = PixelFormat.FromGuid(frame.WicSource.GetPixelFormat());
+				uint width, height;
+				HRESULT.Check(frame.WicSource->GetSize(&width, &height));
+
+				var guid = default(Guid);
+				HRESULT.Check(frame.WicSource->GetPixelFormat(&guid));
+
+				var pixfmt = PixelFormat.FromGuid(guid);
 				var orient = frame.ExifOrientation;
 				if (orient.SwapsDimensions())
 					(width, height) = (height, width);
@@ -150,18 +160,23 @@ namespace PhotoSauce.MagicScaler
 			return frames;
 		}
 
-		private static FrameInfo[] getGifFrameInfo(WicImageContainer cont)
+		private static unsafe FrameInfo[] getGifFrameInfo(WicImageContainer cont)
 		{
-			using var cmeta = ComHandle.Wrap(cont.WicDecoder.GetMetadataQueryReader());
-			int cwidth = cmeta.ComObject.GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenWidth);
-			int cheight = cmeta.ComObject.GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenHeight);
+			using var cmeta = default(ComPtr<IWICMetadataQueryReader>);
+			HRESULT.Check(cont.WicDecoder->GetMetadataQueryReader(cmeta.GetAddressOf()));
+
+			int cwidth = cmeta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenWidth);
+			int cheight = cmeta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenHeight);
 
 			bool alpha = cont.FrameCount > 1;
 			if (!alpha)
 			{
-				using var frame = ComHandle.Wrap(cont.WicDecoder.GetFrame(0));
-				using var fmeta = ComHandle.Wrap(frame.ComObject.GetMetadataQueryReader());
-				alpha = fmeta.ComObject.GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
+				using var frame = default(ComPtr<IWICBitmapFrameDecode>);
+				using var fmeta = default(ComPtr<IWICMetadataQueryReader>);
+				HRESULT.Check(cont.WicDecoder->GetFrame(0, frame.GetAddressOf()));
+				HRESULT.Check(frame.Get()->GetMetadataQueryReader(fmeta.GetAddressOf()));
+
+				alpha = fmeta.GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
 			}
 
 			var frames = new FrameInfo[cont.FrameCount];

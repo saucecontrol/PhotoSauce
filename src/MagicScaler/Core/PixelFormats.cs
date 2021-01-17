@@ -2,10 +2,11 @@
 
 using System;
 using System.Linq;
-using System.Text;
 using System.Reflection;
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
+
+using TerraFX.Interop;
 
 using PhotoSauce.Interop.Wic;
 
@@ -369,7 +370,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static PixelFormat FromGuid(Guid guid) => cache.Value.TryGetValue(guid, out var pf) ? pf : throw new NotSupportedException("Unsupported pixel format.");
 
-		private static ReadOnlyDictionary<Guid, PixelFormat> getFormatCache()
+		private static unsafe ReadOnlyDictionary<Guid, PixelFormat> getFormatCache()
 		{
 			var dic = typeof(PixelFormat)
 				.GetFields(BindingFlags.Public | BindingFlags.Static)
@@ -379,28 +380,49 @@ namespace PhotoSauce.MagicScaler
 
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 			{
+				using var cenum = default(ComPtr<IEnumUnknown>);
+				HRESULT.Check(Wic.Factory->CreateComponentEnumerator((uint)WICComponentType.WICPixelFormat, (uint)WICComponentEnumerateOptions.WICComponentEnumerateDefault, cenum.GetAddressOf()));
+
+				using var chbuff = new PoolBuffer<char>(1024);
+				var formats = stackalloc IUnknown*[10];
 				uint count = 10u;
-				var formats = new object[count];
-				using var cenum = ComHandle.Wrap(Wic.Factory.CreateComponentEnumerator(WICComponentType.WICPixelFormat, WICComponentEnumerateOptions.WICComponentEnumerateDefault));
 
 				do
 				{
-					count = cenum.ComObject.Next(count, formats);
-					for (int i = 0; i < count; i++)
+					HRESULT.Check(cenum.Get()->Next(count, formats, &count));
+					for (uint i = 0; i < count; i++)
 					{
-						using var pixh = ComHandle.QueryInterface<IWICPixelFormatInfo2>(formats[i]);
-						var pix = pixh.ComObject;
+						using var pUnk = default(ComPtr<IUnknown>);
+						pUnk.Attach(formats[i]);
 
-						var guid = pix.GetFormatGUID();
+						using var pPix = default(ComPtr<IWICPixelFormatInfo2>);
+						HRESULT.Check(pUnk.As(&pPix));
+
+						var guid = Guid.Empty;
+						HRESULT.Check(pPix.Get()->GetFormatGUID(&guid));
 						if (dic.ContainsKey(guid))
 							continue;
 
-						uint cch = pix.GetFriendlyName(0, null);
-						var sbn = new StringBuilder((int)cch);
-						pix.GetFriendlyName(cch, sbn);
-						string pfn = sbn.ToString();
+						uint cch;
+						string pfn = string.Empty;
+						HRESULT.Check(pPix.Get()->GetFriendlyName(0, null, &cch));
+						if (cch <= chbuff.Length)
+						{
+							fixed (char* pbuff = chbuff.Span)
+							{
+								HRESULT.Check(pPix.Get()->GetFriendlyName(cch, (ushort*)pbuff, &cch));
+								pfn = new string(pbuff);
+							}
+						}
 
-						var numericRep = (PixelNumericRepresentation)pix.GetNumericRepresentation();
+						var numericRep = default(PixelNumericRepresentation);
+						HRESULT.Check(pPix.Get()->GetNumericRepresentation((WICPixelFormatNumericRepresentation*)&numericRep));
+
+						uint bpp, channels, trans;
+						HRESULT.Check(pPix.Get()->GetBitsPerPixel(&bpp));
+						HRESULT.Check(pPix.Get()->GetChannelCount(&channels));
+						HRESULT.Check(pPix.Get()->SupportsTransparency((int*)&trans));
+
 						var colorRep =
 							pfn.Contains("BGR") ? PixelColorRepresentation.Bgr :
 							pfn.Contains("RGB") ? PixelColorRepresentation.Rgb :
@@ -415,12 +437,12 @@ namespace PhotoSauce.MagicScaler
 						var fmt = new PixelFormat(
 							guid: guid,
 							name: pfn,
-							bpp: (int)pix.GetBitsPerPixel(),
-							channels: (int)pix.GetChannelCount(),
+							bpp: (int)bpp,
+							channels: (int)channels,
 							numericRepresentation: numericRep,
 							colorRepresentation: colorRep,
 							alphaRepresentation: pfn.Contains("pBGRA") || pfn.Contains("pRGBA") ? PixelAlphaRepresentation.Associated :
-								pix.SupportsTransparency() ? PixelAlphaRepresentation.Unassociated :
+								trans != 0 ? PixelAlphaRepresentation.Unassociated :
 								PixelAlphaRepresentation.None,
 							encoding: valEncoding,
 							wicNative: true

@@ -2,9 +2,10 @@
 
 using System;
 using System.IO;
-using System.Buffers;
 using System.Numerics;
 using System.ComponentModel;
+
+using TerraFX.Interop;
 
 using PhotoSauce.Interop.Wic;
 using PhotoSauce.MagicScaler.Transforms;
@@ -57,8 +58,10 @@ namespace PhotoSauce.MagicScaler
 			if (settings is null) throw new ArgumentNullException(nameof(settings));
 			checkOutStream(outStream);
 
+			using var fs = File.OpenRead(imgPath);
+			using var stb = new StreamBufferInjector(fs);
 			using var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicImageDecoder.Load(imgPath, ctx);
+			ctx.ImageContainer = ctx.AddDispose(WicImageDecoder.Load(fs));
 
 			buildPipeline(ctx);
 			return WriteOutput(ctx, outStream);
@@ -77,7 +80,7 @@ namespace PhotoSauce.MagicScaler
 			fixed (byte* pbBuffer = imgBuffer)
 			{
 				using var ctx = new PipelineContext(settings);
-				ctx.ImageContainer = WicImageDecoder.Load(pbBuffer, imgBuffer.Length, ctx);
+				ctx.ImageContainer = ctx.AddDispose(WicImageDecoder.Load(pbBuffer, imgBuffer.Length));
 
 				buildPipeline(ctx);
 				return WriteOutput(ctx, outStream);
@@ -92,8 +95,9 @@ namespace PhotoSauce.MagicScaler
 			checkInStream(imgStream);
 			checkOutStream(outStream);
 
+			using var stb = new StreamBufferInjector(imgStream);
 			using var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicImageDecoder.Load(imgStream, ctx);
+			ctx.ImageContainer = ctx.AddDispose(WicImageDecoder.Load(imgStream));
 
 			buildPipeline(ctx);
 			return WriteOutput(ctx, outStream);
@@ -142,7 +146,10 @@ namespace PhotoSauce.MagicScaler
 			if (settings is null) throw new ArgumentNullException(nameof(settings));
 
 			var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicImageDecoder.Load(imgPath, ctx);
+
+			var fs = ctx.AddDispose(File.OpenRead(imgPath));
+			ctx.AddDispose(new StreamBufferInjector(fs));
+			ctx.ImageContainer = ctx.AddDispose(WicImageDecoder.Load(fs));
 
 			buildPipeline(ctx, false);
 			return new ProcessingPipeline(ctx);
@@ -159,7 +166,7 @@ namespace PhotoSauce.MagicScaler
 			fixed (byte* pbBuffer = imgBuffer)
 			{
 				var ctx = new PipelineContext(settings);
-				ctx.ImageContainer = WicImageDecoder.Load(pbBuffer, imgBuffer.Length, ctx, true);
+				ctx.ImageContainer = ctx.AddDispose(WicImageDecoder.Load(pbBuffer, imgBuffer.Length, true));
 
 				buildPipeline(ctx, false);
 				return new ProcessingPipeline(ctx);
@@ -174,7 +181,7 @@ namespace PhotoSauce.MagicScaler
 			checkInStream(imgStream);
 
 			var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = WicImageDecoder.Load(imgStream, ctx);
+			ctx.ImageContainer = ctx.AddDispose(WicImageDecoder.Load(imgStream));
 
 			buildPipeline(ctx, false);
 			return new ProcessingPipeline(ctx);
@@ -217,7 +224,8 @@ namespace PhotoSauce.MagicScaler
 		{
 			MagicTransforms.AddExternalFormatConverter(ctx);
 
-			using var enc = new WicImageEncoder(ctx.Settings.SaveFormat, ostm.AsIStream());
+			using var stb = new StreamBufferInjector(ostm);
+			using var enc = new WicImageEncoder(ctx.Settings.SaveFormat, ostm);
 
 			if (ctx.IsAnimatedGifPipeline)
 			{
@@ -245,29 +253,29 @@ namespace PhotoSauce.MagicScaler
 					quant.Quantize(buffC.Span, buffI.Span, buffC.Width, buffC.Height, buffC.Stride, buffI.Stride);
 					var palette = quant.Palette;
 
-					var palarray = ArrayPool<uint>.Shared.Rent(palette.Length);
-					palette.CopyTo(palarray);
+					fixed (uint* ppal = palette)
+					{
+						using var wicpal = default(ComPtr<IWICPalette>);
+						HRESULT.Check(Wic.Factory->CreatePalette(wicpal.GetAddressOf()));
+						HRESULT.Check(wicpal.Get()->InitializeCustom(ppal, (uint)palette.Length));
 
-					var wicpal = ctx.WicContext.AddRef(Wic.Factory.CreatePalette());
-					wicpal.InitializeCustom(palarray, (uint)palette.Length);
-
-					ArrayPool<uint>.Shared.Return(palarray);
-
-					ctx.WicContext.DestPalette = wicpal;
-					ctx.Source = buffI;
+						ctx.WicContext.DestPalette = wicpal.Detach();
+						ctx.Source = buffI;
+					}
 				}
 
 				using var frm = new WicImageEncoderFrame(ctx, enc);
 				frm.WriteSource(ctx);
 			}
 
-			enc.WicEncoder.Commit();
+			enc.Commit();
 
 			return new ProcessImageResult(ctx.UsedSettings, ctx.Stats);
 		}
 
-		private static void buildPipeline(PipelineContext ctx, bool closedPipeline = true)
+		private static unsafe void buildPipeline(PipelineContext ctx, bool closedPipeline = true)
 		{
+			ctx.AddFrameDisposer();
 			ctx.ImageFrame = ctx.ImageContainer.GetFrame(ctx.Settings.FrameIndex);
 			ctx.Settings.ColorProfileMode = closedPipeline ? ctx.Settings.ColorProfileMode : ColorProfileMode.ConvertToSrgb;
 
@@ -279,7 +287,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				processPlanar = EnablePlanarPipeline && wicFrame.SupportsPlanarProcessing && ctx.Settings.Interpolation.WeightingFunction.Support >= 0.5;
 				bool profilingPassThrough = processPlanar || (wicFrame.SupportsNativeScale && ctx.Settings.HybridScaleRatio > 1);
-				ctx.Source = wicFrame.WicSource.AsPixelSource(nameof(IWICBitmapFrameDecode), !profilingPassThrough);
+				ctx.Source = ctx.AddDispose(new ComPtr<IWICBitmapSource>(wicFrame.WicSource).AsPixelSource(ctx, nameof(IWICBitmapFrameDecode), !profilingPassThrough));
 			}
 			else if (ctx.ImageFrame is IYccImageFrame planarFrame)
 			{

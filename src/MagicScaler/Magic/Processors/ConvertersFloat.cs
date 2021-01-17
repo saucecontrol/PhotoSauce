@@ -725,7 +725,7 @@ namespace PhotoSauce.MagicScaler
 
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-			private unsafe void convertIntrinsic(float* ip, float* ipe, byte* op)
+			private static unsafe void convertIntrinsic(float* ip, float* ipe, byte* op)
 			{
 				if (Avx2.IsSupported)
 				{
