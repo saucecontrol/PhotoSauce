@@ -12,20 +12,20 @@ Licensed under the MIT License
 Available at
 https://github.com/dotnet/corefx/blob/master/LICENSE.TXT
 
-License notice for WIC Tools
-----------------------------
+License notice for TerraFX.Interop.Windows
+------------------------------------------
 
-Copyright (c) Microsoft Corporation. All rights reserved.
-Licensed under the MSDN Code Gallery Licenses
+Copyright (c) Tanner Gooding and Contributors.
+Licensed under the MIT License
 
 Available at
-https://web.archive.org/web/20101223145710/http://code.msdn.microsoft.com/wictools/Project/License.aspx
+https://github.com/terrafx/terrafx.interop.windows/blob/main/LICENSE.md
 
 License notice for SixLabors.ImageSharp
 ---------------------------------------
 
 Copyright (c) Six Labors and contributors.
-Licensed under the Apache License, Version 2.0.
+Licensed under the Apache License, Version 2.0
 
 Available at
 https://github.com/SixLabors/ImageSharp/blob/master/LICENSE
