@@ -8,6 +8,7 @@ using System.Threading;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 using TerraFX.Interop;
 using static TerraFX.Interop.Windows;
@@ -200,14 +201,34 @@ namespace PhotoSauce.MagicScaler
 				else if (ctx.DestColorProfile == ColorProfile.DisplayP3)
 					cc = WicColorProfile.DisplayP3Compact.Value.WicColorContext;
 
-				using var ccc = default(ComPtr<IWICColorContext>);
-				if (cc is null)
+				// WIC writes gAMA and cHRM tags along with iCCP when SetColorContexts is called on a PNG frame.
+				// Chromium ignores the iCCP tag if the others are present, so we try to write it alone explicitly.
+				if (fmt == FileFormat.Png && ctx.DestColorProfile is not null && metawriter.Get() is not null)
 				{
-					ccc.Attach(WicColorProfile.CreateContextFromProfile(ctx.DestColorProfile!.ProfileBytes));
-					cc = ccc;
-				}
+					var name = (ReadOnlySpan<byte>)new[] { (byte)'I', (byte)'C', (byte)'C', (byte)'\0' };
+					fixed (byte* pprofile = ctx.DestColorProfile.ProfileBytes)
+					{
+						var pvn = new PROPVARIANT { vt = (ushort)VARENUM.VT_LPSTR };
+						pvn.Anonymous.pszVal = (sbyte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(name));
+						_ = metawriter.Get()->SetMetadataByName(Wic.Metadata.Png.IccProfileName, &pvn);
 
-				_ = frame.Get()->SetColorContexts(1, &cc);
+						var pvv = new PROPVARIANT { vt = (ushort)(VARENUM.VT_UI1 | VARENUM.VT_VECTOR) };
+						pvv.Anonymous.blob.pBlobData = pprofile;
+						pvv.Anonymous.blob.cbSize = (uint)ctx.DestColorProfile.ProfileBytes.Length;
+						_ = metawriter.Get()->SetMetadataByName(Wic.Metadata.Png.IccProfileData, &pvv);
+					}
+				}
+				else
+				{
+					using var ccc = default(ComPtr<IWICColorContext>);
+					if (cc is null)
+					{
+						ccc.Attach(WicColorProfile.CreateContextFromProfile(ctx.DestColorProfile!.ProfileBytes));
+						cc = ccc;
+					}
+
+					_ = frame.Get()->SetColorContexts(1, &cc);
+				}
 			}
 
 			WicEncoderFrame = frame.Detach();

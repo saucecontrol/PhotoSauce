@@ -60,19 +60,19 @@ namespace PhotoSauce.MagicScaler
 		private static Matrix4x4 createYccMatrix(double kr, double kb)
 		{
 			double kg = 1 - kr - kb;
-			double kbs = 1 / ((1 - kb) * 2);
-			double krs = 1 / ((1 - kr) * 2);
+			double kbs = (1 - kb) * 2;
+			double krs = (1 - kr) * 2;
 
 			return new Matrix4x4 {
 				M11 = (float)kr,
 				M21 = (float)kg,
 				M31 = (float)kb,
-				M12 = (float)(-kr * kbs),
-				M22 = (float)(-kg * kbs),
+				M12 = (float)(-kr / kbs),
+				M22 = (float)(-kg / kbs),
 				M32 = 0.5f,
 				M13 = 0.5f,
-				M23 = (float)(-kg * krs),
-				M33 = (float)(-kb * krs),
+				M23 = (float)(-kg / krs),
+				M33 = (float)(-kb / krs),
 				M44 = 1
 			};
 		}

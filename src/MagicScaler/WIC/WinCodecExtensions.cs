@@ -75,6 +75,12 @@ namespace PhotoSauce.Interop.Wic
 				public const string TransparencyFlag = "/grctlext/TransparencyFlag";
 				public const string TransparentColorIndex = "/grctlext/TransparentColorIndex";
 			}
+
+			public static class Png
+			{
+				public const string IccProfileName = "/iCCP/ProfileName";
+				public const string IccProfileData = "/iCCP/ProfileData";
+			}
 		}
 	}
 
