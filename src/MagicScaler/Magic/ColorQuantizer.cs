@@ -914,7 +914,7 @@ namespace PhotoSauce.MagicScaler
 
 			do
 			{
-				if ((byte)ip[3] < alphaThreshold)
+				if (ip[3] < alphaThreshold)
 				{
 					ppix = 0;
 					prnod = &transnode;

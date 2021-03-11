@@ -92,7 +92,7 @@ namespace PhotoSauce.MagicScaler
 					}
 				}
 
-				byte blankVal = channels > 3 ? 0 : 0xa0;
+				byte blankVal = channels > 3 ? byte.MinValue : (byte)0xa0;
 				for (int i = 1; i < rows; i++)
 				{
 					int rowOffs = i * stride;

@@ -1062,7 +1062,7 @@ namespace PhotoSauce.MagicScaler
 				float* lp = lutstart;
 
 #if HWINTRINSICS
-				if (Avx2.IsSupported && cb >= HWIntrinsics.VectorCount<byte>())
+				if (Avx2.IsSupported && cb >= Vector256<byte>.Count)
 					convertFloatAvx2(ip, ipe, lp, lutmax);
 				else
 #endif
@@ -1158,7 +1158,7 @@ namespace PhotoSauce.MagicScaler
 				float* lp = lutstart;
 
 #if HWINTRINSICS
-				if (Avx2.IsSupported && cb >= HWIntrinsics.VectorCount<byte>())
+				if (Avx2.IsSupported && cb >= Vector256<byte>.Count)
 					convertFloat3AAvx2(ip, ipe, lp, lutmax);
 				else
 #endif

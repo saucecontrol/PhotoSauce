@@ -69,7 +69,10 @@ namespace PhotoSauce.Interop.Wic
 		public int Read(IStreamImpl* pinst, void* pv, uint cb, uint* pcbRead)
 		{
 			var stm = (Stream)GCHandle.FromIntPtr(pinst->source).Target!;
-			*pcbRead = (uint)stm.Read(new Span<byte>(pv, (int)cb));
+			int read = stm.Read(new Span<byte>(pv, (int)cb));
+
+			if (pcbRead is not null)
+				*pcbRead = (uint)read;
 
 			return S_OK;
 		}
@@ -99,7 +102,7 @@ namespace PhotoSauce.Interop.Wic
 			var stm = (Stream)GCHandle.FromIntPtr(pinst->source).Target!;
 
 			long cpos = stm.Position;
-			if ((dwOrigin != (uint)SeekOrigin.Current || npos != 0) && (dwOrigin != (uint)SeekOrigin.Begin || npos != cpos))
+			if (!(dwOrigin == (uint)SeekOrigin.Current && npos == 0) && !(dwOrigin == (uint)SeekOrigin.Begin && npos == cpos))
 				cpos = stm.Seek(npos, (SeekOrigin)dwOrigin);
 
 			if (plibNewPosition is not null)

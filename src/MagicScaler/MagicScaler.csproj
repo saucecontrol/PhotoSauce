@@ -4,7 +4,6 @@
 		<VersionPrefix>0.12.0</VersionPrefix>
 		<TargetFrameworks>net472;netcoreapp3.1;net5.0</TargetFrameworks>
 		<TargetFrameworks Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">$(TargetFrameworks);net461;netcoreapp2.1;netstandard2.0;netstandard2.1</TargetFrameworks>
-		<NoWarn>$(NoWarn);CA1416</NoWarn><!-- Windows-only API used -->
 	</PropertyGroup>
 
 	<PropertyGroup>

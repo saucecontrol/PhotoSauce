@@ -91,7 +91,7 @@ namespace PhotoSauce.MagicScaler
 				float* op = (float*)opstart, igt = igtstart;
 
 #if HWINTRINSICS
-				if (Avx2.IsSupported && cb >= HWIntrinsics.VectorCount<byte>())
+				if (Avx2.IsSupported && cb >= Vector256<byte>.Count)
 					convertFloatAvx2(ip, ipe, op, igt);
 				else
 #endif
@@ -222,7 +222,7 @@ namespace PhotoSauce.MagicScaler
 				float* op = (float*)opstart, igt = igtstart;
 
 #if HWINTRINSICS
-				if (Avx2.IsSupported && cb >= HWIntrinsics.VectorCount<byte>())
+				if (Avx2.IsSupported && cb >= Vector256<byte>.Count)
 					convertFloatAvx2(ip, ipe, op, igt);
 				else
 #endif
@@ -424,7 +424,7 @@ namespace PhotoSauce.MagicScaler
 				byte* op = opstart, gt = gtstart;
 
 #if HWINTRINSICS
-				if (Avx2.IsSupported && cb >= HWIntrinsics.VectorCount<byte>() * 4)
+				if (Avx2.IsSupported && cb >= Vector256<byte>.Count * 4)
 					convertFloatAvx2(ip, ipe, op, gt);
 				else
 #endif
@@ -620,7 +620,7 @@ namespace PhotoSauce.MagicScaler
 				byte* op = opstart, gt = gtstart;
 
 #if HWINTRINSICS
-				if (Avx2.IsSupported && cb >= HWIntrinsics.VectorCount<byte>() * 4)
+				if (Avx2.IsSupported && cb >= Vector256<byte>.Count * 4)
 					convertFloatAvx2(ip, ipe, op, gt);
 				else
 #endif
@@ -776,7 +776,7 @@ namespace PhotoSauce.MagicScaler
 				byte* op = opstart, gt = gtstart;
 
 #if HWINTRINSICS
-				if (Avx2.IsSupported && ipe >= ip + Vector256<byte>.Count)
+				if (Avx2.IsSupported && cb >= Vector256<byte>.Count * 4)
 				{
 					var vmin = Vector256<int>.Zero;
 					var vscale = Vector256.Create((float)UQ15One);
