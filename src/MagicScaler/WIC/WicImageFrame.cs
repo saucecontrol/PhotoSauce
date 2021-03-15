@@ -12,9 +12,9 @@ using PhotoSauce.MagicScaler.Transforms;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal unsafe class WicImageFrame : IImageFrame
+	internal sealed unsafe class WicImageFrame : IImageFrame
 	{
-		private PixelSource? source;
+		private WicPixelSource? psource;
 		private IPixelSource? isource;
 		private WicColorProfile? colorProfile;
 
@@ -34,7 +34,7 @@ namespace PhotoSauce.MagicScaler
 		public IWICBitmapSource* WicSource { get; private set; }
 		public IWICMetadataQueryReader* WicMetadataReader { get; private set; }
 
-		public PixelSource Source => source ??= new ComPtr<IWICBitmapSource>(WicSource).AsPixelSource(null, nameof(IWICBitmapFrameDecode), false);
+		public PixelSource Source => psource ??= new ComPtr<IWICBitmapSource>(WicSource).AsPixelSource(nameof(IWICBitmapFrameDecode), false);
 
 		public IPixelSource PixelSource => isource ??= Source.AsIPixelSource();
 
@@ -147,10 +147,20 @@ namespace PhotoSauce.MagicScaler
 
 		public void Dispose()
 		{
+			dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+		private void dispose(bool disposing)
+		{
 			if (WicFrame is null)
 				return;
 
-			colorProfile?.Dispose();
+			if (disposing)
+			{
+				colorProfile?.Dispose();
+				psource?.Dispose();
+			}
 
 			if (WicMetadataReader is not null)
 			{
@@ -164,6 +174,8 @@ namespace PhotoSauce.MagicScaler
 			WicFrame->Release();
 			WicFrame = null;
 		}
+
+		~WicImageFrame() => dispose(false);
 
 		public static void ReplayGifAnimationContext(WicGifContainer cont, int playTo)
 		{
@@ -222,7 +234,8 @@ namespace PhotoSauce.MagicScaler
 				}
 				else
 				{
-					using var overlay = new OverlayTransform(fbuff, src.AsPixelSource(null, nameof(IWICBitmapFrameDecode), false), finfo.Left, finfo.Top, true, true);
+					using var pixsrc = new ComPtr<IWICBitmapSource>(src).AsPixelSource(nameof(IWICBitmapFrameDecode), false);
+					using var overlay = new OverlayTransform(fbuff, pixsrc, finfo.Left, finfo.Top, true, true);
 					overlay.CopyPixels(new PixelArea(finfo.Left, finfo.Top, finfo.Width, finfo.Height), fbuff.Stride, fspan.Length, (IntPtr)buff);
 				}
 			}
@@ -295,7 +308,7 @@ namespace PhotoSauce.MagicScaler
 
 					var cpi = WicColorProfile.GetProfileFromContext(cc, cb);
 					if (cpi.IsValid && cpi.IsCompatibleWith(fmt))
-						return new WicColorProfile(new ComPtr<IWICColorContext>(cc), cpi, true);
+						return new WicColorProfile(cc, cpi, true);
 				}
 				else if (cct == WICColorContextType.WICColorContextExifColorSpace && WicMetadataReader is not null)
 				{

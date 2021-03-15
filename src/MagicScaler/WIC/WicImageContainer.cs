@@ -64,14 +64,23 @@ namespace PhotoSauce.MagicScaler
 
 		public virtual void Dispose()
 		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+		protected virtual void Dispose(bool disposing)
+		{
 			if (WicDecoder is null)
 				return;
 
+			if (disposing)
+				handle?.Dispose();
+
 			WicDecoder->Release();
 			WicDecoder = null;
-
-			handle?.Dispose();
 		}
+
+		~WicImageContainer() => Dispose(false);
 	}
 
 	internal class GifAnimationContext : IDisposable
@@ -88,7 +97,7 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	internal unsafe class WicGifContainer : WicImageContainer, IDisposable
+	internal unsafe class WicGifContainer : WicImageContainer
 	{
 		private static ReadOnlySpan<byte> animexts1_0 => new[] {
 			(byte)'A', (byte)'N', (byte)'I', (byte)'M', (byte)'E', (byte)'X', (byte)'T', (byte)'S', (byte)'1', (byte)'.', (byte)'0'
@@ -143,10 +152,14 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		public override void Dispose()
+		protected override void Dispose(bool disposing)
 		{
-			AnimationContext?.Dispose();
-			base.Dispose();
+			if (disposing)
+				AnimationContext?.Dispose();
+
+			base.Dispose(disposing);
 		}
+
+		~WicGifContainer() => Dispose(false);
 	}
 }

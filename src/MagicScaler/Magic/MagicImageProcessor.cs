@@ -287,7 +287,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				processPlanar = EnablePlanarPipeline && wicFrame.SupportsPlanarProcessing && ctx.Settings.Interpolation.WeightingFunction.Support >= 0.5;
 				bool profilingPassThrough = processPlanar || (wicFrame.SupportsNativeScale && ctx.Settings.HybridScaleRatio > 1);
-				ctx.Source = ctx.AddDispose(new ComPtr<IWICBitmapSource>(wicFrame.WicSource).AsPixelSource(ctx, nameof(IWICBitmapFrameDecode), !profilingPassThrough));
+				ctx.Source = ctx.AddDispose(new ComPtr<IWICBitmapSource>(wicFrame.WicSource).AsPixelSource(nameof(IWICBitmapFrameDecode), !profilingPassThrough));
 			}
 			else if (ctx.ImageFrame is IYccImageFrame planarFrame)
 			{

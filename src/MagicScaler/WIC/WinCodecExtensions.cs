@@ -75,12 +75,6 @@ namespace PhotoSauce.Interop.Wic
 				public const string TransparencyFlag = "/grctlext/TransparencyFlag";
 				public const string TransparentColorIndex = "/grctlext/TransparentColorIndex";
 			}
-
-			public static class Png
-			{
-				public const string IccProfileName = "/iCCP/ProfileName";
-				public const string IccProfileData = "/iCCP/ProfileData";
-			}
 		}
 	}
 
@@ -124,7 +118,7 @@ namespace PhotoSauce.Interop.Wic
 			if (pv.TryGetValue(out T val))
 				return val;
 
-			Debug.Print($"VT: {pv.vt} unexpected for type: " + typeof(T).Name, nameof(T));
+			Debug.Print($"{name}: VT: {pv.vt} unexpected for type: {typeof(T).Name}");
 			HRESULT.Check(PropVariantClear(&pv));
 
 			return default;

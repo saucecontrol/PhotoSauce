@@ -19,11 +19,11 @@ namespace PhotoSauce.MagicScaler
 		public override int Width { get; }
 		public override int Height { get; }
 
-		public WicPixelSource(IWICBitmapSource* source, PipelineContext? ctx, string name, bool profile = true) : base()
+		public WicPixelSource(IWICBitmapSource* source, string name, bool profile = true) : base()
 		{
-			WicSource = profile ? this.AsIWICBitmapSource(ctx!, true) : source;
 			sourceName = name;
 			upstreamSource = profile ? source : null;
+			WicSource = profile ? new ComPtr<IWICBitmapSource>(this.AsIWICBitmapSource(true)) : source;
 
 			uint width, height;
 			HRESULT.Check(source->GetSize(&width, &height));
@@ -47,46 +47,36 @@ namespace PhotoSauce.MagicScaler
 
 		public void Dispose()
 		{
+			dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+		private void dispose(bool disposing)
+		{
 			if (WicSource is null)
 				return;
 
 			if (upstreamSource is not null)
 				upstreamSource->Release();
-			else
-				WicSource->Release();
 
+			WicSource->Release();
 			WicSource = null;
 		}
+
+		~WicPixelSource() => dispose(false);
 	}
 
 	internal static unsafe class WicPixelSourceExtensions
 	{
-		private sealed class PixelSourceAsIWICBitmapSource : IDisposable
-		{
-			private readonly SafeComCallable<IWICBitmapSourceImpl> ccw;
+		public static WicPixelSource AsPixelSource(this ComPtr<IWICBitmapSource> source, string name, bool profile = true) =>
+			new(source, name, profile);
 
-			public PixelSourceAsIWICBitmapSource(PixelSource src)
-			{
-				var gch = GCHandle.Alloc(src);
-				var psi = new IWICBitmapSourceImpl(gch);
-				ccw = new SafeComCallable<IWICBitmapSourceImpl>(psi);
-			}
-
-			public IWICBitmapSource* WicSource => (IWICBitmapSource*)ccw.DangerousGetHandle();
-
-			public void Dispose() => ccw.Dispose();
-		}
-
-		public static WicPixelSource AsPixelSource(this ComPtr<IWICBitmapSource> source, PipelineContext? ctx, string name, bool profile = true) =>
-			new(source, ctx, name, profile);
-
-		public static IWICBitmapSource* AsIWICBitmapSource(this PixelSource source, PipelineContext ctx, bool forceWrap = false)
+		public static IWICBitmapSource* AsIWICBitmapSource(this PixelSource source, bool forceWrap = false)
 		{
 			if (!forceWrap && source is WicPixelSource wsrc)
 				return wsrc.WicSource;
 
-			var wbs = new PixelSourceAsIWICBitmapSource(source);
-			return ctx.AddDispose(wbs).WicSource;
+			return IWICBitmapSourceImpl.Wrap(source);
 		}
 	}
 }

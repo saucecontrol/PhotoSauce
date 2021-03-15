@@ -4,12 +4,11 @@
 
 using System;
 using System.IO;
-using System.Diagnostics;
+using System.Threading;
 using System.Runtime.InteropServices;
-
-#if BUILTIN_CSHARP9
 using System.Runtime.CompilerServices;
-#elif !BUILTIN_SPAN
+
+#if !BUILTIN_SPAN
 using PhotoSauce.MagicScaler;
 #endif
 
@@ -22,16 +21,24 @@ namespace PhotoSauce.Interop.Wic
 	internal unsafe struct IStreamImpl
 	{
 		private readonly void** lpVtbl;
-		private readonly IntPtr source;
+		private readonly GCHandle source;
 		private readonly uint offset;
+		private int refCount;
 
-		public IStreamImpl(GCHandle managedSource, uint offs = 0)
+		private IStreamImpl(Stream managedSource, uint offs = 0)
 		{
-			Debug.Assert(managedSource.Target is Stream);
-
 			lpVtbl = vtblStatic;
-			source = GCHandle.ToIntPtr(managedSource);
+			source = GCHandle.Alloc(managedSource, GCHandleType.Weak);
 			offset = offs;
+			refCount = 0;
+		}
+
+		public static IStream* Wrap(Stream managedSource, uint offs = 0)
+		{
+			var ptr = (IStreamImpl*)Marshal.AllocHGlobal(sizeof(IStreamImpl));
+			*ptr = new IStreamImpl(managedSource, offs);
+
+			return (IStream*)ptr;
 		}
 
 #if BUILTIN_CSHARP9
@@ -43,6 +50,7 @@ namespace PhotoSauce.Interop.Wic
 			var iid = *riid;
 			if (iid == __uuidof<IStream>() || iid == __uuidof<ISequentialStream>() || iid == __uuidof<IUnknown>())
 			{
+				Interlocked.Increment(ref pinst->refCount);
 				*ppvObject = pinst;
 				return S_OK;
 			}
@@ -54,13 +62,24 @@ namespace PhotoSauce.Interop.Wic
 		[UnmanagedCallersOnly]
 		static
 #endif
-		public uint AddRef(IStreamImpl* pinst) => 1;
+		public uint AddRef(IStreamImpl* pinst) => (uint)Interlocked.Increment(ref pinst->refCount);
 
 #if BUILTIN_CSHARP9
 		[UnmanagedCallersOnly]
 		static
 #endif
-		public uint Release(IStreamImpl* pinst) => 1;
+		public uint Release(IStreamImpl* pinst)
+		{
+			uint cnt = (uint)Interlocked.Decrement(ref pinst->refCount);
+			if (cnt == 0)
+			{
+				pinst->source.Free();
+				Unsafe.InitBlockUnaligned(pinst, 0, (uint)sizeof(IStreamImpl));
+				Marshal.FreeHGlobal((IntPtr)pinst);
+			}
+
+			return cnt;
+		}
 
 #if BUILTIN_CSHARP9
 		[UnmanagedCallersOnly]
@@ -68,7 +87,7 @@ namespace PhotoSauce.Interop.Wic
 #endif
 		public int Read(IStreamImpl* pinst, void* pv, uint cb, uint* pcbRead)
 		{
-			var stm = (Stream)GCHandle.FromIntPtr(pinst->source).Target!;
+			var stm = (Stream)pinst->source.Target!;
 			int read = stm.Read(new Span<byte>(pv, (int)cb));
 
 			if (pcbRead is not null)
@@ -83,7 +102,7 @@ namespace PhotoSauce.Interop.Wic
 #endif
 		public int Write(IStreamImpl* pinst, void* pv, uint cb, uint* pcbWritten)
 		{
-			var stm = (Stream)GCHandle.FromIntPtr(pinst->source).Target!;
+			var stm = (Stream)pinst->source.Target!;
 			stm.Write(new ReadOnlySpan<byte>(pv, (int)cb));
 
 			if (pcbWritten is not null)
@@ -99,7 +118,7 @@ namespace PhotoSauce.Interop.Wic
 		public int Seek(IStreamImpl* pinst, LARGE_INTEGER dlibMove, uint dwOrigin, ULARGE_INTEGER* plibNewPosition)
 		{
 			long npos = dlibMove.QuadPart + (dwOrigin == (uint)SeekOrigin.Begin ? pinst->offset : 0);
-			var stm = (Stream)GCHandle.FromIntPtr(pinst->source).Target!;
+			var stm = (Stream)pinst->source.Target!;
 
 			long cpos = stm.Position;
 			if (!(dwOrigin == (uint)SeekOrigin.Current && npos == 0) && !(dwOrigin == (uint)SeekOrigin.Begin && npos == cpos))
@@ -117,7 +136,7 @@ namespace PhotoSauce.Interop.Wic
 #endif
 		public int SetSize(IStreamImpl* pinst, ULARGE_INTEGER libNewSize)
 		{
-			var stm = (Stream)GCHandle.FromIntPtr(pinst->source).Target!;
+			var stm = (Stream)pinst->source.Target!;
 			stm.SetLength((long)libNewSize.QuadPart + pinst->offset);
 
 			return S_OK;
@@ -135,7 +154,7 @@ namespace PhotoSauce.Interop.Wic
 #endif
 		public int Commit(IStreamImpl* pinst, uint grfCommitFlags)
 		{
-			var stm = (Stream)GCHandle.FromIntPtr(pinst->source).Target!;
+			var stm = (Stream)pinst->source.Target!;
 			stm.Flush();
 
 			return S_OK;
@@ -165,7 +184,7 @@ namespace PhotoSauce.Interop.Wic
 #endif
 		public int Stat(IStreamImpl* pinst, STATSTG* pstatstg, uint grfStatFlag)
 		{
-			var stm = (Stream)GCHandle.FromIntPtr(pinst->source).Target!;
+			var stm = (Stream)pinst->source.Target!;
 			*pstatstg = new STATSTG { cbSize = new ULARGE_INTEGER { QuadPart = (ulong)(stm.Length - pinst->offset) }, type = (uint)STGTY.STGTY_STREAM };
 
 			return S_OK;
@@ -239,7 +258,7 @@ namespace PhotoSauce.Interop.Wic
 		public static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, IStream**, int> pfnClone = (delegate* unmanaged[Stdcall]<IStreamImpl*, IStream**, int>)Marshal.GetFunctionPointerForDelegate(delClone);
 #endif
 
-		public static void** vtblStatic = createVtbl();
+		private static readonly void** vtblStatic = createVtbl();
 
 		private static void** createVtbl()
 		{

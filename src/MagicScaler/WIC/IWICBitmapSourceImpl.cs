@@ -3,12 +3,9 @@
 #pragma warning disable IDE0060
 
 using System;
-using System.Diagnostics;
+using System.Threading;
 using System.Runtime.InteropServices;
-
-#if BUILTIN_CSHARP9
 using System.Runtime.CompilerServices;
-#endif
 
 using TerraFX.Interop;
 using static TerraFX.Interop.Windows;
@@ -20,14 +17,22 @@ namespace PhotoSauce.Interop.Wic
 	internal unsafe struct IWICBitmapSourceImpl
 	{
 		private readonly void** lpVtbl;
-		private readonly IntPtr source;
+		private readonly GCHandle source;
+		private int refCount;
 
-		public IWICBitmapSourceImpl(GCHandle managedSource)
+		private IWICBitmapSourceImpl(PixelSource managedSource)
 		{
-			Debug.Assert(managedSource.Target is PixelSource);
-
 			lpVtbl = vtblStatic;
-			source = GCHandle.ToIntPtr(managedSource);
+			source = GCHandle.Alloc(managedSource, GCHandleType.Weak);
+			refCount = 0;
+		}
+
+		public static IWICBitmapSource* Wrap(PixelSource managedSource)
+		{
+			var ptr = (IWICBitmapSourceImpl*)Marshal.AllocHGlobal(sizeof(IWICBitmapSourceImpl));
+			*ptr = new IWICBitmapSourceImpl(managedSource);
+
+			return (IWICBitmapSource*)ptr;
 		}
 
 #if BUILTIN_CSHARP9
@@ -39,6 +44,7 @@ namespace PhotoSauce.Interop.Wic
 			var iid = *riid;
 			if (iid == __uuidof<IWICBitmapSource>() || iid == __uuidof<IUnknown>())
 			{
+				Interlocked.Increment(ref pinst->refCount);
 				*ppvObject = pinst;
 				return S_OK;
 			}
@@ -50,13 +56,24 @@ namespace PhotoSauce.Interop.Wic
 		[UnmanagedCallersOnly]
 		static
 #endif
-		public uint AddRef(IWICBitmapSourceImpl* pinst) => 1;
+		public uint AddRef(IWICBitmapSourceImpl* pinst) => (uint)Interlocked.Increment(ref pinst->refCount);
 
 #if BUILTIN_CSHARP9
 		[UnmanagedCallersOnly]
 		static
 #endif
-		public uint Release(IWICBitmapSourceImpl* pinst) => 1;
+		public uint Release(IWICBitmapSourceImpl* pinst)
+		{
+			uint cnt = (uint)Interlocked.Decrement(ref pinst->refCount);
+			if (cnt == 0)
+			{
+				pinst->source.Free();
+				Unsafe.InitBlockUnaligned(pinst, 0, (uint)sizeof(IWICBitmapSourceImpl));
+				Marshal.FreeHGlobal((IntPtr)pinst);
+			}
+
+			return cnt;
+		}
 
 #if BUILTIN_CSHARP9
 		[UnmanagedCallersOnly]
@@ -64,7 +81,7 @@ namespace PhotoSauce.Interop.Wic
 #endif
 		public int GetSize(IWICBitmapSourceImpl* pinst, uint* puiWidth, uint* puiHeight)
 		{
-			var ps = (PixelSource)GCHandle.FromIntPtr(pinst->source).Target!;
+			var ps = (PixelSource)pinst->source.Target!;
 			*puiWidth = (uint)ps.Width;
 			*puiHeight = (uint)ps.Height;
 
@@ -77,7 +94,7 @@ namespace PhotoSauce.Interop.Wic
 #endif
 		public int GetPixelFormat(IWICBitmapSourceImpl* pinst, Guid* pPixelFormat)
 		{
-			var ps = (PixelSource)GCHandle.FromIntPtr(pinst->source).Target!;
+			var ps = (PixelSource)pinst->source.Target!;
 			*pPixelFormat = ps.Format.FormatGuid;
 
 			return S_OK;
@@ -107,7 +124,7 @@ namespace PhotoSauce.Interop.Wic
 #endif
 		public int CopyPixels(IWICBitmapSourceImpl* pinst, WICRect* prc, uint cbStride, uint cbBufferSize, byte* pbBuffer)
 		{
-			var ps = (PixelSource)GCHandle.FromIntPtr(pinst->source).Target!;
+			var ps = (PixelSource)pinst->source.Target!;
 			var area = prc is not null ? new PixelArea(prc->X, prc->Y, prc->Width, prc->Height) : ps.Area;
 			ps.CopyPixels(area, (int)cbStride, (int)cbBufferSize, (IntPtr)pbBuffer);
 
@@ -152,7 +169,7 @@ namespace PhotoSauce.Interop.Wic
 		public static readonly delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, WICRect*, uint, uint, byte*, int> pfnCopyPixels = (delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, WICRect*, uint, uint, byte*, int>)Marshal.GetFunctionPointerForDelegate(delCopyPixels);
 #endif
 
-		public static void** vtblStatic = createVtbl();
+		private static readonly void** vtblStatic = createVtbl();
 
 		private static void** createVtbl()
 		{

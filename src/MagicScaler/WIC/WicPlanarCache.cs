@@ -11,7 +11,7 @@ using PhotoSauce.Interop.Wic;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal unsafe class WicPlanarCache : IDisposable
+	internal sealed unsafe class WicPlanarCache : IDisposable
 	{
 		private enum WicPlane { Y, Cb, Cr }
 
@@ -133,16 +133,27 @@ namespace PhotoSauce.MagicScaler
 
 		public void Dispose()
 		{
+			dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+		private void dispose(bool disposing)
+		{
 			if (sourceTransform is null)
 				return;
 
-			buffY.Dispose();
-			buffCb.Dispose();
-			buffCr.Dispose();
+			if (disposing)
+			{
+				buffY.Dispose();
+				buffCb.Dispose();
+				buffCr.Dispose();
+			}
 
 			sourceTransform->Release();
 			sourceTransform = null;
 		}
+
+		~WicPlanarCache() => dispose(false);
 
 		private sealed class PlanarCachePixelSource : PixelSource
 		{
