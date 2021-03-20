@@ -371,10 +371,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 				AddExternalFormatConverter(ctx);
 
 				if (ctx.WicContext.SourceColorContext is null)
-					ctx.WicContext.SourceColorContext = WicColorProfile.CreateContextFromProfile(ctx.SourceColorProfile.ProfileBytes);
+					ctx.WicContext.SourceColorContext = ctx.AddDispose(new WicColorProfile(WicColorProfile.CreateContextFromProfile(ctx.SourceColorProfile.ProfileBytes), ctx.SourceColorProfile, true)).WicColorContext;
 
 				if (ctx.WicContext.DestColorContext is null)
-					ctx.WicContext.DestColorContext = WicColorProfile.CreateContextFromProfile(ctx.DestColorProfile.ProfileBytes);
+					ctx.WicContext.DestColorContext = ctx.AddDispose(new WicColorProfile(WicColorProfile.CreateContextFromProfile(ctx.DestColorProfile.ProfileBytes), ctx.DestColorProfile, true)).WicColorContext;
 
 				WicTransforms.AddColorspaceConverter(ctx);
 

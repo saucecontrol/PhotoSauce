@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <doc>
+        <member name="EnableLargeBufferPool">
+            <remarks>
+                <para>When performing an operation that requires the pipeline to materialize an entire bitmap, such as transposing an image or converting to an indexed color format, large pixel buffers may be required.  Since the default <see cref="ArrayPool{T}" /> only allows up to 2^20 items in a pooled array, it will only pool <see cref="byte" /> buffers up to 1MiB.</para>
+                <para>If large buffer pooling is enabled, a second <see cref="ArrayPool{T}" /> will be maintained, allowing pooling of buffers between 1MiB and 16MiB in size.</para>
+            </remarks>
+        </member>
         <member name="EnablePlanarPipeline">
             <remarks>
                 <para>The planar pipeline offers significant performance advantages over standard RGB processing for JPEG images.</para>

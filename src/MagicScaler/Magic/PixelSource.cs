@@ -129,11 +129,11 @@ namespace PhotoSauce.MagicScaler
 
 	internal sealed class FrameBufferSource : PixelSource, IDisposable
 	{
-		private ArraySegment<byte> frameBuff;
+		private RentedBuffer<byte> frameBuff;
 
 		public int Stride { get; }
 
-		public Span<byte> Span => frameBuff.AsSpan();
+		public Span<byte> Span => frameBuff.Span;
 
 		public override PixelFormat Format { get; }
 		public override int Width { get; }
@@ -147,7 +147,7 @@ namespace PhotoSauce.MagicScaler
 
 			Stride = MathUtil.PowerOfTwoCeiling(width * Format.BytesPerPixel, HWIntrinsics.VectorCount<byte>());
 
-			frameBuff = BufferPool.Rent(Stride * height, true);
+			frameBuff = BufferPool.RentAligned<byte>(Stride * height);
 		}
 
 		public void PauseTiming() => Profiler.PauseTiming();
@@ -155,7 +155,7 @@ namespace PhotoSauce.MagicScaler
 
 		public void Dispose()
 		{
-			BufferPool.Return(frameBuff);
+			frameBuff.Dispose();
 			frameBuff = default;
 		}
 
@@ -163,12 +163,13 @@ namespace PhotoSauce.MagicScaler
 
 		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
-			if (frameBuff.Array is null) throw new ObjectDisposedException(nameof(FrameBufferSource));
+			var buffspan = frameBuff.Span;
+			if (buffspan.Length == 0) throw new ObjectDisposedException(nameof(FrameBufferSource));
 
 			int bpp = Format.BytesPerPixel;
 			int cb = prc.Width * bpp;
 
-			ref byte buff = ref frameBuff.Array[frameBuff.Offset + prc.Y * Stride + prc.X * bpp];
+			ref byte buff = ref buffspan[prc.Y * Stride + prc.X * bpp];
 
 			for (int y = 0; y < prc.Height; y++)
 				Unsafe.CopyBlockUnaligned(ref *((byte*)pbBuffer + y * cbStride), ref Unsafe.Add(ref buff, y * Stride), (uint)cb);

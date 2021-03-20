@@ -59,7 +59,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		private readonly bool bufferSource;
 
-		private ArraySegment<byte> lineBuff;
+		private RentedBuffer<byte> lineBuff;
 
 		public override PixelFormat Format { get; }
 		public override int Width { get; }
@@ -138,7 +138,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 			else
 			{
-				lineBuff = BufferPool.Rent(BufferStride, true);
+				lineBuff = BufferPool.RentAligned<byte>(BufferStride);
 			}
 		}
 
@@ -176,7 +176,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		private unsafe void loadBuffer(int first, int lines)
 		{
-			Debug.Assert((!bufferSource && lineBuff.Array is not null) || (WorkBuff is not null && SrcBuff is not null));
+			Debug.Assert((!bufferSource && lineBuff.Length != 0) || (WorkBuff is not null && SrcBuff is not null));
 
 			fixed (byte* mapxstart = XMap.Map)
 			{
@@ -184,7 +184,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				var ispan = IntBuff.PrepareLoad(ref fli, ref cli);
 
 				int flb = first, clb = lines;
-				var bspan = bufferSource ? SrcBuff!.PrepareLoad(ref flb, ref clb) : lineBuff.AsSpan();
+				var bspan = bufferSource ? SrcBuff!.PrepareLoad(ref flb, ref clb) : lineBuff.Span;
 
 				int flw = first, clw = lines;
 				var wspan = bufferSource && WorkBuff != SrcBuff ? WorkBuff!.PrepareLoad(ref flw, ref clw) : bspan;
@@ -235,7 +235,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			SrcBuff?.Dispose();
 			WorkBuff?.Dispose();
 
-			BufferPool.Return(lineBuff);
+			lineBuff.Dispose();
 			lineBuff = default;
 		}
 
@@ -247,7 +247,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		private readonly IConvolver processor;
 		private readonly float amount, threshold;
 
-		private ArraySegment<byte> blurBuff;
+		private RentedBuffer<byte> blurBuff;
 
 		public static UnsharpMaskTransform<TPixel, TWeight> CreateSharpen(PixelSource src, UnsharpMaskSettings sharp)
 		{
@@ -268,7 +268,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			amount = ss.Amount * 0.01f;
 			threshold = (float)ss.Threshold / byte.MaxValue;
 
-			blurBuff = BufferPool.Rent(WorkBuff.Stride, true);
+			blurBuff = BufferPool.RentAligned<byte>(WorkBuff.Stride);
 		}
 
 		protected override unsafe void ConvolveLine(byte* ostart, byte* pmapy, int smapy, int iy, int oy, int ox, int ow)
@@ -277,7 +277,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			var wspan = WorkBuff != SrcBuff ? WorkBuff!.PrepareRead(oy, 1) : bspan;
 			var tspan = IntBuff.PrepareRead(iy, smapy);
 
-			fixed (byte* bstart = bspan, wstart = wspan, tstart = tspan, blurstart = blurBuff.AsSpan())
+			fixed (byte* bstart = bspan, wstart = wspan, tstart = tspan, blurstart = blurBuff.Span)
 			{
 				YProcessor.WriteDestLine(tstart, blurstart, ox, ow, pmapy, smapy);
 				processor.SharpenLine(bstart, wstart, blurstart, ostart, ox, ow, amount, threshold, Format.Encoding == PixelValueEncoding.Linear);
@@ -288,7 +288,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			base.Dispose();
 
-			BufferPool.Return(blurBuff);
+			blurBuff.Dispose();
 			blurBuff = default;
 		}
 

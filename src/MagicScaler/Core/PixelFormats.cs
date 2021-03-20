@@ -383,7 +383,7 @@ namespace PhotoSauce.MagicScaler
 				using var cenum = default(ComPtr<IEnumUnknown>);
 				HRESULT.Check(Wic.Factory->CreateComponentEnumerator((uint)WICComponentType.WICPixelFormat, (uint)WICComponentEnumerateOptions.WICComponentEnumerateDefault, cenum.GetAddressOf()));
 
-				using var chbuff = new PoolBuffer<char>(1024);
+				using var chbuff = BufferPool.RentLocal<char>(1024);
 				var formats = stackalloc IUnknown*[10];
 				uint count = 10u;
 

@@ -2,52 +2,181 @@
 
 using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal readonly ref struct PoolBuffer<T> where T : struct
+	internal static partial class BufferPool
 	{
-		private readonly int byteLength;
-		private readonly byte[] array;
+		private const byte marker = 0b_01010101;
+		private const int sharedPoolMax = 1 << 20;
+		private const int largePoolMax = 1 << 24;
 
-		public PoolBuffer(int length, bool clear = false)
+		private static readonly ArrayPool<byte> largeBytePool = MagicImageProcessor.EnableLargeBufferPool ? ArrayPool<byte>.Create(largePoolMax, 8) : ArrayPool<byte>.Shared;
+
+		private static ArrayPool<byte> getBytePool(int length) => length > sharedPoolMax && length <= largePoolMax ? largeBytePool : ArrayPool<byte>.Shared;
+
+		private static byte[] rentBytes(int length) => getBytePool(length).Rent(length);
+
+		private static void returnBytes(byte[]arr) => getBytePool(arr.Length).Return(arr);
+
+
+		[Conditional("GUARDRAILS")]
+		private static void addBoundsMarkers(ArraySegment<byte> buff)
 		{
-			byteLength = length * Unsafe.SizeOf<T>();
-			array = ArrayPool<byte>.Shared.Rent(byteLength);
+			var arr = buff.Array!;
+			if (buff.Offset > 0)
+				new Span<byte>(arr, 0, buff.Offset).Fill(marker);
 
-			if (clear)
-				array.AsSpan(0, byteLength).Clear();
+			int end = buff.Offset + buff.Count;
+			if (arr.Length > end)
+				new Span<byte>(arr, end, arr.Length - end).Fill(marker);
 		}
 
-		public int Length => (int)((uint)byteLength / (uint)Unsafe.SizeOf<T>());
-
-		public Span<T> Span => MemoryMarshal.Cast<byte, T>(array.AsSpan(0, byteLength));
-
-		public void Dispose() => ArrayPool<byte>.Shared.TryReturn(array);
-	}
-
-	internal readonly ref struct PoolArray<T> where T : struct
-	{
-		private readonly T[] array;
-		private readonly int length;
-
-		public PoolArray(int length, bool clear = false)
+		[Conditional("GUARDRAILS")]
+		private static void checkBounds(ArraySegment<byte> buff)
 		{
-			this.length = length;
-			array = ArrayPool<T>.Shared.Rent(length);
+			var arr = buff.Array!;
+			if (buff.Offset > 0)
+			{
+				int chkCnt = 0;
+				int i = buff.Offset;
+				while (i > 0 && arr[--i] != marker)
+					chkCnt++;
 
-			if (clear)
-				array.AsSpan(0, length).Clear();
+				if (chkCnt > 0)
+					throw new AccessViolationException($"Buffer offset violation detected! {chkCnt} byte(s) clobbered.");
+			}
+
+			int end = buff.Offset + buff.Count;
+			if (arr.Length > end)
+			{
+				int chkCnt = 0;
+				int i = end;
+				while (i < arr.Length && arr[i++] != marker)
+					chkCnt++;
+
+				if (chkCnt > 0)
+					throw new AccessViolationException($"Buffer overrun detected! {chkCnt} byte(s) clobbered.");
+			}
 		}
 
-		public T[] Array => array;
+		public static unsafe ArraySegment<byte> RentRaw(int length, bool clear = false)
+		{
+			var arr = rentBytes(length);
 
-		public int Length => length;
+			var buff = new ArraySegment<byte>(arr, 0, length);
+			addBoundsMarkers(buff);
 
-		public Span<T> Span => array.AsSpan(0, length);
+			if (clear)
+				Unsafe.InitBlock(ref buff.Array![0], 0, (uint)buff.Count);
 
-		public void Dispose() => ArrayPool<T>.Shared.TryReturn(array);
+			return buff;
+		}
+
+		public static unsafe ArraySegment<byte> RentRawAligned(int length, bool clear = false)
+		{
+			int pad = HWIntrinsics.VectorCount<byte>() - sizeof(nuint);
+			var arr = rentBytes(length + pad);
+
+			int mask = HWIntrinsics.VectorCount<byte>() - 1;
+			int offs = (mask + 1 - ((int)Unsafe.AsPointer(ref arr[0]) & mask)) & mask;
+
+			var buff = new ArraySegment<byte>(arr, offs, length);
+			addBoundsMarkers(buff);
+
+			if (clear)
+				Unsafe.InitBlock(ref buff.Array![buff.Offset], 0, (uint)buff.Count);
+
+			return buff;
+		}
+
+		public static void ReturnRaw(ArraySegment<byte> buff)
+		{
+			if (buff.Array is null)
+				return;
+
+			checkBounds(buff);
+
+			returnBytes(buff.Array);
+		}
+
+		public static RentedBuffer<T> Rent<T>(int length, bool clear = false) where T : unmanaged =>
+			RentedBuffer<T>.Wrap(RentRaw(length * Unsafe.SizeOf<T>(), clear));
+
+		public static RentedBuffer<T> RentAligned<T>(int length, bool clear = false) where T : unmanaged =>
+			RentedBuffer<T>.Wrap(RentRawAligned(length * Unsafe.SizeOf<T>(), clear));
+
+		public static LocalBuffer<T> RentLocal<T>(int length, bool clear = false) where T : unmanaged =>
+			LocalBuffer<T>.Wrap(RentRaw(length * Unsafe.SizeOf<T>(), clear));
+
+		public static LocalBuffer<T> RentLocalAligned<T>(int length, bool clear = false) where T : unmanaged =>
+			LocalBuffer<T>.Wrap(RentRawAligned(length * Unsafe.SizeOf<T>(), clear));
+
+		public static LocalBuffer<T> WrapLocal<T>(Span<T> span) where T : unmanaged =>
+			LocalBuffer<T>.Wrap(span);
+
+		public readonly ref struct LocalBuffer<T> where T : unmanaged
+		{
+			private readonly ArraySegment<byte> buffer;
+			private readonly Span<T> span;
+
+			private LocalBuffer(ArraySegment<byte> buf, Span<T> spn)
+			{
+				buffer = buf;
+				span = spn;
+			}
+
+			public static LocalBuffer<T> Wrap(Span<T> span) => new(default, span);
+
+			public static LocalBuffer<T> Wrap(ArraySegment<byte> buff) => new(buff, MemoryMarshal.Cast<byte, T>(buff));
+
+			public int Length => span.Length;
+			public Span<T> Span => span;
+
+			public void Dispose() => ReturnRaw(buffer);
+		}
 	}
+
+	internal readonly struct RentedBuffer<T> where T : unmanaged
+	{
+		private readonly ArraySegment<byte> buffer;
+
+		private RentedBuffer(ArraySegment<byte> buff) => buffer = buff;
+
+		public static RentedBuffer<T> Wrap(ArraySegment<byte> buff) => new(buff);
+
+		public int Length => (int)((uint)buffer.Count / (uint)Unsafe.SizeOf<T>());
+		public Span<T> Span => MemoryMarshal.Cast<byte, T>(buffer);
+
+		public ref T GetPinnableReference() => ref Unsafe.As<byte, T>(ref buffer.Array![buffer.Offset]);
+
+		public void Dispose() => BufferPool.ReturnRaw(buffer);
+	}
+
+#if !SPAN_SORT
+	internal static partial class BufferPool
+	{
+		public static LocalArray<T> RentLocalArray<T>(int length) where T : unmanaged =>
+			LocalArray<T>.Rent(length);
+
+		public readonly ref struct LocalArray<T> where T : unmanaged
+		{
+			private readonly T[] array;
+			private readonly int length;
+
+			private LocalArray(T[] arr, int len) => (array, length) = (arr, len);
+
+			public static LocalArray<T> Rent(int len) => new(ArrayPool<T>.Shared.Rent(len), len);
+
+			public T[] Array => array;
+			public int Length => length;
+			public Span<T> Span => array.AsSpan(0, length);
+
+			public void Dispose() => ArrayPool<T>.Shared.TryReturn(array);
+		}
+	}
+#endif
 }

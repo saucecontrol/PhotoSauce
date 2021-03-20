@@ -1,7 +1,6 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
-using System.Buffers;
 using System.Threading;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
@@ -155,14 +154,11 @@ namespace PhotoSauce.MagicScaler
 
 			int cacheLen = isize == osize ? klen : 0;
 			int buffLen = klen * channels + cacheLen;
-			byte[]? karray = null;
-			var kbuff = buffLen <= maxStackAlloc ?
-				stackalloc float[buffLen] :
-				MemoryMarshal.Cast<byte, float>(karray = ArrayPool<byte>.Shared.Rent(buffLen * sizeof(float))).Slice(0, buffLen);
+			using var kbuff = buffLen <= maxStackAlloc ? BufferPool.WrapLocal(stackalloc float[buffLen]) : BufferPool.RentLocal<float>(buffLen);
 
-			var kcache = kbuff.Slice(buffLen - cacheLen, cacheLen);
-			var kernel = kbuff.Slice(buffLen - klen - cacheLen, klen);
-			var mbuff = MemoryMarshal.Cast<float, T>(kbuff.Slice(0, Math.Min(klen, isize) * channels));
+			var kcache = kbuff.Span.Slice(buffLen - cacheLen, cacheLen);
+			var kernel = kbuff.Span.Slice(buffLen - klen - cacheLen, klen);
+			var mbuff = MemoryMarshal.Cast<float, T>(kbuff.Span.Slice(0, Math.Min(klen, isize) * channels));
 			var mbytes = MemoryMarshal.AsBytes(mbuff);
 
 			if (cacheLen > 0)
@@ -226,8 +222,6 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			ArrayPool<byte>.Shared.TryReturn(karray);
-
 			return map;
 		}
 
@@ -252,7 +246,7 @@ namespace PhotoSauce.MagicScaler
 			return Cache.GetOrAdd(size, size, new InterpolationSettings(interpolator, 1.0), ichannels, 0.0);
 		}
 
-		private ArraySegment<byte> map;
+		private RentedBuffer<byte> map;
 		private volatile int refCount = 1;
 
 		private int indexLen => typeof(T) == typeof(float) ? MathUtil.PowerOfTwoCeiling(Pixels * sizeof(int) * 2, HWIntrinsics.VectorCount<byte>()) : Pixels * sizeof(int);
@@ -263,10 +257,11 @@ namespace PhotoSauce.MagicScaler
 
 		public ReadOnlySpan<byte> Map {
 			get {
-				if (refCount <= 0 || map.Array is null)
+				var span = map.Span;
+				if (refCount <= 0 || span.Length == 0)
 					throw new ObjectDisposedException(nameof(KernelMap<T>));
 
-				return new ReadOnlySpan<byte>(map.Array, map.Offset, map.Count);
+				return span;
 			}
 		}
 
@@ -277,7 +272,7 @@ namespace PhotoSauce.MagicScaler
 			Channels = channels;
 
 			int len = indexLen + pixels * samples * channels * Unsafe.SizeOf<T>();
-			map = BufferPool.Rent(len);
+			map = BufferPool.Rent<byte>(len);
 		}
 
 		public bool TryAddRef() => Interlocked.Increment(ref refCount) > 0;
@@ -286,7 +281,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			if (Interlocked.Decrement(ref refCount) == 0 && Interlocked.CompareExchange(ref refCount, int.MinValue, 0) == 0)
 			{
-				BufferPool.Return(map);
+				map.Dispose();
 				map = default;
 			}
 		}

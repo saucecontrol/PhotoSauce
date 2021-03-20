@@ -2,6 +2,7 @@
 
 using System;
 using System.IO;
+using System.Buffers;
 using System.Numerics;
 using System.ComponentModel;
 
@@ -15,6 +16,11 @@ namespace PhotoSauce.MagicScaler
 	/// <summary>Provides a set of methods for constructing a MagicScaler processing pipeline or for all-at-once processing of an image.</summary>
 	public static class MagicImageProcessor
 	{
+		/// <summary>True to allow the pipeline to maintain a pool of larger pixel buffers, false to restrict pooling to the built-in <see cref="ArrayPool{T}.Shared" />.</summary>
+		/// <include file='Docs/Remarks.xml' path='doc/member[@name="EnableLargeBufferPool"]/*'/>
+		/// <value>Default value: <see langword="true" /></value>
+		public static bool EnableLargeBufferPool { get; set; } = true;
+
 		/// <summary>True to allow <a href="https://en.wikipedia.org/wiki/YCbCr">Y'CbCr</a> images to be processed in their native planar format, false to force RGB conversion before processing.</summary>
 		/// <include file='Docs/Remarks.xml' path='doc/member[@name="EnablePlanarPipeline"]/*'/>
 		/// <value>Default value: <see langword="true" /></value>

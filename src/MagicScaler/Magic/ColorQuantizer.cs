@@ -24,14 +24,15 @@ namespace PhotoSauce.MagicScaler
 		private bool isSubsampled;
 		private int palEntries = maxPaletteSize;
 
-		private ArraySegment<byte> nodeBuffer, palBuffer;
+		private RentedBuffer<OctreeNode> nodeBuffer;
+		private RentedBuffer<uint> palBuffer;
 
-		public ReadOnlySpan<uint> Palette => MemoryMarshal.Cast<byte, uint>(palBuffer).Slice(0, palEntries);
+		public ReadOnlySpan<uint> Palette => palBuffer.Span.Slice(0, palEntries);
 
 		public OctreeQuantizer()
 		{
-			nodeBuffer = BufferPool.Rent(Unsafe.SizeOf<OctreeNode>() * maxHistogramSize, true);
-			palBuffer = BufferPool.Rent(sizeof(uint) * maxPaletteSize);
+			nodeBuffer = BufferPool.RentAligned<OctreeNode>(maxHistogramSize, true);
+			palBuffer = BufferPool.Rent<uint>(maxPaletteSize);
 		}
 
 		public void CreateHistorgram(Span<byte> image, nint width, nint height, nint stride)
@@ -48,14 +49,13 @@ namespace PhotoSauce.MagicScaler
 				isSubsampled = true;
 			}
 
-			var listBuffer = BufferPool.Rent(sizeof(ushort) * maxHistogramSize);
-			initFreeList(listBuffer, maxHistogramSize);
-			nodeBuffer.AsSpan().Clear();
+			using var listBuffer = BufferPool.RentLocal<ushort>(maxHistogramSize);
+			initFreeList(listBuffer.Span);
 
 			fixed (byte* pimage = image)
 			fixed (uint* pilut = &LookupTables.OctreeIndexTable[0])
-			fixed (ushort* pfree = MemoryMarshal.Cast<byte, ushort>(listBuffer))
-			fixed (OctreeNode* ptree = MemoryMarshal.Cast<byte, OctreeNode>(nodeBuffer))
+			fixed (ushort* pfree = listBuffer.Span)
+			fixed (OctreeNode* ptree = nodeBuffer)
 			{
 				ushort* pnextFree = pfree;
 				float yf = 0f;
@@ -65,8 +65,6 @@ namespace PhotoSauce.MagicScaler
 					updateHistogram(pline, pilut, ptree, pfree, ref pnextFree, width, srx);
 				}
 			}
-
-			BufferPool.Return(listBuffer);
 		}
 
 		public void Quantize(Span<byte> image, Span<byte> outbuff, nint width, nint height, nint instride, nint outstride)
@@ -85,7 +83,7 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			fixed (OctreeNode* ptree = MemoryMarshal.Cast<byte, OctreeNode>(nodeBuffer))
+			fixed (OctreeNode* ptree = nodeBuffer)
 			fixed (float* igt = &LookupTables.SrgbInverseGamma[0])
 			{
 				float ftpix = getPixelCount();
@@ -98,25 +96,25 @@ namespace PhotoSauce.MagicScaler
 			int histogramColors = nc[(int)level];
 			if (histogramColors > targetColors)
 			{
-				var listBuffer = BufferPool.Rent(sizeof(ReducibleNode) * histogramColors);
+				using var listBuffer = BufferPool.RentLocal<ReducibleNode>(histogramColors);
 				nuint reducibleCount = 0;
 
-				fixed (OctreeNode* ptree = MemoryMarshal.Cast<byte, OctreeNode>(nodeBuffer))
-				fixed (ReducibleNode* pweights = MemoryMarshal.Cast<byte, ReducibleNode>(listBuffer))
+				fixed (OctreeNode* ptree = nodeBuffer)
+				fixed (ReducibleNode* pweights = listBuffer.Span)
 				fixed (float* gt = &LookupTables.SrgbGamma[0])
 				{
 					for (nuint i = 0; i < 8; i++)
 						addReducibleNodes(ptree, pweights, gt, ptree + i, ref reducibleCount, 0, leafLevel - 1);
 				}
 
-				var weights = MemoryMarshal.Cast<byte, ReducibleNode>(listBuffer).Slice(0, (int)reducibleCount);
+				var weights = listBuffer.Span.Slice(0, (int)reducibleCount);
 				int reduceCount = histogramColors - targetColors;
 
 #if SPAN_SORT
 				weights.Sort();
 				finalReduce(weights.Slice(0, reduceCount));
 #else
-				using var buff = new PoolArray<ReducibleNode>(maxHistogramSize);
+				using var buff = BufferPool.RentLocalArray<ReducibleNode>(weights.Length);
 				weights.CopyTo(buff.Array);
 
 				Array.Sort(buff.Array, 0, weights.Length);
@@ -127,13 +125,10 @@ namespace PhotoSauce.MagicScaler
 			bool dither = isSubsampled || histogramColors > maxPaletteSize;
 			nuint nextFree = makePaletteMap(level);
 
-			var pbuff = BufferPool.Rent(((int)width + 2) * 16, true);
-			pbuff.AsSpan().Clear();
-
-			fixed (byte* pimage = image, poutbuff = outbuff, perrbuff = pbuff.AsSpan())
-			fixed (uint* pilut = &LookupTables.OctreeIndexTable[0])
-			fixed (uint* ppal = MemoryMarshal.Cast<byte, uint>(palBuffer))
-			fixed (OctreeNode* ptree = MemoryMarshal.Cast<byte, OctreeNode>(nodeBuffer))
+			using var errbuff = BufferPool.RentLocalAligned<byte>(((int)width + 2) * sizeof(uint) * 4, true);
+			fixed (byte* pimage = image, poutbuff = outbuff, perrbuff = errbuff.Span)
+			fixed (uint* ppal = palBuffer, pilut = &LookupTables.OctreeIndexTable[0])
+			fixed (OctreeNode* ptree = nodeBuffer)
 			{
 				for (nint y = 0; y < height; y++)
 				{
@@ -151,15 +146,14 @@ namespace PhotoSauce.MagicScaler
 						remapDitherScalar(pline, perrline, poutline, pilut, ptree, ppal, ref nextFree, width);
 				}
 			}
-
-			BufferPool.Return(pbuff);
 		}
 
 		public void Dispose()
 		{
-			BufferPool.Return(nodeBuffer);
-			BufferPool.Return(palBuffer);
-			nodeBuffer = palBuffer = default;
+			nodeBuffer.Dispose();
+			palBuffer.Dispose();
+			nodeBuffer = default;
+			palBuffer = default;
 		}
 
 		private void updateHistogram(uint* pimage, uint* pilut, OctreeNode* ptree, ushort* plist, ref ushort* pfree, nint cp, nint sr)
@@ -363,7 +357,7 @@ namespace PhotoSauce.MagicScaler
 
 		private void finalReduce(Span<ReducibleNode> nodes)
 		{
-			fixed (OctreeNode* ptree = MemoryMarshal.Cast<byte, OctreeNode>(nodeBuffer))
+			fixed (OctreeNode* ptree = nodeBuffer)
 			{
 				for (int i = 0; i < nodes.Length; i++)
 				{
@@ -408,8 +402,8 @@ namespace PhotoSauce.MagicScaler
 
 		private nuint makePaletteMap(nuint minLevel)
 		{
-			fixed (OctreeNode* ptree = MemoryMarshal.Cast<byte, OctreeNode>(nodeBuffer))
-			fixed (uint* ppal = MemoryMarshal.Cast<byte, uint>(palBuffer))
+			fixed (OctreeNode* ptree = nodeBuffer)
+			fixed (uint* ppal = palBuffer)
 			fixed (byte* gt = &LookupTables.SrgbGammaUQ15[0])
 			{
 				nuint palidx = 0;
@@ -444,20 +438,17 @@ namespace PhotoSauce.MagicScaler
 
 			leafLevel = Math.Max(leafLevel, minLeafLevel);
 
-			var palMap = BufferPool.Rent(sizeof(OctreeNode) * maxHistogramSize, true);
-			palMap.AsSpan().Clear();
-
+			var palMap = BufferPool.RentAligned<OctreeNode>(maxHistogramSize, true);
 			nuint mapidx = 8;
 
 			fixed (uint* pilut = &LookupTables.OctreeIndexTable[0])
-			fixed (OctreeNode* ptree = MemoryMarshal.Cast<byte, OctreeNode>(nodeBuffer))
-			fixed (OctreeNode* pmap = MemoryMarshal.Cast<byte, OctreeNode>(palMap))
+			fixed (OctreeNode* ptree = nodeBuffer, pmap = palMap)
 			{
 				for (nuint i = 0; i < 8; i++)
 					migrateNodes(ptree, pmap, pilut, ptree + i, pmap + i, 0, ref mapidx);
 			}
 
-			BufferPool.Return(nodeBuffer);
+			nodeBuffer.Dispose();
 			nodeBuffer = palMap;
 
 			return mapidx;
@@ -986,7 +977,7 @@ namespace PhotoSauce.MagicScaler
 
 		private void getNodeCounts(Span<int> counts)
 		{
-			fixed (OctreeNode* ptree = MemoryMarshal.Cast<byte, OctreeNode>(nodeBuffer))
+			fixed (OctreeNode* ptree = nodeBuffer)
 			fixed (int* pcounts = counts)
 			{
 				for (nuint i = 0; i < maxHistogramSize; i++)
@@ -1004,7 +995,7 @@ namespace PhotoSauce.MagicScaler
 			if (!isSubsampled)
 				return 1;
 
-			fixed (OctreeNode* ptree = MemoryMarshal.Cast<byte, OctreeNode>(nodeBuffer))
+			fixed (OctreeNode* ptree = nodeBuffer)
 			{
 				int reserved = 1;
 				for (nuint i = 0; i < 8; i++)
@@ -1031,7 +1022,7 @@ namespace PhotoSauce.MagicScaler
 
 		private int getPixelCount()
 		{
-			fixed (OctreeNode* ptree = MemoryMarshal.Cast<byte, OctreeNode>(nodeBuffer))
+			fixed (OctreeNode* ptree = nodeBuffer)
 			{
 				uint count = 0;
 				for (nuint i = 0; i < maxHistogramSize; i++)
@@ -1078,7 +1069,7 @@ namespace PhotoSauce.MagicScaler
 
 		private void initNode(OctreeNode* node, int cb, int cg, int cr)
 		{
-			fixed (uint* ppal = MemoryMarshal.Cast<byte, uint>(palBuffer))
+			fixed (uint* ppal = palBuffer)
 			{
 				uint dist = uint.MaxValue;
 				uint pidx = (uint)palEntries - 1;
@@ -1114,14 +1105,14 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private static void initFreeList(Span<byte> listBuff, uint maxNodes)
+		private static void initFreeList(Span<ushort> listBuff)
 		{
-			const uint reserveNodes = 8;
-			uint maxFree = maxNodes - reserveNodes;
+			const int reserveNodes = 8;
+			nint maxFree = listBuff.Length - reserveNodes;
 
-			ref byte listStart = ref listBuff[0];
-			ref byte listEnd = ref Unsafe.Add(ref listStart, (IntPtr)(maxFree * sizeof(ushort)));
-			ref byte listPtr = ref listStart;
+			ref ushort listStart = ref listBuff[0];
+			ref ushort listEnd = ref Unsafe.Add(ref listStart, maxFree);
+			ref ushort listPtr = ref listStart;
 
 			if (Vector.IsHardwareAccelerated && maxFree > Vector<ushort>.Count)
 			{
@@ -1132,32 +1123,32 @@ namespace PhotoSauce.MagicScaler
 				var vslot = Unsafe.ReadUnaligned<Vector<ushort>>(ref MemoryMarshal.GetReference(slots));
 				var vincr = new Vector<ushort>((ushort)Vector<ushort>.Count);
 
-				listEnd = ref Unsafe.Subtract(ref listEnd, Vector<byte>.Count);
+				listEnd = ref Unsafe.Subtract(ref listEnd, Vector<ushort>.Count);
 				do
 				{
-					Unsafe.WriteUnaligned(ref listPtr, vslot);
-					listPtr = ref Unsafe.Add(ref listPtr, Vector<byte>.Count);
+					Unsafe.WriteUnaligned(ref Unsafe.As<ushort, byte>(ref listPtr), vslot);
+					listPtr = ref Unsafe.Add(ref listPtr, Vector<ushort>.Count);
 					vslot += vincr;
 
 				} while (Unsafe.IsAddressLessThan(ref listPtr, ref listEnd));
-				listEnd = ref Unsafe.Add(ref listEnd, Vector<byte>.Count);
+				listEnd = ref Unsafe.Add(ref listEnd, Vector<ushort>.Count);
 			}
 
 			uint islot = (uint)Unsafe.ByteOffset(ref listStart, ref listPtr) / sizeof(ushort) + reserveNodes;
 			islot |= islot + 1 << 16;
 
-			listEnd = ref Unsafe.Subtract(ref listEnd, sizeof(uint));
+			listEnd = ref Unsafe.Subtract(ref listEnd, 2);
 			while (Unsafe.IsAddressLessThan(ref listPtr, ref listEnd))
 			{
-				Unsafe.WriteUnaligned(ref listPtr, islot);
-				listPtr = ref Unsafe.Add(ref listPtr, sizeof(uint));
+				Unsafe.WriteUnaligned(ref Unsafe.As<ushort, byte>(ref listPtr), islot);
+				listPtr = ref Unsafe.Add(ref listPtr, 2);
 				islot += 0x00020002;
 			}
 
 			if ((maxFree & 1) == 1)
-				Unsafe.WriteUnaligned(ref listPtr, (ushort)islot);
+				Unsafe.WriteUnaligned(ref Unsafe.As<ushort, byte>(ref listPtr), (ushort)islot);
 
-			Unsafe.InitBlockUnaligned(ref Unsafe.Add(ref listPtr, sizeof(ushort)), 0, reserveNodes * sizeof(ushort));
+			Unsafe.InitBlockUnaligned(ref Unsafe.As<ushort, byte>(ref Unsafe.Add(ref listPtr, 1)), 0, reserveNodes * sizeof(ushort));
 		}
 
 		private struct OctreeNode

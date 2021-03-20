@@ -102,7 +102,7 @@ namespace PhotoSauce.MagicScaler
 #if !BUILTIN_SPAN
 		public static int Read(this Stream stream, Span<byte> buffer)
 		{
-			using var buff = new PoolArray<byte>(buffer.Length);
+			using var buff = BufferPool.RentLocalArray<byte>(buffer.Length);
 
 			int cb = stream.Read(buff.Array, 0, buff.Length);
 			buff.Array.AsSpan(0, cb).CopyTo(buffer);
@@ -112,7 +112,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static void Write(this Stream stream, ReadOnlySpan<byte> buffer)
 		{
-			using var buff = new PoolArray<byte>(buffer.Length);
+			using var buff = BufferPool.RentLocalArray<byte>(buffer.Length);
 
 			buffer.CopyTo(buff.Span);
 			stream.Write(buff.Array, 0, buff.Length);

@@ -127,16 +127,16 @@ namespace PhotoSauce.MagicScaler
 				HRESULT.Check(Wic.Factory->CreatePalette(pal.GetAddressOf()));
 				HRESULT.Check(dec->CopyPalette(pal));
 
-				uint pcc;
-				HRESULT.Check(pal.Get()->GetColorCount(&pcc));
+				uint cc;
+				HRESULT.Check(pal.Get()->GetColorCount(&cc));
 
 				uint idx = meta.GetValueOrDefault<byte>(Wic.Metadata.Gif.BackgroundColorIndex);
-				if (idx < pcc)
+				if (idx < cc)
 				{
-					using var buff = new PoolBuffer<uint>((int)pcc);
+					using var buff = BufferPool.RentLocal<uint>((int)cc);
 					fixed (uint* pbuff = buff.Span)
 					{
-						HRESULT.Check(pal.Get()->GetColors(pcc, pbuff, &pcc));
+						HRESULT.Check(pal.Get()->GetColors(cc, pbuff, &cc));
 						BackgroundColor = pbuff[idx];
 					}
 				}

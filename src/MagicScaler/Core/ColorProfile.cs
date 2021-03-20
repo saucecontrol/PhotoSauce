@@ -595,7 +595,7 @@ namespace PhotoSauce.MagicScaler
 				if (prof.ProfileType == ColorProfileType.Curve)
 					return sGrey;
 
-				if (!(prof is MatrixProfile mp) || isWideGamut(mp.Matrix))
+				if (prof is not MatrixProfile mp || isWideGamut(mp.Matrix))
 					return DisplayP3;
 			}
 

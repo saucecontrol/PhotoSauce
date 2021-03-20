@@ -8,7 +8,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 	{
 		private readonly IConversionProcessor processor;
 
-		private ArraySegment<byte> lineBuff;
+		private RentedBuffer<byte> lineBuff;
 
 		public override PixelFormat Format { get; }
 
@@ -22,10 +22,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			Format = destFormat;
 			if (srcFormat.BitsPerPixel != Format.BitsPerPixel)
-			{
-				lineBuff = BufferPool.Rent(BufferStride, true);
-				lineBuff.AsSpan().Clear();
-			}
+				lineBuff = BufferPool.RentAligned<byte>(BufferStride, true);
 
 			if (srcFormat.ColorRepresentation == PixelColorRepresentation.Cmyk && srcFormat.BitsPerPixel == 64 && Format.BitsPerPixel == 32)
 			{
@@ -117,16 +114,17 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		private unsafe void copyPixelsBuffered(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
-			if (lineBuff.Array is null) throw new ObjectDisposedException(nameof(ConversionTransform));
+			var buffspan = lineBuff.Span;
+			if (buffspan.Length == 0) throw new ObjectDisposedException(nameof(ConversionTransform));
 
-			fixed (byte* bstart = &lineBuff.Array[lineBuff.Offset])
+			fixed (byte* bstart = buffspan)
 			{
 				int cb = MathUtil.DivCeiling(prc.Width * PrevSource.Format.BitsPerPixel, 8);
 
 				for (int y = 0; y < prc.Height; y++)
 				{
 					Profiler.PauseTiming();
-					PrevSource.CopyPixels(new PixelArea(prc.X, prc.Y + y, prc.Width, 1), lineBuff.Count, lineBuff.Count, (IntPtr)bstart);
+					PrevSource.CopyPixels(new PixelArea(prc.X, prc.Y + y, prc.Width, 1), buffspan.Length, buffspan.Length, (IntPtr)bstart);
 					Profiler.ResumeTiming();
 
 					byte* op = (byte*)pbBuffer + y * cbStride;
@@ -153,7 +151,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public void Dispose()
 		{
-			BufferPool.Return(lineBuff);
+			lineBuff.Dispose();
 			lineBuff = default;
 		}
 

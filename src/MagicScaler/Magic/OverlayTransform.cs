@@ -18,7 +18,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		private readonly int offsX, offsY;
 		private readonly bool copyBase;
 
-		private ArraySegment<byte> lineBuff;
+		private RentedBuffer<byte> lineBuff;
 
 		public override bool Passthrough => false;
 
@@ -36,7 +36,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			copyBase = !replay;
 
 			if (alpha)
-				lineBuff = BufferPool.Rent(over.Width * bytesPerPixel, true);
+				lineBuff = BufferPool.RentAligned<byte>(over.Width * bytesPerPixel);
 		}
 
 		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
@@ -64,7 +64,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					var area = new PixelArea(tx, cy - inner.Y, tw, 1);
 					var ptr = (IntPtr)(pb + cx * bytesPerPixel);
 
-					if (lineBuff.Array is null)
+					if (lineBuff.Length == 0)
 						copyPixelsDirect(area, cbStride, cbBufferSize, ptr);
 					else
 						copyPixelsBuffered(area, ptr);
@@ -83,10 +83,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		private unsafe void copyPixelsBuffered(in PixelArea prc, IntPtr pbBuffer)
 		{
-			fixed (byte* buff = &lineBuff.Array![lineBuff.Offset])
+			var buffspan = lineBuff.Span;
+			fixed (byte* buff = buffspan)
 			{
 				Profiler.PauseTiming();
-				overSource.CopyPixels(prc, lineBuff.Count, lineBuff.Count, (IntPtr)buff);
+				overSource.CopyPixels(prc, buffspan.Length, buffspan.Length, (IntPtr)buff);
 				Profiler.ResumeTiming();
 
 				uint* ip = (uint*)buff, ipe = ip + prc.Width;
@@ -174,7 +175,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public void Dispose()
 		{
-			BufferPool.Return(lineBuff);
+			lineBuff.Dispose();
 			lineBuff = default;
 		}
 

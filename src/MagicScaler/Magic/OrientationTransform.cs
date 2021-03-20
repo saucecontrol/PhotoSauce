@@ -17,7 +17,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		private readonly PixelBuffer? outBuff;
 		private readonly int bytesPerPixel;
 
-		private ArraySegment<byte> lineBuff;
+		private RentedBuffer<byte> lineBuff;
 
 		public override int Width { get; }
 		public override int Height { get; }
@@ -34,8 +34,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 			orient = orientation;
 			if (orient.SwapsDimensions())
 			{
-				int buffLines = HWIntrinsics.IsSupported ? bytesPerPixel == 1 ? 8 : 4 : 1;
-				lineBuff = BufferPool.Rent(BufferStride * buffLines);
+				int buffLines = bytesPerPixel == 1 ? 8 : 4;
+				lineBuff = BufferPool.Rent<byte>(BufferStride * buffLines);
 				(Width, Height) = (Height, Width);
 			}
 
@@ -117,7 +117,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		private unsafe void loadBufferTransposed(byte* bstart)
 		{
-			var buffSpan = lineBuff.AsSpan();
+			var buffSpan = lineBuff.Span;
 			int lineBuffStride = BufferStride;
 			int lineBuffHeight = buffSpan.Length / lineBuffStride;
 
@@ -133,7 +133,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					bp += (PrevSource.Width - 1) * colStride;
 					colStride = -colStride;
 				}
-				else if (orient == Orientation.Transverse || orient == Orientation.Rotate90)
+				if (orient == Orientation.Transverse || orient == Orientation.Rotate90)
 				{
 					bp += (PrevSource.Height - 1) * rowStride;
 					lp += (lineBuffHeight - 1) * bufStride;
@@ -148,7 +148,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				for (; y <= PrevSource.Height - lineBuffHeight; y += lineBuffHeight)
 				{
 					Profiler.PauseTiming();
-					PrevSource.CopyPixels(new PixelArea(0, y, PrevSource.Width, lineBuffHeight), lineBuffStride, lineBuff.Count, (IntPtr)lstart);
+					PrevSource.CopyPixels(new PixelArea(0, y, PrevSource.Width, lineBuffHeight), lineBuffStride, buffSpan.Length, (IntPtr)lstart);
 					Profiler.ResumeTiming();
 
 					byte* op = bp + y * rowStride + stripOffs;
@@ -548,7 +548,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			outBuff?.Dispose();
 
-			BufferPool.Return(lineBuff);
+			lineBuff.Dispose();
 			lineBuff = default;
 		}
 

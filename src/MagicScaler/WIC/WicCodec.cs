@@ -349,7 +349,7 @@ namespace PhotoSauce.MagicScaler
 			if (cb == 0u)
 				HRESULT.Check(cc->GetProfileBytes(0, null, &cb));
 
-			using var buff = new PoolBuffer<byte>((int)cb);
+			using var buff = BufferPool.RentLocal<byte>((int)cb);
 			fixed (byte* pbuff = buff.Span)
 				HRESULT.Check(cc->GetProfileBytes(cb, pbuff, &cb));
 

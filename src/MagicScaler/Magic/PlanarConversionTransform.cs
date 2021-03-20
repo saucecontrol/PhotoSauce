@@ -23,7 +23,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		private readonly PixelSource sourceCb, sourceCr;
 		private readonly float coeffCb0, coeffCb1, coeffCr0, coeffCr1;
 
-		private ArraySegment<byte> lineBuff;
+		private RentedBuffer<byte> lineBuff;
 
 		public override PixelFormat Format { get; }
 
@@ -54,17 +54,18 @@ namespace PhotoSauce.MagicScaler.Transforms
 			if (HWIntrinsics.IsAvxSupported)
 				bufferStride = PowerOfTwoCeiling(bufferStride, HWIntrinsics.VectorCount<byte>());
 
-			lineBuff = BufferPool.Rent(bufferStride * 3, true);
+			lineBuff = BufferPool.RentAligned<byte>(bufferStride * 3);
 		}
 
 		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
-			if (lineBuff.Array is null) throw new ObjectDisposedException(nameof(PlanarConversionTransform));
+			var buffspan = lineBuff.Span;
+			if (buffspan.Length == 0) throw new ObjectDisposedException(nameof(PlanarConversionTransform));
 
-			fixed (byte* bstart = &lineBuff.Array[lineBuff.Offset])
+			fixed (byte* bstart = buffspan)
 			{
 				uint cb = (uint)DivCeiling(prc.Width * PrevSource.Format.BitsPerPixel, 8);
-				uint bstride = (uint)lineBuff.Count / 3u;
+				uint bstride = (uint)buffspan.Length / 3u;
 
 				for (int y = 0; y < prc.Height; y++)
 				{
@@ -254,7 +255,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public void Dispose()
 		{
-			BufferPool.Return(lineBuff);
+			lineBuff.Dispose();
 			lineBuff = default;
 		}
 
