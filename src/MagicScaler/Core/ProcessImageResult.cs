@@ -9,43 +9,42 @@ using PhotoSauce.MagicScaler.Transforms;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal interface IPixelSourceProfiler
+	internal interface IProfiler
 	{
-		public void LogCopyPixels(in PixelArea prc);
 		public void PauseTiming();
 		public void ResumeTiming();
+		public void ResumeTiming(in PixelArea prc);
 	}
 
-	internal sealed class NoopProfiler : IPixelSourceProfiler
+	internal sealed class NoopProfiler : IProfiler
 	{
-		public static readonly IPixelSourceProfiler Instance = new NoopProfiler();
+		public static readonly IProfiler Instance = new NoopProfiler();
 
-		public void LogCopyPixels(in PixelArea prc) { }
 		public void PauseTiming() { }
 		public void ResumeTiming() { }
+		public void ResumeTiming(in PixelArea prc) { }
 	}
 
-	internal sealed class SourceStatsProfiler : IPixelSourceProfiler
+	internal sealed class ProcessingProfiler : IProfiler
 	{
 		private int callCount;
 		private long pixelCount;
 		private readonly Stopwatch timer = new();
-		private readonly PixelSource source;
+		private readonly object processor;
 
-		public SourceStatsProfiler(PixelSource src) => source = src;
+		public ProcessingProfiler(object proc) => processor = proc;
 
-		public void LogCopyPixels(in PixelArea prc)
-		{
-			callCount++;
-			pixelCount += prc.Width * prc.Height;
-		}
-
-		public string SourceName => source.ToString()!;
-
-		public PixelSourceStats Stats => new(SourceName, callCount, pixelCount, (double)timer.ElapsedTicks / Stopwatch.Frequency * 1000);
+		public PixelSourceStats Stats => new(processor.ToString()!, callCount, pixelCount, (double)timer.ElapsedTicks / Stopwatch.Frequency * 1000);
 
 		public void PauseTiming() => timer.Stop();
 		public void ResumeTiming() => timer.Start();
+		public void ResumeTiming(in PixelArea prc)
+		{
+			callCount++;
+			pixelCount += prc.Width * prc.Height;
+
+			timer.Start();
+		}
 	}
 
 	/// <summary>Represents basic instrumentation information for a single pipeline step.</summary>

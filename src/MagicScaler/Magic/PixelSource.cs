@@ -9,18 +9,15 @@ namespace PhotoSauce.MagicScaler
 {
 	internal abstract class PixelSource
 	{
-		protected IPixelSourceProfiler Profiler { get; }
-
 		public abstract PixelFormat Format { get; }
 		public abstract int Width { get; }
 		public abstract int Height { get; }
 
+		public IProfiler Profiler { get; }
+
 		public PixelArea Area => new(0, 0, Width, Height);
 
-		public PixelSourceStats? Stats => Profiler is SourceStatsProfiler ps ? ps.Stats : null;
-
-		protected PixelSource() =>
-			Profiler = MagicImageProcessor.EnablePixelSourceStats ? new SourceStatsProfiler(this) : NoopProfiler.Instance;
+		protected PixelSource() => Profiler = MagicImageProcessor.EnablePixelSourceStats ? new ProcessingProfiler(this) : NoopProfiler.Instance;
 
 		[Conditional("GUARDRAILS")]
 		private void checkBounds(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
@@ -46,11 +43,9 @@ namespace PhotoSauce.MagicScaler
 		{
 			checkBounds(prc, cbStride, cbBufferSize, pbBuffer);
 
-			Profiler.ResumeTiming();
+			Profiler.ResumeTiming(prc);
 			CopyPixelsInternal(prc, cbStride, cbBufferSize, pbBuffer);
 			Profiler.PauseTiming();
-
-			Profiler.LogCopyPixels(prc);
 		}
 	}
 
@@ -159,7 +154,7 @@ namespace PhotoSauce.MagicScaler
 			frameBuff = default;
 		}
 
-		public override string ToString() => nameof(FrameBufferSource);
+		public override string ToString() => $"{nameof(FrameBufferSource)}: {Format.Name}";
 
 		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{

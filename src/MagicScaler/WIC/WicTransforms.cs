@@ -119,8 +119,12 @@ namespace PhotoSauce.MagicScaler
 			int tcolor = curFormat.AlphaRepresentation == PixelAlphaRepresentation.None ? 0 : -1;
 			using var pal = default(ComPtr<IWICPalette>);
 			HRESULT.Check(Wic.Factory->CreatePalette(pal.GetAddressOf()));
+
+			var pp = MagicImageProcessor.EnablePixelSourceStats ? ctx.AddProfiler(new ProcessingProfiler(nameof(IWICPalette))) : NoopProfiler.Instance;
+			pp.ResumeTiming(ctx.Source.Area);
 			HRESULT.Check(pal.Get()->InitializeFromBitmap(ctx.Source.AsIWICBitmapSource(), 256u, tcolor));
 			ctx.WicContext.DestPalette = pal.Detach();
+			pp.PauseTiming();
 
 			HRESULT.Check(conv.Get()->Initialize(ctx.Source.AsIWICBitmapSource(), &nfmt, WICBitmapDitherType.WICBitmapDitherTypeErrorDiffusion, ctx.WicContext.DestPalette, 33.33, WICBitmapPaletteType.WICBitmapPaletteTypeCustom));
 			ctx.Source = ctx.AddDispose(new ComPtr<IWICBitmapSource>((IWICBitmapSource*)conv.Get()).AsPixelSource($"{nameof(IWICFormatConverter)}: {curFormat.Name}->{newFormat.Name}"));

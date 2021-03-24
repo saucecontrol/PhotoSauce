@@ -401,9 +401,9 @@ namespace PhotoSauce.MagicScaler
 		~WicColorProfile() => dispose(false);
 	}
 
-	internal sealed unsafe class WicAnimatedGifEncoder
+	internal sealed unsafe class WicAnimatedGifEncoder : IDisposable
 	{
-		public class BufferFrame
+		public sealed class BufferFrame : IDisposable
 		{
 			public readonly FrameBufferSource Source;
 			public PixelArea Area;
@@ -413,6 +413,8 @@ namespace PhotoSauce.MagicScaler
 
 			public BufferFrame(int width, int height, PixelFormat format) =>
 				Source = new FrameBufferSource(width, height, format);
+
+			public void Dispose() => Source.Dispose();
 		}
 
 		private readonly PipelineContext ctx;
@@ -423,6 +425,7 @@ namespace PhotoSauce.MagicScaler
 
 		private int currentFrame;
 
+		public FrameBufferSource IndexedFrame { get; }
 		public BufferFrame EncodeFrame { get; }
 		public BufferFrame Current => frames[currentFrame % 3];
 		public BufferFrame? Previous => currentFrame == 0 ? null : frames[(currentFrame - 1) % 3];
@@ -436,6 +439,7 @@ namespace PhotoSauce.MagicScaler
 			lastSource = ctx.Source;
 			lastFrame = ctx.ImageContainer.FrameCount - 1;
 
+			IndexedFrame = new FrameBufferSource(lastSource.Width, lastSource.Height, PixelFormat.Indexed8Bpp);
 			EncodeFrame = new BufferFrame(lastSource.Width, lastSource.Height, lastSource.Format);
 			for (int i = 0; i < frames.Length; i++)
 				frames[i] = new BufferFrame(lastSource.Width, lastSource.Height, lastSource.Format);
@@ -502,15 +506,28 @@ namespace PhotoSauce.MagicScaler
 		public void WriteFrames()
 		{
 			uint bgColor = ((WicGifContainer)ctx.ImageContainer).BackgroundColor;
+			var ppt = MagicImageProcessor.EnablePixelSourceStats ? ctx.AddProfiler(new ProcessingProfiler(nameof(TemporalFilters))) : NoopProfiler.Instance;
+			var pph = MagicImageProcessor.EnablePixelSourceStats ? ctx.AddProfiler(new ProcessingProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.CreateHistogram))) : NoopProfiler.Instance;
+			var ppq = MagicImageProcessor.EnablePixelSourceStats ? ctx.AddProfiler(new ProcessingProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.Quantize))) : NoopProfiler.Instance;
 
-			writeFrame(Current);
+			writeFrame(Current, pph, ppq);
 
 			while (moveNext())
 			{
+				ppt.ResumeTiming(Current.Source.Area);
 				TemporalFilters.Dedupe(this, bgColor);
+				ppt.PauseTiming();
 
-				writeFrame(Current);
+				writeFrame(Current, pph, ppq);
 			}
+		}
+
+		public void Dispose()
+		{
+			IndexedFrame.Dispose();
+			EncodeFrame.Dispose();
+			for (int i = 0; i < frames.Length; i++)
+				frames[i].Dispose();
 		}
 
 		private bool moveNext()
@@ -562,20 +579,27 @@ namespace PhotoSauce.MagicScaler
 				ctx.Source.CopyPixels(frame.Area, buff.Stride, buff.Span.Length, (IntPtr)pbuff);
 		}
 
-		private void writeFrame(BufferFrame src)
+		private void writeFrame(BufferFrame src, IProfiler pph, IProfiler ppq)
 		{
 			using var quant = new OctreeQuantizer();
-			using var buffI = new FrameBufferSource(ctx.Source.Width, ctx.Source.Height, PixelFormat.Indexed8Bpp);
 			var buffC = EncodeFrame.Source;
+			var buffI = IndexedFrame;
+			var buffCSpan = buffC.Span.Slice(src.Area.Y * buffC.Stride + src.Area.X * buffC.Format.BytesPerPixel);
+			var buffISpan = buffI.Span.Slice(src.Area.Y * buffI.Stride + src.Area.X * buffI.Format.BytesPerPixel);
 
-			quant.CreateHistorgram(buffC.Span, buffC.Width, buffC.Height, buffC.Stride);
-			quant.Quantize(buffC.Span, buffI.Span, buffC.Width, buffC.Height, buffC.Stride, buffI.Stride);
-			var palette = quant.Palette;
+			pph.ResumeTiming(src.Area);
+			quant.CreateHistogram(buffCSpan, src.Area.Width, src.Area.Height, buffC.Stride);
+			pph.PauseTiming();
+
+			ppq.ResumeTiming(src.Area);
+			quant.Quantize(buffCSpan, buffISpan, src.Area.Width, src.Area.Height, buffC.Stride, buffI.Stride);
+			ppq.PauseTiming();
 
 			using var pal = default(ComPtr<IWICPalette>);
 			HRESULT.Check(Wic.Factory->CreatePalette(pal.GetAddressOf()));
 
-			fixed(uint* ppal = palette)
+			var palette = quant.Palette;
+			fixed (uint* ppal = palette)
 				HRESULT.Check(pal.Get()->InitializeCustom(ppal, (uint)palette.Length));
 
 			ctx.WicContext.DestPalette = pal;

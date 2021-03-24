@@ -36,7 +36,7 @@ namespace PhotoSauce.MagicScaler
 		private readonly Stack<IDisposable> disposeHandles = new(capacity: 16);
 
 		private PixelSource? source;
-		private List<PixelSource>? allSources;
+		private List<IProfiler>? profilers;
 		private WicPipelineContext? wicContext;
 
 		public ProcessImageSettings Settings { get; }
@@ -51,7 +51,7 @@ namespace PhotoSauce.MagicScaler
 		public ColorProfile? SourceColorProfile { get; set; }
 		public ColorProfile? DestColorProfile { get; set; }
 
-		public IEnumerable<PixelSourceStats> Stats => allSources?.Select(s => s.Stats!) ?? Enumerable.Empty<PixelSourceStats>();
+		public IEnumerable<PixelSourceStats> Stats => profilers?.OfType<ProcessingProfiler>().Select(p => p.Stats!) ?? Enumerable.Empty<PixelSourceStats>();
 
 		public WicPipelineContext WicContext => wicContext ??= AddDispose(new WicPipelineContext());
 
@@ -64,9 +64,9 @@ namespace PhotoSauce.MagicScaler
 
 				if (MagicImageProcessor.EnablePixelSourceStats)
 				{
-					allSources ??= new List<PixelSource>(capacity: 8);
-					if (!allSources.Contains(source))
-						allSources.Add(source);
+					profilers ??= new List<IProfiler>(capacity: 8);
+					if (!profilers.Contains(source.Profiler))
+						profilers.Add(source.Profiler);
 				}
 			}
 		}
@@ -93,6 +93,13 @@ namespace PhotoSauce.MagicScaler
 			return disposeHandle;
 		}
 
+		public ProcessingProfiler AddProfiler(ProcessingProfiler prof)
+		{
+			(profilers ??= new()).Add(prof);
+
+			return prof;
+		}
+
 		public void AddFrameDisposer() => AddDispose(new FrameDisposer(this));
 
 		public void FinalizeSettings()
@@ -105,6 +112,9 @@ namespace PhotoSauce.MagicScaler
 
 				if (Settings.SaveFormat == FileFormat.Auto)
 					Settings.SetSaveFormat(ImageContainer.ContainerFormat, Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
+
+				if (Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed && (Settings.SaveFormat == FileFormat.Bmp || Settings.SaveFormat == FileFormat.Gif))
+					Settings.ColorProfileMode = ColorProfileMode.ConvertToSrgb;
 			}
 
 			UsedSettings = Settings.Clone();

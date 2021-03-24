@@ -33,14 +33,14 @@ namespace PhotoSauce.MagicScaler
 				byte* pp = pprev;
 				if (prev == buffer.Current || prev.Disposal == GifDisposalMethod.RestoreBackground)
 				{
-					pp = (byte*)0;
+					pp = null;
 					if (buffer.Current.Trans)
 						bgcolor = 0u;
 				}
 
 				for (int y = 0; y < src.Height; y++)
 				{
-					nuint offs = (nuint)(y * src.Stride);
+					nuint offs = (uint)(y * src.Stride);
 					uint eql = 0u, eqr = 0u;
 
 					if (pprev != pcurr && pnext != pcurr)
@@ -57,12 +57,12 @@ namespace PhotoSauce.MagicScaler
 
 #if HWINTRINSICS
 					if (Avx2.IsSupported && cb >= Vector256<byte>.Count)
-						(eql, eqr) = dedupeLineAvx2(pcurr + offs, pp == (byte*)0 ? pp : pp + offs, penc + offs, cb, bgcolor);
+						(eql, eqr) = dedupeLineAvx2(pcurr + offs, pp is null ? pp : pp + offs, penc + offs, cb, bgcolor);
 					else if (Sse2.IsSupported && cb >= Vector128<byte>.Count)
-						(eql, eqr) = dedupeLineSse2(pcurr + offs, pp == (byte*)0 ? pp : pp + offs, penc + offs, cb, bgcolor);
+						(eql, eqr) = dedupeLineSse2(pcurr + offs, pp is null ? pp : pp + offs, penc + offs, cb, bgcolor);
 					else
 #endif
-						(eql, eqr) = dedupeLineScalar(pcurr + offs, pp == (byte*)0 ? pp : pp + offs, penc + offs, cb, bgcolor);
+						(eql, eqr) = dedupeLineScalar(pcurr + offs, pp is null ? pp : pp + offs, penc + offs, cb, bgcolor);
 
 					if (eql == (uint)src.Width)
 					{
@@ -95,7 +95,6 @@ namespace PhotoSauce.MagicScaler
 			nint cnt = 0, end = cb - Vector256<byte>.Count;
 
 			var vthresh = Vector256.Create(denoiseThreshold);
-			var vones = Avx2.CompareEqual(vthresh, vthresh);
 
 			LoopTop:
 			do
@@ -105,9 +104,8 @@ namespace PhotoSauce.MagicScaler
 				var vnext = Avx.LoadVector256(np + cnt);
 
 				var vdiffp = Avx2.Or(Avx2.SubtractSaturate(vcurr, vprev), Avx2.SubtractSaturate(vprev, vcurr));
-				var vmaskp = Avx2.CompareEqual(Avx2.Max(vdiffp, vthresh), vthresh);
-
 				var vdiffn = Avx2.Or(Avx2.SubtractSaturate(vcurr, vnext), Avx2.SubtractSaturate(vnext, vcurr));
+				var vmaskp = Avx2.CompareEqual(Avx2.Max(vdiffp, vthresh), vthresh);
 				var vmaskn = Avx2.CompareEqual(Avx2.Max(vdiffn, vthresh), vthresh);
 
 				var vavgp = Avx2.Average(vcurr, vprev);
@@ -117,9 +115,9 @@ namespace PhotoSauce.MagicScaler
 				var voutmsk = Avx2.Or(vmaskp, vmaskn);
 				voutval = Avx2.Average(voutval, Avx2.BlendVariable(voutval, Avx2.Average(vprev, vnext), Avx2.And(vmaskp, vmaskn)));
 
-				var vsurlt = Avx2.Xor(Avx2.CompareEqual(Avx2.Min(Avx2.Max(vprev, vnext), vcurr), vcurr), vones);
-				var vsurgt = Avx2.Xor(Avx2.CompareEqual(Avx2.Max(Avx2.Min(vprev, vnext), vcurr), vcurr), vones);
-				voutmsk = Avx2.And(voutmsk, Avx2.Or(vsurlt, vsurgt));
+				var vsurnlt = Avx2.CompareEqual(Avx2.Min(Avx2.Max(vprev, vnext), vcurr), vcurr);
+				var vsurngt = Avx2.CompareEqual(Avx2.Max(Avx2.Min(vprev, vnext), vcurr), vcurr);
+				voutmsk = Avx2.AndNot(Avx2.And(vsurnlt, vsurngt), voutmsk);
 				voutval = Avx2.BlendVariable(vcurr, voutval, voutmsk);
 
 				Avx.Store(ip + cnt, voutval);
@@ -141,7 +139,6 @@ namespace PhotoSauce.MagicScaler
 			nint cnt = 0, end = cb - Vector128<byte>.Count;
 
 			var vthresh = Vector128.Create(denoiseThreshold);
-			var vones = Sse2.CompareEqual(vthresh, vthresh);
 
 			LoopTop:
 			do
@@ -151,9 +148,8 @@ namespace PhotoSauce.MagicScaler
 				var vnext = Sse2.LoadVector128(np + cnt);
 
 				var vdiffp = Sse2.Or(Sse2.SubtractSaturate(vcurr, vprev), Sse2.SubtractSaturate(vprev, vcurr));
-				var vmaskp = Sse2.CompareEqual(Sse2.Max(vdiffp, vthresh), vthresh);
-
 				var vdiffn = Sse2.Or(Sse2.SubtractSaturate(vcurr, vnext), Sse2.SubtractSaturate(vnext, vcurr));
+				var vmaskp = Sse2.CompareEqual(Sse2.Max(vdiffp, vthresh), vthresh);
 				var vmaskn = Sse2.CompareEqual(Sse2.Max(vdiffn, vthresh), vthresh);
 
 				var vavgp = Sse2.Average(vcurr, vprev);
@@ -163,9 +159,9 @@ namespace PhotoSauce.MagicScaler
 				var voutmsk = Sse2.Or(vmaskp, vmaskn);
 				voutval = Sse2.Average(voutval, HWIntrinsics.BlendVariable(voutval, Sse2.Average(vprev, vnext), Sse2.And(vmaskp, vmaskn)));
 
-				var vsurlt = Sse2.Xor(Sse2.CompareEqual(Sse2.Min(Sse2.Max(vprev, vnext), vcurr), vcurr), vones);
-				var vsurgt = Sse2.Xor(Sse2.CompareEqual(Sse2.Max(Sse2.Min(vprev, vnext), vcurr), vcurr), vones);
-				voutmsk = Sse2.And(voutmsk, Sse2.Or(vsurlt, vsurgt));
+				var vsurnlt = Sse2.CompareEqual(Sse2.Min(Sse2.Max(vprev, vnext), vcurr), vcurr);
+				var vsurngt = Sse2.CompareEqual(Sse2.Max(Sse2.Min(vprev, vnext), vcurr), vcurr);
+				voutmsk = Sse2.AndNot(Sse2.And(vsurnlt, vsurngt), voutmsk);
 				voutval = HWIntrinsics.BlendVariable(vcurr, voutval, voutmsk);
 
 				Sse2.Store(ip + cnt, voutval);
@@ -216,12 +212,12 @@ namespace PhotoSauce.MagicScaler
 
 			bool lfound = false;
 			uint eql = 0u, eqr = 0u;
-			var vbg = pp == (byte*)0 ? Vector256.Create(bg) : Vector256<uint>.Zero;
+			var vbg = pp is null ? Vector256.Create(bg) : Vector256<uint>.Zero;
 
 			LoopTop:
 			do
 			{
-				var vprev = pp != (byte*)0 ? Avx.LoadVector256(pp + cnt).AsUInt32() : vbg;
+				var vprev = pp is not null ? Avx.LoadVector256(pp + cnt).AsUInt32() : vbg;
 				var vcurr = Avx.LoadVector256(ip + cnt).AsUInt32();
 
 				var veq = Avx2.CompareEqual(vcurr, vprev);
@@ -277,12 +273,12 @@ namespace PhotoSauce.MagicScaler
 
 			bool lfound = false;
 			uint eql = 0u, eqr = 0u;
-			var vbg = pp == (byte*)0 ? Vector128.Create(bg) : Vector128<uint>.Zero;
+			var vbg = pp is null ? Vector128.Create(bg) : Vector128<uint>.Zero;
 
 			LoopTop:
 			do
 			{
-				var vprev = pp != (byte*)0 ? Sse2.LoadVector128(pp + cnt).AsUInt32() : vbg;
+				var vprev = pp is not null ? Sse2.LoadVector128(pp + cnt).AsUInt32() : vbg;
 				var vcurr = Sse2.LoadVector128(ip + cnt).AsUInt32();
 
 				var veq = Sse2.CompareEqual(vcurr, vprev);
@@ -338,13 +334,13 @@ namespace PhotoSauce.MagicScaler
 
 			bool lfound = false;
 			uint eql = 0u, eqr = 0u;
-			if (pp != (byte*)0)
+			if (pp is not null)
 				bg = 0u;
 
 			for (nint cnt = 0; cnt < end; cnt += sizeof(uint))
 			{
 				uint curr = *(uint*)(ip + cnt);
-				bool peq = curr == (pp != (byte*)0 ? *(uint*)(pp + cnt) : bg);
+				bool peq = curr == (pp is not null ? *(uint*)(pp + cnt) : bg);
 				*(uint*)(op + cnt) = peq ? bg : curr;
 
 				if (!peq)

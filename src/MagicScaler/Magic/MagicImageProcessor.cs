@@ -235,7 +235,7 @@ namespace PhotoSauce.MagicScaler
 
 			if (ctx.IsAnimatedGifPipeline)
 			{
-				var gif = new WicAnimatedGifEncoder(ctx, enc);
+				using var gif = new WicAnimatedGifEncoder(ctx, enc);
 				gif.WriteGlobalMetadata();
 				gif.WriteFrames();
 			}
@@ -254,11 +254,18 @@ namespace PhotoSauce.MagicScaler
 						ctx.Source.CopyPixels(ctx.Source.Area, buffC.Stride, buffC.Span.Length, (IntPtr)pbuff);
 
 					var buffI = ctx.AddDispose(new FrameBufferSource(ctx.Source.Width, ctx.Source.Height, PixelFormat.Indexed8Bpp));
+					var pph = EnablePixelSourceStats ? ctx.AddProfiler(new ProcessingProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.CreateHistogram))) : NoopProfiler.Instance;
+					var ppq = EnablePixelSourceStats ? ctx.AddProfiler(new ProcessingProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.Quantize))) : NoopProfiler.Instance;
 
-					quant.CreateHistorgram(buffC.Span, buffC.Width, buffC.Height, buffC.Stride);
+					pph.ResumeTiming(buffC.Area);
+					quant.CreateHistogram(buffC.Span, buffC.Width, buffC.Height, buffC.Stride);
+					pph.PauseTiming();
+
+					ppq.ResumeTiming(buffC.Area);
 					quant.Quantize(buffC.Span, buffI.Span, buffC.Width, buffC.Height, buffC.Stride, buffI.Stride);
-					var palette = quant.Palette;
+					ppq.PauseTiming();
 
+					var palette = quant.Palette;
 					fixed (uint* ppal = palette)
 					{
 						using var wicpal = default(ComPtr<IWICPalette>);
@@ -307,7 +314,6 @@ namespace PhotoSauce.MagicScaler
 				ctx.Source = ctx.ImageFrame.PixelSource.AsPixelSource();
 			}
 
-			MagicTransforms.AddColorProfileReader(ctx);
 			MagicTransforms.AddGifFrameBuffer(ctx, !ctx.IsAnimatedGifPipeline);
 
 			ctx.FinalizeSettings();
@@ -316,7 +322,6 @@ namespace PhotoSauce.MagicScaler
 			ctx.Settings.JpegSubsampleMode = ctx.UsedSettings.JpegSubsampleMode;
 
 			var subsample = ctx.Settings.JpegSubsampleMode;
-
 			if (processPlanar)
 			{
 				if (wicFrame is not null && !ctx.Settings.AutoCrop && ctx.Settings.HybridScaleRatio == 1)
@@ -337,6 +342,8 @@ namespace PhotoSauce.MagicScaler
 						outputPlanar = false;
 				}
 			}
+
+			MagicTransforms.AddColorProfileReader(ctx);
 
 			if (processPlanar)
 			{
