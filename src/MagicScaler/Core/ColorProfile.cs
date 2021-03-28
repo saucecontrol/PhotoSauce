@@ -160,15 +160,13 @@ namespace PhotoSauce.MagicScaler
 
 		private static ProfileCurve curveFromPoints(ReadOnlySpan<ushort> points, bool inverse)
 		{
-			int buffLen = points.Length * sizeof(double);
-			using var buff = MemoryPool<byte>.Shared.Rent(buffLen);
-
-			var curve = MemoryMarshal.Cast<byte, double>(buff.Memory.Span.Slice(0, buffLen));
-			double cscal = curve.Length - 1;
+			using var buff = BufferPool.RentLocal<double>(points.Length);
+			var curve = buff.Span;
 
 			for (int i = 0; i < curve.Length; i++)
 				curve[i] = (double)points[i] / ushort.MaxValue;
 
+			double cscal = curve.Length - 1;
 			var igt = new float[LookupTables.InverseGammaLength];
 			for (int i = 0; i <= LookupTables.InverseGammaScale; i++)
 			{
@@ -371,9 +369,8 @@ namespace PhotoSauce.MagicScaler
 					if (pcnt == 2 && ReadUInt16BigEndian(trc.Slice(12)) == ushort.MinValue && ReadUInt16BigEndian(trc.Slice(14)) == ushort.MaxValue)
 						return true;
 
-					int buffLen = (int)pcnt * sizeof(ushort);
-					using var buff = MemoryPool<byte>.Shared.Rent(buffLen);
-					var points = MemoryMarshal.Cast<byte, ushort>(buff.Memory.Span.Slice(0, buffLen));
+					using var buff = BufferPool.RentLocal<ushort>((int)pcnt);
+					var points = buff.Span;
 
 					ushort pp = 0;
 					bool inc = true, dec = true;

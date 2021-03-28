@@ -72,8 +72,8 @@ namespace PhotoSauce.MagicScaler
 
 					Avx.Store(op, vb0);
 					op += Vector256<byte>.Count;
-
-				} while (ip <= ipe);
+				}
+				while (ip <= ipe);
 
 				if (ip < ipe + Vector256<ushort>.Count * 2)
 				{
@@ -101,8 +101,8 @@ namespace PhotoSauce.MagicScaler
 
 					Sse2.Store(op, vb0);
 					op += Vector128<byte>.Count;
-
-				} while (ip <= ipe);
+				}
+				while (ip <= ipe);
 
 				if (ip < ipe + Vector128<ushort>.Count * 2)
 				{

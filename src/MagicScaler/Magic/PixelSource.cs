@@ -115,7 +115,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		public static readonly PixelSource Instance = new NoopPixelSource();
 
-		public override PixelFormat Format => PixelFormat.Grey32BppFloat;
+		public override PixelFormat Format => PixelFormat.Grey32Float;
 		public override int Width => default;
 		public override int Height => default;
 

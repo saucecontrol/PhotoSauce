@@ -55,28 +55,28 @@ namespace PhotoSauce.MagicScaler
 	{
 		public static void ConvertLine(PixelFormat inFormat, byte* ipstart, byte* opstart, int cbIn, int cbOut)
 		{
-			if (inFormat == PixelFormat.Grey32BppLinearFloat || inFormat == PixelFormat.Y32BppLinearFloat)
+			if (inFormat == PixelFormat.Grey32FloatLinear || inFormat == PixelFormat.Y32FloatLinear)
 				greyLinearToGreyFloat(ipstart, opstart, cbIn);
-			else if (inFormat == PixelFormat.Grey16BppLinearUQ15 || inFormat == PixelFormat.Y16BppLinearUQ15)
+			else if (inFormat == PixelFormat.Grey16UQ15Linear || inFormat == PixelFormat.Y16UQ15Linear)
 				greyLinearToGreyUQ15(ipstart, opstart, cbIn);
-			else if (inFormat == PixelFormat.Bgr24Bpp)
+			else if (inFormat == PixelFormat.Bgr24)
 				bgrToGreyByte(ipstart, opstart, cbIn);
-			else if (inFormat == PixelFormat.Bgr48BppLinearUQ15)
+			else if (inFormat == PixelFormat.Bgr48UQ15Linear)
 				bgrToGreyUQ15(ipstart, opstart, cbIn);
-			else if (inFormat == PixelFormat.Bgrx32Bpp || inFormat == PixelFormat.Bgra32Bpp || inFormat == PixelFormat.Pbgra32Bpp)
+			else if (inFormat == PixelFormat.Bgrx32 || inFormat == PixelFormat.Bgra32 || inFormat == PixelFormat.Pbgra32)
 				bgrxToGreyByte(ipstart, opstart, cbIn);
-			else if (inFormat == PixelFormat.Pbgra64BppLinearUQ15)
+			else if (inFormat == PixelFormat.Pbgra64UQ15Linear)
 				bgrxToGreyUQ15(ipstart, opstart, cbIn);
-			else if (inFormat == PixelFormat.Bgr96BppFloat)
+			else if (inFormat == PixelFormat.Bgr96Float)
 				bgrToGreyFloat(ipstart, opstart, cbIn, false);
-			else if (inFormat == PixelFormat.Bgrx128BppFloat || inFormat == PixelFormat.Pbgra128BppFloat)
+			else if (inFormat == PixelFormat.Bgrx128Float || inFormat == PixelFormat.Pbgra128Float)
 				bgrxToGreyFloat(ipstart, opstart, cbIn, false);
-			else if (inFormat == PixelFormat.Bgr96BppLinearFloat)
+			else if (inFormat == PixelFormat.Bgr96FloatLinear)
 			{
 				bgrToGreyFloat(ipstart, opstart, cbIn, true);
 				greyLinearToGreyFloat(opstart, opstart, cbOut);
 			}
-			else if (inFormat == PixelFormat.Bgrx128BppLinearFloat || inFormat == PixelFormat.Pbgra128BppLinearFloat)
+			else if (inFormat == PixelFormat.Bgrx128FloatLinear || inFormat == PixelFormat.Pbgra128FloatLinear)
 			{
 				bgrxToGreyFloat(ipstart, opstart, cbIn, true);
 				greyLinearToGreyFloat(opstart, opstart, cbOut);

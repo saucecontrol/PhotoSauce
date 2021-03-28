@@ -739,8 +739,8 @@ namespace PhotoSauce.MagicScaler
 
 				vperr = Sse2.Add(Sse2.ShiftLeftLogical(vdiff, 2), vnerr);
 				vnerr = vdiff;
-
-			} while (ip < ipe);
+			}
+			while (ip < ipe);
 
 			Sse2.Store(ep - Vector128<int>.Count, vperr);
 		}
@@ -810,8 +810,8 @@ namespace PhotoSauce.MagicScaler
 				nerb = db;
 				nerg = dg;
 				nerr = dr;
-
-			} while (ip < ipe);
+			}
+			while (ip < ipe);
 
 			ep[-4] = perb;
 			ep[-3] = perg;
@@ -851,8 +851,8 @@ namespace PhotoSauce.MagicScaler
 				int* psums = (int*)((ushort*)prnod + 8);
 				ip += sizeof(uint);
 				*op++ = (byte)psums[3];
-
-			} while (ip < ipe);
+			}
+			while (ip < ipe);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1074,8 +1074,8 @@ namespace PhotoSauce.MagicScaler
 					Unsafe.WriteUnaligned(ref Unsafe.As<ushort, byte>(ref listPtr), vslot);
 					listPtr = ref Unsafe.Add(ref listPtr, Vector<ushort>.Count);
 					vslot += vincr;
-
-				} while (Unsafe.IsAddressLessThan(ref listPtr, ref listEnd));
+				}
+				while (Unsafe.IsAddressLessThan(ref listPtr, ref listEnd));
 				listEnd = ref Unsafe.Add(ref listEnd, Vector<ushort>.Count);
 			}
 

@@ -129,7 +129,7 @@ foreach (var t in ta) {
 		{
 			<#= t.interType #>* tp = (<#= t.interType #>*)tstart, tpe = (<#= t.interType #>*)(tstart + cb);
 			uint* pmapx = (uint*)mapxstart;
-			nint tstride = smapy * channels;
+			nuint tstride = (uint)smapy * channels;
 
 			while (tp < tpe)
 			{
@@ -281,9 +281,9 @@ if (t.alpha) {
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			<#= t.pixelType #>* op = <#= t.pixelType != "byte" ? $"({t.pixelType}*)" : "" #>ostart;
-			nint tstride = smapy * channels;
+			nuint tstride = (uint)smapy * channels;
 
-			for (nint nox = ox, xc = nox + ow; nox < xc; nox++)
+			for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
 			{
 				<#= t.interType #><# for (int j = 0; j < t.channels - (t.alpha ? 1 : 0); j++) {#><#= j > 0 ? "," : "" #> a<#= j #> = 0<# } if (t.alpha) { #>, aa = 0, aw = 0<# } #>;
 

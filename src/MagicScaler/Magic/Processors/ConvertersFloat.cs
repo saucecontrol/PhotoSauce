@@ -114,8 +114,8 @@ namespace PhotoSauce.MagicScaler
 						Avx.Store(op + Vector256<float>.Count * 2, vf2);
 						Avx.Store(op + Vector256<float>.Count * 3, vf3);
 						op += Vector256<float>.Count * 4;
-
-					} while (ip <= ipe);
+					}
+					while (ip <= ipe);
 
 					if (ip < ipe + Vector256<byte>.Count)
 					{
@@ -170,8 +170,8 @@ namespace PhotoSauce.MagicScaler
 						Sse.Store(op + Vector128<float>.Count * 2, vf2);
 						Sse.Store(op + Vector128<float>.Count * 3, vf3);
 						op += Vector128<float>.Count * 4;
-
-					} while (ip <= ipe);
+					}
+					while (ip <= ipe);
 
 					if (ip < ipe + Vector128<byte>.Count)
 					{
@@ -214,8 +214,8 @@ namespace PhotoSauce.MagicScaler
 					Unsafe.WriteUnaligned(op + VectorF.Count * 2, vf2);
 					Unsafe.WriteUnaligned(op + VectorF.Count * 3, vf3);
 					op += VectorF.Count * 4;
-
-				} while (ip <= ipe);
+				}
+				while (ip <= ipe);
 
 				if (ip < ipe + Vector<byte>.Count)
 				{
@@ -331,8 +331,8 @@ namespace PhotoSauce.MagicScaler
 						Avx.Store(op + Vector256<float>.Count * 2, vf2);
 						Avx.Store(op + Vector256<float>.Count * 3, vf3);
 						op += Vector256<float>.Count * 4;
-
-					} while (ip <= ipe);
+					}
+					while (ip <= ipe);
 
 					if (ip < ipe + Vector256<byte>.Count)
 					{
@@ -386,8 +386,8 @@ namespace PhotoSauce.MagicScaler
 						Sse.Store(op + Vector128<float>.Count * 2, vf2);
 						Sse.Store(op + Vector128<float>.Count * 3, vf3);
 						op += Vector128<float>.Count * 4;
-
-					} while (ip <= ipe);
+					}
+					while (ip <= ipe);
 
 					if (ip < ipe + Vector128<byte>.Count)
 					{
@@ -573,8 +573,8 @@ namespace PhotoSauce.MagicScaler
 
 						Avx.Store(op, vb0);
 						op += Vector256<byte>.Count;
-
-					} while (ip <= ipe);
+					}
+					while (ip <= ipe);
 
 					if (ip < ipe + Vector256<float>.Count * 4)
 					{
@@ -610,8 +610,8 @@ namespace PhotoSauce.MagicScaler
 
 						Sse2.Store(op, vb0);
 						op += Vector128<byte>.Count;
-
-					} while (ip <= ipe) ;
+					}
+					while (ip <= ipe);
 
 					if (ip < ipe + Vector128<float>.Count * 4)
 					{
@@ -685,8 +685,8 @@ namespace PhotoSauce.MagicScaler
 #endif
 					ip += unrollCount;
 					op += unrollCount;
-
-				} while (ip <= ipe);
+				}
+				while (ip <= ipe);
 
 				if (ip < ipe + unrollCount)
 				{
@@ -788,8 +788,8 @@ namespace PhotoSauce.MagicScaler
 
 						Avx.Store(op, vb0);
 						op += Vector256<byte>.Count;
-
-					} while (ip <= ipe);
+					}
+					while (ip <= ipe);
 
 					if (ip < ipe + Vector256<float>.Count * 4)
 					{
@@ -857,8 +857,8 @@ namespace PhotoSauce.MagicScaler
 
 						Sse2.Store(op, vb0);
 						op += Vector128<byte>.Count;
-
-					} while (ip <= ipe);
+					}
+					while (ip <= ipe);
 
 					if (ip < ipe + Vector128<float>.Count * 4)
 					{
@@ -920,7 +920,7 @@ namespace PhotoSauce.MagicScaler
 					var vmasks = Avx2.BroadcastVector128ToVector256((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3xTo3Chan)));
 
 					ipe -= Vector256<float>.Count * 4;
-					do
+					while (true)
 					{
 						var vf0 = Avx.Multiply(Avx.LoadVector256(ip), vscale);
 						var vf1 = Avx.Multiply(Avx.LoadVector256(ip + Vector256<float>.Count), vscale);
@@ -954,8 +954,7 @@ namespace PhotoSauce.MagicScaler
 						Sse2.StoreScalar((long*)(op + Vector128<byte>.Count), vb0.GetUpper().AsInt64());
 						op += Vector256<byte>.Count * 3 / 4;
 						break;
-
-					} while (true);
+					}
 					ipe += Vector256<float>.Count * 4;
 				}
 				else if (Ssse3.IsSupported && ipe >= ip + Vector128<byte>.Count)
@@ -964,7 +963,7 @@ namespace PhotoSauce.MagicScaler
 					var vmasks = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3xTo3Chan)));
 
 					ipe -= Vector128<float>.Count * 4;
-					do
+					while (true)
 					{
 						var vf0 = Sse.Multiply(Sse.LoadVector128(ip), vscale);
 						var vf1 = Sse.Multiply(Sse.LoadVector128(ip + Vector128<float>.Count), vscale);
@@ -1001,8 +1000,7 @@ namespace PhotoSauce.MagicScaler
 #endif
 						op += Vector128<byte>.Count * 3 / 4;
 						break;
-
-					} while (true);
+					}
 					ipe += Vector128<float>.Count * 4;
 				}
 				else
@@ -1096,8 +1094,8 @@ namespace PhotoSauce.MagicScaler
 
 					Avx.Store(ip, vf);
 					ip += Vector256<float>.Count;
-
-				} while (ip <= ipe);
+				}
+				while (ip <= ipe);
 
 				if (ip < ipe + Vector256<float>.Count)
 				{
@@ -1198,8 +1196,8 @@ namespace PhotoSauce.MagicScaler
 
 					Avx.Store(ip, vf);
 					ip += Vector256<float>.Count;
-
-				} while (ip <= ipe);
+				}
+				while (ip <= ipe);
 
 				if (ip < ipe + Vector256<float>.Count)
 				{

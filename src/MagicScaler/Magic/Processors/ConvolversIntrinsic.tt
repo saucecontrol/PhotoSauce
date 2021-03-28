@@ -68,13 +68,13 @@ foreach (var t in ta) {
 		{
 			float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
 			uint* pmapx = (uint*)mapxstart;
-			nint kstride = smapx * channels;
-			nint tstride = smapy * <#= t.channels == 3 ? "4" /* 3Chan to 3XChan x-over */ : "channels" #>;
-			nint vcnt = kstride / VectorSse.Count;
+			nuint kstride = (uint)smapx * channels;
+			nuint tstride = (uint)smapy * <#= t.channels == 3 ? "4" /* 3Chan to 3XChan x-over */ : "channels" #>;
+			nuint vcnt = kstride / (nuint)VectorSse.Count;
 
 			while (tp < tpe)
 			{
-				nint lcnt = vcnt;
+				nuint lcnt = vcnt;
 				nuint ix = *pmapx++;
 
 				float* ip = (float*)istart + ix * channels;
@@ -114,8 +114,8 @@ for (int unroll = t.xUnroll; unroll > 0; unroll -= (t.channels == 3 ? 3 : 2)) {
 	}
 #>
 						mp += VectorAvx.Count<#= unroll > 1 ? $" * {unroll}" : "" #>;
-
-					} while (lcnt >= <#= unroll * 2 #>);
+					}
+					while (lcnt >= <#= unroll * 2 #>);
 
 <#
 	if (unroll == t.xUnroll && t.channels != 3) {
@@ -264,12 +264,12 @@ if (t.yUnroll > 0) {
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			float* op = (float*)ostart;
-			nint tstride = smapy * channels;
-			nint vcnt = tstride / VectorSse.Count;
+			nuint tstride = (uint)smapy * channels;
+			nuint vcnt = tstride / (nuint)VectorSse.Count;
 
-			for (nint nox = ox, xc = nox + ow; nox < xc; nox++)
+			for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
 			{
-				nint lcnt = vcnt;
+				nuint lcnt = vcnt;
 
 				float* tp = (float*)tstart + nox * tstride;
 				float* mp = (float*)pmapy;
@@ -308,8 +308,8 @@ for (int unroll = t.yUnroll; unroll > 0; unroll -= (t.channels == 3 ? 3 : 2)) {
 	}
 #>
 						mp += VectorAvx.Count<#= unroll > 1 ? $" * {unroll}" : "" #>;
-
-					} while (lcnt >= <#= unroll * 2 #>);
+					}
+					while (lcnt >= <#= unroll * 2 #>);
 
 <#
 	if (unroll == t.xUnroll && t.channels != 3) {

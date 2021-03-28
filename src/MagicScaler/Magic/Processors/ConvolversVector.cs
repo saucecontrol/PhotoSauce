@@ -31,15 +31,15 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
 			uint* pmapx = (uint*)mapxstart;
-			nint kstride = smapx * channels;
-			nint tstride = smapy * channels;
-			nint vcnt = kstride / vector4Count;
+			nuint kstride = (uint)smapx * channels;
+			nuint tstride = (uint)smapy * channels;
+			nuint vcnt = kstride / vector4Count;
 
 			float* buff = stackalloc float[VectorF.Count];
 
 			while (tp < tpe)
 			{
-				nint lcnt = vcnt;
+				nuint lcnt = vcnt;
 				nuint ix = *pmapx++;
 
 				float* ip = (float*)istart + ix * channels;
@@ -62,8 +62,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 						ax0 += iv0 * Unsafe.ReadUnaligned<VectorF>(mp);
 						ax1 += iv1 * Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count);
 						mp += VectorF.Count * 2;
-
-					} while (lcnt >= 4);
+					}
+					while (lcnt >= 4);
 
 					ax0 += ax1;
 
@@ -116,14 +116,14 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			float* op = (float*)ostart;
-			nint tstride = smapy * channels;
-			nint vcnt = tstride / vector4Count;
+			nuint tstride = (uint)smapy * channels;
+			nuint vcnt = tstride / vector4Count;
 
 			float* buff = stackalloc float[VectorF.Count];
 
-			for (nint nox = ox, xc = nox + ow; nox < xc; nox++)
+			for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
 			{
-				nint lcnt = vcnt;
+				nuint lcnt = vcnt;
 
 				float* tp = (float*)tstart + nox * tstride;
 				float* mp = (float*)pmapy;
@@ -145,8 +145,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 						ax0 += iv0 * Unsafe.ReadUnaligned<VectorF>(mp);
 						ax1 += iv1 * Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count);
 						mp += VectorF.Count * 2;
-
-					} while (lcnt >= 4);
+					}
+					while (lcnt >= 4);
 
 					ax0 += ax1;
 
@@ -215,15 +215,15 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
 			uint* pmapx = (uint*)mapxstart;
-			nint kstride = smapx * channels;
-			nint tstride = smapy * 4;
-			nint vcnt = kstride / vector4Count;
+			nuint kstride = (uint)smapx * channels;
+			nuint tstride = (uint)smapy * 4;
+			nuint vcnt = kstride / vector4Count;
 
 			float* buff = stackalloc float[VectorF.Count];
 
 			while (tp < tpe)
 			{
-				nint lcnt = vcnt;
+				nuint lcnt = vcnt;
 				nuint ix = *pmapx++;
 
 				float* ip = (float*)istart + ix * channels, ipe = ip + kstride;
@@ -249,8 +249,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 						ax1 += iv1 * Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count);
 						ax2 += iv2 * Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count * 2);
 						mp += VectorF.Count * 3;
-
-					} while (lcnt >= 6);
+					}
+					while (lcnt >= 6);
 
 					Unsafe.WriteUnaligned(buff, ax0);
 					av0 = Unsafe.ReadUnaligned<Vector4>(buff);
@@ -334,16 +334,16 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
 			uint* pmapx = (uint*)mapxstart;
-			nint kstride = smapx * channels;
-			nint tstride = smapy * channels;
-			nint vcnt = kstride / vector4Count;
+			nuint kstride = (uint)smapx * channels;
+			nuint tstride = (uint)smapy * channels;
+			nuint vcnt = kstride / vector4Count;
 
 			var m4 = Vector4.One;
 			var mF = VectorF.One;
 
 			while (tp < tpe)
 			{
-				nint lcnt = vcnt;
+				nuint lcnt = vcnt;
 				nuint ix = *pmapx++;
 
 				float* ip = (float*)istart + ix * channels, ipe = ip + kstride;
@@ -366,8 +366,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 						ax0 += iv0 * Unsafe.ReadUnaligned<VectorF>(mp);
 						ax1 += iv1 * Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count);
 						mp += VectorF.Count * 2;
-
-					} while (lcnt >= 4);
+					}
+					while (lcnt >= 4);
 
 					ax0 += ax1;
 
@@ -432,15 +432,15 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			float* op = (float*)ostart;
-			nint tstride = smapy * channels;
-			nint vcnt = tstride / vector4Count;
+			nuint tstride = (uint)smapy * channels;
+			nuint vcnt = tstride / vector4Count;
 
 			var m4 = Vector4.One;
 			var mF = VectorF.One;
 
-			for (nint nox = ox, xc = nox + ow; nox < xc; nox++)
+			for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
 			{
-				nint lcnt = vcnt;
+				nuint lcnt = vcnt;
 
 				float* tp = (float*)tstart + nox * tstride, tpe = tp + tstride;
 				float* mp = (float*)pmapy;
@@ -462,8 +462,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 						ax0 += iv0 * Unsafe.ReadUnaligned<VectorF>(mp);
 						ax1 += iv1 * Unsafe.ReadUnaligned<VectorF>(mp + VectorF.Count);
 						mp += VectorF.Count * 2;
-
-					} while (lcnt >= 4);
+					}
+					while (lcnt >= 4);
 
 					ax0 += ax1;
 

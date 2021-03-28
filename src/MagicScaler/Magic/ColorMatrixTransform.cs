@@ -236,7 +236,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			if (matrix != default && !matrix.IsIdentity)
 			{
-				var fmt = matrix.M44 < 1f || ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None ? PixelFormat.Bgra32Bpp : PixelFormat.Bgr24Bpp;
+				var fmt = matrix.M44 < 1f || ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None ? PixelFormat.Bgra32 : PixelFormat.Bgr24;
 				if (ctx.Source.Format != fmt)
 					ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, fmt));
 

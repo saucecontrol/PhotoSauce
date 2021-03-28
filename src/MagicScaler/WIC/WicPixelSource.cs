@@ -1,9 +1,9 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
-using System.Runtime.InteropServices;
 
 using TerraFX.Interop;
+
 using PhotoSauce.Interop.Wic;
 
 namespace PhotoSauce.MagicScaler

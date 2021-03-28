@@ -30,8 +30,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 			if (Format.ColorRepresentation != PixelColorRepresentation.Bgr || Format.AlphaRepresentation == PixelAlphaRepresentation.None)
 				throw new NotSupportedException("Pixel format not supported.  Must be BGRA");
 
-			if (allowFormatChange && Format == PixelFormat.Pbgra128BppLinearFloat && !color.IsTransparent())
-				Format = PixelFormat.Bgrx128BppLinearFloat;
+			if (allowFormatChange && Format == PixelFormat.Pbgra128FloatLinear && !color.IsTransparent())
+				Format = PixelFormat.Bgrx128FloatLinear;
 
 			var igtq = LookupTables.SrgbInverseGammaUQ15;
 
@@ -56,16 +56,16 @@ namespace PhotoSauce.MagicScaler.Transforms
 			PrevSource.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
 			Profiler.ResumeTiming();
 
-			if (Format == PixelFormat.Pbgra128BppLinearFloat || Format == PixelFormat.Bgrx128BppLinearFloat)
+			if (Format == PixelFormat.Pbgra128FloatLinear || Format == PixelFormat.Bgrx128FloatLinear)
 #if HWINTRINSICS
 				if (Avx.IsSupported)
 					applyMatteLinearAvx(prc, (float*)pbBuffer, cbStride / sizeof(float));
 				else
 #endif
 					applyMatteLinearFloat(prc, (float*)pbBuffer, cbStride / sizeof(float));
-			else if (Format == PixelFormat.Pbgra64BppLinearUQ15)
+			else if (Format == PixelFormat.Pbgra64UQ15Linear)
 				applyMatteLinear(prc, (ushort*)pbBuffer, cbStride / sizeof(ushort));
-			else if (Format == PixelFormat.Bgra32Bpp)
+			else if (Format == PixelFormat.Bgra32)
 				applyMatteCompanded(prc, (byte*)pbBuffer, cbStride);
 			else
 				throw new NotSupportedException("Pixel format not supported.");

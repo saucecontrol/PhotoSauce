@@ -34,13 +34,13 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
 			uint* pmapx = (uint*)mapxstart;
-			nint kstride = smapx * channels;
-			nint tstride = smapy * channels;
-			nint vcnt = kstride / VectorSse.Count;
+			nuint kstride = (uint)smapx * channels;
+			nuint tstride = (uint)smapy * channels;
+			nuint vcnt = kstride / (nuint)VectorSse.Count;
 
 			while (tp < tpe)
 			{
-				nint lcnt = vcnt;
+				nuint lcnt = vcnt;
 				nuint ix = *pmapx++;
 
 				float* ip = (float*)istart + ix * channels;
@@ -63,8 +63,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 						ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
 						ax1 = HWIntrinsics.MultiplyAdd(ax1, iv1, mp + VectorAvx.Count);
 						mp += VectorAvx.Count * 2;
-
-					} while (lcnt >= 4);
+					}
+					while (lcnt >= 4);
 
 					ax0 = Avx.Add(ax0, ax1);
 
@@ -117,12 +117,12 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			float* op = (float*)ostart;
-			nint tstride = smapy * channels;
-			nint vcnt = tstride / VectorSse.Count;
+			nuint tstride = (uint)smapy * channels;
+			nuint vcnt = tstride / (nuint)VectorSse.Count;
 
-			for (nint nox = ox, xc = nox + ow; nox < xc; nox++)
+			for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
 			{
-				nint lcnt = vcnt;
+				nuint lcnt = vcnt;
 
 				float* tp = (float*)tstart + nox * tstride;
 				float* mp = (float*)pmapy;
@@ -144,8 +144,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 						ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
 						ax1 = HWIntrinsics.MultiplyAdd(ax1, iv1, mp + VectorAvx.Count);
 						mp += VectorAvx.Count * 2;
-
-					} while (lcnt >= 4);
+					}
+					while (lcnt >= 4);
 
 					ax0 = Avx.Add(ax0, ax1);
 
@@ -218,13 +218,13 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
 			uint* pmapx = (uint*)mapxstart;
-			nint kstride = smapx * channels;
-			nint tstride = smapy * 4;
-			nint vcnt = kstride / VectorSse.Count;
+			nuint kstride = (uint)smapx * channels;
+			nuint tstride = (uint)smapy * 4;
+			nuint vcnt = kstride / (nuint)VectorSse.Count;
 
 			while (tp < tpe)
 			{
-				nint lcnt = vcnt;
+				nuint lcnt = vcnt;
 				nuint ix = *pmapx++;
 
 				float* ip = (float*)istart + ix * channels;
@@ -250,8 +250,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 						ax1 = HWIntrinsics.MultiplyAdd(ax1, iv1, mp + VectorAvx.Count);
 						ax2 = HWIntrinsics.MultiplyAdd(ax2, iv2, mp + VectorAvx.Count * 2);
 						mp += VectorAvx.Count * 3;
-
-					} while (lcnt >= 6);
+					}
+					while (lcnt >= 6);
 
 					av0 = Sse.Add(ax0.GetLower(), ax1.GetUpper());
 					av1 = Sse.Add(ax0.GetUpper(), ax2.GetLower());
@@ -317,13 +317,13 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
 			uint* pmapx = (uint*)mapxstart;
-			nint kstride = smapx * channels;
-			nint tstride = smapy * channels;
-			nint vcnt = kstride / VectorSse.Count;
+			nuint kstride = (uint)smapx * channels;
+			nuint tstride = (uint)smapy * channels;
+			nuint vcnt = kstride / (nuint)VectorSse.Count;
 
 			while (tp < tpe)
 			{
-				nint lcnt = vcnt;
+				nuint lcnt = vcnt;
 				nuint ix = *pmapx++;
 
 				float* ip = (float*)istart + ix * channels;
@@ -346,8 +346,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 						ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
 						ax1 = HWIntrinsics.MultiplyAdd(ax1, iv1, mp + VectorAvx.Count);
 						mp += VectorAvx.Count * 2;
-
-					} while (lcnt >= 4);
+					}
+					while (lcnt >= 4);
 
 					ax0 = Avx.Add(ax0, ax1);
 
@@ -400,12 +400,12 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			float* op = (float*)ostart;
-			nint tstride = smapy * channels;
-			nint vcnt = tstride / VectorSse.Count;
+			nuint tstride = (uint)smapy * channels;
+			nuint vcnt = tstride / (nuint)VectorSse.Count;
 
-			for (nint nox = ox, xc = nox + ow; nox < xc; nox++)
+			for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
 			{
-				nint lcnt = vcnt;
+				nuint lcnt = vcnt;
 
 				float* tp = (float*)tstart + nox * tstride;
 				float* mp = (float*)pmapy;
@@ -427,8 +427,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 						ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
 						ax1 = HWIntrinsics.MultiplyAdd(ax1, iv1, mp + VectorAvx.Count);
 						mp += VectorAvx.Count * 2;
-
-					} while (lcnt >= 4);
+					}
+					while (lcnt >= 4);
 
 					ax0 = Avx.Add(ax0, ax1);
 

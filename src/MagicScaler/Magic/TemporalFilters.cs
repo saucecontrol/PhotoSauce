@@ -18,7 +18,7 @@ namespace PhotoSauce.MagicScaler
 		public static void Dedupe(WicAnimatedGifEncoder buffer, uint bgcolor)
 		{
 			var src = buffer.Current.Source;
-			if (src.Format != PixelFormat.Bgra32Bpp)
+			if (src.Format != PixelFormat.Bgra32)
 				return;
 
 			var prev = buffer.Previous ?? buffer.Current;
@@ -122,8 +122,8 @@ namespace PhotoSauce.MagicScaler
 
 				Avx.Store(ip + cnt, voutval);
 				cnt += Vector256<byte>.Count;
-
-			} while (cnt <= end);
+			}
+			while (cnt <= end);
 
 			if (cnt < end + Vector256<byte>.Count)
 			{
@@ -166,8 +166,8 @@ namespace PhotoSauce.MagicScaler
 
 				Sse2.Store(ip + cnt, voutval);
 				cnt += Vector128<byte>.Count;
-
-			} while (cnt <= end);
+			}
+			while (cnt <= end);
 
 			if (cnt < end + Vector128<byte>.Count)
 			{

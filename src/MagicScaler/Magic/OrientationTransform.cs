@@ -133,6 +133,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					bp += (PrevSource.Width - 1) * colStride;
 					colStride = -colStride;
 				}
+
 				if (orient == Orientation.Transverse || orient == Orientation.Rotate90)
 				{
 					bp += (PrevSource.Height - 1) * rowStride;
@@ -273,8 +274,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 					op += colStride * 2;
 					store1x8Pair(op, colStride, Sse2.UnpackHigh(vi0hh, vi1hh).AsUInt64());
 					op += colStride * 2;
-
-				} while (ip <= ipe);
+				}
+				while (ip <= ipe);
 				ipe += Vector128<byte>.Count;
 			}
 #endif
@@ -301,7 +302,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			static void store1x8Pair(byte* op, nint colStride, Vector128<ulong> vec)
 			{
 				Sse2.StoreScalar((ulong*)(op), vec);
-				Sse2.StoreScalar((ulong*)(op + colStride), Sse2.ShiftRightLogical128BitLane(vec, 8));
+				Sse2.StoreScalar((ulong*)(op + colStride), Sse2.UnpackHigh(vec, vec));
 			}
 #endif
 		}
@@ -312,10 +313,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 			byte* op = opb;
 
 #if HWINTRINSICS
-			if (Ssse3.IsSupported && cb >= Vector128<byte>.Count)
+			if (Sse41.IsSupported && cb >= Vector128<byte>.Count)
 			{
-				var mask = (ReadOnlySpan<byte>)(new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0 });
-				var blendmask = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(mask)));
 				var shuf3to3x = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3To3xChan)));
 				var shuf3xto3 = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3xTo3Chan)));
 
@@ -348,14 +347,16 @@ namespace PhotoSauce.MagicScaler.Transforms
 					vi2 = Ssse3.Shuffle(vi1e, shuf3xto3);
 					vi3 = Ssse3.Shuffle(vi1o, shuf3xto3);
 
-					store3x4(op, vi0, blendmask);
-					store3x4(op + colStride, vi1, blendmask);
-					op += colStride * 2;
-					store3x4(op, vi2, blendmask);
-					store3x4(op + colStride, vi3, blendmask);
-					op += colStride * 2;
-
-				} while (ip <= ipe);
+					store3x4(op, vi0);
+					op += colStride;
+					store3x4(op, vi1);
+					op += colStride;
+					store3x4(op, vi2);
+					op += colStride;
+					store3x4(op, vi3);
+					op += colStride;
+				}
+				while (ip <= ipe);
 				ipe += Vector128<byte>.Count;
 			}
 #endif
@@ -376,8 +377,13 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			static void store3x4(byte* op, in Vector128<byte> vi, in Vector128<byte> vm) =>
-				Sse2.Store(op, HWIntrinsics.BlendVariable(Sse2.LoadVector128(op), vi, vm));
+			static void store3x4(byte* op, in Vector128<byte> vi)
+			{
+				if (Avx2.IsSupported)
+					Sse2.Store(op, Avx2.Blend(vi.AsUInt32(), Sse2.LoadVector128(op).AsUInt32(), 0b_0000_1000).AsByte());
+				else
+					Sse2.Store(op, Sse41.Blend(vi.AsUInt16(), Sse2.LoadVector128(op).AsUInt16(), 0b_1100_0000).AsByte());
+			}
 #endif
 		}
 
@@ -414,8 +420,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 					Sse.Store((float*)(op), vi1e);
 					Sse.Store((float*)(op + colStride), vi1o);
 					op += colStride * 2;
-
-				} while (ip <= ipe);
+				}
+				while (ip <= ipe);
 				ipe += Vector128<byte>.Count;
 			}
 #endif
@@ -455,8 +461,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 							pe -= Vector128<byte>.Count;
 							pp += Vector128<byte>.Count;
-
-						} while (pp <= pe);
+						}
+						while (pp <= pe);
 						pe += Vector128<byte>.Count;
 					}
 #endif
@@ -490,8 +496,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 							pe -= 15;
 							pp += 15;
-
-						} while ((pe - pp) > Vector128<byte>.Count);
+						}
+						while ((pe - pp) > Vector128<byte>.Count);
 						pe += Vector128<byte>.Count;
 					}
 #endif
@@ -525,8 +531,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 							pe -= Vector128<byte>.Count;
 							pp += Vector128<byte>.Count;
-
-						} while (pp <= pe);
+						}
+						while (pp <= pe);
 						pe += Vector128<byte>.Count;
 					}
 #endif

@@ -258,7 +258,7 @@ namespace PhotoSauce.MagicScaler
 
 					ctx.Source = ctx.AddDispose(new ComPtr<IWICBitmapSource>((IWICBitmapSource*)conv.Get()).AsPixelSource($"{nameof(IWICFormatConverter)}: {ctx.Source.Format.Name}->{PixelFormat.FromGuid(oformat).Name}", false));
 				}
-				else if (oformat == PixelFormat.Indexed8Bpp.FormatGuid)
+				else if (oformat == PixelFormat.Indexed8.FormatGuid)
 				{
 					Debug.Assert(ctx.WicContext.DestPalette is not null);
 
@@ -292,7 +292,7 @@ namespace PhotoSauce.MagicScaler
 
 	internal sealed unsafe class WicColorProfile : IDisposable
 	{
-		public static readonly Lazy<WicColorProfile> Cmyk = new(() => new WicColorProfile(getDefaultColorContext(PixelFormat.Cmyk32Bpp.FormatGuid), null));
+		public static readonly Lazy<WicColorProfile> Cmyk = new(() => new WicColorProfile(getDefaultColorContext(PixelFormat.Cmyk32.FormatGuid), null));
 		public static readonly Lazy<WicColorProfile> Srgb = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sRgbV4.Value), ColorProfile.sRGB));
 		public static readonly Lazy<WicColorProfile> Grey = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sGreyV4.Value), ColorProfile.sGrey));
 		public static readonly Lazy<WicColorProfile> DisplayP3 = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.DisplayP3V4.Value), ColorProfile.DisplayP3));
@@ -439,7 +439,7 @@ namespace PhotoSauce.MagicScaler
 			lastSource = ctx.Source;
 			lastFrame = ctx.ImageContainer.FrameCount - 1;
 
-			IndexedFrame = new FrameBufferSource(lastSource.Width, lastSource.Height, PixelFormat.Indexed8Bpp);
+			IndexedFrame = new FrameBufferSource(lastSource.Width, lastSource.Height, PixelFormat.Indexed8);
 			EncodeFrame = new BufferFrame(lastSource.Width, lastSource.Height, lastSource.Format);
 			for (int i = 0; i < frames.Length; i++)
 				frames[i] = new BufferFrame(lastSource.Width, lastSource.Height, lastSource.Format);

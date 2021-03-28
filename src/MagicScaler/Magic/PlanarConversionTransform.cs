@@ -48,7 +48,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			coeffCr0 = matrix.M32;
 			coeffCr1 = matrix.M31;
 
-			Format = srcY.Format == PixelFormat.Y8Bpp ? PixelFormat.Bgr24Bpp : PixelFormat.Bgrx128BppFloat;
+			Format = srcY.Format == PixelFormat.Y8 ? PixelFormat.Bgr24 : PixelFormat.Bgrx128Float;
 
 			int bufferStride = BufferStride;
 			if (HWIntrinsics.IsAvxSupported)
@@ -193,8 +193,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 					Avx.Store(op + Vector256<float>.Count * 2, Avx.UnpackLow(vte, vto));
 					Avx.Store(op + Vector256<float>.Count * 3, Avx.UnpackHigh(vte, vto));
 					op += Vector256<float>.Count * 4;
-
-				} while (ip <= ipe);
+				}
+				while (ip <= ipe);
 
 				if (ip < ipe + Vector256<float>.Count)
 				{
@@ -239,8 +239,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 					Sse.Store(op + Vector128<float>.Count * 2, Sse.UnpackLow(vte, vto));
 					Sse.Store(op + Vector128<float>.Count * 3, Sse.UnpackHigh(vte, vto));
 					op += Vector128<float>.Count * 4;
-
-				} while (ip <= ipe);
+				}
+				while (ip <= ipe);
 
 				if (ip < ipe + Vector128<float>.Count)
 				{

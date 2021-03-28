@@ -187,8 +187,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 						Sse2.Store(op, vi0.GetLower());
 						op += Vector128<byte>.Count;
-
-					} while (ip <= ipe);
+					}
+					while (ip <= ipe);
 					ipe += Vector256<byte>.Count;
 				}
 			}
@@ -247,8 +247,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 						Sse2.StoreScalar((long*)op, vi0.AsInt64());
 						op += Vector128<byte>.Count / 2;
-
-					} while (ip <= ipe);
+					}
+					while (ip <= ipe);
 					ipe += Vector128<byte>.Count;
 				}
 			}
@@ -342,8 +342,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 					Avx.Store(op, vi0);
 					op += Vector256<byte>.Count;
-
-				} while (ip <= ipe);
+				}
+				while (ip <= ipe);
 				ipe += Vector256<byte>.Count * 2;
 			}
 			else if (Ssse3.IsSupported && stride >= (nuint)Vector128<byte>.Count * 2)
@@ -377,8 +377,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 					Sse2.Store(op, vi0);
 					op += Vector128<byte>.Count;
-
-				} while (ip <= ipe);
+				}
+				while (ip <= ipe);
 				ipe += Vector128<byte>.Count * 2;
 			}
 			else
@@ -399,11 +399,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 					ulong i3 = *(ulong*)(ip + stride + sizeof(ulong));
 					ip += sizeof(ulong) * 2;
 
-					i0 = FastAvgU(i0, i2, m);
-					i1 = FastAvgU(i1, i3, m);
+					i0 = FastAvgBytesU(i0, i2, m);
+					i1 = FastAvgBytesU(i1, i3, m);
 
-					i0 = FastAvgD(i0, i0 >> 32, m);
-					i1 = FastAvgD(i1, i1 << 32, m);
+					i0 = FastAvgBytesD(i0, i0 >> 32, m);
+					i1 = FastAvgBytesD(i1, i1 << 32, m);
 
 					i0 &= mask0;
 					i1 &= mask1;
@@ -411,8 +411,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 					*(ulong*)op = i0;
 					op += sizeof(ulong);
-
-				} while (ip <= ipe);
+				}
+				while (ip <= ipe);
 				ipe += sizeof(ulong) * 2;
 			}
 
@@ -478,8 +478,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 					Sse2.Store(op, vi0);
 					op += 12;
-
-				} while (ip <= ipe);
+				}
+				while (ip <= ipe);
 				ipe += Vector128<byte>.Count * 2;
 			}
 			else
@@ -500,11 +500,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 					ulong i3 = *(ulong*)(ip + stride + 6);
 					ip += 12;
 
-					i0 = FastAvgU(i0, i2, m);
-					i1 = FastAvgU(i1, i3, m);
+					i0 = FastAvgBytesU(i0, i2, m);
+					i1 = FastAvgBytesU(i1, i3, m);
 
-					i0 = FastAvgD(i0, i0 >> 24, m);
-					i1 = FastAvgD(i1, i1 << 24, m);
+					i0 = FastAvgBytesD(i0, i0 >> 24, m);
+					i1 = FastAvgBytesD(i1, i1 << 24, m);
 
 					i0 &= mask0;
 					i1 &= mask1;
@@ -512,12 +512,12 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 					*(ulong*)op = i0;
 					op += 6;
-
-				} while (ip <= ipe);
+				}
+				while (ip <= ipe);
 				ipe += sizeof(ulong) * 2;
 			}
 
-			do
+			while (true)
 			{
 				uint i0 = *(uint*)ip;
 				uint i2 = *(uint*)(ip + stride);
@@ -544,8 +544,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				op[1] = (byte)i0; i0 >>= 8;
 				op[2] = (byte)i0;
 				break;
-
-			} while (true);
+			}
 		}
 
 #if HWINTRINSICS
@@ -585,8 +584,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 					Avx.Store(op, vi0);
 					op += Vector256<byte>.Count;
-
-				} while (ip <= ipe);
+				}
+				while (ip <= ipe);
 				ipe += Vector256<byte>.Count * 2;
 			}
 			else if (Ssse3.IsSupported && stride >= (nuint)Vector128<byte>.Count * 2)
@@ -616,8 +615,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 					Sse2.Store(op, vi0);
 					op += Vector128<byte>.Count;
-
-				} while (ip <= ipe);
+				}
+				while (ip <= ipe);
 				ipe += Vector128<byte>.Count * 2;
 			}
 			else
@@ -634,16 +633,16 @@ namespace PhotoSauce.MagicScaler.Transforms
 					ulong i1 = *(ulong*)(ip + stride);
 					ip += sizeof(ulong);
 
-					i0 = FastAvgU(i0, i1, m);
-					i0 = FastAvgD(i0, i0 >> 8, m);
+					i0 = FastAvgBytesU(i0, i1, m);
+					i0 = FastAvgBytesD(i0, i0 >> 8, m);
 
 					op[0] = (byte)i0; i0 >>= 16;
 					op[1] = (byte)i0; i0 >>= 16;
 					op[2] = (byte)i0; i0 >>= 16;
 					op[3] = (byte)i0;
 					op += sizeof(uint);
-
-				} while (ip <= ipe);
+				}
+				while (ip <= ipe);
 				ipe += sizeof(ulong);
 
 				if (ip >= ipe)

@@ -146,10 +146,10 @@ namespace PhotoSauce.MagicScaler
 		public static int PowerOfTwoCeiling(int x, int powerOfTwo) => x + (powerOfTwo - 1) & ~(powerOfTwo - 1);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ulong FastAvgU(ulong x, ulong y, ulong m) => (x | y) - (((x ^ y) & m) >> 1);
+		public static ulong FastAvgBytesU(ulong x, ulong y, ulong m) => (x | y) - (((x ^ y) & m) >> 1);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ulong FastAvgD(ulong x, ulong y, ulong m) => (x & y) + (((x ^ y) & m) >> 1);
+		public static ulong FastAvgBytesD(ulong x, ulong y, ulong m) => (x & y) + (((x ^ y) & m) >> 1);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static uint FastAvgBytesU(uint x, uint y) => (x | y) - (((x ^ y) & maskb) >> 1);
@@ -253,7 +253,8 @@ namespace PhotoSauce.MagicScaler
 				uint t = y;
 				y = x % y;
 				x = t;
-			} while (y != 0);
+			}
+			while (y != 0);
 
 			return x;
 		}

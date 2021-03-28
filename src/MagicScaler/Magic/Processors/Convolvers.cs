@@ -28,7 +28,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
 			uint* pmapx = (uint*)mapxstart;
-			nint tstride = smapy * channels;
+			nuint tstride = (uint)smapy * channels;
 
 			while (tp < tpe)
 			{
@@ -162,9 +162,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			byte* op = ostart;
-			nint tstride = smapy * channels;
+			nuint tstride = (uint)smapy * channels;
 
-			for (nint nox = ox, xc = nox + ow; nox < xc; nox++)
+			for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
 			{
 				int a0 = 0, a1 = 0, a2 = 0, aa = 0, aw = 0;
 
@@ -307,7 +307,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
 			uint* pmapx = (uint*)mapxstart;
-			nint tstride = smapy * channels;
+			nuint tstride = (uint)smapy * channels;
 
 			while (tp < tpe)
 			{
@@ -373,9 +373,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			byte* op = ostart;
-			nint tstride = smapy * channels;
+			nuint tstride = (uint)smapy * channels;
 
-			for (nint nox = ox, xc = nox + ow; nox < xc; nox++)
+			for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
 			{
 				int a0 = 0, a1 = 0, a2 = 0, a3 = 0;
 
@@ -470,7 +470,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
 			uint* pmapx = (uint*)mapxstart;
-			nint tstride = smapy * channels;
+			nuint tstride = (uint)smapy * channels;
 
 			while (tp < tpe)
 			{
@@ -536,9 +536,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			ushort* op = (ushort*)ostart;
-			nint tstride = smapy * channels;
+			nuint tstride = (uint)smapy * channels;
 
-			for (nint nox = ox, xc = nox + ow; nox < xc; nox++)
+			for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
 			{
 				int a0 = 0, a1 = 0, a2 = 0, a3 = 0;
 
@@ -642,7 +642,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
 			uint* pmapx = (uint*)mapxstart;
-			nint tstride = smapy * channels;
+			nuint tstride = (uint)smapy * channels;
 
 			while (tp < tpe)
 			{
@@ -707,9 +707,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			byte* op = ostart;
-			nint tstride = smapy * channels;
+			nuint tstride = (uint)smapy * channels;
 
-			for (nint nox = ox, xc = nox + ow; nox < xc; nox++)
+			for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
 			{
 				int a0 = 0, a1 = 0, a2 = 0;
 
@@ -798,7 +798,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
 			uint* pmapx = (uint*)mapxstart;
-			nint tstride = smapy * channels;
+			nuint tstride = (uint)smapy * channels;
 
 			while (tp < tpe)
 			{
@@ -863,9 +863,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			ushort* op = (ushort*)ostart;
-			nint tstride = smapy * channels;
+			nuint tstride = (uint)smapy * channels;
 
-			for (nint nox = ox, xc = nox + ow; nox < xc; nox++)
+			for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
 			{
 				int a0 = 0, a1 = 0, a2 = 0;
 
@@ -963,7 +963,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
 			uint* pmapx = (uint*)mapxstart;
-			nint tstride = smapy * channels;
+			nuint tstride = (uint)smapy * channels;
 
 			while (tp < tpe)
 			{
@@ -1006,9 +1006,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			byte* op = ostart;
-			nint tstride = smapy * channels;
+			nuint tstride = (uint)smapy * channels;
 
-			for (nint nox = ox, xc = nox + ow; nox < xc; nox++)
+			for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
 			{
 				int a0 = 0;
 
@@ -1082,7 +1082,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
 			uint* pmapx = (uint*)mapxstart;
-			nint tstride = smapy * channels;
+			nuint tstride = (uint)smapy * channels;
 
 			while (tp < tpe)
 			{
@@ -1125,9 +1125,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 		{
 			ushort* op = (ushort*)ostart;
-			nint tstride = smapy * channels;
+			nuint tstride = (uint)smapy * channels;
 
-			for (nint nox = ox, xc = nox + ow; nox < xc; nox++)
+			for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
 			{
 				int a0 = 0;
 

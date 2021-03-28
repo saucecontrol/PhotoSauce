@@ -17,9 +17,9 @@ namespace PhotoSauce.MagicScaler
 
 			public PlanarPipelineContext(PixelSource sourceY, PixelSource sourceCb, PixelSource sourceCr)
 			{
-				if (sourceY.Format != PixelFormat.Y8Bpp) throw new ArgumentException("Invalid pixel format", nameof(sourceY));
-				if (sourceCb.Format != PixelFormat.Cb8Bpp) throw new ArgumentException("Invalid pixel format", nameof(sourceCb));
-				if (sourceCr.Format != PixelFormat.Cr8Bpp) throw new ArgumentException("Invalid pixel format", nameof(sourceCr));
+				if (sourceY.Format != PixelFormat.Y8) throw new ArgumentException("Invalid pixel format", nameof(sourceY));
+				if (sourceCb.Format != PixelFormat.Cb8) throw new ArgumentException("Invalid pixel format", nameof(sourceCb));
+				if (sourceCr.Format != PixelFormat.Cr8) throw new ArgumentException("Invalid pixel format", nameof(sourceCr));
 
 				SourceY = sourceY;
 				SourceCb = sourceCb;

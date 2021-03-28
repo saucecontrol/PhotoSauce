@@ -1,7 +1,6 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
-using System.Diagnostics;
 
 using TerraFX.Interop;
 using static TerraFX.Interop.Windows;
@@ -51,7 +50,7 @@ namespace PhotoSauce.MagicScaler
 				{
 					// WIC doesn't support 16bpc CMYK conversion with color profile
 					if (curFormat.BitsPerPixel == 64)
-						ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, PixelFormat.Cmyk32Bpp));
+						ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, PixelFormat.Cmyk32));
 
 					var guid = GUID_WICPixelFormat24bppBGR;
 					using var trans = default(ComPtr<IWICColorTransform>);
@@ -68,16 +67,16 @@ namespace PhotoSauce.MagicScaler
 				ctx.DestColorProfile = ctx.SourceColorProfile = rgbColorContext.ParsedProfile;
 			}
 
-			if (curFormat == PixelFormat.Y8Bpp || curFormat == PixelFormat.Cb8Bpp || curFormat == PixelFormat.Cr8Bpp)
+			if (curFormat == PixelFormat.Y8 || curFormat == PixelFormat.Cb8 || curFormat == PixelFormat.Cr8)
 				return;
 
-			var newFormat = PixelFormat.Bgr24Bpp;
+			var newFormat = PixelFormat.Bgr24;
 			if (allowPbgra && curFormat.AlphaRepresentation == PixelAlphaRepresentation.Associated && ctx.Settings.BlendingMode != GammaMode.Linear && ctx.Settings.MatteColor.IsEmpty)
-				newFormat = PixelFormat.Pbgra32Bpp;
+				newFormat = PixelFormat.Pbgra32;
 			else if (curFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
-				newFormat = PixelFormat.Bgra32Bpp;
+				newFormat = PixelFormat.Bgra32;
 			else if (curFormat.ColorRepresentation == PixelColorRepresentation.Grey)
-				newFormat = PixelFormat.Grey8Bpp;
+				newFormat = PixelFormat.Grey8;
 
 			if (curFormat == newFormat)
 				return;
@@ -98,7 +97,7 @@ namespace PhotoSauce.MagicScaler
 		public static void AddIndexedColorConverter(PipelineContext ctx)
 		{
 			var curFormat = ctx.Source.Format;
-			var newFormat = PixelFormat.Indexed8Bpp;
+			var newFormat = PixelFormat.Indexed8;
 
 			if (!ctx.Settings.IndexedColor || curFormat.NumericRepresentation == PixelNumericRepresentation.Indexed || curFormat.ColorRepresentation == PixelColorRepresentation.Grey)
 				return;

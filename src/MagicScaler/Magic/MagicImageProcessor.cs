@@ -245,15 +245,15 @@ namespace PhotoSauce.MagicScaler
 
 				if (ctx.Settings.IndexedColor && curFormat.NumericRepresentation != PixelNumericRepresentation.Indexed && curFormat.ColorRepresentation != PixelColorRepresentation.Grey)
 				{
-					if (curFormat != PixelFormat.Bgra32Bpp)
-						ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, PixelFormat.Bgra32Bpp));
+					if (curFormat != PixelFormat.Bgra32)
+						ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, PixelFormat.Bgra32));
 
 					using var quant = new OctreeQuantizer();
 					using var buffC = new FrameBufferSource(ctx.Source.Width, ctx.Source.Height, ctx.Source.Format);
 					fixed (byte* pbuff = buffC.Span)
 						ctx.Source.CopyPixels(ctx.Source.Area, buffC.Stride, buffC.Span.Length, (IntPtr)pbuff);
 
-					var buffI = ctx.AddDispose(new FrameBufferSource(ctx.Source.Width, ctx.Source.Height, PixelFormat.Indexed8Bpp));
+					var buffI = ctx.AddDispose(new FrameBufferSource(ctx.Source.Width, ctx.Source.Height, PixelFormat.Indexed8));
 					var pph = EnablePixelSourceStats ? ctx.AddProfiler(new ProcessingProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.CreateHistogram))) : NoopProfiler.Instance;
 					var ppq = EnablePixelSourceStats ? ctx.AddProfiler(new ProcessingProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.Quantize))) : NoopProfiler.Instance;
 

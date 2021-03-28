@@ -79,8 +79,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 						Sse2.Store((byte*)op + Vector128<byte>.Count, Ssse3.Shuffle(v0, vmask1));
 						Sse2.Store((byte*)op + Vector128<byte>.Count * 2, Ssse3.Shuffle(v0, vmask2));
 						op += Vector128<byte>.Count * 3;
-
-					} while (ip <= ipe);
+					}
+					while (ip <= ipe);
 					ipe += Vector128<byte>.Count;
 				}
 #endif
@@ -130,8 +130,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 						Sse2.Store((byte*)op + Vector128<byte>.Count * 2, Sse2.UnpackLow(vlh, vhh));
 						Sse2.Store((byte*)op + Vector128<byte>.Count * 3, Sse2.UnpackHigh(vlh, vhh));
 						op += Vector128<byte>.Count * 4;
-
-					} while (ip <= ipe);
+					}
+					while (ip <= ipe);
 					ipe += Vector128<byte>.Count;
 				}
 #endif
@@ -186,8 +186,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 						Sse2.Store((byte*)op, v0);
 						op += Vector128<byte>.Count;
-
-					} while (ip <= ipe);
+					}
+					while (ip <= ipe);
 					ipe += Vector128<byte>.Count * 3;
 				}
 #endif
@@ -242,8 +242,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 						Sse2.Store((byte*)op + Vector128<byte>.Count * 2, v2);
 						Sse2.Store((byte*)op + Vector128<byte>.Count * 3, v3);
 						op += Vector128<byte>.Count * 4;
-
-					} while (ip <= ipe);
+					}
+					while (ip <= ipe);
 					ipe += Vector128<byte>.Count * 3;
 				}
 #endif
@@ -297,8 +297,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 						Sse2.Store((byte*)op, Sse2.UnpackLow(vl, vh).AsByte());
 						op += Vector128<byte>.Count;
-
-					} while (ip <= ipe);
+					}
+					while (ip <= ipe);
 					ipe += Vector128<byte>.Count * 4;
 				}
 #endif
@@ -352,8 +352,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 						Sse2.Store((byte*)op + Vector128<byte>.Count, v1);
 						Sse2.Store((byte*)op + Vector128<byte>.Count * 2, v2);
 						op += Vector128<byte>.Count * 3;
-
-					} while (ip <= ipe);
+					}
+					while (ip <= ipe);
 					ipe += Vector128<byte>.Count * 4;
 				}
 #endif

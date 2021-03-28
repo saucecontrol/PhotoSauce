@@ -115,10 +115,10 @@ namespace PhotoSauce.MagicScaler
 			HRESULT.Check(source.Get()->GetPixelFormat(&guid));
 			if (PixelFormat.FromGuid(guid).NumericRepresentation == PixelNumericRepresentation.Indexed)
 			{
-				var newFormat = PixelFormat.Bgr24Bpp;
+				var newFormat = PixelFormat.Bgr24;
 				if (Container.ContainerFormat == FileFormat.Gif && Container.FrameCount > 1)
 				{
-					newFormat = PixelFormat.Bgra32Bpp;
+					newFormat = PixelFormat.Bgra32;
 				}
 				else
 				{
@@ -128,9 +128,9 @@ namespace PhotoSauce.MagicScaler
 
 					int bval;
 					if (SUCCEEDED(pal.Get()->HasAlpha(&bval)) && bval != 0)
-						newFormat = PixelFormat.Bgra32Bpp;
+						newFormat = PixelFormat.Bgra32;
 					else if ((SUCCEEDED(pal.Get()->IsGrayscale(&bval)) && bval != 0) || (SUCCEEDED(pal.Get()->IsBlackWhite(&bval)) && bval != 0))
-						newFormat = PixelFormat.Grey8Bpp;
+						newFormat = PixelFormat.Grey8;
 				}
 
 				var nfmt = newFormat.FormatGuid;
@@ -213,7 +213,7 @@ namespace PhotoSauce.MagicScaler
 			const int bytesPerPixel = 4;
 
 			var finfo = GetGifFrameInfo(cont, src, meta);
-			var fbuff = anictx.FrameBufferSource ??= new FrameBufferSource(cont.ScreenWidth, cont.ScreenHeight, PixelFormat.Bgra32Bpp);
+			var fbuff = anictx.FrameBufferSource ??= new FrameBufferSource(cont.ScreenWidth, cont.ScreenHeight, PixelFormat.Bgra32);
 			var bspan = fbuff.Span;
 
 			fbuff.ResumeTiming();
