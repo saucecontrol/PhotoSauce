@@ -254,11 +254,11 @@ namespace PhotoSauce.MagicScaler
 						ctx.Source.CopyPixels(ctx.Source.Area, buffC.Stride, buffC.Span.Length, (IntPtr)pbuff);
 
 					var buffI = ctx.AddDispose(new FrameBufferSource(ctx.Source.Width, ctx.Source.Height, PixelFormat.Indexed8));
-					var pph = EnablePixelSourceStats ? ctx.AddProfiler(new ProcessingProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.CreateHistogram))) : NoopProfiler.Instance;
+					var pph = EnablePixelSourceStats ? ctx.AddProfiler(new ProcessingProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.CreatePalette))) : NoopProfiler.Instance;
 					var ppq = EnablePixelSourceStats ? ctx.AddProfiler(new ProcessingProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.Quantize))) : NoopProfiler.Instance;
 
 					pph.ResumeTiming(buffC.Area);
-					quant.CreateHistogram(buffC.Span, buffC.Width, buffC.Height, buffC.Stride);
+					quant.CreatePalette(buffC.Span, buffC.Width, buffC.Height, buffC.Stride);
 					pph.PauseTiming();
 
 					ppq.ResumeTiming(buffC.Area);
@@ -324,14 +324,20 @@ namespace PhotoSauce.MagicScaler
 			var subsample = ctx.Settings.JpegSubsampleMode;
 			if (processPlanar)
 			{
-				if (wicFrame is not null && !ctx.Settings.AutoCrop && ctx.Settings.HybridScaleRatio == 1)
+				if (wicFrame is not null)
 				{
-					var orCrop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height);
+					if (ctx.Settings.ScaleRatio == 1d)
+						processPlanar = false;
 
-					if (wicFrame.ChromaSubsampling.IsSubsampledX() && ((orCrop.X & 1) != 0 || (orCrop.Width & 1) != 0))
-						processPlanar = false;
-					if (wicFrame.ChromaSubsampling.IsSubsampledY() && ((orCrop.Y & 1) != 0 || (orCrop.Height & 1) != 0))
-						processPlanar = false;
+					if (!ctx.Settings.AutoCrop && ctx.Settings.HybridScaleRatio == 1)
+					{
+						var orCrop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height);
+
+						if (wicFrame.ChromaSubsampling.IsSubsampledX() && ((orCrop.X & 1) != 0 || (orCrop.Width & 1) != 0))
+							processPlanar = false;
+						if (wicFrame.ChromaSubsampling.IsSubsampledY() && ((orCrop.Y & 1) != 0 || (orCrop.Height & 1) != 0))
+							processPlanar = false;
+					}
 				}
 
 				if (ctx.Settings.SaveFormat == FileFormat.Jpeg && ctx.Orientation.SwapsDimensions())

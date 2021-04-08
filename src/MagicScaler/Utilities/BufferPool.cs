@@ -14,7 +14,7 @@ namespace PhotoSauce.MagicScaler
 		private const int sharedPoolMax = 1 << 20;
 		private const int largePoolMax = 1 << 24;
 
-		private static readonly ArrayPool<byte> largeBytePool = MagicImageProcessor.EnableLargeBufferPool ? ArrayPool<byte>.Create(largePoolMax, 8) : ArrayPool<byte>.Shared;
+		private static readonly ArrayPool<byte> largeBytePool = MagicImageProcessor.EnableLargeBufferPool ? ArrayPool<byte>.Create(largePoolMax, 4) : ArrayPool<byte>.Shared;
 
 		private static ArrayPool<byte> getBytePool(int length) => length > sharedPoolMax && length <= largePoolMax ? largeBytePool : ArrayPool<byte>.Shared;
 

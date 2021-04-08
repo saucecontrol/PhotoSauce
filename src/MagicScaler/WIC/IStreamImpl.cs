@@ -74,7 +74,7 @@ namespace PhotoSauce.Interop.Wic
 			if (cnt == 0)
 			{
 				pinst->source.Free();
-				Unsafe.InitBlockUnaligned(pinst, 0, (uint)sizeof(IStreamImpl));
+				*pinst = default;
 				Marshal.FreeHGlobal((IntPtr)pinst);
 			}
 

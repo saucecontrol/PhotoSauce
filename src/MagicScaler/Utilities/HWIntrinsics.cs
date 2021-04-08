@@ -42,6 +42,7 @@ namespace PhotoSauce.MagicScaler
 		public const byte ShuffleMaskHiPairs = 0b_11_10_11_10;
 		public const byte ShuffleMaskEvPairs = 0b_10_00_10_00;
 		public const byte ShuffleMaskOdPairs = 0b_11_01_11_01;
+		public const byte ShuffleMaskOddToEven = 0b_11_11_01_01;
 		public const byte PermuteMaskDeinterleave4x64 = 0b_11_01_10_00;
 
 		public static ReadOnlySpan<byte> PermuteMaskDeinterleave8x32 => new byte[] { 0, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 5, 0, 0, 0, 2, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0 };
@@ -71,7 +72,7 @@ namespace PhotoSauce.MagicScaler
 		{	                                      //  a | b | c | d
 			var high = Sse3.IsSupported ?         //  b |___| d |___
 				Sse3.MoveHighAndDuplicate(v) :
-				Sse.Shuffle(v, v, 0b_11_11_01_01);
+				Sse.Shuffle(v, v, ShuffleMaskOddToEven);
 			var sums = Sse.Add(v, high);          // a+b|___|c+d|___
 			high = Sse.MoveHighToLow(high, sums); // c+d|___|___|___
 

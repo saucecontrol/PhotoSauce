@@ -2,6 +2,7 @@
 
 using System;
 using System.Numerics;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
@@ -14,122 +15,69 @@ namespace PhotoSauce.MagicScaler
 {
 	internal unsafe class OctreeQuantizer : IDisposable
 	{
-		private const int maxHistogramSize = 8191;
+		private const int maxHistogramSize = 8191;   // max possible nodes with 3 bits saved to stuff level into one of the indices
+		private const int maxPaletteMapSize = 5448;  // max possible nodes at minLeafLevel = 8^0 + 8^1 + ... + 8^(minLeafLevel+1) + maxPaletteSize * (6 - minLeafLevel)
 		private const int maxPaletteSize = 256;
-		private const int maxSamples = 1 << 20;
+		private const int maxSamples = 1 << 22;
 		private const int minLeafLevel = 3;
 		private const uint alphaThreshold = 85;
-		private const uint nonLeafMarker = byte.MaxValue;
+		private const uint transparentValue = 0x00ff00ffu;
 
 		private uint leafLevel = 7;
-		private bool isSubsampled;
-		private int palEntries = maxPaletteSize;
+		private bool isPaletteExact;
+		private int paletteLength;
 
-		private RentedBuffer<OctreeNode> nodeBuffer;
 		private RentedBuffer<uint> palBuffer;
 
-		public ReadOnlySpan<uint> Palette => palBuffer.Span.Slice(0, palEntries);
+		public ReadOnlySpan<uint> Palette => palBuffer.Span.Slice(0, paletteLength);
 
-		public OctreeQuantizer()
-		{
-			nodeBuffer = BufferPool.RentAligned<OctreeNode>(maxHistogramSize, true);
-			palBuffer = BufferPool.Rent<uint>(maxPaletteSize);
-		}
+		public OctreeQuantizer() => palBuffer = BufferPool.Rent<uint>(maxPaletteSize, true);
 
-		public void CreateHistogram(Span<byte> image, nint width, nint height, nint stride)
+		public void CreatePalette(Span<byte> image, nint width, nint height, nint stride)
 		{
-			nint srx = 1;
-			float sry = 1f;
+			float subsampleRatio = 1f;
 
 			int csamp = (int)width * (int)height;
 			if (csamp > maxSamples)
-			{
-				float sr = (float)csamp / maxSamples;
-				srx = sr.Log2().Clamp(1, 8);
-				sry = sr / srx;
-				isSubsampled = true;
-			}
+				subsampleRatio = (float)csamp / maxSamples;
 
+			using var nodeBuffer = BufferPool.RentLocalAligned<OctreeNode>(maxHistogramSize, true);
 			using var listBuffer = BufferPool.RentLocal<ushort>(maxHistogramSize);
 			initFreeList(listBuffer.Span);
 
 			fixed (byte* pimage = image)
 			fixed (uint* pilut = &LookupTables.OctreeIndexTable[0])
 			fixed (ushort* pfree = listBuffer.Span)
-			fixed (OctreeNode* ptree = nodeBuffer)
+			fixed (OctreeNode* ptree = nodeBuffer.Span)
 			{
 				ushort* pnextFree = pfree;
 				float yf = 0f;
-				for (nint y = 0; y < height; yf += sry, y = (nint)yf)
+				for (nint y = 0; y < height; yf += subsampleRatio, y = (nint)yf)
 				{
 					uint* pline = (uint*)(pimage + y * stride);
-					updateHistogram(pline, pilut, ptree, pfree, ref pnextFree, width, srx);
+					updateHistogram(pline, pilut, ptree, pfree, ref pnextFree, width);
 				}
 			}
+
+			buildPalette(nodeBuffer.Span, subsampleRatio > 1f);
 		}
 
 		public void Quantize(Span<byte> image, Span<byte> outbuff, nint width, nint height, nint instride, nint outstride)
 		{
-			var nc = (Span<int>)stackalloc int[] { 0, 0, 0, 0, 0, 0, 0, 0 };
-			getNodeCounts(nc);
+			if (palBuffer.Length == 0) throw new ObjectDisposedException(nameof(OctreeQuantizer));
+			if (paletteLength == 0) throw new InvalidOperationException("No palette has been created.");
 
-			uint level = leafLevel;
-			int targetColors = maxPaletteSize - getReservedCount();
-			for (uint i = 1; i < leafLevel; i++)
-			{
-				if (nc[(int)i] > targetColors)
-				{
-					level = i;
-					break;
-				}
-			}
+			leafLevel = Math.Min(leafLevel, 6);
+			bool dither = !isPaletteExact;
 
-			fixed (OctreeNode* ptree = nodeBuffer)
-			fixed (float* igt = &LookupTables.SrgbInverseGamma[0])
-			{
-				float ftpix = getPixelCount();
-				for (nuint i = 0; i < 8; i++)
-					convertNodes(ptree, igt, ptree + i, 0, level, ftpix);
+			using var palMap = BufferPool.RentLocalAligned<OctreeNode>(maxPaletteMapSize, true);
+			nuint nextFree = 8;
+			seedPaletteMap(palMap.Span, ref nextFree);
 
-				leafLevel = level;
-			}
-
-			int histogramColors = nc[(int)level];
-			if (histogramColors > targetColors)
-			{
-				using var listBuffer = BufferPool.RentLocal<ReducibleNode>(histogramColors);
-				nuint reducibleCount = 0;
-
-				fixed (OctreeNode* ptree = nodeBuffer)
-				fixed (ReducibleNode* pweights = listBuffer.Span)
-				fixed (float* gt = &LookupTables.SrgbGamma[0])
-				{
-					for (nuint i = 0; i < 8; i++)
-						addReducibleNodes(ptree, pweights, gt, ptree + i, ref reducibleCount, 0, leafLevel - 1);
-				}
-
-				var weights = listBuffer.Span.Slice(0, (int)reducibleCount);
-				int reduceCount = histogramColors - targetColors;
-
-#if SPAN_SORT
-				weights.Sort();
-				finalReduce(weights.Slice(0, reduceCount));
-#else
-				using var buff = BufferPool.RentLocalArray<ReducibleNode>(weights.Length);
-				weights.CopyTo(buff.Array);
-
-				Array.Sort(buff.Array, 0, weights.Length);
-				finalReduce(buff.Array.AsSpan(0, reduceCount));
-#endif
-			}
-
-			bool dither = isSubsampled || histogramColors > maxPaletteSize;
-			nuint nextFree = makePaletteMap(level);
-
-			using var errbuff = BufferPool.RentLocalAligned<byte>(((int)width + 2) * sizeof(uint) * 4, true);
+			using var errbuff = BufferPool.RentLocalAligned<byte>(((int)width + 2) * sizeof(int) * 4, true);
 			fixed (byte* pimage = image, poutbuff = outbuff, perrbuff = errbuff.Span)
 			fixed (uint* ppal = palBuffer, pilut = &LookupTables.OctreeIndexTable[0])
-			fixed (OctreeNode* ptree = nodeBuffer)
+			fixed (OctreeNode* ptree = palMap.Span)
 			{
 				for (nint y = 0; y < height; y++)
 				{
@@ -140,8 +88,8 @@ namespace PhotoSauce.MagicScaler
 					if (!dither)
 						remap(pline, poutline, pilut, ptree, ppal, ref nextFree, width);
 #if HWINTRINSICS
-					else if (Sse2.IsSupported)
-						remapDitherSse2(pline, perrline, poutline, pilut, ptree, ppal, ref nextFree, width);
+					else if (Sse41.IsSupported)
+						remapDitherSse41(pline, perrline, poutline, pilut, ptree, ppal, ref nextFree, width);
 #endif
 					else
 						remapDitherScalar(pline, perrline, poutline, pilut, ptree, ppal, ref nextFree, width);
@@ -151,55 +99,53 @@ namespace PhotoSauce.MagicScaler
 
 		public void Dispose()
 		{
-			nodeBuffer.Dispose();
 			palBuffer.Dispose();
-			nodeBuffer = default;
 			palBuffer = default;
 		}
 
-		private void updateHistogram(uint* pimage, uint* pilut, OctreeNode* ptree, ushort* plist, ref ushort* pfree, nint cp, nint sr)
+		private void updateHistogram(uint* pimage, uint* pilut, OctreeNode* ptree, ushort* plist, ref ushort* pfree, nint cp)
 		{
-			nuint level = leafLevel;
-			nuint prnod = 0;
-			uint ppix = 0;
-
 			uint* ip = pimage, ipe = ip + cp;
-			for (; ip < ipe; ip += sr)
-			{
-				uint cpix = *ip;
-				if (cpix == 0)
-					continue;
+			nuint level = leafLevel;
 
-				OctreeNode* pnode;
-				if (ppix == cpix & prnod != 0)
+			nuint ppix = 0;
+			var pnod = default(OctreeNode*);
+			do
+			{
+				if (((byte*)ip)[3] < alphaThreshold)
 				{
-					pnode = ptree + prnod;
-					goto Accumulate;
+					ip++;
+					continue;
 				}
 
-				ppix = cpix;
-				nuint idx =
-					pilut[(nuint)(byte)(ppix      )      ] |
-					pilut[(nuint)(byte)(ppix >>  8) + 256] |
-					pilut[(nuint)(byte)(ppix >> 16) + 512];
-				nuint parent = idx & 7;
+				nuint cpix = *ip++;
+				var cnod = pnod;
+				if (ppix == cpix)
+					goto Accumulate;
 
-				pnode = ptree + parent;
+				ppix = cpix;
+				nuint idx = getNodeIndex(pilut, ppix);
+
+				cnod = ptree + (idx & 7);
 				for (nuint i = 1; i <= level; i++)
 				{
 					idx >>= 3;
 
-					ushort* childloc = (ushort*)pnode + (idx & 7);
-					nuint next = *childloc;
+					ushort* childloc = (ushort*)cnod + (idx & 7);
+					nuint next = (uint)*childloc & OctreeNode.ChildMask;
 					if (next == 0)
 					{
 						if (*pfree == 0)
 						{
+							// TODO Log RyuJIT issue. None of these conditions will ever be true. Referencing these locals stops the JIT
+							// from spilling/filling them on each loop iteration; instead it spills/fills only in this (unlikely) block.
+							if (i == ppix || idx == ppix || cnod is null || childloc is null)
+								break;
+
 							pfree = plist;
 							pruneTree(ptree, pfree);
 
 							level = leafLevel;
-							prnod = 0;
 							if (i > level)
 								break;
 						}
@@ -207,86 +153,88 @@ namespace PhotoSauce.MagicScaler
 						next = *pfree++;
 						*childloc = (ushort)next;
 
+						OctreeNode.SetLevel(cnod, (uint)i - 1);
 						OctreeNode.SetLevel(ptree + next, (uint)i);
 					}
 
-					parent = next;
-					pnode = ptree + parent;
+					cnod = ptree + next;
 				}
 
-				prnod = parent;
+				pnod = cnod;
 
 				Accumulate:
-				OctreeNode.AddSample(pnode, ppix);
+				OctreeNode.AddSample(cnod, (uint)ppix);
 			}
+			while (ip < ipe);
 		}
 
 		private void pruneTree(OctreeNode* ptree, ushort* pfree)
 		{
 #if HWINTRINSICS
-			var sumsMask = Vector128.Create(uint.MaxValue, uint.MaxValue, uint.MaxValue, OctreeNode.CountMask);
+			var vsmsk = Unsafe.As<byte, Vector128<uint>>(ref MemoryMarshal.GetReference(OctreeNode.SumsMask));
 			var vzero = Vector128<uint>.Zero;
 #endif
 
 			ushort* pnext = pfree;
 			uint level = --leafLevel;
 
+			var tnode = default(OctreeNode);
+			OctreeNode.SetLevel(&tnode, level);
+
 			for (nuint i = 8; i < maxHistogramSize; i++)
 			{
 				var node = ptree + i;
-				uint nl = OctreeNode.GetLevel(node);
-				if (nl == level)
+				if (OctreeNode.GetLevel(node) == level)
 				{
 					ushort* children = (ushort*)node;
-					uint* sums = (uint*)(children + 8);
 
 #if HWINTRINSICS
 					if (Sse2.IsSupported)
 					{
-						var vsums = Sse2.LoadVector128(sums);
+						var vsums = Sse2.LoadVector128((uint*)&tnode);
 
 						for (nuint j = 0; j < 8; j++)
 						{
-							nuint child = children[j];
+							nuint child = (uint)children[j] & OctreeNode.ChildMask;
 							if (child != 0)
 							{
-								var cnode = ptree + child;
-								uint* csums = (uint*)((ushort*)cnode + 8);
-
-								var vcsum = Sse2.And(sumsMask, Sse2.LoadVector128(csums));
+								uint* csums = (uint*)(ptree + child);
+								var vcsum = Sse2.And(vsmsk, Sse2.LoadVector128(csums));
 								vsums = Sse2.Add(vsums, vcsum);
 
-								Sse2.Store((uint*)cnode, vzero);
 								Sse2.Store(csums, vzero);
 								*pnext++ = (ushort)child;
 							}
 						}
 
-						Sse2.Store((uint*)children, vzero);
-						Sse2.Store(sums, vsums);
+						Sse2.Store((uint*)node, vsums);
 					}
 					else
 #endif
 					{
+						tnode = default;
+						OctreeNode.SetLevel(&tnode, level);
+
+						uint* sums = (uint*)&tnode;
 						for (nuint j = 0; j < 8; j++)
 						{
-							nuint child = children[j];
+							nuint child = (uint)children[j] & OctreeNode.ChildMask;
 							if (child != 0)
 							{
 								var cnode = ptree + child;
-								uint* csums = (uint*)((ushort*)cnode + 8);
+								uint* csums = (uint*)cnode;
 
 								sums[0] += csums[0];
 								sums[1] += csums[1];
 								sums[2] += csums[2];
 								sums[3] += csums[3] & OctreeNode.CountMask;
 
-								Unsafe.InitBlockUnaligned(cnode, 0, (uint)sizeof(OctreeNode));
+								*cnode = default;
 								*pnext++ = (ushort)child;
 							}
 						}
 
-						Unsafe.InitBlockUnaligned(children, 0, sizeof(ushort) * 8);
+						*node = tnode;
 					}
 				}
 			}
@@ -298,7 +246,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			if (currLevel == leafLevel)
 			{
-				uint* sums = (uint*)((ushort*)node + 8);
+				uint* sums = (uint*)node;
 				float* fsums = (float*)sums;
 
 				uint pixcnt = sums[3] & OctreeNode.CountMask;
@@ -315,23 +263,22 @@ namespace PhotoSauce.MagicScaler
 				ushort* children = (ushort*)node;
 				for (nuint i = 0; i < 8; i++)
 				{
-					nuint child = children[i];
+					nuint child = (uint)children[i] & OctreeNode.ChildMask;
 					if (child != 0)
 						convertNodes(ptree, igt, ptree + child, currLevel + 1, pruneLevel, ftpix);
 				}
 
-				float* sums = (float*)(children + 8);
-				Unsafe.InitBlockUnaligned(sums, 0, sizeof(uint) * 4);
-
 				if (currLevel >= pruneLevel)
 				{
+					var tnode = default(OctreeNode);
 					for (nuint i = 0; i < 8; i++)
 					{
-						nuint child = children[i];
+						nuint child = (uint)children[i] & OctreeNode.ChildMask;
 						if (child != 0)
 						{
 							var cnode = ptree + child;
-							float* csums = (float*)((ushort*)cnode + 8);
+							float* csums = (float*)cnode;
+							float* sums = (float*)&tnode;
 
 							if (Vector.IsHardwareAccelerated)
 							{
@@ -345,213 +292,11 @@ namespace PhotoSauce.MagicScaler
 								sums[3] += csums[3];
 							}
 
-							Unsafe.InitBlockUnaligned(cnode, 0, (uint)sizeof(OctreeNode));
+							*cnode =default;
 						}
 					}
 
-					Unsafe.InitBlockUnaligned(children, 0, sizeof(ushort) * 8);
-				}
-			}
-		}
-
-		private void finalReduce(Span<ReducibleNode> nodes)
-		{
-			fixed (OctreeNode* ptree = nodeBuffer)
-			{
-				for (int i = 0; i < nodes.Length; i++)
-				{
-					var cand = nodes[i];
-					var par = ptree + cand.Parent;
-					nuint pos = cand.Index;
-
-					ushort* children = (ushort*)par;
-					var cnode = ptree + children[pos];
-
-					for (nuint j = 1; j < 8; j++)
-					{
-						nuint sibling = children[pos ^ j];
-						if (sibling != 0)
-						{
-							var snode = ptree + sibling;
-							float* csums = (float*)((ushort*)cnode + 8);
-							float* ssums = (float*)((ushort*)snode + 8);
-
-							if (Vector.IsHardwareAccelerated)
-							{
-								Unsafe.WriteUnaligned(ssums, Unsafe.ReadUnaligned<Vector4>(ssums) + Unsafe.ReadUnaligned<Vector4>(csums));
-							}
-							{
-								ssums[0] += csums[0];
-								ssums[1] += csums[1];
-								ssums[2] += csums[2];
-								ssums[3] += csums[3];
-							}
-
-							Unsafe.InitBlockUnaligned(csums, 0, sizeof(uint) * 4);
-							children[pos] = 0;
-							break;
-						}
-					}
-				}
-			}
-		}
-
-		private nuint makePaletteMap(nuint minLevel)
-		{
-			fixed (OctreeNode* ptree = nodeBuffer)
-			fixed (uint* ppal = palBuffer)
-			fixed (byte* gt = &LookupTables.SrgbGammaUQ15[0])
-			{
-				nuint palidx = 0;
-				for (nuint i = 0; i < 8; i++)
-					populatePalette(ptree, gt, ppal, ptree + i, minLevel, 0, ref palidx);
-
-				if (isSubsampled)
-				{
-					for (nuint i = 0; i < 8; i++)
-					{
-						var node = ptree + i;
-						ushort* children = (ushort*)node;
-						for (nuint j = 0; j < 8; j++)
-						{
-							if (children[j] == 0)
-							{
-								uint b = (((uint)i & 1) << 1 | ((uint)j & 1)     ) * 0x55;
-								uint g = (((uint)i & 4) >> 1 | ((uint)j & 4) >> 2) * 0x55;
-								uint r = (((uint)i & 2)      | ((uint)j & 2) >> 1) * 0x55;
-
-								ppal[palidx++] = (uint)byte.MaxValue << 24 | r << 16 | g << 8 | b;
-							}
-						}
-					}
-				}
-
-				ppal[palidx] = 0x00ff00ffu;
-				palEntries = (int)palidx + 1;
-
-				Unsafe.InitBlockUnaligned(ppal + palEntries, 0, (maxPaletteSize - (uint)palEntries) * sizeof(uint));
-			}
-
-			leafLevel = Math.Max(leafLevel, minLeafLevel);
-
-			var palMap = BufferPool.RentAligned<OctreeNode>(maxHistogramSize, true);
-			nuint mapidx = 8;
-
-			fixed (uint* pilut = &LookupTables.OctreeIndexTable[0])
-			fixed (OctreeNode* ptree = nodeBuffer, pmap = palMap)
-			{
-				for (nuint i = 0; i < 8; i++)
-					migrateNodes(ptree, pmap, pilut, ptree + i, pmap + i, 0, ref mapidx);
-			}
-
-			nodeBuffer.Dispose();
-			nodeBuffer = palMap;
-
-			return mapidx;
-		}
-
-		private void populatePalette(OctreeNode* ptree, byte* gt, uint* ppal, OctreeNode* node, nuint minLevel, nuint currLevel, ref nuint nidx)
-		{
-			if (currLevel == leafLevel)
-			{
-				float* sums = (float*)((ushort*)node + 8);
-				float weight = 1f / sums[3];
-				uint b = gt[(nuint)MathUtil.FixToUQ15One(sums[0] * weight)];
-				uint g = gt[(nuint)MathUtil.FixToUQ15One(sums[1] * weight)];
-				uint r = gt[(nuint)MathUtil.FixToUQ15One(sums[2] * weight)];
-
-				ppal[nidx] = (uint)byte.MaxValue << 24 | r << 16 | g << 8 | b;
-
-				uint* isums = (uint*)sums;
-				isums[0] = b;
-				isums[1] = g;
-				isums[2] = r;
-				isums[3] = (uint)nidx++;
-			}
-			else
-			{
-				ushort* children = (ushort*)node;
-				uint* sums = (uint*)(children + 8);
-
-				if (currLevel >= minLevel)
-					sums[3] = nonLeafMarker;
-
-				for (nuint i = 0; i < 8; i++)
-				{
-					nuint child = children[i];
-					if (child != 0)
-						populatePalette(ptree, gt, ppal, ptree + child, minLevel, currLevel + 1, ref nidx);
-				}
-
-				if (currLevel >= minLevel && OctreeNode.HasOnlyChild(node))
-				{
-					for (nuint i = 0; i < 8; i++)
-					{
-						nuint child = children[i];
-						if (child != 0)
-						{
-							var cnode = ptree + child;
-							uint* csums = (uint*)((ushort*)cnode + 8);
-							if (csums[3] != nonLeafMarker)
-							{
-								Unsafe.CopyBlockUnaligned(sums, csums, sizeof(uint) * 4);
-								children[i] = 0;
-							}
-							break;
-						}
-					}
-				}
-			}
-		}
-
-		private void migrateNodes(OctreeNode* ptree, OctreeNode* pmap, uint* pilut, OctreeNode* node, OctreeNode* nnode, nuint currLevel, ref nuint nidx)
-		{
-			var pnew = nnode;
-
-			ushort* children = (ushort*)node;
-			ushort* nchildren = (ushort*)pnew;
-
-			if (currLevel > 0)
-			{
-				bool isLeaf = !OctreeNode.HasChildren(node);
-
-				pnew = pmap + nidx++;
-				nchildren = (ushort*)pnew;
-
-				uint* sums = (uint*)((ushort*)node + 8);
-				if (currLevel < minLeafLevel && isLeaf)
-				{
-					nuint idx =
-						pilut[(nuint)sums[0]      ] |
-						pilut[(nuint)sums[1] + 256] |
-						pilut[(nuint)sums[2] + 512];
-
-					idx >>= (int)(currLevel * 3);
-
-					nuint nnidx = nidx++;
-					nchildren[idx & 7] = (ushort)nnidx;
-
-					pnew = pmap + nnidx;
-					nchildren = (ushort*)pnew;
-				}
-
-				uint* nsums = (uint*)(nchildren + 8);
-				Unsafe.CopyBlockUnaligned(nsums, sums, sizeof(uint) * 4);
-
-				if (isLeaf)
-					return;
-
-				if (currLevel >= minLeafLevel)
-					nsums[3] = nonLeafMarker;
-			}
-
-			for (nuint i = 0; i < 8; i++)
-			{
-				nuint child = children[i];
-				if (child != 0)
-				{
-					nchildren[i] = (ushort)nidx;
-					migrateNodes(ptree, pmap, pilut, ptree + child, pmap + nidx, currLevel + 1, ref nidx);
+					*node = tnode;
 				}
 			}
 		}
@@ -561,22 +306,22 @@ namespace PhotoSauce.MagicScaler
 			ushort* children = (ushort*)node;
 			for (nuint i = 0; i < 8; i++)
 			{
-				nuint child = children[i];
+				nuint child = (uint)children[i] & OctreeNode.ChildMask;
 				if (child != 0)
 				{
 					var pchild = ptree + child;
 
 					if (currLevel == pruneLevel)
 					{
-						float* csums = (float*)((ushort*)pchild + 8);
+						float* csums = (float*)pchild;
 						float weight = csums[3];
 
 						for (nuint j = 1; j < 8; j++)
 						{
-							nuint sibling = children[i ^ j];
+							nuint sibling = (uint)children[i ^ j] & OctreeNode.ChildMask;
 							if (sibling != 0)
 							{
-								float* ssums = (float*)((ushort*)(ptree + sibling) + 8);
+								float* ssums = (float*)(ptree + sibling);
 								float sweight = ssums[3];
 								if (sweight > weight || (sweight == weight && (i ^ j) > i))
 								{
@@ -608,22 +353,284 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-#if HWINTRINSICS
-		private void remapDitherSse2(byte* pimage, int* perror, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
+		private static void finalReduce(Span<OctreeNode> nodeBuffer, Span<ReducibleNode> nodes)
 		{
-			var transnode = new OctreeNode();
-			transnode.Sums[3] = (uint)palEntries - 1;
+			fixed (OctreeNode* ptree = nodeBuffer)
+			{
+				for (int i = 0; i < nodes.Length; i++)
+				{
+					var cand = nodes[i];
+					var par = ptree + cand.Parent;
+					nuint pos = cand.Index;
 
-			var vpmax = Vector128.Create((int)byte.MaxValue);
-			var vprnd = Vector128.Create(7);
-			var vzero = Vector128<int>.Zero;
+					ushort* children = (ushort*)par;
+					var cnode = ptree + ((uint)children[pos] & OctreeNode.ChildMask);
+
+					for (nuint j = 1; j < 8; j++)
+					{
+						nuint sibling = (uint)children[pos ^ j] & OctreeNode.ChildMask;
+						if (sibling != 0)
+						{
+							float* csums = (float*)cnode;
+							float* ssums = (float*)(ptree + sibling);
+
+							if (Vector.IsHardwareAccelerated)
+							{
+								Unsafe.WriteUnaligned(ssums, Unsafe.ReadUnaligned<Vector4>(ssums) + Unsafe.ReadUnaligned<Vector4>((float*)cnode));
+							}
+							{
+								ssums[0] += csums[0];
+								ssums[1] += csums[1];
+								ssums[2] += csums[2];
+								ssums[3] += csums[3];
+							}
+
+							*cnode = default;
+							children[pos] = 0;
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		private void buildPalette(Span<OctreeNode> nodeBuffer, bool isSubsampled)
+		{
+			var nc = (Span<int>)stackalloc int[] { 0, 0, 0, 0, 0, 0, 0, 0 };
+			getNodeCounts(nodeBuffer, nc);
+
+			uint level = leafLevel;
+			int targetColors = maxPaletteSize - getReservedCount(nodeBuffer, isSubsampled);
+			for (uint i = 1; i < leafLevel; i++)
+			{
+				if (nc[(int)i] > targetColors)
+				{
+					level = i;
+					break;
+				}
+			}
+
+			fixed (OctreeNode* ptree = nodeBuffer)
+			fixed (float* igt = &LookupTables.SrgbInverseGamma[0])
+			{
+				float ftpix = getPixelCount(nodeBuffer, leafLevel);
+				for (nuint i = 0; i < 8; i++)
+					convertNodes(ptree, igt, ptree + i, 0, level, ftpix);
+
+				leafLevel = level;
+			}
+
+			int histogramColors = nc[(int)leafLevel];
+			isPaletteExact = !isSubsampled && histogramColors <= targetColors;
+
+			if (!isPaletteExact)
+			{
+				using var listBuffer = BufferPool.RentLocal<ReducibleNode>(histogramColors);
+				nuint reducibleCount = 0;
+
+				fixed (OctreeNode* ptree = nodeBuffer)
+				fixed (ReducibleNode* pweights = listBuffer.Span)
+				fixed (float* gt = &LookupTables.SrgbGamma[0])
+				{
+					for (nuint i = 0; i < 8; i++)
+						addReducibleNodes(ptree, pweights, gt, ptree + i, ref reducibleCount, 0, leafLevel - 1);
+				}
+
+				var weights = listBuffer.Span.Slice(0, (int)reducibleCount);
+				int reduceCount = histogramColors - targetColors;
+
+#if SPAN_SORT
+				weights.Sort();
+				finalReduce(nodeBuffer, weights.Slice(0, reduceCount));
+#else
+				using var buff = BufferPool.RentLocalArray<ReducibleNode>(weights.Length);
+				weights.CopyTo(buff.Array);
+
+				Array.Sort(buff.Array, 0, weights.Length);
+				finalReduce(nodeBuffer, buff.Array.AsSpan(0, reduceCount));
+#endif
+			}
+
+			makePalette(nodeBuffer, isSubsampled);
+		}
+
+		private void makePalette(Span<OctreeNode> nodeBuffer, bool isSubsampled)
+		{
+			fixed (OctreeNode* ptree = nodeBuffer)
+			fixed (uint* ppal = palBuffer)
+			fixed (byte* gt = &LookupTables.SrgbGammaUQ15[0])
+			{
+				nuint palidx = 0;
+				for (nuint i = 0; i < 8; i++)
+					populatePalette(ptree, gt, ppal, ptree + i, leafLevel, 0, ref palidx);
+
+				if (isSubsampled)
+				{
+					for (nuint i = 0; i < 8; i++)
+					{
+						var node = ptree + i;
+						ushort* children = (ushort*)node;
+						for (nuint j = 0; j < 8; j++)
+						{
+							if (((uint)children[j] & OctreeNode.ChildMask) == 0)
+							{
+								uint b = (((uint)i & 1) << 1 | ((uint)j & 1)     ) * 0x55;
+								uint g = (((uint)i & 4) >> 1 | ((uint)j & 4) >> 2) * 0x55;
+								uint r = (((uint)i & 2)      | ((uint)j & 2) >> 1) * 0x55;
+
+								ppal[palidx++] = (uint)byte.MaxValue << 24 | r << 16 | g << 8 | b;
+							}
+						}
+					}
+				}
+
+				ppal[palidx] = transparentValue;
+				paletteLength = (int)palidx + 1;
+			}
+
+			leafLevel = Math.Max(leafLevel, minLeafLevel);
+		}
+
+		private void populatePalette(OctreeNode* ptree, byte* gt, uint* ppal, OctreeNode* node, nuint minLevel, nuint currLevel, ref nuint nidx)
+		{
+			if (currLevel == leafLevel)
+			{
+				float* sums = (float*)node;
+				float weight = 1f / sums[3];
+				uint b = gt[(nuint)MathUtil.FixToUQ15One(sums[0] * weight)];
+				uint g = gt[(nuint)MathUtil.FixToUQ15One(sums[1] * weight)];
+				uint r = gt[(nuint)MathUtil.FixToUQ15One(sums[2] * weight)];
+
+				ppal[nidx++] = (uint)byte.MaxValue << 24 | r << 16 | g << 8 | b;
+			}
+			else
+			{
+				ushort* children = (ushort*)node;
+				for (nuint i = 0; i < 8; i++)
+				{
+					nuint child = (uint)children[i] & OctreeNode.ChildMask;
+					if (child != 0)
+						populatePalette(ptree, gt, ppal, ptree + child, minLevel, currLevel + 1, ref nidx);
+				}
+			}
+		}
+
+		private void seedPaletteMap(Span<OctreeNode> palMap, ref nuint nextFree)
+		{
+			fixed (uint* ppal = palBuffer, pilut = &LookupTables.OctreeIndexTable[0])
+			fixed (OctreeNode* pmap = palMap)
+			{
+				nuint level = leafLevel;
+
+				for (nuint i = 0; i < (nuint)(paletteLength - 1); i++)
+				{
+					nuint cpal = ppal[i];
+					nuint idx = getNodeIndex(pilut, cpal);
+
+					var node = pmap + (idx & 7);
+					idx >>= 3;
+
+					for (nuint l = 1; l <= level; l++)
+					{
+						ushort* childloc = (ushort*)node + (idx & 7);
+						nuint next = *childloc;
+						if (next == 0 && (l <= minLeafLevel || OctreeNode.HasChildren(node)))
+						{
+							next = nextFree++;
+							*childloc = (ushort)next;
+
+							if (l >= minLeafLevel)
+							{
+								node = pmap + next;
+								idx >>= 3;
+								OctreeNode.SetLeaf(node);
+								break;
+							}
+						}
+
+						node = pmap + next;
+						idx >>= 3;
+
+						if (l >= minLeafLevel && l < level && OctreeNode.IsLeaf(node))
+						{
+							nuint tcol = *((byte*)node + (idx & 7));
+							if (tcol != byte.MaxValue)
+							{
+								nuint tpal = ppal[tcol];
+								if (tpal == cpal)
+									break;
+
+								int leafShift = (int)((l + 1) * 3);
+								var tnode = *node;
+								*node = default;
+
+								for (nuint j = 1; j < 8; j++)
+								{
+									nuint scol = *((byte*)&tnode + ((idx & 7) ^ j));
+									if (scol != byte.MaxValue)
+									{
+										nuint spal = ppal[scol];
+										nuint sidx = getNodeIndex(pilut, spal);
+										sidx >>= leafShift;
+
+										next = nextFree++;
+										*((ushort*)node + (sidx & 7)) = (ushort)next;
+
+										var snode = pmap + next;
+										sidx >>= 3;
+
+										OctreeNode.SetLeaf(snode);
+										*((byte*)snode + (sidx & 7)) = (byte)scol;
+									}
+								}
+
+								nuint tidx = getNodeIndex(pilut, tpal);
+								tidx >>= leafShift;
+
+								do
+								{
+									next = nextFree++;
+									*((ushort*)node + (idx & 7)) = (ushort)next;
+
+									node = pmap + next;
+									idx  >>= 3;
+									tidx >>= 3;
+								}
+								while (++l < level && (idx & 7) == (tidx & 7));
+
+								OctreeNode.SetLeaf(node);
+								*((byte*)node + (tidx & 7)) = (byte)tcol;
+							}
+
+							break;
+						}
+					}
+
+					*((byte*)node + (idx & 7)) = (byte)i;
+				}
+			}
+		}
+
+#if HWINTRINSICS
+		private void remapDitherSse41(byte* pimage, int* perror, byte* pout, uint* pilut, OctreeNode* pmap, uint* ppal, ref nuint nextFree, nint cp)
+		{
+			Debug.Assert(paletteLength == maxPaletteSize);
+
+			const byte shuffleMaskRed = 0b_10_10_10_10;
 
 			nuint level = leafLevel;
-			var prnod = default(OctreeNode*);
+			nuint trans = (uint)paletteLength - 1;
+			nuint pidx = trans;
+
+			ppal[trans] = ppal[trans - 1];
+
+			var vpmax = Vector128.Create((short)byte.MaxValue);
+			var vprnd = Vector128.Create((short)7);
+			var vzero = Vector128<short>.Zero;
 
 			byte* ip = pimage, ipe = ip + cp * sizeof(uint);
 			byte* op = pout;
-			int* ep = perror;
+			short* ep = (short*)perror;
 
 			var vppix = vzero;
 			var vperr = vzero;
@@ -631,24 +638,21 @@ namespace PhotoSauce.MagicScaler
 
 			do
 			{
-				Vector128<int> vpix, vdiff;
+				Vector128<short> vpix, vdiff;
 				if (ip[3] < alphaThreshold)
 				{
 					vppix = vzero;
 					vdiff = vzero;
-					prnod = &transnode;
+					pidx = trans;
 					goto FoundExact;
 				}
 
-				if (Sse41.IsSupported)
-					vpix = Sse41.ConvertToVector128Int32(ip);
-				else
-					vpix = Sse2.UnpackLow(Sse2.UnpackLow(Sse2.LoadScalarVector128((int*)ip).AsByte(), vzero.AsByte()).AsInt16(), vzero.AsInt16()).AsInt32();
+				vpix = Sse41.ConvertToVector128Int16(Sse2.LoadScalarVector128((int*)ip).AsByte());
 
 				var verr = Sse2.Add(Sse2.Add(vprnd, Sse2.LoadVector128(ep)), Sse2.Subtract(Sse2.ShiftLeftLogical(vnerr, 3), vnerr));
 				vpix = Sse2.Add(vpix, Sse2.ShiftRightArithmetic(verr, 4));
-				vpix = Sse2.Min(vpix.AsInt16(), vpmax.AsInt16()).AsInt32();
-				vpix = Sse2.Max(vpix.AsInt16(), vzero.AsInt16()).AsInt32();
+				vpix = Sse2.Min(vpix, vpmax);
+				vpix = Sse2.Max(vpix, vzero);
 
 				if (Sse2.MoveMask(Sse2.CompareEqual(vppix, vpix).AsByte()) == ushort.MaxValue)
 				{
@@ -658,101 +662,147 @@ namespace PhotoSauce.MagicScaler
 
 				vppix = vpix;
 				nuint idx =
-					pilut[(nuint)Sse2.ConvertToUInt32(vppix.AsUInt32())] |
-					pilut[(nuint)Sse2.Extract(vppix.AsUInt16(), 2) + 256] |
-					pilut[(nuint)Sse2.Extract(vppix.AsUInt16(), 4) + 512];
-				nuint next = idx & 7;
+					pilut[(nuint)Sse2.Extract(vppix.AsUInt16(), 0)      ] |
+					pilut[(nuint)Sse2.Extract(vppix.AsUInt16(), 1) + 256] |
+					pilut[(nuint)Sse2.Extract(vppix.AsUInt16(), 2) + 512];
 
-				var pnode = ptree + next;
-				for (nuint i = 0; i <= level; i++)
+				var node = pmap + (idx & 7);
+				idx >>= 3;
+
+				for (nuint l = 1; l <= level; l++)
 				{
-					idx >>= 3;
-					nuint child = idx & 7;
-
-					ushort* children = (ushort*)pnode;
-					next = children[child];
-					if (next == 0)
+					ushort* childloc = (ushort*)node + (idx & 7);
+					nuint next = *childloc;
+					if (next == 0 && (l <= minLeafLevel || OctreeNode.HasChildren(node)))
 					{
-						uint* sums = (uint*)(children + 8);
+						next = nextFree++;
+						*childloc = (ushort)next;
 
-						if (i < minLeafLevel)
+						if (l >= minLeafLevel)
 						{
-							next = nextFree++;
-							children[child] = (ushort)next;
-							pnode = ptree + next;
-
-							if (i == minLeafLevel - 1)
-							{
-								initNode(pnode, ppal, vppix);
-								break;
-							}
-							else
-							{
-								uint* csums = (uint*)((ushort*)pnode + 8);
-								csums[3] = nonLeafMarker;
-							}
-						}
-						else if ((byte)sums[3] == nonLeafMarker)
-						{
-							for (nuint j = 1; j < 8; j++)
-							{
-								nuint sibling = children[child ^ j];
-								if (sibling != 0)
-								{
-									var snode = ptree + sibling;
-									uint* ssums = (uint*)((ushort*)snode + 8);
-									if ((byte)ssums[3] == nonLeafMarker)
-									{
-										next = sibling;
-										idx = (idx & ~0x3fu) | (child << 3);
-										break;
-									}
-									else
-									{
-										prnod = snode;
-										goto Found;
-									}
-								}
-							}
-						}
-						else
-						{
+							node = pmap + next;
+							idx >>= 3;
+							OctreeNode.SetLeaf(node);
 							break;
 						}
 					}
 
-					pnode = ptree + next;
+					node = pmap + next;
+					idx >>= 3;
+
+					if (l >= minLeafLevel && OctreeNode.IsLeaf(node))
+						break;
 				}
 
-				prnod = pnode;
+				idx &= 7;
+				pidx = *((byte*)node + idx);
+				if (pidx == byte.MaxValue)
+				{
+					Vector128<int> vdst;
+					Vector128<uint> vidx;
 
-				Found:
-				vdiff = Sse2.Subtract(vppix, Sse2.LoadVector128((int*)((ushort*)prnod + 8)));
+					if (Avx2.IsSupported)
+					{
+						var wmul = Vector256.Create(0x0001_0000_fffful).AsInt16();
+						var wadd = Vector256.Create(0x0040_0080_0060ul).AsInt16();
+
+						var winc = Vector256.Create((ulong)Vector256<ulong>.Count).AsUInt32();
+						var wcnt = Vector256.Create(0ul, 1ul, 2ul, 3ul).AsUInt32();
+						var widx = Vector256.Create((ulong)(trans - 1)).AsUInt32();
+						var wdst = Vector256.Create((ulong)int.MaxValue).AsInt32();
+
+						var wppix = Avx2.BroadcastScalarToVector256(vppix.AsUInt64()).AsInt16();
+						byte* pp = (byte*)ppal, ppe = pp + trans * sizeof(uint);
+
+						do
+						{
+							var vpal = Avx2.ConvertToVector256Int16(pp);
+							pp += Vector256<short>.Count;
+
+							var wavg = Avx2.ShiftRightArithmetic(Avx2.Average(vpal.AsUInt16(), wppix.AsUInt16()).AsInt16(), 3);
+							wavg = Avx2.MultiplyLow(Avx2.ShuffleHigh(Avx2.ShuffleLow(wavg, shuffleMaskRed), shuffleMaskRed), wmul);
+
+							var wdif = Avx2.Subtract(vpal, wppix);
+							var wdip = Avx2.MultiplyAddAdjacent(wdif, Avx2.MultiplyLow(Avx2.Add(wavg, wadd), wdif));
+							wdip = Avx2.Add(wdip, Avx2.Shuffle(wdip, HWIntrinsics.ShuffleMaskOddToEven));
+
+							var wmsk = Avx2.CompareGreaterThan(wdst, wdip);
+							widx = Avx2.BlendVariable(widx.AsByte(), wcnt.AsByte(), wmsk.AsByte()).AsUInt32();
+							wdst = Avx2.BlendVariable(wdst.AsByte(), wdip.AsByte(), wmsk.AsByte()).AsInt32();
+
+							wcnt = Avx2.Add(wcnt, winc);
+						}
+						while (pp < ppe);
+
+						var vmsk = Sse2.CompareGreaterThan(wdst.GetLower(), wdst.GetUpper());
+						vidx = Sse41.BlendVariable(widx.GetLower().AsByte(), widx.GetUpper().AsByte(), vmsk.AsByte()).AsUInt32();
+						vdst = Sse41.BlendVariable(wdst.GetLower().AsByte(), wdst.GetUpper().AsByte(), vmsk.AsByte()).AsInt32();
+					}
+					else
+					{
+						var vmul = Vector128.Create(0x0001_0000_fffful).AsInt16();
+						var vadd = Vector128.Create(0x0040_0080_0060ul).AsInt16();
+
+						var vinc = Vector128.Create((ulong)Vector128<ulong>.Count).AsUInt32();
+						var vcnt = Vector128.Create(0ul, 1ul).AsUInt32();
+						vidx = Vector128.Create((ulong)(trans - 1)).AsUInt32();
+						vdst = Vector128.Create((ulong)int.MaxValue).AsInt32();
+
+						vppix = Sse2.UnpackLow(vppix.AsUInt64(), vppix.AsUInt64()).AsInt16();
+						byte* pp = (byte*)ppal, ppe = pp + trans * sizeof(uint);
+
+						do
+						{
+							var vpal = Sse41.ConvertToVector128Int16(pp);
+							pp += Vector128<short>.Count;
+
+							var vavg = Sse2.ShiftRightArithmetic(Sse2.Average(vpal.AsUInt16(), vppix.AsUInt16()).AsInt16(), 3);
+							vavg = Sse2.MultiplyLow(Sse2.ShuffleHigh(Sse2.ShuffleLow(vavg, shuffleMaskRed), shuffleMaskRed), vmul);
+
+							var vdif = Sse2.Subtract(vpal, vppix);
+							var vdip = Sse2.MultiplyAddAdjacent(vdif, Sse2.MultiplyLow(Sse2.Add(vavg, vadd), vdif));
+							vdip = Sse2.Add(vdip, Sse2.Shuffle(vdip, HWIntrinsics.ShuffleMaskOddToEven));
+
+							var vmsk = Sse2.CompareGreaterThan(vdst, vdip);
+							vidx = Sse41.BlendVariable(vidx.AsByte(), vcnt.AsByte(), vmsk.AsByte()).AsUInt32();
+							vdst = Sse41.BlendVariable(vdst.AsByte(), vdip.AsByte(), vmsk.AsByte()).AsInt32();
+
+							vcnt = Sse2.Add(vcnt, vinc);
+						}
+						while (pp < ppe);
+
+						vppix = Sse2.UnpackLow(vppix.AsUInt64(), vzero.AsUInt64()).AsInt16();
+					}
+
+					pidx = Sse41.Extract(vdst, 2) < Sse2.ConvertToInt32(vdst) ? Sse41.Extract(vidx, 2) : Sse2.ConvertToUInt32(vidx);
+					*((byte*)node + idx) = (byte)pidx;
+				}
+
+				vdiff = Sse2.Subtract(vppix, Sse41.ConvertToVector128Int16((byte*)(ppal + pidx)));
 
 				FoundExact:
-				int* psums = (int*)((ushort*)prnod + 8);
 				ip += sizeof(uint);
-				*op++ = (byte)psums[3];
+				*op++ = (byte)pidx;
 
-				Sse2.Store(ep - Vector128<int>.Count, Sse2.Add(vperr, Sse2.Add(vdiff, vdiff)));
-				ep += Vector128<int>.Count;
+				Sse2.Store(ep - Vector128<short>.Count, Sse2.Add(vperr, Sse2.Add(vdiff, vdiff)));
+				ep += Vector128<short>.Count;
 
 				vperr = Sse2.Add(Sse2.ShiftLeftLogical(vdiff, 2), vnerr);
 				vnerr = vdiff;
 			}
 			while (ip < ipe);
 
-			Sse2.Store(ep - Vector128<int>.Count, vperr);
+			Sse2.Store(ep - Vector128<short>.Count, vperr);
+
+			ppal[trans] = transparentValue;
 		}
 #endif
 
-		private void remapDitherScalar(byte* pimage, int* perror, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
+		private void remapDitherScalar(byte* pimage, int* perror, byte* pout, uint* pilut, OctreeNode* pmap, uint* ppal, ref nuint nextFree, nint cp)
 		{
-			var transnode = new OctreeNode();
-			transnode.Sums[3] = (uint)palEntries - 1;
-
 			nuint level = leafLevel;
-			var prnod = default(OctreeNode*);
+			nuint trans = (uint)paletteLength - 1;
+			nuint pidx = trans;
 
 			byte* ip = pimage, ipe = ip + cp * sizeof(uint);
 			byte* op = pout;
@@ -769,13 +819,13 @@ namespace PhotoSauce.MagicScaler
 				{
 					ppix = 0;
 					db = dg = dr = 0;
-					prnod = &transnode;
+					pidx = trans;
 					goto FoundExact;
 				}
 
-				nuint cb = (nuint)(((ip[0] << 4) + ep[0] + (nerb << 3) - nerb + 7).Clamp(0, 4095) >> 4);
-				nuint cg = (nuint)(((ip[1] << 4) + ep[1] + (nerg << 3) - nerg + 7).Clamp(0, 4095) >> 4);
-				nuint cr = (nuint)(((ip[2] << 4) + ep[2] + (nerr << 3) - nerr + 7).Clamp(0, 4095) >> 4);
+				nuint cb = (uint)(((ip[0] << 4) + ep[0] + (nerb << 3) - nerb + 7).Clamp(0, 4095) >> 4);
+				nuint cg = (uint)(((ip[1] << 4) + ep[1] + (nerg << 3) - nerg + 7).Clamp(0, 4095) >> 4);
+				nuint cr = (uint)(((ip[2] << 4) + ep[2] + (nerr << 3) - nerr + 7).Clamp(0, 4095) >> 4);
 				uint cpix = (uint)byte.MaxValue << 24 | (uint)cr << 16 | (uint)cg << 8 | (uint)cb;
 
 				if (ppix == cpix)
@@ -786,17 +836,51 @@ namespace PhotoSauce.MagicScaler
 
 				ppix = cpix;
 				nuint idx = pilut[cb] | pilut[cg + 256] | pilut[cr + 512];
-				prnod = findNearestNode(ptree, ppal, ref nextFree, idx, level, ppix);
 
-				int* psums = (int*)((ushort*)prnod + 8);
-				db = (byte)(ppix      ) - psums[0];
-				dg = (byte)(ppix >>  8) - psums[1];
-				dr = (byte)(ppix >> 16) - psums[2];
+				var node = pmap + (idx & 7);
+				idx >>= 3;
+
+				for (nuint l = 1; l <= level; l++)
+				{
+					ushort* childloc = (ushort*)node + (idx & 7);
+					nuint next = *childloc;
+					if (next == 0 && (l <= minLeafLevel || OctreeNode.HasChildren(node)))
+					{
+						next = nextFree++;
+						*childloc = (ushort)next;
+
+						if (l >= minLeafLevel)
+						{
+							node = pmap + next;
+							idx >>= 3;
+							OctreeNode.SetLeaf(node);
+							break;
+						}
+					}
+
+					node = pmap + next;
+					idx >>= 3;
+
+					if (l >= minLeafLevel && OctreeNode.IsLeaf(node))
+						break;
+				}
+
+				idx &= 7;
+				pidx = *((byte*)node + idx);
+				if (pidx == byte.MaxValue)
+				{
+					pidx = findNearestColor(ppal, ppix);
+					*((byte*)node + idx) = (byte)pidx;
+				}
+
+				byte* pcol = (byte*)(ppal + pidx);
+				db = (byte)(ppix      ) - pcol[0];
+				dg = (byte)(ppix >>  8) - pcol[1];
+				dr = (byte)(ppix >> 16) - pcol[2];
 
 				FoundExact:
-				psums = (int*)((ushort*)prnod + 8);
 				ip += sizeof(uint);
-				*op++ = (byte)psums[3];
+				*op++ = (byte)pidx;
 
 				ep[-4] = perb + db + db;
 				ep[-3] = perg + dg + dg;
@@ -818,112 +902,106 @@ namespace PhotoSauce.MagicScaler
 			ep[-2] = perr;
 		}
 
-		private void remap(byte* pimage, byte* pout, uint* pilut, OctreeNode* ptree, uint* ppal, ref nuint nextFree, nint cp)
+		private void remap(byte* pimage, byte* pout, uint* pilut, OctreeNode* pmap, uint* ppal, ref nuint nextFree, nint cp)
 		{
-			var transnode = new OctreeNode();
-			transnode.Sums[3] = (uint)palEntries - 1;
-
 			nuint level = leafLevel;
-			var prnod = default(OctreeNode*);
+			nuint trans = (uint)paletteLength - 1;
+			nuint pidx = trans;
 
 			byte* ip = pimage, ipe = ip + cp * sizeof(uint);
 			byte* op = pout;
 
-			uint ppix = 0;
+			nuint ppix = 0;
 			do
 			{
 				if (ip[3] < alphaThreshold)
 				{
 					ppix = 0;
-					prnod = &transnode;
+					pidx = trans;
 					goto Found;
 				}
 
-				uint cpix = *(uint*)ip;
+				nuint cpix = *(uint*)ip;
 				if (ppix == cpix)
 					goto Found;
 
 				ppix = cpix;
-				nuint idx = pilut[(nuint)(byte)ppix] | pilut[(nuint)(byte)(ppix >> 8) + 256] | pilut[(nuint)(byte)(ppix >> 16) + 512];
-				prnod = findNearestNode(ptree, ppal, ref nextFree, idx, level, ppix);
+				nuint idx = getNodeIndex(pilut, ppix);
+
+				var node = pmap + (idx & 7);
+				idx >>= 3;
+
+				for (nuint l = 1; l <= level; l++)
+				{
+					ushort* childloc = (ushort*)node + (idx & 7);
+					nuint next = *childloc;
+					if (next == 0 && (l <= minLeafLevel || OctreeNode.HasChildren(node)))
+					{
+						next = nextFree++;
+						*childloc = (ushort)next;
+
+						if (l >= minLeafLevel)
+						{
+							node = pmap + next;
+							idx >>= 3;
+							OctreeNode.SetLeaf(node);
+							break;
+						}
+					}
+
+					node = pmap + next;
+					idx >>= 3;
+
+					if (l >= minLeafLevel && OctreeNode.IsLeaf(node))
+						break;
+				}
+
+				idx &= 7;
+				pidx = *((byte*)node + idx);
+				if (pidx == byte.MaxValue)
+				{
+					pidx = findNearestColor(ppal, (uint)ppix);
+					*((byte*)node + idx) = (byte)pidx;
+				}
 
 				Found:
-				int* psums = (int*)((ushort*)prnod + 8);
 				ip += sizeof(uint);
-				*op++ = (byte)psums[3];
+				*op++ = (byte)pidx;
 			}
 			while (ip < ipe);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private OctreeNode* findNearestNode(OctreeNode* ptree, uint* ppal, ref nuint nextFree, nuint idx, nuint level, uint ppix)
+		private uint findNearestColor(uint* ppal, uint color)
 		{
-			nuint next = idx & 7;
-			var pnode = ptree + next;
+			uint dist = int.MaxValue;
+			uint pidx = (uint)paletteLength - 1;
+			nuint plen = pidx;
 
-			for (nuint i = 0; i <= level; i++)
+			int cb = (byte)(color      );
+			int cg = (byte)(color >>  8);
+			int cr = (byte)(color >> 16);
+
+			for (nuint i = 0; i < plen; i++)
 			{
-				idx >>= 3;
-				nuint child = idx & 7;
+				byte* pc = (byte*)(ppal + i);
+				int db = pc[0] - cb;
+				int dg = pc[1] - cg;
+				int dr = pc[2] - cr;
+				int rr = pc[2] + cr;
 
-				ushort* children = (ushort*)pnode;
-				next = children[child];
-				if (next == 0)
+				uint dd = (uint)(dr * dr * (0x400 + rr) + dg * dg * 0x800 + db * db * (0x600 - rr));
+				if (dd < dist)
 				{
-					uint* sums = (uint*)(children + 8);
-
-					if (i < minLeafLevel)
-					{
-						next = nextFree++;
-						children[child] = (ushort)next;
-						pnode = ptree + next;
-
-						if (i == minLeafLevel - 1)
-						{
-							initNode(pnode, ppal, ppix);
-							break;
-						}
-						else
-						{
-							uint* csums = (uint*)((ushort*)pnode + 8);
-							csums[3] = nonLeafMarker;
-						}
-					}
-					else if ((byte)sums[3] == nonLeafMarker)
-					{
-						for (nuint j = 1; j < 8; j++)
-						{
-							nuint sibling = children[child ^ j];
-							if (sibling != 0)
-							{
-								var snode = ptree + sibling;
-								uint* ssums = (uint*)((ushort*)snode + 8);
-								if ((byte)ssums[3] == nonLeafMarker)
-								{
-									next = sibling;
-									idx = (idx & ~0x3fu) | (child << 3);
-									break;
-								}
-								else
-								{
-									return snode;
-								}
-							}
-						}
-					}
-					else
-					{
-						break;
-					}
+					dist = dd;
+					pidx = (uint)i;
 				}
-
-				pnode = ptree + next;
 			}
 
-			return pnode;
+			return pidx;
 		}
 
-		private void getNodeCounts(Span<int> counts)
+		private static void getNodeCounts(Span<OctreeNode> nodeBuffer, Span<int> counts)
 		{
 			fixed (OctreeNode* ptree = nodeBuffer)
 			fixed (int* pcounts = counts)
@@ -938,7 +1016,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private int getReservedCount()
+		private static int getReservedCount(Span<OctreeNode> nodeBuffer, bool isSubsampled)
 		{
 			if (!isSubsampled)
 				return 1;
@@ -949,7 +1027,7 @@ namespace PhotoSauce.MagicScaler
 				for (nuint i = 0; i < 8; i++)
 				{
 					var node = ptree + i;
-					if (!OctreeNode.HasChildren(node))
+					if (!OctreeNode.HasChildrenMasked(node))
 					{
 						reserved += 8;
 					}
@@ -958,7 +1036,7 @@ namespace PhotoSauce.MagicScaler
 						ushort* children = (ushort*)node;
 						for (nuint j = 0; j < 8; j++)
 						{
-							if (children[j] == 0)
+							if (((uint)children[j] & OctreeNode.ChildMask) == 0)
 								reserved++;
 						}
 					}
@@ -968,7 +1046,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private int getPixelCount()
+		private static int getPixelCount(Span<OctreeNode> nodeBuffer, uint leafLevel)
 		{
 			fixed (OctreeNode* ptree = nodeBuffer)
 			{
@@ -978,7 +1056,7 @@ namespace PhotoSauce.MagicScaler
 					uint level = OctreeNode.GetLevel(ptree + i);
 					if (level == leafLevel)
 					{
-						uint* sums = (uint*)((ushort*)(ptree + i) + 8);
+						uint* sums = (uint*)(ptree + i);
 						count += sums[3] & OctreeNode.CountMask;
 					}
 				}
@@ -995,69 +1073,19 @@ namespace PhotoSauce.MagicScaler
 			return MathUtil.Lerp(gt[ival], gt[ival + 1], val - (int)ival);
 		}
 
-#if HWINTRINSICS
-		private void initNode(OctreeNode* node, uint* ppal, Vector128<int> color)
-		{
-			int cb = Sse2.ConvertToInt32(color);
-			int cg = Sse2.Extract(color.AsUInt16(), 2);
-			int cr = Sse2.Extract(color.AsUInt16(), 4);
-
-			initNode(node, ppal, cb, cg, cr);
-		}
-#endif
-
-		private void initNode(OctreeNode* node, uint* ppal, uint color)
-		{
-			int cb = (byte)(color);
-			int cg = (byte)(color >>  8);
-			int cr = (byte)(color >> 16);
-
-			initNode(node, ppal, cb, cg, cr);
-		}
-
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private void initNode(OctreeNode* node, uint* ppal, int cb, int cg, int cr)
-		{
-			uint dist = uint.MaxValue;
-			uint pidx = (uint)palEntries - 1;
-			nuint plen = pidx;
-
-			for (nuint i = 0; i < plen; i++)
-			{
-				byte* pc = (byte*)(ppal + i);
-				int pb = pc[0];
-				int pg = pc[1];
-				int pr = pc[2];
-
-				int db = pb - cb;
-				int dg = pg - cg;
-				int dr = pr - cr;
-
-				uint dd = (uint)(dr * dr + dg * dg + db * db);
-				if (dd < dist)
-				{
-					dist = dd;
-					pidx = (uint)i;
-				}
-			}
-
-			uint* sums = (uint*)((ushort*)node + 8);
-			uint mc = ppal[pidx];
-
-			sums[0] = (byte)(mc      );
-			sums[1] = (byte)(mc >>  8);
-			sums[2] = (byte)(mc >> 16);
-			sums[3] = pidx;
-		}
+		private static nuint getNodeIndex(uint* plut, nuint bgr) =>
+			plut[(nuint)(byte)(bgr      )      ] |
+			plut[(nuint)(byte)(bgr >>  8) + 256] |
+			plut[(nuint)(byte)(bgr >> 16) + 512];
 
 		private static void initFreeList(Span<ushort> listBuff)
 		{
 			const int reserveNodes = 8;
 			nint maxFree = listBuff.Length - reserveNodes;
 
-			ref ushort listStart = ref listBuff[0];
-			ref ushort listEnd = ref Unsafe.Add(ref listStart, maxFree);
-			ref ushort listPtr = ref listStart;
+			ref byte listStart = ref Unsafe.As<ushort, byte>(ref listBuff[0]), listPtr = ref listStart;
+			ref byte listEnd = ref Unsafe.Add(ref listStart, maxFree * sizeof(ushort));
 
 			if (Vector.IsHardwareAccelerated && maxFree > Vector<ushort>.Count)
 			{
@@ -1068,63 +1096,97 @@ namespace PhotoSauce.MagicScaler
 				var vslot = Unsafe.ReadUnaligned<Vector<ushort>>(ref MemoryMarshal.GetReference(slots));
 				var vincr = new Vector<ushort>((ushort)Vector<ushort>.Count);
 
-				listEnd = ref Unsafe.Subtract(ref listEnd, Vector<ushort>.Count);
 				do
 				{
-					Unsafe.WriteUnaligned(ref Unsafe.As<ushort, byte>(ref listPtr), vslot);
-					listPtr = ref Unsafe.Add(ref listPtr, Vector<ushort>.Count);
+					Unsafe.WriteUnaligned(ref listPtr, vslot);
+					listPtr = ref Unsafe.Add(ref listPtr, Unsafe.SizeOf<Vector<ushort>>());
 					vslot += vincr;
 				}
-				while (Unsafe.IsAddressLessThan(ref listPtr, ref listEnd));
-				listEnd = ref Unsafe.Add(ref listEnd, Vector<ushort>.Count);
+				while (!Unsafe.IsAddressGreaterThan(ref listPtr, ref Unsafe.Subtract(ref listEnd, Unsafe.SizeOf<Vector<ushort>>())));
 			}
 
 			uint islot = (uint)Unsafe.ByteOffset(ref listStart, ref listPtr) / sizeof(ushort) + reserveNodes;
 			islot |= islot + 1 << 16;
 
-			listEnd = ref Unsafe.Subtract(ref listEnd, 2);
-			while (Unsafe.IsAddressLessThan(ref listPtr, ref listEnd))
+			while (!Unsafe.IsAddressGreaterThan(ref listPtr, ref Unsafe.Subtract(ref listEnd, sizeof(uint))))
 			{
-				Unsafe.WriteUnaligned(ref Unsafe.As<ushort, byte>(ref listPtr), islot);
-				listPtr = ref Unsafe.Add(ref listPtr, 2);
+				Unsafe.WriteUnaligned(ref listPtr, islot);
+				listPtr = ref Unsafe.Add(ref listPtr, sizeof(uint));
 				islot += 0x00020002;
 			}
 
-			if ((maxFree & 1) == 1)
-				Unsafe.WriteUnaligned(ref Unsafe.As<ushort, byte>(ref listPtr), (ushort)islot);
+			if (Unsafe.IsAddressLessThan(ref listPtr, ref listEnd))
+			{
+				Unsafe.WriteUnaligned(ref listPtr, (ushort)islot);
+				listPtr = ref Unsafe.Add(ref listPtr, sizeof(ushort));
+			}
 
-			Unsafe.InitBlockUnaligned(ref Unsafe.As<ushort, byte>(ref Unsafe.Add(ref listPtr, 1)), 0, reserveNodes * sizeof(ushort));
+			Unsafe.InitBlockUnaligned(ref listPtr, 0, reserveNodes * sizeof(ushort));
 		}
 
+		[StructLayout(LayoutKind.Explicit)]
 		private struct OctreeNode
 		{
 			public const uint LevelMask = 7u << 29;
 			public const uint CountMask = ~LevelMask;
+			public const uint LeafMarker = uint.MaxValue;
+			public const ushort ChildMask = (ushort)(CountMask >> 16);
 
+			[FieldOffset(0)]
 			public fixed ushort ChildNodes[8];
-			public fixed uint Sums[4];
+			[FieldOffset(0)]
+			public fixed uint IntSums[4];
+			[FieldOffset(0)]
+			public fixed uint FloatSums[4];
+
+			public static ReadOnlySpan<byte> SumsMask => new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x1f };
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static void AddSample(OctreeNode* node, uint bgr)
 			{
-				uint* sums = (uint*)((ushort*)node + 8);
-
 #if HWINTRINSICS
 				if (Sse41.IsSupported)
 				{
 					bgr &= 0x00ffffff;
 					bgr |= 0x01000000;
 					var vbgr = Sse41.ConvertToVector128Int32(Sse2.ConvertScalarToVector128UInt32(bgr).AsByte()).AsUInt32();
-					Sse2.Store(sums, Sse2.Add(vbgr, Sse2.LoadVector128(sums)));
+					Sse2.Store((uint*)node, Sse2.Add(vbgr, Sse2.LoadVector128((uint*)node)));
+				}
+				else
+#endif
+				{
+					uint* sums = (uint*)node;
+					sums[0] += (byte)(bgr      );
+					sums[1] += (byte)(bgr >>  8);
+					sums[2] += (byte)(bgr >> 16);
+					sums[3]++;
+				}
+			}
 
-					return;
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool HasChildrenMasked(OctreeNode* node)
+			{
+				ushort* children = (ushort*)node;
+
+#if HWINTRINSICS
+				if (Sse2.IsSupported)
+				{
+					var vmsk = Unsafe.As<byte, Vector128<ushort>>(ref MemoryMarshal.GetReference(SumsMask));
+					var veq = Sse2.CompareEqual(Vector128<ushort>.Zero, Sse2.And(vmsk, Sse2.LoadVector128(children)));
+
+#pragma warning disable IDE0075 // https://github.com/dotnet/runtime/issues/4207
+					return Sse2.MoveMask(veq.AsByte()) == ushort.MaxValue ? false : true;
+#pragma warning restore IDE0075
 				}
 #endif
 
-				sums[0] += (byte)(bgr      );
-				sums[1] += (byte)(bgr >>  8);
-				sums[2] += (byte)(bgr >> 16);
-				sums[3]++;
+				for (nuint i = 0; i < 8; i++)
+				{
+					if (((uint)children[i] & ChildMask) != 0)
+						return true;
+				}
+
+				return false;
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1136,7 +1198,10 @@ namespace PhotoSauce.MagicScaler
 				if (Sse2.IsSupported)
 				{
 					var veq = Sse2.CompareEqual(Vector128<ushort>.Zero, Sse2.LoadVector128(children));
-					return Sse2.MoveMask(veq.AsByte()) != ushort.MaxValue;
+
+#pragma warning disable IDE0075 // https://github.com/dotnet/runtime/issues/4207
+					return Sse2.MoveMask(veq.AsByte()) == ushort.MaxValue ? false : true;
+#pragma warning restore IDE0075
 				}
 #endif
 
@@ -1150,42 +1215,27 @@ namespace PhotoSauce.MagicScaler
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool HasOnlyChild(OctreeNode* node)
-			{
-				ushort* children = (ushort*)node;
-
-#if HWINTRINSICS
-				if (Popcnt.IsSupported)
-				{
-					var veq = Sse2.CompareEqual(Vector128<ushort>.Zero, Sse2.LoadVector128(children));
-					return Popcnt.PopCount((uint)Sse2.MoveMask(veq.AsByte())) == Vector128<byte>.Count - sizeof(ushort);
-				}
-#endif
-
-				uint cnt = 0;
-				for (nuint i = 0; i < 8; i++)
-				{
-					if (children[i] != 0 && ++cnt > 1)
-						return false;
-				}
-
-				return cnt == 1;
-			}
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static uint GetLevel(OctreeNode* node)
 			{
-				uint* sums = (uint*)((ushort*)node + 8);
-
-				return (sums[3] & LevelMask) >> 29;
+				return (*((uint*)node + 3) & LevelMask) >> 29;
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static void SetLevel(OctreeNode* node, uint level)
 			{
-				uint* sums = (uint*)((ushort*)node + 8);
+				*((uint*)node + 3) |= level << 29;
+			}
 
-				sums[3] |= level << 29;
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool IsLeaf(OctreeNode* node)
+			{
+				return *((uint*)node + 3) == LeafMarker;
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void SetLeaf(OctreeNode* node)
+			{
+				Unsafe.InitBlockUnaligned(node, byte.MaxValue, (uint)sizeof(OctreeNode));
 			}
 		}
 

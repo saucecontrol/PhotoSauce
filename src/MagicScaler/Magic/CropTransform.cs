@@ -10,13 +10,15 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public override int Width => srcArea.Width;
 		public override int Height => srcArea.Height;
+		public override bool Passthrough { get; }
 
-		public CropTransform(PixelSource source, in PixelArea crop) : base(source)
+		public CropTransform(PixelSource source, in PixelArea crop, bool replay = false) : base(source)
 		{
 			if (crop.X + crop.Width > PrevSource.Width || crop.Y + crop.Height > PrevSource.Height)
 				throw new ArgumentOutOfRangeException(nameof(crop));
 
 			srcArea = crop;
+			Passthrough = !replay;
 		}
 
 		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)

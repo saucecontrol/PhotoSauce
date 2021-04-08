@@ -119,7 +119,7 @@ namespace PhotoSauce.MagicScaler
 			using var pal = default(ComPtr<IWICPalette>);
 			HRESULT.Check(Wic.Factory->CreatePalette(pal.GetAddressOf()));
 
-			var pp = MagicImageProcessor.EnablePixelSourceStats ? ctx.AddProfiler(new ProcessingProfiler(nameof(IWICPalette))) : NoopProfiler.Instance;
+			var pp = MagicImageProcessor.EnablePixelSourceStats ? ctx.AddProfiler(new ProcessingProfiler(nameof(IWICPalette) + "." + nameof(IWICPalette.InitializeFromBitmap))) : NoopProfiler.Instance;
 			pp.ResumeTiming(ctx.Source.Area);
 			HRESULT.Check(pal.Get()->InitializeFromBitmap(ctx.Source.AsIWICBitmapSource(), 256u, tcolor));
 			ctx.WicContext.DestPalette = pal.Detach();

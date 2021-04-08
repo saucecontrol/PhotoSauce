@@ -507,7 +507,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			uint bgColor = ((WicGifContainer)ctx.ImageContainer).BackgroundColor;
 			var ppt = MagicImageProcessor.EnablePixelSourceStats ? ctx.AddProfiler(new ProcessingProfiler(nameof(TemporalFilters))) : NoopProfiler.Instance;
-			var pph = MagicImageProcessor.EnablePixelSourceStats ? ctx.AddProfiler(new ProcessingProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.CreateHistogram))) : NoopProfiler.Instance;
+			var pph = MagicImageProcessor.EnablePixelSourceStats ? ctx.AddProfiler(new ProcessingProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.CreatePalette))) : NoopProfiler.Instance;
 			var ppq = MagicImageProcessor.EnablePixelSourceStats ? ctx.AddProfiler(new ProcessingProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.Quantize))) : NoopProfiler.Instance;
 
 			writeFrame(Current, pph, ppq);
@@ -588,7 +588,7 @@ namespace PhotoSauce.MagicScaler
 			var buffISpan = buffI.Span.Slice(src.Area.Y * buffI.Stride + src.Area.X * buffI.Format.BytesPerPixel);
 
 			pph.ResumeTiming(src.Area);
-			quant.CreateHistogram(buffCSpan, src.Area.Width, src.Area.Height, buffC.Stride);
+			quant.CreatePalette(buffCSpan, src.Area.Width, src.Area.Height, buffC.Stride);
 			pph.PauseTiming();
 
 			ppq.ResumeTiming(src.Area);

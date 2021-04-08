@@ -468,6 +468,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 				ctx.Source = ani.FrameOverlay;
 			}
+
+			if (ctx.Source.Width > gif.ScreenWidth || ctx.Source.Height > gif.ScreenHeight)
+				ctx.Source = new CropTransform(ctx.Source, new PixelArea(0, 0, gif.ScreenWidth, gif.ScreenHeight), true);
 		}
 	}
 }

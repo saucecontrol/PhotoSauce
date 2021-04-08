@@ -7,14 +7,12 @@ namespace PhotoSauce.MagicScaler.Transforms
 {
 	internal sealed class PadTransformInternal : ChainedPixelSource
 	{
-		private readonly bool passthrough;
 		private readonly uint fill;
 		private readonly PixelArea inner;
 
 		public override int Width { get; }
 		public override int Height { get; }
-
-		public override bool Passthrough => passthrough;
+		public override bool Passthrough { get; }
 
 		public PadTransformInternal(PixelSource source, Color color, PixelArea innerArea, PixelArea outerArea, bool replay = false) : base(source)
 		{
@@ -22,11 +20,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 				throw new NotSupportedException("Pixel format not supported.");
 
 			fill = (uint)color.ToArgb();
-
-			passthrough = !replay;
 			inner = innerArea;
 			Width = outerArea.Width;
 			Height = outerArea.Height;
+			Passthrough = !replay;
 		}
 
 		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
