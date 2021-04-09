@@ -132,14 +132,14 @@ namespace PhotoSauce.Interop.Wic
 		}
 
 #if BUILTIN_CSHARP9
-		public static readonly delegate* unmanaged<IWICBitmapSourceImpl*, Guid*, void**, int> pfnQueryInterface = &QueryInterface;
-		public static readonly delegate* unmanaged<IWICBitmapSourceImpl*, uint> pfnAddRef = &AddRef;
-		public static readonly delegate* unmanaged<IWICBitmapSourceImpl*, uint> pfnRelease = &Release;
-		public static readonly delegate* unmanaged<IWICBitmapSourceImpl*, uint*, uint*, int> pfnGetSize = &GetSize;
-		public static readonly delegate* unmanaged<IWICBitmapSourceImpl*, Guid*, int> pfnGetPixelFormat = &GetPixelFormat;
-		public static readonly delegate* unmanaged<IWICBitmapSourceImpl*, double*, double*, int> pfnGetResolution = &GetResolution;
-		public static readonly delegate* unmanaged<IWICBitmapSourceImpl*, IWICPalette*, int> pfnCopyPalette = &CopyPalette;
-		public static readonly delegate* unmanaged<IWICBitmapSourceImpl*, WICRect*, uint, uint, byte*, int> pfnCopyPixels = &CopyPixels;
+		private static readonly delegate* unmanaged<IWICBitmapSourceImpl*, Guid*, void**, int> pfnQueryInterface = &QueryInterface;
+		private static readonly delegate* unmanaged<IWICBitmapSourceImpl*, uint> pfnAddRef = &AddRef;
+		private static readonly delegate* unmanaged<IWICBitmapSourceImpl*, uint> pfnRelease = &Release;
+		private static readonly delegate* unmanaged<IWICBitmapSourceImpl*, uint*, uint*, int> pfnGetSize = &GetSize;
+		private static readonly delegate* unmanaged<IWICBitmapSourceImpl*, Guid*, int> pfnGetPixelFormat = &GetPixelFormat;
+		private static readonly delegate* unmanaged<IWICBitmapSourceImpl*, double*, double*, int> pfnGetResolution = &GetResolution;
+		private static readonly delegate* unmanaged<IWICBitmapSourceImpl*, IWICPalette*, int> pfnCopyPalette = &CopyPalette;
+		private static readonly delegate* unmanaged<IWICBitmapSourceImpl*, WICRect*, uint, uint, byte*, int> pfnCopyPixels = &CopyPixels;
 #else
 		[UnmanagedFunctionPointer(CallingConvention.StdCall)] public delegate int QueryInterfaceDelegate(IWICBitmapSourceImpl* pinst, Guid* riid, void** ppvObject);
 		[UnmanagedFunctionPointer(CallingConvention.StdCall)] public delegate uint AddRefDelegate(IWICBitmapSourceImpl* pinst);
@@ -150,23 +150,23 @@ namespace PhotoSauce.Interop.Wic
 		[UnmanagedFunctionPointer(CallingConvention.StdCall)] public delegate int CopyPaletteDelegate(IWICBitmapSourceImpl* pinst, IWICPalette* pIPalette);
 		[UnmanagedFunctionPointer(CallingConvention.StdCall)] public delegate int CopyPixelsDelegate(IWICBitmapSourceImpl* pinst, WICRect* prc, uint cbStride, uint cbBufferSize, byte* pbBuffer);
 
-		public static readonly QueryInterfaceDelegate delQueryInterface = (QueryInterfaceDelegate)typeof(IWICBitmapSourceImpl).GetMethod(nameof(QueryInterface))!.CreateDelegate(typeof(QueryInterfaceDelegate), null);
-		public static readonly AddRefDelegate delAddRef = (AddRefDelegate)typeof(IWICBitmapSourceImpl).GetMethod(nameof(AddRef))!.CreateDelegate(typeof(AddRefDelegate), null);
-		public static readonly ReleaseDelegate delRelease = (ReleaseDelegate)typeof(IWICBitmapSourceImpl).GetMethod(nameof(Release))!.CreateDelegate(typeof(ReleaseDelegate), null);
-		public static readonly GetSizeDelegate delGetSize = (GetSizeDelegate)typeof(IWICBitmapSourceImpl).GetMethod(nameof(GetSize))!.CreateDelegate(typeof(GetSizeDelegate), null);
-		public static readonly GetPixelFormatDelegate delGetPixelFormat = (GetPixelFormatDelegate)typeof(IWICBitmapSourceImpl).GetMethod(nameof(GetPixelFormat))!.CreateDelegate(typeof(GetPixelFormatDelegate), null);
-		public static readonly GetResolutionDelegate delGetResolution = (GetResolutionDelegate)typeof(IWICBitmapSourceImpl).GetMethod(nameof(GetResolution))!.CreateDelegate(typeof(GetResolutionDelegate), null);
-		public static readonly CopyPaletteDelegate delCopyPalette = (CopyPaletteDelegate)typeof(IWICBitmapSourceImpl).GetMethod(nameof(CopyPalette))!.CreateDelegate(typeof(CopyPaletteDelegate), null);
-		public static readonly CopyPixelsDelegate delCopyPixels = (CopyPixelsDelegate)typeof(IWICBitmapSourceImpl).GetMethod(nameof(CopyPixels))!.CreateDelegate(typeof(CopyPixelsDelegate), null);
+		private static readonly QueryInterfaceDelegate delQueryInterface = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<QueryInterfaceDelegate>(nameof(QueryInterface));
+		private static readonly AddRefDelegate delAddRef = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<AddRefDelegate>(nameof(AddRef));
+		private static readonly ReleaseDelegate delRelease = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<ReleaseDelegate>(nameof(Release));
+		private static readonly GetSizeDelegate delGetSize = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<GetSizeDelegate>(nameof(GetSize));
+		private static readonly GetPixelFormatDelegate delGetPixelFormat = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<GetPixelFormatDelegate>(nameof(GetPixelFormat));
+		private static readonly GetResolutionDelegate delGetResolution = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<GetResolutionDelegate>(nameof(GetResolution));
+		private static readonly CopyPaletteDelegate delCopyPalette = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<CopyPaletteDelegate>(nameof(CopyPalette));
+		private static readonly CopyPixelsDelegate delCopyPixels = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<CopyPixelsDelegate>(nameof(CopyPixels));
 
-		public static readonly delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, Guid*, void**, int> pfnQueryInterface = (delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, Guid*, void**, int>)Marshal.GetFunctionPointerForDelegate(delQueryInterface);
-		public static readonly delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, uint> pfnAddRef = (delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, uint>)Marshal.GetFunctionPointerForDelegate(delAddRef);
-		public static readonly delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, uint> pfnRelease = (delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, uint>)Marshal.GetFunctionPointerForDelegate(delRelease);
-		public static readonly delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, uint*, uint*, int> pfnGetSize = (delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, uint*, uint*, int>)Marshal.GetFunctionPointerForDelegate(delGetSize);
-		public static readonly delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, Guid*, int> pfnGetPixelFormat = (delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, Guid*, int>)Marshal.GetFunctionPointerForDelegate(delGetPixelFormat);
-		public static readonly delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, double*, double*, int> pfnGetResolution = (delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, double*, double*, int>)Marshal.GetFunctionPointerForDelegate(delGetResolution);
-		public static readonly delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, IWICPalette*, int> pfnCopyPalette = (delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, IWICPalette*, int>)Marshal.GetFunctionPointerForDelegate(delCopyPalette);
-		public static readonly delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, WICRect*, uint, uint, byte*, int> pfnCopyPixels = (delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, WICRect*, uint, uint, byte*, int>)Marshal.GetFunctionPointerForDelegate(delCopyPixels);
+		private static readonly delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, Guid*, void**, int> pfnQueryInterface = (delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, Guid*, void**, int>)Marshal.GetFunctionPointerForDelegate(delQueryInterface);
+		private static readonly delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, uint> pfnAddRef = (delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, uint>)Marshal.GetFunctionPointerForDelegate(delAddRef);
+		private static readonly delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, uint> pfnRelease = (delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, uint>)Marshal.GetFunctionPointerForDelegate(delRelease);
+		private static readonly delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, uint*, uint*, int> pfnGetSize = (delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, uint*, uint*, int>)Marshal.GetFunctionPointerForDelegate(delGetSize);
+		private static readonly delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, Guid*, int> pfnGetPixelFormat = (delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, Guid*, int>)Marshal.GetFunctionPointerForDelegate(delGetPixelFormat);
+		private static readonly delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, double*, double*, int> pfnGetResolution = (delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, double*, double*, int>)Marshal.GetFunctionPointerForDelegate(delGetResolution);
+		private static readonly delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, IWICPalette*, int> pfnCopyPalette = (delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, IWICPalette*, int>)Marshal.GetFunctionPointerForDelegate(delCopyPalette);
+		private static readonly delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, WICRect*, uint, uint, byte*, int> pfnCopyPixels = (delegate* unmanaged[Stdcall]<IWICBitmapSourceImpl*, WICRect*, uint, uint, byte*, int>)Marshal.GetFunctionPointerForDelegate(delCopyPixels);
 #endif
 
 		private static readonly void** vtblStatic = createVtbl();

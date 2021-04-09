@@ -8,13 +8,11 @@ using System.Threading;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
-#if !BUILTIN_SPAN
-using PhotoSauce.MagicScaler;
-#endif
-
 using TerraFX.Interop;
 using static TerraFX.Interop.Windows;
 using STATSTG = TerraFX.Interop.STATSTG;
+
+using PhotoSauce.MagicScaler;
 
 namespace PhotoSauce.Interop.Wic
 {
@@ -197,20 +195,20 @@ namespace PhotoSauce.Interop.Wic
 		public int Clone(IStreamImpl* pinst, IStream** ppstm) => E_NOTIMPL;
 
 #if BUILTIN_CSHARP9
-		public static readonly delegate* unmanaged<IStreamImpl*, Guid*, void**, int> pfnQueryInterface = &QueryInterface;
-		public static readonly delegate* unmanaged<IStreamImpl*, uint> pfnAddRef = &AddRef;
-		public static readonly delegate* unmanaged<IStreamImpl*, uint> pfnRelease = &Release;
-		public static readonly delegate* unmanaged<IStreamImpl*, void*, uint, uint*, int> pfnRead = &Read;
-		public static readonly delegate* unmanaged<IStreamImpl*, void*, uint, uint*, int> pfnWrite = &Write;
-		public static readonly delegate* unmanaged<IStreamImpl*, LARGE_INTEGER, uint, ULARGE_INTEGER*, int> pfnSeek = &Seek;
-		public static readonly delegate* unmanaged<IStreamImpl*, ULARGE_INTEGER, int> pfnSetSize = &SetSize;
-		public static readonly delegate* unmanaged<IStreamImpl*, IStream*, ULARGE_INTEGER, ULARGE_INTEGER*, ULARGE_INTEGER*, int> pfnCopyTo = &CopyTo;
-		public static readonly delegate* unmanaged<IStreamImpl*, uint, int> pfnCommit = &Commit;
-		public static readonly delegate* unmanaged<IStreamImpl*, int> pfnRevert = &Revert;
-		public static readonly delegate* unmanaged<IStreamImpl*, ULARGE_INTEGER, ULARGE_INTEGER, uint, int> pfnLockRegion = &LockRegion;
-		public static readonly delegate* unmanaged<IStreamImpl*, ULARGE_INTEGER, ULARGE_INTEGER, uint, int> pfnUnlockRegion = &UnlockRegion;
-		public static readonly delegate* unmanaged<IStreamImpl*, STATSTG*, uint, int> pfnStat = &Stat;
-		public static readonly delegate* unmanaged<IStreamImpl*, IStream**, int> pfnClone = &Clone;
+		private static readonly delegate* unmanaged<IStreamImpl*, Guid*, void**, int> pfnQueryInterface = &QueryInterface;
+		private static readonly delegate* unmanaged<IStreamImpl*, uint> pfnAddRef = &AddRef;
+		private static readonly delegate* unmanaged<IStreamImpl*, uint> pfnRelease = &Release;
+		private static readonly delegate* unmanaged<IStreamImpl*, void*, uint, uint*, int> pfnRead = &Read;
+		private static readonly delegate* unmanaged<IStreamImpl*, void*, uint, uint*, int> pfnWrite = &Write;
+		private static readonly delegate* unmanaged<IStreamImpl*, LARGE_INTEGER, uint, ULARGE_INTEGER*, int> pfnSeek = &Seek;
+		private static readonly delegate* unmanaged<IStreamImpl*, ULARGE_INTEGER, int> pfnSetSize = &SetSize;
+		private static readonly delegate* unmanaged<IStreamImpl*, IStream*, ULARGE_INTEGER, ULARGE_INTEGER*, ULARGE_INTEGER*, int> pfnCopyTo = &CopyTo;
+		private static readonly delegate* unmanaged<IStreamImpl*, uint, int> pfnCommit = &Commit;
+		private static readonly delegate* unmanaged<IStreamImpl*, int> pfnRevert = &Revert;
+		private static readonly delegate* unmanaged<IStreamImpl*, ULARGE_INTEGER, ULARGE_INTEGER, uint, int> pfnLockRegion = &LockRegion;
+		private static readonly delegate* unmanaged<IStreamImpl*, ULARGE_INTEGER, ULARGE_INTEGER, uint, int> pfnUnlockRegion = &UnlockRegion;
+		private static readonly delegate* unmanaged<IStreamImpl*, STATSTG*, uint, int> pfnStat = &Stat;
+		private static readonly delegate* unmanaged<IStreamImpl*, IStream**, int> pfnClone = &Clone;
 #else
 		[UnmanagedFunctionPointer(CallingConvention.StdCall)] public delegate int QueryInterfaceDelegate(IStreamImpl* pinst, Guid* riid, void** ppvObject);
 		[UnmanagedFunctionPointer(CallingConvention.StdCall)] public delegate uint AddRefDelegate(IStreamImpl* pinst);
@@ -227,35 +225,35 @@ namespace PhotoSauce.Interop.Wic
 		[UnmanagedFunctionPointer(CallingConvention.StdCall)] public delegate int StatDelegate(IStreamImpl* pinst, STATSTG* pstatstg, uint grfStatFlag);
 		[UnmanagedFunctionPointer(CallingConvention.StdCall)] public delegate int CloneDelegate(IStreamImpl* pinst, IStream** ppstm);
 
-		public static readonly QueryInterfaceDelegate delQueryInterface = (QueryInterfaceDelegate)typeof(IStreamImpl).GetMethod(nameof(QueryInterface))!.CreateDelegate(typeof(QueryInterfaceDelegate), null);
-		public static readonly AddRefDelegate delAddRef = (AddRefDelegate)typeof(IStreamImpl).GetMethod(nameof(AddRef))!.CreateDelegate(typeof(AddRefDelegate), null);
-		public static readonly ReleaseDelegate delRelease = (ReleaseDelegate)typeof(IStreamImpl).GetMethod(nameof(Release))!.CreateDelegate(typeof(ReleaseDelegate), null);
-		public static readonly ReadDelegate delRead = (ReadDelegate)typeof(IStreamImpl).GetMethod(nameof(Read))!.CreateDelegate(typeof(ReadDelegate), null);
-		public static readonly WriteDelegate delWrite = (WriteDelegate)typeof(IStreamImpl).GetMethod(nameof(Write))!.CreateDelegate(typeof(WriteDelegate), null);
-		public static readonly SeekDelegate delSeek = (SeekDelegate)typeof(IStreamImpl).GetMethod(nameof(Seek))!.CreateDelegate(typeof(SeekDelegate), null);
-		public static readonly SetSizeDelegate delSetSize = (SetSizeDelegate)typeof(IStreamImpl).GetMethod(nameof(SetSize))!.CreateDelegate(typeof(SetSizeDelegate), null);
-		public static readonly CopyToDelegate delCopyTo = (CopyToDelegate)typeof(IStreamImpl).GetMethod(nameof(CopyTo))!.CreateDelegate(typeof(CopyToDelegate), null);
-		public static readonly CommitDelegate delCommit = (CommitDelegate)typeof(IStreamImpl).GetMethod(nameof(Commit))!.CreateDelegate(typeof(CommitDelegate), null);
-		public static readonly RevertDelegate delRevert = (RevertDelegate)typeof(IStreamImpl).GetMethod(nameof(Revert))!.CreateDelegate(typeof(RevertDelegate), null);
-		public static readonly LockRegionDelegate delLockRegion = (LockRegionDelegate)typeof(IStreamImpl).GetMethod(nameof(LockRegion))!.CreateDelegate(typeof(LockRegionDelegate), null);
-		public static readonly UnlockRegionDelegate delUnlockRegion = (UnlockRegionDelegate)typeof(IStreamImpl).GetMethod(nameof(UnlockRegion))!.CreateDelegate(typeof(UnlockRegionDelegate), null);
-		public static readonly StatDelegate delStat = (StatDelegate)typeof(IStreamImpl).GetMethod(nameof(Stat))!.CreateDelegate(typeof(StatDelegate), null);
-		public static readonly CloneDelegate delClone = (CloneDelegate)typeof(IStreamImpl).GetMethod(nameof(Clone))!.CreateDelegate(typeof(CloneDelegate), null);
+		private static readonly QueryInterfaceDelegate delQueryInterface = typeof(IStreamImpl).CreateMethodDelegate<QueryInterfaceDelegate>(nameof(QueryInterface));
+		private static readonly AddRefDelegate delAddRef = typeof(IStreamImpl).CreateMethodDelegate<AddRefDelegate>(nameof(AddRef));
+		private static readonly ReleaseDelegate delRelease = typeof(IStreamImpl).CreateMethodDelegate<ReleaseDelegate>(nameof(Release));
+		private static readonly ReadDelegate delRead = typeof(IStreamImpl).CreateMethodDelegate<ReadDelegate>(nameof(Read));
+		private static readonly WriteDelegate delWrite = typeof(IStreamImpl).CreateMethodDelegate<WriteDelegate>(nameof(Write));
+		private static readonly SeekDelegate delSeek = typeof(IStreamImpl).CreateMethodDelegate<SeekDelegate>(nameof(Seek));
+		private static readonly SetSizeDelegate delSetSize = typeof(IStreamImpl).CreateMethodDelegate<SetSizeDelegate>(nameof(SetSize));
+		private static readonly CopyToDelegate delCopyTo = typeof(IStreamImpl).CreateMethodDelegate<CopyToDelegate>(nameof(CopyTo));
+		private static readonly CommitDelegate delCommit = typeof(IStreamImpl).CreateMethodDelegate<CommitDelegate>(nameof(Commit));
+		private static readonly RevertDelegate delRevert = typeof(IStreamImpl).CreateMethodDelegate<RevertDelegate>(nameof(Revert));
+		private static readonly LockRegionDelegate delLockRegion = typeof(IStreamImpl).CreateMethodDelegate<LockRegionDelegate>(nameof(LockRegion));
+		private static readonly UnlockRegionDelegate delUnlockRegion = typeof(IStreamImpl).CreateMethodDelegate<UnlockRegionDelegate>(nameof(UnlockRegion));
+		private static readonly StatDelegate delStat = typeof(IStreamImpl).CreateMethodDelegate<StatDelegate>(nameof(Stat));
+		private static readonly CloneDelegate delClone = typeof(IStreamImpl).CreateMethodDelegate<CloneDelegate>(nameof(Clone));
 
-		public static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, Guid*, void**, int> pfnQueryInterface = (delegate* unmanaged[Stdcall]<IStreamImpl*, Guid*, void**, int>)Marshal.GetFunctionPointerForDelegate(delQueryInterface);
-		public static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, uint> pfnAddRef = (delegate* unmanaged[Stdcall]<IStreamImpl*, uint>)Marshal.GetFunctionPointerForDelegate(delAddRef);
-		public static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, uint> pfnRelease = (delegate* unmanaged[Stdcall]<IStreamImpl*, uint>)Marshal.GetFunctionPointerForDelegate(delRelease);
-		public static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, void*, uint, uint*, int> pfnRead = (delegate* unmanaged[Stdcall]<IStreamImpl*, void*, uint, uint*, int>)Marshal.GetFunctionPointerForDelegate(delRead);
-		public static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, void*, uint, uint*, int> pfnWrite = (delegate* unmanaged[Stdcall]<IStreamImpl*, void*, uint, uint*, int>)Marshal.GetFunctionPointerForDelegate(delWrite);
-		public static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, LARGE_INTEGER, uint, ULARGE_INTEGER*, int> pfnSeek = (delegate* unmanaged[Stdcall]<IStreamImpl*, LARGE_INTEGER, uint, ULARGE_INTEGER*, int>)Marshal.GetFunctionPointerForDelegate(delSeek);
-		public static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, ULARGE_INTEGER, int> pfnSetSize = (delegate* unmanaged[Stdcall]<IStreamImpl*, ULARGE_INTEGER, int>)Marshal.GetFunctionPointerForDelegate(delSetSize);
-		public static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, IStream*, ULARGE_INTEGER, ULARGE_INTEGER*, ULARGE_INTEGER*, int> pfnCopyTo = (delegate* unmanaged[Stdcall]<IStreamImpl*, IStream*, ULARGE_INTEGER, ULARGE_INTEGER*, ULARGE_INTEGER*, int>)Marshal.GetFunctionPointerForDelegate(delCopyTo);
-		public static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, uint, int> pfnCommit = (delegate* unmanaged[Stdcall]<IStreamImpl*, uint, int>)Marshal.GetFunctionPointerForDelegate(delCommit);
-		public static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, int> pfnRevert = (delegate* unmanaged[Stdcall]<IStreamImpl*, int>)Marshal.GetFunctionPointerForDelegate(delRevert);
-		public static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, ULARGE_INTEGER, ULARGE_INTEGER, uint, int> pfnLockRegion = (delegate* unmanaged[Stdcall]<IStreamImpl*, ULARGE_INTEGER, ULARGE_INTEGER, uint, int>)Marshal.GetFunctionPointerForDelegate(delLockRegion);
-		public static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, ULARGE_INTEGER, ULARGE_INTEGER, uint, int> pfnUnlockRegion = (delegate* unmanaged[Stdcall]<IStreamImpl*, ULARGE_INTEGER, ULARGE_INTEGER, uint, int>)Marshal.GetFunctionPointerForDelegate(delUnlockRegion);
-		public static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, STATSTG*, uint, int> pfnStat = (delegate* unmanaged[Stdcall]<IStreamImpl*, STATSTG*, uint, int>)Marshal.GetFunctionPointerForDelegate(delStat);
-		public static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, IStream**, int> pfnClone = (delegate* unmanaged[Stdcall]<IStreamImpl*, IStream**, int>)Marshal.GetFunctionPointerForDelegate(delClone);
+		private static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, Guid*, void**, int> pfnQueryInterface = (delegate* unmanaged[Stdcall]<IStreamImpl*, Guid*, void**, int>)Marshal.GetFunctionPointerForDelegate(delQueryInterface);
+		private static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, uint> pfnAddRef = (delegate* unmanaged[Stdcall]<IStreamImpl*, uint>)Marshal.GetFunctionPointerForDelegate(delAddRef);
+		private static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, uint> pfnRelease = (delegate* unmanaged[Stdcall]<IStreamImpl*, uint>)Marshal.GetFunctionPointerForDelegate(delRelease);
+		private static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, void*, uint, uint*, int> pfnRead = (delegate* unmanaged[Stdcall]<IStreamImpl*, void*, uint, uint*, int>)Marshal.GetFunctionPointerForDelegate(delRead);
+		private static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, void*, uint, uint*, int> pfnWrite = (delegate* unmanaged[Stdcall]<IStreamImpl*, void*, uint, uint*, int>)Marshal.GetFunctionPointerForDelegate(delWrite);
+		private static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, LARGE_INTEGER, uint, ULARGE_INTEGER*, int> pfnSeek = (delegate* unmanaged[Stdcall]<IStreamImpl*, LARGE_INTEGER, uint, ULARGE_INTEGER*, int>)Marshal.GetFunctionPointerForDelegate(delSeek);
+		private static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, ULARGE_INTEGER, int> pfnSetSize = (delegate* unmanaged[Stdcall]<IStreamImpl*, ULARGE_INTEGER, int>)Marshal.GetFunctionPointerForDelegate(delSetSize);
+		private static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, IStream*, ULARGE_INTEGER, ULARGE_INTEGER*, ULARGE_INTEGER*, int> pfnCopyTo = (delegate* unmanaged[Stdcall]<IStreamImpl*, IStream*, ULARGE_INTEGER, ULARGE_INTEGER*, ULARGE_INTEGER*, int>)Marshal.GetFunctionPointerForDelegate(delCopyTo);
+		private static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, uint, int> pfnCommit = (delegate* unmanaged[Stdcall]<IStreamImpl*, uint, int>)Marshal.GetFunctionPointerForDelegate(delCommit);
+		private static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, int> pfnRevert = (delegate* unmanaged[Stdcall]<IStreamImpl*, int>)Marshal.GetFunctionPointerForDelegate(delRevert);
+		private static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, ULARGE_INTEGER, ULARGE_INTEGER, uint, int> pfnLockRegion = (delegate* unmanaged[Stdcall]<IStreamImpl*, ULARGE_INTEGER, ULARGE_INTEGER, uint, int>)Marshal.GetFunctionPointerForDelegate(delLockRegion);
+		private static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, ULARGE_INTEGER, ULARGE_INTEGER, uint, int> pfnUnlockRegion = (delegate* unmanaged[Stdcall]<IStreamImpl*, ULARGE_INTEGER, ULARGE_INTEGER, uint, int>)Marshal.GetFunctionPointerForDelegate(delUnlockRegion);
+		private static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, STATSTG*, uint, int> pfnStat = (delegate* unmanaged[Stdcall]<IStreamImpl*, STATSTG*, uint, int>)Marshal.GetFunctionPointerForDelegate(delStat);
+		private static readonly delegate* unmanaged[Stdcall]<IStreamImpl*, IStream**, int> pfnClone = (delegate* unmanaged[Stdcall]<IStreamImpl*, IStream**, int>)Marshal.GetFunctionPointerForDelegate(delClone);
 #endif
 
 		private static readonly void** vtblStatic = createVtbl();

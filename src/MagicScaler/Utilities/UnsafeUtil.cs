@@ -1,5 +1,6 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
+using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -42,5 +43,10 @@ namespace PhotoSauce.MagicScaler
 			ref Unsafe.As<byte, T>(ref Unsafe.AddByteOffset(ref Unsafe.As<RawData>(o).Bytes, offset));
 
 		private sealed class RawData { public byte Bytes; }
+
+#if !BUILTIN_CSHARP9
+		public static T CreateMethodDelegate<T>(this Type t, string method) where T : Delegate =>
+			(T)t.GetMethod(method)!.CreateDelegate(typeof(T), null);
+#endif
 	}
 }

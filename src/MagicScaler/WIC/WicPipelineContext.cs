@@ -8,8 +8,8 @@ namespace PhotoSauce.MagicScaler
 {
 	internal sealed unsafe class WicPipelineContext : IDisposable
 	{
-		//TODO The ownership model for the IWICColorContext references stored here is funky because they belong to either a shared
-		//profile or to some other WIC component. Therefore we don't release them on Dispose. Shared ownership should be made explicit.
+		// TODO The ownership model for the IWICColorContext references stored here is funky because they belong to either a shared
+		// profile or to some other WIC component. Therefore we don't release them on Dispose. Shared ownership should be made explicit.
 		public IWICColorContext* SourceColorContext { get; set; }
 		public IWICColorContext* DestColorContext { get; set; }
 		public IWICPalette* DestPalette { get; set; }
