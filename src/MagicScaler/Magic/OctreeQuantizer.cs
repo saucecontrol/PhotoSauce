@@ -1112,6 +1112,10 @@ namespace PhotoSauce.MagicScaler
 			Unsafe.InitBlockUnaligned(ref listPtr, 0, reserveNodes * sizeof(ushort));
 		}
 
+		// TODO Check/log RyuJIT issue. All the static methods on the node structs should be instance methods or simply direct
+		// accesses to the fixed fields, but the JIT currently inserts extraneous null checks on pointer deref when inlining them.
+		// For the same reason, the fields are not used in the methods; we cast the node to the field type and offset manually.
+		// Related: https://github.com/dotnet/runtime/issues/37727
 		[StructLayout(LayoutKind.Explicit)]
 		private struct HistogramNode
 		{
@@ -1128,8 +1132,6 @@ namespace PhotoSauce.MagicScaler
 
 			public static ReadOnlySpan<byte> SumsMask => new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x1f };
 
-			// TODO Check/log RyuJIT issue. All the following static methods should be instance methods
-			// but the JIT currently inserts extraneous null checks on pointer deref when inlining them.
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static void AddSample(HistogramNode* node, uint bgr)
 			{
@@ -1213,7 +1215,7 @@ namespace PhotoSauce.MagicScaler
 			[FieldOffset(0)]
 			public fixed byte PaletteIndices[8];
 			[FieldOffset(12)]
-			public int LeafValue;
+			public uint LeafValue;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool HasChildren(PaletteMapNode* node)
