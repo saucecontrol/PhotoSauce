@@ -262,7 +262,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
 		{
 			int iamt = Fix15(amt);
-			int threshold = RoundF(thresh * byte.MaxValue);
+			int threshold = (thresh * byte.MaxValue).Round();
 
 			byte* ip = cstart + ox * channels, yp = ystart + ox, bp = bstart, op = ostart;
 
@@ -271,7 +271,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				int dif = *yp++ - *bp++;
 
 				byte c0 = ip[0], c1 = ip[1], c2 = ip[2], c3 = ip[3];
-				if (threshold == 0 || Math.Abs(dif) > threshold)
+				if (threshold == 0 || FastAbs(dif) > threshold)
 				{
 					dif = UnFix15(dif * iamt);
 					op[0] = ClampToByte(c0 + dif);
@@ -425,7 +425,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
 		{
 			int iamt = Fix15(amt);
-			int threshold = RoundF(thresh * byte.MaxValue);
+			int threshold = (thresh * byte.MaxValue).Round();
 
 			byte* ip = cstart + ox * channels, yp = ystart + ox, bp = bstart, op = ostart;
 
@@ -434,7 +434,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				int dif = *yp++ - *bp++;
 
 				byte c0 = ip[0], c1 = ip[1], c2 = ip[2], c3 = ip[3];
-				if (threshold == 0 || Math.Abs(dif) > threshold)
+				if (threshold == 0 || FastAbs(dif) > threshold)
 				{
 					dif = UnFix15(dif * iamt);
 					op[0] = ClampToByte(c0 + dif);
@@ -591,7 +591,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15[0])
 			{
 				int iamt = Fix15(amt);
-				int threshold = RoundF(thresh * byte.MaxValue);
+				int threshold = (thresh * byte.MaxValue).Round();
 
 				byte* gt = gtstart;
 				ushort* ip = (ushort*)cstart + ox * channels, yp = (ushort*)ystart + ox, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;
@@ -601,7 +601,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					int dif = *yp++ - *bp++;
 
 					ushort c0 = ip[0], c1 = ip[1], c2 = ip[2], c3 = ip[3];
-					if (threshold == 0 || Math.Abs(dif) > threshold)
+					if (threshold == 0 || FastAbs(dif) > threshold)
 					{
 						c0 = gt[(nuint)ClampToUQ15One((uint)c0)];
 						c1 = gt[(nuint)ClampToUQ15One((uint)c1)];
@@ -755,7 +755,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
 		{
 			int iamt = Fix15(amt);
-			int threshold = RoundF(thresh * byte.MaxValue);
+			int threshold = (thresh * byte.MaxValue).Round();
 
 			byte* ip = cstart + ox * channels, yp = ystart + ox, bp = bstart, op = ostart;
 
@@ -764,7 +764,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				int dif = *yp++ - *bp++;
 
 				byte c0 = ip[0], c1 = ip[1], c2 = ip[2];
-				if (threshold == 0 || Math.Abs(dif) > threshold)
+				if (threshold == 0 || FastAbs(dif) > threshold)
 				{
 					dif = UnFix15(dif * iamt);
 					op[0] = ClampToByte(c0 + dif);
@@ -914,7 +914,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15[0])
 			{
 				int iamt = Fix15(amt);
-				int threshold = RoundF(thresh * byte.MaxValue);
+				int threshold = (thresh * byte.MaxValue).Round();
 
 				byte* gt = gtstart;
 				ushort* ip = (ushort*)cstart + ox * channels, yp = (ushort*)ystart + ox, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;
@@ -924,7 +924,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					int dif = *yp++ - *bp++;
 
 					ushort c0 = ip[0], c1 = ip[1], c2 = ip[2];
-					if (threshold == 0 || Math.Abs(dif) > threshold)
+					if (threshold == 0 || FastAbs(dif) > threshold)
 					{
 						c0 = gt[(nuint)ClampToUQ15One((uint)c0)];
 						c1 = gt[(nuint)ClampToUQ15One((uint)c1)];
@@ -1043,7 +1043,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
 		{
 			int iamt = Fix15(amt);
-			int threshold = RoundF(thresh * byte.MaxValue);
+			int threshold = (thresh * byte.MaxValue).Round();
 
 			byte* ip = cstart + ox * channels, yp = ystart + ox, bp = bstart, op = ostart;
 
@@ -1052,7 +1052,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				int dif = *yp++ - *bp++;
 
 				byte c0 = ip[0];
-				if (threshold == 0 || Math.Abs(dif) > threshold)
+				if (threshold == 0 || FastAbs(dif) > threshold)
 				{
 					dif = UnFix15(dif * iamt);
 					op[0] = ClampToByte(c0 + dif);
@@ -1165,7 +1165,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15[0])
 			{
 				int iamt = Fix15(amt);
-				int threshold = RoundF(thresh * byte.MaxValue);
+				int threshold = (thresh * byte.MaxValue).Round();
 
 				byte* gt = gtstart;
 				ushort* ip = (ushort*)cstart + ox * channels, yp = (ushort*)ystart + ox, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;
@@ -1175,7 +1175,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					int dif = *yp++ - *bp++;
 
 					ushort c0 = ip[0];
-					if (threshold == 0 || Math.Abs(dif) > threshold)
+					if (threshold == 0 || FastAbs(dif) > threshold)
 					{
 						c0 = gt[(nuint)ClampToUQ15One((uint)c0)];
 

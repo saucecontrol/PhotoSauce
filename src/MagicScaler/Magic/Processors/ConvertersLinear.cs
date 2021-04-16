@@ -356,7 +356,7 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	internal class ConverterFromLinear<TFrom, TTo> : IConverter<TFrom, TTo> where TFrom : unmanaged where TTo : unmanaged
+	internal sealed class ConverterFromLinear<TFrom, TTo> : IConverter<TFrom, TTo> where TFrom : unmanaged where TTo : unmanaged
 	{
 		public IConversionProcessor<TFrom, TTo> Processor { get; }
 		public IConversionProcessor<TFrom, TTo> Processor3A { get; }

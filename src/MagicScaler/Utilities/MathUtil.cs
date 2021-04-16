@@ -53,7 +53,7 @@ namespace PhotoSauce.MagicScaler
 		public static double Clamp(this double x, double min, double max) => Min(Max(min, x), max);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static float Clamp(this float x, float min, float max) => MinF(MaxF(min, x), max);
+		public static float Clamp(this float x, float min, float max) => FastMin(FastMax(min, x), max);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Vector4 Clamp(this Vector4 x, Vector4 min, Vector4 max) => Vector4.Min(Vector4.Max(min, x), max);
@@ -83,7 +83,7 @@ namespace PhotoSauce.MagicScaler
 		public static uint Fix15(byte x) => UnFix15((uint)x * (UQ15One * UQ15One / byte.MaxValue));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int Fix15(float x) => RoundF(x * UQ15One);
+		public static int Fix15(float x) => Round(x * UQ15One);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ushort FixToUQ15One(double x) => ClampToUQ15One((int)(x * UQ15One + 0.5));
@@ -161,6 +161,31 @@ namespace PhotoSauce.MagicScaler
 		public static uint FastFix15(byte x) => ((uint)x * ((UQ15One << 8) / byte.MaxValue + 1)) >> 8;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static int FastAbs(int x) => (x ^ (x >> 31)) - (x >> 31);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static float FastMax(float x, float o)
+		{
+#if HWINTRINSICS
+			if (Sse.IsSupported)
+				return Sse.Max(Vector128.CreateScalarUnsafe(x), Vector128.CreateScalarUnsafe(o)).ToScalar();
+			else
+#endif
+				return x < o ? o : x;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static float FastMin(float x, float o)
+		{
+#if HWINTRINSICS
+			if (Sse.IsSupported)
+				return Sse.Min(Vector128.CreateScalarUnsafe(x), Vector128.CreateScalarUnsafe(o)).ToScalar();
+			else
+#endif
+				return x > o ? o : x;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static float Sqrt(this float x) =>
 #if BUILTIN_MATHF
 			MathF.Sqrt(x);
@@ -169,35 +194,11 @@ namespace PhotoSauce.MagicScaler
 #endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static float Abs(this float x) =>
-#if BUILTIN_MATHF
-			MathF.Abs(x);
-#else
-			Math.Abs(x);
-#endif
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static float MaxF(float x, float o) =>
-#if BUILTIN_MATHF
-			MathF.Max(x, o);
-#else
-			x < o ? o : x;
-#endif
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static float MinF(float x, float o) =>
-#if BUILTIN_MATHF
-			MathF.Min(x, o);
-#else
-			x > o ? o : x;
-#endif
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int RoundF(float x) =>
+		public static int Round(this float x) =>
 #if BUILTIN_MATHF
 			(int)MathF.Round(x);
 #else
-			(int)Round(x);
+			(int)Math.Round(x);
 #endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -214,7 +215,7 @@ namespace PhotoSauce.MagicScaler
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static float Lerp(float l, float h, float d) => (h - l) * d + l;
 
-		public static bool IsRoughlyEqualTo(this double x, double y) => Math.Abs(x - y) < 0.0001;
+		public static bool IsRoughlyEqualTo(this double x, double y) => Abs(x - y) < 0.0001;
 
 		public static unsafe bool IsRouglyEqualTo(this Matrix4x4 m1, Matrix4x4 m2)
 		{
@@ -237,10 +238,10 @@ namespace PhotoSauce.MagicScaler
 			var md = m1 - m2;
 
 			return
-				md.M11.Abs() < epsilon && md.M12.Abs() < epsilon && md.M13.Abs() < epsilon && md.M14.Abs() < epsilon &&
-				md.M21.Abs() < epsilon && md.M22.Abs() < epsilon && md.M23.Abs() < epsilon && md.M24.Abs() < epsilon &&
-				md.M31.Abs() < epsilon && md.M32.Abs() < epsilon && md.M33.Abs() < epsilon && md.M34.Abs() < epsilon &&
-				md.M41.Abs() < epsilon && md.M42.Abs() < epsilon && md.M43.Abs() < epsilon && md.M44.Abs() < epsilon;
+				Abs(md.M11) < epsilon && Abs(md.M12) < epsilon && Abs(md.M13) < epsilon && Abs(md.M14) < epsilon &&
+				Abs(md.M21) < epsilon && Abs(md.M22) < epsilon && Abs(md.M23) < epsilon && Abs(md.M24) < epsilon &&
+				Abs(md.M31) < epsilon && Abs(md.M32) < epsilon && Abs(md.M33) < epsilon && Abs(md.M34) < epsilon &&
+				Abs(md.M41) < epsilon && Abs(md.M42) < epsilon && Abs(md.M43) < epsilon && Abs(md.M44) < epsilon;
 		}
 
 		public static uint GCD(uint x, uint y)

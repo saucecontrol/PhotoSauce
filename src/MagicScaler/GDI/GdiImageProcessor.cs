@@ -27,8 +27,8 @@ namespace PhotoSauce.MagicScaler
 			if (!img.PropertyIdList.Contains(exifOrientationID))
 				return;
 
-			var prop = img.GetPropertyItem(exifOrientationID);
-			int val = BitConverter.ToUInt16(prop.Value, 0);
+			var prop = img.GetPropertyItem(exifOrientationID)!;
+			int val = BitConverter.ToUInt16(prop.Value!, 0);
 			var rot = RotateFlipType.RotateNoneFlipNone;
 
 			if (val == 3 || val == 4)

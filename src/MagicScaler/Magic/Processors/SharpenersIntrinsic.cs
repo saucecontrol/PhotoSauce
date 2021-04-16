@@ -169,8 +169,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 					if (gamma)
 					{
-						c0 = MathUtil.MaxF(c0, fmin).Sqrt();
-						c0 = MathUtil.MaxF(c0 + dif, fmin);
+						c0 = MathUtil.FastMax(c0, fmin).Sqrt();
+						c0 = MathUtil.FastMax(c0 + dif, fmin);
 						c0 *= c0;
 					}
 					else

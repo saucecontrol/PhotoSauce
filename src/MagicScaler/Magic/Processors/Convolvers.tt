@@ -450,7 +450,7 @@ if (t.pixelType == "ushort") {
 }
 #>
 			<#= t.interType #> iamt = Fix15(amt);
-			<#= t.interType #> threshold = RoundF(thresh * byte.MaxValue);
+			<#= t.interType #> threshold = (thresh * byte.MaxValue).Round();
 <#
 WriteLine(null);
 if (t.pixelType == "ushort") {
@@ -470,7 +470,7 @@ WriteLine(null);
 WriteLine(null);
 #>
 				<#= t.pixelType #><# for (int j = 0; j < t.channels; j++) { #><#= j > 0 ? "," : "" #> c<#= j #> = ip[<#= j #>]<# } #>;
-				if (threshold == 0 || Math.Abs(dif) > threshold)
+				if (threshold == 0 || FastAbs(dif) > threshold)
 				{
 <#
 if (t.pixelType == "ushort") {

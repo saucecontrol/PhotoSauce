@@ -5,7 +5,9 @@
 using System;
 using System.Threading;
 using System.Runtime.InteropServices;
+#if BUILTIN_CSHARP9
 using System.Runtime.CompilerServices;
+#endif
 
 using TerraFX.Interop;
 using static TerraFX.Interop.Windows;

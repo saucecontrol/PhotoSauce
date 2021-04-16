@@ -49,12 +49,12 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	internal class PixelSourceFrame : IImageFrame
+	internal sealed class PixelSourceFrame : IImageFrame
 	{
 		public double DpiX => 96d;
 		public double DpiY => 96d;
-		public Orientation ExifOrientation { get; set; } = Orientation.Normal;
-		public ReadOnlySpan<byte> IccProfile => ReadOnlySpan<byte>.Empty;
+		public Orientation ExifOrientation { get; } = Orientation.Normal;
+		public ReadOnlySpan<byte> IccProfile => default;
 
 		public IPixelSource PixelSource { get; }
 
@@ -63,7 +63,7 @@ namespace PhotoSauce.MagicScaler
 		public void Dispose() { }
 	}
 
-	internal class PixelSourceContainer : IImageContainer
+	internal sealed class PixelSourceContainer : IImageContainer
 	{
 		private readonly IPixelSource pixelSource;
 
@@ -206,7 +206,7 @@ namespace PhotoSauce.MagicScaler
 				int cbBuffer = buffer.Length;
 
 				if (prc.X + prc.Width > Width || prc.Y + prc.Height > Height)
-					throw new ArgumentOutOfRangeException(nameof(prc), "Requested area does not fall within the image bounds");
+					throw new ArgumentOutOfRangeException(nameof(sourceArea), "Requested area does not fall within the image bounds");
 
 				if (cbLine > cbStride)
 					throw new ArgumentOutOfRangeException(nameof(cbStride), "Stride is too small for the requested area");

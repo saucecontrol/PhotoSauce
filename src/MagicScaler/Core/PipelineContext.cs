@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal class PipelineContext : IDisposable
+	internal sealed class PipelineContext : IDisposable
 	{
 		internal class PlanarPipelineContext
 		{

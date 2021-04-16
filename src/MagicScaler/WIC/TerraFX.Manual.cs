@@ -1,6 +1,7 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
+using System.Security;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
@@ -59,7 +60,8 @@ namespace TerraFX.Interop
 		}
 	}
 
-	internal static unsafe partial class Windows
+	[SuppressUnmanagedCodeSecurity]
+	internal static partial class Windows
 	{
 		// Microsoft Camera Codec Pack
 		public static readonly Guid GUID_ContainerFormatRaw2 = new(0xc1fc85cb, 0xd64f, 0x478b, 0xa4, 0xec, 0x69, 0xad, 0xc9, 0xee, 0x13, 0x92);

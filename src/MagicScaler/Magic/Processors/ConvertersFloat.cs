@@ -16,7 +16,7 @@ using VectorF = System.Numerics.Vector<float>;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal class FloatConverter
+	internal static class FloatConverter
 	{
 		public sealed class Widening : IConverter<byte, float>
 		{

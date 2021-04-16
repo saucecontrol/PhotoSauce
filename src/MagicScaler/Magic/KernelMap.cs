@@ -108,7 +108,7 @@ namespace PhotoSauce.MagicScaler
 				int ns = ipix - kernel.Length, last = kernel.Length - 1, offs = start - ns;
 
 				float a = 0f;
-				for (int i = 0; i <= offs; i++)
+				for (int i = 0; i <= offs && i < kernel.Length; i++)
 					a += kernel[last - i];
 
 				start = ns;

@@ -2,18 +2,18 @@
 
 using System;
 using System.Numerics;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
 #if HWINTRINSICS
+using System.Diagnostics;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 #endif
 
 namespace PhotoSauce.MagicScaler
 {
-	internal unsafe class OctreeQuantizer : IDisposable
+	internal sealed unsafe class OctreeQuantizer : IDisposable
 	{
 		private const int maxHistogramSize = 8191;   // max possible nodes with 3 bits saved to stuff level into one of the indices
 		private const int maxPaletteMapSize = 5448;  // max possible nodes at minLeafLevel = 8^0 + 8^1 + ... + 8^(minLeafLevel+1) + maxPaletteSize * (6 - minLeafLevel)
@@ -1019,14 +1019,13 @@ namespace PhotoSauce.MagicScaler
 					if (!HistogramNode.HasChildren(node))
 					{
 						reserved += 8;
+						continue;
 					}
-					else
+
+					for (nuint j = 0; j < 8; j++)
 					{
-						for (nuint j = 0; j < 8; j++)
-						{
-							if (HistogramNode.GetChild(node, j) == 0)
-								reserved++;
-						}
+						if (HistogramNode.GetChild(node, j) == 0)
+							reserved++;
 					}
 				}
 

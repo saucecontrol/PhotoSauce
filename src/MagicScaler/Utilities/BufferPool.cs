@@ -22,7 +22,6 @@ namespace PhotoSauce.MagicScaler
 
 		private static void returnBytes(byte[]arr) => getBytePool(arr.Length).Return(arr);
 
-
 		[Conditional("GUARDRAILS")]
 		private static void addBoundsMarkers(ArraySegment<byte> buff)
 		{

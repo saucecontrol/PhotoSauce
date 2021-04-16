@@ -235,7 +235,7 @@ namespace PhotoSauce.MagicScaler
 
 			float fmin = Vector4.Zero.X;
 			while (ip < ipe)
-				*op++ = MaxF(*ip++, fmin).Sqrt();
+				*op++ = FastMax(*ip++, fmin).Sqrt();
 		}
 	}
 }

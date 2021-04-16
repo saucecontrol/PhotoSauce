@@ -347,7 +347,7 @@ namespace PhotoSauce.MagicScaler
 			s.ResizeMode = Enum.TryParse(dic.GetValueOrDefault("mode"), true, out CropScaleMode mode) ? mode : s.ResizeMode;
 			s.BlendingMode = Enum.TryParse(dic.GetValueOrDefault("gamma"), true, out GammaMode bm) ? bm : s.BlendingMode;
 			s.HybridMode = Enum.TryParse(dic.GetValueOrDefault("hybrid"), true, out HybridScaleMode hyb) ? hyb : s.HybridMode;
-			s.SaveFormat = Enum.TryParse(dic.GetValueOrDefault("format")?.ToLower().Replace("jpg", "jpeg"), true, out FileFormat fmt) ? fmt : s.SaveFormat;
+			s.SaveFormat = Enum.TryParse(dic.GetValueOrDefault("format")?.ToLowerInvariant().Replace("jpg", "jpeg"), true, out FileFormat fmt) ? fmt : s.SaveFormat;
 
 			if (cropExpression.Value.IsMatch(dic.GetValueOrDefault("crop") ?? string.Empty))
 			{
@@ -374,7 +374,7 @@ namespace PhotoSauce.MagicScaler
 			if (!string.IsNullOrWhiteSpace(colorName) && ColorParser.TryParse(colorName, out var color))
 				s.MatteColor = color;
 
-			string? filter = dic.GetValueOrDefault("filter")?.ToLower();
+			string? filter = dic.GetValueOrDefault("filter")?.ToLowerInvariant();
 			switch (filter)
 			{
 				case "point":
