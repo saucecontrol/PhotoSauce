@@ -19,7 +19,7 @@ namespace TerraFX.Interop
 
         [NativeTypeName("const GUID")]
         public static readonly Guid CLSID_WICImagingFactory2 = new Guid(0x317d06e8, 0x5f24, 0x433d, 0xbd, 0xf7, 0x79, 0xce, 0x68, 0xd8, 0xab, 0xc2);
-
+#if false
         [NativeTypeName("const GUID")]
         public static readonly Guid GUID_VendorMicrosoft = new Guid(0xf0e749ca, 0xedef, 0x4589, 0xa7, 0x3a, 0xee, 0xe, 0x62, 0x6a, 0x2a, 0x2b);
 
@@ -91,7 +91,7 @@ namespace TerraFX.Interop
 
         [NativeTypeName("const GUID")]
         public static readonly Guid CLSID_WICRAWDecoder = new Guid(0x41945702, 0x8302, 0x44A6, 0x94, 0x45, 0xAC, 0x98, 0xE8, 0xAF, 0xA0, 0x86);
-
+#endif
         [NativeTypeName("const GUID")]
         public static readonly Guid GUID_ContainerFormatBmp = new Guid(0x0af1d87e, 0xfcfe, 0x4188, 0xbd, 0xeb, 0xa7, 0x90, 0x64, 0x71, 0xcb, 0xe3);
 
@@ -127,7 +127,7 @@ namespace TerraFX.Interop
 
         [NativeTypeName("const GUID")]
         public static readonly Guid GUID_ContainerFormatRaw = new Guid(0xfe99ce60, 0xf19c, 0x433c, 0xa3, 0xae, 0x00, 0xac, 0xef, 0xa9, 0xca, 0x21);
-
+#if false
         [NativeTypeName("const GUID")]
         public static readonly Guid CLSID_WICImagingCategories = new Guid(0xfae3d380, 0xfea4, 0x4623, 0x8c, 0x75, 0xc6, 0xb6, 0x11, 0x10, 0xb6, 0x81);
 
@@ -166,7 +166,7 @@ namespace TerraFX.Interop
 
         [NativeTypeName("const GUID")]
         public static readonly Guid GUID_WICPixelFormatDontCare = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x00);
-
+#endif
         [NativeTypeName("const GUID")]
         public static readonly Guid GUID_WICPixelFormat1bppIndexed = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x01);
 
@@ -433,7 +433,7 @@ namespace TerraFX.Interop
 
         [NativeTypeName("const GUID")]
         public static readonly Guid GUID_WICPixelFormat16bppCrQuantizedDctCoefficients = new Guid(0x2FE354F0, 0x1680, 0x42D8, 0x92, 0x31, 0xE7, 0x3C, 0x05, 0x65, 0xBF, 0xC1);
-
+#if false
         [DllImport("WindowsCodecs", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
         public static extern int WICConvertBitmapSource([NativeTypeName("REFWICPixelFormatGUID")] Guid* dstFormat, [NativeTypeName("IWICBitmapSource *")] IWICBitmapSource* pISrc, [NativeTypeName("IWICBitmapSource **")] IWICBitmapSource** ppIDst);
@@ -639,11 +639,11 @@ namespace TerraFX.Interop
         public static readonly Guid IID_IWICPixelFormatInfo = new Guid(0xE8EDA601, 0x3D48, 0x431A, 0xAB, 0x44, 0x69, 0x05, 0x9B, 0xE8, 0x8B, 0xBE);
 
         public static readonly Guid IID_IWICPixelFormatInfo2 = new Guid(0xA9DB33A2, 0xAF5F, 0x43C7, 0xB6, 0x79, 0x74, 0xF5, 0x98, 0x4B, 0x5A, 0xA4);
-
+#endif
         public static readonly Guid IID_IWICImagingFactory = new Guid(0xEC5EC8A9, 0xC395, 0x4314, 0x9C, 0x77, 0x54, 0xD7, 0xA9, 0x35, 0xFF, 0x70);
 
         public static readonly Guid IID_IWICImagingFactory2 = new Guid(0x7B816B45, 0x1996, 0x4476, 0xB1, 0x32, 0xDE, 0x9E, 0x24, 0x7C, 0x8A, 0xF0);
-
+#if false
         public static readonly Guid IID_IWICDevelopRawNotificationCallback = new Guid(0x95C75A6E, 0x3E8C, 0x4EC2, 0x85, 0xA8, 0xAE, 0xBC, 0xC5, 0x51, 0xE5, 0x9B);
 
         public static readonly Guid IID_IWICDevelopRaw = new Guid(0xFBEC5E44, 0xF7BE, 0x4B65, 0xB7, 0xF8, 0xC0, 0xC8, 0x1F, 0xEF, 0x02, 0x6D);
@@ -657,5 +657,6 @@ namespace TerraFX.Interop
         public static readonly Guid IID_IWICJpegFrameDecode = new Guid(0x8939F66E, 0xC46A, 0x4C21, 0xA9, 0xD1, 0x98, 0xB3, 0x27, 0xCE, 0x16, 0x79);
 
         public static readonly Guid IID_IWICJpegFrameEncode = new Guid(0x2F0C601F, 0xD2C6, 0x468C, 0xAB, 0xFA, 0x49, 0x49, 0x5D, 0x98, 0x3E, 0xD1);
+#endif
     }
 }

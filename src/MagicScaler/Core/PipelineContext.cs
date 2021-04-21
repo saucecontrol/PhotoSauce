@@ -33,6 +33,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
+		private readonly bool ownContainer;
 		private readonly Stack<IDisposable> disposeHandles = new(capacity: 16);
 
 		private PixelSource? source;
@@ -53,7 +54,7 @@ namespace PhotoSauce.MagicScaler
 
 		public IEnumerable<PixelSourceStats> Stats => profilers?.OfType<ProcessingProfiler>().Select(p => p.Stats!) ?? Enumerable.Empty<PixelSourceStats>();
 
-		public WicPipelineContext WicContext => wicContext ??= AddDispose(new WicPipelineContext());
+		public WicPipelineContext WicContext => wicContext ??= new WicPipelineContext();
 
 		public PixelSource Source
 		{
@@ -76,14 +77,14 @@ namespace PhotoSauce.MagicScaler
 			(Settings.SaveFormat == FileFormat.Gif || Settings.SaveFormat == FileFormat.Auto) &&
 			Settings.FrameIndex == 0 && ImageContainer.FrameCount > 1;
 
-		public PipelineContext(ProcessImageSettings settings)
+		public PipelineContext(ProcessImageSettings settings, IImageContainer cont, bool ownCont = true)
 		{
 			Settings = settings.Clone();
+			ImageContainer = cont;
+			ownContainer = ownCont;
 
-			// https://github.com/dotnet/runtime/issues/31877
-			UsedSettings = null!;
-			ImageContainer = null!;
 			ImageFrame = null!;
+			UsedSettings = null!;
 		}
 
 		public T AddDispose<T>(T disposeHandle) where T : IDisposable
@@ -122,6 +123,12 @@ namespace PhotoSauce.MagicScaler
 
 		public void Dispose()
 		{
+			wicContext?.Dispose();
+			ImageFrame?.Dispose();
+
+			if (ownContainer && ImageContainer is IDisposable cdisp)
+				cdisp.Dispose();
+
 			while (disposeHandles.Count > 0)
 				disposeHandles.Pop().Dispose();
 		}

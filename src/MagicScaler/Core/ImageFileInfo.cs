@@ -83,10 +83,9 @@ namespace PhotoSauce.MagicScaler
 
 			using var fs = File.OpenRead(imgPath);
 			using var stb = new StreamBufferInjector(fs);
-			using var ctx = new PipelineContext(new ProcessImageSettings());
-			ctx.ImageContainer = ctx.AddDispose(WicImageDecoder.Load(fs));
+			using var cnt = WicImageDecoder.Load(fs);
 
-			return fromWicImage(ctx, fi.Length, fi.LastWriteTimeUtc);
+			return fromWicImage(cnt, fi.Length, fi.LastWriteTimeUtc);
 		}
 
 		/// <inheritdoc cref="Load(ReadOnlySpan{byte}, DateTime)" />
@@ -101,10 +100,9 @@ namespace PhotoSauce.MagicScaler
 
 			fixed (byte* pbBuffer = imgBuffer)
 			{
-				using var ctx = new PipelineContext(new ProcessImageSettings());
-				ctx.ImageContainer = ctx.AddDispose(WicImageDecoder.Load(pbBuffer, imgBuffer.Length));
+				using var cnt = WicImageDecoder.Load(pbBuffer, imgBuffer.Length);
 
-				return fromWicImage(ctx, imgBuffer.Length, lastModified);
+				return fromWicImage(cnt, imgBuffer.Length, lastModified);
 			}
 		}
 
@@ -121,15 +119,13 @@ namespace PhotoSauce.MagicScaler
 			if (imgStream.Length <= 0 || imgStream.Position >= imgStream.Length) throw new ArgumentException("Input Stream is empty or positioned at its end", nameof(imgStream));
 
 			using var stb = new StreamBufferInjector(imgStream);
-			using var ctx = new PipelineContext(new ProcessImageSettings());
-			ctx.ImageContainer = ctx.AddDispose(WicImageDecoder.Load(imgStream));
+			using var cnt = WicImageDecoder.Load(imgStream);
 
-			return fromWicImage(ctx, imgStream.Length, lastModified);
+			return fromWicImage(cnt, imgStream.Length, lastModified);
 		}
 
-		private static ImageFileInfo fromWicImage(PipelineContext ctx, long fileSize, DateTime fileDate)
+		private static ImageFileInfo fromWicImage(WicImageContainer cont, long fileSize, DateTime fileDate)
 		{
-			var cont = (WicImageContainer)ctx.ImageContainer;
 			var cfmt = cont.ContainerFormat;
 			var frames = cfmt == FileFormat.Gif ? getGifFrameInfo(cont) : getFrameInfo(cont);
 

@@ -1,4 +1,6 @@
-﻿using System;
+// Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
+
+using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 
@@ -36,7 +38,7 @@ namespace PhotoSauce.ManagedCodecs
 			{
 				 8 => new TargaContainer(Image.Load<L8>(imgPath)),
 				24 => new TargaContainer(Image.Load<Bgr24>(imgPath)),
-				 _ => new TargaContainer(Image.Load<Bgra32>(imgPath)),
+				 _ => new TargaContainer(Image.Load<Bgra32>(imgPath))
 			};
 		}
 

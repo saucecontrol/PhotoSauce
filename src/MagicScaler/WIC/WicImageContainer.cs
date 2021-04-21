@@ -2,7 +2,6 @@
 
 using System;
 using System.Buffers.Binary;
-using System.Runtime.InteropServices;
 
 using TerraFX.Interop;
 using static TerraFX.Interop.Windows;
@@ -14,8 +13,6 @@ namespace PhotoSauce.MagicScaler
 {
 	internal unsafe class WicImageContainer : IImageContainer, IDisposable
 	{
-		private readonly SafeHandle? handle;
-
 		public IWICBitmapDecoder* WicDecoder { get; private set; }
 
 		public FileFormat ContainerFormat { get; }
@@ -39,10 +36,9 @@ namespace PhotoSauce.MagicScaler
 			return new WicImageFrame(this, (uint)index);
 		}
 
-		public WicImageContainer(IWICBitmapDecoder* dec, SafeHandle? src, FileFormat fmt)
+		public WicImageContainer(IWICBitmapDecoder* dec, FileFormat fmt)
 		{
 			WicDecoder = dec;
-			handle = src;
 
 			uint fcount;
 			HRESULT.Check(dec->GetFrameCount(&fcount));
@@ -50,16 +46,16 @@ namespace PhotoSauce.MagicScaler
 			ContainerFormat = fmt;
 		}
 
-		public static WicImageContainer Create(IWICBitmapDecoder* dec, SafeHandle? src = null)
+		public static WicImageContainer Create(IWICBitmapDecoder* dec)
 		{
 			var guid = default(Guid);
 			HRESULT.Check(dec->GetContainerFormat(&guid));
 
 			var fmt = WicImageDecoder.FormatMap.GetValueOrDefault(guid, FileFormat.Unknown);
 			if (fmt == FileFormat.Gif)
-				return new WicGifContainer(dec, src);
+				return new WicGifContainer(dec);
 
-			return new WicImageContainer(dec, src, fmt);
+			return new WicImageContainer(dec, fmt);
 		}
 
 		public virtual void Dispose()
@@ -72,9 +68,6 @@ namespace PhotoSauce.MagicScaler
 		{
 			if (WicDecoder is null)
 				return;
-
-			if (disposing)
-				handle?.Dispose();
 
 			WicDecoder->Release();
 			WicDecoder = null;
@@ -113,7 +106,7 @@ namespace PhotoSauce.MagicScaler
 
 		public GifAnimationContext? AnimationContext { get; set; }
 
-		public WicGifContainer(IWICBitmapDecoder* dec, SafeHandle? src) : base(dec, src, FileFormat.Gif)
+		public WicGifContainer(IWICBitmapDecoder* dec) : base(dec, FileFormat.Gif)
 		{
 			using var meta = default(ComPtr<IWICMetadataQueryReader>);
 			HRESULT.Check(dec->GetMetadataQueryReader(meta.GetAddressOf()));

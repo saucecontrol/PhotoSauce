@@ -66,10 +66,9 @@ namespace PhotoSauce.MagicScaler
 
 			using var fs = File.OpenRead(imgPath);
 			using var stb = new StreamBufferInjector(fs);
-			using var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = ctx.AddDispose(WicImageDecoder.Load(fs));
-
+			using var ctx = new PipelineContext(settings, WicImageDecoder.Load(fs));
 			buildPipeline(ctx);
+
 			return WriteOutput(ctx, outStream);
 		}
 
@@ -85,10 +84,9 @@ namespace PhotoSauce.MagicScaler
 
 			fixed (byte* pbBuffer = imgBuffer)
 			{
-				using var ctx = new PipelineContext(settings);
-				ctx.ImageContainer = ctx.AddDispose(WicImageDecoder.Load(pbBuffer, imgBuffer.Length));
-
+				using var ctx = new PipelineContext(settings, WicImageDecoder.Load(pbBuffer, imgBuffer.Length));
 				buildPipeline(ctx);
+
 				return WriteOutput(ctx, outStream);
 			}
 		}
@@ -102,10 +100,9 @@ namespace PhotoSauce.MagicScaler
 			checkOutStream(outStream);
 
 			using var stb = new StreamBufferInjector(imgStream);
-			using var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = ctx.AddDispose(WicImageDecoder.Load(imgStream));
-
+			using var ctx = new PipelineContext(settings, WicImageDecoder.Load(imgStream));
 			buildPipeline(ctx);
+
 			return WriteOutput(ctx, outStream);
 		}
 
@@ -117,12 +114,9 @@ namespace PhotoSauce.MagicScaler
 			if (settings is null) throw new ArgumentNullException(nameof(settings));
 			checkOutStream(outStream);
 
-			using var ctx = new PipelineContext(settings) {
-				ImageContainer = new PixelSourceContainer(imgSource),
-				Source = imgSource.AsPixelSource()
-			};
-
+			using var ctx = new PipelineContext(settings, new PixelSourceContainer(imgSource));
 			buildPipeline(ctx);
+
 			return WriteOutput(ctx, outStream);
 		}
 
@@ -134,11 +128,9 @@ namespace PhotoSauce.MagicScaler
 			if (settings is null) throw new ArgumentNullException(nameof(settings));
 			checkOutStream(outStream);
 
-			using var ctx = new PipelineContext(settings) {
-				ImageContainer = imgContainer
-			};
-
+			using var ctx = new PipelineContext(settings, imgContainer, false);
 			buildPipeline(ctx);
+
 			return WriteOutput(ctx, outStream);
 		}
 
@@ -151,32 +143,14 @@ namespace PhotoSauce.MagicScaler
 			if (imgPath is null) throw new ArgumentNullException(nameof(imgPath));
 			if (settings is null) throw new ArgumentNullException(nameof(settings));
 
-			var ctx = new PipelineContext(settings);
-
-			var fs = ctx.AddDispose(File.OpenRead(imgPath));
-			ctx.AddDispose(new StreamBufferInjector(fs));
-			ctx.ImageContainer = ctx.AddDispose(WicImageDecoder.Load(fs));
-
+			var fs = File.OpenRead(imgPath);
+			var stb= new StreamBufferInjector(fs);
+			var ctx = new PipelineContext(settings, WicImageDecoder.Load(fs));
+			ctx.AddDispose(fs);
+			ctx.AddDispose(stb);
 			buildPipeline(ctx, false);
+
 			return new ProcessingPipeline(ctx);
-		}
-
-		/// <inheritdoc cref="BuildPipeline(string, ProcessImageSettings)" />
-		/// <param name="imgBuffer">A buffer containing a supported input image container.</param>
-		[Obsolete("Use Stream overload, with MemoryStream or UnmanagedMemoryStream", true), EditorBrowsable(EditorBrowsableState.Never)]
-		public static unsafe ProcessingPipeline BuildPipeline(ReadOnlySpan<byte> imgBuffer, ProcessImageSettings settings)
-		{
-			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
-			if (settings is null) throw new ArgumentNullException(nameof(settings));
-
-			fixed (byte* pbBuffer = imgBuffer)
-			{
-				var ctx = new PipelineContext(settings);
-				ctx.ImageContainer = ctx.AddDispose(WicImageDecoder.Load(pbBuffer, imgBuffer.Length, true));
-
-				buildPipeline(ctx, false);
-				return new ProcessingPipeline(ctx);
-			}
 		}
 
 		/// <inheritdoc cref="BuildPipeline(string, ProcessImageSettings)" />
@@ -186,10 +160,9 @@ namespace PhotoSauce.MagicScaler
 			if (settings is null) throw new ArgumentNullException(nameof(settings));
 			checkInStream(imgStream);
 
-			var ctx = new PipelineContext(settings);
-			ctx.ImageContainer = ctx.AddDispose(WicImageDecoder.Load(imgStream));
-
+			var ctx = new PipelineContext(settings, WicImageDecoder.Load(imgStream));
 			buildPipeline(ctx, false);
+
 			return new ProcessingPipeline(ctx);
 		}
 
@@ -200,12 +173,9 @@ namespace PhotoSauce.MagicScaler
 			if (imgSource is null) throw new ArgumentNullException(nameof(imgSource));
 			if (settings is null) throw new ArgumentNullException(nameof(settings));
 
-			var ctx = new PipelineContext(settings) {
-				ImageContainer = new PixelSourceContainer(imgSource),
-				Source = imgSource.AsPixelSource()
-			};
-
+			var ctx = new PipelineContext(settings, new PixelSourceContainer(imgSource));
 			buildPipeline(ctx, false);
+
 			return new ProcessingPipeline(ctx);
 		}
 
@@ -216,11 +186,9 @@ namespace PhotoSauce.MagicScaler
 			if (imgContainer is null) throw new ArgumentNullException(nameof(imgContainer));
 			if (settings is null) throw new ArgumentNullException(nameof(settings));
 
-			var ctx = new PipelineContext(settings) {
-				ImageContainer = imgContainer
-			};
-
+			var ctx = new PipelineContext(settings, imgContainer, false);
 			buildPipeline(ctx, false);
+
 			return new ProcessingPipeline(ctx);
 		}
 
@@ -288,7 +256,6 @@ namespace PhotoSauce.MagicScaler
 
 		private static unsafe void buildPipeline(PipelineContext ctx, bool closedPipeline = true)
 		{
-			ctx.AddFrameDisposer();
 			ctx.ImageFrame = ctx.ImageContainer.GetFrame(ctx.Settings.FrameIndex);
 			ctx.Settings.ColorProfileMode = closedPipeline ? ctx.Settings.ColorProfileMode : ColorProfileMode.ConvertToSrgb;
 

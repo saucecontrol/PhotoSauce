@@ -59,23 +59,16 @@ namespace PhotoSauce.MagicScaler
 			return WicImageContainer.Create(dec);
 		}
 
-		public static WicImageContainer Load(byte* pbBuffer, int cbBuffer, bool ownCopy = false)
+		public static WicImageContainer Load(byte* pbBuffer, int cbBuffer)
 		{
 			using var stream = default(ComPtr<IWICStream>);
 			HRESULT.Check(Wic.Factory->CreateStream(stream.GetAddressOf()));
 			var ptr = (IntPtr)pbBuffer;
 
-			using var mem = default(SafeHandleReleaser);
-			if (ownCopy)
-			{
-				ptr = mem.Attach(new SafeHGlobalHandle(cbBuffer)).DangerousGetHandle();
-				Buffer.MemoryCopy(pbBuffer, ptr.ToPointer(), cbBuffer, cbBuffer);
-			}
-
 			HRESULT.Check(stream.Get()->InitializeFromMemory((byte*)ptr, (uint)cbBuffer));
 
 			var dec = createDecoder((IStream*)stream.Get());
-			return WicImageContainer.Create(dec, mem.Detach());
+			return WicImageContainer.Create(dec);
 		}
 	}
 
