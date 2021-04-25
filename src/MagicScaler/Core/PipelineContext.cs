@@ -8,36 +8,10 @@ namespace PhotoSauce.MagicScaler
 {
 	internal sealed class PipelineContext : IDisposable
 	{
-		internal class PlanarPipelineContext
-		{
-			public PixelSource SourceY;
-			public PixelSource SourceCb;
-			public PixelSource SourceCr;
-			public ChromaSubsampleMode ChromaSubsampling;
-
-			public PlanarPipelineContext(PixelSource sourceY, PixelSource sourceCb, PixelSource sourceCr)
-			{
-				if (sourceY.Format != PixelFormat.Y8) throw new ArgumentException("Invalid pixel format", nameof(sourceY));
-				if (sourceCb.Format != PixelFormat.Cb8) throw new ArgumentException("Invalid pixel format", nameof(sourceCb));
-				if (sourceCr.Format != PixelFormat.Cr8) throw new ArgumentException("Invalid pixel format", nameof(sourceCr));
-
-				SourceY = sourceY;
-				SourceCb = sourceCb;
-				SourceCr = sourceCr;
-
-				ChromaSubsampling =
-					sourceCb.Width < sourceY.Width && sourceCb.Height < sourceY.Height ? ChromaSubsampleMode.Subsample420 :
-					sourceCb.Width < sourceY.Width ? ChromaSubsampleMode.Subsample422 :
-					sourceCb.Height < sourceY.Height ? ChromaSubsampleMode.Subsample440 :
-					ChromaSubsampleMode.Subsample444;
-			}
-		}
-
 		private readonly bool ownContainer;
-		private readonly Stack<IDisposable> disposeHandles = new(capacity: 16);
 
-		private PixelSource? source;
 		private List<IProfiler>? profilers;
+		private Stack<IDisposable>? disposables;
 		private WicPipelineContext? wicContext;
 
 		public ProcessImageSettings Settings { get; }
@@ -46,8 +20,7 @@ namespace PhotoSauce.MagicScaler
 
 		public IImageContainer ImageContainer { get; set; }
 		public IImageFrame ImageFrame { get; set; }
-
-		public PlanarPipelineContext? PlanarContext { get; set; }
+		public PixelSource Source { get; set; } = NoopPixelSource.Instance;
 
 		public ColorProfile? SourceColorProfile { get; set; }
 		public ColorProfile? DestColorProfile { get; set; }
@@ -55,22 +28,6 @@ namespace PhotoSauce.MagicScaler
 		public IEnumerable<PixelSourceStats> Stats => profilers?.OfType<ProcessingProfiler>().Select(p => p.Stats!) ?? Enumerable.Empty<PixelSourceStats>();
 
 		public WicPipelineContext WicContext => wicContext ??= new WicPipelineContext();
-
-		public PixelSource Source
-		{
-			get => source ?? NoopPixelSource.Instance;
-			set
-			{
-				source = value;
-
-				if (MagicImageProcessor.EnablePixelSourceStats)
-				{
-					profilers ??= new List<IProfiler>(capacity: 8);
-					if (!profilers.Contains(source.Profiler))
-						profilers.Add(source.Profiler);
-				}
-			}
-		}
 
 		public bool IsAnimatedGifPipeline =>
 			ImageContainer is WicGifContainer &&
@@ -89,19 +46,35 @@ namespace PhotoSauce.MagicScaler
 
 		public T AddDispose<T>(T disposeHandle) where T : IDisposable
 		{
-			disposeHandles.Push(disposeHandle);
+			(disposables ??= new(capacity: 4)).Push(disposeHandle);
 
 			return disposeHandle;
 		}
 
-		public ProcessingProfiler AddProfiler(ProcessingProfiler prof)
+		public IProfiler AddProfiler(string name)
 		{
-			(profilers ??= new()).Add(prof);
+			if (MagicImageProcessor.EnablePixelSourceStats)
+			{
+				var prof = new ProcessingProfiler(name);
+				(profilers ??= new(capacity: 8)).Add(prof);
 
-			return prof;
+				return prof;
+			}
+
+			return NoopProfiler.Instance;
 		}
 
-		public void AddFrameDisposer() => AddDispose(new FrameDisposer(this));
+		public T AddProfiler<T>(T source) where T : PixelSource
+		{
+			if (MagicImageProcessor.EnablePixelSourceStats)
+			{
+				profilers ??= new(capacity: 8);
+				if (!profilers.Contains(source.Profiler))
+					profilers.Add(source.Profiler);
+			}
+
+			return source;
+		}
 
 		public void FinalizeSettings()
 		{
@@ -124,22 +97,14 @@ namespace PhotoSauce.MagicScaler
 		public void Dispose()
 		{
 			wicContext?.Dispose();
+			Source.Dispose();
 			ImageFrame?.Dispose();
 
 			if (ownContainer && ImageContainer is IDisposable cdisp)
 				cdisp.Dispose();
 
-			while (disposeHandles.Count > 0)
-				disposeHandles.Pop().Dispose();
-		}
-
-		private struct FrameDisposer : IDisposable
-		{
-			private readonly PipelineContext ctx;
-
-			public FrameDisposer(PipelineContext owner) => ctx = owner;
-
-			public void Dispose() => ctx.ImageFrame?.Dispose();
+			while (disposables?.Count > 0)
+				disposables.Pop().Dispose();
 		}
 	}
 }

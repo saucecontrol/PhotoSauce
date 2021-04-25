@@ -102,7 +102,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 				var innerRect = new Rectangle(padRect.Left, padRect.Top, ctx.Source.Width, ctx.Source.Height);
 				var outerRect = Rectangle.FromLTRB(0, 0, innerRect.Right + padRect.Right, innerRect.Bottom + padRect.Bottom);
-				ctx.Source = new PadTransformInternal(ctx.Source, padColor, PixelArea.FromGdiRect(innerRect), PixelArea.FromGdiRect(outerRect));
+				ctx.Source = ctx.AddProfiler(new PadTransformInternal(ctx.Source, padColor, PixelArea.FromGdiRect(innerRect), PixelArea.FromGdiRect(outerRect)));
 			}
 
 			Source = ctx.Source;

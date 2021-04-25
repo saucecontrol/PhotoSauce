@@ -41,9 +41,8 @@ namespace PhotoSauce.MagicScaler
 		{
 			var frame = (WicImageFrame)ctx.ImageContainer.GetFrame(ctx.Settings.FrameIndex);
 
-			ctx.AddFrameDisposer();
 			ctx.ImageFrame = frame;
-			ctx.Source = frame.Source;
+			ctx.Source = ctx.AddProfiler(frame.Source);
 
 			MagicTransforms.AddGifFrameBuffer(ctx);
 

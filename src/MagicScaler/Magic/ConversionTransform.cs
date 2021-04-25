@@ -4,7 +4,7 @@ using System;
 
 namespace PhotoSauce.MagicScaler.Transforms
 {
-	internal sealed class ConversionTransform : ChainedPixelSource, IDisposable
+	internal sealed class ConversionTransform : ChainedPixelSource
 	{
 		private readonly IConversionProcessor processor;
 
@@ -149,10 +149,15 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
-		public void Dispose()
+		protected override void Dispose(bool disposing)
 		{
-			lineBuff.Dispose();
-			lineBuff = default;
+			if (disposing)
+			{
+				lineBuff.Dispose();
+				lineBuff = default;
+			}
+
+			base.Dispose(disposing);
 		}
 
 		public override string ToString() => $"{nameof(ConversionTransform)}: {PrevSource.Format.Name}->{Format.Name}";
@@ -178,7 +183,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			MagicTransforms.AddExternalFormatConverter(ctx);
 
 			if (ctx.Source.Format.FormatGuid != outFormat)
-				ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, PixelFormat.FromGuid(outFormat)));
+				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, null, null, PixelFormat.FromGuid(outFormat)));
 
 			Source = ctx.Source;
 		}

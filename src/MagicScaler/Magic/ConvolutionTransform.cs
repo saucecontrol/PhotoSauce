@@ -21,7 +21,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		IConvolver IntrinsicImpl { get; }
 	}
 
-	internal class ConvolutionTransform<TPixel, TWeight> : ChainedPixelSource, IDisposable where TPixel : unmanaged where TWeight : unmanaged
+	internal class ConvolutionTransform<TPixel, TWeight> : ChainedPixelSource where TPixel : unmanaged where TWeight : unmanaged
 	{
 		protected static readonly IReadOnlyDictionary<PixelFormat, IConvolver> ProcessorMap = new Dictionary<PixelFormat, IConvolver> {
 			[PixelFormat.Cmyk32             ] = Convolver4ChanByte.Instance,
@@ -221,22 +221,27 @@ namespace PhotoSauce.MagicScaler.Transforms
 				YProcessor.WriteDestLine(tstart, ostart, ox, ow, pmapy, smapy);
 		}
 
-		public virtual void Dispose()
+		protected override void Dispose(bool disposing)
 		{
-			if (XMap is null)
-				return;
+			if (disposing)
+			{
+				if (XMap is null)
+					return;
 
-			XMap.Dispose();
-			YMap.Dispose();
-			XMap = null!;
-			YMap = null!;
+				XMap.Dispose();
+				YMap.Dispose();
+				XMap = null!;
+				YMap = null!;
 
-			IntBuff.Dispose();
-			SrcBuff?.Dispose();
-			WorkBuff?.Dispose();
+				IntBuff.Dispose();
+				SrcBuff?.Dispose();
+				WorkBuff?.Dispose();
 
-			lineBuff.Dispose();
-			lineBuff = default;
+				lineBuff.Dispose();
+				lineBuff = default;
+			}
+
+			base.Dispose(disposing);
 		}
 
 		public override string? ToString() => $"{XProcessor}: {Format.Name}";
@@ -284,12 +289,15 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
-		public override void Dispose()
+		protected override void Dispose(bool disposing)
 		{
-			base.Dispose();
+			if (disposing)
+			{
+				blurBuff.Dispose();
+				blurBuff = default;
+			}
 
-			blurBuff.Dispose();
-			blurBuff = default;
+			base.Dispose(disposing);
 		}
 
 		public override string ToString() => $"{processor}: Sharpen";

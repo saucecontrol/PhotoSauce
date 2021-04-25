@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal abstract class PixelSource
+	internal abstract class PixelSource : IDisposable
 	{
 		public abstract PixelFormat Format { get; }
 		public abstract int Width { get; }
@@ -46,6 +46,14 @@ namespace PhotoSauce.MagicScaler
 			Profiler.ResumeTiming(prc);
 			CopyPixelsInternal(prc, cbStride, cbBufferSize, pbBuffer);
 			Profiler.PauseTiming();
+		}
+
+		protected virtual void Dispose(bool disposing) { }
+
+		public void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
 		}
 	}
 
@@ -90,7 +98,7 @@ namespace PhotoSauce.MagicScaler
 		public virtual bool Passthrough => true;
 		protected virtual void Reset() { }
 
-		public void ReInit(PixelSource newSource)
+		public virtual void ReInit(PixelSource newSource)
 		{
 			Reset();
 
@@ -107,7 +115,17 @@ namespace PhotoSauce.MagicScaler
 			if (prev.Format != newSource.Format || prev.Width != newSource.Width || prev.Height != newSource.Height)
 				throw new NotSupportedException("New source is not compatible with current pipeline.");
 
+			prev.Dispose();
+
 			PrevSource = newSource;
+		}
+
+		protected override void Dispose(bool disposing)
+		{
+			if (disposing)
+				PrevSource.Dispose();
+
+			base.Dispose(disposing);
 		}
 	}
 
@@ -122,8 +140,9 @@ namespace PhotoSauce.MagicScaler
 		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer) { }
 	}
 
-	internal sealed class FrameBufferSource : PixelSource, IDisposable
+	internal sealed class FrameBufferSource : PixelSource
 	{
+		private readonly bool multiDispose;
 		private RentedBuffer<byte> frameBuff;
 
 		public int Stride { get; }
@@ -134,11 +153,12 @@ namespace PhotoSauce.MagicScaler
 		public override int Width { get; }
 		public override int Height { get; }
 
-		public FrameBufferSource(int width, int height, PixelFormat format) : base()
+		public FrameBufferSource(int width, int height, PixelFormat format, bool multidispose = false)
 		{
 			Format = format;
 			Width = width;
 			Height = height;
+			multiDispose = multidispose;
 
 			Stride = MathUtil.PowerOfTwoCeiling(width * Format.BytesPerPixel, HWIntrinsics.VectorCount<byte>());
 
@@ -148,7 +168,15 @@ namespace PhotoSauce.MagicScaler
 		public void PauseTiming() => Profiler.PauseTiming();
 		public void ResumeTiming() => Profiler.ResumeTiming();
 
-		public void Dispose()
+		protected override void Dispose(bool disposing)
+		{
+			if (disposing && !multiDispose)
+				DisposeBuffer();
+
+			base.Dispose(disposing);
+		}
+
+		public void DisposeBuffer()
 		{
 			frameBuff.Dispose();
 			frameBuff = default;
@@ -168,6 +196,50 @@ namespace PhotoSauce.MagicScaler
 
 			for (int y = 0; y < prc.Height; y++)
 				Unsafe.CopyBlockUnaligned(ref *((byte*)pbBuffer + y * cbStride), ref Unsafe.Add(ref buff, y * Stride), (uint)cb);
+		}
+	}
+
+	internal sealed class PlanarPixelSource : PixelSource
+	{
+		public PixelSource SourceY, SourceCb, SourceCr;
+		public ChromaSubsampleMode ChromaSubsampling;
+		public bool VideoLumaLevels, VideoChromaLevels;
+
+		public override PixelFormat Format => SourceY.Format;
+		public override int Width => SourceY.Width;
+		public override int Height => SourceY.Height;
+
+
+		public PlanarPixelSource(PixelSource sourceY, PixelSource sourceCb, PixelSource sourceCr, bool videoLevels = false)
+		{
+			if (sourceY.Format != PixelFormat.Y8) throw new ArgumentException("Invalid pixel format", nameof(sourceY));
+			if (sourceCb.Format != PixelFormat.Cb8) throw new ArgumentException("Invalid pixel format", nameof(sourceCb));
+			if (sourceCr.Format != PixelFormat.Cr8) throw new ArgumentException("Invalid pixel format", nameof(sourceCr));
+
+			SourceY = sourceY;
+			SourceCb = sourceCb;
+			SourceCr = sourceCr;
+			VideoLumaLevels = VideoChromaLevels = videoLevels;
+
+			ChromaSubsampling =
+				sourceCb.Width < sourceY.Width && sourceCb.Height < sourceY.Height ? ChromaSubsampleMode.Subsample420 :
+				sourceCb.Width < sourceY.Width ? ChromaSubsampleMode.Subsample422 :
+				sourceCb.Height < sourceY.Height ? ChromaSubsampleMode.Subsample440 :
+				ChromaSubsampleMode.Subsample444;
+		}
+
+		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer) => throw new NotImplementedException();
+
+		protected override void Dispose(bool disposing)
+		{
+			if (disposing)
+			{
+				SourceY.Dispose();
+				SourceCb.Dispose();
+				SourceCr.Dispose();
+			}
+
+			base.Dispose(disposing);
 		}
 	}
 

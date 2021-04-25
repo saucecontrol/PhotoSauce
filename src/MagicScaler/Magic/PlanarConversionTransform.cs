@@ -14,15 +14,15 @@ using static PhotoSauce.MagicScaler.MathUtil;
 
 namespace PhotoSauce.MagicScaler.Transforms
 {
-	internal sealed class PlanarConversionTransform : ChainedPixelSource, IDisposable
+	internal sealed class PlanarConversionTransform : ChainedPixelSource
 	{
 		private const int ichromaOffset = 128;
 		private const float videoChromaScale = 224f;
 		private const float fchromaOffset = (float)ichromaOffset / byte.MaxValue;
 
-		private readonly PixelSource sourceCb, sourceCr;
 		private readonly float coeffCb0, coeffCb1, coeffCr0, coeffCr1;
 
+		private PixelSource sourceCb, sourceCr;
 		private RentedBuffer<byte> lineBuff;
 
 		public override PixelFormat Format { get; }
@@ -55,6 +55,32 @@ namespace PhotoSauce.MagicScaler.Transforms
 				bufferStride = PowerOfTwoCeiling(bufferStride, HWIntrinsics.VectorCount<byte>());
 
 			lineBuff = BufferPool.RentAligned<byte>(bufferStride * 3);
+		}
+
+		public override void ReInit(PixelSource newSource)
+		{
+			if (newSource is PlanarPixelSource plsrc)
+			{
+				base.ReInit(plsrc.SourceY);
+				reInit(ref sourceCb, plsrc.SourceCb);
+				reInit(ref sourceCr, plsrc.SourceCr);
+
+				return;
+			}
+
+			base.ReInit(newSource);
+		}
+
+		private static void reInit(ref PixelSource cursrc, PixelSource newsrc)
+		{
+			if (cursrc is ChainedPixelSource chain && chain.Passthrough)
+			{
+				chain.ReInit(newsrc);
+				return;
+			}
+
+			cursrc.Dispose();
+			cursrc = newsrc;
 		}
 
 		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
@@ -253,10 +279,18 @@ namespace PhotoSauce.MagicScaler.Transforms
 		}
 #endif
 
-		public void Dispose()
+		protected override void Dispose(bool disposing)
 		{
-			lineBuff.Dispose();
-			lineBuff = default;
+			if (disposing)
+			{
+				sourceCb.Dispose();
+				sourceCr.Dispose();
+
+				lineBuff.Dispose();
+				lineBuff = default;
+			}
+
+			base.Dispose(disposing);
 		}
 
 		public override string ToString() => nameof(PlanarConversionTransform);

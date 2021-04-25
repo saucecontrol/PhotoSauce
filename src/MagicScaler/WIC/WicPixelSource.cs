@@ -8,10 +8,11 @@ using PhotoSauce.Interop.Wic;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal sealed unsafe class WicPixelSource : PixelSource, IDisposable
+	internal sealed unsafe class WicPixelSource : PixelSource
 	{
 		private readonly string sourceName;
 		private readonly IWICBitmapSource* upstreamSource;
+		private readonly PixelSource? upstreamManaged;
 
 		public IWICBitmapSource* WicSource { get; private set; }
 
@@ -19,9 +20,10 @@ namespace PhotoSauce.MagicScaler
 		public override int Width { get; }
 		public override int Height { get; }
 
-		public WicPixelSource(IWICBitmapSource* source, string name, bool profile = true) : base()
+		public WicPixelSource(PixelSource? managed, IWICBitmapSource* source, string name, bool profile = true) : base()
 		{
 			sourceName = name;
+			upstreamManaged = managed;
 			upstreamSource = profile ? source : null;
 			WicSource = profile ? new ComPtr<IWICBitmapSource>(this.AsIWICBitmapSource(true)) : source;
 
@@ -45,14 +47,11 @@ namespace PhotoSauce.MagicScaler
 
 		public override string ToString() => upstreamSource is null ? $"{sourceName} (nonprofiling)" : sourceName;
 
-		public void Dispose()
+		protected override void Dispose(bool disposing)
 		{
-			dispose(true);
-			GC.SuppressFinalize(this);
-		}
+			if (disposing)
+				upstreamManaged?.Dispose();
 
-		private void dispose(bool disposing)
-		{
 			if (WicSource is null)
 				return;
 
@@ -61,15 +60,20 @@ namespace PhotoSauce.MagicScaler
 
 			WicSource->Release();
 			WicSource = null;
+
+			base.Dispose(disposing);
 		}
 
-		~WicPixelSource() => dispose(false);
+		~WicPixelSource() => Dispose(false);
 	}
 
 	internal static unsafe class WicPixelSourceExtensions
 	{
 		public static WicPixelSource AsPixelSource(this ComPtr<IWICBitmapSource> source, string name, bool profile = true) =>
-			new(source, name, profile);
+			new(null, source, name, profile);
+
+		public static WicPixelSource AsPixelSource(this ComPtr<IWICBitmapSource> source, PixelSource? managed, string name, bool profile = true) =>
+			new(managed, source, name, profile);
 
 		public static IWICBitmapSource* AsIWICBitmapSource(this PixelSource source, bool forceWrap = false)
 		{

@@ -214,16 +214,19 @@ namespace PhotoSauce.MagicScaler
 				if (ctx.Settings.IndexedColor && curFormat.NumericRepresentation != PixelNumericRepresentation.Indexed && curFormat.ColorRepresentation != PixelColorRepresentation.Grey)
 				{
 					if (curFormat != PixelFormat.Bgra32)
-						ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, PixelFormat.Bgra32));
+						ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, null, null, PixelFormat.Bgra32));
 
 					using var quant = new OctreeQuantizer();
 					using var buffC = new FrameBufferSource(ctx.Source.Width, ctx.Source.Height, ctx.Source.Format);
 					fixed (byte* pbuff = buffC.Span)
 						ctx.Source.CopyPixels(ctx.Source.Area, buffC.Stride, buffC.Span.Length, (IntPtr)pbuff);
 
-					var buffI = ctx.AddDispose(new FrameBufferSource(ctx.Source.Width, ctx.Source.Height, PixelFormat.Indexed8));
-					var pph = EnablePixelSourceStats ? ctx.AddProfiler(new ProcessingProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.CreatePalette))) : NoopProfiler.Instance;
-					var ppq = EnablePixelSourceStats ? ctx.AddProfiler(new ProcessingProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.Quantize))) : NoopProfiler.Instance;
+					var buffI = new FrameBufferSource(ctx.Source.Width, ctx.Source.Height, PixelFormat.Indexed8);
+					ctx.Source.Dispose();
+					ctx.Source = ctx.AddProfiler(buffI);
+
+					var pph = ctx.AddProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.CreatePalette));
+					var ppq = ctx.AddProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.Quantize));
 
 					pph.ResumeTiming(buffC.Area);
 					quant.CreatePalette(buffC.Span, buffC.Width, buffC.Height, buffC.Stride);
@@ -241,7 +244,6 @@ namespace PhotoSauce.MagicScaler
 						HRESULT.Check(wicpal.Get()->InitializeCustom(ppal, (uint)palette.Length));
 
 						ctx.WicContext.DestPalette = wicpal.Detach();
-						ctx.Source = buffI;
 					}
 				}
 
@@ -267,14 +269,13 @@ namespace PhotoSauce.MagicScaler
 			{
 				processPlanar = EnablePlanarPipeline && wicFrame.SupportsPlanarProcessing && ctx.Settings.Interpolation.WeightingFunction.Support >= 0.5;
 				bool profilingPassThrough = processPlanar || (wicFrame.SupportsNativeScale && ctx.Settings.HybridScaleRatio > 1);
-				ctx.Source = ctx.AddDispose(new ComPtr<IWICBitmapSource>(wicFrame.WicSource).AsPixelSource(nameof(IWICBitmapFrameDecode), !profilingPassThrough));
+				ctx.Source = ctx.AddProfiler(new ComPtr<IWICBitmapSource>(wicFrame.WicSource).AsPixelSource(nameof(IWICBitmapFrameDecode), !profilingPassThrough));
 			}
-			else if (ctx.ImageFrame is IYccImageFrame planarFrame)
+			else if (ctx.ImageFrame is IYccImageFrame yccFrame)
 			{
 				processPlanar = true;
-				outputPlanar = outputPlanar && planarFrame.IsFullRange && planarFrame.RgbYccMatrix.IsRouglyEqualTo(YccMatrix.Rec601);
-				ctx.PlanarContext = new PipelineContext.PlanarPipelineContext(planarFrame.PixelSource.AsPixelSource(), planarFrame.PixelSourceCb.AsPixelSource(), planarFrame.PixelSourceCr.AsPixelSource());
-				ctx.Source = ctx.PlanarContext.SourceY;
+				outputPlanar = outputPlanar && yccFrame.IsFullRange && yccFrame.RgbYccMatrix.IsRouglyEqualTo(YccMatrix.Rec601);
+				ctx.Source = new PlanarPixelSource(yccFrame.PixelSource.AsPixelSource(), yccFrame.PixelSourceCb.AsPixelSource(), yccFrame.PixelSourceCr.AsPixelSource(), !yccFrame.IsFullRange);
 			}
 			else
 			{
@@ -328,15 +329,15 @@ namespace PhotoSauce.MagicScaler
 				if (wicFrame is not null)
 					WicTransforms.AddPlanarCache(ctx);
 
-				MagicTransforms.AddPlanarCropper(ctx);
-				MagicTransforms.AddPlanarHybridScaler(ctx);
-				MagicTransforms.AddPlanarHighQualityScaler(ctx, savePlanar ? subsample : ChromaSubsampleMode.Subsample444);
+				MagicTransforms.AddCropper(ctx);
+				MagicTransforms.AddHybridScaler(ctx);
+				MagicTransforms.AddHighQualityScaler(ctx, savePlanar ? subsample : ChromaSubsampleMode.Subsample444);
 				MagicTransforms.AddUnsharpMask(ctx);
 
 				if (savePlanar)
 				{
-					MagicTransforms.AddPlanarExifFlipRotator(ctx);
-					MagicTransforms.AddPlanarExternalFormatConverter(ctx);
+					MagicTransforms.AddExternalFormatConverter(ctx, true);
+					MagicTransforms.AddExifFlipRotator(ctx);
 				}
 				else
 				{

@@ -238,9 +238,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 			{
 				var fmt = matrix.M44 < 1f || ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None ? PixelFormat.Bgra32 : PixelFormat.Bgr24;
 				if (ctx.Source.Format != fmt)
-					ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, fmt));
+					ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, null, null, fmt));
 
-				ctx.Source = new ColorMatrixTransformInternal(ctx.Source, matrix);
+				ctx.Source = ctx.AddProfiler(new ColorMatrixTransformInternal(ctx.Source, matrix));
 			}
 
 			Source = ctx.Source;

@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler.Transforms
 {
-	internal sealed class OverlayTransform : ChainedPixelSource, IDisposable
+	internal sealed class OverlayTransform : ChainedPixelSource
 	{
 		const int bytesPerPixel = 4;
 
@@ -173,10 +173,17 @@ namespace PhotoSauce.MagicScaler.Transforms
 		}
 #endif
 
-		public void Dispose()
+		protected override void Dispose(bool disposing)
 		{
-			lineBuff.Dispose();
-			lineBuff = default;
+			if (disposing)
+			{
+				overSource.Dispose();
+
+				lineBuff.Dispose();
+				lineBuff = default;
+			}
+
+			base.Dispose(disposing);
 		}
 
 		public override string ToString() => nameof(OverlayTransform);

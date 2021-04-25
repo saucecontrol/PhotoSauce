@@ -13,7 +13,7 @@ using static PhotoSauce.MagicScaler.MathUtil;
 
 namespace PhotoSauce.MagicScaler.Transforms
 {
-	internal sealed class HybridScaleTransform : ChainedPixelSource, IDisposable
+	internal sealed class HybridScaleTransform : ChainedPixelSource
 	{
 #pragma warning disable IDE0044
 		// read from static prevents JIT from inlining the const value with the FastAvg helpers, which causes redundant 64-bit immediate loads
@@ -679,10 +679,15 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
-		public void Dispose()
+		protected override void Dispose(bool disposing)
 		{
-			lineBuff.Dispose();
-			lineBuff = default;
+			if (disposing)
+			{
+				lineBuff.Dispose();
+				lineBuff = default;
+			}
+
+			base.Dispose(disposing);
 		}
 
 		public override string ToString() => $"{nameof(HybridScaleTransform)}: {Format.Name} {scale}:1";

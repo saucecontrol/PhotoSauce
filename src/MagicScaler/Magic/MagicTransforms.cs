@@ -77,51 +77,71 @@ namespace PhotoSauce.MagicScaler.Transforms
 			else if (MagicImageProcessor.EnableSimd && internalFormatMapSimd.TryGetValue(ifmt, out var ofmts))
 				ofmt = ofmts;
 
-			bool videoLevels = ifmt == PixelFormat.Y8 && ctx.ImageFrame is IYccImageFrame frame && !frame.IsFullRange;
+			if (ctx.Source is PlanarPixelSource plsrc)
+			{
+				if (ofmt != ifmt || plsrc.VideoLumaLevels)
+				{
+					bool forceSrgb = (ofmt == PixelFormat.Y32FloatLinear || ofmt == PixelFormat.Y16UQ15Linear) && ctx.SourceColorProfile != ColorProfile.sRGB;
+					plsrc.SourceY = ctx.AddProfiler(new ConversionTransform(plsrc.SourceY, forceSrgb ? ColorProfile.sRGB : ctx.SourceColorProfile, ctx.DestColorProfile, ofmt, plsrc.VideoLumaLevels));
+					plsrc.VideoLumaLevels = false;
+				}
 
-			if (ofmt == ifmt && !videoLevels)
+				if (MagicImageProcessor.EnableSimd && internalFormatMapSimd.TryGetValue(plsrc.SourceCb.Format, out var ofmtb) && internalFormatMapSimd.TryGetValue(plsrc.SourceCr.Format, out var ofmtc))
+				{
+					plsrc.SourceCb = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCb, null, null, ofmtb, plsrc.VideoChromaLevels));
+					plsrc.SourceCr = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCr, null, null, ofmtc, plsrc.VideoChromaLevels));
+					plsrc.VideoChromaLevels = false;
+				}
+
 				return;
+			}
 
-			bool forceSrgb = (ofmt == PixelFormat.Y32FloatLinear || ofmt == PixelFormat.Y16UQ15Linear) && ctx.SourceColorProfile != ColorProfile.sRGB;
-
-			ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, forceSrgb ? ColorProfile.sRGB : ctx.SourceColorProfile, forceSrgb ? ColorProfile.sRGB : ctx.DestColorProfile, ofmt, videoLevels));
+			if (ofmt != ifmt)
+				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, ctx.SourceColorProfile, ctx.DestColorProfile, ofmt));
 		}
 
-		public static void AddExternalFormatConverter(PipelineContext ctx)
+		public static void AddExternalFormatConverter(PipelineContext ctx, bool forceChroma = false)
 		{
 			var ifmt = ctx.Source.Format;
-			if (!externalFormatMap.TryGetValue(ifmt, out var ofmt) || ofmt == ifmt)
+			var ofmt = ifmt;
+			if (externalFormatMap.TryGetValue(ifmt, out var ofmtm))
+				ofmt = ofmtm;
+
+			if (ctx.Source is PlanarPixelSource plsrc)
+			{
+				if (ofmt != ifmt || plsrc.VideoLumaLevels)
+				{
+					bool forceSrgb = (ifmt == PixelFormat.Y32FloatLinear || ifmt == PixelFormat.Y16UQ15Linear) && ctx.SourceColorProfile != ColorProfile.sRGB;
+					plsrc.SourceY = ctx.AddProfiler(new ConversionTransform(plsrc.SourceY, ctx.SourceColorProfile, forceSrgb ? ColorProfile.sRGB : ctx.DestColorProfile, ofmt, plsrc.VideoLumaLevels));
+					plsrc.VideoLumaLevels = false;
+				}
+
+				if (externalFormatMap.TryGetValue(plsrc.SourceCb.Format, out var ofmtb) && externalFormatMap.TryGetValue(plsrc.SourceCr.Format, out var ofmtc))
+				{
+					plsrc.SourceCb = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCb, null, null, ofmtb));
+					plsrc.SourceCr = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCr, null, null, ofmtc));
+				}
+				else if (forceChroma && plsrc.VideoChromaLevels)
+				{
+					plsrc.SourceCb = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCb, null, null, plsrc.SourceCb.Format, plsrc.VideoChromaLevels));
+					plsrc.SourceCr = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCr, null, null, plsrc.SourceCr.Format, plsrc.VideoChromaLevels));
+					plsrc.VideoChromaLevels = false;
+				}
+
 				return;
+			}
 
-			bool forceSrgb = (ifmt == PixelFormat.Y32FloatLinear || ifmt == PixelFormat.Y16UQ15Linear) && ctx.SourceColorProfile != ColorProfile.sRGB;
-
-			ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, forceSrgb ? ColorProfile.sRGB : ctx.SourceColorProfile, forceSrgb ? ColorProfile.sRGB : ctx.DestColorProfile, ofmt));
+			if (ofmt != ifmt)
+				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, ctx.SourceColorProfile, ctx.DestColorProfile, ofmt));
 		}
 
-		public static void AddPlanarExternalFormatConverter(PipelineContext ctx)
-		{
-			Debug.Assert(ctx.PlanarContext is not null);
-
-			AddExternalFormatConverter(ctx);
-			ctx.PlanarContext.SourceY = ctx.Source;
-			ctx.Source = ctx.PlanarContext.SourceCb;
-
-			AddExternalFormatConverter(ctx);
-			ctx.PlanarContext.SourceCb = ctx.Source;
-			ctx.Source = ctx.PlanarContext.SourceCr;
-
-			AddExternalFormatConverter(ctx);
-			ctx.PlanarContext.SourceCr = ctx.Source;
-			ctx.Source = ctx.PlanarContext.SourceY;
-		}
-
-		public static void AddHighQualityScaler(PipelineContext ctx)
+		public static void AddHighQualityScaler(PipelineContext ctx, ChromaSubsampleMode subsample = ChromaSubsampleMode.Subsample444)
 		{
 			bool swap = ctx.Orientation.SwapsDimensions();
 			var tsize = ctx.Settings.InnerSize;
 
 			int width = swap ? tsize.Height : tsize.Width, height = swap ? tsize.Width : tsize.Height;
-			if (ctx.Source.Width == width && ctx.Source.Height == height)
+			if (ctx.Source.Width == width && ctx.Source.Height == height && ctx.Source is not PlanarPixelSource)
 				return;
 
 			var interpolatorx = width == ctx.Source.Width ? InterpolationSettings.NearestNeighbor : ctx.Settings.Interpolation;
@@ -129,77 +149,72 @@ namespace PhotoSauce.MagicScaler.Transforms
 			if (interpolatorx.WeightingFunction.Support >= 0.1 || interpolatory.WeightingFunction.Support >= 0.1)
 				AddInternalFormatConverter(ctx, allow96bppFloat: true);
 
-			var fmt = ctx.Source.Format;
-			bool offsetX = false, offsetY = false;
-			if (ctx.ImageFrame is IYccImageFrame frame && ctx.PlanarContext is not null && fmt.Encoding == PixelValueEncoding.Unspecified)
+			if (ctx.Source is PlanarPixelSource plsrc)
 			{
-				offsetX = frame.ChromaPosition.HasFlag(ChromaPosition.CositedHorizontal) && ctx.PlanarContext.ChromaSubsampling.IsSubsampledX();
-				offsetY = frame.ChromaPosition.HasFlag(ChromaPosition.CositedVertical) && ctx.PlanarContext.ChromaSubsampling.IsSubsampledY();
+				if (plsrc.SourceY.Width != width || plsrc.SourceY.Height != height)
+					plsrc.SourceY = ctx.AddProfiler(makeFilter(plsrc.SourceY, width, height, interpolatorx, interpolatory));
+
+				if (swap ? subsample.IsSubsampledY() : subsample.IsSubsampledX())
+					width = MathUtil.DivCeiling(width, 2);
+				if (swap ? subsample.IsSubsampledX() : subsample.IsSubsampledY())
+					height = MathUtil.DivCeiling(height, 2);
+
+				if (plsrc.SourceCb.Width == width && plsrc.SourceCb.Height == height)
+					return;
+
+				interpolatorx = width == plsrc.SourceCb.Width ? InterpolationSettings.NearestNeighbor : ctx.Settings.Interpolation;
+				interpolatory = height == plsrc.SourceCb.Height ? InterpolationSettings.NearestNeighbor : ctx.Settings.Interpolation;
+
+				bool offsetX = false, offsetY = false;
+				if (ctx.ImageFrame is IYccImageFrame frame)
+				{
+					offsetX = frame.ChromaPosition.HasFlag(ChromaPosition.CositedHorizontal) && plsrc.ChromaSubsampling.IsSubsampledX();
+					offsetY = frame.ChromaPosition.HasFlag(ChromaPosition.CositedVertical) && plsrc.ChromaSubsampling.IsSubsampledY();
+				}
+
+				plsrc.SourceCb = ctx.AddProfiler(makeFilter(plsrc.SourceCb, width, height, interpolatorx, interpolatory, offsetX, offsetY));
+				plsrc.SourceCr = ctx.AddProfiler(makeFilter(plsrc.SourceCr, width, height, interpolatorx, interpolatory, offsetX, offsetY));
+				plsrc.ChromaSubsampling = subsample;
+
+				return;
 			}
 
-			if (fmt.NumericRepresentation == PixelNumericRepresentation.Float)
-				ctx.Source = ctx.AddDispose(ConvolutionTransform<float, float>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory, offsetX, offsetY));
-			else if (fmt.NumericRepresentation == PixelNumericRepresentation.Fixed)
-				ctx.Source = ctx.AddDispose(ConvolutionTransform<ushort, int>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory, offsetX, offsetY));
-			else
-				ctx.Source = ctx.AddDispose(ConvolutionTransform<byte, int>.CreateResize(ctx.Source, width, height, interpolatorx, interpolatory, offsetX, offsetY));
+			ctx.Source = ctx.AddProfiler(makeFilter(ctx.Source, width, height, interpolatorx, interpolatory));
+
+			static PixelSource makeFilter(PixelSource src, int width, int height, InterpolationSettings interpolatorx, InterpolationSettings interpolatory, bool offsetX = false, bool offsetY = false)
+			{
+				var fmt = src.Format;
+				if (fmt.NumericRepresentation == PixelNumericRepresentation.Float)
+					return ConvolutionTransform<float, float>.CreateResize(src, width, height, interpolatorx, interpolatory, offsetX, offsetY);
+				else if (fmt.NumericRepresentation == PixelNumericRepresentation.Fixed)
+					return ConvolutionTransform<ushort, int>.CreateResize(src, width, height, interpolatorx, interpolatory, offsetX, offsetY);
+				else
+					return ConvolutionTransform<byte, int>.CreateResize(src, width, height, interpolatorx, interpolatory, offsetX, offsetY);
+			}
 		}
 
-		public static void AddPlanarHighQualityScaler(PipelineContext ctx, ChromaSubsampleMode subsample)
+		public static void AddHybridScaler(PipelineContext ctx)
 		{
-			Debug.Assert(ctx.PlanarContext is not null);
-
-			AddHighQualityScaler(ctx);
-			ctx.PlanarContext.SourceY = ctx.Source;
-			ctx.Source = ctx.PlanarContext.SourceCb;
-
-			if (subsample.IsSubsampledX())
-				ctx.Settings.InnerSize.Width = MathUtil.DivCeiling(ctx.Settings.InnerSize.Width, 2);
-			if (subsample.IsSubsampledY())
-				ctx.Settings.InnerSize.Height = MathUtil.DivCeiling(ctx.Settings.InnerSize.Height, 2);
-
-			AddHighQualityScaler(ctx);
-			ctx.PlanarContext.SourceCb = ctx.Source;
-			ctx.Source = ctx.PlanarContext.SourceCr;
-
-			AddHighQualityScaler(ctx);
-			ctx.PlanarContext.SourceCr = ctx.Source;
-			ctx.Source = ctx.PlanarContext.SourceY;
-		}
-
-		public static void AddHybridScaler(PipelineContext ctx, int ratio = default)
-		{
-			ratio = ratio == default ? ctx.Settings.HybridScaleRatio : ratio;
+			var ratio = ctx.Settings.HybridScaleRatio;
 			if (ratio == 1 || ctx.Settings.Interpolation.WeightingFunction.Support < 0.1 || ctx.Source.Format.BitsPerPixel / ctx.Source.Format.ChannelCount != 8)
 				return;
 
-			ctx.Source = ctx.AddDispose(new HybridScaleTransform(ctx.Source, ratio));
-			ctx.Settings.HybridMode = HybridScaleMode.Off;
-		}
+			if (ctx.Source is PlanarPixelSource plsrc)
+			{
+				int ratioX = (plsrc.SourceY.Width + 1) / plsrc.SourceCb.Width;
+				int ratioY = (plsrc.SourceY.Height + 1) / plsrc.SourceCb.Height;
+				int ratioC = ratio / Math.Min(ratioX, ratioY);
 
-		public static void AddPlanarHybridScaler(PipelineContext ctx)
-		{
-			Debug.Assert(ctx.PlanarContext is not null);
+				plsrc.SourceY = ctx.AddProfiler(new HybridScaleTransform(plsrc.SourceY, ratio));
+				plsrc.SourceCb = ctx.AddProfiler(new HybridScaleTransform(plsrc.SourceCb, ratioC));
+				plsrc.SourceCr = ctx.AddProfiler(new HybridScaleTransform(plsrc.SourceCr, ratioC));
+				ctx.Settings.HybridMode = HybridScaleMode.Off;
 
-			int ratio = ctx.Settings.HybridScaleRatio;
-			if (ratio == 1)
 				return;
+			}
 
-			int ratioX = (ctx.Source.Width + 1) / ctx.PlanarContext.SourceCb.Width;
-			int ratioY = (ctx.Source.Height + 1) / ctx.PlanarContext.SourceCb.Height;
-			int ratioC = ratio / Math.Min(ratioX, ratioY);
-
-			AddHybridScaler(ctx, ratio);
-			ctx.PlanarContext.SourceY = ctx.Source;
-			ctx.Source = ctx.PlanarContext.SourceCb;
-
-			AddHybridScaler(ctx, ratioC);
-			ctx.PlanarContext.SourceCb = ctx.Source;
-			ctx.Source = ctx.PlanarContext.SourceCr;
-
-			AddHybridScaler(ctx, ratioC);
-			ctx.PlanarContext.SourceCr = ctx.Source;
-			ctx.Source = ctx.PlanarContext.SourceY;
+			ctx.Source = ctx.AddProfiler(new HybridScaleTransform(ctx.Source, ratio));
+			ctx.Settings.HybridMode = HybridScaleMode.Off;
 		}
 
 		public static void AddUnsharpMask(PipelineContext ctx)
@@ -208,13 +223,21 @@ namespace PhotoSauce.MagicScaler.Transforms
 			if (!ctx.Settings.Sharpen || ss.Radius <= 0d || ss.Amount <= 0)
 				return;
 
-			var fmt = ctx.Source.Format;
-			if (fmt.NumericRepresentation == PixelNumericRepresentation.Float)
-				ctx.Source = ctx.AddDispose(UnsharpMaskTransform<float, float>.CreateSharpen(ctx.Source, ss));
-			else if (fmt.NumericRepresentation == PixelNumericRepresentation.Fixed)
-				ctx.Source = ctx.AddDispose(UnsharpMaskTransform<ushort, int>.CreateSharpen(ctx.Source, ss));
+			if (ctx.Source is PlanarPixelSource plsrc)
+				plsrc.SourceY = ctx.AddProfiler(makeFilter(plsrc.SourceY, ss));
 			else
-				ctx.Source = ctx.AddDispose(UnsharpMaskTransform<byte, int>.CreateSharpen(ctx.Source, ss));
+				ctx.Source = ctx.AddProfiler(makeFilter(ctx.Source, ss));
+
+			static PixelSource makeFilter(PixelSource src, UnsharpMaskSettings ss)
+			{
+				var fmt = src.Format;
+				if (fmt.NumericRepresentation == PixelNumericRepresentation.Float)
+					return UnsharpMaskTransform<float, float>.CreateSharpen(src, ss);
+				else if (fmt.NumericRepresentation == PixelNumericRepresentation.Fixed)
+					return UnsharpMaskTransform<ushort, int>.CreateSharpen(src, ss);
+				else
+					return UnsharpMaskTransform<byte, int>.CreateSharpen(src, ss);
+			}
 		}
 
 		public static void AddMatte(PipelineContext ctx)
@@ -226,7 +249,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			if (fmt.NumericRepresentation == PixelNumericRepresentation.Float && fmt.Encoding == PixelValueEncoding.Companded)
 				AddInternalFormatConverter(ctx, PixelValueEncoding.Linear);
 
-			ctx.Source = new MatteTransform(ctx.Source, ctx.Settings.MatteColor, !ctx.IsAnimatedGifPipeline);
+			ctx.Source = ctx.AddProfiler(new MatteTransform(ctx.Source, ctx.Settings.MatteColor, !ctx.IsAnimatedGifPipeline));
 
 			if (!ctx.IsAnimatedGifPipeline && ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None && !ctx.Settings.MatteColor.IsTransparent())
 			{
@@ -235,7 +258,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					: oldFmt == PixelFormat.Bgra32 ? PixelFormat.Bgr24
 					: throw new NotSupportedException("Unsupported pixel format");
 
-				ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, newFmt));
+				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, null, null, newFmt));
 			}
 		}
 
@@ -248,59 +271,48 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			var fmt = ctx.Source.Format;
 			if (fmt.AlphaRepresentation == PixelAlphaRepresentation.None && ctx.Settings.MatteColor.IsTransparent())
-				ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, PixelFormat.Bgra32));
+				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, null, null, PixelFormat.Bgra32));
 			else if (fmt.ColorRepresentation == PixelColorRepresentation.Grey && !ctx.Settings.MatteColor.IsGrey())
-				ctx.Source = ctx.AddDispose(new ConversionTransform(ctx.Source, null, null, PixelFormat.Bgr24));
+				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, null, null, PixelFormat.Bgr24));
 
-			ctx.Source = new PadTransformInternal(ctx.Source, ctx.Settings.MatteColor, PixelArea.FromGdiRect(ctx.Settings.InnerRect), PixelArea.FromGdiSize(ctx.Settings.OuterSize));
+			ctx.Source = ctx.AddProfiler(new PadTransformInternal(ctx.Source, ctx.Settings.MatteColor, PixelArea.FromGdiRect(ctx.Settings.InnerRect), PixelArea.FromGdiSize(ctx.Settings.OuterSize)));
 		}
 
-		public static void AddCropper(PipelineContext ctx, PixelArea area = default)
+		public static void AddCropper(PipelineContext ctx)
 		{
-			var crop = area.IsEmpty ? PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height) : area;
-			if (crop == ctx.Source.Area)
-				return;
-
-			ctx.Source = new CropTransform(ctx.Source, crop);
-		}
-
-		public static void AddPlanarCropper(PipelineContext ctx)
-		{
-			Debug.Assert(ctx.PlanarContext is not null);
-
 			var crop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height);
 			if (crop == ctx.Source.Area)
 				return;
 
-			int yw = ctx.Source.Width;
-			int yh = ctx.Source.Height;
-			int cw = ctx.PlanarContext.SourceCb.Width;
-			int ch = ctx.PlanarContext.SourceCb.Height;
+			if (ctx.Source is PlanarPixelSource plsrc)
+			{
+				int yw = plsrc.SourceY.Width;
+				int yh = plsrc.SourceY.Height;
+				int cw = plsrc.SourceCb.Width;
+				int ch = plsrc.SourceCb.Height;
 
-			int ratioX = (yw + 1) / cw;
-			int ratioY = (yh + 1) / ch;
+				int ratioX = (yw + 1) / cw;
+				int ratioY = (yh + 1) / ch;
 
-			int scropX = MathUtil.PowerOfTwoFloor(crop.X, ratioX);
-			int scropY = MathUtil.PowerOfTwoFloor(crop.Y, ratioY);
-			int scropW = Math.Min(MathUtil.PowerOfTwoCeiling(crop.Width, ratioX), yw - scropX);
-			int scropH = Math.Min(MathUtil.PowerOfTwoCeiling(crop.Height, ratioY), yh - scropY);
-			var scrop = new PixelArea(scropX, scropY, scropW, scropH);
+				int scropX = MathUtil.PowerOfTwoFloor(crop.X, ratioX);
+				int scropY = MathUtil.PowerOfTwoFloor(crop.Y, ratioY);
+				int scropW = Math.Min(MathUtil.PowerOfTwoCeiling(crop.Width, ratioX), yw - scropX);
+				int scropH = Math.Min(MathUtil.PowerOfTwoCeiling(crop.Height, ratioY), yh - scropY);
+				var scrop = new PixelArea(scropX, scropY, scropW, scropH);
 
-			AddCropper(ctx, scrop);
-			ctx.PlanarContext.SourceY = ctx.Source;
-			ctx.Source = ctx.PlanarContext.SourceCb;
+				plsrc.SourceY = ctx.AddProfiler(new CropTransform(plsrc.SourceY, scrop));
 
-			cw = Math.Min(MathUtil.DivCeiling(scrop.Width, ratioX), cw);
-			ch = Math.Min(MathUtil.DivCeiling(scrop.Height, ratioY), ch);
-			scrop = new PixelArea(scrop.X / ratioX, scrop.Y / ratioY, cw, ch);
+				cw = Math.Min(MathUtil.DivCeiling(scrop.Width, ratioX), cw);
+				ch = Math.Min(MathUtil.DivCeiling(scrop.Height, ratioY), ch);
+				scrop = new PixelArea(scrop.X / ratioX, scrop.Y / ratioY, cw, ch);
 
-			AddCropper(ctx, scrop);
-			ctx.PlanarContext.SourceCb = ctx.Source;
-			ctx.Source = ctx.PlanarContext.SourceCr;
+				plsrc.SourceCb = ctx.AddProfiler(new CropTransform(plsrc.SourceCb, scrop));
+				plsrc.SourceCr = ctx.AddProfiler(new CropTransform(plsrc.SourceCr, scrop));
 
-			AddCropper(ctx, scrop);
-			ctx.PlanarContext.SourceCr = ctx.Source;
-			ctx.Source = ctx.PlanarContext.SourceY;
+				return;
+			}
+
+			ctx.Source = ctx.AddProfiler(new CropTransform(ctx.Source, crop));
 		}
 
 		public static void AddFlipRotator(PipelineContext ctx, Orientation orientation)
@@ -310,31 +322,27 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			AddExternalFormatConverter(ctx);
 
-			ctx.Source = new OrientationTransformInternal(ctx.Source, orientation);
+			ctx.Source = ctx.AddProfiler(new OrientationTransformInternal(ctx.Source, orientation));
 			ctx.Orientation = Orientation.Normal;
 		}
 
-		public static void AddExifFlipRotator(PipelineContext ctx) => AddFlipRotator(ctx, ctx.Orientation);
-
-		public static void AddPlanarExifFlipRotator(PipelineContext ctx)
+		public static void AddExifFlipRotator(PipelineContext ctx)
 		{
-			Debug.Assert(ctx.PlanarContext is not null);
-
 			var orientation = ctx.Orientation;
 			if (orientation == Orientation.Normal)
 				return;
 
-			AddFlipRotator(ctx, orientation);
-			ctx.PlanarContext.SourceY = ctx.Source;
-			ctx.Source = ctx.PlanarContext.SourceCb;
+			if (ctx.Source is PlanarPixelSource plsrc)
+			{
+				plsrc.SourceY = ctx.AddProfiler(new OrientationTransformInternal(plsrc.SourceY, orientation));
+				plsrc.SourceCb = ctx.AddProfiler(new OrientationTransformInternal(plsrc.SourceCb, orientation));
+				plsrc.SourceCr = ctx.AddProfiler(new OrientationTransformInternal(plsrc.SourceCr, orientation));
+				ctx.Orientation = Orientation.Normal;
+
+				return;
+			}
 
 			AddFlipRotator(ctx, orientation);
-			ctx.PlanarContext.SourceCb = ctx.Source;
-			ctx.Source = ctx.PlanarContext.SourceCr;
-
-			AddFlipRotator(ctx, orientation);
-			ctx.PlanarContext.SourceCr = ctx.Source;
-			ctx.Source = ctx.PlanarContext.SourceY;
 		}
 
 		public static unsafe void AddColorProfileReader(PipelineContext ctx)
@@ -386,33 +394,33 @@ namespace PhotoSauce.MagicScaler.Transforms
 			{
 				var matrix = srcProf.Matrix * dstProf.InverseMatrix;
 				if (matrix != default && !matrix.IsIdentity)
-					ctx.Source = new ColorMatrixTransformInternal(ctx.Source, matrix);
+					ctx.Source = ctx.AddProfiler(new ColorMatrixTransformInternal(ctx.Source, matrix));
 			}
 		}
 
 		public static void AddPlanarConverter(PipelineContext ctx)
 		{
-			Debug.Assert(ctx.PlanarContext is not null);
-
-			if (ctx.Source.Format.Encoding == PixelValueEncoding.Linear || ctx.PlanarContext.SourceCb.Format.NumericRepresentation != ctx.Source.Format.NumericRepresentation)
-			{
-				if (ctx.Source.Format.NumericRepresentation == PixelNumericRepresentation.Float && ctx.PlanarContext.SourceCb.Format.NumericRepresentation == ctx.Source.Format.NumericRepresentation)
-					AddInternalFormatConverter(ctx, PixelValueEncoding.Companded);
-				else
-					AddPlanarExternalFormatConverter(ctx);
-			}
+			if (ctx.Source is not PlanarPixelSource plsrc)
+				throw new NotSupportedException("Must be a planar pixel source.");
 
 			var matrix = YccMatrix.Rec601;
-			bool videoLevels = false;
-
-			if (ctx.ImageFrame is IYccImageFrame frame)
+			if (ctx.ImageFrame is IYccImageFrame yccFrame)
 			{
-				matrix = frame.RgbYccMatrix;
-				videoLevels = !frame.IsFullRange;
+				matrix = yccFrame.RgbYccMatrix;
+
+				if (plsrc.VideoLumaLevels)
+					AddInternalFormatConverter(ctx, PixelValueEncoding.Companded);
 			}
 
-			ctx.Source = ctx.AddDispose(new PlanarConversionTransform(ctx.Source, ctx.PlanarContext.SourceCb, ctx.PlanarContext.SourceCr, matrix, videoLevels));
-			ctx.PlanarContext = null;
+			if (plsrc.SourceY.Format.Encoding == PixelValueEncoding.Linear || plsrc.SourceCb.Format.NumericRepresentation != plsrc.SourceY.Format.NumericRepresentation)
+			{
+				if (plsrc.SourceY.Format.NumericRepresentation == PixelNumericRepresentation.Float && plsrc.SourceCb.Format.NumericRepresentation == PixelNumericRepresentation.Float)
+					AddInternalFormatConverter(ctx, PixelValueEncoding.Companded);
+				else
+					AddExternalFormatConverter(ctx);
+			}
+
+			ctx.Source = ctx.AddProfiler(new PlanarConversionTransform(plsrc.SourceY, plsrc.SourceCb, plsrc.SourceCr, matrix, plsrc.VideoChromaLevels));
 		}
 
 		public static unsafe void AddGifFrameBuffer(PipelineContext ctx, bool replay = true)

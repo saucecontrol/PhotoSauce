@@ -17,11 +17,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			var fmt = ctx.Source.Format;
 			if (fmt.NumericRepresentation == PixelNumericRepresentation.Float)
-				ctx.Source = ctx.AddDispose(ConvolutionTransform<float, float>.CreateBlur(ctx.Source, radius));
+				ctx.Source = ctx.AddProfiler(ConvolutionTransform<float, float>.CreateBlur(ctx.Source, radius));
 			else if (fmt.NumericRepresentation == PixelNumericRepresentation.Fixed)
-				ctx.Source = ctx.AddDispose(ConvolutionTransform<ushort, int>.CreateBlur(ctx.Source, radius));
+				ctx.Source = ctx.AddProfiler(ConvolutionTransform<ushort, int>.CreateBlur(ctx.Source, radius));
 			else
-				ctx.Source = ctx.AddDispose(ConvolutionTransform<byte, int>.CreateBlur(ctx.Source, radius));
+				ctx.Source = ctx.AddProfiler(ConvolutionTransform<byte, int>.CreateBlur(ctx.Source, radius));
 
 			Source = ctx.Source;
 		}

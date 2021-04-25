@@ -214,14 +214,14 @@ namespace PhotoSauce.MagicScaler
 			var wicFrame = WicEncoderFrame;
 			var wicRect = area.ToWicRect();
 
-			if (ctx.PlanarContext is not null)
+			if (ctx.Source is PlanarPixelSource plsrc)
 			{
 				var oformat = GUID_WICPixelFormat24bppBGR;
 				HRESULT.Check(wicFrame->SetPixelFormat(&oformat));
 
-				using var srcY = new ComPtr<IWICBitmapSource>(ctx.PlanarContext.SourceY.AsIWICBitmapSource());
-				using var srcCb = new ComPtr<IWICBitmapSource>(ctx.PlanarContext.SourceCb.AsIWICBitmapSource());
-				using var srcCr = new ComPtr<IWICBitmapSource>(ctx.PlanarContext.SourceCr.AsIWICBitmapSource());
+				using var srcY = new ComPtr<IWICBitmapSource>(plsrc.SourceY.AsIWICBitmapSource());
+				using var srcCb = new ComPtr<IWICBitmapSource>(plsrc.SourceCb.AsIWICBitmapSource());
+				using var srcCr = new ComPtr<IWICBitmapSource>(plsrc.SourceCr.AsIWICBitmapSource());
 				var planes = stackalloc[] { srcY.Get(), srcCb.Get(), srcCr.Get() };
 
 				using var pframe = default(ComPtr<IWICPlanarBitmapFrameEncode>);
@@ -249,7 +249,7 @@ namespace PhotoSauce.MagicScaler
 					HRESULT.Check(Wic.Factory->CreateFormatConverter(conv.GetAddressOf()));
 					HRESULT.Check(conv.Get()->Initialize(ctx.Source.AsIWICBitmapSource(), &oformat, WICBitmapDitherType.WICBitmapDitherTypeNone, pal, 0.0, ptt));
 
-					ctx.Source = ctx.AddDispose(new ComPtr<IWICBitmapSource>((IWICBitmapSource*)conv.Get()).AsPixelSource($"{nameof(IWICFormatConverter)}: {ctx.Source.Format.Name}->{PixelFormat.FromGuid(oformat).Name}", false));
+					ctx.Source = ctx.AddProfiler(new ComPtr<IWICBitmapSource>((IWICBitmapSource*)conv.Get()).AsPixelSource(ctx.Source, $"{nameof(IWICFormatConverter)}: {ctx.Source.Format.Name}->{PixelFormat.FromGuid(oformat).Name}", false));
 				}
 				else if (oformat == PixelFormat.Indexed8.FormatGuid)
 				{
@@ -499,9 +499,9 @@ namespace PhotoSauce.MagicScaler
 		public void WriteFrames()
 		{
 			uint bgColor = ((WicGifContainer)ctx.ImageContainer).BackgroundColor;
-			var ppt = MagicImageProcessor.EnablePixelSourceStats ? ctx.AddProfiler(new ProcessingProfiler(nameof(TemporalFilters))) : NoopProfiler.Instance;
-			var pph = MagicImageProcessor.EnablePixelSourceStats ? ctx.AddProfiler(new ProcessingProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.CreatePalette))) : NoopProfiler.Instance;
-			var ppq = MagicImageProcessor.EnablePixelSourceStats ? ctx.AddProfiler(new ProcessingProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.Quantize))) : NoopProfiler.Instance;
+			var ppt = ctx.AddProfiler(nameof(TemporalFilters));
+			var pph = ctx.AddProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.CreatePalette));
+			var ppq = ctx.AddProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.Quantize));
 
 			writeFrame(Current, pph, ppq);
 
@@ -517,6 +517,7 @@ namespace PhotoSauce.MagicScaler
 
 		public void Dispose()
 		{
+			lastSource.Dispose();
 			IndexedFrame.Dispose();
 			EncodeFrame.Dispose();
 			for (int i = 0; i < frames.Length; i++)
@@ -545,7 +546,7 @@ namespace PhotoSauce.MagicScaler
 			ctx.ImageFrame = ctx.ImageContainer.GetFrame(index);
 
 			if (ctx.ImageFrame is WicImageFrame wicFrame)
-				ctx.Source = wicFrame.Source;
+				ctx.Source = ctx.AddProfiler(wicFrame.Source);
 			else
 				ctx.Source = ctx.ImageFrame.PixelSource.AsPixelSource();
 

@@ -11,7 +11,7 @@ using System.Runtime.Intrinsics.X86;
 
 namespace PhotoSauce.MagicScaler.Transforms
 {
-	internal sealed class OrientationTransformInternal : ChainedPixelSource, IDisposable
+	internal sealed class OrientationTransformInternal : ChainedPixelSource
 	{
 		private readonly Orientation orient;
 		private readonly PixelBuffer? outBuff;
@@ -550,12 +550,17 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
-		public void Dispose()
+		protected override void Dispose(bool disposing)
 		{
-			outBuff?.Dispose();
+			if (disposing)
+			{
+				outBuff?.Dispose();
 
-			lineBuff.Dispose();
-			lineBuff = default;
+				lineBuff.Dispose();
+				lineBuff = default;
+			}
+
+			base.Dispose(disposing);
 		}
 
 		public override string ToString() => nameof(OrientationTransform);
