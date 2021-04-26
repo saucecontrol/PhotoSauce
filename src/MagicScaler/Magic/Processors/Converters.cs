@@ -134,11 +134,11 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	internal sealed unsafe class VideoLevelsConverter : IConversionProcessor<byte, byte>
+	internal sealed unsafe class VideoLumaConverter : IConversionProcessor<byte, byte>
 	{
-		public static readonly VideoLevelsConverter Instance = new();
+		public static readonly VideoLumaConverter Instance = new();
 
-		private VideoLevelsConverter() { }
+		private VideoLumaConverter() { }
 
 		void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
@@ -147,10 +147,10 @@ namespace PhotoSauce.MagicScaler
 
 			while (ip <= ipe)
 			{
-				byte o0 = ScaleFromVideoLevels(ip[0]);
-				byte o1 = ScaleFromVideoLevels(ip[1]);
-				byte o2 = ScaleFromVideoLevels(ip[2]);
-				byte o3 = ScaleFromVideoLevels(ip[3]);
+				byte o0 = ScaleFromVideoLuma(ip[0]);
+				byte o1 = ScaleFromVideoLuma(ip[1]);
+				byte o2 = ScaleFromVideoLuma(ip[2]);
+				byte o3 = ScaleFromVideoLuma(ip[3]);
 				ip += 4;
 
 				op[0] = o0;
@@ -163,7 +163,43 @@ namespace PhotoSauce.MagicScaler
 
 			while (ip < ipe)
 			{
-				op[0] = ScaleFromVideoLevels(ip[0]);
+				op[0] = ScaleFromVideoLuma(ip[0]);
+				ip++;
+				op++;
+			}
+		}
+	}
+
+	internal sealed unsafe class VideoChromaConverter : IConversionProcessor<byte, byte>
+	{
+		public static readonly VideoChromaConverter Instance = new();
+
+		private VideoChromaConverter() { }
+
+		void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
+		{
+			byte* ip = istart, ipe = istart + cb - 4;
+			byte* op = ostart;
+
+			while (ip <= ipe)
+			{
+				byte o0 = ScaleFromVideoChroma(ip[0]);
+				byte o1 = ScaleFromVideoChroma(ip[1]);
+				byte o2 = ScaleFromVideoChroma(ip[2]);
+				byte o3 = ScaleFromVideoChroma(ip[3]);
+				ip += 4;
+
+				op[0] = o0;
+				op[1] = o1;
+				op[2] = o2;
+				op[3] = o3;
+				op += 4;
+			}
+			ipe += 4;
+
+			while (ip < ipe)
+			{
+				op[0] = ScaleFromVideoChroma(ip[0]);
 				ip++;
 				op++;
 			}

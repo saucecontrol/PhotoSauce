@@ -21,14 +21,15 @@ namespace PhotoSauce.MagicScaler
 		public sealed class Widening : IConverter<byte, float>
 		{
 			public static readonly Widening InstanceFullRange = new();
-			public static readonly Widening InstanceVideoRange = new(videoRange: true);
+			public static readonly Widening InstanceVideoLuma = new(VideoLumaMin, VideoLumaMax);
+			public static readonly Widening InstanceVideoChroma = new(VideoChromaMin, VideoChromaMax);
 
 			private static readonly WideningImpl3A processor3A = new();
 			private static readonly WideningImpl3X processor3X = new();
 
 			private readonly WideningImpl processor;
 
-			private Widening(bool videoRange = false) => processor = new WideningImpl(videoRange);
+			private Widening(int minVal = 0, int maxVal = byte.MaxValue) => processor = new WideningImpl(minVal, maxVal);
 
 			public IConversionProcessor<byte, float> Processor => processor;
 			public IConversionProcessor<byte, float> Processor3A => processor3A;
@@ -56,11 +57,11 @@ namespace PhotoSauce.MagicScaler
 			private readonly float offset;
 			private readonly float[] valueTable;
 
-			public WideningImpl(bool videoRange = false)
+			public WideningImpl(int minVal, int maxVal)
 			{
-				scale = 1f / (videoRange ? VideoLumaScale : byte.MaxValue);
-				offset = videoRange ? VideoLumaMin : 0f;
-				valueTable = videoRange ? LookupTables.MakeVideoInverseGamma(LookupTables.Alpha) : LookupTables.Alpha;
+				scale = 1f / (maxVal - minVal);
+				offset = minVal;
+				valueTable = minVal != 0 || maxVal != byte.MaxValue ? LookupTables.MakeScaledInverseGamma(LookupTables.Alpha, minVal, maxVal) : LookupTables.Alpha;
 			}
 
 			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)

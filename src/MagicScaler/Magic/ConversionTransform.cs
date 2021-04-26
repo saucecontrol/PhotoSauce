@@ -30,7 +30,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 			else if (videoLevels && srcFormat.BitsPerPixel == 8 && Format.BitsPerPixel == 8)
 			{
-				processor = VideoLevelsConverter.Instance;
+				processor = srcFormat.ColorRepresentation == PixelColorRepresentation.Grey ? VideoLumaConverter.Instance : VideoChromaConverter.Instance;
 			}
 			else if (srcFormat.Encoding == PixelValueEncoding.Companded && Format.Encoding == PixelValueEncoding.Linear)
 			{
@@ -79,7 +79,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 				else if (srcFormat.AlphaRepresentation == PixelAlphaRepresentation.None && srcFormat.ChannelCount == 3 && Format.ChannelCount == 4)
 					processor = FloatConverter.Widening.InstanceFullRange.Processor3X;
 				else
-					processor = videoLevels ? FloatConverter.Widening.InstanceVideoRange.Processor : FloatConverter.Widening.InstanceFullRange.Processor;
+					processor = !videoLevels ? FloatConverter.Widening.InstanceFullRange.Processor :
+						srcFormat.ColorRepresentation == PixelColorRepresentation.Grey ? FloatConverter.Widening.InstanceVideoLuma.Processor :
+						FloatConverter.Widening.InstanceVideoChroma.Processor;
 			}
 			else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Float && Format.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger)
 			{

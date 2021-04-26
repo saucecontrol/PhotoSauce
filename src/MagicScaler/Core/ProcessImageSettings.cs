@@ -283,7 +283,9 @@ namespace PhotoSauce.MagicScaler
 				var interpolator = InterpolationSettings.Spline36;
 				double rat = ScaleRatio / HybridScaleRatio;
 
-				if (rat < 0.5)
+				if (rat == 1.0)
+					interpolator = InterpolationSettings.Linear;
+				else if (rat < 0.5)
 					interpolator = InterpolationSettings.Lanczos;
 				else if (rat > 16.0)
 					interpolator = InterpolationSettings.Quadratic;

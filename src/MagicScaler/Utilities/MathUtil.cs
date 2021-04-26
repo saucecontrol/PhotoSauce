@@ -46,6 +46,10 @@ namespace PhotoSauce.MagicScaler
 		public const int VideoLumaMax = 235;
 		public const int VideoLumaScale = VideoLumaMax - VideoLumaMin;
 
+		public const int VideoChromaMin = 16;
+		public const int VideoChromaMax = 240;
+		public const int VideoChromaScale = VideoChromaMax - VideoChromaMin;
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int Clamp(this int x, int min, int max) => Min(Max(min, x), max);
 
@@ -134,7 +138,10 @@ namespace PhotoSauce.MagicScaler
 		public static byte UnFix22ToByte(uint x) => ClampToByte(UnFix22(x));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte ScaleFromVideoLevels(byte x) => UnFix15ToByte((uint)Max(x - VideoLumaMin, 0) * (UQ15One * byte.MaxValue / VideoLumaScale));
+		public static byte ScaleFromVideoLuma(byte x) => UnFix15ToByte((uint)Max(x - VideoLumaMin, 0) * (UQ15One * byte.MaxValue / VideoLumaScale));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static byte ScaleFromVideoChroma(byte x) => UnFix15ToByte((uint)Max(x - VideoChromaMin, 0) * (UQ15One * byte.MaxValue / VideoChromaScale));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int DivCeiling(int x, int y) => (x + (y - 1)) / y;

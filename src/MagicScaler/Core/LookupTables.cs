@@ -169,13 +169,13 @@ namespace PhotoSauce.MagicScaler
 			return igtq;
 		}
 
-		public static float[] MakeVideoInverseGamma(float[] igt)
+		public static float[] MakeScaledInverseGamma(float[] igt, int minVal, int maxVal)
 		{
 			var igtv = new float[InverseGammaLength];
 
 			for (int i = 0; i < igtv.Length; i++)
 			{
-				double val = (i.Clamp(VideoLumaMin, VideoLumaMax) - VideoLumaMin) / (double)VideoLumaScale;
+				double val = (i.Clamp(minVal, maxVal) - minVal) / (double)(maxVal - minVal);
 				double pos = val * InverseGammaScale;
 
 				int idx = (int)pos;

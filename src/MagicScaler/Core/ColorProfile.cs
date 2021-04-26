@@ -659,7 +659,7 @@ namespace PhotoSauce.MagicScaler
 				if (cacheKey.tfrom == typeof(float) && cacheKey.tto == typeof(float))
 					return NoopConverter.Instance;
 				if (cacheKey.tfrom == typeof(byte) && cacheKey.tto == typeof(float))
-					return cacheKey.videoLevels ? FloatConverter.Widening.InstanceVideoRange : FloatConverter.Widening.InstanceFullRange;
+					return cacheKey.videoLevels ? FloatConverter.Widening.InstanceVideoLuma : FloatConverter.Widening.InstanceFullRange;
 				if (cacheKey.tfrom == typeof(float) && cacheKey.tto == typeof(byte))
 					return FloatConverter.Narrowing.Instance;
 				if (cacheKey.tfrom == typeof(ushort) && cacheKey.tto == typeof(byte))
@@ -685,9 +685,9 @@ namespace PhotoSauce.MagicScaler
 				if (cacheKey.tfrom == typeof(float) && cacheKey.tto == typeof(float))
 					return new ConverterToLinear<float, float>(igt);
 				if (cacheKey.tfrom == typeof(byte) && cacheKey.tto == typeof(float))
-					return new ConverterToLinear<byte, float>(cacheKey.videoLevels ? LookupTables.MakeVideoInverseGamma(igt) : igt);
+					return new ConverterToLinear<byte, float>(cacheKey.videoLevels ? LookupTables.MakeScaledInverseGamma(igt, VideoLumaMin, VideoLumaMax) : igt);
 				if (cacheKey.tfrom == typeof(byte) && cacheKey.tto == typeof(ushort))
-					return new ConverterToLinear<byte, ushort>(LookupTables.MakeUQ15InverseGamma(cacheKey.videoLevels ? LookupTables.MakeVideoInverseGamma(igt) : igt));
+					return new ConverterToLinear<byte, ushort>(LookupTables.MakeUQ15InverseGamma(cacheKey.videoLevels ? LookupTables.MakeScaledInverseGamma(igt, VideoLumaMin, VideoLumaMax) : igt));
 			}
 
 			throw new ArgumentException("Invalid Type combination", nameof(cacheKey));
