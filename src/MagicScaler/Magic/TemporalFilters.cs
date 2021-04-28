@@ -31,7 +31,7 @@ namespace PhotoSauce.MagicScaler
 				uint al = (uint)src.Width, ar = al, at = 0u, ab = (uint)(src.Height - 1);
 
 				byte* pp = pprev;
-				if (prev == buffer.Current || prev.Disposal == GifDisposalMethod.RestoreBackground)
+				if (prev == buffer.Current || prev.Disposal == FrameDisposalMethod.RestoreBackground)
 				{
 					pp = null;
 					if (buffer.Current.Trans)

@@ -1,18 +1,16 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
+using System.Drawing;
 
 using TerraFX.Interop;
 using static TerraFX.Interop.Windows;
 
 using PhotoSauce.Interop.Wic;
-using PhotoSauce.MagicScaler.Transforms;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal sealed unsafe class WicImageFrame : IImageFrame
+	internal unsafe class WicImageFrame : IImageFrame
 	{
 		private WicPixelSource? psource;
 		private IPixelSource? isource;
@@ -177,93 +175,6 @@ namespace PhotoSauce.MagicScaler
 
 		~WicImageFrame() => dispose(false);
 
-		public static void ReplayGifAnimationContext(WicGifContainer cont, int playTo)
-		{
-			var anictx = cont.AnimationContext ??= new GifAnimationContext();
-			if (anictx.LastFrame > playTo)
-				anictx.LastFrame = -1;
-
-			for (; anictx.LastFrame < playTo; anictx.LastFrame++)
-			{
-				using var frame = default(ComPtr<IWICBitmapFrameDecode>);
-				using var meta = default(ComPtr<IWICMetadataQueryReader>);
-				HRESULT.Check(cont.WicDecoder->GetFrame((uint)(anictx.LastFrame + 1), frame.GetAddressOf()));
-				HRESULT.Check(frame.Get()->GetMetadataQueryReader(meta.GetAddressOf()));
-
-				var disp = ((GifDisposalMethod)meta.GetValueOrDefault<byte>(Wic.Metadata.Gif.FrameDisposal)).Clamp();
-				if (disp == GifDisposalMethod.Preserve)
-				{
-					var nfmt = GUID_WICPixelFormat32bppBGRA;
-					using var conv = default(ComPtr<IWICFormatConverter>);
-					HRESULT.Check(Wic.Factory->CreateFormatConverter(conv.GetAddressOf()));
-					HRESULT.Check(conv.Get()->Initialize((IWICBitmapSource*)frame.Get(), &nfmt, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom));
-
-					UpdateGifAnimationContext(cont, conv.Cast<IWICBitmapSource>(), meta);
-				}
-
-				anictx.LastDisposal = disp;
-			}
-		}
-
-		public static void UpdateGifAnimationContext(WicGifContainer cont, ComPtr<IWICBitmapSource> src, ComPtr<IWICMetadataQueryReader> meta)
-		{
-			Debug.Assert(cont.AnimationContext is not null);
-			var anictx = cont.AnimationContext;
-
-			const int bytesPerPixel = 4;
-
-			var finfo = GetGifFrameInfo(cont, src, meta);
-			var fbuff = anictx.FrameBufferSource ??= new FrameBufferSource(cont.ScreenWidth, cont.ScreenHeight, PixelFormat.Bgra32);
-			var bspan = fbuff.Span;
-
-			fbuff.ResumeTiming();
-
-			// Most GIF viewers clear the background to transparent instead of the background color when the next frame has transparency
-			bool ftrans = meta.GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
-			if (!finfo.FullScreen && anictx.LastDisposal == GifDisposalMethod.RestoreBackground)
-				MemoryMarshal.Cast<byte, uint>(bspan).Fill(ftrans ? 0 : cont.BackgroundColor);
-
-			// Similarly, they overwrite a background color with transparent pixels but overlay instead when the previous frame is preserved
-			var fspan = bspan.Slice(finfo.Top * fbuff.Stride + finfo.Left * bytesPerPixel);
-			fixed (byte* buff = fspan)
-			{
-				if (!ftrans || anictx.LastDisposal == GifDisposalMethod.RestoreBackground)
-				{
-					var rect = new WICRect { Width = finfo.Width, Height = finfo.Height };
-					HRESULT.Check(src.Get()->CopyPixels(&rect, (uint)fbuff.Stride, (uint)fspan.Length, buff));
-				}
-				else
-				{
-					using var pixsrc = new ComPtr<IWICBitmapSource>(src).AsPixelSource(nameof(IWICBitmapFrameDecode), false);
-					using var overlay = new OverlayTransform(fbuff, pixsrc, finfo.Left, finfo.Top, true, true);
-					overlay.CopyPixels(new PixelArea(finfo.Left, finfo.Top, finfo.Width, finfo.Height), fbuff.Stride, fspan.Length, (IntPtr)buff);
-				}
-			}
-
-			fbuff.PauseTiming();
-		}
-
-		public static (int Left, int Top, int Width, int Height, bool Alpha, bool FullScreen, GifDisposalMethod Disposal) GetGifFrameInfo(WicGifContainer cont, ComPtr<IWICBitmapSource> frame, ComPtr<IWICMetadataQueryReader> meta)
-		{
-			uint width, height;
-			HRESULT.Check(frame.Get()->GetSize(&width, &height));
-
-			int left = 0, top = 0;
-			var disp = ((GifDisposalMethod)meta.GetValueOrDefault<byte>(Wic.Metadata.Gif.FrameDisposal)).Clamp();
-			bool trans = meta.GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
-			bool full = width >= cont.ScreenWidth && height >= cont.ScreenHeight;
-			if (!full)
-			{
-				left = meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameLeft);
-				top = meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameTop);
-			}
-
-			width = Math.Min(width, cont.ScreenWidth - (uint)left);
-			height = Math.Min(height, cont.ScreenHeight - (uint)top);
-
-			return (left, top, (int)width, (int)height, trans, full, disp);
-		}
-
 		private WicColorProfile getColorProfile()
 		{
 			var guid = default(Guid);
@@ -330,6 +241,40 @@ namespace PhotoSauce.MagicScaler
 			}
 
 			return WicColorProfile.GetDefaultFor(fmt);
+		}
+	}
+
+	internal sealed unsafe class WicGifFrame : WicImageFrame, IAnimationFrame
+	{
+		public Point Origin { get; }
+		public Size Size { get; }
+		public Rational Duration { get; }
+		public FrameDisposalMethod Disposal { get; }
+		public bool HasAlpha { get; }
+
+		public WicGifFrame(WicGifContainer cont, uint index) : base(cont, index)
+		{
+			using var meta = new ComPtr<IWICMetadataQueryReader>(WicMetadataReader);
+
+			uint width, height;
+			HRESULT.Check(WicFrame->GetSize(&width, &height));
+
+			int left = 0, top = 0;
+			bool full = width >= cont.ScreenWidth && height >= cont.ScreenHeight;
+			if (!full)
+			{
+				left = meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameLeft);
+				top = meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameTop);
+			}
+
+			width = (uint)Math.Min(width, cont.ScreenWidth - left);
+			height = (uint)Math.Min(height, cont.ScreenHeight - top);
+
+			Origin = new Point(left, top);
+			Size = new Size((int)width, (int)height);
+			Duration = new Rational(meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameDelay), 100);
+			Disposal = ((FrameDisposalMethod)meta.GetValueOrDefault<byte>(Wic.Metadata.Gif.FrameDisposal)).Clamp();
+			HasAlpha = meta.GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
 		}
 	}
 }

@@ -22,6 +22,8 @@ namespace PhotoSauce.MagicScaler
 		public IImageFrame ImageFrame { get; set; }
 		public PixelSource Source { get; set; } = NoopPixelSource.Instance;
 
+		public AnimationPipelineContext? AnimationContext { get; set; }
+
 		public ColorProfile? SourceColorProfile { get; set; }
 		public ColorProfile? DestColorProfile { get; set; }
 
@@ -30,7 +32,7 @@ namespace PhotoSauce.MagicScaler
 		public WicPipelineContext WicContext => wicContext ??= new WicPipelineContext();
 
 		public bool IsAnimatedGifPipeline =>
-			ImageContainer is WicGifContainer &&
+			ImageContainer is IAnimationContainer &&
 			(Settings.SaveFormat == FileFormat.Gif || Settings.SaveFormat == FileFormat.Auto) &&
 			Settings.FrameIndex == 0 && ImageContainer.FrameCount > 1;
 
@@ -98,6 +100,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			wicContext?.Dispose();
 			Source.Dispose();
+			AnimationContext?.Dispose();
 			ImageFrame?.Dispose();
 
 			if (ownContainer && ImageContainer is IDisposable cdisp)

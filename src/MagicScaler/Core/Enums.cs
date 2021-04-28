@@ -163,11 +163,16 @@ namespace PhotoSauce.MagicScaler
 		Subsample440 = 4
 	}
 
-	internal enum GifDisposalMethod
+	/// <summary>Defines the modes that control disposal of image frames in an animation.</summary>
+	public enum FrameDisposalMethod
 	{
+		/// <summary>Disposal is not defined.  This has the same behavior as <see cref="Preserve" />.</summary>
 		Undefined = 0,
+		/// <summary>The frame should not be disposed.  The display buffer will preserve the current frame's content.</summary>
 		Preserve = 1,
+		/// <summary>The display buffer should be cleared to the background color.</summary>
 		RestoreBackground = 2,
+		/// <summary>The display buffer should revert to the state preceding display of the current frame.</summary>
 		RestorePrevious = 3
 	}
 }

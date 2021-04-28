@@ -425,60 +425,64 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public static unsafe void AddGifFrameBuffer(PipelineContext ctx, bool replay = true)
 		{
-			if (ctx.ImageFrame is not WicImageFrame wicFrame || wicFrame.Container is not WicGifContainer gif)
+			if (ctx.ImageContainer is not IAnimationContainer anicnt || ctx.ImageFrame is not IAnimationFrame anifrm)
 				return;
 
-			Debug.Assert(wicFrame.WicMetadataReader is not null);
+			if (replay && ctx.Settings.FrameIndex > 0 && anicnt is WicGifContainer gif)
+				gif.ReplayGifAnimation(ctx, ctx.Settings.FrameIndex - 1);
 
-			if (replay && ctx.Settings.FrameIndex > 0)
-				WicImageFrame.ReplayGifAnimationContext(gif, ctx.Settings.FrameIndex - 1);
+			var disposal = anifrm.Disposal;
+			if (disposal == FrameDisposalMethod.RestorePrevious && ctx.Settings.FrameIndex == 0)
+				disposal = FrameDisposalMethod.Preserve;
 
-			var finfo = WicImageFrame.GetGifFrameInfo(gif, wicFrame.WicSource, wicFrame.WicMetadataReader);
-			if (finfo.Disposal == GifDisposalMethod.RestorePrevious && ctx.Settings.FrameIndex == 0)
-				finfo.Disposal = GifDisposalMethod.Preserve;
+			var ldisp = ctx.AnimationContext?.LastDisposal ?? FrameDisposalMethod.RestoreBackground;
 
-			var ldisp = gif.AnimationContext?.LastDisposal ?? GifDisposalMethod.RestoreBackground;
-
-			bool useBuffer = !replay && finfo.Disposal == GifDisposalMethod.Preserve;
+			bool useBuffer = !replay && disposal == FrameDisposalMethod.Preserve;
 			if (!replay)
 			{
-				var anictx = gif.AnimationContext ??= new GifAnimationContext();
+				var anictx = ctx.AnimationContext ??= new AnimationPipelineContext();
 
-				if (finfo.Disposal == GifDisposalMethod.Preserve)
-					WicImageFrame.UpdateGifAnimationContext(gif, wicFrame.WicSource, wicFrame.WicMetadataReader);
+				if (anicnt.RequiresScreenBuffer && disposal == FrameDisposalMethod.Preserve)
+					anictx.UpdateFrameBuffer(anicnt, anifrm);
 
-				anictx.LastDisposal = finfo.Disposal;
+				anictx.LastDisposal = disposal;
 				anictx.LastFrame = ctx.Settings.FrameIndex;
 
-				ldisp = finfo.Disposal;
+				ldisp = disposal;
 			}
 
-			if (gif.AnimationContext is not null && gif.AnimationContext.FrameBufferSource is not null && ldisp != GifDisposalMethod.RestoreBackground)
-				ctx.Source = gif.AnimationContext.FrameBufferSource;
+			if (!anicnt.RequiresScreenBuffer)
+				return;
 
-			if (!finfo.FullScreen && ldisp == GifDisposalMethod.RestoreBackground && !useBuffer)
+			var frmsrc = ctx.Source;
+			if (ctx.AnimationContext?.FrameBufferSource is not null && ldisp != FrameDisposalMethod.RestoreBackground)
+				ctx.Source = ctx.AnimationContext.FrameBufferSource;
+
+			var innerArea = anifrm.GetArea();
+			bool fullScreen = innerArea.Width == anicnt.ScreenWidth && innerArea.Height == anicnt.ScreenHeight;
+			if (!fullScreen && ldisp == FrameDisposalMethod.RestoreBackground && !useBuffer)
 			{
-				var innerArea = new PixelArea(finfo.Left, finfo.Top, wicFrame.Source.Width, wicFrame.Source.Height);
-				var outerArea = new PixelArea(0, 0, gif.ScreenWidth, gif.ScreenHeight);
-				var bgColor = finfo.Alpha ? Color.Empty : Color.FromArgb((int)gif.BackgroundColor);
+				var outerArea = new PixelArea(0, 0, anicnt.ScreenWidth, anicnt.ScreenHeight);
+				var bgColor = anifrm.HasAlpha ? Color.Empty : anicnt.BackgroundColor;
 
-				ctx.Source = new PadTransformInternal(wicFrame.Source, bgColor, innerArea, outerArea, true);
+				ctx.Source = new PadTransformInternal(frmsrc, bgColor, innerArea, outerArea, true);
 			}
-			else if (ldisp != GifDisposalMethod.RestoreBackground && !useBuffer)
+			else if (ldisp != FrameDisposalMethod.RestoreBackground && !useBuffer)
 			{
-				Debug.Assert(gif.AnimationContext?.FrameBufferSource is not null);
+				Debug.Assert(ctx.AnimationContext?.FrameBufferSource is not null);
 
-				var ani = gif.AnimationContext;
-				var fbuff = ani.FrameBufferSource;
+				var anictx = ctx.AnimationContext;
+				var fbuff = anictx.FrameBufferSource;
 
-				ani.FrameOverlay?.Dispose();
-				ani.FrameOverlay = new OverlayTransform(fbuff, wicFrame.Source, finfo.Left, finfo.Top, finfo.Alpha);
-
-				ctx.Source = ani.FrameOverlay;
+				ctx.Source = new OverlayTransform(fbuff, frmsrc, anifrm.Origin.X, anifrm.Origin.Y, anifrm.HasAlpha);
+			}
+			else if (ctx.Source != frmsrc)
+			{
+				frmsrc.Dispose();
 			}
 
-			if (ctx.Source.Width > gif.ScreenWidth || ctx.Source.Height > gif.ScreenHeight)
-				ctx.Source = new CropTransform(ctx.Source, new PixelArea(0, 0, gif.ScreenWidth, gif.ScreenHeight), true);
+			if (ctx.Source.Width > anicnt.ScreenWidth || ctx.Source.Height > anicnt.ScreenHeight)
+				ctx.Source = new CropTransform(ctx.Source, new PixelArea(0, 0, anicnt.ScreenWidth, anicnt.ScreenHeight), true);
 		}
 	}
 }

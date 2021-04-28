@@ -83,4 +83,68 @@ namespace PhotoSauce.MagicScaler
 		/// <returns>The <see cref="IImageFrame" /> at the requested index.</returns>
 		IImageFrame GetFrame(int index);
 	}
+
+	/// <summary>A container defining global metadata for a sequence of <see cref="IAnimationFrame" /> instances.</summary>
+	public interface IAnimationContainer
+	{
+		/// <summary>The width of the animation's logical screen.</summary>
+		public int ScreenWidth { get; }
+
+		/// <summary>The height of the animation's logical screen.</summary>
+		public int ScreenHeight { get; }
+
+		/// <summary>The number of times to loop the animation.  Values less than 1 imply inifinte looping.</summary>
+		public int LoopCount { get; }
+
+		/// <summary>The background color to restore when a frame's disposal method is RestoreBackground.</summary>
+		public Color BackgroundColor { get; }
+
+		/// <summary>True if this animation requires a persistent screen buffer onto which frames are rendered, otherwise false.</summary>
+		public bool RequiresScreenBuffer { get; }
+	}
+
+	/// <summary>Defines metadata for a single frame within an animated image sequence.</summary>
+	public interface IAnimationFrame
+	{
+		/// <summary>The origin point (offset) of the frame's content, relative to the logical screen size.</summary>
+		public Point Origin { get; }
+		/// <summary>The size of the frame's content to be rendered to the logical screen.</summary>
+		public Size Size { get; }
+		/// <summary>The amount of time, in seconds, the frame should be displayed.</summary>
+		/// <remarks>For animated GIF output, the denominator will be normalized to <c>100</c>.</remarks>
+		public Rational Duration { get; }
+		/// <summary>The disposition of the frame.</summary>
+		public FrameDisposalMethod Disposal { get; }
+		/// <summary>True to indicate the frame contains transparent pixels, otherwise false.</summary>
+		public bool HasAlpha { get; }
+	}
+
+	/// <summary>A <a href="https://en.wikipedia.org/wiki/Rational_number">rational number</a>, as defined by an integer numerator and denominator.</summary>
+	public readonly struct Rational : IEquatable<Rational>
+	{
+		/// <summary>The numerator of the rational number.</summary>
+		public readonly int Numerator;
+		/// <summary>The denominator of the rational number.</summary>
+		public readonly int Denominator;
+
+		/// <summary>Constructs a new <see cref="Rational" /> with the specified <see cref="Numerator" /> and <see cref="Denominator" />.</summary>
+		/// <param name="num">The numerator.</param>
+		/// <param name="den">The denominator.</param>
+		public Rational(int num, int den) => (Numerator, Denominator) = (num, den);
+
+		/// <inheritdoc />
+		public bool Equals(Rational other) => Numerator == other.Numerator && Denominator == other.Denominator;
+		/// <inheritdoc />
+		public override bool Equals(object? obj) => obj is Rational other && Equals(other);
+		/// <inheritdoc />
+		public override int GetHashCode() => (Numerator, Denominator).GetHashCode();
+		/// <inheritdoc />
+		public override string ToString() => $"{Numerator}/{Denominator}";
+
+		/// <inheritdoc cref="double.op_Equality" />
+		public static bool operator ==(Rational left, Rational right) => left.Equals(right);
+
+		/// <inheritdoc cref="double.op_Equality" />
+		public static bool operator !=(Rational left, Rational right) => !(left==right);
+	}
 }

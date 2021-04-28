@@ -6,8 +6,10 @@ using System.Linq;
 using System.Buffers;
 using System.Threading;
 using System.Diagnostics;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 using TerraFX.Interop;
 using static TerraFX.Interop.Windows;
@@ -396,15 +398,15 @@ namespace PhotoSauce.MagicScaler
 
 	internal sealed unsafe class WicAnimatedGifEncoder : IDisposable
 	{
-		public sealed class BufferFrame : IDisposable
+		public sealed class AnimationBufferFrame : IDisposable
 		{
 			public readonly FrameBufferSource Source;
 			public PixelArea Area;
-			public GifDisposalMethod Disposal;
+			public FrameDisposalMethod Disposal;
 			public int Delay;
 			public bool Trans;
 
-			public BufferFrame(int width, int height, PixelFormat format) =>
+			public AnimationBufferFrame(int width, int height, PixelFormat format) =>
 				Source = new FrameBufferSource(width, height, format);
 
 			public void Dispose() => Source.Dispose();
@@ -413,29 +415,32 @@ namespace PhotoSauce.MagicScaler
 		private readonly PipelineContext ctx;
 		private readonly WicImageEncoder encoder;
 		private readonly PixelSource lastSource;
-		private readonly BufferFrame[] frames = new BufferFrame[3];
+		private readonly AnimationBufferFrame[] frames = new AnimationBufferFrame[3];
 		private readonly int lastFrame;
 
 		private int currentFrame;
 
 		public FrameBufferSource IndexedFrame { get; }
-		public BufferFrame EncodeFrame { get; }
-		public BufferFrame Current => frames[currentFrame % 3];
-		public BufferFrame? Previous => currentFrame == 0 ? null : frames[(currentFrame - 1) % 3];
-		public BufferFrame? Next => currentFrame == lastFrame ? null : frames[(currentFrame + 1) % 3];
+		public AnimationBufferFrame EncodeFrame { get; }
+		public AnimationBufferFrame Current => frames[currentFrame % 3];
+		public AnimationBufferFrame? Previous => currentFrame == 0 ? null : frames[(currentFrame - 1) % 3];
+		public AnimationBufferFrame? Next => currentFrame == lastFrame ? null : frames[(currentFrame + 1) % 3];
 
 		public WicAnimatedGifEncoder(PipelineContext ctx, WicImageEncoder enc)
 		{
 			this.ctx = ctx;
 			encoder = enc;
 
+			if (ctx.Source.Format != PixelFormat.Bgra32)
+				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, null, null, PixelFormat.Bgra32));
+
 			lastSource = ctx.Source;
 			lastFrame = ctx.ImageContainer.FrameCount - 1;
 
 			IndexedFrame = new FrameBufferSource(lastSource.Width, lastSource.Height, PixelFormat.Indexed8);
-			EncodeFrame = new BufferFrame(lastSource.Width, lastSource.Height, lastSource.Format);
+			EncodeFrame = new AnimationBufferFrame(lastSource.Width, lastSource.Height, lastSource.Format);
 			for (int i = 0; i < frames.Length; i++)
-				frames[i] = new BufferFrame(lastSource.Width, lastSource.Height, lastSource.Format);
+				frames[i] = new AnimationBufferFrame(lastSource.Width, lastSource.Height, lastSource.Format);
 
 			loadFrame(Current);
 			Current.Source.Span.CopyTo(EncodeFrame.Source.Span);
@@ -446,59 +451,79 @@ namespace PhotoSauce.MagicScaler
 
 		public void WriteGlobalMetadata()
 		{
-			var cnt = ctx.ImageContainer as WicGifContainer ?? throw new InvalidOperationException("Source must be a GIF");
-
-			using var decmeta = default(ComPtr<IWICMetadataQueryReader>);
 			using var encmeta = default(ComPtr<IWICMetadataQueryWriter>);
-
-			HRESULT.Check(cnt.WicDecoder->GetMetadataQueryReader(decmeta.GetAddressOf()));
 			HRESULT.Check(encoder.WicEncoder->GetMetadataQueryWriter(encmeta.GetAddressOf()));
 
-			var pv = default(PROPVARIANT);
-
-			if (SUCCEEDED(decmeta.Get()->GetMetadataByName(Wic.Metadata.Gif.AppExtension, &pv)))
+			if (ctx.ImageContainer is WicGifContainer cnt)
 			{
-				HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.AppExtension, &pv));
-				HRESULT.Check(PropVariantClear(&pv));
-			}
+				using var decmeta = default(ComPtr<IWICMetadataQueryReader>);
+				HRESULT.Check(cnt.WicDecoder->GetMetadataQueryReader(decmeta.GetAddressOf()));
 
-			if (SUCCEEDED(decmeta.Get()->GetMetadataByName(Wic.Metadata.Gif.AppExtensionData, &pv)))
-			{
-				HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.AppExtensionData, &pv));
-				HRESULT.Check(PropVariantClear(&pv));
-			}
+				var pv = default(PROPVARIANT);
 
-			if (SUCCEEDED(decmeta.Get()->GetMetadataByName(Wic.Metadata.Gif.PixelAspectRatio, &pv)))
-			{
-				HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.PixelAspectRatio, &pv));
-				HRESULT.Check(PropVariantClear(&pv));
-			}
-
-			// TODO WIC ignores these and sets the logical screen descriptor dimensions from the first frame
-			//pv.vt = (ushort)VARENUM.VT_UI2;
-			//pv.Anonymous.uiVal = (ushort)ctx.Source.Width;
-			//HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.LogicalScreenWidth, &pv));
-			//pv.Anonymous.uiVal = (ushort)ctx.Source.Height;
-			//HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.LogicalScreenHeight, &pv));
-
-			if (decmeta.GetValueOrDefault<bool>(Wic.Metadata.Gif.GlobalPaletteFlag))
-			{
-				using var pal = default(ComPtr<IWICPalette>);
-				HRESULT.Check(Wic.Factory->CreatePalette(pal.GetAddressOf()));
-				HRESULT.Check(cnt.WicDecoder->CopyPalette(pal));
-				HRESULT.Check(encoder.WicEncoder->SetPalette(pal));
-
-				if (SUCCEEDED(decmeta.Get()->GetMetadataByName(Wic.Metadata.Gif.BackgroundColorIndex, &pv)))
+				if (SUCCEEDED(decmeta.Get()->GetMetadataByName(Wic.Metadata.Gif.AppExtension, &pv)))
 				{
-					HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.BackgroundColorIndex, &pv));
+					HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.AppExtension, &pv));
 					HRESULT.Check(PropVariantClear(&pv));
+				}
+
+				if (SUCCEEDED(decmeta.Get()->GetMetadataByName(Wic.Metadata.Gif.AppExtensionData, &pv)))
+				{
+					HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.AppExtensionData, &pv));
+					HRESULT.Check(PropVariantClear(&pv));
+				}
+
+				if (SUCCEEDED(decmeta.Get()->GetMetadataByName(Wic.Metadata.Gif.PixelAspectRatio, &pv)))
+				{
+					HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.PixelAspectRatio, &pv));
+					HRESULT.Check(PropVariantClear(&pv));
+				}
+
+				// TODO WIC ignores these and sets the logical screen descriptor dimensions from the first frame
+				//pv.vt = (ushort)VARENUM.VT_UI2;
+				//pv.Anonymous.uiVal = (ushort)ctx.Source.Width;
+				//HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.LogicalScreenWidth, &pv));
+				//pv.Anonymous.uiVal = (ushort)ctx.Source.Height;
+				//HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.LogicalScreenHeight, &pv));
+
+				if (decmeta.GetValueOrDefault<bool>(Wic.Metadata.Gif.GlobalPaletteFlag))
+				{
+					using var pal = default(ComPtr<IWICPalette>);
+					HRESULT.Check(Wic.Factory->CreatePalette(pal.GetAddressOf()));
+					HRESULT.Check(cnt.WicDecoder->CopyPalette(pal));
+					HRESULT.Check(encoder.WicEncoder->SetPalette(pal));
+
+					if (SUCCEEDED(decmeta.Get()->GetMetadataByName(Wic.Metadata.Gif.BackgroundColorIndex, &pv)))
+					{
+						HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.BackgroundColorIndex, &pv));
+						HRESULT.Check(PropVariantClear(&pv));
+					}
+				}
+			}
+			else
+			{
+				var anicnt = ctx.ImageContainer as IAnimationContainer ?? throw new InvalidOperationException("Source must be an animation container.");
+				if (ctx.ImageContainer.FrameCount > 1)
+				{
+					var pvae = new PROPVARIANT { vt = (ushort)(VARENUM.VT_UI1 | VARENUM.VT_VECTOR) };
+					pvae.Anonymous.blob.cbSize = 11;
+					pvae.Anonymous.blob.pBlobData = (byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(WicGifContainer.Netscape2_0));
+					HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.AppExtension, &pvae));
+
+					byte* pvdd = stackalloc byte[4] { 3, 1, 0, 0 };
+					BinaryPrimitives.WriteUInt16LittleEndian(new Span<byte>(pvdd + 2, 2), (ushort)anicnt.LoopCount);
+
+					var pvad = new PROPVARIANT { vt = (ushort)(VARENUM.VT_UI1 | VARENUM.VT_VECTOR) };
+					pvad.Anonymous.blob.cbSize = 4;
+					pvad.Anonymous.blob.pBlobData = pvdd;
+					HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.AppExtensionData, &pvad));
 				}
 			}
 		}
 
 		public void WriteFrames()
 		{
-			uint bgColor = ((WicGifContainer)ctx.ImageContainer).BackgroundColor;
+			uint bgColor = (uint)((IAnimationContainer)ctx.ImageContainer).BackgroundColor.ToArgb();
 			var ppt = ctx.AddProfiler(nameof(TemporalFilters));
 			var pph = ctx.AddProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.CreatePalette));
 			var ppq = ctx.AddProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.Quantize));
@@ -547,6 +572,8 @@ namespace PhotoSauce.MagicScaler
 
 			if (ctx.ImageFrame is WicImageFrame wicFrame)
 				ctx.Source = ctx.AddProfiler(wicFrame.Source);
+			else if (ctx.ImageFrame is IYccImageFrame yccFrame)
+				ctx.Source = new PlanarPixelSource(yccFrame.PixelSource.AsPixelSource(), yccFrame.PixelSourceCb.AsPixelSource(), yccFrame.PixelSourceCr.AsPixelSource(), !yccFrame.IsFullRange);
 			else
 				ctx.Source = ctx.ImageFrame.PixelSource.AsPixelSource();
 
@@ -559,13 +586,13 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private void loadFrame(BufferFrame frame)
+		private void loadFrame(AnimationBufferFrame frame)
 		{
-			using var srcmeta = new ComPtr<IWICMetadataQueryReader>(((WicImageFrame)ctx.ImageFrame).WicMetadataReader);
+			var aniFrame = (IAnimationFrame)ctx.ImageFrame;
 
-			frame.Disposal = (GifDisposalMethod)srcmeta.GetValueOrDefault<byte>(Wic.Metadata.Gif.FrameDisposal) == GifDisposalMethod.RestoreBackground ? GifDisposalMethod.RestoreBackground : GifDisposalMethod.Preserve;
-			frame.Delay = srcmeta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameDelay);
-			frame.Trans = srcmeta.GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
+			frame.Disposal = aniFrame.Disposal == FrameDisposalMethod.RestoreBackground ? FrameDisposalMethod.RestoreBackground : FrameDisposalMethod.Preserve;
+			frame.Delay = aniFrame.Duration.Numerator;
+			frame.Trans = aniFrame.HasAlpha;
 			frame.Area = ctx.Source.Area;
 
 			var buff = frame.Source;
@@ -573,7 +600,7 @@ namespace PhotoSauce.MagicScaler
 				ctx.Source.CopyPixels(frame.Area, buff.Stride, buff.Span.Length, (IntPtr)pbuff);
 		}
 
-		private void writeFrame(BufferFrame src, IProfiler pph, IProfiler ppq)
+		private void writeFrame(AnimationBufferFrame src, IProfiler pph, IProfiler ppq)
 		{
 			using var quant = new OctreeQuantizer();
 			var buffC = EncodeFrame.Source;

@@ -1,13 +1,13 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
+using System.Drawing;
 using System.Buffers.Binary;
 
 using TerraFX.Interop;
 using static TerraFX.Interop.Windows;
 
 using PhotoSauce.Interop.Wic;
-using PhotoSauce.MagicScaler.Transforms;
 
 namespace PhotoSauce.MagicScaler
 {
@@ -76,35 +76,20 @@ namespace PhotoSauce.MagicScaler
 		~WicImageContainer() => Dispose(false);
 	}
 
-	internal class GifAnimationContext : IDisposable
+	internal sealed unsafe class WicGifContainer : WicImageContainer, IAnimationContainer
 	{
-		public FrameBufferSource? FrameBufferSource;
-		public OverlayTransform? FrameOverlay;
-		public GifDisposalMethod LastDisposal = GifDisposalMethod.RestoreBackground;
-		public int LastFrame = -1;
-
-		public void Dispose()
-		{
-			FrameBufferSource?.Dispose();
-			FrameOverlay?.Dispose();
-		}
-	}
-
-	internal unsafe class WicGifContainer : WicImageContainer
-	{
-		private static ReadOnlySpan<byte> animexts1_0 => new[] {
+		public static ReadOnlySpan<byte> Animexts1_0 => new[] {
 			(byte)'A', (byte)'N', (byte)'I', (byte)'M', (byte)'E', (byte)'X', (byte)'T', (byte)'S', (byte)'1', (byte)'.', (byte)'0'
 		};
-		private static ReadOnlySpan<byte> netscape2_0 => new[] {
+		public static ReadOnlySpan<byte> Netscape2_0 => new[] {
 			(byte)'N', (byte)'E', (byte)'T', (byte)'S', (byte)'C', (byte)'A', (byte)'P', (byte)'E', (byte)'2', (byte)'.', (byte)'0'
 		};
 
-		public readonly ushort LoopCount;
-		public readonly ushort ScreenWidth;
-		public readonly ushort ScreenHeight;
-		public readonly uint BackgroundColor;
-
-		public GifAnimationContext? AnimationContext { get; set; }
+		public int ScreenWidth { get; }
+		public int ScreenHeight { get; }
+		public int LoopCount { get; }
+		public Color BackgroundColor { get; }
+		public bool RequiresScreenBuffer => true;
 
 		public WicGifContainer(IWICBitmapDecoder* dec) : base(dec, FileFormat.Gif)
 		{
@@ -130,14 +115,14 @@ namespace PhotoSauce.MagicScaler
 					fixed (uint* pbuff = buff.Span)
 					{
 						HRESULT.Check(pal.Get()->GetColors(cc, pbuff, &cc));
-						BackgroundColor = pbuff[idx];
+						BackgroundColor = Color.FromArgb((int)pbuff[idx]);
 					}
 				}
 			}
 
 			var sbuff = (Span<byte>)stackalloc byte[16];
 			var appext = meta.GetValueOrDefault(Wic.Metadata.Gif.AppExtension, sbuff);
-			if (appext.Length == 11 && netscape2_0.SequenceEqual(appext) || animexts1_0.SequenceEqual(appext))
+			if (appext.Length == 11 && (Netscape2_0.SequenceEqual(appext) || Animexts1_0.SequenceEqual(appext)))
 			{
 				var appdata = meta.GetValueOrDefault(Wic.Metadata.Gif.AppExtensionData, sbuff);
 				if (appdata.Length >= 4 && appdata[0] >= 3 && appdata[1] == 1)
@@ -145,14 +130,27 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		protected override void Dispose(bool disposing)
+		public override IImageFrame GetFrame(int index)
 		{
-			if (disposing)
-				AnimationContext?.Dispose();
+			if ((uint)index >= (uint)FrameCount) throw new IndexOutOfRangeException("Frame index does not exist");
 
-			base.Dispose(disposing);
+			return new WicGifFrame(this, (uint)index);
 		}
 
-		~WicGifContainer() => Dispose(false);
+		public void ReplayGifAnimation(PipelineContext ctx, int playTo)
+		{
+			var anictx = ctx.AnimationContext ??= new AnimationPipelineContext();
+			if (anictx.LastFrame > playTo)
+				anictx.LastFrame = -1;
+
+			for (; anictx.LastFrame < playTo; anictx.LastFrame++)
+			{
+				var gifFrame = (WicGifFrame)GetFrame(anictx.LastFrame + 1);
+				if (gifFrame.Disposal == FrameDisposalMethod.Preserve)
+					anictx.UpdateFrameBuffer(this, gifFrame);
+
+				anictx.LastDisposal = gifFrame.Disposal;
+			}
+		}
 	}
 }

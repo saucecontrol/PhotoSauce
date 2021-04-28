@@ -23,7 +23,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		public static Orientation Clamp(this Orientation o) => o < Orientation.Normal? Orientation.Normal : o > Orientation.Rotate270 ? Orientation.Rotate270 : o;
 
-		public static GifDisposalMethod Clamp(this GifDisposalMethod m) => m < GifDisposalMethod.Preserve || m > GifDisposalMethod.RestorePrevious ? GifDisposalMethod.Preserve : m;
+		public static FrameDisposalMethod Clamp(this FrameDisposalMethod m) => m < FrameDisposalMethod.Preserve || m > FrameDisposalMethod.RestorePrevious ? FrameDisposalMethod.Preserve : m;
 
 		public static bool SwapsDimensions(this Orientation o) => o > Orientation.FlipVertical;
 
@@ -40,6 +40,8 @@ namespace PhotoSauce.MagicScaler
 		public static bool IsSubsampledY(this ChromaSubsampleMode o) => o == ChromaSubsampleMode.Subsample420 || o == ChromaSubsampleMode.Subsample440;
 
 		public static bool InsensitiveEquals(this string s1, string s2) => string.Equals(s1, s2, StringComparison.OrdinalIgnoreCase);
+
+		public static PixelArea GetArea(this IAnimationFrame f) => new(f.Origin.X, f.Origin.Y, f.Size.Width, f.Size.Height);
 
 		public static bool IsTransparent(this Color c) => c.A < byte.MaxValue;
 
