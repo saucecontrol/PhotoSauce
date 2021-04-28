@@ -21,7 +21,7 @@ namespace TerraFX.Interop
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("HRESULT")]
-        public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, [NativeTypeName("void **")] void** ppvObject)
+        public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
         {
             return ((delegate* unmanaged[Stdcall]<IPropertyBag2*, Guid*, void**, int>)(lpVtbl[0]))((IPropertyBag2*)Unsafe.AsPointer(ref this), riid, ppvObject);
         }
@@ -42,14 +42,14 @@ namespace TerraFX.Interop
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("HRESULT")]
-        public int Read([NativeTypeName("ULONG")] uint cProperties, [NativeTypeName("PROPBAG2 *")] PROPBAG2* pPropBag, [NativeTypeName("IErrorLog *")] IErrorLog* pErrLog, [NativeTypeName("VARIANT *")] VARIANT* pvarValue, [NativeTypeName("HRESULT *")] int* phrError)
+        public int Read([NativeTypeName("ULONG")] uint cProperties, PROPBAG2* pPropBag, IErrorLog* pErrLog, VARIANT* pvarValue, [NativeTypeName("HRESULT *")] int* phrError)
         {
             return ((delegate* unmanaged[Stdcall]<IPropertyBag2*, uint, PROPBAG2*, IErrorLog*, VARIANT*, int*, int>)(lpVtbl[3]))((IPropertyBag2*)Unsafe.AsPointer(ref this), cProperties, pPropBag, pErrLog, pvarValue, phrError);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("HRESULT")]
-        public int Write([NativeTypeName("ULONG")] uint cProperties, [NativeTypeName("PROPBAG2 *")] PROPBAG2* pPropBag, [NativeTypeName("VARIANT *")] VARIANT* pvarValue)
+        public int Write([NativeTypeName("ULONG")] uint cProperties, PROPBAG2* pPropBag, VARIANT* pvarValue)
         {
             return ((delegate* unmanaged[Stdcall]<IPropertyBag2*, uint, PROPBAG2*, VARIANT*, int>)(lpVtbl[4]))((IPropertyBag2*)Unsafe.AsPointer(ref this), cProperties, pPropBag, pvarValue);
         }
@@ -63,14 +63,14 @@ namespace TerraFX.Interop
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("HRESULT")]
-        public int GetPropertyInfo([NativeTypeName("ULONG")] uint iProperty, [NativeTypeName("ULONG")] uint cProperties, [NativeTypeName("PROPBAG2 *")] PROPBAG2* pPropBag, [NativeTypeName("ULONG *")] uint* pcProperties)
+        public int GetPropertyInfo([NativeTypeName("ULONG")] uint iProperty, [NativeTypeName("ULONG")] uint cProperties, PROPBAG2* pPropBag, [NativeTypeName("ULONG *")] uint* pcProperties)
         {
             return ((delegate* unmanaged[Stdcall]<IPropertyBag2*, uint, uint, PROPBAG2*, uint*, int>)(lpVtbl[6]))((IPropertyBag2*)Unsafe.AsPointer(ref this), iProperty, cProperties, pPropBag, pcProperties);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("HRESULT")]
-        public int LoadObject([NativeTypeName("LPCOLESTR")] ushort* pstrName, [NativeTypeName("DWORD")] uint dwHint, [NativeTypeName("IUnknown *")] IUnknown* pUnkObject, [NativeTypeName("IErrorLog *")] IErrorLog* pErrLog)
+        public int LoadObject([NativeTypeName("LPCOLESTR")] ushort* pstrName, [NativeTypeName("DWORD")] uint dwHint, IUnknown* pUnkObject, IErrorLog* pErrLog)
         {
             return ((delegate* unmanaged[Stdcall]<IPropertyBag2*, ushort*, uint, IUnknown*, IErrorLog*, int>)(lpVtbl[7]))((IPropertyBag2*)Unsafe.AsPointer(ref this), pstrName, dwHint, pUnkObject, pErrLog);
         }

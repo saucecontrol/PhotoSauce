@@ -20,7 +20,6 @@ namespace TerraFX.Interop
         {
             return hr < 0;
         }
-
 #if false
         public static bool IS_ERROR(int Status)
         {

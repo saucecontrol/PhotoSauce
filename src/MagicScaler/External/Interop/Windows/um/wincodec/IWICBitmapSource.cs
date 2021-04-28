@@ -21,7 +21,7 @@ namespace TerraFX.Interop
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("HRESULT")]
-        public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, [NativeTypeName("void **")] void** ppvObject)
+        public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
         {
             return ((delegate* unmanaged[Stdcall]<IWICBitmapSource*, Guid*, void**, int>)(lpVtbl[0]))((IWICBitmapSource*)Unsafe.AsPointer(ref this), riid, ppvObject);
         }
@@ -56,14 +56,14 @@ namespace TerraFX.Interop
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("HRESULT")]
-        public int GetResolution([NativeTypeName("double *")] double* pDpiX, [NativeTypeName("double *")] double* pDpiY)
+        public int GetResolution(double* pDpiX, double* pDpiY)
         {
             return ((delegate* unmanaged[Stdcall]<IWICBitmapSource*, double*, double*, int>)(lpVtbl[5]))((IWICBitmapSource*)Unsafe.AsPointer(ref this), pDpiX, pDpiY);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("HRESULT")]
-        public int CopyPalette([NativeTypeName("IWICPalette *")] IWICPalette* pIPalette)
+        public int CopyPalette(IWICPalette* pIPalette)
         {
             return ((delegate* unmanaged[Stdcall]<IWICBitmapSource*, IWICPalette*, int>)(lpVtbl[6]))((IWICBitmapSource*)Unsafe.AsPointer(ref this), pIPalette);
         }

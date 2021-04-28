@@ -21,7 +21,7 @@ namespace TerraFX.Interop
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("HRESULT")]
-        public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, [NativeTypeName("void **")] void** ppvObject)
+        public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
         {
             return ((delegate* unmanaged[Stdcall]<IWICFormatConverter*, Guid*, void**, int>)(lpVtbl[0]))((IWICFormatConverter*)Unsafe.AsPointer(ref this), riid, ppvObject);
         }
@@ -56,14 +56,14 @@ namespace TerraFX.Interop
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("HRESULT")]
-        public int GetResolution([NativeTypeName("double *")] double* pDpiX, [NativeTypeName("double *")] double* pDpiY)
+        public int GetResolution(double* pDpiX, double* pDpiY)
         {
             return ((delegate* unmanaged[Stdcall]<IWICFormatConverter*, double*, double*, int>)(lpVtbl[5]))((IWICFormatConverter*)Unsafe.AsPointer(ref this), pDpiX, pDpiY);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("HRESULT")]
-        public int CopyPalette([NativeTypeName("IWICPalette *")] IWICPalette* pIPalette)
+        public int CopyPalette(IWICPalette* pIPalette)
         {
             return ((delegate* unmanaged[Stdcall]<IWICFormatConverter*, IWICPalette*, int>)(lpVtbl[6]))((IWICFormatConverter*)Unsafe.AsPointer(ref this), pIPalette);
         }
@@ -77,7 +77,7 @@ namespace TerraFX.Interop
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("HRESULT")]
-        public int Initialize([NativeTypeName("IWICBitmapSource *")] IWICBitmapSource* pISource, [NativeTypeName("REFWICPixelFormatGUID")] Guid* dstFormat, WICBitmapDitherType dither, [NativeTypeName("IWICPalette *")] IWICPalette* pIPalette, double alphaThresholdPercent, WICBitmapPaletteType paletteTranslate)
+        public int Initialize(IWICBitmapSource* pISource, [NativeTypeName("REFWICPixelFormatGUID")] Guid* dstFormat, WICBitmapDitherType dither, IWICPalette* pIPalette, double alphaThresholdPercent, WICBitmapPaletteType paletteTranslate)
         {
             return ((delegate* unmanaged[Stdcall]<IWICFormatConverter*, IWICBitmapSource*, Guid*, WICBitmapDitherType, IWICPalette*, double, WICBitmapPaletteType, int>)(lpVtbl[8]))((IWICFormatConverter*)Unsafe.AsPointer(ref this), pISource, dstFormat, dither, pIPalette, alphaThresholdPercent, paletteTranslate);
         }

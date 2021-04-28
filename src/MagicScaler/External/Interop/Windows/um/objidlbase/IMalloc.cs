@@ -21,7 +21,7 @@ namespace TerraFX.Interop
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("HRESULT")]
-        public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, [NativeTypeName("void **")] void** ppvObject)
+        public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
         {
             return ((delegate* unmanaged[Stdcall]<IMalloc*, Guid*, void**, int>)(lpVtbl[0]))((IMalloc*)Unsafe.AsPointer(ref this), riid, ppvObject);
         }
@@ -41,34 +41,32 @@ namespace TerraFX.Interop
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("void *")]
         public void* Alloc([NativeTypeName("SIZE_T")] nuint cb)
         {
             return ((delegate* unmanaged[Stdcall]<IMalloc*, nuint, void*>)(lpVtbl[3]))((IMalloc*)Unsafe.AsPointer(ref this), cb);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("void *")]
-        public void* Realloc([NativeTypeName("void *")] void* pv, [NativeTypeName("SIZE_T")] nuint cb)
+        public void* Realloc(void* pv, [NativeTypeName("SIZE_T")] nuint cb)
         {
             return ((delegate* unmanaged[Stdcall]<IMalloc*, void*, nuint, void*>)(lpVtbl[4]))((IMalloc*)Unsafe.AsPointer(ref this), pv, cb);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Free([NativeTypeName("void *")] void* pv)
+        public void Free(void* pv)
         {
             ((delegate* unmanaged[Stdcall]<IMalloc*, void*, void>)(lpVtbl[5]))((IMalloc*)Unsafe.AsPointer(ref this), pv);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("SIZE_T")]
-        public nuint GetSize([NativeTypeName("void *")] void* pv)
+        public nuint GetSize(void* pv)
         {
             return ((delegate* unmanaged[Stdcall]<IMalloc*, void*, nuint>)(lpVtbl[6]))((IMalloc*)Unsafe.AsPointer(ref this), pv);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int DidAlloc([NativeTypeName("void *")] void* pv)
+        public int DidAlloc(void* pv)
         {
             return ((delegate* unmanaged[Stdcall]<IMalloc*, void*, int>)(lpVtbl[7]))((IMalloc*)Unsafe.AsPointer(ref this), pv);
         }

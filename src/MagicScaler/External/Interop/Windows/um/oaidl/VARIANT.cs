@@ -18,7 +18,7 @@ namespace TerraFX.Interop
         [NativeTypeName("tagVARIANT::(anonymous union at C:/Program Files (x86)/Windows Kits/10/Include/10.0.19041.0/um/OAIdl.h:470:5)")]
         public _Anonymous_e__Union Anonymous;
 
-        public unsafe ref ushort vt
+        public ref ushort vt
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -31,7 +31,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref ushort wReserved1
+        public ref ushort wReserved1
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -44,7 +44,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref ushort wReserved2
+        public ref ushort wReserved2
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -57,7 +57,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref ushort wReserved3
+        public ref ushort wReserved3
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -70,7 +70,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref long llVal
+        public ref long llVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -83,7 +83,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref int lVal
+        public ref int lVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -96,7 +96,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref byte bVal
+        public ref byte bVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -109,7 +109,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref short iVal
+        public ref short iVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -122,7 +122,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref float fltVal
+        public ref float fltVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -135,7 +135,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref double dblVal
+        public ref double dblVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -148,7 +148,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref short boolVal
+        public ref short boolVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -161,7 +161,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref short __OBSOLETE__VARIANT_BOOL
+        public ref short __OBSOLETE__VARIANT_BOOL
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -174,7 +174,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref int scode
+        public ref int scode
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -187,7 +187,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref CY cyVal
+        public ref CY cyVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -200,7 +200,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref double date
+        public ref double date
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -213,7 +213,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref ushort* bstrVal
+        public ref ushort* bstrVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -222,7 +222,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref IUnknown* punkVal
+        public ref IUnknown* punkVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -231,7 +231,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref IDispatch* pdispVal
+        public ref IDispatch* pdispVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -240,7 +240,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref SAFEARRAY* parray
+        public ref SAFEARRAY* parray
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -249,7 +249,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref byte* pbVal
+        public ref byte* pbVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -258,7 +258,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref short* piVal
+        public ref short* piVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -267,7 +267,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref int* plVal
+        public ref int* plVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -276,7 +276,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref long* pllVal
+        public ref long* pllVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -285,7 +285,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref float* pfltVal
+        public ref float* pfltVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -294,7 +294,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref double* pdblVal
+        public ref double* pdblVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -303,7 +303,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref short* pboolVal
+        public ref short* pboolVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -312,7 +312,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref short* __OBSOLETE__VARIANT_PBOOL
+        public ref short* __OBSOLETE__VARIANT_PBOOL
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -321,7 +321,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref int* pscode
+        public ref int* pscode
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -330,7 +330,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref CY* pcyVal
+        public ref CY* pcyVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -339,7 +339,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref double* pdate
+        public ref double* pdate
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -348,7 +348,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref ushort** pbstrVal
+        public ref ushort** pbstrVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -357,7 +357,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref IUnknown** ppunkVal
+        public ref IUnknown** ppunkVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -366,7 +366,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref IDispatch** ppdispVal
+        public ref IDispatch** ppdispVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -375,7 +375,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref SAFEARRAY** pparray
+        public ref SAFEARRAY** pparray
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -384,7 +384,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref VARIANT* pvarVal
+        public ref VARIANT* pvarVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -393,7 +393,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref void* byref
+        public ref void* byref
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -402,7 +402,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref sbyte cVal
+        public ref sbyte cVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -415,7 +415,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref ushort uiVal
+        public ref ushort uiVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -428,7 +428,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref uint ulVal
+        public ref uint ulVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -441,7 +441,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref ulong ullVal
+        public ref ulong ullVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -454,7 +454,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref int intVal
+        public ref int intVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -467,7 +467,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref uint uintVal
+        public ref uint uintVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -480,7 +480,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref DECIMAL* pdecVal
+        public ref DECIMAL* pdecVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -489,7 +489,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref sbyte* pcVal
+        public ref sbyte* pcVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -498,7 +498,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref ushort* puiVal
+        public ref ushort* puiVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -507,7 +507,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref uint* pulVal
+        public ref uint* pulVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -516,7 +516,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref ulong* pullVal
+        public ref ulong* pullVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -525,7 +525,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref int* pintVal
+        public ref int* pintVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -534,7 +534,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref uint* puintVal
+        public ref uint* puintVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -543,7 +543,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref void* pvRecord
+        public ref void* pvRecord
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -552,7 +552,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref IRecordInfo* pRecInfo
+        public ref IRecordInfo* pRecInfo
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -561,7 +561,7 @@ namespace TerraFX.Interop
             }
         }
 
-        public unsafe ref DECIMAL decVal
+        public ref DECIMAL decVal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -632,7 +632,6 @@ namespace TerraFX.Interop
                     [FieldOffset(0)]
                     [NativeTypeName("VARIANT_BOOL")]
                     public short boolVal;
-
 #if false
                     [FieldOffset(0)]
                     [NativeTypeName("VARIANT_BOOL")]
@@ -645,7 +644,6 @@ namespace TerraFX.Interop
                     [FieldOffset(0)]
                     public CY cyVal;
 #endif
-
                     [FieldOffset(0)]
                     [NativeTypeName("DATE")]
                     public double date;
@@ -655,19 +653,14 @@ namespace TerraFX.Interop
                     public ushort* bstrVal;
 
                     [FieldOffset(0)]
-                    [NativeTypeName("IUnknown *")]
                     public IUnknown* punkVal;
-
 #if false
                     [FieldOffset(0)]
-                    [NativeTypeName("IDispatch *")]
                     public IDispatch* pdispVal;
 
                     [FieldOffset(0)]
-                    [NativeTypeName("SAFEARRAY *")]
                     public SAFEARRAY* parray;
 #endif
-
                     [FieldOffset(0)]
                     [NativeTypeName("BYTE *")]
                     public byte* pbVal;
@@ -695,7 +688,6 @@ namespace TerraFX.Interop
                     [FieldOffset(0)]
                     [NativeTypeName("VARIANT_BOOL *")]
                     public short* pboolVal;
-
 #if false
                     [FieldOffset(0)]
                     [NativeTypeName("VARIANT_BOOL *")]
@@ -706,10 +698,8 @@ namespace TerraFX.Interop
                     public int* pscode;
 
                     [FieldOffset(0)]
-                    [NativeTypeName("CY *")]
                     public CY* pcyVal;
 #endif
-
                     [FieldOffset(0)]
                     [NativeTypeName("DATE *")]
                     public double* pdate;
@@ -719,21 +709,15 @@ namespace TerraFX.Interop
                     public ushort** pbstrVal;
 
                     [FieldOffset(0)]
-                    [NativeTypeName("IUnknown **")]
                     public IUnknown** ppunkVal;
-
 #if false
                     [FieldOffset(0)]
-                    [NativeTypeName("IDispatch **")]
                     public IDispatch** ppdispVal;
 
                     [FieldOffset(0)]
-                    [NativeTypeName("SAFEARRAY **")]
                     public SAFEARRAY** pparray;
 #endif
-
                     [FieldOffset(0)]
-                    [NativeTypeName("VARIANT *")]
                     public VARIANT* pvarVal;
 
                     [FieldOffset(0)]
@@ -763,13 +747,10 @@ namespace TerraFX.Interop
                     [FieldOffset(0)]
                     [NativeTypeName("UINT")]
                     public uint uintVal;
-
 #if false
                     [FieldOffset(0)]
-                    [NativeTypeName("DECIMAL *")]
                     public DECIMAL* pdecVal;
 #endif
-
                     [FieldOffset(0)]
                     [NativeTypeName("CHAR *")]
                     public sbyte* pcVal;
@@ -793,7 +774,6 @@ namespace TerraFX.Interop
                     [FieldOffset(0)]
                     [NativeTypeName("UINT *")]
                     public uint* puintVal;
-
 #if false
                     [FieldOffset(0)]
                     [NativeTypeName("tagVARIANT::(anonymous struct at C:/Program Files (x86)/Windows Kits/10/Include/10.0.19041.0/um/OAIdl.h:525:17)")]
@@ -804,7 +784,6 @@ namespace TerraFX.Interop
                         [NativeTypeName("PVOID")]
                         public void* pvRecord;
 
-                        [NativeTypeName("IRecordInfo *")]
                         public IRecordInfo* pRecInfo;
                     }
 #endif

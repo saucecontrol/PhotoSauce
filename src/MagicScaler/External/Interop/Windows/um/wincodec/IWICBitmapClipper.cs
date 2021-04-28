@@ -21,7 +21,7 @@ namespace TerraFX.Interop
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("HRESULT")]
-        public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, [NativeTypeName("void **")] void** ppvObject)
+        public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
         {
             return ((delegate* unmanaged[Stdcall]<IWICBitmapClipper*, Guid*, void**, int>)(lpVtbl[0]))((IWICBitmapClipper*)Unsafe.AsPointer(ref this), riid, ppvObject);
         }
@@ -56,14 +56,14 @@ namespace TerraFX.Interop
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("HRESULT")]
-        public int GetResolution([NativeTypeName("double *")] double* pDpiX, [NativeTypeName("double *")] double* pDpiY)
+        public int GetResolution(double* pDpiX, double* pDpiY)
         {
             return ((delegate* unmanaged[Stdcall]<IWICBitmapClipper*, double*, double*, int>)(lpVtbl[5]))((IWICBitmapClipper*)Unsafe.AsPointer(ref this), pDpiX, pDpiY);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("HRESULT")]
-        public int CopyPalette([NativeTypeName("IWICPalette *")] IWICPalette* pIPalette)
+        public int CopyPalette(IWICPalette* pIPalette)
         {
             return ((delegate* unmanaged[Stdcall]<IWICBitmapClipper*, IWICPalette*, int>)(lpVtbl[6]))((IWICBitmapClipper*)Unsafe.AsPointer(ref this), pIPalette);
         }
@@ -77,7 +77,7 @@ namespace TerraFX.Interop
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("HRESULT")]
-        public int Initialize([NativeTypeName("IWICBitmapSource *")] IWICBitmapSource* pISource, [NativeTypeName("const WICRect *")] WICRect* prc)
+        public int Initialize(IWICBitmapSource* pISource, [NativeTypeName("const WICRect *")] WICRect* prc)
         {
             return ((delegate* unmanaged[Stdcall]<IWICBitmapClipper*, IWICBitmapSource*, WICRect*, int>)(lpVtbl[8]))((IWICBitmapClipper*)Unsafe.AsPointer(ref this), pISource, prc);
         }

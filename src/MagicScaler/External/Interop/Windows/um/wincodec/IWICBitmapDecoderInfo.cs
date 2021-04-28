@@ -21,7 +21,7 @@ namespace TerraFX.Interop
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("HRESULT")]
-        public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, [NativeTypeName("void **")] void** ppvObject)
+        public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
         {
             return ((delegate* unmanaged[Stdcall]<IWICBitmapDecoderInfo*, Guid*, void**, int>)(lpVtbl[0]))((IWICBitmapDecoderInfo*)Unsafe.AsPointer(ref this), riid, ppvObject);
         }
@@ -42,7 +42,7 @@ namespace TerraFX.Interop
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("HRESULT")]
-        public int GetComponentType([NativeTypeName("WICComponentType *")] WICComponentType* pType)
+        public int GetComponentType(WICComponentType* pType)
         {
             return ((delegate* unmanaged[Stdcall]<IWICBitmapDecoderInfo*, WICComponentType*, int>)(lpVtbl[3]))((IWICBitmapDecoderInfo*)Unsafe.AsPointer(ref this), pType);
         }
@@ -182,21 +182,21 @@ namespace TerraFX.Interop
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("HRESULT")]
-        public int GetPatterns([NativeTypeName("UINT")] uint cbSizePatterns, [NativeTypeName("WICBitmapPattern *")] WICBitmapPattern* pPatterns, [NativeTypeName("UINT *")] uint* pcPatterns, [NativeTypeName("UINT *")] uint* pcbPatternsActual)
+        public int GetPatterns([NativeTypeName("UINT")] uint cbSizePatterns, WICBitmapPattern* pPatterns, [NativeTypeName("UINT *")] uint* pcPatterns, [NativeTypeName("UINT *")] uint* pcbPatternsActual)
         {
             return ((delegate* unmanaged[Stdcall]<IWICBitmapDecoderInfo*, uint, WICBitmapPattern*, uint*, uint*, int>)(lpVtbl[23]))((IWICBitmapDecoderInfo*)Unsafe.AsPointer(ref this), cbSizePatterns, pPatterns, pcPatterns, pcbPatternsActual);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("HRESULT")]
-        public int MatchesPattern([NativeTypeName("IStream *")] IStream* pIStream, [NativeTypeName("BOOL *")] int* pfMatches)
+        public int MatchesPattern(IStream* pIStream, [NativeTypeName("BOOL *")] int* pfMatches)
         {
             return ((delegate* unmanaged[Stdcall]<IWICBitmapDecoderInfo*, IStream*, int*, int>)(lpVtbl[24]))((IWICBitmapDecoderInfo*)Unsafe.AsPointer(ref this), pIStream, pfMatches);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("HRESULT")]
-        public int CreateInstance([NativeTypeName("IWICBitmapDecoder **")] IWICBitmapDecoder** ppIBitmapDecoder)
+        public int CreateInstance(IWICBitmapDecoder** ppIBitmapDecoder)
         {
             return ((delegate* unmanaged[Stdcall]<IWICBitmapDecoderInfo*, IWICBitmapDecoder**, int>)(lpVtbl[25]))((IWICBitmapDecoderInfo*)Unsafe.AsPointer(ref this), ppIBitmapDecoder);
         }

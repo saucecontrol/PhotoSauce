@@ -39,7 +39,6 @@ namespace TerraFX.Interop
             ptr_ = other.ptr_;
             InternalAddRef();
         }
-
 #if false
         /// <summary>Converts a raw pointer to a new <see cref="ComPtr{T}"/> instance and increments the ref count.</summary>
         /// <param name="other">The raw pointer to wrap.</param>
@@ -49,7 +48,6 @@ namespace TerraFX.Interop
             return new ComPtr<T>(other);
         }
 #endif
-
         /// <summary>Unwraps a <see cref="ComPtr{T}"/> instance and returns the internal raw pointer.</summary>
         /// <param name="other">The <see cref="ComPtr{T}"/> instance to unwrap.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -19,7 +19,15 @@ namespace TerraFX.Interop
         [FieldOffset(0)]
         [NativeTypeName("_LARGE_INTEGER::(anonymous struct at C:/Program Files (x86)/Windows Kits/10/Include/10.0.19041.0/um/winnt.h:851:5)")]
         public _Anonymous_e__Struct Anonymous;
+#endif
+        [FieldOffset(0)]
+        [NativeTypeName("struct (anonymous struct at C:/Program Files (x86)/Windows Kits/10/Include/10.0.19041.0/um/winnt.h:855:5)")]
+        public _u_e__Struct u;
 
+        [FieldOffset(0)]
+        [NativeTypeName("LONGLONG")]
+        public long QuadPart;
+#if false
         public unsafe ref uint LowPart
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -45,17 +53,7 @@ namespace TerraFX.Interop
 #endif
             }
         }
-#endif
 
-        [FieldOffset(0)]
-        [NativeTypeName("struct (anonymous struct at C:/Program Files (x86)/Windows Kits/10/Include/10.0.19041.0/um/winnt.h:855:5)")]
-        public _u_e__Struct u;
-
-        [FieldOffset(0)]
-        [NativeTypeName("LONGLONG")]
-        public long QuadPart;
-
-#if false
         public partial struct _Anonymous_e__Struct
         {
             [NativeTypeName("DWORD")]

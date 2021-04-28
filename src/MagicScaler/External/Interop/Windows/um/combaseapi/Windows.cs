@@ -53,11 +53,11 @@ namespace TerraFX.Interop
 
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
-        public static extern int CoGetDefaultContext(APTTYPE aptType, [NativeTypeName("const IID &")] Guid* riid, [NativeTypeName("void **")] void** ppv);
+        public static extern int CoGetDefaultContext(APTTYPE aptType, [NativeTypeName("const IID &")] Guid* riid, void** ppv);
 
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
-        public static extern int CoGetApartmentType([NativeTypeName("APTTYPE *")] APTTYPE* pAptType, [NativeTypeName("APTTYPEQUALIFIER *")] APTTYPEQUALIFIER* pAptQualifier);
+        public static extern int CoGetApartmentType(APTTYPE* pAptType, APTTYPEQUALIFIER* pAptQualifier);
 
         [DllImport("combase", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
@@ -187,23 +187,23 @@ namespace TerraFX.Interop
 
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
-        public static extern int CoInitializeSecurity([NativeTypeName("PSECURITY_DESCRIPTOR")] void* pSecDesc, [NativeTypeName("LONG")] int cAuthSvc, [NativeTypeName("SOLE_AUTHENTICATION_SERVICE *")] SOLE_AUTHENTICATION_SERVICE* asAuthSvc, [NativeTypeName("void *")] void* pReserved1, [NativeTypeName("DWORD")] uint dwAuthnLevel, [NativeTypeName("DWORD")] uint dwImpLevel, [NativeTypeName("void *")] void* pAuthList, [NativeTypeName("DWORD")] uint dwCapabilities, [NativeTypeName("void *")] void* pReserved3);
+        public static extern int CoInitializeSecurity([NativeTypeName("PSECURITY_DESCRIPTOR")] void* pSecDesc, [NativeTypeName("LONG")] int cAuthSvc, SOLE_AUTHENTICATION_SERVICE* asAuthSvc, void* pReserved1, [NativeTypeName("DWORD")] uint dwAuthnLevel, [NativeTypeName("DWORD")] uint dwImpLevel, void* pAuthList, [NativeTypeName("DWORD")] uint dwCapabilities, void* pReserved3);
 
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
-        public static extern int CoGetCallContext([NativeTypeName("const IID &")] Guid* riid, [NativeTypeName("void **")] void** ppInterface);
+        public static extern int CoGetCallContext([NativeTypeName("const IID &")] Guid* riid, void** ppInterface);
 
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
-        public static extern int CoQueryProxyBlanket([NativeTypeName("IUnknown *")] IUnknown* pProxy, [NativeTypeName("DWORD *")] uint* pwAuthnSvc, [NativeTypeName("DWORD *")] uint* pAuthzSvc, [NativeTypeName("LPOLESTR *")] ushort** pServerPrincName, [NativeTypeName("DWORD *")] uint* pAuthnLevel, [NativeTypeName("DWORD *")] uint* pImpLevel, [NativeTypeName("RPC_AUTH_IDENTITY_HANDLE *")] void** pAuthInfo, [NativeTypeName("DWORD *")] uint* pCapabilites);
+        public static extern int CoQueryProxyBlanket(IUnknown* pProxy, [NativeTypeName("DWORD *")] uint* pwAuthnSvc, [NativeTypeName("DWORD *")] uint* pAuthzSvc, [NativeTypeName("LPOLESTR *")] ushort** pServerPrincName, [NativeTypeName("DWORD *")] uint* pAuthnLevel, [NativeTypeName("DWORD *")] uint* pImpLevel, [NativeTypeName("RPC_AUTH_IDENTITY_HANDLE *")] void** pAuthInfo, [NativeTypeName("DWORD *")] uint* pCapabilites);
 
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
-        public static extern int CoSetProxyBlanket([NativeTypeName("IUnknown *")] IUnknown* pProxy, [NativeTypeName("DWORD")] uint dwAuthnSvc, [NativeTypeName("DWORD")] uint dwAuthzSvc, [NativeTypeName("OLECHAR *")] ushort* pServerPrincName, [NativeTypeName("DWORD")] uint dwAuthnLevel, [NativeTypeName("DWORD")] uint dwImpLevel, [NativeTypeName("RPC_AUTH_IDENTITY_HANDLE")] void* pAuthInfo, [NativeTypeName("DWORD")] uint dwCapabilities);
+        public static extern int CoSetProxyBlanket(IUnknown* pProxy, [NativeTypeName("DWORD")] uint dwAuthnSvc, [NativeTypeName("DWORD")] uint dwAuthzSvc, [NativeTypeName("OLECHAR *")] ushort* pServerPrincName, [NativeTypeName("DWORD")] uint dwAuthnLevel, [NativeTypeName("DWORD")] uint dwImpLevel, [NativeTypeName("RPC_AUTH_IDENTITY_HANDLE")] void* pAuthInfo, [NativeTypeName("DWORD")] uint dwCapabilities);
 
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
-        public static extern int CoCopyProxy([NativeTypeName("IUnknown *")] IUnknown* pProxy, [NativeTypeName("IUnknown **")] IUnknown** ppCopy);
+        public static extern int CoCopyProxy(IUnknown* pProxy, IUnknown** ppCopy);
 
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
@@ -219,37 +219,35 @@ namespace TerraFX.Interop
 
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
-        public static extern int CoQueryAuthenticationServices([NativeTypeName("DWORD *")] uint* pcAuthSvc, [NativeTypeName("SOLE_AUTHENTICATION_SERVICE **")] SOLE_AUTHENTICATION_SERVICE** asAuthSvc);
+        public static extern int CoQueryAuthenticationServices([NativeTypeName("DWORD *")] uint* pcAuthSvc, SOLE_AUTHENTICATION_SERVICE** asAuthSvc);
 
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
-        public static extern int CoSwitchCallContext([NativeTypeName("IUnknown *")] IUnknown* pNewObject, [NativeTypeName("IUnknown **")] IUnknown** ppOldObject);
+        public static extern int CoSwitchCallContext(IUnknown* pNewObject, IUnknown** ppOldObject);
 #endif
-
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
         public static extern int CoCreateInstance([NativeTypeName("const IID &")] Guid* rclsid, [NativeTypeName("LPUNKNOWN")] IUnknown* pUnkOuter, [NativeTypeName("DWORD")] uint dwClsContext, [NativeTypeName("const IID &")] Guid* riid, [NativeTypeName("LPVOID *")] void** ppv);
-
 #if false
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
-        public static extern int CoCreateInstanceEx([NativeTypeName("const IID &")] Guid* Clsid, [NativeTypeName("IUnknown *")] IUnknown* punkOuter, [NativeTypeName("DWORD")] uint dwClsCtx, [NativeTypeName("COSERVERINFO *")] COSERVERINFO* pServerInfo, [NativeTypeName("DWORD")] uint dwCount, [NativeTypeName("MULTI_QI *")] MULTI_QI* pResults);
+        public static extern int CoCreateInstanceEx([NativeTypeName("const IID &")] Guid* Clsid, IUnknown* punkOuter, [NativeTypeName("DWORD")] uint dwClsCtx, COSERVERINFO* pServerInfo, [NativeTypeName("DWORD")] uint dwCount, MULTI_QI* pResults);
 
         [DllImport("combase", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
-        public static extern int CoCreateInstanceFromApp([NativeTypeName("const IID &")] Guid* Clsid, [NativeTypeName("IUnknown *")] IUnknown* punkOuter, [NativeTypeName("DWORD")] uint dwClsCtx, [NativeTypeName("PVOID")] void* reserved, [NativeTypeName("DWORD")] uint dwCount, [NativeTypeName("MULTI_QI *")] MULTI_QI* pResults);
+        public static extern int CoCreateInstanceFromApp([NativeTypeName("const IID &")] Guid* Clsid, IUnknown* punkOuter, [NativeTypeName("DWORD")] uint dwClsCtx, [NativeTypeName("PVOID")] void* reserved, [NativeTypeName("DWORD")] uint dwCount, MULTI_QI* pResults);
 
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
-        public static extern int CoRegisterActivationFilter([NativeTypeName("IActivationFilter *")] IActivationFilter* pActivationFilter);
+        public static extern int CoRegisterActivationFilter(IActivationFilter* pActivationFilter);
 
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
-        public static extern int CoGetCancelObject([NativeTypeName("DWORD")] uint dwThreadId, [NativeTypeName("const IID &")] Guid* iid, [NativeTypeName("void **")] void** ppUnk);
+        public static extern int CoGetCancelObject([NativeTypeName("DWORD")] uint dwThreadId, [NativeTypeName("const IID &")] Guid* iid, void** ppUnk);
 
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
-        public static extern int CoSetCancelObject([NativeTypeName("IUnknown *")] IUnknown* pUnk);
+        public static extern int CoSetCancelObject(IUnknown* pUnk);
 
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
@@ -298,19 +296,17 @@ namespace TerraFX.Interop
         [return: NativeTypeName("HRESULT")]
         public static extern int CoCreateGuid([NativeTypeName("GUID *")] Guid* pguid);
 #endif
+        [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
+        [return: NativeTypeName("HRESULT")]
+        public static extern int PropVariantCopy(PROPVARIANT* pvarDest, [NativeTypeName("const PROPVARIANT *")] PROPVARIANT* pvarSrc);
 
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
-        public static extern int PropVariantCopy([NativeTypeName("PROPVARIANT *")] PROPVARIANT* pvarDest, [NativeTypeName("const PROPVARIANT *")] PROPVARIANT* pvarSrc);
-
-        [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
-        [return: NativeTypeName("HRESULT")]
-        public static extern int PropVariantClear([NativeTypeName("PROPVARIANT *")] PROPVARIANT* pvar);
-
+        public static extern int PropVariantClear(PROPVARIANT* pvar);
 #if false
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
-        public static extern int FreePropVariantArray([NativeTypeName("ULONG")] uint cVariants, [NativeTypeName("PROPVARIANT *")] PROPVARIANT* rgvars);
+        public static extern int FreePropVariantArray([NativeTypeName("ULONG")] uint cVariants, PROPVARIANT* rgvars);
 
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
@@ -330,7 +326,7 @@ namespace TerraFX.Interop
 
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
-        public static extern int RoGetAgileReference([NativeTypeName("enum AgileReferenceOptions")] AgileReferenceOptions options, [NativeTypeName("const IID &")] Guid* riid, [NativeTypeName("IUnknown *")] IUnknown* pUnk, [NativeTypeName("IAgileReference **")] IAgileReference** ppAgileReference);
+        public static extern int RoGetAgileReference([NativeTypeName("enum AgileReferenceOptions")] AgileReferenceOptions options, [NativeTypeName("const IID &")] Guid* riid, IUnknown* pUnk, IAgileReference** ppAgileReference);
 
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
@@ -340,7 +336,6 @@ namespace TerraFX.Interop
         [return: NativeTypeName("HRESULT")]
         public static extern int DllCanUnloadNow();
 #endif
-
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("LPVOID")]
         public static extern void* CoTaskMemAlloc([NativeTypeName("SIZE_T")] nuint cb);
@@ -351,11 +346,10 @@ namespace TerraFX.Interop
 
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         public static extern void CoTaskMemFree([NativeTypeName("LPVOID")] void* pv);
-
 #if false
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
-        public static extern int CoFileTimeNow([NativeTypeName("FILETIME *")] FILETIME* lpFileTime);
+        public static extern int CoFileTimeNow(FILETIME* lpFileTime);
 
         [DllImport("Ole32", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]

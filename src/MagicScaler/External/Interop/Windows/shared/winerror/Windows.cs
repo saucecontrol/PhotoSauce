@@ -16,7 +16,6 @@ namespace TerraFX.Interop
         {
             return (int)(x) <= 0 ? (int)(x) : (int)(((x) & 0x0000FFFF) | (7 << 16) | 0x80000000);
         }
-
 #if false
         [NativeTypeName("#define FACILITY_NULL 0")]
         public const int FACILITY_NULL = 0;
@@ -1488,6 +1487,18 @@ namespace TerraFX.Interop
         [NativeTypeName("#define ERROR_UNEXPECTED_NTCACHEMANAGER_ERROR 443L")]
         public const int ERROR_UNEXPECTED_NTCACHEMANAGER_ERROR = 443;
 
+        [NativeTypeName("#define ERROR_LINUX_SUBSYSTEM_UPDATE_REQUIRED 444L")]
+        public const int ERROR_LINUX_SUBSYSTEM_UPDATE_REQUIRED = 444;
+
+        [NativeTypeName("#define ERROR_DLP_POLICY_WARNS_AGAINST_OPERATION 445L")]
+        public const int ERROR_DLP_POLICY_WARNS_AGAINST_OPERATION = 445;
+
+        [NativeTypeName("#define ERROR_DLP_POLICY_DENIES_OPERATION 446L")]
+        public const int ERROR_DLP_POLICY_DENIES_OPERATION = 446;
+
+        [NativeTypeName("#define ERROR_DLP_POLICY_SILENTLY_FAIL 449L")]
+        public const int ERROR_DLP_POLICY_SILENTLY_FAIL = 449;
+
         [NativeTypeName("#define ERROR_CAPAUTHZ_NOT_DEVUNLOCKED 450L")]
         public const int ERROR_CAPAUTHZ_NOT_DEVUNLOCKED = 450;
 
@@ -1538,6 +1549,9 @@ namespace TerraFX.Interop
 
         [NativeTypeName("#define ERROR_INVALID_ADDRESS 487L")]
         public const int ERROR_INVALID_ADDRESS = 487;
+
+        [NativeTypeName("#define ERROR_HAS_SYSTEM_CRITICAL_FILES 488L")]
+        public const int ERROR_HAS_SYSTEM_CRITICAL_FILES = 488;
 
         [NativeTypeName("#define ERROR_VRF_CFG_AND_IO_ENABLED 1183L")]
         public const int ERROR_VRF_CFG_AND_IO_ENABLED = 1183;
@@ -9741,7 +9755,6 @@ namespace TerraFX.Interop
         [NativeTypeName("#define STORE_ERROR_LICENSE_REVOKED 15864L")]
         public const int STORE_ERROR_LICENSE_REVOKED = 15864;
 #endif
-
         [NativeTypeName("#define SEVERITY_SUCCESS 0")]
         public const int SEVERITY_SUCCESS = 0;
 
@@ -9780,7 +9793,6 @@ namespace TerraFX.Interop
 
         [NativeTypeName("#define E_FAIL _HRESULT_TYPEDEF_(0x80004005L)")]
         public const int E_FAIL = unchecked((int)(0x80004005));
-
 #if false
         [NativeTypeName("#define E_ACCESSDENIED _HRESULT_TYPEDEF_(0x80070005L)")]
         public const int E_ACCESSDENIED = unchecked((int)(0x80070005));
@@ -9989,13 +10001,11 @@ namespace TerraFX.Interop
         [NativeTypeName("#define CO_E_PREMATURE_STUB_RUNDOWN _HRESULT_TYPEDEF_(0x80004035L)")]
         public const int CO_E_PREMATURE_STUB_RUNDOWN = unchecked((int)(0x80004035));
 #endif
-
         [NativeTypeName("#define S_OK ((HRESULT)0L)")]
         public const int S_OK = ((int)(0));
 
         [NativeTypeName("#define S_FALSE ((HRESULT)1L)")]
         public const int S_FALSE = ((int)(1));
-
 #if false
         [NativeTypeName("#define OLE_E_FIRST ((HRESULT)0x80040000L)")]
         public const int OLE_E_FIRST = unchecked((int)(0x80040000));
@@ -19111,7 +19121,6 @@ namespace TerraFX.Interop
         [NativeTypeName("#define DWRITE_E_TOOMANYDOWNLOADS _HRESULT_TYPEDEF_(0x88985010L)")]
         public const int DWRITE_E_TOOMANYDOWNLOADS = unchecked((int)(0x88985010));
 #endif
-
         [NativeTypeName("#define WINCODEC_ERR_WRONGSTATE _HRESULT_TYPEDEF_(0x88982F04L)")]
         public const int WINCODEC_ERR_WRONGSTATE = unchecked((int)(0x88982F04));
 
@@ -19234,7 +19243,6 @@ namespace TerraFX.Interop
 
         [NativeTypeName("#define WINCODEC_ERR_INVALIDJPEGSCANINDEX _HRESULT_TYPEDEF_(0x88982F96L)")]
         public const int WINCODEC_ERR_INVALIDJPEGSCANINDEX = unchecked((int)(0x88982F96));
-
 #if false
         [NativeTypeName("#define MILERR_OBJECTBUSY _HRESULT_TYPEDEF_(0x88980001L)")]
         public const int MILERR_OBJECTBUSY = unchecked((int)(0x88980001));

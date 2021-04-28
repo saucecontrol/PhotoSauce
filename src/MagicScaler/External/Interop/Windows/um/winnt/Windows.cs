@@ -2949,13 +2949,11 @@ namespace TerraFX.Interop
         [NativeTypeName("#define MAXIMUM_ALLOWED (0x02000000L)")]
         public const int MAXIMUM_ALLOWED = (0x02000000);
 #endif
-
         [NativeTypeName("#define GENERIC_READ (0x80000000L)")]
         public const uint GENERIC_READ = (0x80000000);
 
         [NativeTypeName("#define GENERIC_WRITE (0x40000000L)")]
         public const int GENERIC_WRITE = (0x40000000);
-
 #if false
         [NativeTypeName("#define GENERIC_EXECUTE (0x20000000L)")]
         public const int GENERIC_EXECUTE = (0x20000000);
@@ -4426,6 +4424,12 @@ namespace TerraFX.Interop
 
         [NativeTypeName("#define DYNAMIC_EH_CONTINUATION_TARGET_PROCESSED (0x00000002)")]
         public const int DYNAMIC_EH_CONTINUATION_TARGET_PROCESSED = (0x00000002);
+
+        [NativeTypeName("#define DYNAMIC_ENFORCED_ADDRESS_RANGE_ADD (0x00000001)")]
+        public const int DYNAMIC_ENFORCED_ADDRESS_RANGE_ADD = (0x00000001);
+
+        [NativeTypeName("#define DYNAMIC_ENFORCED_ADDRESS_RANGE_PROCESSED (0x00000002)")]
+        public const int DYNAMIC_ENFORCED_ADDRESS_RANGE_PROCESSED = (0x00000002);
 
         [NativeTypeName("#define QUOTA_LIMITS_HARDWS_MIN_ENABLE 0x00000001")]
         public const int QUOTA_LIMITS_HARDWS_MIN_ENABLE = 0x00000001;
@@ -8042,8 +8046,8 @@ namespace TerraFX.Interop
         [NativeTypeName("#define IMAGE_GUARD_RETPOLINE_PRESENT 0x00100000")]
         public const int IMAGE_GUARD_RETPOLINE_PRESENT = 0x00100000;
 
-        [NativeTypeName("#define IMAGE_GUARD_EH_CONTINUATION_TABLE_PRESENT 0x00200000")]
-        public const int IMAGE_GUARD_EH_CONTINUATION_TABLE_PRESENT = 0x00200000;
+        [NativeTypeName("#define IMAGE_GUARD_EH_CONTINUATION_TABLE_PRESENT 0x00400000")]
+        public const int IMAGE_GUARD_EH_CONTINUATION_TABLE_PRESENT = 0x00400000;
 
         [NativeTypeName("#define IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK 0xF0000000")]
         public const uint IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK = 0xF0000000;
@@ -8138,8 +8142,23 @@ namespace TerraFX.Interop
         [NativeTypeName("#define IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS 20")]
         public const int IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS = 20;
 
-        [NativeTypeName("#define IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT 0x1")]
-        public const int IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT = 0x1;
+        [NativeTypeName("#define IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT 0x01")]
+        public const int IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT = 0x01;
+
+        [NativeTypeName("#define IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT_STRICT_MODE 0x02")]
+        public const int IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT_STRICT_MODE = 0x02;
+
+        [NativeTypeName("#define IMAGE_DLLCHARACTERISTICS_EX_CET_SET_CONTEXT_IP_VALIDATION_RELAXED_MODE 0x04")]
+        public const int IMAGE_DLLCHARACTERISTICS_EX_CET_SET_CONTEXT_IP_VALIDATION_RELAXED_MODE = 0x04;
+
+        [NativeTypeName("#define IMAGE_DLLCHARACTERISTICS_EX_CET_DYNAMIC_APIS_ALLOW_IN_PROC 0x08")]
+        public const int IMAGE_DLLCHARACTERISTICS_EX_CET_DYNAMIC_APIS_ALLOW_IN_PROC = 0x08;
+
+        [NativeTypeName("#define IMAGE_DLLCHARACTERISTICS_EX_CET_RESERVED_1 0x10")]
+        public const int IMAGE_DLLCHARACTERISTICS_EX_CET_RESERVED_1 = 0x10;
+
+        [NativeTypeName("#define IMAGE_DLLCHARACTERISTICS_EX_CET_RESERVED_2 0x20")]
+        public const int IMAGE_DLLCHARACTERISTICS_EX_CET_RESERVED_2 = 0x20;
 
         [NativeTypeName("#define FRAME_FPO 0")]
         public const int FRAME_FPO = 0;
