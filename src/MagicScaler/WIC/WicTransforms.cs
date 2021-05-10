@@ -17,11 +17,14 @@ namespace PhotoSauce.MagicScaler
 #if WICPROCESSOR
 		public static void AddColorProfileReader(PipelineContext ctx)
 		{
-			if (ctx.ImageFrame is not WicImageFrame wicFrame || ctx.Settings.ColorProfileMode == ColorProfileMode.Ignore)
+			var mode = ctx.Settings.ColorProfileMode;
+			if (ctx.ImageFrame is not WicImageFrame wicFrame || mode == ColorProfileMode.Ignore)
 				return;
 
-			ctx.WicContext.SourceColorContext = WicColorProfile.GetSourceProfile(wicFrame.ColorProfileSource, ctx.Settings.ColorProfileMode).WicColorContext;
-			ctx.WicContext.DestColorContext = WicColorProfile.GetDestProfile(wicFrame.ColorProfileSource, ctx.Settings.ColorProfileMode).WicColorContext;
+			using var srcProfile = WicColorProfile.GetSourceProfile(wicFrame.ColorProfileSource, mode);
+			using var dstProfile = WicColorProfile.GetDestProfile(wicFrame.ColorProfileSource, mode);
+			ctx.WicContext.SourceColorContext = new ComPtr<IWICColorContext>(srcProfile.WicColorContext).Detach();
+			ctx.WicContext.DestColorContext = new ComPtr<IWICColorContext>(dstProfile.WicColorContext).Detach();
 		}
 #endif
 
@@ -45,7 +48,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				var rgbColorContext = ctx.Settings.ColorProfileMode == ColorProfileMode.ConvertToSrgb ? WicColorProfile.Srgb.Value : WicColorProfile.AdobeRgb.Value;
 				if (ctx.WicContext.SourceColorContext is null)
-					ctx.WicContext.SourceColorContext = WicColorProfile.Cmyk.Value.WicColorContext;
+					ctx.WicContext.SourceColorContext = new ComPtr<IWICColorContext>(WicColorProfile.Cmyk.Value.WicColorContext).Detach();
 
 				// TODO WIC doesn't support proper CMYKA conversion with color profile
 				if (curFormat.AlphaRepresentation == PixelAlphaRepresentation.None)
@@ -65,7 +68,13 @@ namespace PhotoSauce.MagicScaler
 					}
 				}
 
-				ctx.WicContext.DestColorContext = ctx.WicContext.SourceColorContext = rgbColorContext.WicColorContext;
+				if (ctx.WicContext.SourceColorContext is not null)
+					ctx.WicContext.SourceColorContext->Release();
+				if (ctx.WicContext.DestColorContext is not null)
+					ctx.WicContext.DestColorContext->Release();
+
+				ctx.WicContext.SourceColorContext = new ComPtr<IWICColorContext>(rgbColorContext.WicColorContext).Detach();
+				ctx.WicContext.DestColorContext = new ComPtr<IWICColorContext>(rgbColorContext.WicColorContext).Detach();
 				ctx.DestColorProfile = ctx.SourceColorProfile = rgbColorContext.ParsedProfile;
 			}
 

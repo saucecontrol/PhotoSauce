@@ -193,7 +193,7 @@ namespace PhotoSauce.MagicScaler
 					else if (ctx.DestColorProfile == ColorProfile.sGrey)
 						cc = WicColorProfile.GreyCompact.Value.WicColorContext;
 					else if (ctx.DestColorProfile == ColorProfile.AdobeRgb)
-						cc = WicColorProfile.AdobeRgb.Value.WicColorContext;
+						cc = WicColorProfile.AdobeRgbCompact.Value.WicColorContext;
 					else if (ctx.DestColorProfile == ColorProfile.DisplayP3)
 						cc = WicColorProfile.DisplayP3Compact.Value.WicColorContext;
 				}
@@ -256,7 +256,6 @@ namespace PhotoSauce.MagicScaler
 				else if (oformat == PixelFormat.Indexed8.FormatGuid)
 				{
 					Debug.Assert(ctx.WicContext.DestPalette is not null);
-
 					HRESULT.Check(wicFrame->SetPalette(ctx.WicContext.DestPalette));
 				}
 
@@ -290,10 +289,11 @@ namespace PhotoSauce.MagicScaler
 		public static readonly Lazy<WicColorProfile> Cmyk = new(() => new WicColorProfile(getDefaultColorContext(PixelFormat.Cmyk32.FormatGuid), null));
 		public static readonly Lazy<WicColorProfile> Srgb = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sRgbV4.Value), ColorProfile.sRGB));
 		public static readonly Lazy<WicColorProfile> Grey = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sGreyV4.Value), ColorProfile.sGrey));
+		public static readonly Lazy<WicColorProfile> AdobeRgb = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.AdobeRgbV4.Value), ColorProfile.AdobeRgb));
 		public static readonly Lazy<WicColorProfile> DisplayP3 = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.DisplayP3V4.Value), ColorProfile.DisplayP3));
 		public static readonly Lazy<WicColorProfile> SrgbCompact = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sRgbCompact.Value), ColorProfile.sRGB));
 		public static readonly Lazy<WicColorProfile> GreyCompact = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sGreyCompact.Value), ColorProfile.sGrey));
-		public static readonly Lazy<WicColorProfile> AdobeRgb = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.AdobeRgb.Value), ColorProfile.AdobeRgb));
+		public static readonly Lazy<WicColorProfile> AdobeRgbCompact = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.AdobeRgbCompact.Value), ColorProfile.AdobeRgb));
 		public static readonly Lazy<WicColorProfile> DisplayP3Compact = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.DisplayP3Compact.Value), ColorProfile.DisplayP3));
 
 		public static WicColorProfile GetDefaultFor(PixelFormat fmt) => fmt.ColorRepresentation switch {
@@ -373,9 +373,6 @@ namespace PhotoSauce.MagicScaler
 			ownContext = ownctx;
 			WicColorContext = cc;
 			ParsedProfile = prof ?? GetProfileFromContext(cc, 0);
-
-			if (ownctx && cc is not null)
-				cc->AddRef();
 		}
 
 		public void Dispose()

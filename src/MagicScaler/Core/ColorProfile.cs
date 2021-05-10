@@ -124,7 +124,7 @@ namespace PhotoSauce.MagicScaler
 			var im = m.InvertPrecise();
 			var curve = curveFromPower(2.2);
 
-			return new MatrixProfile(IccProfiles.AdobeRgb.Value, m, im, curve, ProfileColorSpace.Rgb, ProfileColorSpace.Xyz);
+			return new MatrixProfile(IccProfiles.AdobeRgbV4.Value, m, im, curve, ProfileColorSpace.Rgb, ProfileColorSpace.Xyz);
 		});
 
 		private static readonly Lazy<MatrixProfile> displayP3 = new(() => {
@@ -730,7 +730,8 @@ namespace PhotoSauce.MagicScaler
 		public static readonly Lazy<byte[]> sRgbCompact = new(() => getResourceBinary("sRGB-v2-micro.icc"));
 		public static readonly Lazy<byte[]> sGreyV4 = new(() => getResourceBinary("sGrey-v4.icc"));
 		public static readonly Lazy<byte[]> sGreyCompact = new(() => getResourceBinary("sRGB-v2-micro.icc"));
-		public static readonly Lazy<byte[]> AdobeRgb = new(() => getResourceBinary("AdobeCompat-v2.icc"));
+		public static readonly Lazy<byte[]> AdobeRgbV4 = new(() => getResourceBinary("AdobeCompat-v4.icc"));
+		public static readonly Lazy<byte[]> AdobeRgbCompact = new(() => getResourceBinary("AdobeCompat-v2.icc"));
 		public static readonly Lazy<byte[]> DisplayP3V4 = new(() => getResourceBinary("DisplayP3Compat-v4.icc"));
 		public static readonly Lazy<byte[]> DisplayP3Compact = new(() => getResourceBinary("DisplayP3Compat-v2-micro.icc"));
 	}

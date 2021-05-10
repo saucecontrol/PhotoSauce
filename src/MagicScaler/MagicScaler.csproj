@@ -50,6 +50,7 @@
 		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\IBlake2Incremental.cs" Link="External\Blake2Fast\%(FileName)%(Extension)" />
 		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\ThrowHelper.cs" Link="External\Blake2Fast\%(FileName)%(Extension)" />
 		<EmbeddedResource Include="$(BaseModulesPath)CompactProfiles\profiles\AdobeCompat-v2.icc" Link="Resources\%(FileName)%(Extension)" />
+		<EmbeddedResource Include="$(BaseModulesPath)CompactProfiles\profiles\AdobeCompat-v4.icc" Link="Resources\%(FileName)%(Extension)" />
 		<EmbeddedResource Include="$(BaseModulesPath)CompactProfiles\profiles\DisplayP3Compat-v2-micro.icc" Link="Resources\%(FileName)%(Extension)" />
 		<EmbeddedResource Include="$(BaseModulesPath)CompactProfiles\profiles\DisplayP3Compat-v4.icc" Link="Resources\%(FileName)%(Extension)" />
 		<EmbeddedResource Include="$(BaseModulesPath)CompactProfiles\profiles\sGrey-v2-micro.icc" Link="Resources\%(FileName)%(Extension)" />

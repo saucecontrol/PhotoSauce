@@ -5,6 +5,8 @@ using System.Drawing;
 using System.Diagnostics;
 using System.Collections.Generic;
 
+using TerraFX.Interop;
+
 namespace PhotoSauce.MagicScaler.Transforms
 {
 	internal static class MagicTransforms
@@ -353,10 +355,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			if (ctx.ImageFrame is WicImageFrame wicFrame)
 			{
-				var profile = WicColorProfile.GetSourceProfile(wicFrame.ColorProfileSource, mode);
-				ctx.SourceColorProfile = profile.ParsedProfile;
-				ctx.WicContext.SourceColorContext = profile.WicColorContext;
-				ctx.WicContext.DestColorContext = WicColorProfile.GetDestProfile(wicFrame.ColorProfileSource, mode).WicColorContext;
+				using var srcProfile = WicColorProfile.GetSourceProfile(wicFrame.ColorProfileSource, mode);
+				using var dstProfile = WicColorProfile.GetDestProfile(wicFrame.ColorProfileSource, mode);
+				ctx.SourceColorProfile = srcProfile.ParsedProfile;
+				ctx.WicContext.SourceColorContext = new ComPtr<IWICColorContext>(srcProfile.WicColorContext).Detach();
+				ctx.WicContext.DestColorContext = new ComPtr<IWICColorContext>(dstProfile.WicColorContext).Detach();
 			}
 			else
 			{
@@ -378,10 +381,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 				AddExternalFormatConverter(ctx);
 
 				if (ctx.WicContext.SourceColorContext is null)
-					ctx.WicContext.SourceColorContext = ctx.AddDispose(new WicColorProfile(WicColorProfile.CreateContextFromProfile(ctx.SourceColorProfile.ProfileBytes), ctx.SourceColorProfile, true)).WicColorContext;
+					ctx.WicContext.SourceColorContext = WicColorProfile.CreateContextFromProfile(ctx.SourceColorProfile.ProfileBytes);
 
 				if (ctx.WicContext.DestColorContext is null)
-					ctx.WicContext.DestColorContext = ctx.AddDispose(new WicColorProfile(WicColorProfile.CreateContextFromProfile(ctx.DestColorProfile.ProfileBytes), ctx.DestColorProfile, true)).WicColorContext;
+					ctx.WicContext.DestColorContext = WicColorProfile.CreateContextFromProfile(ctx.DestColorProfile.ProfileBytes);
 
 				WicTransforms.AddColorspaceConverter(ctx);
 

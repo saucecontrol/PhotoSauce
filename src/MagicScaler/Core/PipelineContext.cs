@@ -48,22 +48,20 @@ namespace PhotoSauce.MagicScaler
 
 		public T AddDispose<T>(T disposeHandle) where T : IDisposable
 		{
-			(disposables ??= new(capacity: 4)).Push(disposeHandle);
+			(disposables ??= new()).Push(disposeHandle);
 
 			return disposeHandle;
 		}
 
 		public IProfiler AddProfiler(string name)
 		{
-			if (MagicImageProcessor.EnablePixelSourceStats)
-			{
-				var prof = new ProcessingProfiler(name);
-				(profilers ??= new(capacity: 8)).Add(prof);
+			if (!MagicImageProcessor.EnablePixelSourceStats)
+				return NoopProfiler.Instance;
 
-				return prof;
-			}
+			var prof = new ProcessingProfiler(name);
+			(profilers ??= new(capacity: 8)).Add(prof);
 
-			return NoopProfiler.Instance;
+			return prof;
 		}
 
 		public T AddProfiler<T>(T source) where T : PixelSource

@@ -1,6 +1,7 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
+using System.Drawing;
 using System.Runtime.InteropServices;
 
 using TerraFX.Interop;
@@ -36,10 +37,15 @@ namespace PhotoSauce.MagicScaler
 			{
 				if (!frame.HasAlpha || LastDisposal == FrameDisposalMethod.RestoreBackground)
 				{
-					if (frame is WicGifFrame wicFrame) // write IPixelSources
+					if (frame is WicGifFrame wicFrame)
 					{
 						var rect = new WICRect { Width = frame.Size.Width, Height = frame.Size.Height };
 						HRESULT.Check(wicFrame.WicSource->CopyPixels(&rect, (uint)fbuff.Stride, (uint)fspan.Length, buff));
+					}
+					else
+					{
+						var rect = new Rectangle(0, 0, frame.Size.Width, frame.Size.Height);
+						((IImageFrame)frame).PixelSource.CopyPixels(rect, fbuff.Stride, fspan);
 					}
 				}
 				else

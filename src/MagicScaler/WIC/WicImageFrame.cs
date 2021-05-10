@@ -203,15 +203,14 @@ namespace PhotoSauce.MagicScaler
 			var buff = (Span<byte>)stackalloc byte[8];
 			foreach (var pcc in profiles)
 			{
-				var cc = (IWICColorContext*)pcc;
-
+				using var cc = new ComPtr<IWICColorContext>((IWICColorContext*)pcc);
 				var cct = default(WICColorContextType);
-				HRESULT.Check(cc->GetType(&cct));
+				HRESULT.Check(cc.Get()->GetType(&cct));
 
 				if (cct == WICColorContextType.WICColorContextProfile)
 				{
 					uint cb;
-					HRESULT.Check(cc->GetProfileBytes(0, null, &cb));
+					HRESULT.Check(cc.Get()->GetProfileBytes(0, null, &cb));
 
 					// Don't try to read giant profiles. 4MiB should be enough, and more might indicate corrupt metadata.
 					if (cb > 1024 * 1024 * 4)
@@ -219,14 +218,14 @@ namespace PhotoSauce.MagicScaler
 
 					var cpi = WicColorProfile.GetProfileFromContext(cc, cb);
 					if (cpi.IsValid && cpi.IsCompatibleWith(fmt))
-						return new WicColorProfile(cc, cpi, true);
+						return new WicColorProfile(cc.Detach(), cpi, true);
 				}
 				else if (cct == WICColorContextType.WICColorContextExifColorSpace && WicMetadataReader is not null)
 				{
 					// Although WIC defines the non-standard AdobeRGB ExifColorSpace value, most software (including Adobe's) only supports the Uncalibrated/InteropIndex=R03 convention.
 					// http://ninedegreesbelow.com/photography/embedded-color-space-information.html
 					uint ecs;
-					HRESULT.Check(cc->GetExifColorSpace(&ecs));
+					HRESULT.Check(cc.Get()->GetExifColorSpace(&ecs));
 					if (ecs == (uint)ExifColorSpace.AdobeRGB)
 						return WicColorProfile.AdobeRgb.Value;
 
