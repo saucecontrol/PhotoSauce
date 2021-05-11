@@ -164,7 +164,7 @@ namespace PhotoSauce.MagicScaler
 	}
 
 	/// <summary>Defines the modes that control disposal of image frames in an animation.</summary>
-	public enum FrameDisposalMethod
+	internal enum FrameDisposalMethod
 	{
 		/// <summary>Disposal is not defined.  This has the same behavior as <see cref="Preserve" />.</summary>
 		Undefined = 0,

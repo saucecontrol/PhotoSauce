@@ -14,19 +14,17 @@ namespace PhotoSauce.MagicScaler
 	{
 		public static readonly Guid[] PlanarPixelFormats = new[] { GUID_WICPixelFormat8bppY, GUID_WICPixelFormat8bppCb, GUID_WICPixelFormat8bppCr };
 
-#if WICPROCESSOR
 		public static void AddColorProfileReader(PipelineContext ctx)
 		{
 			var mode = ctx.Settings.ColorProfileMode;
 			if (ctx.ImageFrame is not WicImageFrame wicFrame || mode == ColorProfileMode.Ignore)
 				return;
 
-			using var srcProfile = WicColorProfile.GetSourceProfile(wicFrame.ColorProfileSource, mode);
-			using var dstProfile = WicColorProfile.GetDestProfile(wicFrame.ColorProfileSource, mode);
+			var srcProfile = WicColorProfile.GetSourceProfile(wicFrame.ColorProfileSource, mode);
+			var dstProfile = WicColorProfile.GetDestProfile(wicFrame.ColorProfileSource, mode);
 			ctx.WicContext.SourceColorContext = new ComPtr<IWICColorContext>(srcProfile.WicColorContext).Detach();
 			ctx.WicContext.DestColorContext = new ComPtr<IWICColorContext>(dstProfile.WicColorContext).Detach();
 		}
-#endif
 
 		public static void AddColorspaceConverter(PipelineContext ctx)
 		{

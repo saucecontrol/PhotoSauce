@@ -5,8 +5,6 @@ using System.Drawing;
 using System.Diagnostics;
 using System.Collections.Generic;
 
-using TerraFX.Interop;
-
 namespace PhotoSauce.MagicScaler.Transforms
 {
 	internal static class MagicTransforms
@@ -355,11 +353,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			if (ctx.ImageFrame is WicImageFrame wicFrame)
 			{
-				using var srcProfile = WicColorProfile.GetSourceProfile(wicFrame.ColorProfileSource, mode);
-				using var dstProfile = WicColorProfile.GetDestProfile(wicFrame.ColorProfileSource, mode);
-				ctx.SourceColorProfile = srcProfile.ParsedProfile;
-				ctx.WicContext.SourceColorContext = new ComPtr<IWICColorContext>(srcProfile.WicColorContext).Detach();
-				ctx.WicContext.DestColorContext = new ComPtr<IWICColorContext>(dstProfile.WicColorContext).Detach();
+				WicTransforms.AddColorProfileReader(ctx);
+				ctx.SourceColorProfile = WicColorProfile.GetSourceProfile(wicFrame.ColorProfileSource, mode).ParsedProfile;
 			}
 			else
 			{

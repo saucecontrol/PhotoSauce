@@ -85,7 +85,7 @@ namespace PhotoSauce.MagicScaler
 	}
 
 	/// <summary>A container defining global metadata for a sequence of <see cref="IAnimationFrame" /> instances.</summary>
-	public interface IAnimationContainer
+	internal interface IAnimationContainer
 	{
 		/// <summary>The width of the animation's logical screen.</summary>
 		public int ScreenWidth { get; }
@@ -104,23 +104,27 @@ namespace PhotoSauce.MagicScaler
 	}
 
 	/// <summary>Defines metadata for a single frame within an animated image sequence.</summary>
-	public interface IAnimationFrame
+	internal interface IAnimationFrame
 	{
 		/// <summary>The origin point (offset) of the frame's content, relative to the logical screen size.</summary>
 		public Point Origin { get; }
+
 		/// <summary>The size of the frame's content to be rendered to the logical screen.</summary>
 		public Size Size { get; }
+
 		/// <summary>The amount of time, in seconds, the frame should be displayed.</summary>
 		/// <remarks>For animated GIF output, the denominator will be normalized to <c>100</c>.</remarks>
 		public Rational Duration { get; }
+
 		/// <summary>The disposition of the frame.</summary>
 		public FrameDisposalMethod Disposal { get; }
+
 		/// <summary>True to indicate the frame contains transparent pixels, otherwise false.</summary>
 		public bool HasAlpha { get; }
 	}
 
 	/// <summary>A <a href="https://en.wikipedia.org/wiki/Rational_number">rational number</a>, as defined by an integer numerator and denominator.</summary>
-	public readonly struct Rational : IEquatable<Rational>
+	internal readonly struct Rational : IEquatable<Rational>
 	{
 		/// <summary>The numerator of the rational number.</summary>
 		public readonly int Numerator;
@@ -128,12 +132,13 @@ namespace PhotoSauce.MagicScaler
 		public readonly int Denominator;
 
 		/// <summary>Constructs a new <see cref="Rational" /> with the specified <see cref="Numerator" /> and <see cref="Denominator" />.</summary>
-		/// <param name="num">The numerator.</param>
-		/// <param name="den">The denominator.</param>
-		public Rational(int num, int den) => (Numerator, Denominator) = (num, den);
+		/// <param name="numerator">The numerator.</param>
+		/// <param name="denominator">The denominator.</param>
+		public Rational(int numerator, int denominator) => (Numerator, Denominator) = (numerator, denominator);
 
 		/// <inheritdoc />
 		public bool Equals(Rational other) => Numerator == other.Numerator && Denominator == other.Denominator;
+
 		/// <inheritdoc />
 		public override bool Equals(object? obj) => obj is Rational other && Equals(other);
 		/// <inheritdoc />
@@ -145,6 +150,6 @@ namespace PhotoSauce.MagicScaler
 		public static bool operator ==(Rational left, Rational right) => left.Equals(right);
 
 		/// <inheritdoc cref="double.op_Equality" />
-		public static bool operator !=(Rational left, Rational right) => !(left==right);
+		public static bool operator !=(Rational left, Rational right) => !(left == right);
 	}
 }

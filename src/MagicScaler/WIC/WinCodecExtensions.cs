@@ -17,7 +17,7 @@ namespace PhotoSauce.Interop.Wic
 	{
 		private static readonly Lazy<IntPtr> factory = new(() => {
 			int hr = S_FALSE;
-			using var wicfactory = default(ComPtr<IWICImagingFactory2>);
+			using var wicfactory = default(ComPtr<IWICImagingFactory>);
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 			{
 				// Before netcoreapp3.0, CoInitializeEx wasn't called on the main thread if a COM apartment model attribute was not present on Main().
@@ -25,12 +25,11 @@ namespace PhotoSauce.Interop.Wic
 				_ = Thread.CurrentThread.GetApartmentState();
 
 				var clsidWicFactory = CLSID_WICImagingFactory2;
-				var iidWicFactory = IID_IWICImagingFactory2;
+				var iidWicFactory = IID_IWICImagingFactory;
 				hr = CoCreateInstance(&clsidWicFactory, null, (uint)CLSCTX.CLSCTX_INPROC_SERVER, &iidWicFactory, (void**)wicfactory.GetAddressOf());
 				if (FAILED(hr))
 				{
 					clsidWicFactory = CLSID_WICImagingFactory1;
-					iidWicFactory = IID_IWICImagingFactory;
 					if (SUCCEEDED(CoCreateInstance(&clsidWicFactory, null, (uint)CLSCTX.CLSCTX_INPROC_SERVER, &iidWicFactory, (void**)wicfactory.GetAddressOf())))
 						throw new PlatformNotSupportedException("The current WIC version is not supported. Please install the Windows platform update. See: https://support.microsoft.com/kb/2670838");
 				}
@@ -42,7 +41,7 @@ namespace PhotoSauce.Interop.Wic
 			return (IntPtr)wicfactory.Detach();
 		});
 
-		public static IWICImagingFactory2* Factory => (IWICImagingFactory2*)factory.Value;
+		public static IWICImagingFactory* Factory => (IWICImagingFactory*)factory.Value;
 
 		public static class Metadata
 		{
