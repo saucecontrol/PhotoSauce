@@ -2,7 +2,9 @@
 
 using System;
 using System.Runtime.InteropServices;
+#if !BUILTIN_SPAN
 using System.Runtime.CompilerServices;
+#endif
 
 using Blake2Fast;
 
