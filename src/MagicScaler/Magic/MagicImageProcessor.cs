@@ -209,43 +209,7 @@ namespace PhotoSauce.MagicScaler
 			}
 			else
 			{
-				var curFormat = ctx.Source.Format;
-
-				if (ctx.Settings.IndexedColor && curFormat.NumericRepresentation != PixelNumericRepresentation.Indexed && curFormat.ColorRepresentation != PixelColorRepresentation.Grey)
-				{
-					if (curFormat != PixelFormat.Bgra32)
-						ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, null, null, PixelFormat.Bgra32));
-
-					using var quant = new OctreeQuantizer();
-					using var buffC = new FrameBufferSource(ctx.Source.Width, ctx.Source.Height, ctx.Source.Format);
-					fixed (byte* pbuff = buffC.Span)
-						ctx.Source.CopyPixels(ctx.Source.Area, buffC.Stride, buffC.Span.Length, (IntPtr)pbuff);
-
-					var buffI = new FrameBufferSource(ctx.Source.Width, ctx.Source.Height, PixelFormat.Indexed8);
-					ctx.Source.Dispose();
-					ctx.Source = ctx.AddProfiler(buffI);
-
-					var pph = ctx.AddProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.CreatePalette));
-					var ppq = ctx.AddProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.Quantize));
-
-					pph.ResumeTiming(buffC.Area);
-					quant.CreatePalette(buffC.Span, buffC.Width, buffC.Height, buffC.Stride);
-					pph.PauseTiming();
-
-					ppq.ResumeTiming(buffC.Area);
-					quant.Quantize(buffC.Span, buffI.Span, buffC.Width, buffC.Height, buffC.Stride, buffI.Stride);
-					ppq.PauseTiming();
-
-					var palette = quant.Palette;
-					fixed (uint* ppal = palette)
-					{
-						using var wicpal = default(ComPtr<IWICPalette>);
-						HRESULT.Check(Wic.Factory->CreatePalette(wicpal.GetAddressOf()));
-						HRESULT.Check(wicpal.Get()->InitializeCustom(ppal, (uint)palette.Length));
-
-						ctx.WicContext.DestPalette = wicpal.Detach();
-					}
-				}
+				MagicTransforms.AddIndexedColorConverter(ctx);
 
 				using var frm = new WicImageEncoderFrame(ctx, enc);
 				frm.WriteSource(ctx);

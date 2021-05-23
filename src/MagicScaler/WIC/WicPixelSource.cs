@@ -38,11 +38,17 @@ namespace PhotoSauce.MagicScaler
 			Height = (int)height;
 		}
 
+		public void CopyPalette(IWICPalette* ppal)
+		{
+			var src = upstreamSource is not null ? upstreamSource : WicSource;
+			HRESULT.Check(src->CopyPalette(ppal));
+		}
+
 		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
 			var rect = prc.ToWicRect();
 			var src = upstreamSource is not null ? upstreamSource : WicSource;
-			src->CopyPixels(&rect, (uint)cbStride, (uint)cbBufferSize, (byte*)pbBuffer);
+			HRESULT.Check(src->CopyPixels(&rect, (uint)cbStride, (uint)cbBufferSize, (byte*)pbBuffer));
 		}
 
 		public override string ToString() => upstreamSource is null ? $"{sourceName} (nonprofiling)" : sourceName;

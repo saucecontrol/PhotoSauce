@@ -24,7 +24,7 @@ namespace PhotoSauce.MagicScaler
 			var bspan = fbuff.Span;
 			var area = frame.GetArea();
 
-			fbuff.ResumeTiming();
+			fbuff.Profiler.ResumeTiming();
 
 			// Most GIF viewers clear the background to transparent instead of the background color when the next frame has transparency
 			bool fullScreen = area.Width == cnt.ScreenWidth && area.Height == cnt.ScreenHeight;
@@ -56,7 +56,7 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			fbuff.PauseTiming();
+			fbuff.Profiler.PauseTiming();
 		}
 
 		public void Dispose()

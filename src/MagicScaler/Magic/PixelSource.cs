@@ -165,9 +165,6 @@ namespace PhotoSauce.MagicScaler
 			frameBuff = BufferPool.RentAligned<byte>(Stride * height);
 		}
 
-		public void PauseTiming() => Profiler.PauseTiming();
-		public void ResumeTiming() => Profiler.ResumeTiming();
-
 		protected override void Dispose(bool disposing)
 		{
 			if (disposing && !multiDispose)

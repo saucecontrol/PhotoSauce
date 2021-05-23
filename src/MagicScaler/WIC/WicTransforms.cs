@@ -107,36 +107,46 @@ namespace PhotoSauce.MagicScaler
 		public static void AddIndexedColorConverter(PipelineContext ctx)
 		{
 			var curFormat = ctx.Source.Format;
-			var newFormat = PixelFormat.Indexed8;
+			bool greyToIndexed = (ctx.Settings.IndexedColor || ctx.Settings.SaveFormat == FileFormat.Bmp) && curFormat.ColorRepresentation == PixelColorRepresentation.Grey;
+			if ((ctx.Settings.IndexedColor && curFormat.NumericRepresentation != PixelNumericRepresentation.Indexed) || greyToIndexed)
+			{
+				using var conv = default(ComPtr<IWICFormatConverter>);
+				HRESULT.Check(Wic.Factory->CreateFormatConverter(conv.GetAddressOf()));
 
-			if (!ctx.Settings.IndexedColor || curFormat.NumericRepresentation == PixelNumericRepresentation.Indexed || curFormat.ColorRepresentation == PixelColorRepresentation.Grey)
-				return;
+				int bval;
+				var cfmt = curFormat.FormatGuid;
+				var nfmt = PixelFormat.Indexed8.FormatGuid;
+				if (FAILED(conv.Get()->CanConvert(&cfmt, &nfmt, &bval)) || bval == 0)
+					throw new NotSupportedException("Can't convert to destination pixel format");
 
-			using var conv = default(ComPtr<IWICFormatConverter>);
-			HRESULT.Check(Wic.Factory->CreateFormatConverter(conv.GetAddressOf()));
+				var ptt = WICBitmapPaletteType.WICBitmapPaletteTypeCustom;
+				var bdt = WICBitmapDitherType.WICBitmapDitherTypeErrorDiffusion;
+				using var pal = default(ComPtr<IWICPalette>);
+				HRESULT.Check(Wic.Factory->CreatePalette(pal.GetAddressOf()));
 
-			int bval;
-			var cfmt = curFormat.FormatGuid;
-			var nfmt = newFormat.FormatGuid;
-			if (FAILED(conv.Get()->CanConvert(&cfmt, &nfmt, &bval)) || bval == 0)
-				throw new NotSupportedException("Can't convert to destination pixel format");
+				if (greyToIndexed)
+				{
+					ptt = WICBitmapPaletteType.WICBitmapPaletteTypeFixedGray256;
+					bdt = WICBitmapDitherType.WICBitmapDitherTypeNone;
 
-			using var bmp = default(ComPtr<IWICBitmap>);
-			HRESULT.Check(Wic.Factory->CreateBitmapFromSource(ctx.Source.AsIWICBitmapSource(), WICBitmapCreateCacheOption.WICBitmapCacheOnDemand, bmp.GetAddressOf()));
-			ctx.Source = ctx.AddProfiler(new ComPtr<IWICBitmapSource>((IWICBitmapSource*)bmp.Get()).AsPixelSource(ctx.Source, nameof(IWICBitmap)));
+					HRESULT.Check(Wic.Factory->CreatePalette(pal.GetAddressOf()));
+					HRESULT.Check(pal.Get()->InitializePredefined(WICBitmapPaletteType.WICBitmapPaletteTypeFixedGray256, 0));
+				}
+				else
+				{
+					using var bmp = default(ComPtr<IWICBitmap>);
+					HRESULT.Check(Wic.Factory->CreateBitmapFromSource(ctx.Source.AsIWICBitmapSource(), WICBitmapCreateCacheOption.WICBitmapCacheOnDemand, bmp.GetAddressOf()));
+					ctx.Source = ctx.AddProfiler(new ComPtr<IWICBitmapSource>((IWICBitmapSource*)bmp.Get()).AsPixelSource(ctx.Source, nameof(IWICBitmap)));
 
-			int tcolor = curFormat.AlphaRepresentation == PixelAlphaRepresentation.None ? 0 : -1;
-			using var pal = default(ComPtr<IWICPalette>);
-			HRESULT.Check(Wic.Factory->CreatePalette(pal.GetAddressOf()));
+					var pp = ctx.AddProfiler(nameof(IWICPalette) + "." + nameof(IWICPalette.InitializeFromBitmap));
+					pp.ResumeTiming(ctx.Source.Area);
+					HRESULT.Check(pal.Get()->InitializeFromBitmap(ctx.Source.AsIWICBitmapSource(), 256u, curFormat.AlphaRepresentation == PixelAlphaRepresentation.None ? 0 : -1));
+					pp.PauseTiming();
+				}
 
-			var pp = ctx.AddProfiler(nameof(IWICPalette) + "." + nameof(IWICPalette.InitializeFromBitmap));
-			pp.ResumeTiming(ctx.Source.Area);
-			HRESULT.Check(pal.Get()->InitializeFromBitmap(ctx.Source.AsIWICBitmapSource(), 256u, tcolor));
-			ctx.WicContext.DestPalette = pal.Detach();
-			pp.PauseTiming();
-
-			HRESULT.Check(conv.Get()->Initialize(ctx.Source.AsIWICBitmapSource(), &nfmt, WICBitmapDitherType.WICBitmapDitherTypeErrorDiffusion, ctx.WicContext.DestPalette, 33.33, WICBitmapPaletteType.WICBitmapPaletteTypeCustom));
-			ctx.Source = ctx.AddProfiler(new ComPtr<IWICBitmapSource>((IWICBitmapSource*)conv.Get()).AsPixelSource(ctx.Source, $"{nameof(IWICFormatConverter)}: {curFormat.Name}->{newFormat.Name}"));
+				HRESULT.Check(conv.Get()->Initialize(ctx.Source.AsIWICBitmapSource(), &nfmt, bdt, pal, 33.33, ptt));
+				ctx.Source = ctx.AddProfiler(new ComPtr<IWICBitmapSource>((IWICBitmapSource*)conv.Get()).AsPixelSource(ctx.Source, $"{nameof(IWICFormatConverter)}: {curFormat.Name}->{PixelFormat.Indexed8.Name}"));
+			}
 		}
 
 		public static void AddExifFlipRotator(PipelineContext ctx)

@@ -238,31 +238,38 @@ namespace PhotoSauce.MagicScaler
 				HRESULT.Check(wicFrame->SetPixelFormat(&oformat));
 				if (oformat != ctx.Source.Format.FormatGuid)
 				{
-					var ptt = WICBitmapPaletteType.WICBitmapPaletteTypeCustom;
-					using var pal = default(ComPtr<IWICPalette>);
-					if (PixelFormat.FromGuid(oformat).NumericRepresentation == PixelNumericRepresentation.Indexed)
+					//Debug.Fail("Conversion Missing");
+
+					using var conv = default(ComPtr<IWICFormatConverter>);
+					HRESULT.Check(Wic.Factory->CreateFormatConverter(conv.GetAddressOf()));
+					HRESULT.Check(conv.Get()->Initialize(ctx.Source.AsIWICBitmapSource(), &oformat, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom));
+
+					HRESULT.Check(wicFrame->WriteSource((IWICBitmapSource*)conv.Get(), area.IsEmpty ? null : &wicRect));
+				}
+				else
+				{
+					if (oformat == PixelFormat.Indexed8.FormatGuid)
 					{
+						using var pal = default(ComPtr<IWICPalette>);
 						HRESULT.Check(Wic.Factory->CreatePalette(pal.GetAddressOf()));
-						HRESULT.Check(pal.Get()->InitializePredefined(WICBitmapPaletteType.WICBitmapPaletteTypeFixedGray256, 0));
-						ptt = WICBitmapPaletteType.WICBitmapPaletteTypeFixedGray256;
+
+						if (ctx.Source is IndexedColorTransform iconv)
+						{
+							var palspan = iconv.Palette;
+							fixed (uint* ppal = palspan)
+								HRESULT.Check(pal.Get()->InitializeCustom(ppal, (uint)palspan.Length));
+						}
+						else if (ctx.Source is WicPixelSource wicsrc)
+						{
+							wicsrc.CopyPalette(pal);
+						}
 
 						HRESULT.Check(wicFrame->SetPalette(pal));
 					}
 
-					using var conv = default(ComPtr<IWICFormatConverter>);
-					HRESULT.Check(Wic.Factory->CreateFormatConverter(conv.GetAddressOf()));
-					HRESULT.Check(conv.Get()->Initialize(ctx.Source.AsIWICBitmapSource(), &oformat, WICBitmapDitherType.WICBitmapDitherTypeNone, pal, 0.0, ptt));
-
-					ctx.Source = ctx.AddProfiler(new ComPtr<IWICBitmapSource>((IWICBitmapSource*)conv.Get()).AsPixelSource(ctx.Source, $"{nameof(IWICFormatConverter)}: {ctx.Source.Format.Name}->{PixelFormat.FromGuid(oformat).Name}", false));
+					using var src = new ComPtr<IWICBitmapSource>(ctx.Source.AsIWICBitmapSource());
+					HRESULT.Check(wicFrame->WriteSource(src, area.IsEmpty ? null : &wicRect));
 				}
-				else if (oformat == PixelFormat.Indexed8.FormatGuid)
-				{
-					Debug.Assert(ctx.WicContext.DestPalette is not null);
-					HRESULT.Check(wicFrame->SetPalette(ctx.WicContext.DestPalette));
-				}
-
-				using var src = new ComPtr<IWICBitmapSource>(ctx.Source.AsIWICBitmapSource());
-				HRESULT.Check(wicFrame->WriteSource(src, area.IsEmpty ? null : &wicRect));
 			}
 
 			HRESULT.Check(wicFrame->Commit());
@@ -302,7 +309,7 @@ namespace PhotoSauce.MagicScaler
 			public void Dispose() => Source.Dispose();
 		}
 
-		private readonly PipelineContext ctx;
+		private readonly PipelineContext context;
 		private readonly WicImageEncoder encoder;
 		private readonly PixelSource lastSource;
 		private readonly AnimationBufferFrame[] frames = new AnimationBufferFrame[3];
@@ -310,7 +317,7 @@ namespace PhotoSauce.MagicScaler
 
 		private int currentFrame;
 
-		public FrameBufferSource IndexedFrame { get; }
+		public IndexedColorTransform IndexedSource { get; }
 		public AnimationBufferFrame EncodeFrame { get; }
 		public AnimationBufferFrame Current => frames[currentFrame % 3];
 		public AnimationBufferFrame? Previous => currentFrame == 0 ? null : frames[(currentFrame - 1) % 3];
@@ -318,7 +325,7 @@ namespace PhotoSauce.MagicScaler
 
 		public WicAnimatedGifEncoder(PipelineContext ctx, WicImageEncoder enc)
 		{
-			this.ctx = ctx;
+			context = ctx;
 			encoder = enc;
 
 			if (ctx.Source.Format != PixelFormat.Bgra32)
@@ -327,8 +334,8 @@ namespace PhotoSauce.MagicScaler
 			lastSource = ctx.Source;
 			lastFrame = ctx.ImageContainer.FrameCount - 1;
 
-			IndexedFrame = new FrameBufferSource(lastSource.Width, lastSource.Height, PixelFormat.Indexed8);
 			EncodeFrame = new AnimationBufferFrame(lastSource.Width, lastSource.Height, lastSource.Format);
+			IndexedSource = ctx.AddProfiler(new IndexedColorTransform(EncodeFrame.Source));
 			for (int i = 0; i < frames.Length; i++)
 				frames[i] = new AnimationBufferFrame(lastSource.Width, lastSource.Height, lastSource.Format);
 
@@ -344,7 +351,7 @@ namespace PhotoSauce.MagicScaler
 			using var encmeta = default(ComPtr<IWICMetadataQueryWriter>);
 			HRESULT.Check(encoder.WicEncoder->GetMetadataQueryWriter(encmeta.GetAddressOf()));
 
-			if (ctx.ImageContainer is WicGifContainer cnt)
+			if (context.ImageContainer is WicGifContainer cnt)
 			{
 				using var decmeta = default(ComPtr<IWICMetadataQueryReader>);
 				HRESULT.Check(cnt.WicDecoder->GetMetadataQueryReader(decmeta.GetAddressOf()));
@@ -371,9 +378,9 @@ namespace PhotoSauce.MagicScaler
 
 				// TODO WIC ignores these and sets the logical screen descriptor dimensions from the first frame
 				//pv.vt = (ushort)VARENUM.VT_UI2;
-				//pv.Anonymous.uiVal = (ushort)ctx.Source.Width;
+				//pv.Anonymous.uiVal = (ushort)context.Source.Width;
 				//HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.LogicalScreenWidth, &pv));
-				//pv.Anonymous.uiVal = (ushort)ctx.Source.Height;
+				//pv.Anonymous.uiVal = (ushort)context.Source.Height;
 				//HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.LogicalScreenHeight, &pv));
 
 				if (decmeta.GetValueOrDefault<bool>(Wic.Metadata.Gif.GlobalPaletteFlag))
@@ -392,8 +399,8 @@ namespace PhotoSauce.MagicScaler
 			}
 			else
 			{
-				var anicnt = ctx.ImageContainer as IAnimationContainer ?? throw new InvalidOperationException("Source must be an animation container.");
-				if (ctx.ImageContainer.FrameCount > 1)
+				var anicnt = context.ImageContainer as IAnimationContainer ?? throw new InvalidOperationException("Source must be an animation container.");
+				if (context.ImageContainer.FrameCount > 1)
 				{
 					var pvae = new PROPVARIANT { vt = (ushort)(VARENUM.VT_UI1 | VARENUM.VT_VECTOR) };
 					pvae.Anonymous.blob.cbSize = 11;
@@ -413,12 +420,11 @@ namespace PhotoSauce.MagicScaler
 
 		public void WriteFrames()
 		{
-			uint bgColor = (uint)((IAnimationContainer)ctx.ImageContainer).BackgroundColor.ToArgb();
-			var ppt = ctx.AddProfiler(nameof(TemporalFilters));
-			var pph = ctx.AddProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.CreatePalette));
-			var ppq = ctx.AddProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.Quantize));
+			uint bgColor = (uint)((IAnimationContainer)context.ImageContainer).BackgroundColor.ToArgb();
+			var ppt = context.AddProfiler(nameof(TemporalFilters));
+			var ppq = context.AddProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.CreatePalette));
 
-			writeFrame(Current, pph, ppq);
+			writeFrame(Current, ppq);
 
 			while (moveNext())
 			{
@@ -426,15 +432,15 @@ namespace PhotoSauce.MagicScaler
 				TemporalFilters.Dedupe(this, bgColor);
 				ppt.PauseTiming();
 
-				writeFrame(Current, pph, ppq);
+				writeFrame(Current, ppq);
 			}
 		}
 
 		public void Dispose()
 		{
 			lastSource.Dispose();
-			IndexedFrame.Dispose();
 			EncodeFrame.Dispose();
+			IndexedSource.Dispose();
 			for (int i = 0; i < frames.Length; i++)
 				frames[i].Dispose();
 		}
@@ -455,68 +461,59 @@ namespace PhotoSauce.MagicScaler
 
 		private void moveToFrame(int index)
 		{
-			ctx.Settings.FrameIndex = index;
+			context.Settings.FrameIndex = index;
 
-			ctx.ImageFrame.Dispose();
-			ctx.ImageFrame = ctx.ImageContainer.GetFrame(index);
+			context.ImageFrame.Dispose();
+			context.ImageFrame = context.ImageContainer.GetFrame(index);
 
-			if (ctx.ImageFrame is WicImageFrame wicFrame)
-				ctx.Source = ctx.AddProfiler(wicFrame.Source);
-			else if (ctx.ImageFrame is IYccImageFrame yccFrame)
-				ctx.Source = new PlanarPixelSource(yccFrame.PixelSource.AsPixelSource(), yccFrame.PixelSourceCb.AsPixelSource(), yccFrame.PixelSourceCr.AsPixelSource(), !yccFrame.IsFullRange);
+			if (context.ImageFrame is WicImageFrame wicFrame)
+				context.Source = context.AddProfiler(wicFrame.Source);
+			else if (context.ImageFrame is IYccImageFrame yccFrame)
+				context.Source = new PlanarPixelSource(yccFrame.PixelSource.AsPixelSource(), yccFrame.PixelSourceCb.AsPixelSource(), yccFrame.PixelSourceCr.AsPixelSource(), !yccFrame.IsFullRange);
 			else
-				ctx.Source = ctx.ImageFrame.PixelSource.AsPixelSource();
+				context.Source = context.ImageFrame.PixelSource.AsPixelSource();
 
-			MagicTransforms.AddGifFrameBuffer(ctx, false);
+			MagicTransforms.AddGifFrameBuffer(context, false);
 
 			if (lastSource is ChainedPixelSource chain && chain.Passthrough)
 			{
-				chain.ReInit(ctx.Source);
-				ctx.Source = chain;
+				chain.ReInit(context.Source);
+				context.Source = chain;
 			}
 		}
 
 		private void loadFrame(AnimationBufferFrame frame)
 		{
-			var aniFrame = (IAnimationFrame)ctx.ImageFrame;
+			var aniFrame = (IAnimationFrame)context.ImageFrame;
 
 			frame.Disposal = aniFrame.Disposal == FrameDisposalMethod.RestoreBackground ? FrameDisposalMethod.RestoreBackground : FrameDisposalMethod.Preserve;
 			frame.Delay = aniFrame.Duration.Numerator;
 			frame.Trans = aniFrame.HasAlpha;
-			frame.Area = ctx.Source.Area;
+			frame.Area = context.Source.Area;
 
 			var buff = frame.Source;
 			fixed (byte* pbuff = buff.Span)
-				ctx.Source.CopyPixels(frame.Area, buff.Stride, buff.Span.Length, (IntPtr)pbuff);
+				context.Source.CopyPixels(frame.Area, buff.Stride, buff.Span.Length, (IntPtr)pbuff);
 		}
 
-		private void writeFrame(AnimationBufferFrame src, IProfiler pph, IProfiler ppq)
+		private void writeFrame(AnimationBufferFrame src, IProfiler ppq)
 		{
-			using var quant = new OctreeQuantizer();
-			var buffC = EncodeFrame.Source;
-			var buffI = IndexedFrame;
-			var buffCSpan = buffC.Span.Slice(src.Area.Y * buffC.Stride + src.Area.X * buffC.Format.BytesPerPixel);
-			var buffISpan = buffI.Span.Slice(src.Area.Y * buffI.Stride + src.Area.X * buffI.Format.BytesPerPixel);
+			using (var quant = new OctreeQuantizer())
+			{
+				var buffC = EncodeFrame.Source;
+				var buffCSpan = buffC.Span.Slice(src.Area.Y * buffC.Stride + src.Area.X * buffC.Format.BytesPerPixel);
 
-			pph.ResumeTiming(src.Area);
-			quant.CreatePalette(buffCSpan, src.Area.Width, src.Area.Height, buffC.Stride);
-			pph.PauseTiming();
+				ppq.ResumeTiming(src.Area);
+				bool isExact = quant.CreatePalette(buffCSpan, src.Area.Width, src.Area.Height, buffC.Stride);
+				ppq.PauseTiming();
 
-			ppq.ResumeTiming(src.Area);
-			quant.Quantize(buffCSpan, buffISpan, src.Area.Width, src.Area.Height, buffC.Stride, buffI.Stride);
-			ppq.PauseTiming();
+				IndexedSource.SetPalette(quant.Palette, isExact);
+				IndexedSource.ReInit(buffC);
 
-			using var pal = default(ComPtr<IWICPalette>);
-			HRESULT.Check(Wic.Factory->CreatePalette(pal.GetAddressOf()));
+				context.Source = IndexedSource;
+			}
 
-			var palette = quant.Palette;
-			fixed (uint* ppal = palette)
-				HRESULT.Check(pal.Get()->InitializeCustom(ppal, (uint)palette.Length));
-
-			ctx.WicContext.DestPalette = pal;
-			ctx.Source = buffI;
-
-			using var frm = new WicImageEncoderFrame(ctx, encoder, src.Area);
+			using var frm = new WicImageEncoderFrame(context, encoder, src.Area);
 			using var frmmeta = default(ComPtr<IWICMetadataQueryWriter>);
 			HRESULT.Check(frm.WicEncoderFrame->GetMetadataQueryWriter(frmmeta.GetAddressOf()));
 
@@ -529,11 +526,9 @@ namespace PhotoSauce.MagicScaler
 				frmmeta.SetValue(Wic.Metadata.Gif.FrameTop, (ushort)src.Area.Y);
 
 			frmmeta.SetValue(Wic.Metadata.Gif.TransparencyFlag, true);
-			frmmeta.SetValue(Wic.Metadata.Gif.TransparentColorIndex, (byte)(palette.Length - 1));
+			frmmeta.SetValue(Wic.Metadata.Gif.TransparentColorIndex, (byte)(IndexedSource.Palette.Length - 1));
 
-			frm.WriteSource(ctx, src.Area);
-
-			ctx.WicContext.DestPalette = null;
+			frm.WriteSource(context, src.Area);
 		}
 	}
 }

@@ -10,7 +10,6 @@ namespace PhotoSauce.MagicScaler
 	{
 		public IWICColorContext* SourceColorContext { get; set; }
 		public IWICColorContext* DestColorContext { get; set; }
-		public IWICPalette* DestPalette { get; set; }
 
 		public void Dispose()
 		{
@@ -30,12 +29,6 @@ namespace PhotoSauce.MagicScaler
 			{
 				DestColorContext->Release();
 				DestColorContext = null;
-			}
-
-			if (DestPalette is not null)
-			{
-				DestPalette->Release();
-				DestPalette = null;
 			}
 		}
 

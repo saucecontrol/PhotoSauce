@@ -421,6 +421,37 @@ namespace PhotoSauce.MagicScaler.Transforms
 			ctx.Source = ctx.AddProfiler(new PlanarConversionTransform(plsrc.SourceY, plsrc.SourceCb, plsrc.SourceCr, matrix, plsrc.VideoChromaLevels));
 		}
 
+		public static unsafe void AddIndexedColorConverter(PipelineContext ctx)
+		{
+			var curFormat = ctx.Source.Format;
+			if (ctx.Settings.IndexedColor && curFormat.NumericRepresentation != PixelNumericRepresentation.Indexed && curFormat.ColorRepresentation != PixelColorRepresentation.Grey)
+			{
+				if (curFormat != PixelFormat.Bgra32)
+					ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, null, null, PixelFormat.Bgra32));
+
+				var buffC = new FrameBufferSource(ctx.Source.Width, ctx.Source.Height, ctx.Source.Format);
+				fixed (byte* pbuff = buffC.Span)
+					ctx.Source.CopyPixels(ctx.Source.Area, buffC.Stride, buffC.Span.Length, (IntPtr)pbuff);
+
+				using var quant = new OctreeQuantizer();
+				var ppq = ctx.AddProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.CreatePalette));
+
+				ppq.ResumeTiming(buffC.Area);
+				bool isExact = quant.CreatePalette(buffC.Span, buffC.Width, buffC.Height, buffC.Stride);
+				ppq.PauseTiming();
+
+				var iconv = new IndexedColorTransform(buffC);
+				iconv.SetPalette(quant.Palette, isExact);
+
+				ctx.Source.Dispose();
+				ctx.Source = ctx.AddProfiler(iconv);
+			}
+			else if ((ctx.Settings.IndexedColor || ctx.Settings.SaveFormat == FileFormat.Bmp) && curFormat.ColorRepresentation == PixelColorRepresentation.Grey)
+			{
+				ctx.Source = ctx.AddProfiler(new IndexedColorTransform(ctx.Source));
+			}
+		}
+
 		public static unsafe void AddGifFrameBuffer(PipelineContext ctx, bool replay = true)
 		{
 			if (ctx.ImageContainer is not IAnimationContainer anicnt || ctx.ImageFrame is not IAnimationFrame anifrm)
