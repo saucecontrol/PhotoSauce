@@ -134,6 +134,12 @@ namespace PhotoSauce.MagicScaler
 			height: InnerSize.Height
 		);
 
+		internal IEncoderConfig? EncoderConfig => SaveFormat switch {
+			FileFormat.Jpeg => new JpegEncoderConfig(JpegQuality, JpegSubsampleMode, false),
+			FileFormat.Tiff => new TiffEncoderConfig(TiffCompressionMode.None),
+			_ => null
+		};
+
 		internal double ScaleRatio =>
 			Math.Min(InnerSize.Width > 0 ? (double)Crop.Width / InnerSize.Width : 0d, InnerSize.Height > 0 ? (double)Crop.Height / InnerSize.Height : 0d);
 

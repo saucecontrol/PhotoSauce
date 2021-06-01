@@ -75,6 +75,9 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>The <see cref="FileFormat" /> (codec) of the image container.</summary>
 		FileFormat ContainerFormat { get; }
 
+		/// <summary>True if this container's frames represent an animation, otherwise false.</summary>
+		bool IsAnimation { get; }
+
 		/// <summary>The total number of image frames in this container.</summary>
 		int FrameCount { get; }
 
@@ -82,45 +85,6 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="index">The zero-based index of the desired frame.</param>
 		/// <returns>The <see cref="IImageFrame" /> at the requested index.</returns>
 		IImageFrame GetFrame(int index);
-	}
-
-	/// <summary>A container defining global metadata for a sequence of <see cref="IAnimationFrame" /> instances.</summary>
-	internal interface IAnimationContainer
-	{
-		/// <summary>The width of the animation's logical screen.</summary>
-		public int ScreenWidth { get; }
-
-		/// <summary>The height of the animation's logical screen.</summary>
-		public int ScreenHeight { get; }
-
-		/// <summary>The number of times to loop the animation.  Values less than 1 imply inifinte looping.</summary>
-		public int LoopCount { get; }
-
-		/// <summary>The background color to restore when a frame's disposal method is RestoreBackground.</summary>
-		public Color BackgroundColor { get; }
-
-		/// <summary>True if this animation requires a persistent screen buffer onto which frames are rendered, otherwise false.</summary>
-		public bool RequiresScreenBuffer { get; }
-	}
-
-	/// <summary>Defines metadata for a single frame within an animated image sequence.</summary>
-	internal interface IAnimationFrame
-	{
-		/// <summary>The origin point (offset) of the frame's content, relative to the logical screen size.</summary>
-		public Point Origin { get; }
-
-		/// <summary>The size of the frame's content to be rendered to the logical screen.</summary>
-		public Size Size { get; }
-
-		/// <summary>The amount of time, in seconds, the frame should be displayed.</summary>
-		/// <remarks>For animated GIF output, the denominator will be normalized to <c>100</c>.</remarks>
-		public Rational Duration { get; }
-
-		/// <summary>The disposition of the frame.</summary>
-		public FrameDisposalMethod Disposal { get; }
-
-		/// <summary>True to indicate the frame contains transparent pixels, otherwise false.</summary>
-		public bool HasAlpha { get; }
 	}
 
 	/// <summary>A <a href="https://en.wikipedia.org/wiki/Rational_number">rational number</a>, as defined by an integer numerator and denominator.</summary>

@@ -21,6 +21,9 @@ namespace PhotoSauce.ManagedCodecs
 		/// <inheritdoc />
 		public FileFormat ContainerFormat => FileFormat.Unknown;
 
+		/// <inheritdoc />
+		public bool IsAnimation => false;
+
 		int IImageContainer.FrameCount => 1;
 
 		IImageFrame IImageContainer.GetFrame(int index) => index == 0 ? new TargaFrame(decodedImage.Frames.RootFrame) : throw new IndexOutOfRangeException("Invalid frame index");

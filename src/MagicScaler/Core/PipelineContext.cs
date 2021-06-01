@@ -21,6 +21,7 @@ namespace PhotoSauce.MagicScaler
 		public IImageContainer ImageContainer { get; set; }
 		public IImageFrame ImageFrame { get; set; }
 		public PixelSource Source { get; set; } = NoopPixelSource.Instance;
+		public IMetadataSource Metadata { get; set; } = NoopMetadataSource.Instance;
 
 		public AnimationPipelineContext? AnimationContext { get; set; }
 
@@ -32,7 +33,7 @@ namespace PhotoSauce.MagicScaler
 		public WicPipelineContext WicContext => wicContext ??= new WicPipelineContext();
 
 		public bool IsAnimatedGifPipeline =>
-			ImageContainer is IAnimationContainer &&
+			ImageContainer.IsAnimation &&
 			(Settings.SaveFormat == FileFormat.Gif || Settings.SaveFormat == FileFormat.Auto) &&
 			Settings.FrameIndex == 0 && ImageContainer.FrameCount > 1;
 

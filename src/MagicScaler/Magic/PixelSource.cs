@@ -76,6 +76,7 @@ namespace PhotoSauce.MagicScaler
 		private readonly IPixelSource pixelSource;
 
 		public FileFormat ContainerFormat => FileFormat.Unknown;
+		public bool IsAnimation => false;
 		public int FrameCount => 1;
 
 		public PixelSourceContainer(IPixelSource source) => pixelSource = source;

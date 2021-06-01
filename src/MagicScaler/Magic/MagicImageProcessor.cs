@@ -199,7 +199,7 @@ namespace PhotoSauce.MagicScaler
 			MagicTransforms.AddExternalFormatConverter(ctx);
 
 			using var stb = new StreamBufferInjector(ostm);
-			using var enc = new WicImageEncoder(ctx.Settings.SaveFormat, ostm);
+			using var enc = new WicImageEncoder(ctx.Settings.SaveFormat, ostm, ctx.Settings.EncoderConfig);
 
 			if (ctx.IsAnimatedGifPipeline)
 			{
@@ -210,9 +210,7 @@ namespace PhotoSauce.MagicScaler
 			else
 			{
 				MagicTransforms.AddIndexedColorConverter(ctx);
-
-				using var frm = new WicImageEncoderFrame(ctx, enc);
-				frm.WriteSource(ctx);
+				enc.WriteFrame(ctx.Source, ctx.Metadata);
 			}
 
 			enc.Commit();
@@ -234,6 +232,7 @@ namespace PhotoSauce.MagicScaler
 				processPlanar = EnablePlanarPipeline && wicFrame.SupportsPlanarProcessing && ctx.Settings.Interpolation.WeightingFunction.Support >= 0.5;
 				bool profilingPassThrough = processPlanar || (wicFrame.SupportsNativeScale && ctx.Settings.HybridScaleRatio > 1);
 				ctx.Source = ctx.AddProfiler(new ComPtr<IWICBitmapSource>(wicFrame.WicSource).AsPixelSource(nameof(IWICBitmapFrameDecode), !profilingPassThrough));
+				ctx.Metadata = new MagicMetadataFilter(ctx);
 			}
 			else if (ctx.ImageFrame is IYccImageFrame yccFrame)
 			{

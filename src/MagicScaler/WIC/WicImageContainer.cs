@@ -1,7 +1,6 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
-using System.Drawing;
 using System.Buffers.Binary;
 
 using TerraFX.Interop;
@@ -11,11 +10,12 @@ using PhotoSauce.Interop.Wic;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal unsafe class WicImageContainer : IImageContainer, IDisposable
+	internal unsafe class WicImageContainer : IImageContainer, IMetadataSource, IDisposable
 	{
 		public IWICBitmapDecoder* WicDecoder { get; private set; }
 
 		public FileFormat ContainerFormat { get; }
+		public bool IsAnimation { get; }
 		public int FrameCount { get; }
 
 		public bool IsRawContainer {
@@ -44,6 +44,9 @@ namespace PhotoSauce.MagicScaler
 			HRESULT.Check(dec->GetFrameCount(&fcount));
 			FrameCount = (int)fcount;
 			ContainerFormat = fmt;
+
+			if (fmt == FileFormat.Gif && FrameCount > 1)
+				IsAnimation = true;
 		}
 
 		public static WicImageContainer Create(IWICBitmapDecoder* dec)
@@ -56,6 +59,12 @@ namespace PhotoSauce.MagicScaler
 				return new WicGifContainer(dec);
 
 			return new WicImageContainer(dec, fmt);
+		}
+
+		public virtual bool TryGetMetadata<T>(out T? metadata) where T : IMetadata
+		{
+			metadata = default;
+			return false;
 		}
 
 		public virtual void Dispose()
@@ -76,7 +85,7 @@ namespace PhotoSauce.MagicScaler
 		~WicImageContainer() => Dispose(false);
 	}
 
-	internal sealed unsafe class WicGifContainer : WicImageContainer, IAnimationContainer
+	internal sealed unsafe class WicGifContainer : WicImageContainer
 	{
 		public static ReadOnlySpan<byte> Animexts1_0 => new[] {
 			(byte)'A', (byte)'N', (byte)'I', (byte)'M', (byte)'E', (byte)'X', (byte)'T', (byte)'S', (byte)'1', (byte)'.', (byte)'0'
@@ -85,20 +94,17 @@ namespace PhotoSauce.MagicScaler
 			(byte)'N', (byte)'E', (byte)'T', (byte)'S', (byte)'C', (byte)'A', (byte)'P', (byte)'E', (byte)'2', (byte)'.', (byte)'0'
 		};
 
-		public int ScreenWidth { get; }
-		public int ScreenHeight { get; }
-		public int LoopCount { get; }
-		public Color BackgroundColor { get; }
-		public bool RequiresScreenBuffer => true;
+		public readonly AnimationContainer AnimationMetadata;
 
 		public WicGifContainer(IWICBitmapDecoder* dec) : base(dec, FileFormat.Gif)
 		{
 			using var meta = default(ComPtr<IWICMetadataQueryReader>);
 			HRESULT.Check(dec->GetMetadataQueryReader(meta.GetAddressOf()));
 
-			ScreenWidth = meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenWidth);
-			ScreenHeight = meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenHeight);
+			int screenWidth = meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenWidth);
+			int screenHeight = meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenHeight);
 
+			int bgColor = 0;
 			if (meta.GetValueOrDefault<bool>(Wic.Metadata.Gif.GlobalPaletteFlag))
 			{
 				using var pal = default(ComPtr<IWICPalette>);
@@ -115,19 +121,22 @@ namespace PhotoSauce.MagicScaler
 					fixed (uint* pbuff = buff.Span)
 					{
 						HRESULT.Check(pal.Get()->GetColors(cc, pbuff, &cc));
-						BackgroundColor = Color.FromArgb((int)pbuff[idx]);
+						bgColor = (int)pbuff[idx];
 					}
 				}
 			}
 
+			int loopCount = 0;
 			var sbuff = (Span<byte>)stackalloc byte[16];
 			var appext = meta.GetValueOrDefault(Wic.Metadata.Gif.AppExtension, sbuff);
 			if (appext.Length == 11 && (Netscape2_0.SequenceEqual(appext) || Animexts1_0.SequenceEqual(appext)))
 			{
 				var appdata = meta.GetValueOrDefault(Wic.Metadata.Gif.AppExtensionData, sbuff);
 				if (appdata.Length >= 4 && appdata[0] >= 3 && appdata[1] == 1)
-					LoopCount = BinaryPrimitives.ReadUInt16LittleEndian(appdata.Slice(2));
+					loopCount = BinaryPrimitives.ReadUInt16LittleEndian(appdata.Slice(2));
 			}
+
+			AnimationMetadata = new(screenWidth, screenHeight, loopCount, bgColor, true);
 		}
 
 		public override IImageFrame GetFrame(int index)
@@ -135,6 +144,17 @@ namespace PhotoSauce.MagicScaler
 			if ((uint)index >= (uint)FrameCount) throw new IndexOutOfRangeException("Frame index does not exist");
 
 			return new WicGifFrame(this, (uint)index);
+		}
+
+		public override bool TryGetMetadata<T>(out T metadata)
+		{
+			if (typeof(T) == typeof(AnimationContainer))
+			{
+				metadata = (T)(object)AnimationMetadata;
+				return true;
+			}
+
+			return base.TryGetMetadata(out metadata!);
 		}
 
 		public void ReplayGifAnimation(PipelineContext ctx, int playTo)
@@ -146,10 +166,10 @@ namespace PhotoSauce.MagicScaler
 			for (; anictx.LastFrame < playTo; anictx.LastFrame++)
 			{
 				var gifFrame = (WicGifFrame)GetFrame(anictx.LastFrame + 1);
-				if (gifFrame.Disposal == FrameDisposalMethod.Preserve)
-					anictx.UpdateFrameBuffer(this, gifFrame);
+				if (gifFrame.AnimationMetadata.Disposal == FrameDisposalMethod.Preserve)
+					anictx.UpdateFrameBuffer(gifFrame, AnimationMetadata, gifFrame.AnimationMetadata);
 
-				anictx.LastDisposal = gifFrame.Disposal;
+				anictx.LastDisposal = gifFrame.AnimationMetadata.Disposal;
 			}
 		}
 	}

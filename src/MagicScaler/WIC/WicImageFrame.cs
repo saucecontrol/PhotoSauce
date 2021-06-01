@@ -1,7 +1,6 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
-using System.Drawing;
 
 using TerraFX.Interop;
 using static TerraFX.Interop.Windows;
@@ -10,7 +9,7 @@ using PhotoSauce.Interop.Wic;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal unsafe class WicImageFrame : IImageFrame
+	internal unsafe class WicImageFrame : IImageFrame, IMetadataSource
 	{
 		private WicPixelSource? psource;
 		private IPixelSource? isource;
@@ -143,6 +142,8 @@ namespace PhotoSauce.MagicScaler
 			WicSource = source.Detach();
 		}
 
+		public virtual bool TryGetMetadata<T>(out T? metadata) where T : IMetadata => Container.TryGetMetadata(out metadata);
+
 		public void Dispose()
 		{
 			dispose(true);
@@ -243,13 +244,9 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	internal sealed unsafe class WicGifFrame : WicImageFrame, IAnimationFrame
+	internal sealed unsafe class WicGifFrame : WicImageFrame
 	{
-		public Point Origin { get; }
-		public Size Size { get; }
-		public Rational Duration { get; }
-		public FrameDisposalMethod Disposal { get; }
-		public bool HasAlpha { get; }
+		public readonly AnimationFrame AnimationMetadata;
 
 		public WicGifFrame(WicGifContainer cont, uint index) : base(cont, index)
 		{
@@ -259,21 +256,32 @@ namespace PhotoSauce.MagicScaler
 			HRESULT.Check(WicFrame->GetSize(&width, &height));
 
 			int left = 0, top = 0;
-			bool full = width >= cont.ScreenWidth && height >= cont.ScreenHeight;
+			bool full = width >= cont.AnimationMetadata.ScreenWidth && height >= cont.AnimationMetadata.ScreenHeight;
 			if (!full)
 			{
 				left = meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameLeft);
 				top = meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameTop);
 			}
 
-			width = (uint)Math.Min(width, cont.ScreenWidth - left);
-			height = (uint)Math.Min(height, cont.ScreenHeight - top);
+			width = (uint)Math.Min(width, cont.AnimationMetadata.ScreenWidth - left);
+			height = (uint)Math.Min(height, cont.AnimationMetadata.ScreenHeight - top);
 
-			Origin = new Point(left, top);
-			Size = new Size((int)width, (int)height);
-			Duration = new Rational(meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameDelay), 100);
-			Disposal = ((FrameDisposalMethod)meta.GetValueOrDefault<byte>(Wic.Metadata.Gif.FrameDisposal)).Clamp();
-			HasAlpha = meta.GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
+			var duration = new Rational(meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameDelay), 100);
+			var disposal = ((FrameDisposalMethod)meta.GetValueOrDefault<byte>(Wic.Metadata.Gif.FrameDisposal)).Clamp();
+			var hasAlpha = meta.GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
+
+			AnimationMetadata = new(left, top, duration, disposal, hasAlpha);
+		}
+
+		public override bool TryGetMetadata<T>(out T metadata)
+		{
+			if (typeof(T) == typeof(AnimationFrame))
+			{
+				metadata = (T)(object)AnimationMetadata;
+				return true;
+			}
+
+			return base.TryGetMetadata(out metadata!);
 		}
 	}
 }

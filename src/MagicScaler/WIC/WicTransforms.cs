@@ -21,9 +21,11 @@ namespace PhotoSauce.MagicScaler
 				return;
 
 			var srcProfile = WicColorProfile.GetSourceProfile(wicFrame.ColorProfileSource, mode);
-			var dstProfile = WicColorProfile.GetDestProfile(wicFrame.ColorProfileSource, mode);
+			var dstProfile = WicColorProfile.GetDestProfile(srcProfile, mode);
 			ctx.WicContext.SourceColorContext = new ComPtr<IWICColorContext>(srcProfile.WicColorContext).Detach();
 			ctx.WicContext.DestColorContext = new ComPtr<IWICColorContext>(dstProfile.WicColorContext).Detach();
+			ctx.SourceColorProfile = srcProfile.ParsedProfile;
+			ctx.DestColorProfile = dstProfile.ParsedProfile;
 		}
 
 		public static void AddColorspaceConverter(PipelineContext ctx)
@@ -66,14 +68,8 @@ namespace PhotoSauce.MagicScaler
 					}
 				}
 
-				if (ctx.WicContext.SourceColorContext is not null)
-					ctx.WicContext.SourceColorContext->Release();
-				if (ctx.WicContext.DestColorContext is not null)
-					ctx.WicContext.DestColorContext->Release();
-
-				ctx.WicContext.SourceColorContext = new ComPtr<IWICColorContext>(rgbColorContext.WicColorContext).Detach();
-				ctx.WicContext.DestColorContext = new ComPtr<IWICColorContext>(rgbColorContext.WicColorContext).Detach();
 				ctx.DestColorProfile = ctx.SourceColorProfile = rgbColorContext.ParsedProfile;
+				ctx.WicContext.Dispose();
 			}
 
 			if (curFormat == PixelFormat.Y8 || curFormat == PixelFormat.Cb8 || curFormat == PixelFormat.Cr8)

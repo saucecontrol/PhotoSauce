@@ -41,8 +41,6 @@ namespace PhotoSauce.MagicScaler
 
 		public static bool InsensitiveEquals(this string s1, string s2) => string.Equals(s1, s2, StringComparison.OrdinalIgnoreCase);
 
-		public static PixelArea GetArea(this IAnimationFrame f) => new(f.Origin.X, f.Origin.Y, f.Size.Width, f.Size.Height);
-
 		public static bool IsTransparent(this Color c) => c.A < byte.MaxValue;
 
 		public static bool IsGrey(this Color c) => c.R == c.G && c.G == c.B;

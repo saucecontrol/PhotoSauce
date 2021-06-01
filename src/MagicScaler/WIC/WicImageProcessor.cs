@@ -43,6 +43,7 @@ namespace PhotoSauce.MagicScaler
 
 			ctx.ImageFrame = frame;
 			ctx.Source = ctx.AddProfiler(frame.Source);
+			ctx.Metadata = new MagicMetadataFilter(ctx);
 
 			MagicTransforms.AddGifFrameBuffer(ctx);
 
@@ -60,9 +61,8 @@ namespace PhotoSauce.MagicScaler
 			MagicTransforms.AddPad(ctx);
 			WicTransforms.AddIndexedColorConverter(ctx);
 
-			using var enc = new WicImageEncoder(ctx.Settings.SaveFormat, ostm);
-			using var frm = new WicImageEncoderFrame(ctx, enc);
-			frm.WriteSource(ctx);
+			using var enc = new WicImageEncoder(ctx.Settings.SaveFormat, ostm, ctx.Settings.EncoderConfig);
+			enc.WriteFrame(ctx.Source, ctx.Metadata);
 			enc.Commit();
 
 			return new ProcessImageResult(ctx.UsedSettings, ctx.Stats);

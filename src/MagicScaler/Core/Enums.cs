@@ -167,7 +167,7 @@ namespace PhotoSauce.MagicScaler
 	internal enum FrameDisposalMethod
 	{
 		/// <summary>Disposal is not defined.  This has the same behavior as <see cref="Preserve" />.</summary>
-		Undefined = 0,
+		Unspecified = 0,
 		/// <summary>The frame should not be disposed.  The display buffer will preserve the current frame's content.</summary>
 		Preserve = 1,
 		/// <summary>The display buffer should be cleared to the background color.</summary>

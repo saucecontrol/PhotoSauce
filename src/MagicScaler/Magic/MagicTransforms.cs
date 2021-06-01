@@ -351,19 +351,17 @@ namespace PhotoSauce.MagicScaler.Transforms
 			if (mode == ColorProfileMode.Ignore)
 				return;
 
-			if (ctx.ImageFrame is WicImageFrame wicFrame)
+			if (ctx.ImageFrame is WicImageFrame)
 			{
 				WicTransforms.AddColorProfileReader(ctx);
-				ctx.SourceColorProfile = WicColorProfile.GetSourceProfile(wicFrame.ColorProfileSource, mode).ParsedProfile;
 			}
 			else
 			{
 				var fmt = ctx.ImageFrame is IYccImageFrame ? PixelFormat.Bgr24 : ctx.Source.Format;
 				var profile = ColorProfile.Cache.GetOrAdd(ctx.ImageFrame.IccProfile);
 				ctx.SourceColorProfile = profile.IsValid && profile.IsCompatibleWith(fmt) ? ColorProfile.GetSourceProfile(profile, mode) : ColorProfile.GetDefaultFor(fmt);
+				ctx.DestColorProfile = ColorProfile.GetDestProfile(ctx.SourceColorProfile, mode);
 			}
-
-			ctx.DestColorProfile = ColorProfile.GetDestProfile(ctx.SourceColorProfile, mode);
 		}
 
 		public static unsafe void AddColorspaceConverter(PipelineContext ctx)
@@ -454,10 +452,12 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public static unsafe void AddGifFrameBuffer(PipelineContext ctx, bool replay = true)
 		{
-			if (ctx.ImageContainer is not IAnimationContainer anicnt || ctx.ImageFrame is not IAnimationFrame anifrm)
+			var anifrm = AnimationFrame.Default;
+			bool nometa = ctx.ImageFrame is not IMetadataSource fmsrc || !fmsrc.TryGetMetadata(out anifrm);
+			if (!ctx.ImageContainer.IsAnimation && nometa)
 				return;
 
-			if (replay && ctx.Settings.FrameIndex > 0 && anicnt is WicGifContainer gif)
+			if (replay && ctx.Settings.FrameIndex > 0 && ctx.ImageContainer is WicGifContainer gif)
 				gif.ReplayGifAnimation(ctx, ctx.Settings.FrameIndex - 1);
 
 			var disposal = anifrm.Disposal;
@@ -465,6 +465,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 				disposal = FrameDisposalMethod.Preserve;
 
 			var ldisp = ctx.AnimationContext?.LastDisposal ?? FrameDisposalMethod.RestoreBackground;
+			var innerArea = new PixelArea(anifrm.OffsetLeft, anifrm.OffsetTop, ctx.Source.Width, ctx.Source.Height);
+
+			if (ctx.ImageContainer is not IMetadataSource cmsrc || !cmsrc.TryGetMetadata<AnimationContainer>(out var anicnt))
+				anicnt = new AnimationContainer(innerArea.Width, innerArea.Height);
 
 			bool useBuffer = !replay && disposal == FrameDisposalMethod.Preserve;
 			if (!replay)
@@ -472,7 +476,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				var anictx = ctx.AnimationContext ??= new AnimationPipelineContext();
 
 				if (anicnt.RequiresScreenBuffer && disposal == FrameDisposalMethod.Preserve)
-					anictx.UpdateFrameBuffer(anicnt, anifrm);
+					anictx.UpdateFrameBuffer(ctx.ImageFrame, anicnt, anifrm);
 
 				anictx.LastDisposal = disposal;
 				anictx.LastFrame = ctx.Settings.FrameIndex;
@@ -487,12 +491,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 			if (ctx.AnimationContext?.FrameBufferSource is not null && ldisp != FrameDisposalMethod.RestoreBackground)
 				ctx.Source = ctx.AnimationContext.FrameBufferSource;
 
-			var innerArea = anifrm.GetArea();
-			bool fullScreen = innerArea.Width == anicnt.ScreenWidth && innerArea.Height == anicnt.ScreenHeight;
+			bool fullScreen = innerArea.Width >= anicnt.ScreenWidth && innerArea.Height >= anicnt.ScreenHeight;
 			if (!fullScreen && ldisp == FrameDisposalMethod.RestoreBackground && !useBuffer)
 			{
 				var outerArea = new PixelArea(0, 0, anicnt.ScreenWidth, anicnt.ScreenHeight);
-				var bgColor = anifrm.HasAlpha ? Color.Empty : anicnt.BackgroundColor;
+				var bgColor = anifrm.HasAlpha ? Color.Empty : Color.FromArgb(anicnt.BackgroundColor);
 
 				ctx.Source = new PadTransformInternal(frmsrc, bgColor, innerArea, outerArea, true);
 			}
@@ -503,7 +506,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				var anictx = ctx.AnimationContext;
 				var fbuff = anictx.FrameBufferSource;
 
-				ctx.Source = new OverlayTransform(fbuff, frmsrc, anifrm.Origin.X, anifrm.Origin.Y, anifrm.HasAlpha);
+				ctx.Source = new OverlayTransform(fbuff, frmsrc, anifrm.OffsetLeft, anifrm.OffsetTop, anifrm.HasAlpha);
 			}
 			else if (ctx.Source != frmsrc)
 			{
