@@ -1,20 +1,20 @@
 // Borrowed from
-//   https://github.com/dotnet/runtime/blob/master/src/libraries/System.Private.CoreLib/src/System/Diagnostics/CodeAnalysis/NullableAttributes.cs
-//   https://github.com/dotnet/runtime/blob/master/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/ModuleInitializerAttribute.cs
-//   https://github.com/dotnet/runtime/blob/master/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/SkipLocalsInitAttribute.cs
+//   https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/Diagnostics/CodeAnalysis/NullableAttributes.cs
+//   https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/ModuleInitializerAttribute.cs
+//   https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/SkipLocalsInitAttribute.cs
 // These shims enable support for C# 8 and 9 features on all platforms.
 // Nullable attributes are not functional on platforms that don't include them, but their presence allows use without conditional compilation.
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#if !BUILTIN_CSHARP9
+#if !NET5_0_OR_GREATER
 using System.ComponentModel;
 #endif
 
 namespace System.Diagnostics.CodeAnalysis
 {
-#if !BUILTIN_CSHARP8
+#if !BUILTIN_NULLABLE
     /// <summary>Specifies that null is allowed as an input even if the corresponding type disallows it.</summary>
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Parameter | AttributeTargets.Property, Inherited = false)]
 #if SYSTEM_PRIVATE_CORELIB
@@ -138,7 +138,7 @@ namespace System.Diagnostics.CodeAnalysis
     }
 #endif
 
-#if !BUILTIN_CSHARP9
+#if !NET5_0_OR_GREATER
     /// <summary>Specifies that the method or property will ensure that the listed field and property members have not-null values.</summary>
     [AttributeUsage(AttributeTargets.Method | AttributeTargets.Property, Inherited = false, AllowMultiple = true)]
 #if SYSTEM_PRIVATE_CORELIB
@@ -208,7 +208,7 @@ namespace System.Diagnostics.CodeAnalysis
 #endif
 }
 
-#if !BUILTIN_CSHARP9
+#if !NET5_0_OR_GREATER
 namespace System.Runtime.CompilerServices
 {
     [AttributeUsage(AttributeTargets.Method, Inherited = false)]

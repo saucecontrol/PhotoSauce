@@ -97,7 +97,7 @@ Job=.Net 5.0 CLI  Toolchain=.NET 5.0  IterationCount=5  LaunchCount=1  UnrollFac
 |          NetVips Load, Resize, Save - Parallel |  54.00 ms | 4.324 ms | 1.123 ms |  0.34 |         - |         - |         - |     69 KB |
 ```
 
-Note the relative performance drop-off for NetVips.  It uses multiple threads for a single operation by default, making it scale up poorly and leaving it vulnerable to [CPU oversubscription](https://docs.microsoft.com/en-us/archive/blogs/visualizeparallel/oversubscription-a-classic-parallel-performance-problem) problems under heavy server load.
+Note the relative performance drop-off for NetVips.  It uses multiple threads for a single operation by default, making it scale up poorly and leaving it vulnerable to [CPU oversubscription](https://web.archive.org/web/20200221153045/https://docs.microsoft.com/en-us/archive/blogs/visualizeparallel/oversubscription-a-classic-parallel-performance-problem) problems under heavy server load.
 
 Similarly, System.Drawing fails to scale up as well as the other libraries, but for the opposite reason.  The System.Drawing tests run at less than 100% CPU when run in parallel, presumably due to some internal locking/serialization designed to limit memory use.
 

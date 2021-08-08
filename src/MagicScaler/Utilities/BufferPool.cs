@@ -155,7 +155,7 @@ namespace PhotoSauce.MagicScaler
 		public void Dispose() => BufferPool.ReturnRaw(buffer);
 	}
 
-#if !SPAN_SORT
+#if !NET5_0_OR_GREATER
 	internal static partial class BufferPool
 	{
 		public static LocalArray<T> RentLocalArray<T>(int length) where T : unmanaged =>

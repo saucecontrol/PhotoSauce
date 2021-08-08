@@ -35,7 +35,7 @@ namespace TerraFX.Interop
         public void* pvReserved;
 
         [NativeTypeName("HRESULT (*)(struct tagEXCEPINFO *) __attribute__((stdcall))")]
-#if BUILTIN_CSHARP9
+#if NET5_0_OR_GREATER
         public delegate* unmanaged<EXCEPINFO*, int> pfnDeferredFillIn;
 #else
         public void* _pfnDeferredFillIn;

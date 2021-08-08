@@ -6,9 +6,9 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Runtime.InteropServices;
-#if BUILTIN_CSHARP9
 using System.Runtime.CompilerServices;
-#else
+
+#if !NET5_0_OR_GREATER
 using PhotoSauce.MagicScaler;
 #endif
 
@@ -41,7 +41,7 @@ namespace PhotoSauce.Interop.Wic
 			return (IStream*)ptr;
 		}
 
-#if BUILTIN_CSHARP9
+#if NET5_0_OR_GREATER
 		[UnmanagedCallersOnly]
 		static
 #endif
@@ -58,13 +58,13 @@ namespace PhotoSauce.Interop.Wic
 			return E_NOINTERFACE;
 		}
 
-#if BUILTIN_CSHARP9
+#if NET5_0_OR_GREATER
 		[UnmanagedCallersOnly]
 		static
 #endif
 		public uint AddRef(IStreamImpl* pinst) => (uint)Interlocked.Increment(ref pinst->refCount);
 
-#if BUILTIN_CSHARP9
+#if NET5_0_OR_GREATER
 		[UnmanagedCallersOnly]
 		static
 #endif
@@ -81,13 +81,13 @@ namespace PhotoSauce.Interop.Wic
 			return cnt;
 		}
 
-#if BUILTIN_CSHARP9
+#if NET5_0_OR_GREATER
 		[UnmanagedCallersOnly]
 		static
 #endif
 		public int Read(IStreamImpl* pinst, void* pv, uint cb, uint* pcbRead)
 		{
-			var stm = (Stream)pinst->source.Target!;
+			var stm = Unsafe.As<Stream>(pinst->source.Target!);
 			int read = stm.Read(new Span<byte>(pv, (int)cb));
 
 			if (pcbRead is not null)
@@ -96,13 +96,13 @@ namespace PhotoSauce.Interop.Wic
 			return S_OK;
 		}
 
-#if BUILTIN_CSHARP9
+#if NET5_0_OR_GREATER
 		[UnmanagedCallersOnly]
 		static
 #endif
 		public int Write(IStreamImpl* pinst, void* pv, uint cb, uint* pcbWritten)
 		{
-			var stm = (Stream)pinst->source.Target!;
+			var stm = Unsafe.As<Stream>(pinst->source.Target!);
 			stm.Write(new ReadOnlySpan<byte>(pv, (int)cb));
 
 			if (pcbWritten is not null)
@@ -111,14 +111,14 @@ namespace PhotoSauce.Interop.Wic
 			return S_OK;
 		}
 
-#if BUILTIN_CSHARP9
+#if NET5_0_OR_GREATER
 		[UnmanagedCallersOnly]
 		static
 #endif
 		public int Seek(IStreamImpl* pinst, LARGE_INTEGER dlibMove, uint dwOrigin, ULARGE_INTEGER* plibNewPosition)
 		{
 			long npos = dlibMove.QuadPart + (dwOrigin == (uint)SeekOrigin.Begin ? pinst->offset : 0);
-			var stm = (Stream)pinst->source.Target!;
+			var stm = Unsafe.As<Stream>(pinst->source.Target!);
 
 			long cpos = stm.Position;
 			if (!(dwOrigin == (uint)SeekOrigin.Current && npos == 0) && !(dwOrigin == (uint)SeekOrigin.Begin && npos == cpos))
@@ -130,73 +130,73 @@ namespace PhotoSauce.Interop.Wic
 			return S_OK;
 		}
 
-#if BUILTIN_CSHARP9
+#if NET5_0_OR_GREATER
 		[UnmanagedCallersOnly]
 		static
 #endif
 		public int SetSize(IStreamImpl* pinst, ULARGE_INTEGER libNewSize)
 		{
-			var stm = (Stream)pinst->source.Target!;
+			var stm = Unsafe.As<Stream>(pinst->source.Target!);
 			stm.SetLength((long)libNewSize.QuadPart + pinst->offset);
 
 			return S_OK;
 		}
 
-#if BUILTIN_CSHARP9
+#if NET5_0_OR_GREATER
 		[UnmanagedCallersOnly]
 		static
 #endif
 		public int CopyTo(IStreamImpl* pinst, IStream* pstm, ULARGE_INTEGER cb, ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten) => E_NOTIMPL;
 
-#if BUILTIN_CSHARP9
+#if NET5_0_OR_GREATER
 		[UnmanagedCallersOnly]
 		static
 #endif
 		public int Commit(IStreamImpl* pinst, uint grfCommitFlags)
 		{
-			var stm = (Stream)pinst->source.Target!;
+			var stm = Unsafe.As<Stream>(pinst->source.Target!);
 			stm.Flush();
 
 			return S_OK;
 		}
 
-#if BUILTIN_CSHARP9
+#if NET5_0_OR_GREATER
 		[UnmanagedCallersOnly]
 		static
 #endif
 		public int Revert(IStreamImpl* pinst) => E_NOTIMPL;
 
-#if BUILTIN_CSHARP9
+#if NET5_0_OR_GREATER
 		[UnmanagedCallersOnly]
 		static
 #endif
 		public int LockRegion(IStreamImpl* pinst, ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, uint dwLockType) => E_NOTIMPL;
 
-#if BUILTIN_CSHARP9
+#if NET5_0_OR_GREATER
 		[UnmanagedCallersOnly]
 		static
 #endif
 		public int UnlockRegion(IStreamImpl* pinst, ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, uint dwLockType) => E_NOTIMPL;
 
-#if BUILTIN_CSHARP9
+#if NET5_0_OR_GREATER
 		[UnmanagedCallersOnly]
 		static
 #endif
 		public int Stat(IStreamImpl* pinst, STATSTG* pstatstg, uint grfStatFlag)
 		{
-			var stm = (Stream)pinst->source.Target!;
+			var stm = Unsafe.As<Stream>(pinst->source.Target!);
 			*pstatstg = new STATSTG { cbSize = new ULARGE_INTEGER { QuadPart = (ulong)(stm.Length - pinst->offset) }, type = (uint)STGTY.STGTY_STREAM };
 
 			return S_OK;
 		}
 
-#if BUILTIN_CSHARP9
+#if NET5_0_OR_GREATER
 		[UnmanagedCallersOnly]
 		static
 #endif
 		public int Clone(IStreamImpl* pinst, IStream** ppstm) => E_NOTIMPL;
 
-#if BUILTIN_CSHARP9
+#if NET5_0_OR_GREATER
 		private static readonly delegate* unmanaged<IStreamImpl*, Guid*, void**, int> pfnQueryInterface = &QueryInterface;
 		private static readonly delegate* unmanaged<IStreamImpl*, uint> pfnAddRef = &AddRef;
 		private static readonly delegate* unmanaged<IStreamImpl*, uint> pfnRelease = &Release;
@@ -262,7 +262,7 @@ namespace PhotoSauce.Interop.Wic
 
 		private static void** createVtbl()
 		{
-#if BUILTIN_CSHARP9
+#if NET5_0_OR_GREATER
 			void** p = (void**)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(IStreamImpl), sizeof(nuint) * 14);
 #else
 			void** p = (void**)Marshal.AllocHGlobal(sizeof(nuint) * 14);

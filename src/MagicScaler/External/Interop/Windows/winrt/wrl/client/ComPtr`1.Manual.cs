@@ -221,7 +221,7 @@ namespace TerraFX.Interop
             return result;
         }
 
-        /// <inheritdoc/>
+        /// <inheritdoc cref="IDisposable.Dispose" />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
         {

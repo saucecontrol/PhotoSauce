@@ -1,23 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<VersionPrefix>0.12.2</VersionPrefix>
+		<VersionPrefix>0.13.0</VersionPrefix>
 		<TargetFrameworks>netcoreapp3.1;net5.0;net472</TargetFrameworks>
-		<TargetFrameworks Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">$(TargetFrameworks);netcoreapp2.1;net461;netstandard2.0;netstandard2.1</TargetFrameworks>
+		<TargetFrameworks Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">$(TargetFrameworks);net461;netstandard2.0;netstandard2.1</TargetFrameworks>
 	</PropertyGroup>
 
 	<PropertyGroup>
-		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetCoreVersion), '2.1')) Or $([MSBuild]::VersionGreaterThanOrEquals($(NetStandardVersion), '2.1'))">$(DefineConstants);BUILTIN_MATHF;BUILTIN_SPAN</DefineConstants>
-		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetCoreVersion), '2.1')) Or $([MSBuild]::VersionGreaterThanOrEquals($(NetStandardVersion), '2.1')) Or $([MSBuild]::VersionGreaterThanOrEquals($(NetFrameworkVersion), '4.7.2'))">$(DefineConstants);VECTOR_CONVERT</DefineConstants>
+		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetStandardVersion), '2.1'))">$(DefineConstants);BUILTIN_MATHF;BUILTIN_SPAN;BUILTIN_NULLABLE</DefineConstants>
+		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetStandardVersion), '2.1')) Or $([MSBuild]::VersionGreaterThanOrEquals($(NetFrameworkVersion), '4.7.2'))">$(DefineConstants);VECTOR_CONVERT</DefineConstants>
 		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetFrameworkVersion), '4.0')) Or ($([MSBuild]::VersionGreaterThanOrEquals($(NetCoreVersion), '3.0')) And '$(Configuration)'!='Dist')">$(DefineConstants);SYSTEM_DRAWING</DefineConstants>
-		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetStandardVersion), '2.1'))">$(DefineConstants);BUILTIN_CSHARP8</DefineConstants>
 		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetCoreVersion), '3.0'))">$(DefineConstants);HWINTRINSICS</DefineConstants>
-		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetCoreVersion), '5.0'))">$(DefineConstants);SPAN_SORT;BUILTIN_CSHARP9</DefineConstants>
 		<DefineConstants Condition="'$(Configuration)'!='Dist'">$(DefineConstants);GUARDRAILS;WICPROCESSOR</DefineConstants>
 	</PropertyGroup>
 
 	<PropertyGroup>
-		<Nullable Condition="$(DefineConstants.Contains('BUILTIN_CSHARP8'))">enable</Nullable>
+		<Nullable Condition="$(DefineConstants.Contains('BUILTIN_NULLABLE'))">enable</Nullable>
 	</PropertyGroup>
 
 	<ItemGroup Condition="!$(DefineConstants.Contains('BUILTIN_SPAN'))">
@@ -28,11 +26,11 @@
 	</ItemGroup>
 
 	<ItemGroup Condition="$(DefineConstants.Contains('SYSTEM_DRAWING')) And !$(DefineConstants.Contains('NETFRAMEWORK'))">
-		<PackageReference Include="System.Drawing.Common" Version="4.7.0" />
+		<PackageReference Include="System.Drawing.Common" Version="5.0.2" />
 	</ItemGroup>
 
-	<ItemGroup Condition="$(DefineConstants.Contains('BUILTIN_SPAN')) And $([MSBuild]::VersionLessThan($(NetCoreVersion), '3.0'))">
-		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.1" />
+	<ItemGroup Condition="$(DefineConstants.Contains('BUILTIN_SPAN')) And $(DefineConstants.Contains('NETSTANDARD'))">
+		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="5.0.0" />
 	</ItemGroup>
 
 	<ItemGroup Condition="$(DefineConstants.Contains('NETFRAMEWORK')) And $([MSBuild]::VersionLessThan($(NetFrameworkVersion), '4.7'))">
@@ -41,8 +39,8 @@
 	</ItemGroup>
 
 	<ItemGroup Condition="$(DefineConstants.Contains('NETFRAMEWORK'))">
-		<Reference Include="System.Configuration" />
 		<Reference Include="System.Drawing" />
+		<Reference Include="System.Configuration" />
 	</ItemGroup>
 
 	<ItemGroup>

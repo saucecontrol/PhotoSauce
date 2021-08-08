@@ -81,7 +81,7 @@ namespace TerraFX.Interop
             /// <returns>A pointer to memory holding the <see cref="Guid"/> value for the current type.</returns>
             private static Guid* CreateRIID()
             {
-#if BUILTIN_CSHARP9
+#if NET5_0_OR_GREATER
                 Guid* p = (Guid*)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(T), sizeof(Guid));
 #else
                 Guid* p = (Guid*)Marshal.AllocHGlobal(sizeof(Guid));
