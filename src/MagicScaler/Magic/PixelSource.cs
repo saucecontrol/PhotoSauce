@@ -7,9 +7,12 @@ using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal abstract class PixelSource : IDisposable
+	internal abstract class PixelSource : IPixelSource, IDisposable
 	{
 		public abstract PixelFormat Format { get; }
+
+		Guid IPixelSource.Format => Format.FormatGuid;
+
 		public abstract int Width { get; }
 		public abstract int Height { get; }
 
@@ -46,6 +49,25 @@ namespace PhotoSauce.MagicScaler
 			Profiler.ResumeTiming(prc);
 			CopyPixelsInternal(prc, cbStride, cbBufferSize, pbBuffer);
 			Profiler.PauseTiming();
+		}
+
+		unsafe void IPixelSource.CopyPixels(Rectangle sourceArea, int cbStride, Span<byte> buffer)
+		{
+			var prc = (PixelArea)sourceArea;
+			int cbLine = MathUtil.DivCeiling(prc.Width * Format.BitsPerPixel, 8);
+			int cbBuffer = buffer.Length;
+
+			if (prc.X + prc.Width > Width || prc.Y + prc.Height > Height)
+				throw new ArgumentOutOfRangeException(nameof(sourceArea), "Requested area does not fall within the image bounds");
+
+			if (cbLine > cbStride)
+				throw new ArgumentOutOfRangeException(nameof(cbStride), "Stride is too small for the requested area");
+
+			if ((prc.Height - 1) * cbStride + cbLine > cbBuffer)
+				throw new ArgumentOutOfRangeException(nameof(buffer), "Buffer is too small for the requested area");
+
+			fixed (byte* pbBuffer = buffer)
+				CopyPixels(prc, cbStride, cbBuffer, (IntPtr)pbBuffer);
 		}
 
 		protected virtual void Dispose(bool disposing) { }
@@ -254,42 +276,11 @@ namespace PhotoSauce.MagicScaler
 			public PixelSourceFromIPixelSource(IPixelSource source) => (upstreamSource, Format) = (source, PixelFormat.FromGuid(source.Format));
 
 			protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer) =>
-				upstreamSource.CopyPixels(prc.ToGdiRect(), cbStride, new Span<byte>(pbBuffer.ToPointer(), cbBufferSize));
+				upstreamSource.CopyPixels(prc, cbStride, new Span<byte>(pbBuffer.ToPointer(), cbBufferSize));
 
 			public override string? ToString() => upstreamSource.ToString();
 		}
 
-		private sealed class PixelSourceAsIPixelSource : IPixelSource
-		{
-			private readonly PixelSource source;
-
-			public PixelSourceAsIPixelSource(PixelSource src) => source = src;
-
-			public Guid Format => source.Format.FormatGuid;
-			public int Width => source.Width;
-			public int Height => source.Height;
-
-			public unsafe void CopyPixels(Rectangle sourceArea, int cbStride, Span<byte> buffer)
-			{
-				var prc = PixelArea.FromGdiRect(sourceArea);
-				int cbLine = MathUtil.DivCeiling(prc.Width * source.Format.BitsPerPixel, 8);
-				int cbBuffer = buffer.Length;
-
-				if (prc.X + prc.Width > Width || prc.Y + prc.Height > Height)
-					throw new ArgumentOutOfRangeException(nameof(sourceArea), "Requested area does not fall within the image bounds");
-
-				if (cbLine > cbStride)
-					throw new ArgumentOutOfRangeException(nameof(cbStride), "Stride is too small for the requested area");
-
-				if ((prc.Height - 1) * cbStride + cbLine > cbBuffer)
-					throw new ArgumentOutOfRangeException(nameof(buffer), "Buffer is too small for the requested area");
-
-				fixed (byte* pbBuffer = buffer)
-					source.CopyPixels(prc, cbStride, cbBuffer, (IntPtr)pbBuffer);
-			}
-		}
-
-		public static PixelSource AsPixelSource(this IPixelSource source) => new PixelSourceFromIPixelSource(source);
-		public static IPixelSource AsIPixelSource(this PixelSource source) => new PixelSourceAsIPixelSource(source);
+		public static PixelSource AsPixelSource(this IPixelSource source) => source as PixelSource ?? new PixelSourceFromIPixelSource(source);
 	}
 }

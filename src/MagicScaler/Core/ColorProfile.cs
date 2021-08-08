@@ -41,20 +41,6 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private readonly struct TagEntry
-		{
-			public readonly uint tag;
-			public readonly int pos;
-			public readonly int cb;
-
-			public TagEntry(uint t, int p, int c)
-			{
-				tag = t;
-				pos = p;
-				cb = c;
-			}
-		}
-
 		private static class IccStrings
 		{
 			public const uint acsp = 'a' << 24 | 'c' << 16 | 's' << 8 | 'p';
@@ -84,6 +70,8 @@ namespace PhotoSauce.MagicScaler
 			public const uint curv = 'c' << 24 | 'u' << 16 | 'r' << 8 | 'v';
 			public const uint para = 'p' << 24 | 'a' << 16 | 'r' << 8 | 'a';
 		}
+
+		private readonly record struct TagEntry(uint Tag, int Pos, int Len);
 
 		internal enum ProfileColorSpace
 		{
@@ -277,13 +265,16 @@ namespace PhotoSauce.MagicScaler
 			return true;
 		}
 
-		private static bool tryGetTagEntry(TagEntry[] entries, uint tag, out TagEntry entry)
+		private static bool tryGetTagEntry(ReadOnlySpan<TagEntry> entries, uint tag, out TagEntry entry)
 		{
 			for (int i = 0; i < entries.Length; i++)
-			if (entries[i].tag == tag)
 			{
-				entry = entries[i];
-				return true;
+				var cand = entries[i];
+				if (cand.Tag == tag)
+				{
+					entry = cand;
+					return true;
+				}
 			}
 
 			entry = default;
@@ -497,8 +488,9 @@ namespace PhotoSauce.MagicScaler
 			if (len < (headerPlusTagCountLength + tagCount * Unsafe.SizeOf<TagEntry>()))
 				return invalidProfile;
 
-			var tagEntries = new TagEntry[((int)tagCount)];
-			for (int i = 0; i < tagCount; i++)
+			using var tagBuffer = BufferPool.RentLocal<TagEntry>((int)tagCount);
+			var tagEntries = tagBuffer.Span;
+			for (int i = 0; i < tagEntries.Length; i++)
 			{
 				int entryStart = headerPlusTagCountLength + i * Unsafe.SizeOf<TagEntry>();
 
@@ -513,12 +505,12 @@ namespace PhotoSauce.MagicScaler
 				if (tag == IccTags.A2B0 || tag == IccTags.B2A0)
 					return new ColorProfile(prof.ToArray(), dataColorSpace, pcsColorSpace, ColorProfileType.Table);
 
-				tagEntries[i] = new TagEntry(tag, (int)pos, (int)cb);
+				tagEntries[i] = new(tag, (int)pos, (int)cb);
 			}
 
 			if (dataColorSpace == ProfileColorSpace.Grey
 				&& tryGetTagEntry(tagEntries, IccTags.kTRC, out var kTRC)
-				&& tryGetCurve(prof.Slice(kTRC.pos, kTRC.cb), out var curve)
+				&& tryGetCurve(prof.Slice(kTRC.Pos, kTRC.Len), out var curve)
 			) return new CurveProfile(prof.ToArray(), curve, dataColorSpace, pcsColorSpace);
 
 			if (dataColorSpace == ProfileColorSpace.Rgb
@@ -530,13 +522,13 @@ namespace PhotoSauce.MagicScaler
 				&& tryGetTagEntry(tagEntries, IccTags.rXYZ, out var rXYZ)
 			)
 			{
-				var bTRCData = prof.Slice(bTRC.pos, bTRC.cb);
-				var gTRCData = prof.Slice(gTRC.pos, gTRC.cb);
-				var rTRCData = prof.Slice(rTRC.pos, rTRC.cb);
+				var bTRCData = prof.Slice(bTRC.Pos, bTRC.Len);
+				var gTRCData = prof.Slice(gTRC.Pos, gTRC.Len);
+				var rTRCData = prof.Slice(rTRC.Pos, rTRC.Len);
 
 				if (bTRCData.SequenceEqual(gTRCData) && bTRCData.SequenceEqual(rTRCData)
 					&& tryGetCurve(bTRCData, out var rgbcurve)
-					&& tryGetMatrix(prof.Slice(bXYZ.pos, bXYZ.cb), prof.Slice(gXYZ.pos, gXYZ.cb), prof.Slice(rXYZ.pos, rXYZ.cb), out var matrix)
+					&& tryGetMatrix(prof.Slice(bXYZ.Pos, bXYZ.Len), prof.Slice(gXYZ.Pos, gXYZ.Len), prof.Slice(rXYZ.Pos, rXYZ.Len), out var matrix)
 				)
 				{
 					var imatrix = matrix.InvertPrecise();

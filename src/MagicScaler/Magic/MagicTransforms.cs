@@ -9,7 +9,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 {
 	internal static class MagicTransforms
 	{
-		private static readonly IReadOnlyDictionary<PixelFormat, PixelFormat> externalFormatMap = new Dictionary<PixelFormat, PixelFormat> {
+		private static readonly Dictionary<PixelFormat, PixelFormat> externalFormatMap = new() {
 			[PixelFormat.Grey32Float] = PixelFormat.Grey8,
 			[PixelFormat.Grey32FloatLinear] = PixelFormat.Grey8,
 			[PixelFormat.Grey16UQ15Linear] = PixelFormat.Grey8,
@@ -28,7 +28,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			[PixelFormat.Cr32Float] = PixelFormat.Cr8
 		};
 
-		private static readonly IReadOnlyDictionary<PixelFormat, PixelFormat> internalFormatMapSimd = new Dictionary<PixelFormat, PixelFormat> {
+		private static readonly Dictionary<PixelFormat, PixelFormat> internalFormatMapSimd = new() {
 			[PixelFormat.Grey8] = PixelFormat.Grey32Float,
 			[PixelFormat.Y8] = PixelFormat.Y32Float,
 			[PixelFormat.Bgr24] = PixelFormat.Bgrx128Float,
@@ -42,14 +42,14 @@ namespace PhotoSauce.MagicScaler.Transforms
 			[PixelFormat.Cr8] = PixelFormat.Cr32Float
 		};
 
-		private static readonly IReadOnlyDictionary<PixelFormat, PixelFormat> internalFormatMapLinear = new Dictionary<PixelFormat, PixelFormat> {
+		private static readonly Dictionary<PixelFormat, PixelFormat> internalFormatMapLinear = new() {
 			[PixelFormat.Grey8] = PixelFormat.Grey16UQ15Linear,
 			[PixelFormat.Y8] = PixelFormat.Y16UQ15Linear,
 			[PixelFormat.Bgr24] = PixelFormat.Bgr48UQ15Linear,
 			[PixelFormat.Bgra32] = PixelFormat.Pbgra64UQ15Linear
 		};
 
-		private static readonly IReadOnlyDictionary<PixelFormat, PixelFormat> internalFormatMapLinearSimd = new Dictionary<PixelFormat, PixelFormat> {
+		private static readonly Dictionary<PixelFormat, PixelFormat> internalFormatMapLinearSimd = new() {
 			[PixelFormat.Grey8] = PixelFormat.Grey32FloatLinear,
 			[PixelFormat.Y8] = PixelFormat.Y32FloatLinear,
 			[PixelFormat.Bgr24] = PixelFormat.Bgrx128FloatLinear,
@@ -275,12 +275,12 @@ namespace PhotoSauce.MagicScaler.Transforms
 			else if (fmt.ColorRepresentation == PixelColorRepresentation.Grey && !ctx.Settings.MatteColor.IsGrey())
 				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, null, null, PixelFormat.Bgr24));
 
-			ctx.Source = ctx.AddProfiler(new PadTransformInternal(ctx.Source, ctx.Settings.MatteColor, PixelArea.FromGdiRect(ctx.Settings.InnerRect), PixelArea.FromGdiSize(ctx.Settings.OuterSize)));
+			ctx.Source = ctx.AddProfiler(new PadTransformInternal(ctx.Source, ctx.Settings.MatteColor, ctx.Settings.InnerRect, ctx.Settings.OuterSize));
 		}
 
 		public static void AddCropper(PipelineContext ctx)
 		{
-			var crop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height);
+			var crop = ((PixelArea)ctx.Settings.Crop).DeOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height);
 			if (crop == ctx.Source.Area)
 				return;
 

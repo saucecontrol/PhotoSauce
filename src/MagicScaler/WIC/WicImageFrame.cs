@@ -1,6 +1,7 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 using TerraFX.Interop;
 using static TerraFX.Interop.Windows;
@@ -12,7 +13,6 @@ namespace PhotoSauce.MagicScaler
 	internal unsafe class WicImageFrame : IImageFrame, IMetadataSource
 	{
 		private WicPixelSource? psource;
-		private IPixelSource? isource;
 		private WicColorProfile? colorProfile;
 
 		public readonly WicImageContainer Container;
@@ -33,7 +33,7 @@ namespace PhotoSauce.MagicScaler
 
 		public PixelSource Source => psource ??= new ComPtr<IWICBitmapSource>(WicSource).AsPixelSource(nameof(IWICBitmapFrameDecode), false);
 
-		public IPixelSource PixelSource => isource ??= Source.AsIPixelSource();
+		public IPixelSource PixelSource => Source;
 
 		public WicColorProfile ColorProfileSource => colorProfile ??= getColorProfile();
 
@@ -142,7 +142,7 @@ namespace PhotoSauce.MagicScaler
 			WicSource = source.Detach();
 		}
 
-		public virtual bool TryGetMetadata<T>(out T? metadata) where T : IMetadata => Container.TryGetMetadata(out metadata);
+		public virtual bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata => Container.TryGetMetadata(out metadata);
 
 		public void Dispose()
 		{
@@ -223,8 +223,8 @@ namespace PhotoSauce.MagicScaler
 				}
 				else if (cct == WICColorContextType.WICColorContextExifColorSpace && WicMetadataReader is not null)
 				{
-					// Although WIC defines the non-standard AdobeRGB ExifColorSpace value, most software (including Adobe's) only supports the Uncalibrated/InteropIndex=R03 convention.
-					// http://ninedegreesbelow.com/photography/embedded-color-space-information.html
+					// Although WIC defines the non-standard AdobeRGB ExifColorSpace value, most software (including Adobe's) only supports the
+					// Uncalibrated/InteropIndex=R03 convention. See http://ninedegreesbelow.com/photography/embedded-color-space-information.html
 					uint ecs;
 					HRESULT.Check(cc.Get()->GetExifColorSpace(&ecs));
 					if (ecs == (uint)ExifColorSpace.AdobeRGB)

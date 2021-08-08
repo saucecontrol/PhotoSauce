@@ -3,7 +3,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
-using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 using TerraFX.Interop;
@@ -92,7 +92,7 @@ namespace PhotoSauce.MagicScaler
 			Encoding = encoding;
 		}
 
-		private static readonly Lazy<ReadOnlyDictionary<Guid, PixelFormat>> cache = new(getFormatCache);
+		private static readonly Lazy<Dictionary<Guid, PixelFormat>> cache = new(getFormatCache);
 
 		public static readonly PixelFormat Y8 = new(
 			guid: new(0x91b4db54, 0x2df9, 0x42f0, 0xb4, 0x49, 0x29, 0x09, 0xbb, 0x3d, 0xf8, 0x8e),
@@ -370,7 +370,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static PixelFormat FromGuid(Guid guid) => cache.Value.TryGetValue(guid, out var pf) ? pf : throw new NotSupportedException("Unsupported pixel format.");
 
-		private static unsafe ReadOnlyDictionary<Guid, PixelFormat> getFormatCache()
+		private static unsafe Dictionary<Guid, PixelFormat> getFormatCache()
 		{
 			var dic = typeof(PixelFormat)
 				.GetFields(BindingFlags.Public | BindingFlags.Static)
@@ -453,7 +453,7 @@ namespace PhotoSauce.MagicScaler
 				} while (count > 0);
 			}
 
-			return new(dic);
+			return dic;
 		}
 	}
 

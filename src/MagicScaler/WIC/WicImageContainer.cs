@@ -2,6 +2,7 @@
 
 using System;
 using System.Buffers.Binary;
+using System.Diagnostics.CodeAnalysis;
 
 using TerraFX.Interop;
 using static TerraFX.Interop.Windows;
@@ -61,7 +62,7 @@ namespace PhotoSauce.MagicScaler
 			return new WicImageContainer(dec, fmt);
 		}
 
-		public virtual bool TryGetMetadata<T>(out T? metadata) where T : IMetadata
+		public virtual bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata
 		{
 			metadata = default;
 			return false;

@@ -16,10 +16,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 	{
 		private const int maxPaletteMapSize = 5376;  // max possible nodes at minLeafLevel = 8^3 + ... + 8^(minLeafLevel+1) + maxPaletteSize * (6 - minLeafLevel)
 		private const int maxPaletteSize = 256;
+		private const int channels = 4;
 		private const uint minLeafLevel = 3;
 		private const uint alphaThreshold = 85;
 		private const uint transparentValue = 0x00ff00ffu;
-		private const uint paletteIndexUnset = byte.MaxValue;
 
 		private bool dither;
 		private int paletteLength;
@@ -53,7 +53,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				if (PrevSource is not FrameBufferSource)
 					throw new NotSupportedException("Color source must be " + nameof(FrameBufferSource));
 
-				errBuff = BufferPool.RentAligned<short>((Width + 2) * 4, true);
+				errBuff = BufferPool.RentAligned<short>((Width + 2) * channels, true);
 				mapBuff = BufferPool.RentAligned<PaletteMapNode>(maxPaletteMapSize);
 			}
 		}
@@ -81,7 +81,6 @@ namespace PhotoSauce.MagicScaler.Transforms
 				return;
 			}
 
-			nuint nextFree = mapNextFree;
 			var source = (FrameBufferSource)PrevSource;
 
 			fixed (byte* pimg = source.Span)
@@ -91,22 +90,20 @@ namespace PhotoSauce.MagicScaler.Transforms
 			{
 				for (nint y = 0; y < prc.Height; y++)
 				{
-					byte* pline = pimg + (prc.Y + y) * source.Stride + prc.X * 4;
+					byte* pline = pimg + (prc.Y + y) * source.Stride + prc.X * channels;
 					byte* poutline = (byte*)pbBuffer + y * cbStride;
-					short* perrline = perr + prc.X * 4 + 4;
+					short* perrline = perr + prc.X * channels + channels;
 
 					if (!dither)
-						remap(pline, poutline, pilut, ptree, ppal, ref nextFree, prc.Width);
+						remap(pline, poutline, pilut, ptree, ppal, prc.Width);
 #if HWINTRINSICS
 					else if (Sse41.IsSupported)
-						remapDitherSse41(pline, perrline, poutline, pilut, ptree, ppal, ref nextFree, prc.Width);
+						remapDitherSse41(pline, perrline, poutline, pilut, ptree, ppal, prc.Width);
 #endif
 					else
-						remapDitherScalar(pline, perrline, poutline, pilut, ptree, ppal, ref nextFree, prc.Width);
+						remapDitherScalar(pline, perrline, poutline, pilut, ptree, ppal, prc.Width);
 				}
 			}
-
-			mapNextFree = (uint)nextFree;
 		}
 
 		public override void ReInit(PixelSource newSource)
@@ -178,9 +175,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 						if (l >= minLeafLevel && l < level && PaletteMapNode.IsLeaf(node))
 						{
-							nuint tcol = PaletteMapNode.GetPaletteIndex(node, idx & 7);
-							if (tcol != paletteIndexUnset)
+							if (PaletteMapNode.HasPaletteEntry(node, idx & 7))
 							{
+								nuint tcol = PaletteMapNode.GetPaletteIndex(node, idx & 7);
 								nuint tpal = ppal[tcol];
 								if (tpal == cpal)
 									break;
@@ -191,9 +188,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 								for (nuint j = 1; j < 8; j++)
 								{
-									nuint scol = PaletteMapNode.GetPaletteIndex(&tnode, (idx & 7) ^ j);
-									if (scol != paletteIndexUnset)
+									if (PaletteMapNode.HasPaletteEntry(&tnode, (idx & 7) ^ j))
 									{
+										nuint scol = PaletteMapNode.GetPaletteIndex(&tnode, (idx & 7) ^ j);
 										nuint spal = ppal[scol];
 										nuint sidx = getNodeIndex(pilut, spal);
 										sidx >>= leafShift;
@@ -242,19 +239,20 @@ namespace PhotoSauce.MagicScaler.Transforms
 		}
 
 #if HWINTRINSICS
-		private void remapDitherSse41(byte* pimage, short* perror, byte* pout, uint* pilut, PaletteMapNode* pmap, uint* ppal, ref nuint nextFree, nint cp)
+		private void remapDitherSse41(byte* pimage, short* perror, byte* pout, uint* pilut, PaletteMapNode* pmap, uint* ppal, nint cp)
 		{
+			nuint nextFree = mapNextFree;
+			nuint maxidx = (uint)paletteLength - 1;
 			nuint level = leafLevel;
-			nuint trans = (uint)paletteLength - 1;
-			nuint pidx = trans;
+			nuint pidx = maxidx;
 
-			ppal[trans] = ppal[trans - 1];
+			ppal[maxidx] = ppal[maxidx - 1];
 
 			var vpmax = Vector128.Create((short)byte.MaxValue);
 			var vprnd = Vector128.Create((short)7);
 			var vzero = Vector128<short>.Zero;
 
-			byte* ip = pimage, ipe = ip + cp * sizeof(uint);
+			byte* ip = pimage, ipe = ip + cp * channels;
 			byte* op = pout;
 			short* ep = perror;
 
@@ -264,27 +262,21 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			do
 			{
-				Vector128<short> vpix, vdiff;
 				if (ip[3] < alphaThreshold)
 				{
 					vppix = vzero;
-					vdiff = vzero;
-					pidx = trans;
+					pidx = maxidx;
 					goto FoundExact;
 				}
 
-				vpix = Sse41.ConvertToVector128Int16(Sse2.LoadScalarVector128((int*)ip).AsByte());
-
+				var vpix = Sse41.ConvertToVector128Int16(Sse2.LoadScalarVector128((int*)ip).AsByte());
 				var verr = Sse2.Add(Sse2.Add(vprnd, Sse2.LoadScalarVector128((long*)ep).AsInt16()), Sse2.Subtract(Sse2.ShiftLeftLogical(vnerr, 3), vnerr));
 				vpix = Sse2.Add(vpix, Sse2.ShiftRightArithmetic(verr, 4));
 				vpix = Sse2.Min(vpix, vpmax);
 				vpix = Sse2.Max(vpix, vzero);
 
 				if (Sse2.MoveMask(Sse2.CompareEqual(vppix, vpix).AsByte()) == ushort.MaxValue)
-				{
-					vdiff = vzero;
 					goto FoundExact;
-				}
 
 				vppix = vpix;
 				nuint idx =
@@ -319,39 +311,39 @@ namespace PhotoSauce.MagicScaler.Transforms
 						break;
 				}
 
-				idx &= 7;
-				pidx = PaletteMapNode.GetPaletteIndex(node, idx);
-				if (pidx == paletteIndexUnset)
-				{
-					pidx = findNearestColorSse41(ppal, trans, vppix);
-					PaletteMapNode.SetPaletteIndex(node, idx, pidx);
-				}
+				pidx = getPaletteIndexSse41(ppal, node, idx & 7, vppix, maxidx);
+				var vdiff = Sse2.Subtract(vppix, Sse41.ConvertToVector128Int16((byte*)(ppal + pidx)));
 
-				vdiff = Sse2.Subtract(vppix, Sse41.ConvertToVector128Int16((byte*)(ppal + pidx)));
-
-				FoundExact:
-				ip += sizeof(uint);
-				*op++ = (byte)pidx;
-
-				Sse2.StoreScalar((long*)(ep - 4), Sse2.Add(vperr, Sse2.Add(vdiff, vdiff)).AsInt64());
-				ep += 4;
-
+				Sse2.StoreScalar((long*)(ep - channels), Sse2.Add(vperr, Sse2.Add(vdiff, vdiff)).AsInt64());
 				vperr = Sse2.Add(Sse2.ShiftLeftLogical(vdiff, 2), vnerr);
 				vnerr = vdiff;
+				goto Advance;
+
+			FoundExact:
+				Sse2.StoreScalar((long*)(ep - channels), vperr.AsInt64());
+				vperr = vnerr;
+				vnerr = vzero;
+
+			Advance:
+				ip += channels;
+				ep += channels;
+				*op++ = (byte)pidx;
 			}
 			while (ip < ipe);
 
-			Sse2.StoreScalar((long*)(ep - 4), vperr.AsInt64());
+			Sse2.StoreScalar((long*)(ep - channels), vperr.AsInt64());
+			ppal[maxidx] = transparentValue;
 
-			ppal[trans] = transparentValue;
+			mapNextFree = (uint)nextFree;
 		}
 #endif
 
-		private void remapDitherScalar(byte* pimage, short* perror, byte* pout, uint* pilut, PaletteMapNode* pmap, uint* ppal, ref nuint nextFree, nint cp)
+		private void remapDitherScalar(byte* pimage, short* perror, byte* pout, uint* pilut, PaletteMapNode* pmap, uint* ppal, nint cp)
 		{
+			nuint nextFree = mapNextFree;
+			nuint maxidx = (uint)paletteLength - 1;
 			nuint level = leafLevel;
-			nuint trans = (uint)paletteLength - 1;
-			nuint pidx = trans;
+			nuint pidx = maxidx;
 
 			byte* ip = pimage, ipe = ip + cp * sizeof(uint);
 			byte* op = pout;
@@ -363,12 +355,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			do
 			{
-				int db, dg, dr;
 				if (ip[3] < alphaThreshold)
 				{
 					ppix = 0;
-					db = dg = dr = 0;
-					pidx = trans;
+					pidx = maxidx;
 					goto FoundExact;
 				}
 
@@ -378,10 +368,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				uint cpix = (uint)byte.MaxValue << 24 | (uint)cr << 16 | (uint)cg << 8 | (uint)cb;
 
 				if (ppix == cpix)
-				{
-					db = dg = dr = 0;
 					goto FoundExact;
-				}
 
 				ppix = cpix;
 				nuint idx = pilut[cb] | pilut[cg + 256] | pilut[cr + 512];
@@ -413,27 +400,16 @@ namespace PhotoSauce.MagicScaler.Transforms
 						break;
 				}
 
-				idx &= 7;
-				pidx = PaletteMapNode.GetPaletteIndex(node, idx);
-				if (pidx == paletteIndexUnset)
-				{
-					pidx = findNearestColor(ppal, trans, (uint)ppix);
-					PaletteMapNode.SetPaletteIndex(node, idx, pidx);
-				}
+				pidx = getPaletteIndex(ppal, node, idx & 7, ppix, maxidx);
 
 				byte* pcol = (byte*)(ppal + pidx);
-				db = (byte)(ppix      ) - pcol[0];
-				dg = (byte)(ppix >>  8) - pcol[1];
-				dr = (byte)(ppix >> 16) - pcol[2];
-
-				FoundExact:
-				ip += sizeof(uint);
-				*op++ = (byte)pidx;
+				int db = (byte)(ppix      ) - pcol[0];
+				int dg = (byte)(ppix >>  8) - pcol[1];
+				int dr = (byte)(ppix >> 16) - pcol[2];
 
 				ep[-4] = (short)(perb + db + db);
 				ep[-3] = (short)(perg + dg + dg);
 				ep[-2] = (short)(perr + dr + dr);
-				ep += 4;
 
 				perb = (db << 2) + nerb;
 				perg = (dg << 2) + nerg;
@@ -442,19 +418,39 @@ namespace PhotoSauce.MagicScaler.Transforms
 				nerb = db;
 				nerg = dg;
 				nerr = dr;
+				goto Advance;
+
+			FoundExact:
+				ep[-4] = (short)perb;
+				ep[-3] = (short)perg;
+				ep[-2] = (short)perr;
+
+				perb = nerb;
+				perg = nerg;
+				perr = nerr;
+
+				nerb = nerg = nerr = 0;
+
+			Advance:
+				ip += channels;
+				ep += channels;
+				*op++ = (byte)pidx;
 			}
 			while (ip < ipe);
 
 			ep[-4] = (short)perb;
 			ep[-3] = (short)perg;
 			ep[-2] = (short)perr;
+
+			mapNextFree = (uint)nextFree;
 		}
 
-		private void remap(byte* pimage, byte* pout, uint* pilut, PaletteMapNode* pmap, uint* ppal, ref nuint nextFree, nint cp)
+		private void remap(byte* pimage, byte* pout, uint* pilut, PaletteMapNode* pmap, uint* ppal, nint cp)
 		{
+			nuint nextFree = mapNextFree;
+			nuint maxidx = (uint)paletteLength - 1;
 			nuint level = leafLevel;
-			nuint trans = (uint)paletteLength - 1;
-			nuint pidx = trans;
+			nuint pidx = maxidx;
 
 			byte* ip = pimage, ipe = ip + cp * sizeof(uint);
 			byte* op = pout;
@@ -465,7 +461,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				if (ip[3] < alphaThreshold)
 				{
 					ppix = 0;
-					pidx = trans;
+					pidx = maxidx;
 					goto Found;
 				}
 
@@ -503,30 +499,53 @@ namespace PhotoSauce.MagicScaler.Transforms
 						break;
 				}
 
-				idx &= 7;
-				pidx = PaletteMapNode.GetPaletteIndex(node, idx);
-				if (pidx == paletteIndexUnset)
-				{
-#if HWINTRINSICS
-					if (Sse41.IsSupported)
-						pidx = findNearestColorSse41(ppal, trans, Sse41.ConvertToVector128Int16(Vector128.CreateScalarUnsafe((uint)ppix).AsByte()));
-					else
-#endif
-						pidx = findNearestColor(ppal, trans, (uint)ppix);
+				pidx = getPaletteIndex(ppal, node, idx & 7, ppix, maxidx);
 
-					PaletteMapNode.SetPaletteIndex(node, idx, pidx);
-				}
-
-				Found:
-				ip += sizeof(uint);
+			Found:
+				ip += channels;
 				*op++ = (byte)pidx;
 			}
 			while (ip < ipe);
+
+			mapNextFree = (uint)nextFree;
 		}
 
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private static nuint findNearestColorSse41(uint* ppal, nuint trans, Vector128<short> vpix)
+		private static nuint getPaletteIndexSse41(uint* ppal, PaletteMapNode* node, nuint idx, Vector128<short> vpix, nuint maxidx)
+		{
+			if (PaletteMapNode.HasPaletteEntry(node, idx))
+				return PaletteMapNode.GetPaletteIndex(node, idx);
+
+			nuint pidx = findNearestColorSse41(ppal, maxidx, vpix);
+			PaletteMapNode.SetPaletteIndex(node, idx, pidx);
+
+			return pidx;
+		}
+#endif
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static nuint getPaletteIndex(uint* ppal, PaletteMapNode* node, nuint idx, nuint pix, nuint maxidx)
+		{
+			if (PaletteMapNode.HasPaletteEntry(node, idx))
+				return PaletteMapNode.GetPaletteIndex(node, idx);
+
+			nuint pidx;
+#if HWINTRINSICS
+			if (Sse41.IsSupported)
+				pidx = findNearestColorSse41(ppal, maxidx, Sse41.ConvertToVector128Int16(Vector128.CreateScalarUnsafe((uint)pix).AsByte()));
+			else
+#endif
+				pidx = findNearestColor(ppal, maxidx, (uint)pix);
+
+			PaletteMapNode.SetPaletteIndex(node, idx, pidx);
+
+			return pidx;
+		}
+
+#if HWINTRINSICS
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static nuint findNearestColorSse41(uint* ppal, nuint maxidx, Vector128<short> vpix)
 		{
 			const byte shuffleMaskRed = 0b_10_10_10_10;
 
@@ -540,11 +559,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 				var winc = Vector256.Create((ulong)Vector256<ulong>.Count).AsUInt32();
 				var wcnt = Vector256.Create(0ul, 1ul, 2ul, 3ul).AsUInt32();
-				var widx = Vector256.Create((ulong)(trans - 1)).AsUInt32();
+				var widx = Vector256.Create((ulong)(maxidx - 1)).AsUInt32();
 				var wdst = Vector256.Create((ulong)int.MaxValue).AsInt32();
 
 				var wppix = Avx2.BroadcastScalarToVector256(vpix.AsUInt64()).AsInt16();
-				byte* pp = (byte*)ppal, ppe = pp + trans * sizeof(uint);
+				byte* pp = (byte*)ppal, ppe = pp + maxidx * sizeof(uint);
 
 				do
 				{
@@ -577,11 +596,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 				var vinc = Vector128.Create((ulong)Vector128<ulong>.Count).AsUInt32();
 				var vcnt = Vector128.Create(0ul, 1ul).AsUInt32();
-				vidx = Vector128.Create((ulong)(trans - 1)).AsUInt32();
+				vidx = Vector128.Create((ulong)(maxidx - 1)).AsUInt32();
 				vdst = Vector128.Create((ulong)int.MaxValue).AsInt32();
 
 				var vppix = Sse2.UnpackLow(vpix.AsUInt64(), vpix.AsUInt64()).AsInt16();
-				byte* pp = (byte*)ppal, ppe = pp + trans * sizeof(uint);
+				byte* pp = (byte*)ppal, ppe = pp + maxidx * sizeof(uint);
 
 				do
 				{
@@ -609,10 +628,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 #endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private static nuint findNearestColor(uint* ppal, nuint trans, uint color)
+		private static nuint findNearestColor(uint* ppal, nuint maxidx, uint color)
 		{
 			int dist = int.MaxValue;
-			nuint pidx = trans;
+			nuint pidx = maxidx;
 			nuint plen = pidx;
 
 			int cb = (byte)(color      );
@@ -707,7 +726,15 @@ namespace PhotoSauce.MagicScaler.Transforms
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static void SetLeaf(PaletteMapNode* node)
 			{
-				Unsafe.InitBlockUnaligned(node, byte.MaxValue, (uint)sizeof(PaletteMapNode));
+				*((uint*)node + 3) = LeafMarker;
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool HasPaletteEntry(PaletteMapNode* node, nuint idx)
+			{
+#pragma warning disable IDE0075 // https://github.com/dotnet/runtime/issues/4207
+				return ((1u << (int)(nint)idx) & *((byte*)node + 8)) != 0 ? true : false;
+#pragma warning restore IDE0075
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -720,6 +747,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			public static void SetPaletteIndex(PaletteMapNode* node, nuint idx, nuint pidx)
 			{
 				*((byte*)node + idx) = (byte)pidx;
+				*((byte*)node + 8) |= (byte)(1 << (int)idx);
 			}
 		}
 	}

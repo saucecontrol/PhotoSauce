@@ -262,7 +262,7 @@ namespace PhotoSauce.MagicScaler
 
 					if (!ctx.Settings.AutoCrop && ctx.Settings.HybridScaleRatio == 1)
 					{
-						var orCrop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height);
+						var orCrop = ((PixelArea)ctx.Settings.Crop).DeOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height);
 
 						if (wicFrame.ChromaSubsampling.IsSubsampledX() && ((orCrop.X & 1) != 0 || (orCrop.Width & 1) != 0))
 							processPlanar = false;

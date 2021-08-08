@@ -46,7 +46,7 @@ namespace PhotoSauce.MagicScaler
 
 		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
 		{
-			var rect = prc.ToWicRect();
+			var rect = (WICRect)prc;
 			var src = upstreamSource is not null ? upstreamSource : WicSource;
 			HRESULT.Check(src->CopyPixels(&rect, (uint)cbStride, (uint)cbBufferSize, (byte*)pbBuffer));
 		}

@@ -13,7 +13,7 @@ namespace PhotoSauce.MagicScaler
 		private struct StreamLayout
 		{
 			public bool HasKnownLayout;
-			public nint BufferOffset;
+			public FieldInfo BufferInfo;
 			public nint BufferLengthOffset;
 			public nint AsyncFlagOffset;
 		}
@@ -36,8 +36,8 @@ namespace PhotoSauce.MagicScaler
 				return default;
 
 			return new StreamLayout {
-				HasKnownLayout = true,
-				BufferOffset = fieldBuffer.GetFieldOffset(),
+				HasKnownLayout = UnsafeUtil.IsFieldDescLayoutKnown,
+				BufferInfo = fieldBuffer,
 				BufferLengthOffset = fieldBuffLen.GetFieldOffset(),
 				AsyncFlagOffset = fieldAsync.GetFieldOffset()
 			};
@@ -53,23 +53,22 @@ namespace PhotoSauce.MagicScaler
 
 			bool isAsync = UnsafeUtil.GetFieldRef<bool>(fs, layout.AsyncFlagOffset);
 			int buffLen = UnsafeUtil.GetFieldRef<int>(fs, layout.BufferLengthOffset);
-			ref byte[] streamBuff = ref UnsafeUtil.GetFieldRef<byte[]>(fs, layout.BufferOffset);
 
-			if (!isAsync && (uint)buffLen <= (1 << 16) && streamBuff is null)
+			if (!isAsync && (uint)buffLen <= (1 << 16) && layout.BufferInfo.GetValue(fs) is null)
 			{
 				buffer = ArrayPool<byte>.Shared.Rent(buffLen);
-				streamBuff = buffer;
+				layout.BufferInfo.SetValue(fs, buffer);
 			}
 		}
 
 		public void Dispose()
 		{
-			Debug.Assert(buffer is null || UnsafeUtil.GetFieldRef<byte[]>(stream, layout.BufferOffset) == buffer);
+			Debug.Assert(buffer is null || (byte[]?)layout.BufferInfo.GetValue(stream) == buffer);
 
 			if (buffer is not null)
 			{
 				stream.Flush();
-				UnsafeUtil.GetFieldRef<byte[]?>(stream, layout.BufferOffset) = null;
+				layout.BufferInfo.SetValue(stream, null);
 
 				ArrayPool<byte>.Shared.Return(buffer);
 				buffer = null;

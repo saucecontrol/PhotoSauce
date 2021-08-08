@@ -40,8 +40,6 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private const int maxStackAlloc = 128;
-
 		private static readonly GaussianInterpolator blur_0_50 = new(sigma: 0.50);
 		private static readonly GaussianInterpolator blur_0_60 = new(sigma: 0.60);
 		private static readonly GaussianInterpolator blur_0_75 = new(sigma: 0.75);
@@ -138,6 +136,8 @@ namespace PhotoSauce.MagicScaler
 
 		private static unsafe KernelMap<T> create(int isize, int osize, InterpolationSettings interpolator, int ichannels, double offset)
 		{
+			const int maxStackAlloc = 128;
+
 			double support = interpolator.WeightingFunction.Support;
 			double cscale = Math.Min((double)osize / isize, 1d) / interpolator.Blur;
 			support /= cscale;
@@ -154,7 +154,7 @@ namespace PhotoSauce.MagicScaler
 
 			int cacheLen = isize == osize ? klen : 0;
 			int buffLen = klen * channels + cacheLen;
-			using var kbuff = buffLen <= maxStackAlloc ? BufferPool.WrapLocal(stackalloc float[buffLen]) : BufferPool.RentLocal<float>(buffLen);
+			using var kbuff = buffLen <= maxStackAlloc ? BufferPool.WrapLocal((stackalloc float[maxStackAlloc]).Slice(0, buffLen)) : BufferPool.RentLocal<float>(buffLen);
 
 			var kcache = kbuff.Span.Slice(buffLen - cacheLen, cacheLen);
 			var kernel = kbuff.Span.Slice(buffLen - klen - cacheLen, klen);

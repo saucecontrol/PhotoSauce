@@ -77,10 +77,10 @@ namespace PhotoSauce.MagicScaler
 			return MemoryMarshal.Read<Guid>(hash);
 		}
 
-		public static TValue? GetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dic, TKey key, TValue? defaultValue = default) where TKey : notnull =>
+		public static TValue? GetValueOrDefault<TKey, TValue>(this Dictionary<TKey, TValue> dic, TKey key, TValue? defaultValue = default) where TKey : notnull =>
 			dic.TryGetValue(key, out var value) ? value : defaultValue;
 
-		public static TValue? GetValueOrDefault<TKey, TValue>(this IReadOnlyDictionary<TKey, TValue> dic, TKey key, TValue? defaultValue = default) where TKey : notnull =>
+		public static TValue? GetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dic, TKey key, TValue? defaultValue = default) where TKey : notnull =>
 			dic.TryGetValue(key, out var value) ? value : defaultValue;
 
 #if NETFRAMEWORK

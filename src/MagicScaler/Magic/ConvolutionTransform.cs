@@ -23,7 +23,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 	internal class ConvolutionTransform<TPixel, TWeight> : ChainedPixelSource where TPixel : unmanaged where TWeight : unmanaged
 	{
-		protected static readonly IReadOnlyDictionary<PixelFormat, IConvolver> ProcessorMap = new Dictionary<PixelFormat, IConvolver> {
+		protected static readonly Dictionary<PixelFormat, IConvolver> ProcessorMap = new() {
 			[PixelFormat.Cmyk32             ] = Convolver4ChanByte.Instance,
 			[PixelFormat.Pbgra32            ] = Convolver4ChanByte.Instance,
 			[PixelFormat.Pbgra64UQ15Linear  ] = Convolver4ChanUQ15.Instance,

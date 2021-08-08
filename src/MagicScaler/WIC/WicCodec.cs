@@ -2,7 +2,6 @@
 
 using System;
 using System.IO;
-using System.Linq;
 using System.Buffers;
 using System.Threading;
 using System.Diagnostics;
@@ -10,6 +9,7 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
+using System.Diagnostics.CodeAnalysis;
 
 using TerraFX.Interop;
 using static TerraFX.Interop.Windows;
@@ -21,7 +21,7 @@ namespace PhotoSauce.MagicScaler
 {
 	internal static unsafe class WicImageDecoder
 	{
-		public static readonly IReadOnlyDictionary<Guid, FileFormat> FormatMap = new Dictionary<Guid, FileFormat> {
+		public static readonly Dictionary<Guid, FileFormat> FormatMap = new() {
 			[GUID_ContainerFormatBmp] = FileFormat.Bmp,
 			[GUID_ContainerFormatGif] = FileFormat.Gif,
 			[GUID_ContainerFormatJpeg] = FileFormat.Jpeg,
@@ -78,7 +78,7 @@ namespace PhotoSauce.MagicScaler
 
 	internal sealed unsafe class WicImageEncoder : IDisposable
 	{
-		private static readonly IReadOnlyDictionary<FileFormat, Guid> formatMap = new Dictionary<FileFormat, Guid> {
+		private static readonly Dictionary<FileFormat, Guid> formatMap = new() {
 			[FileFormat.Bmp] = GUID_ContainerFormatBmp,
 			[FileFormat.Gif] = GUID_ContainerFormatGif,
 			[FileFormat.Jpeg] = GUID_ContainerFormatJpeg,
@@ -208,7 +208,7 @@ namespace PhotoSauce.MagicScaler
 
 		private static void writeSource(IWICBitmapFrameEncode* frame, PixelSource src, PixelArea area)
 		{
-			var wicRect = area.ToWicRect();
+			var wicRect = (WICRect)area;
 
 			if (src is PlanarPixelSource plsrc)
 			{
@@ -300,7 +300,7 @@ namespace PhotoSauce.MagicScaler
 			public AnimationBufferFrame(int width, int height, PixelFormat format) =>
 				Source = new FrameBufferSource(width, height, format);
 
-			public bool TryGetMetadata<T>(out T? metadata) where T : IMetadata
+			public bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata
 			{
 				if (typeof(T) == typeof(AnimationFrame))
 				{
@@ -391,13 +391,13 @@ namespace PhotoSauce.MagicScaler
 
 				if (decmeta.GetValueOrDefault<bool>(Wic.Metadata.Gif.GlobalPaletteFlag))
 				{
-					using var pal = default(ComPtr<IWICPalette>);
-					HRESULT.Check(Wic.Factory->CreatePalette(pal.GetAddressOf()));
-					HRESULT.Check(cnt.WicDecoder->CopyPalette(pal));
-					HRESULT.Check(encoder.WicEncoder->SetPalette(pal));
-
 					if (SUCCEEDED(decmeta.Get()->GetMetadataByName(Wic.Metadata.Gif.BackgroundColorIndex, &pv)))
 					{
+						using var pal = default(ComPtr<IWICPalette>);
+						HRESULT.Check(Wic.Factory->CreatePalette(pal.GetAddressOf()));
+						HRESULT.Check(cnt.WicDecoder->CopyPalette(pal));
+						HRESULT.Check(encoder.WicEncoder->SetPalette(pal));
+
 						HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.BackgroundColorIndex, &pv));
 						HRESULT.Check(PropVariantClear(&pv));
 					}

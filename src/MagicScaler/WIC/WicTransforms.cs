@@ -163,7 +163,7 @@ namespace PhotoSauce.MagicScaler
 				HRESULT.Check(Wic.Factory->CreateBitmapFromSourceRect(ctx.Source.AsIWICBitmapSource(), (uint)crop.X, (uint)crop.Y, (uint)crop.Width, (uint)crop.Height, bmp.GetAddressOf()));
 
 				ctx.Source = ctx.AddProfiler(new ComPtr<IWICBitmapSource>((IWICBitmapSource*)bmp.Get()).AsPixelSource(ctx.Source, nameof(IWICBitmap)));
-				ctx.Settings.Crop = ctx.Source.Area.ToGdiRect();
+				ctx.Settings.Crop = ctx.Source.Area;
 			}
 
 			ctx.Orientation = Orientation.Normal;
@@ -171,17 +171,16 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddCropper(PipelineContext ctx)
 		{
-			var crop = PixelArea.FromGdiRect(ctx.Settings.Crop);
-			if (crop == ctx.Source.Area)
+			if (ctx.Settings.Crop == ctx.Source.Area)
 				return;
 
-			var rect = crop.ToWicRect();
+			var rect = (WICRect)ctx.Settings.Crop;
 			using var cropper = default(ComPtr<IWICBitmapClipper>);
 			HRESULT.Check(Wic.Factory->CreateBitmapClipper(cropper.GetAddressOf()));
 			HRESULT.Check(cropper.Get()->Initialize(ctx.Source.AsIWICBitmapSource(), &rect));
 
 			ctx.Source = ctx.AddProfiler(new ComPtr<IWICBitmapSource>((IWICBitmapSource*)cropper.Get()).AsPixelSource(ctx.Source, nameof(IWICBitmapClipper)));
-			ctx.Settings.Crop = ctx.Source.Area.ToGdiRect();
+			ctx.Settings.Crop = ctx.Source.Area;
 		}
 
 		public static void AddScaler(PipelineContext ctx)
@@ -253,7 +252,7 @@ namespace PhotoSauce.MagicScaler
 			HRESULT.Check(scaler.Get()->Initialize(ctx.Source.AsIWICBitmapSource(), cw, ch, WICBitmapInterpolationMode.WICBitmapInterpolationModeFant));
 
 			ctx.Source = ctx.AddProfiler(new ComPtr<IWICBitmapSource>((IWICBitmapSource*)scaler.Get()).AsPixelSource(ctx.Source, nameof(IWICBitmapSourceTransform)));
-			ctx.Settings.Crop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(orient, (int)ow, (int)oh).ProportionalScale((int)ow, (int)oh, (int)cw, (int)ch).ReOrient(orient, (int)cw, (int)ch).ToGdiRect();
+			ctx.Settings.Crop = ((PixelArea)ctx.Settings.Crop).DeOrient(orient, (int)ow, (int)oh).ProportionalScale((int)ow, (int)oh, (int)cw, (int)ch).ReOrient(orient, (int)cw, (int)ch);
 			ctx.Settings.HybridMode = HybridScaleMode.Off;
 		}
 
@@ -276,11 +275,11 @@ namespace PhotoSauce.MagicScaler
 					throw new NotSupportedException("Requested planar transform not supported");
 			}
 
-			var crop = PixelArea.FromGdiRect(ctx.Settings.Crop).DeOrient(ctx.Orientation, (int)ow, (int)oh).ProportionalScale((int)ow, (int)oh, (int)cw, (int)ch);
+			var crop = ((PixelArea)ctx.Settings.Crop).DeOrient(ctx.Orientation, (int)ow, (int)oh).ProportionalScale((int)ow, (int)oh, (int)cw, (int)ch);
 			var cache = new WicPlanarCache(transform.Detach(), new Span<WICBitmapPlaneDescription>(desc, PlanarPixelFormats.Length), WICBitmapTransformOptions.WICBitmapTransformRotate0, cw, ch, crop);
 
 			ctx.Source = new PlanarPixelSource(cache.SourceY, cache.SourceCb, cache.SourceCr);
-			ctx.Settings.Crop = ctx.Source.Area.ReOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height).ToGdiRect();
+			ctx.Settings.Crop = ctx.Source.Area.ReOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height);
 			ctx.Settings.HybridMode = HybridScaleMode.Off;
 		}
 	}

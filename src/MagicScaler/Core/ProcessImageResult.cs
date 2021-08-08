@@ -105,7 +105,7 @@ namespace PhotoSauce.MagicScaler
 				MagicTransforms.AddExternalFormatConverter(Context);
 				WicTransforms.AddPixelFormatConverter(Context, false);
 
-				return Context.Source.AsIPixelSource();
+				return Context.Source;
 			});
 		}
 
@@ -133,7 +133,7 @@ namespace PhotoSauce.MagicScaler
 
 			MagicTransforms.AddExternalFormatConverter(Context);
 
-			transform.Init(Context.Source.AsIPixelSource());
+			transform.Init(Context.Source);
 			Context.Source = transform.AsPixelSource();
 			return this;
 		}

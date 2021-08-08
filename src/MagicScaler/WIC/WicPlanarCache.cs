@@ -102,12 +102,12 @@ namespace PhotoSauce.MagicScaler
 		{
 			int prcY = MathUtil.PowerOfTwoFloor(plane == WicPlane.Y ? line : line * subsampleRatioY, subsampleRatioY);
 
-			var sourceRect = new WICRect {
-				X = scaledCrop.X,
-				Y = scaledCrop.Y + prcY,
-				Width = scaledCrop.Width,
-				Height = Math.Min(buffHeight, scaledCrop.Height - prcY)
-			};
+			var sourceRect = new WICRect(
+				scaledCrop.X,
+				scaledCrop.Y + prcY,
+				scaledCrop.Width,
+				Math.Min(buffHeight, scaledCrop.Height - prcY)
+			);
 
 			int lineY = prcY;
 			int lineCb = lineY / subsampleRatioY, lineCr = lineCb;

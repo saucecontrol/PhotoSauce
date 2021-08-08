@@ -2,6 +2,7 @@
 
 using System.Linq;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 using TerraFX.Interop;
 
@@ -14,14 +15,14 @@ namespace PhotoSauce.MagicScaler
 
 	internal interface IMetadataSource
 	{
-		bool TryGetMetadata<T>(out T? metadata) where T : IMetadata;
+		bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata;
 	}
 
 	internal sealed class NoopMetadataSource : IMetadataSource
 	{
 		public static readonly IMetadataSource Instance = new NoopMetadataSource();
 
-		public bool TryGetMetadata<T>(out T? metadata) where T : IMetadata
+		public bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata
 		{
 			metadata = default;
 			return false;
@@ -66,7 +67,7 @@ namespace PhotoSauce.MagicScaler
 
 		public MagicMetadataFilter(PipelineContext ctx) => context = ctx;
 
-		public unsafe bool TryGetMetadata<T>(out T? metadata) where T : IMetadata
+		public unsafe bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata
 		{
 			if (typeof(T) == typeof(BaseImageProperties))
 			{

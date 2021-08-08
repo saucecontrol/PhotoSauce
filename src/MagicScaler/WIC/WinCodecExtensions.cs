@@ -104,10 +104,6 @@ namespace PhotoSauce.Interop.Wic
 
 		public static bool IsSubsampledY(this WICJpegYCrCbSubsamplingOption o) => MiscExtensions.IsSubsampledY((ChromaSubsampleMode)o);
 
-		public static WICRect ToWicRect(in this PixelArea a) => new() { X = a.X, Y = a.Y, Width = a.Width, Height = a.Height };
-
-		public static PixelArea ToPixelArea(in this WICRect r) => new(r.X, r.Y, r.Width, r.Height);
-
 		public static T GetValueOrDefault<T>(this ComPtr<IWICMetadataQueryReader> meta, string name) where T : unmanaged
 		{
 			var pv = default(PROPVARIANT);

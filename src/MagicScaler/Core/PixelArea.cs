@@ -12,10 +12,6 @@ namespace PhotoSauce.MagicScaler
 		public readonly int Width;
 		public readonly int Height;
 
-		public static PixelArea FromGdiRect(Rectangle r) => new(r.X, r.Y, r.Width, r.Height);
-
-		public static PixelArea FromGdiSize(Size s) => new(0, 0, s.Width, s.Height);
-
 		public PixelArea(int x, int y, int width, int height)
 		{
 			static void throwArgException(string name) => throw new ArgumentOutOfRangeException(name, "Value cannot be negative");
@@ -69,8 +65,6 @@ namespace PhotoSauce.MagicScaler
 			return new PixelArea(x, y, width, height);
 		}
 
-		public Rectangle ToGdiRect() => new(X, Y, Width, Height);
-
 		public bool Equals(PixelArea other) => X == other.X && Y == other.Y && Width == other.Width && Height == other.Height;
 		public override bool Equals(object? obj) => obj is PixelArea other && Equals(other);
 
@@ -79,5 +73,10 @@ namespace PhotoSauce.MagicScaler
 
 		public static bool operator ==(in PixelArea left, in PixelArea right) => left.Equals(right);
 		public static bool operator !=(in PixelArea left, in PixelArea right) => !left.Equals(right);
+
+		public static implicit operator PixelArea(in Rectangle r) => new(r.X, r.Y, r.Width, r.Height);
+		public static implicit operator Rectangle(in PixelArea a) => new(a.X, a.Y, a.Width, a.Height);
+
+		public static implicit operator PixelArea(Size s) => new(0, 0, s.Width, s.Height);
 	}
 }

@@ -1,11 +1,14 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
+using System.Drawing;
 using System.Security;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
 using static TerraFX.Interop.Windows;
+
+using PhotoSauce.MagicScaler;
 
 namespace TerraFX.Interop
 {
@@ -17,6 +20,14 @@ namespace TerraFX.Interop
 			if (FAILED(hr))
 				Marshal.ThrowExceptionForHR(hr);
 		}
+	}
+
+	internal partial struct WICRect
+	{
+		public WICRect(int x, int y, int width, int height) => (X, Y, Width, Height) = (x, y, width, height);
+
+		public static implicit operator WICRect(in PixelArea a) => new(a.X, a.Y, a.Width, a.Height);
+		public static implicit operator WICRect(in Rectangle r) => new(r.X, r.Y, r.Width, r.Height);
 	}
 
 	internal unsafe ref partial struct ComPtr<T>
