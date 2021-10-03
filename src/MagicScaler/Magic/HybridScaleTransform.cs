@@ -29,7 +29,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public HybridScaleTransform(PixelSource source, int hybridScale) : base(source)
 		{
-			if (hybridScale == 0 || (hybridScale & (hybridScale - 1)) != 0) throw new ArgumentException("Must be power of two", nameof(hybridScale));
+			if (hybridScale <= 1 || (hybridScale & (hybridScale - 1)) != 0) throw new ArgumentException("Must be power of two", nameof(hybridScale));
 			scale = hybridScale;
 
 			int bufferStride = PowerOfTwoCeiling(PowerOfTwoCeiling(source.Width, scale) * source.Format.BytesPerPixel, IntPtr.Size);

@@ -206,9 +206,13 @@ namespace PhotoSauce.MagicScaler.Transforms
 				int ratioC = ratio / Math.Min(ratioX, ratioY);
 
 				plsrc.SourceY = ctx.AddProfiler(new HybridScaleTransform(plsrc.SourceY, ratio));
-				plsrc.SourceCb = ctx.AddProfiler(new HybridScaleTransform(plsrc.SourceCb, ratioC));
-				plsrc.SourceCr = ctx.AddProfiler(new HybridScaleTransform(plsrc.SourceCr, ratioC));
 				ctx.Settings.HybridMode = HybridScaleMode.Off;
+
+				if (ratioC != 1)
+				{
+					plsrc.SourceCb = ctx.AddProfiler(new HybridScaleTransform(plsrc.SourceCb, ratioC));
+					plsrc.SourceCr = ctx.AddProfiler(new HybridScaleTransform(plsrc.SourceCr, ratioC));
+				}
 
 				return;
 			}
