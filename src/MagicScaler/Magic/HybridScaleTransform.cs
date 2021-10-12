@@ -6,7 +6,6 @@ using System.Runtime.CompilerServices;
 #if HWINTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-using System.Runtime.InteropServices;
 #endif
 
 using static PhotoSauce.MagicScaler.MathUtil;
@@ -135,10 +134,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 			{
 				fixed (int* iatstart = LookupTables.InverseAlpha)
 				{
-					var vshufa = Avx2.BroadcastVector128ToVector256((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask8bitAlpha)));
-					var vmaske = Avx2.BroadcastVector128ToVector256((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask8bitEven)));
-					var vmasko = Avx2.BroadcastVector128ToVector256((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask8bitOdd)));
-					var vmaskp = Avx2.BroadcastVector128ToVector256((int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.PermuteMaskEvenOdd8x32)) + Vector128<int>.Count);
+					var vshufa = Avx2.BroadcastVector128ToVector256(HWIntrinsics.ShuffleMask8bitAlpha.GetAddressOf());
+					var vmaske = Avx2.BroadcastVector128ToVector256(HWIntrinsics.ShuffleMask8bitEven.GetAddressOf());
+					var vmasko = Avx2.BroadcastVector128ToVector256(HWIntrinsics.ShuffleMask8bitOdd.GetAddressOf());
+					var vmaskp = Avx2.BroadcastVector128ToVector256((int*)HWIntrinsics.PermuteMaskEvenOdd8x32.GetAddressOf() + Vector128<int>.Count);
 
 					var vmaska = Vector256.Create(bitMaskAlpha).AsByte();
 					var vscale = Vector256.Create(scaleAlpha);
@@ -196,9 +195,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 			{
 				fixed (int* iatstart = LookupTables.InverseAlpha)
 				{
-					var vshufa = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask8bitAlpha)));
-					var vmaske = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask8bitEven)));
-					var vmasko = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask8bitOdd)));
+					var vshufa = Sse2.LoadVector128(HWIntrinsics.ShuffleMask8bitAlpha.GetAddressOf());
+					var vmaske = Sse2.LoadVector128(HWIntrinsics.ShuffleMask8bitEven.GetAddressOf());
+					var vmasko = Sse2.LoadVector128(HWIntrinsics.ShuffleMask8bitOdd.GetAddressOf());
 
 					var vmaska = Vector128.Create(bitMaskAlpha).AsByte();
 					var vscale = Vector128.Create(scaleAlpha);
@@ -312,7 +311,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 			if (Avx2.IsSupported && stride >= (nuint)Vector256<byte>.Count * 2)
 			{
-				var vmaskb = Avx2.BroadcastVector128ToVector256((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask4ChanPairs)));
+				var vmaskb = Avx2.BroadcastVector128ToVector256(HWIntrinsics.ShuffleMask4ChanPairs.GetAddressOf());
 				var vone = Vector256.Create((sbyte)1);
 
 				ipe -= Vector256<byte>.Count * 2;
@@ -348,7 +347,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 			else if (Ssse3.IsSupported && stride >= (nuint)Vector128<byte>.Count * 2)
 			{
-				var vmaskb = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask4ChanPairs)));
+				var vmaskb = Sse2.LoadVector128(HWIntrinsics.ShuffleMask4ChanPairs.GetAddressOf());
 				var vone = Vector128.Create((sbyte)1);
 
 				ipe -= Vector128<byte>.Count * 2;
@@ -447,8 +446,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 			if (Ssse3.IsSupported && stride > (nuint)Vector128<byte>.Count * 2)
 			{
-				var vmaskb = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3ChanPairs)));
-				var vmaskw = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3xTo3Chan)));
+				var vmaskb = Sse2.LoadVector128(HWIntrinsics.ShuffleMask3ChanPairs.GetAddressOf());
+				var vmaskw = Sse2.LoadVector128(HWIntrinsics.ShuffleMask3xTo3Chan.GetAddressOf());
 				var vone = Vector128.Create((sbyte)1);
 
 				ipe -= Vector128<byte>.Count * 2;

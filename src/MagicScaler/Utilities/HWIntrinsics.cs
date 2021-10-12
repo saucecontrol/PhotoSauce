@@ -36,6 +36,7 @@ namespace PhotoSauce.MagicScaler
 			Vector<T>.Count;
 
 #if HWINTRINSICS
+		private const byte _ = 0x80;
 		public const byte BlendMaskAlpha = 0b_1000_1000;
 		public const byte ShuffleMaskAlpha = 0b_11_11_11_11;
 		public const byte ShuffleMaskLoPairs = 0b_01_00_01_00;
@@ -49,13 +50,13 @@ namespace PhotoSauce.MagicScaler
 		public static ReadOnlySpan<byte> PermuteMaskEvenOdd8x32 => new byte[] { 0, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 6, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 5, 0, 0, 0, 7, 0, 0, 0 };
 		public static ReadOnlySpan<byte> PermuteMask3To3xChan => new byte[] { 0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0 };
 		public static ReadOnlySpan<byte> PermuteMask3xTo3Chan => new byte[] { 0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0 };
-		public static ReadOnlySpan<byte> ShuffleMask3ChanPairs => new byte[] { 0, 3, 1, 4, 2, 5, 0x80, 0x80, 6, 9, 7, 10, 8, 11, 0x80, 0x80 };
+		public static ReadOnlySpan<byte> ShuffleMask3ChanPairs => new byte[] { 0, 3, 1, 4, 2, 5, _, _, 6, 9, 7, 10, 8, 11, _, _ };
 		public static ReadOnlySpan<byte> ShuffleMask4ChanPairs => new byte[] { 0, 4, 1, 5, 2, 6, 3, 7, 8, 12, 9, 13, 10, 14, 11, 15 };
-		public static ReadOnlySpan<byte> ShuffleMask3To3xChan => new byte[] { 0, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80 };
-		public static ReadOnlySpan<byte> ShuffleMask3xTo3Chan => new byte[] { 0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80 };
+		public static ReadOnlySpan<byte> ShuffleMask3To3xChan => new byte[] { 0, 1, 2, _, 3, 4, 5, _, 6, 7, 8, _, 9, 10, 11, _ };
+		public static ReadOnlySpan<byte> ShuffleMask3xTo3Chan => new byte[] { 0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, _, _, _, _ };
 		public static ReadOnlySpan<byte> ShuffleMask8bitAlpha => new byte[] { 3, 3, 7, 7, 3, 3, 7, 7, 11, 11, 15, 15, 11, 11, 15, 15 };
-		public static ReadOnlySpan<byte> ShuffleMask8bitEven => new byte[] { 0x80, 0, 0x80, 4, 0x80, 2, 0x80, 6, 0x80, 8, 0x80, 12, 0x80, 10, 0x80, 14 };
-		public static ReadOnlySpan<byte> ShuffleMask8bitOdd => new byte[] { 0x80, 1, 0x80, 5, 0x80, 3, 0x80, 7, 0x80, 9, 0x80, 13, 0x80, 11, 0x80, 15 };
+		public static ReadOnlySpan<byte> ShuffleMask8bitEven => new byte[] { _, 0, _, 4, _, 2, _, 6, _, 8, _, 12, _, 10, _, 14 };
+		public static ReadOnlySpan<byte> ShuffleMask8bitOdd => new byte[] { _, 1, _, 5, _, 3, _, 7, _, 9, _, 13, _, 11, _, 15 };
 
 		public static ReadOnlySpan<byte> GatherMask3x => new byte[] { 0, 0, 0, 0x80, 0, 0, 0, 0x80, 0, 0, 0, 0x80, 0, 0, 0, 0 };
 		public static ReadOnlySpan<byte> ScaleUQ15WithAlphaInt => new byte[] { 0, 0x80, 0, 0, 0, 0x80, 0, 0, 0, 0x80, 0, 0, 0xff, 0, 0, 0 };

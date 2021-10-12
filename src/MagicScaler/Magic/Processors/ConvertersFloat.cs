@@ -7,7 +7,6 @@ using System.Runtime.CompilerServices;
 #if HWINTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-using System.Runtime.InteropServices;
 #endif
 
 using static PhotoSauce.MagicScaler.MathUtil;
@@ -441,7 +440,7 @@ namespace PhotoSauce.MagicScaler
 					if (Avx2.IsSupported)
 					{
 						var vscale = Vector256.Create(1f / byte.MaxValue);
-						var vmaskp = Avx.LoadVector256((int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.PermuteMask3To3xChan)));
+						var vmaskp = Avx.LoadVector256((int*)HWIntrinsics.PermuteMask3To3xChan.GetAddressOf());
 
 						ipe -= Vector256<byte>.Count * 3 / 4 + 2; // +2 accounts for the overrun on the last read
 						while (ip <= ipe)
@@ -549,7 +548,7 @@ namespace PhotoSauce.MagicScaler
 				if (Avx2.IsSupported)
 				{
 					var vscale = Vector256.Create((float)byte.MaxValue);
-					var vmaskp = Avx.LoadVector256((int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.PermuteMaskDeinterleave8x32)));
+					var vmaskp = Avx.LoadVector256((int*)HWIntrinsics.PermuteMaskDeinterleave8x32.GetAddressOf());
 					ipe -= Vector256<float>.Count * 4;
 
 					LoopTop:
@@ -734,7 +733,7 @@ namespace PhotoSauce.MagicScaler
 					var vmin = Vector256.Create(0.5f / byte.MaxValue);
 					var vscale = Vector256.Create((float)byte.MaxValue);
 
-					var vmaskp = Avx.LoadVector256((int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.PermuteMaskDeinterleave8x32)));
+					var vmaskp = Avx.LoadVector256((int*)HWIntrinsics.PermuteMaskDeinterleave8x32.GetAddressOf());
 					ipe -= Vector256<float>.Count * 4;
 
 					LoopTop:
@@ -916,9 +915,9 @@ namespace PhotoSauce.MagicScaler
 				if (Avx2.IsSupported && ipe >= ip + Vector256<byte>.Count)
 				{
 					var vscale = Vector256.Create((float)byte.MaxValue);
-					var vmaskp = Avx.LoadVector256((int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.PermuteMaskDeinterleave8x32)));
-					var vmaskq = Avx.LoadVector256((int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.PermuteMask3xTo3Chan)));
-					var vmasks = Avx2.BroadcastVector128ToVector256((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3xTo3Chan)));
+					var vmaskp = Avx.LoadVector256((int*)HWIntrinsics.PermuteMaskDeinterleave8x32.GetAddressOf());
+					var vmaskq = Avx.LoadVector256((int*)HWIntrinsics.PermuteMask3xTo3Chan.GetAddressOf());
+					var vmasks = Avx2.BroadcastVector128ToVector256(HWIntrinsics.ShuffleMask3xTo3Chan.GetAddressOf());
 
 					ipe -= Vector256<float>.Count * 4;
 					while (true)
@@ -961,7 +960,7 @@ namespace PhotoSauce.MagicScaler
 				else if (Ssse3.IsSupported && ipe >= ip + Vector128<byte>.Count)
 				{
 					var vscale = Vector128.Create((float)byte.MaxValue);
-					var vmasks = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3xTo3Chan)));
+					var vmasks = Sse2.LoadVector128(HWIntrinsics.ShuffleMask3xTo3Chan.GetAddressOf());
 
 					ipe -= Vector128<float>.Count * 4;
 					while (true)
@@ -994,10 +993,10 @@ namespace PhotoSauce.MagicScaler
 						LastBlock:
 						var vl0 = vb0.AsUInt64();
 						Sse2.StoreScalar((ulong*)op, vl0);
-#if NETCOREAPP3_1
-						Sse.StoreScalar((float*)(op + sizeof(ulong)), Sse2.UnpackHigh(vl0, vl0).AsSingle()); // https://github.com/dotnet/runtime/issues/31179
-#else
+#if NET5_0_OR_GREATER
 						Sse2.StoreScalar((uint*)(op + sizeof(ulong)), Sse2.UnpackHigh(vl0, vl0).AsUInt32());
+#else
+						Sse.StoreScalar((float*)(op + sizeof(ulong)), Sse2.UnpackHigh(vl0, vl0).AsSingle()); // https://github.com/dotnet/runtime/issues/31179
 #endif
 						op += Vector128<byte>.Count * 3 / 4;
 						break;
@@ -1168,7 +1167,7 @@ namespace PhotoSauce.MagicScaler
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 			private static void convertFloat3AAvx2(float* ip, float* ipe, float* lp, int lutmax)
 			{
-				var vgmsk = Avx.BroadcastVector128ToVector256((float*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.GatherMask3x)));
+				var vgmsk = Avx.BroadcastVector128ToVector256((float*)HWIntrinsics.GatherMask3x.GetAddressOf());
 				var vgmax = Vector256.Create((float)lutmax);
 				var vzero = Vector256<float>.Zero;
 				var vfone = Vector256.Create(1f);

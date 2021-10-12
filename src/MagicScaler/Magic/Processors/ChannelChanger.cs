@@ -63,11 +63,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 						 5,  5,  6,  6,  6,  7,  7,  7,  8,  8,  8,  9,  9,  9, 10, 10,
 						10, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14, 15, 15, 15
 					});
-					byte* pmask = (byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(mask));
+					ref byte rmask = ref Unsafe.Add(ref MemoryMarshal.GetReference(mask), 0);
 
-					var vmask0 = Sse2.LoadVector128(pmask);
-					var vmask1 = Sse2.LoadVector128(pmask + Vector128<byte>.Count);
-					var vmask2 = Sse2.LoadVector128(pmask + Vector128<byte>.Count * 2);
+					var vmask0 = Unsafe.As<byte, Vector128<byte>>(ref rmask);
+					var vmask1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref rmask, Vector128<byte>.Count));
+					var vmask2 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref rmask, Vector128<byte>.Count * 2));
 
 					ipe -= Vector128<byte>.Count;
 					do
@@ -163,16 +163,17 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 				if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count * 3)
 				{
+					const byte _ = 0x80;
 					var mask = (ReadOnlySpan<byte>)(new byte[] {
-						   0,    3,    6,    9,   12,  15,  0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
-						0x80, 0x80, 0x80, 0x80, 0x80, 0x80,    2,    5,    8,   11,   14, 0x80, 0x80, 0x80, 0x80, 0x80,
-						0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,    1,    4,    7,   10,   13
+						0, 3, 6, 9, 12, 15, _, _, _,  _,  _, _, _, _,  _,  _,
+						_, _, _, _,  _,  _, 2, 5, 8, 11, 14, _, _, _,  _,  _,
+						_, _, _, _,  _,  _, _, _, _,  _,  _, 1, 4, 7, 10, 13
 					});
-					byte* pmask = (byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(mask));
+					ref byte rmask = ref Unsafe.Add(ref MemoryMarshal.GetReference(mask), 0);
 
-					var vmask0 = Sse2.LoadVector128(pmask);
-					var vmask1 = Sse2.LoadVector128(pmask + Vector128<byte>.Count);
-					var vmask2 = Sse2.LoadVector128(pmask + Vector128<byte>.Count * 2);
+					var vmask0 = Unsafe.As<byte, Vector128<byte>>(ref rmask);
+					var vmask1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref rmask, Vector128<byte>.Count));
+					var vmask2 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref rmask, Vector128<byte>.Count * 2));
 
 					ipe -= Vector128<byte>.Count * 3;
 					do
@@ -217,7 +218,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 				if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count * 3)
 				{
-					var vmask = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3To3xChan)));
+					var vmask = Sse2.LoadVector128(HWIntrinsics.ShuffleMask3To3xChan.GetAddressOf());
 					var vfill = Vector128.Create(0xff000000u).AsByte();
 
 					ipe -= Vector128<byte>.Count * 3;
@@ -275,8 +276,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 				if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count * 4)
 				{
-					var mask = (ReadOnlySpan<byte>)(new byte[] { 0, 4, 8, 12, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 });
-					var vmask = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(mask)));
+					const byte _ = 0x80;
+					var mask = (ReadOnlySpan<byte>)(new byte[] { 0, 4, 8, 12, _, _, _, _, _, _, _, _, _, _, _, _ });
+					var vmask = Sse2.LoadVector128(mask.GetAddressOf());
 
 					ipe -= Vector128<byte>.Count * 4;
 					do
@@ -327,7 +329,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 				if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count * 4)
 				{
-					var vmasko = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3xTo3Chan)));
+					var vmasko = Sse2.LoadVector128(HWIntrinsics.ShuffleMask3xTo3Chan.GetAddressOf());
 					var vmaske = Ssse3.AlignRight(vmasko, vmasko, 12).AsByte();
 
 					ipe -= Vector128<byte>.Count * 4;

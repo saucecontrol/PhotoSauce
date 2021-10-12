@@ -6,7 +6,6 @@ using System.Runtime.CompilerServices;
 #if HWINTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-using System.Runtime.InteropServices;
 #endif
 
 using static PhotoSauce.MagicScaler.MathUtil;
@@ -443,7 +442,7 @@ namespace PhotoSauce.MagicScaler
 				var vmaxuq15 = Vector256.Create((int)UQ15One);
 				var vmaxbyte = Vector256.Create((int)byte.MaxValue);
 
-				var vmaskp = Avx.LoadVector256((int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.PermuteMaskDeinterleave8x32)));
+				var vmaskp = Avx.LoadVector256((int*)HWIntrinsics.PermuteMaskDeinterleave8x32.GetAddressOf());
 				ipe -= Vector256<float>.Count * 4;
 
 				LoopTop:
@@ -635,9 +634,9 @@ namespace PhotoSauce.MagicScaler
 				var vmin = Vector256.Create(0.5f / byte.MaxValue);
 				var vmsk = Vector256.Create((int)byte.MaxValue);
 
-				var vmaskp = Avx.LoadVector256((int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.PermuteMaskDeinterleave8x32)));
-				var vscalf = Avx.BroadcastVector128ToVector256((float*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ScaleUQ15WithAlphaFloat)));
-				var vscali = Avx2.BroadcastVector128ToVector256((int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ScaleUQ15WithAlphaInt)));
+				var vmaskp = Avx.LoadVector256((int*)HWIntrinsics.PermuteMaskDeinterleave8x32.GetAddressOf());
+				var vscalf = Avx.BroadcastVector128ToVector256((float*)HWIntrinsics.ScaleUQ15WithAlphaFloat.GetAddressOf());
+				var vscali = Avx2.BroadcastVector128ToVector256((int*)HWIntrinsics.ScaleUQ15WithAlphaInt.GetAddressOf());
 				ipe -= Vector256<float>.Count * 4;
 
 				LoopTop:
@@ -783,10 +782,10 @@ namespace PhotoSauce.MagicScaler
 					var vmaxuq15 = Vector256.Create((int)UQ15One);
 					var vmaxbyte = Vector256.Create((int)byte.MaxValue);
 
-					var vmaskg = Avx2.BroadcastVector128ToVector256((int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.GatherMask3x)));
-					var vmaskp = Avx.LoadVector256((int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.PermuteMaskDeinterleave8x32)));
-					var vmaskq = Avx.LoadVector256((int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.PermuteMask3xTo3Chan)));
-					var vmasks = Avx2.BroadcastVector128ToVector256((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3xTo3Chan)));
+					var vmaskg = Avx2.BroadcastVector128ToVector256((int*)HWIntrinsics.GatherMask3x.GetAddressOf());
+					var vmaskp = Avx.LoadVector256((int*)HWIntrinsics.PermuteMaskDeinterleave8x32.GetAddressOf());
+					var vmaskq = Avx.LoadVector256((int*)HWIntrinsics.PermuteMask3xTo3Chan.GetAddressOf());
+					var vmasks = Avx2.BroadcastVector128ToVector256(HWIntrinsics.ShuffleMask3xTo3Chan.GetAddressOf());
 
 					ipe -= Vector256<float>.Count * 4;
 					while (true)
@@ -802,15 +801,15 @@ namespace PhotoSauce.MagicScaler
 						var vi2 = Avx.ConvertToVector256Int32(vf2);
 						var vi3 = Avx.ConvertToVector256Int32(vf3);
 
-						vi0 = Avx2.Min(Avx2.Max(vmin, vi0), vmaxuq15);
-						vi1 = Avx2.Min(Avx2.Max(vmin, vi1), vmaxuq15);
-						vi2 = Avx2.Min(Avx2.Max(vmin, vi2), vmaxuq15);
-						vi3 = Avx2.Min(Avx2.Max(vmin, vi3), vmaxuq15);
+						var vl0 = Avx2.Min(Avx2.Max(vmin, vi0), vmaxuq15);
+						var vl1 = Avx2.Min(Avx2.Max(vmin, vi1), vmaxuq15);
+						var vl2 = Avx2.Min(Avx2.Max(vmin, vi2), vmaxuq15);
+						var vl3 = Avx2.Min(Avx2.Max(vmin, vi3), vmaxuq15);
 
-						vi0 = Avx2.GatherMaskVector256(vi0, (int*)gt, vi0, vmaskg, sizeof(byte));
-						vi1 = Avx2.GatherMaskVector256(vi1, (int*)gt, vi1, vmaskg, sizeof(byte));
-						vi2 = Avx2.GatherMaskVector256(vi2, (int*)gt, vi2, vmaskg, sizeof(byte));
-						vi3 = Avx2.GatherMaskVector256(vi3, (int*)gt, vi3, vmaskg, sizeof(byte));
+						vi0 = Avx2.GatherMaskVector256(vi0, (int*)gt, vl0, vmaskg, sizeof(byte));
+						vi1 = Avx2.GatherMaskVector256(vi1, (int*)gt, vl1, vmaskg, sizeof(byte));
+						vi2 = Avx2.GatherMaskVector256(vi2, (int*)gt, vl2, vmaskg, sizeof(byte));
+						vi3 = Avx2.GatherMaskVector256(vi3, (int*)gt, vl3, vmaskg, sizeof(byte));
 
 						vi0 = Avx2.And(vi0, vmaxbyte);
 						vi1 = Avx2.And(vi1, vmaxbyte);

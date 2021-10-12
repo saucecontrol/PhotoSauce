@@ -209,14 +209,6 @@ namespace PhotoSauce.MagicScaler
 #endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int Log2(this float x) =>
-#if HIWINTRINSICS
-			(int)MathF.Log2(x);
-#else
-			(int)Floor(Log(x, 2d));
-#endif
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static double Lerp(double l, double h, double d) => (h - l) * d + l;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -291,7 +283,7 @@ namespace PhotoSauce.MagicScaler
 
 			double det = a * a11 + b * a12 + c * a13 + d * a14;
 
-			if (Math.Abs(det) < float.Epsilon)
+			if (Abs(det) < float.Epsilon)
 				return new Matrix4x4(
 					float.NaN, float.NaN, float.NaN, float.NaN,
 					float.NaN, float.NaN, float.NaN, float.NaN,

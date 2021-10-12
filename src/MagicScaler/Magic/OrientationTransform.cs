@@ -315,8 +315,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 			if (Sse41.IsSupported && cb >= Vector128<byte>.Count)
 			{
-				var shuf3to3x = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3To3xChan)));
-				var shuf3xto3 = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.ShuffleMask3xTo3Chan)));
+				var shuf3to3x = Sse2.LoadVector128(HWIntrinsics.ShuffleMask3To3xChan.GetAddressOf());
+				var shuf3xto3 = Sse2.LoadVector128(HWIntrinsics.ShuffleMask3xTo3Chan.GetAddressOf());
 
 				ipe -= Vector128<byte>.Count;
 				do
@@ -448,7 +448,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					if (Ssse3.IsSupported && cb >= Vector128<byte>.Count)
 					{
 						var mask = (ReadOnlySpan<byte>)(new byte[] { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 });
-						var vshuf = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(mask)));
+						var vshuf = Sse2.LoadVector128(mask.GetAddressOf());
 
 						pe -= Vector128<byte>.Count;
 						do
@@ -479,7 +479,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					if (Ssse3.IsSupported && cb > Vector128<byte>.Count * 2)
 					{
 						var mask = (ReadOnlySpan<byte>)(new byte[] { 0, 13, 14, 15, 10, 11, 12, 7, 8, 9, 4, 5, 6, 1, 2, 3 });
-						var vshufs = Sse2.LoadVector128((byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(mask)));
+						var vshufs = Sse2.LoadVector128(mask.GetAddressOf());
 						var vshufe = Sse2.ShiftRightLogical128BitLane(vshufs, 1);
 
 						pe -= Vector128<byte>.Count;

@@ -6,7 +6,6 @@ using System.Numerics;
 #if HWINTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 #endif
 
@@ -186,7 +185,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				var vc2 = Vector256.Create(coeffCr0);
 				var vc3 = Vector256.Create(coeffCr1);
 				var voff = Vector256.Create(-fchromaOffset);
-				var vmaskp = Avx.LoadVector256((int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(HWIntrinsics.PermuteMaskEvenOdd8x32)));
+				var vmaskp = Avx.LoadVector256((int*)HWIntrinsics.PermuteMaskEvenOdd8x32.GetAddressOf());
 
 				ipe -= Vector256<float>.Count;
 

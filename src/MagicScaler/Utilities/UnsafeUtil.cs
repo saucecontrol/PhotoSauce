@@ -59,5 +59,8 @@ namespace PhotoSauce.MagicScaler
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Guid* GetAddressOf(in this Guid val) => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(val));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static byte* GetAddressOf(this ReadOnlySpan<byte> val) => (byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(val));
 	}
 }
