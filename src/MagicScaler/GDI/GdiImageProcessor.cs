@@ -1,6 +1,6 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
-#if SYSTEM_DRAWING
+#if GDIPROCESSOR
 #pragma warning disable CS1591
 using System;
 using System.IO;
@@ -69,7 +69,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static ProcessImageResult ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
 		{
-			using var fs = new FileStream(imgPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+			using var fs = File.OpenRead(imgPath);
 			return ProcessImage(fs, outStream, settings);
 		}
 
@@ -81,8 +81,6 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		public static ProcessImageResult ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings) => processImage(imgStream, outStream, settings);
-
-		public static void CreateBrokenImage(Stream outStream, ProcessImageSettings settings) => createBrokenImage(outStream, settings);
 
 		private static ProcessImageResult processImage(Stream istm, Stream ostm, ProcessImageSettings s)
 		{
@@ -160,29 +158,6 @@ namespace PhotoSauce.MagicScaler
 			}
 
 			return new ProcessImageResult(usedSettings, Enumerable.Empty<PixelSourceStats>());
-		}
-
-		private static void createBrokenImage(Stream ostm, ProcessImageSettings s)
-		{
-			s = s.Clone();
-			if (s.Width == 0 && s.Height == 0)
-				s.Height = s.Width = 100;
-
-			s.Fixup(s.Width > 0 ? s.Width : s.Height, s.Height > 0 ? s.Height : s.Width);
-
-			using var bmp = new Bitmap(s.Width, s.Height, GdiPixelFormat.Format24bppRgb);
-			using var gfx = Graphics.FromImage(bmp);
-			using var pen = new Pen(Brushes.White, 1.75f);
-
-			gfx.FillRectangle(Brushes.Gainsboro, new Rectangle(0, 0, s.Width, s.Height));
-			gfx.SmoothingMode = SmoothingMode.AntiAlias;
-			gfx.PixelOffsetMode = PixelOffsetMode.Half;
-			gfx.CompositingQuality = CompositingQuality.GammaCorrected;
-
-			float l = 0.5f, t = 0.5f, r = s.Width - 0.5f, b = s.Height - 0.5f;
-			gfx.DrawLines(pen, new[] { new PointF(l, t), new PointF(r, b), new PointF(l, b), new PointF(r, t) });
-			gfx.DrawLines(pen, new[] { new PointF(l, b), new PointF(l, t), new PointF(r, t), new PointF(r, b) });
-			bmp.Save(ostm, ImageFormat.Png);
 		}
 	}
 }

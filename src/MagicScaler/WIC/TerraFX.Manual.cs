@@ -3,6 +3,7 @@
 using System;
 using System.Drawing;
 using System.Security;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
@@ -75,7 +76,29 @@ namespace TerraFX.Interop
 	internal static partial class Windows
 	{
 		// Microsoft Camera Codec Pack
-		public static readonly Guid GUID_ContainerFormatRaw2 = new(0xc1fc85cb, 0xd64f, 0x478b, 0xa4, 0xec, 0x69, 0xad, 0xc9, 0xee, 0x13, 0x92);
+		public static ref readonly Guid GUID_ContainerFormatRaw2
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get
+			{
+				ReadOnlySpan<byte> data = new byte[] {
+					0xcb, 0x85, 0xfc, 0xc1,
+					0x4f, 0xd6,
+					0x8b, 0x47,
+					0xa4,
+					0xec,
+					0x69,
+					0xad,
+					0xc9,
+					0xee,
+					0x13,
+					0x92
+				};
+
+				Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+				return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+			}
+		}
 	}
 
 	internal enum ExifColorSpace : uint

@@ -56,5 +56,8 @@ namespace PhotoSauce.MagicScaler
 		public static T CreateMethodDelegate<T>(this Type t, string method) where T : Delegate =>
 			(T)t.GetMethod(method)!.CreateDelegate(typeof(T), null);
 #endif
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Guid* GetAddressOf(in this Guid val) => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(val));
 	}
 }

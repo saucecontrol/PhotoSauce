@@ -73,9 +73,7 @@ namespace PhotoSauce.WebRSize
 					using (await enterWorkQueueAsync())
 					using (var oimg = new MemoryStream(8192))
 					{
-#pragma warning disable 0618 // obsolete
-						GdiImageProcessor.CreateBrokenImage(oimg, s);
-#pragma warning restore 0618
+						GdiUtil.CreateBrokenImage(oimg, s);
 						oimg.Position = 0;
 						saveResult(tcs, oimg, cachePath, DateTime.MinValue);
 						return;

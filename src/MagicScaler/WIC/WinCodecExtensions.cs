@@ -24,13 +24,10 @@ namespace PhotoSauce.Interop.Wic
 				// Checking the current state is enough to trigger the CoInitializeEx call.  https://github.com/dotnet/runtime/issues/10261
 				_ = Thread.CurrentThread.GetApartmentState();
 
-				var clsidWicFactory = CLSID_WICImagingFactory2;
-				var iidWicFactory = IID_IWICImagingFactory;
-				hr = CoCreateInstance(&clsidWicFactory, null, (uint)CLSCTX.CLSCTX_INPROC_SERVER, &iidWicFactory, (void**)wicfactory.GetAddressOf());
+				hr = CoCreateInstance(CLSID_WICImagingFactory2.GetAddressOf(), null, (uint)CLSCTX.CLSCTX_INPROC_SERVER, IID_IWICImagingFactory.GetAddressOf(), (void**)wicfactory.GetAddressOf());
 				if (FAILED(hr))
 				{
-					clsidWicFactory = CLSID_WICImagingFactory1;
-					if (SUCCEEDED(CoCreateInstance(&clsidWicFactory, null, (uint)CLSCTX.CLSCTX_INPROC_SERVER, &iidWicFactory, (void**)wicfactory.GetAddressOf())))
+					if (SUCCEEDED(CoCreateInstance(CLSID_WICImagingFactory1.GetAddressOf(), null, (uint)CLSCTX.CLSCTX_INPROC_SERVER, IID_IWICImagingFactory.GetAddressOf(), (void**)wicfactory.GetAddressOf())))
 						throw new PlatformNotSupportedException("The current WIC version is not supported. Please install the Windows platform update. See: https://support.microsoft.com/kb/2670838");
 				}
 			}

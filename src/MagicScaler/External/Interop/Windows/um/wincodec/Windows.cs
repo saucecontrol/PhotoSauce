@@ -8,6 +8,8 @@
 #pragma warning disable CS0649
 
 using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace TerraFX.Interop
@@ -15,446 +17,3526 @@ namespace TerraFX.Interop
     internal static unsafe partial class Windows
     {
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICImagingFactory1 = new Guid(0xcacaf262, 0x9370, 0x4615, 0xa1, 0x3b, 0x9f, 0x55, 0x39, 0xda, 0x4c, 0xa);
+        public static ref readonly Guid CLSID_WICImagingFactory1
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x62, 0xF2, 0xCA, 0xCA,
+                    0x70, 0x93,
+                    0x15, 0x46,
+                    0xA1,
+                    0x3B,
+                    0x9F,
+                    0x55,
+                    0x39,
+                    0xDA,
+                    0x4C,
+                    0x0A
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICImagingFactory2 = new Guid(0x317d06e8, 0x5f24, 0x433d, 0xbd, 0xf7, 0x79, 0xce, 0x68, 0xd8, 0xab, 0xc2);
+        public static ref readonly Guid CLSID_WICImagingFactory2
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xE8, 0x06, 0x7D, 0x31,
+                    0x24, 0x5F,
+                    0x3D, 0x43,
+                    0xBD,
+                    0xF7,
+                    0x79,
+                    0xCE,
+                    0x68,
+                    0xD8,
+                    0xAB,
+                    0xC2
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
+
+        [NativeTypeName("const GUID")]
+        public static ref readonly Guid GUID_VendorMicrosoft
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xCA, 0x49, 0xE7, 0xF0,
+                    0xEF, 0xED,
+                    0x89, 0x45,
+                    0xA7,
+                    0x3A,
+                    0xEE,
+                    0x0E,
+                    0x62,
+                    0x6A,
+                    0x2A,
+                    0x2B
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
+
+        [NativeTypeName("const GUID")]
+        public static ref readonly Guid GUID_VendorMicrosoftBuiltIn
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xFD, 0x30, 0x7A, 0x25,
+                    0xB6, 0x06,
+                    0x2B, 0x46,
+                    0xAE,
+                    0xA4,
+                    0x63,
+                    0xF7,
+                    0x0B,
+                    0x86,
+                    0xE5,
+                    0x33
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 #if false
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_VendorMicrosoft = new Guid(0xf0e749ca, 0xedef, 0x4589, 0xa7, 0x3a, 0xee, 0xe, 0x62, 0x6a, 0x2a, 0x2b);
+        public static ref readonly Guid CLSID_WICPngDecoder1
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x7B, 0xA1, 0x9E, 0x38,
+                    0x78, 0x50,
+                    0xDE, 0x4C,
+                    0xB6,
+                    0xEF,
+                    0x25,
+                    0xC1,
+                    0x51,
+                    0x75,
+                    0xC7,
+                    0x51
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_VendorMicrosoftBuiltIn = new Guid(0x257a30fd, 0x6b6, 0x462b, 0xae, 0xa4, 0x63, 0xf7, 0xb, 0x86, 0xe5, 0x33);
+        public static ref readonly Guid CLSID_WICPngDecoder2
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x5B, 0x94, 0x18, 0xE0,
+                    0x86, 0xAA,
+                    0x08, 0x40,
+                    0x9B,
+                    0xD4,
+                    0x67,
+                    0x77,
+                    0xA1,
+                    0xE4,
+                    0x0C,
+                    0x11
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICPngDecoder1 = new Guid(0x389ea17b, 0x5078, 0x4cde, 0xb6, 0xef, 0x25, 0xc1, 0x51, 0x75, 0xc7, 0x51);
+        public static ref readonly Guid CLSID_WICBmpDecoder
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x62, 0x20, 0x46, 0x6B,
+                    0xBF, 0x7C,
+                    0x0D, 0x40,
+                    0x9F,
+                    0xDB,
+                    0x81,
+                    0x3D,
+                    0xD1,
+                    0x0F,
+                    0x27,
+                    0x78
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICPngDecoder2 = new Guid(0xe018945b, 0xaa86, 0x4008, 0x9b, 0xd4, 0x67, 0x77, 0xa1, 0xe4, 0x0c, 0x11);
+        public static ref readonly Guid CLSID_WICIcoDecoder
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xDF, 0xFC, 0x1B, 0xC6,
+                    0x0F, 0x2E,
+                    0xAD, 0x4A,
+                    0xA8,
+                    0xD7,
+                    0xE0,
+                    0x6B,
+                    0xAF,
+                    0xEB,
+                    0xCD,
+                    0xFE
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICBmpDecoder = new Guid(0x6b462062, 0x7cbf, 0x400d, 0x9f, 0xdb, 0x81, 0x3d, 0xd1, 0x0f, 0x27, 0x78);
+        public static ref readonly Guid CLSID_WICJpegDecoder
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x80, 0xA4, 0x56, 0x94,
+                    0x8B, 0xE8,
+                    0xEA, 0x43,
+                    0x9E,
+                    0x73,
+                    0x0B,
+                    0x2D,
+                    0x9B,
+                    0x71,
+                    0xB1,
+                    0xCA
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICIcoDecoder = new Guid(0xc61bfcdf, 0x2e0f, 0x4aad, 0xa8, 0xd7, 0xe0, 0x6b, 0xaf, 0xeb, 0xcd, 0xfe);
+        public static ref readonly Guid CLSID_WICGifDecoder
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x3C, 0xDA, 0x1D, 0x38,
+                    0xE9, 0x9C,
+                    0x34, 0x48,
+                    0xA2,
+                    0x3E,
+                    0x1F,
+                    0x98,
+                    0xF8,
+                    0xFC,
+                    0x52,
+                    0xBE
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICJpegDecoder = new Guid(0x9456a480, 0xe88b, 0x43ea, 0x9e, 0x73, 0x0b, 0x2d, 0x9b, 0x71, 0xb1, 0xca);
+        public static ref readonly Guid CLSID_WICTiffDecoder
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xD9, 0x85, 0x4E, 0xB5,
+                    0x23, 0xFE,
+                    0x9F, 0x49,
+                    0x8B,
+                    0x88,
+                    0x6A,
+                    0xCE,
+                    0xA7,
+                    0x13,
+                    0x75,
+                    0x2B
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICGifDecoder = new Guid(0x381dda3c, 0x9ce9, 0x4834, 0xa2, 0x3e, 0x1f, 0x98, 0xf8, 0xfc, 0x52, 0xbe);
+        public static ref readonly Guid CLSID_WICWmpDecoder
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x36, 0xEC, 0x6C, 0xA2,
+                    0x4C, 0x23,
+                    0x50, 0x49,
+                    0xAE,
+                    0x16,
+                    0xE3,
+                    0x4A,
+                    0xAC,
+                    0xE7,
+                    0x1D,
+                    0x0D
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICTiffDecoder = new Guid(0xb54e85d9, 0xfe23, 0x499f, 0x8b, 0x88, 0x6a, 0xce, 0xa7, 0x13, 0x75, 0x2b);
+        public static ref readonly Guid CLSID_WICDdsDecoder
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x9F, 0x69, 0x53, 0x90,
+                    0x41, 0xA3,
+                    0x9D, 0x42,
+                    0x9E,
+                    0x90,
+                    0xEE,
+                    0x43,
+                    0x7C,
+                    0xF8,
+                    0x0C,
+                    0x73
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICWmpDecoder = new Guid(0xa26cec36, 0x234c, 0x4950, 0xae, 0x16, 0xe3, 0x4a, 0xac, 0xe7, 0x1d, 0x0d);
+        public static ref readonly Guid CLSID_WICBmpEncoder
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xB4, 0x8B, 0xBE, 0x69,
+                    0x6D, 0xD6,
+                    0xC8, 0x47,
+                    0x86,
+                    0x5A,
+                    0xED,
+                    0x15,
+                    0x89,
+                    0x43,
+                    0x37,
+                    0x82
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICDdsDecoder = new Guid(0x9053699f, 0xa341, 0x429d, 0x9e, 0x90, 0xee, 0x43, 0x7c, 0xf8, 0x0c, 0x73);
+        public static ref readonly Guid CLSID_WICPngEncoder
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x69, 0x99, 0x94, 0x27,
+                    0x6A, 0x87,
+                    0xD7, 0x41,
+                    0x94,
+                    0x47,
+                    0x56,
+                    0x8F,
+                    0x6A,
+                    0x35,
+                    0xA4,
+                    0xDC
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICBmpEncoder = new Guid(0x69be8bb4, 0xd66d, 0x47c8, 0x86, 0x5a, 0xed, 0x15, 0x89, 0x43, 0x37, 0x82);
+        public static ref readonly Guid CLSID_WICJpegEncoder
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xC1, 0xF5, 0x34, 0x1A,
+                    0x5A, 0x4A,
+                    0xDC, 0x46,
+                    0xB6,
+                    0x44,
+                    0x1F,
+                    0x45,
+                    0x67,
+                    0xE7,
+                    0xA6,
+                    0x76
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICPngEncoder = new Guid(0x27949969, 0x876a, 0x41d7, 0x94, 0x47, 0x56, 0x8f, 0x6a, 0x35, 0xa4, 0xdc);
+        public static ref readonly Guid CLSID_WICGifEncoder
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x98, 0x55, 0x4F, 0x11,
+                    0x22, 0x0B,
+                    0xA0, 0x40,
+                    0x86,
+                    0xA1,
+                    0xC8,
+                    0x3E,
+                    0xA4,
+                    0x95,
+                    0xAD,
+                    0xBD
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICJpegEncoder = new Guid(0x1a34f5c1, 0x4a5a, 0x46dc, 0xb6, 0x44, 0x1f, 0x45, 0x67, 0xe7, 0xa6, 0x76);
+        public static ref readonly Guid CLSID_WICTiffEncoder
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x10, 0xBE, 0x31, 0x01,
+                    0x01, 0x20,
+                    0x5F, 0x4C,
+                    0xA9,
+                    0xB0,
+                    0xCC,
+                    0x88,
+                    0xFA,
+                    0xB6,
+                    0x4C,
+                    0xE8
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICGifEncoder = new Guid(0x114f5598, 0x0b22, 0x40a0, 0x86, 0xa1, 0xc8, 0x3e, 0xa4, 0x95, 0xad, 0xbd);
+        public static ref readonly Guid CLSID_WICWmpEncoder
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xCB, 0xE3, 0x4C, 0xAC,
+                    0xC1, 0xE1,
+                    0xCD, 0x44,
+                    0x82,
+                    0x15,
+                    0x5A,
+                    0x16,
+                    0x65,
+                    0x50,
+                    0x9E,
+                    0xC2
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICTiffEncoder = new Guid(0x0131be10, 0x2001, 0x4c5f, 0xa9, 0xb0, 0xcc, 0x88, 0xfa, 0xb6, 0x4c, 0xe8);
+        public static ref readonly Guid CLSID_WICDdsEncoder
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x94, 0xDE, 0x1D, 0xA6,
+                    0xCE, 0x66,
+                    0xC1, 0x4A,
+                    0x88,
+                    0x1B,
+                    0x71,
+                    0x68,
+                    0x05,
+                    0x88,
+                    0x89,
+                    0x5E
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICWmpEncoder = new Guid(0xac4ce3cb, 0xe1c1, 0x44cd, 0x82, 0x15, 0x5a, 0x16, 0x65, 0x50, 0x9e, 0xc2);
+        public static ref readonly Guid CLSID_WICAdngDecoder
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x11, 0x94, 0x1D, 0x98,
+                    0x9E, 0x90,
+                    0xA7, 0x42,
+                    0x8F,
+                    0x5D,
+                    0xA7,
+                    0x47,
+                    0xFF,
+                    0x05,
+                    0x2E,
+                    0xDB
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICDdsEncoder = new Guid(0xa61dde94, 0x66ce, 0x4ac1, 0x88, 0x1b, 0x71, 0x68, 0x05, 0x88, 0x89, 0x5e);
+        public static ref readonly Guid CLSID_WICJpegQualcommPhoneEncoder
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x62, 0x5C, 0xED, 0x68,
+                    0x34, 0xF5,
+                    0x79, 0x49,
+                    0xB2,
+                    0xB3,
+                    0x68,
+                    0x6A,
+                    0x12,
+                    0xB2,
+                    0xB3,
+                    0x4C
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICAdngDecoder = new Guid(0x981d9411, 0x909e, 0x42a7, 0x8f, 0x5d, 0xa7, 0x47, 0xff, 0x05, 0x2e, 0xdb);
+        public static ref readonly Guid CLSID_WICHeifDecoder
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x0A, 0xA8, 0xA4, 0xE9,
+                    0xFE, 0x44,
+                    0xE4, 0x4D,
+                    0x89,
+                    0x71,
+                    0x71,
+                    0x50,
+                    0xB1,
+                    0x0A,
+                    0x51,
+                    0x99
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICJpegQualcommPhoneEncoder = new Guid(0x68ed5c62, 0xf534, 0x4979, 0xb2, 0xb3, 0x68, 0x6a, 0x12, 0xb2, 0xb3, 0x4c);
+        public static ref readonly Guid CLSID_WICHeifEncoder
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xC1, 0xCE, 0xBE, 0x0D,
+                    0xB3, 0x9E,
+                    0x60, 0x48,
+                    0x9C,
+                    0x6F,
+                    0xDD,
+                    0xBE,
+                    0x86,
+                    0x63,
+                    0x45,
+                    0x75
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICHeifDecoder = new Guid(0xe9A4A80a, 0x44fe, 0x4DE4, 0x89, 0x71, 0x71, 0x50, 0XB1, 0X0a, 0X51, 0X99);
+        public static ref readonly Guid CLSID_WICWebpDecoder
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x86, 0xE8, 0x93, 0x76,
+                    0xC9, 0x51,
+                    0x70, 0x40,
+                    0x84,
+                    0x19,
+                    0x9F,
+                    0x70,
+                    0x73,
+                    0x8E,
+                    0xC8,
+                    0xFA
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICHeifEncoder = new Guid(0x0dbecec1, 0x9eb3, 0x4860, 0x9c, 0x6f, 0xdd, 0xbe, 0x86, 0x63, 0x45, 0x75);
+        public static ref readonly Guid CLSID_WICRAWDecoder
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x02, 0x57, 0x94, 0x41,
+                    0x02, 0x83,
+                    0xA6, 0x44,
+                    0x94,
+                    0x45,
+                    0xAC,
+                    0x98,
+                    0xE8,
+                    0xAF,
+                    0xA0,
+                    0x86
+                };
 
-        [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICWebpDecoder = new Guid(0x7693E886, 0x51C9, 0x4070, 0x84, 0x19, 0x9F, 0x70, 0X73, 0X8E, 0XC8, 0XFA);
-
-        [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICRAWDecoder = new Guid(0x41945702, 0x8302, 0x44A6, 0x94, 0x45, 0xAC, 0x98, 0xE8, 0xAF, 0xA0, 0x86);
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 #endif
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_ContainerFormatBmp = new Guid(0x0af1d87e, 0xfcfe, 0x4188, 0xbd, 0xeb, 0xa7, 0x90, 0x64, 0x71, 0xcb, 0xe3);
+        public static ref readonly Guid GUID_ContainerFormatBmp
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x7E, 0xD8, 0xF1, 0x0A,
+                    0xFE, 0xFC,
+                    0x88, 0x41,
+                    0xBD,
+                    0xEB,
+                    0xA7,
+                    0x90,
+                    0x64,
+                    0x71,
+                    0xCB,
+                    0xE3
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_ContainerFormatPng = new Guid(0x1b7cfaf4, 0x713f, 0x473c, 0xbb, 0xcd, 0x61, 0x37, 0x42, 0x5f, 0xae, 0xaf);
+        public static ref readonly Guid GUID_ContainerFormatPng
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xF4, 0xFA, 0x7C, 0x1B,
+                    0x3F, 0x71,
+                    0x3C, 0x47,
+                    0xBB,
+                    0xCD,
+                    0x61,
+                    0x37,
+                    0x42,
+                    0x5F,
+                    0xAE,
+                    0xAF
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_ContainerFormatIco = new Guid(0xa3a860c4, 0x338f, 0x4c17, 0x91, 0x9a, 0xfb, 0xa4, 0xb5, 0x62, 0x8f, 0x21);
+        public static ref readonly Guid GUID_ContainerFormatIco
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xC4, 0x60, 0xA8, 0xA3,
+                    0x8F, 0x33,
+                    0x17, 0x4C,
+                    0x91,
+                    0x9A,
+                    0xFB,
+                    0xA4,
+                    0xB5,
+                    0x62,
+                    0x8F,
+                    0x21
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_ContainerFormatJpeg = new Guid(0x19e4a5aa, 0x5662, 0x4fc5, 0xa0, 0xc0, 0x17, 0x58, 0x02, 0x8e, 0x10, 0x57);
+        public static ref readonly Guid GUID_ContainerFormatJpeg
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xAA, 0xA5, 0xE4, 0x19,
+                    0x62, 0x56,
+                    0xC5, 0x4F,
+                    0xA0,
+                    0xC0,
+                    0x17,
+                    0x58,
+                    0x02,
+                    0x8E,
+                    0x10,
+                    0x57
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_ContainerFormatTiff = new Guid(0x163bcc30, 0xe2e9, 0x4f0b, 0x96, 0x1d, 0xa3, 0xe9, 0xfd, 0xb7, 0x88, 0xa3);
+        public static ref readonly Guid GUID_ContainerFormatTiff
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x30, 0xCC, 0x3B, 0x16,
+                    0xE9, 0xE2,
+                    0x0B, 0x4F,
+                    0x96,
+                    0x1D,
+                    0xA3,
+                    0xE9,
+                    0xFD,
+                    0xB7,
+                    0x88,
+                    0xA3
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_ContainerFormatGif = new Guid(0x1f8a5601, 0x7d4d, 0x4cbd, 0x9c, 0x82, 0x1b, 0xc8, 0xd4, 0xee, 0xb9, 0xa5);
+        public static ref readonly Guid GUID_ContainerFormatGif
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x01, 0x56, 0x8A, 0x1F,
+                    0x4D, 0x7D,
+                    0xBD, 0x4C,
+                    0x9C,
+                    0x82,
+                    0x1B,
+                    0xC8,
+                    0xD4,
+                    0xEE,
+                    0xB9,
+                    0xA5
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_ContainerFormatWmp = new Guid(0x57a37caa, 0x367a, 0x4540, 0x91, 0x6b, 0xf1, 0x83, 0xc5, 0x09, 0x3a, 0x4b);
+        public static ref readonly Guid GUID_ContainerFormatWmp
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xAA, 0x7C, 0xA3, 0x57,
+                    0x7A, 0x36,
+                    0x40, 0x45,
+                    0x91,
+                    0x6B,
+                    0xF1,
+                    0x83,
+                    0xC5,
+                    0x09,
+                    0x3A,
+                    0x4B
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_ContainerFormatDds = new Guid(0x9967cb95, 0x2e85, 0x4ac8, 0x8c, 0xa2, 0x83, 0xd7, 0xcc, 0xd4, 0x25, 0xc9);
+        public static ref readonly Guid GUID_ContainerFormatDds
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x95, 0xCB, 0x67, 0x99,
+                    0x85, 0x2E,
+                    0xC8, 0x4A,
+                    0x8C,
+                    0xA2,
+                    0x83,
+                    0xD7,
+                    0xCC,
+                    0xD4,
+                    0x25,
+                    0xC9
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_ContainerFormatAdng = new Guid(0xf3ff6d0d, 0x38c0, 0x41c4, 0xb1, 0xfe, 0x1f, 0x38, 0x24, 0xf1, 0x7b, 0x84);
+        public static ref readonly Guid GUID_ContainerFormatAdng
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x0D, 0x6D, 0xFF, 0xF3,
+                    0xC0, 0x38,
+                    0xC4, 0x41,
+                    0xB1,
+                    0xFE,
+                    0x1F,
+                    0x38,
+                    0x24,
+                    0xF1,
+                    0x7B,
+                    0x84
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_ContainerFormatHeif = new Guid(0xe1e62521, 0x6787, 0x405b, 0xa3, 0x39, 0x50, 0x07, 0x15, 0xb5, 0x76, 0x3f);
+        public static ref readonly Guid GUID_ContainerFormatHeif
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x21, 0x25, 0xE6, 0xE1,
+                    0x87, 0x67,
+                    0x5B, 0x40,
+                    0xA3,
+                    0x39,
+                    0x50,
+                    0x07,
+                    0x15,
+                    0xB5,
+                    0x76,
+                    0x3F
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_ContainerFormatWebp = new Guid(0xe094b0e2, 0x67f2, 0x45b3, 0xb0, 0xea, 0x11, 0x53, 0x37, 0xca, 0x7c, 0xf3);
+        public static ref readonly Guid GUID_ContainerFormatWebp
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xE2, 0xB0, 0x94, 0xE0,
+                    0xF2, 0x67,
+                    0xB3, 0x45,
+                    0xB0,
+                    0xEA,
+                    0x11,
+                    0x53,
+                    0x37,
+                    0xCA,
+                    0x7C,
+                    0xF3
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_ContainerFormatRaw = new Guid(0xfe99ce60, 0xf19c, 0x433c, 0xa3, 0xae, 0x00, 0xac, 0xef, 0xa9, 0xca, 0x21);
+        public static ref readonly Guid GUID_ContainerFormatRaw
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x60, 0xCE, 0x99, 0xFE,
+                    0x9C, 0xF1,
+                    0x3C, 0x43,
+                    0xA3,
+                    0xAE,
+                    0x00,
+                    0xAC,
+                    0xEF,
+                    0xA9,
+                    0xCA,
+                    0x21
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 #if false
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICImagingCategories = new Guid(0xfae3d380, 0xfea4, 0x4623, 0x8c, 0x75, 0xc6, 0xb6, 0x11, 0x10, 0xb6, 0x81);
+        public static ref readonly Guid CLSID_WICImagingCategories
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x80, 0xD3, 0xE3, 0xFA,
+                    0xA4, 0xFE,
+                    0x23, 0x46,
+                    0x8C,
+                    0x75,
+                    0xC6,
+                    0xB6,
+                    0x11,
+                    0x10,
+                    0xB6,
+                    0x81
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CATID_WICBitmapDecoders = new Guid(0x7ed96837, 0x96f0, 0x4812, 0xb2, 0x11, 0xf1, 0x3c, 0x24, 0x11, 0x7e, 0xd3);
+        public static ref readonly Guid CATID_WICBitmapDecoders
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x37, 0x68, 0xD9, 0x7E,
+                    0xF0, 0x96,
+                    0x12, 0x48,
+                    0xB2,
+                    0x11,
+                    0xF1,
+                    0x3C,
+                    0x24,
+                    0x11,
+                    0x7E,
+                    0xD3
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CATID_WICBitmapEncoders = new Guid(0xac757296, 0x3522, 0x4e11, 0x98, 0x62, 0xc1, 0x7b, 0xe5, 0xa1, 0x76, 0x7e);
+        public static ref readonly Guid CATID_WICBitmapEncoders
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x96, 0x72, 0x75, 0xAC,
+                    0x22, 0x35,
+                    0x11, 0x4E,
+                    0x98,
+                    0x62,
+                    0xC1,
+                    0x7B,
+                    0xE5,
+                    0xA1,
+                    0x76,
+                    0x7E
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CATID_WICPixelFormats = new Guid(0x2b46e70f, 0xcda7, 0x473e, 0x89, 0xf6, 0xdc, 0x96, 0x30, 0xa2, 0x39, 0x0b);
+        public static ref readonly Guid CATID_WICPixelFormats
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x0F, 0xE7, 0x46, 0x2B,
+                    0xA7, 0xCD,
+                    0x3E, 0x47,
+                    0x89,
+                    0xF6,
+                    0xDC,
+                    0x96,
+                    0x30,
+                    0xA2,
+                    0x39,
+                    0x0B
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CATID_WICFormatConverters = new Guid(0x7835eae8, 0xbf14, 0x49d1, 0x93, 0xce, 0x53, 0x3a, 0x40, 0x7b, 0x22, 0x48);
+        public static ref readonly Guid CATID_WICFormatConverters
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xE8, 0xEA, 0x35, 0x78,
+                    0x14, 0xBF,
+                    0xD1, 0x49,
+                    0x93,
+                    0xCE,
+                    0x53,
+                    0x3A,
+                    0x40,
+                    0x7B,
+                    0x22,
+                    0x48
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CATID_WICMetadataReader = new Guid(0x05af94d8, 0x7174, 0x4cd2, 0xbe, 0x4a, 0x41, 0x24, 0xb8, 0x0e, 0xe4, 0xb8);
+        public static ref readonly Guid CATID_WICMetadataReader
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xD8, 0x94, 0xAF, 0x05,
+                    0x74, 0x71,
+                    0xD2, 0x4C,
+                    0xBE,
+                    0x4A,
+                    0x41,
+                    0x24,
+                    0xB8,
+                    0x0E,
+                    0xE4,
+                    0xB8
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CATID_WICMetadataWriter = new Guid(0xabe3b9a4, 0x257d, 0x4b97, 0xbd, 0x1a, 0x29, 0x4a, 0xf4, 0x96, 0x22, 0x2e);
+        public static ref readonly Guid CATID_WICMetadataWriter
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xA4, 0xB9, 0xE3, 0xAB,
+                    0x7D, 0x25,
+                    0x97, 0x4B,
+                    0xBD,
+                    0x1A,
+                    0x29,
+                    0x4A,
+                    0xF4,
+                    0x96,
+                    0x22,
+                    0x2E
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICDefaultFormatConverter = new Guid(0x1a3f11dc, 0xb514, 0x4b17, 0x8c, 0x5f, 0x21, 0x54, 0x51, 0x38, 0x52, 0xf1);
+        public static ref readonly Guid CLSID_WICDefaultFormatConverter
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xDC, 0x11, 0x3F, 0x1A,
+                    0x14, 0xB5,
+                    0x17, 0x4B,
+                    0x8C,
+                    0x5F,
+                    0x21,
+                    0x54,
+                    0x51,
+                    0x38,
+                    0x52,
+                    0xF1
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICFormatConverterHighColor = new Guid(0xac75d454, 0x9f37, 0x48f8, 0xb9, 0x72, 0x4e, 0x19, 0xbc, 0x85, 0x60, 0x11);
+        public static ref readonly Guid CLSID_WICFormatConverterHighColor
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x54, 0xD4, 0x75, 0xAC,
+                    0x37, 0x9F,
+                    0xF8, 0x48,
+                    0xB9,
+                    0x72,
+                    0x4E,
+                    0x19,
+                    0xBC,
+                    0x85,
+                    0x60,
+                    0x11
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICFormatConverterNChannel = new Guid(0xc17cabb2, 0xd4a3, 0x47d7, 0xa5, 0x57, 0x33, 0x9b, 0x2e, 0xfb, 0xd4, 0xf1);
+        public static ref readonly Guid CLSID_WICFormatConverterNChannel
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xB2, 0xAB, 0x7C, 0xC1,
+                    0xA3, 0xD4,
+                    0xD7, 0x47,
+                    0xA5,
+                    0x57,
+                    0x33,
+                    0x9B,
+                    0x2E,
+                    0xFB,
+                    0xD4,
+                    0xF1
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICFormatConverterWMPhoto = new Guid(0x9cb5172b, 0xd600, 0x46ba, 0xab, 0x77, 0x77, 0xbb, 0x7e, 0x3a, 0x00, 0xd9);
+        public static ref readonly Guid CLSID_WICFormatConverterWMPhoto
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x2B, 0x17, 0xB5, 0x9C,
+                    0x00, 0xD6,
+                    0xBA, 0x46,
+                    0xAB,
+                    0x77,
+                    0x77,
+                    0xBB,
+                    0x7E,
+                    0x3A,
+                    0x00,
+                    0xD9
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid CLSID_WICPlanarFormatConverter = new Guid(0x184132b8, 0x32f8, 0x4784, 0x91, 0x31, 0xdd, 0x72, 0x24, 0xb2, 0x34, 0x38);
+        public static ref readonly Guid CLSID_WICPlanarFormatConverter
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xB8, 0x32, 0x41, 0x18,
+                    0xF8, 0x32,
+                    0x84, 0x47,
+                    0x91,
+                    0x31,
+                    0xDD,
+                    0x72,
+                    0x24,
+                    0xB2,
+                    0x34,
+                    0x38
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormatDontCare = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x00);
+        public static ref readonly Guid GUID_WICPixelFormatDontCare
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x00
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 #endif
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat1bppIndexed = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x01);
+        public static ref readonly Guid GUID_WICPixelFormat1bppIndexed
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x01
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat2bppIndexed = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x02);
+        public static ref readonly Guid GUID_WICPixelFormat2bppIndexed
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x02
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat4bppIndexed = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x03);
+        public static ref readonly Guid GUID_WICPixelFormat4bppIndexed
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x03
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat8bppIndexed = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x04);
+        public static ref readonly Guid GUID_WICPixelFormat8bppIndexed
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x04
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormatBlackWhite = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x05);
+        public static ref readonly Guid GUID_WICPixelFormatBlackWhite
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x05
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat2bppGray = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x06);
+        public static ref readonly Guid GUID_WICPixelFormat2bppGray
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x06
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat4bppGray = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x07);
+        public static ref readonly Guid GUID_WICPixelFormat4bppGray
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x07
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat8bppGray = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x08);
+        public static ref readonly Guid GUID_WICPixelFormat8bppGray
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x08
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat8bppAlpha = new Guid(0xe6cd0116, 0xeeba, 0x4161, 0xaa, 0x85, 0x27, 0xdd, 0x9f, 0xb3, 0xa8, 0x95);
+        public static ref readonly Guid GUID_WICPixelFormat8bppAlpha
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x16, 0x01, 0xCD, 0xE6,
+                    0xBA, 0xEE,
+                    0x61, 0x41,
+                    0xAA,
+                    0x85,
+                    0x27,
+                    0xDD,
+                    0x9F,
+                    0xB3,
+                    0xA8,
+                    0x95
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat16bppBGR555 = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x09);
+        public static ref readonly Guid GUID_WICPixelFormat16bppBGR555
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x09
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat16bppBGR565 = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x0a);
+        public static ref readonly Guid GUID_WICPixelFormat16bppBGR565
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x0A
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat16bppBGRA5551 = new Guid(0x05ec7c2b, 0xf1e6, 0x4961, 0xad, 0x46, 0xe1, 0xcc, 0x81, 0x0a, 0x87, 0xd2);
+        public static ref readonly Guid GUID_WICPixelFormat16bppBGRA5551
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x2B, 0x7C, 0xEC, 0x05,
+                    0xE6, 0xF1,
+                    0x61, 0x49,
+                    0xAD,
+                    0x46,
+                    0xE1,
+                    0xCC,
+                    0x81,
+                    0x0A,
+                    0x87,
+                    0xD2
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat16bppGray = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x0b);
+        public static ref readonly Guid GUID_WICPixelFormat16bppGray
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x0B
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat24bppBGR = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x0c);
+        public static ref readonly Guid GUID_WICPixelFormat24bppBGR
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x0C
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat24bppRGB = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x0d);
+        public static ref readonly Guid GUID_WICPixelFormat24bppRGB
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x0D
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat32bppBGR = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x0e);
+        public static ref readonly Guid GUID_WICPixelFormat32bppBGR
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x0E
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat32bppBGRA = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x0f);
+        public static ref readonly Guid GUID_WICPixelFormat32bppBGRA
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x0F
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat32bppPBGRA = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x10);
+        public static ref readonly Guid GUID_WICPixelFormat32bppPBGRA
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x10
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat32bppGrayFloat = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x11);
+        public static ref readonly Guid GUID_WICPixelFormat32bppGrayFloat
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x11
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat32bppRGB = new Guid(0xd98c6b95, 0x3efe, 0x47d6, 0xbb, 0x25, 0xeb, 0x17, 0x48, 0xab, 0x0c, 0xf1);
+        public static ref readonly Guid GUID_WICPixelFormat32bppRGB
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x95, 0x6B, 0x8C, 0xD9,
+                    0xFE, 0x3E,
+                    0xD6, 0x47,
+                    0xBB,
+                    0x25,
+                    0xEB,
+                    0x17,
+                    0x48,
+                    0xAB,
+                    0x0C,
+                    0xF1
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat32bppRGBA = new Guid(0xf5c7ad2d, 0x6a8d, 0x43dd, 0xa7, 0xa8, 0xa2, 0x99, 0x35, 0x26, 0x1a, 0xe9);
+        public static ref readonly Guid GUID_WICPixelFormat32bppRGBA
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x2D, 0xAD, 0xC7, 0xF5,
+                    0x8D, 0x6A,
+                    0xDD, 0x43,
+                    0xA7,
+                    0xA8,
+                    0xA2,
+                    0x99,
+                    0x35,
+                    0x26,
+                    0x1A,
+                    0xE9
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat32bppPRGBA = new Guid(0x3cc4a650, 0xa527, 0x4d37, 0xa9, 0x16, 0x31, 0x42, 0xc7, 0xeb, 0xed, 0xba);
+        public static ref readonly Guid GUID_WICPixelFormat32bppPRGBA
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x50, 0xA6, 0xC4, 0x3C,
+                    0x27, 0xA5,
+                    0x37, 0x4D,
+                    0xA9,
+                    0x16,
+                    0x31,
+                    0x42,
+                    0xC7,
+                    0xEB,
+                    0xED,
+                    0xBA
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat48bppRGB = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x15);
+        public static ref readonly Guid GUID_WICPixelFormat48bppRGB
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x15
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat48bppBGR = new Guid(0xe605a384, 0xb468, 0x46ce, 0xbb, 0x2e, 0x36, 0xf1, 0x80, 0xe6, 0x43, 0x13);
+        public static ref readonly Guid GUID_WICPixelFormat48bppBGR
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x84, 0xA3, 0x05, 0xE6,
+                    0x68, 0xB4,
+                    0xCE, 0x46,
+                    0xBB,
+                    0x2E,
+                    0x36,
+                    0xF1,
+                    0x80,
+                    0xE6,
+                    0x43,
+                    0x13
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat64bppRGB = new Guid(0xa1182111, 0x186d, 0x4d42, 0xbc, 0x6a, 0x9c, 0x83, 0x03, 0xa8, 0xdf, 0xf9);
+        public static ref readonly Guid GUID_WICPixelFormat64bppRGB
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x11, 0x21, 0x18, 0xA1,
+                    0x6D, 0x18,
+                    0x42, 0x4D,
+                    0xBC,
+                    0x6A,
+                    0x9C,
+                    0x83,
+                    0x03,
+                    0xA8,
+                    0xDF,
+                    0xF9
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat64bppRGBA = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x16);
+        public static ref readonly Guid GUID_WICPixelFormat64bppRGBA
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x16
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat64bppBGRA = new Guid(0x1562ff7c, 0xd352, 0x46f9, 0x97, 0x9e, 0x42, 0x97, 0x6b, 0x79, 0x22, 0x46);
+        public static ref readonly Guid GUID_WICPixelFormat64bppBGRA
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x7C, 0xFF, 0x62, 0x15,
+                    0x52, 0xD3,
+                    0xF9, 0x46,
+                    0x97,
+                    0x9E,
+                    0x42,
+                    0x97,
+                    0x6B,
+                    0x79,
+                    0x22,
+                    0x46
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat64bppPRGBA = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x17);
+        public static ref readonly Guid GUID_WICPixelFormat64bppPRGBA
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x17
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat64bppPBGRA = new Guid(0x8c518e8e, 0xa4ec, 0x468b, 0xae, 0x70, 0xc9, 0xa3, 0x5a, 0x9c, 0x55, 0x30);
+        public static ref readonly Guid GUID_WICPixelFormat64bppPBGRA
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x8E, 0x8E, 0x51, 0x8C,
+                    0xEC, 0xA4,
+                    0x8B, 0x46,
+                    0xAE,
+                    0x70,
+                    0xC9,
+                    0xA3,
+                    0x5A,
+                    0x9C,
+                    0x55,
+                    0x30
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat16bppGrayFixedPoint = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x13);
+        public static ref readonly Guid GUID_WICPixelFormat16bppGrayFixedPoint
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x13
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat32bppBGR101010 = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x14);
+        public static ref readonly Guid GUID_WICPixelFormat32bppBGR101010
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x14
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat48bppRGBFixedPoint = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x12);
+        public static ref readonly Guid GUID_WICPixelFormat48bppRGBFixedPoint
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x12
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat48bppBGRFixedPoint = new Guid(0x49ca140e, 0xcab6, 0x493b, 0x9d, 0xdf, 0x60, 0x18, 0x7c, 0x37, 0x53, 0x2a);
+        public static ref readonly Guid GUID_WICPixelFormat48bppBGRFixedPoint
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x0E, 0x14, 0xCA, 0x49,
+                    0xB6, 0xCA,
+                    0x3B, 0x49,
+                    0x9D,
+                    0xDF,
+                    0x60,
+                    0x18,
+                    0x7C,
+                    0x37,
+                    0x53,
+                    0x2A
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat96bppRGBFixedPoint = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x18);
+        public static ref readonly Guid GUID_WICPixelFormat96bppRGBFixedPoint
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x18
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat96bppRGBFloat = new Guid(0xe3fed78f, 0xe8db, 0x4acf, 0x84, 0xc1, 0xe9, 0x7f, 0x61, 0x36, 0xb3, 0x27);
+        public static ref readonly Guid GUID_WICPixelFormat96bppRGBFloat
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x8F, 0xD7, 0xFE, 0xE3,
+                    0xDB, 0xE8,
+                    0xCF, 0x4A,
+                    0x84,
+                    0xC1,
+                    0xE9,
+                    0x7F,
+                    0x61,
+                    0x36,
+                    0xB3,
+                    0x27
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat128bppRGBAFloat = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x19);
+        public static ref readonly Guid GUID_WICPixelFormat128bppRGBAFloat
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x19
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat128bppPRGBAFloat = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x1a);
+        public static ref readonly Guid GUID_WICPixelFormat128bppPRGBAFloat
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x1A
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat128bppRGBFloat = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x1b);
+        public static ref readonly Guid GUID_WICPixelFormat128bppRGBFloat
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x1B
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat32bppCMYK = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x1c);
+        public static ref readonly Guid GUID_WICPixelFormat32bppCMYK
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x1C
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat64bppRGBAFixedPoint = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x1d);
+        public static ref readonly Guid GUID_WICPixelFormat64bppRGBAFixedPoint
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x1D
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat64bppBGRAFixedPoint = new Guid(0x356de33c, 0x54d2, 0x4a23, 0xbb, 0x4, 0x9b, 0x7b, 0xf9, 0xb1, 0xd4, 0x2d);
+        public static ref readonly Guid GUID_WICPixelFormat64bppBGRAFixedPoint
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x3C, 0xE3, 0x6D, 0x35,
+                    0xD2, 0x54,
+                    0x23, 0x4A,
+                    0xBB,
+                    0x04,
+                    0x9B,
+                    0x7B,
+                    0xF9,
+                    0xB1,
+                    0xD4,
+                    0x2D
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat64bppRGBFixedPoint = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x40);
+        public static ref readonly Guid GUID_WICPixelFormat64bppRGBFixedPoint
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x40
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat128bppRGBAFixedPoint = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x1e);
+        public static ref readonly Guid GUID_WICPixelFormat128bppRGBAFixedPoint
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x1E
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat128bppRGBFixedPoint = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x41);
+        public static ref readonly Guid GUID_WICPixelFormat128bppRGBFixedPoint
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x41
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat64bppRGBAHalf = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x3a);
+        public static ref readonly Guid GUID_WICPixelFormat64bppRGBAHalf
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x3A
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat64bppPRGBAHalf = new Guid(0x58ad26c2, 0xc623, 0x4d9d, 0xb3, 0x20, 0x38, 0x7e, 0x49, 0xf8, 0xc4, 0x42);
+        public static ref readonly Guid GUID_WICPixelFormat64bppPRGBAHalf
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xC2, 0x26, 0xAD, 0x58,
+                    0x23, 0xC6,
+                    0x9D, 0x4D,
+                    0xB3,
+                    0x20,
+                    0x38,
+                    0x7E,
+                    0x49,
+                    0xF8,
+                    0xC4,
+                    0x42
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat64bppRGBHalf = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x42);
+        public static ref readonly Guid GUID_WICPixelFormat64bppRGBHalf
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x42
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat48bppRGBHalf = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x3b);
+        public static ref readonly Guid GUID_WICPixelFormat48bppRGBHalf
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x3B
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat32bppRGBE = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x3d);
+        public static ref readonly Guid GUID_WICPixelFormat32bppRGBE
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x3D
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat16bppGrayHalf = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x3e);
+        public static ref readonly Guid GUID_WICPixelFormat16bppGrayHalf
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x3E
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat32bppGrayFixedPoint = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x3f);
+        public static ref readonly Guid GUID_WICPixelFormat32bppGrayFixedPoint
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x3F
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat32bppRGBA1010102 = new Guid(0x25238D72, 0xFCF9, 0x4522, 0xb5, 0x14, 0x55, 0x78, 0xe5, 0xad, 0x55, 0xe0);
+        public static ref readonly Guid GUID_WICPixelFormat32bppRGBA1010102
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x72, 0x8D, 0x23, 0x25,
+                    0xF9, 0xFC,
+                    0x22, 0x45,
+                    0xB5,
+                    0x14,
+                    0x55,
+                    0x78,
+                    0xE5,
+                    0xAD,
+                    0x55,
+                    0xE0
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat32bppRGBA1010102XR = new Guid(0x00DE6B9A, 0xC101, 0x434b, 0xb5, 0x02, 0xd0, 0x16, 0x5e, 0xe1, 0x12, 0x2c);
+        public static ref readonly Guid GUID_WICPixelFormat32bppRGBA1010102XR
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x9A, 0x6B, 0xDE, 0x00,
+                    0x01, 0xC1,
+                    0x4B, 0x43,
+                    0xB5,
+                    0x02,
+                    0xD0,
+                    0x16,
+                    0x5E,
+                    0xE1,
+                    0x12,
+                    0x2C
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat32bppR10G10B10A2 = new Guid(0x604e1bb5, 0x8a3c, 0x4b65, 0xb1, 0x1c, 0xbc, 0x0b, 0x8d, 0xd7, 0x5b, 0x7f);
+        public static ref readonly Guid GUID_WICPixelFormat32bppR10G10B10A2
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xB5, 0x1B, 0x4E, 0x60,
+                    0x3C, 0x8A,
+                    0x65, 0x4B,
+                    0xB1,
+                    0x1C,
+                    0xBC,
+                    0x0B,
+                    0x8D,
+                    0xD7,
+                    0x5B,
+                    0x7F
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat32bppR10G10B10A2HDR10 = new Guid(0x9c215c5d, 0x1acc, 0x4f0e, 0xa4, 0xbc, 0x70, 0xfb, 0x3a, 0xe8, 0xfd, 0x28);
+        public static ref readonly Guid GUID_WICPixelFormat32bppR10G10B10A2HDR10
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x5D, 0x5C, 0x21, 0x9C,
+                    0xCC, 0x1A,
+                    0x0E, 0x4F,
+                    0xA4,
+                    0xBC,
+                    0x70,
+                    0xFB,
+                    0x3A,
+                    0xE8,
+                    0xFD,
+                    0x28
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat64bppCMYK = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x1f);
+        public static ref readonly Guid GUID_WICPixelFormat64bppCMYK
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x1F
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 #if false
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat24bpp3Channels = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x20);
+        public static ref readonly Guid GUID_WICPixelFormat24bpp3Channels
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x20
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat32bpp4Channels = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x21);
+        public static ref readonly Guid GUID_WICPixelFormat32bpp4Channels
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x21
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat40bpp5Channels = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x22);
+        public static ref readonly Guid GUID_WICPixelFormat40bpp5Channels
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x22
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat48bpp6Channels = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x23);
+        public static ref readonly Guid GUID_WICPixelFormat48bpp6Channels
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x23
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat56bpp7Channels = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x24);
+        public static ref readonly Guid GUID_WICPixelFormat56bpp7Channels
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x24
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat64bpp8Channels = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x25);
+        public static ref readonly Guid GUID_WICPixelFormat64bpp8Channels
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x25
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat48bpp3Channels = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x26);
+        public static ref readonly Guid GUID_WICPixelFormat48bpp3Channels
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x26
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat64bpp4Channels = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x27);
+        public static ref readonly Guid GUID_WICPixelFormat64bpp4Channels
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x27
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat80bpp5Channels = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x28);
+        public static ref readonly Guid GUID_WICPixelFormat80bpp5Channels
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x28
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat96bpp6Channels = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x29);
+        public static ref readonly Guid GUID_WICPixelFormat96bpp6Channels
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x29
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat112bpp7Channels = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x2a);
+        public static ref readonly Guid GUID_WICPixelFormat112bpp7Channels
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x2A
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat128bpp8Channels = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x2b);
+        public static ref readonly Guid GUID_WICPixelFormat128bpp8Channels
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x2B
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 #endif
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat40bppCMYKAlpha = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x2c);
+        public static ref readonly Guid GUID_WICPixelFormat40bppCMYKAlpha
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x2C
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat80bppCMYKAlpha = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x2d);
+        public static ref readonly Guid GUID_WICPixelFormat80bppCMYKAlpha
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x2D
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 #if false
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat32bpp3ChannelsAlpha = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x2e);
+        public static ref readonly Guid GUID_WICPixelFormat32bpp3ChannelsAlpha
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x2E
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat40bpp4ChannelsAlpha = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x2f);
+        public static ref readonly Guid GUID_WICPixelFormat40bpp4ChannelsAlpha
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x2F
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat48bpp5ChannelsAlpha = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x30);
+        public static ref readonly Guid GUID_WICPixelFormat48bpp5ChannelsAlpha
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x30
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat56bpp6ChannelsAlpha = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x31);
+        public static ref readonly Guid GUID_WICPixelFormat56bpp6ChannelsAlpha
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x31
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat64bpp7ChannelsAlpha = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x32);
+        public static ref readonly Guid GUID_WICPixelFormat64bpp7ChannelsAlpha
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x32
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat72bpp8ChannelsAlpha = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x33);
+        public static ref readonly Guid GUID_WICPixelFormat72bpp8ChannelsAlpha
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x33
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat64bpp3ChannelsAlpha = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x34);
+        public static ref readonly Guid GUID_WICPixelFormat64bpp3ChannelsAlpha
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x34
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat80bpp4ChannelsAlpha = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x35);
+        public static ref readonly Guid GUID_WICPixelFormat80bpp4ChannelsAlpha
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x35
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat96bpp5ChannelsAlpha = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x36);
+        public static ref readonly Guid GUID_WICPixelFormat96bpp5ChannelsAlpha
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x36
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat112bpp6ChannelsAlpha = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x37);
+        public static ref readonly Guid GUID_WICPixelFormat112bpp6ChannelsAlpha
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x37
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat128bpp7ChannelsAlpha = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x38);
+        public static ref readonly Guid GUID_WICPixelFormat128bpp7ChannelsAlpha
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x38
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat144bpp8ChannelsAlpha = new Guid(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x39);
+        public static ref readonly Guid GUID_WICPixelFormat144bpp8ChannelsAlpha
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xC3, 0xDD, 0x6F,
+                    0x03, 0x4E,
+                    0xFE, 0x4B,
+                    0xB1,
+                    0x85,
+                    0x3D,
+                    0x77,
+                    0x76,
+                    0x8D,
+                    0xC9,
+                    0x39
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 #endif
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat8bppY = new Guid(0x91B4DB54, 0x2DF9, 0x42F0, 0xB4, 0x49, 0x29, 0x09, 0xBB, 0x3D, 0xF8, 0x8E);
+        public static ref readonly Guid GUID_WICPixelFormat8bppY
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x54, 0xDB, 0xB4, 0x91,
+                    0xF9, 0x2D,
+                    0xF0, 0x42,
+                    0xB4,
+                    0x49,
+                    0x29,
+                    0x09,
+                    0xBB,
+                    0x3D,
+                    0xF8,
+                    0x8E
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat8bppCb = new Guid(0x1339F224, 0x6BFE, 0x4C3E, 0x93, 0x02, 0xE4, 0xF3, 0xA6, 0xD0, 0xCA, 0x2A);
+        public static ref readonly Guid GUID_WICPixelFormat8bppCb
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x24, 0xF2, 0x39, 0x13,
+                    0xFE, 0x6B,
+                    0x3E, 0x4C,
+                    0x93,
+                    0x02,
+                    0xE4,
+                    0xF3,
+                    0xA6,
+                    0xD0,
+                    0xCA,
+                    0x2A
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat8bppCr = new Guid(0xB8145053, 0x2116, 0x49F0, 0x88, 0x35, 0xED, 0x84, 0x4B, 0x20, 0x5C, 0x51);
+        public static ref readonly Guid GUID_WICPixelFormat8bppCr
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x53, 0x50, 0x14, 0xB8,
+                    0x16, 0x21,
+                    0xF0, 0x49,
+                    0x88,
+                    0x35,
+                    0xED,
+                    0x84,
+                    0x4B,
+                    0x20,
+                    0x5C,
+                    0x51
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat16bppCbCr = new Guid(0xFF95BA6E, 0x11E0, 0x4263, 0xBB, 0x45, 0x01, 0x72, 0x1F, 0x34, 0x60, 0xA4);
+        public static ref readonly Guid GUID_WICPixelFormat16bppCbCr
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x6E, 0xBA, 0x95, 0xFF,
+                    0xE0, 0x11,
+                    0x63, 0x42,
+                    0xBB,
+                    0x45,
+                    0x01,
+                    0x72,
+                    0x1F,
+                    0x34,
+                    0x60,
+                    0xA4
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat16bppYQuantizedDctCoefficients = new Guid(0xA355F433, 0x48E8, 0x4A42, 0x84, 0xD8, 0xE2, 0xAA, 0x26, 0xCA, 0x80, 0xA4);
+        public static ref readonly Guid GUID_WICPixelFormat16bppYQuantizedDctCoefficients
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x33, 0xF4, 0x55, 0xA3,
+                    0xE8, 0x48,
+                    0x42, 0x4A,
+                    0x84,
+                    0xD8,
+                    0xE2,
+                    0xAA,
+                    0x26,
+                    0xCA,
+                    0x80,
+                    0xA4
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat16bppCbQuantizedDctCoefficients = new Guid(0xD2C4FF61, 0x56A5, 0x49C2, 0x8B, 0x5C, 0x4C, 0x19, 0x25, 0x96, 0x48, 0x37);
+        public static ref readonly Guid GUID_WICPixelFormat16bppCbQuantizedDctCoefficients
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x61, 0xFF, 0xC4, 0xD2,
+                    0xA5, 0x56,
+                    0xC2, 0x49,
+                    0x8B,
+                    0x5C,
+                    0x4C,
+                    0x19,
+                    0x25,
+                    0x96,
+                    0x48,
+                    0x37
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
         [NativeTypeName("const GUID")]
-        public static readonly Guid GUID_WICPixelFormat16bppCrQuantizedDctCoefficients = new Guid(0x2FE354F0, 0x1680, 0x42D8, 0x92, 0x31, 0xE7, 0x3C, 0x05, 0x65, 0xBF, 0xC1);
+        public static ref readonly Guid GUID_WICPixelFormat16bppCrQuantizedDctCoefficients
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xF0, 0x54, 0xE3, 0x2F,
+                    0x80, 0x16,
+                    0xD8, 0x42,
+                    0x92,
+                    0x31,
+                    0xE7,
+                    0x3C,
+                    0x05,
+                    0x65,
+                    0xBF,
+                    0xC1
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 #if false
-        [DllImport("WindowsCodecs", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
+        [DllImport("WindowsCodecs", ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
         public static extern int WICConvertBitmapSource([NativeTypeName("REFWICPixelFormatGUID")] Guid* dstFormat, IWICBitmapSource* pISrc, IWICBitmapSource** ppIDst);
 
-        [DllImport("WindowsCodecs", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
+        [DllImport("WindowsCodecs", ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
         public static extern int WICCreateBitmapFromSection([NativeTypeName("UINT")] uint width, [NativeTypeName("UINT")] uint height, [NativeTypeName("REFWICPixelFormatGUID")] Guid* pixelFormat, [NativeTypeName("HANDLE")] IntPtr hSection, [NativeTypeName("UINT")] uint stride, [NativeTypeName("UINT")] uint offset, IWICBitmap** ppIBitmap);
 
-        [DllImport("WindowsCodecs", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
+        [DllImport("WindowsCodecs", ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
         public static extern int WICCreateBitmapFromSectionEx([NativeTypeName("UINT")] uint width, [NativeTypeName("UINT")] uint height, [NativeTypeName("REFWICPixelFormatGUID")] Guid* pixelFormat, [NativeTypeName("HANDLE")] IntPtr hSection, [NativeTypeName("UINT")] uint stride, [NativeTypeName("UINT")] uint offset, WICSectionAccessLevel desiredAccessLevel, IWICBitmap** ppIBitmap);
 
-        [DllImport("WindowsCodecs", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
+        [DllImport("WindowsCodecs", ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
         public static extern int WICMapGuidToShortName([NativeTypeName("const GUID &")] Guid* guid, [NativeTypeName("UINT")] uint cchName, [NativeTypeName("WCHAR *")] ushort* wzName, [NativeTypeName("UINT *")] uint* pcchActual);
 
-        [DllImport("WindowsCodecs", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
+        [DllImport("WindowsCodecs", ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
         public static extern int WICMapShortNameToGuid([NativeTypeName("PCWSTR")] ushort* wzName, [NativeTypeName("GUID *")] Guid* pguid);
 
-        [DllImport("WindowsCodecs", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
+        [DllImport("WindowsCodecs", ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
         public static extern int WICMapSchemaToName([NativeTypeName("const GUID &")] Guid* guidMetadataFormat, [NativeTypeName("LPWSTR")] ushort* pwzSchema, [NativeTypeName("UINT")] uint cchName, [NativeTypeName("WCHAR *")] ushort* wzName, [NativeTypeName("UINT *")] uint* pcchActual);
 
@@ -501,7 +3583,7 @@ namespace TerraFX.Interop
         public const int WIC_JPEG_HUFFMAN_BASELINE_THREE = (0x111100);
 
         [NativeTypeName("#define GUID_WICPixelFormatUndefined GUID_WICPixelFormatDontCare")]
-        public static readonly Guid GUID_WICPixelFormatUndefined = GUID_WICPixelFormatDontCare;
+        public static ref readonly Guid GUID_WICPixelFormatUndefined => ref GUID_WICPixelFormatDontCare;
 
         [NativeTypeName("#define FACILITY_WINCODEC_ERR 0x898")]
         public const int FACILITY_WINCODEC_ERR = 0x898;
@@ -572,91 +3654,994 @@ namespace TerraFX.Interop
         [NativeTypeName("#define WICRawChangeNotification_RenderMode 0x00002000")]
         public const int WICRawChangeNotification_RenderMode = 0x00002000;
 
-        public static readonly Guid IID_IWICPalette = new Guid(0x00000040, 0xA8F2, 0x4877, 0xBA, 0x0A, 0xFD, 0x2B, 0x66, 0x45, 0xFB, 0x94);
+        public static ref readonly Guid IID_IWICPalette
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x40, 0x00, 0x00, 0x00,
+                    0xF2, 0xA8,
+                    0x77, 0x48,
+                    0xBA,
+                    0x0A,
+                    0xFD,
+                    0x2B,
+                    0x66,
+                    0x45,
+                    0xFB,
+                    0x94
+                };
 
-        public static readonly Guid IID_IWICBitmapSource = new Guid(0x00000120, 0xA8F2, 0x4877, 0xBA, 0x0A, 0xFD, 0x2B, 0x66, 0x45, 0xFB, 0x94);
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
-        public static readonly Guid IID_IWICFormatConverter = new Guid(0x00000301, 0xA8F2, 0x4877, 0xBA, 0x0A, 0xFD, 0x2B, 0x66, 0x45, 0xFB, 0x94);
+        public static ref readonly Guid IID_IWICBitmapSource
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x20, 0x01, 0x00, 0x00,
+                    0xF2, 0xA8,
+                    0x77, 0x48,
+                    0xBA,
+                    0x0A,
+                    0xFD,
+                    0x2B,
+                    0x66,
+                    0x45,
+                    0xFB,
+                    0x94
+                };
 
-        public static readonly Guid IID_IWICPlanarFormatConverter = new Guid(0xBEBEE9CB, 0x83B0, 0x4DCC, 0x81, 0x32, 0xB0, 0xAA, 0xA5, 0x5E, 0xAC, 0x96);
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
-        public static readonly Guid IID_IWICBitmapScaler = new Guid(0x00000302, 0xA8F2, 0x4877, 0xBA, 0x0A, 0xFD, 0x2B, 0x66, 0x45, 0xFB, 0x94);
+        public static ref readonly Guid IID_IWICFormatConverter
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x01, 0x03, 0x00, 0x00,
+                    0xF2, 0xA8,
+                    0x77, 0x48,
+                    0xBA,
+                    0x0A,
+                    0xFD,
+                    0x2B,
+                    0x66,
+                    0x45,
+                    0xFB,
+                    0x94
+                };
 
-        public static readonly Guid IID_IWICBitmapClipper = new Guid(0xE4FBCF03, 0x223D, 0x4E81, 0x93, 0x33, 0xD6, 0x35, 0x55, 0x6D, 0xD1, 0xB5);
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
-        public static readonly Guid IID_IWICBitmapFlipRotator = new Guid(0x5009834F, 0x2D6A, 0x41CE, 0x9E, 0x1B, 0x17, 0xC5, 0xAF, 0xF7, 0xA7, 0x82);
+        public static ref readonly Guid IID_IWICPlanarFormatConverter
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xCB, 0xE9, 0xBE, 0xBE,
+                    0xB0, 0x83,
+                    0xCC, 0x4D,
+                    0x81,
+                    0x32,
+                    0xB0,
+                    0xAA,
+                    0xA5,
+                    0x5E,
+                    0xAC,
+                    0x96
+                };
 
-        public static readonly Guid IID_IWICBitmapLock = new Guid(0x00000123, 0xA8F2, 0x4877, 0xBA, 0x0A, 0xFD, 0x2B, 0x66, 0x45, 0xFB, 0x94);
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
-        public static readonly Guid IID_IWICBitmap = new Guid(0x00000121, 0xA8F2, 0x4877, 0xBA, 0x0A, 0xFD, 0x2B, 0x66, 0x45, 0xFB, 0x94);
+        public static ref readonly Guid IID_IWICBitmapScaler
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x02, 0x03, 0x00, 0x00,
+                    0xF2, 0xA8,
+                    0x77, 0x48,
+                    0xBA,
+                    0x0A,
+                    0xFD,
+                    0x2B,
+                    0x66,
+                    0x45,
+                    0xFB,
+                    0x94
+                };
 
-        public static readonly Guid IID_IWICColorContext = new Guid(0x3C613A02, 0x34B2, 0x44EA, 0x9A, 0x7C, 0x45, 0xAE, 0xA9, 0xC6, 0xFD, 0x6D);
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
-        public static readonly Guid IID_IWICColorTransform = new Guid(0xB66F034F, 0xD0E2, 0x40AB, 0xB4, 0x36, 0x6D, 0xE3, 0x9E, 0x32, 0x1A, 0x94);
+        public static ref readonly Guid IID_IWICBitmapClipper
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x03, 0xCF, 0xFB, 0xE4,
+                    0x3D, 0x22,
+                    0x81, 0x4E,
+                    0x93,
+                    0x33,
+                    0xD6,
+                    0x35,
+                    0x55,
+                    0x6D,
+                    0xD1,
+                    0xB5
+                };
 
-        public static readonly Guid IID_IWICFastMetadataEncoder = new Guid(0xB84E2C09, 0x78C9, 0x4AC4, 0x8B, 0xD3, 0x52, 0x4A, 0xE1, 0x66, 0x3A, 0x2F);
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
-        public static readonly Guid IID_IWICStream = new Guid(0x135FF860, 0x22B7, 0x4DDF, 0xB0, 0xF6, 0x21, 0x8F, 0x4F, 0x29, 0x9A, 0x43);
+        public static ref readonly Guid IID_IWICBitmapFlipRotator
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x4F, 0x83, 0x09, 0x50,
+                    0x6A, 0x2D,
+                    0xCE, 0x41,
+                    0x9E,
+                    0x1B,
+                    0x17,
+                    0xC5,
+                    0xAF,
+                    0xF7,
+                    0xA7,
+                    0x82
+                };
 
-        public static readonly Guid IID_IWICEnumMetadataItem = new Guid(0xDC2BB46D, 0x3F07, 0x481E, 0x86, 0x25, 0x22, 0x0C, 0x4A, 0xED, 0xBB, 0x33);
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
-        public static readonly Guid IID_IWICMetadataQueryReader = new Guid(0x30989668, 0xE1C9, 0x4597, 0xB3, 0x95, 0x45, 0x8E, 0xED, 0xB8, 0x08, 0xDF);
+        public static ref readonly Guid IID_IWICBitmapLock
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x23, 0x01, 0x00, 0x00,
+                    0xF2, 0xA8,
+                    0x77, 0x48,
+                    0xBA,
+                    0x0A,
+                    0xFD,
+                    0x2B,
+                    0x66,
+                    0x45,
+                    0xFB,
+                    0x94
+                };
 
-        public static readonly Guid IID_IWICMetadataQueryWriter = new Guid(0xA721791A, 0x0DEF, 0x4D06, 0xBD, 0x91, 0x21, 0x18, 0xBF, 0x1D, 0xB1, 0x0B);
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
-        public static readonly Guid IID_IWICBitmapEncoder = new Guid(0x00000103, 0xA8F2, 0x4877, 0xBA, 0x0A, 0xFD, 0x2B, 0x66, 0x45, 0xFB, 0x94);
+        public static ref readonly Guid IID_IWICBitmap
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x21, 0x01, 0x00, 0x00,
+                    0xF2, 0xA8,
+                    0x77, 0x48,
+                    0xBA,
+                    0x0A,
+                    0xFD,
+                    0x2B,
+                    0x66,
+                    0x45,
+                    0xFB,
+                    0x94
+                };
 
-        public static readonly Guid IID_IWICBitmapFrameEncode = new Guid(0x00000105, 0xA8F2, 0x4877, 0xBA, 0x0A, 0xFD, 0x2B, 0x66, 0x45, 0xFB, 0x94);
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
-        public static readonly Guid IID_IWICPlanarBitmapFrameEncode = new Guid(0xF928B7B8, 0x2221, 0x40C1, 0xB7, 0x2E, 0x7E, 0x82, 0xF1, 0x97, 0x4D, 0x1A);
+        public static ref readonly Guid IID_IWICColorContext
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x02, 0x3A, 0x61, 0x3C,
+                    0xB2, 0x34,
+                    0xEA, 0x44,
+                    0x9A,
+                    0x7C,
+                    0x45,
+                    0xAE,
+                    0xA9,
+                    0xC6,
+                    0xFD,
+                    0x6D
+                };
 
-        public static readonly Guid IID_IWICImageEncoder = new Guid(0x04C75BF8, 0x3CE1, 0x473B, 0xAC, 0xC5, 0x3C, 0xC4, 0xF5, 0xE9, 0x49, 0x99);
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
-        public static readonly Guid IID_IWICBitmapDecoder = new Guid(0x9EDDE9E7, 0x8DEE, 0x47EA, 0x99, 0xDF, 0xE6, 0xFA, 0xF2, 0xED, 0x44, 0xBF);
+        public static ref readonly Guid IID_IWICColorTransform
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x4F, 0x03, 0x6F, 0xB6,
+                    0xE2, 0xD0,
+                    0xAB, 0x40,
+                    0xB4,
+                    0x36,
+                    0x6D,
+                    0xE3,
+                    0x9E,
+                    0x32,
+                    0x1A,
+                    0x94
+                };
 
-        public static readonly Guid IID_IWICBitmapSourceTransform = new Guid(0x3B16811B, 0x6A43, 0x4EC9, 0xB7, 0x13, 0x3D, 0x5A, 0x0C, 0x13, 0xB9, 0x40);
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
-        public static readonly Guid IID_IWICPlanarBitmapSourceTransform = new Guid(0x3AFF9CCE, 0xBE95, 0x4303, 0xB9, 0x27, 0xE7, 0xD1, 0x6F, 0xF4, 0xA6, 0x13);
+        public static ref readonly Guid IID_IWICFastMetadataEncoder
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x09, 0x2C, 0x4E, 0xB8,
+                    0xC9, 0x78,
+                    0xC4, 0x4A,
+                    0x8B,
+                    0xD3,
+                    0x52,
+                    0x4A,
+                    0xE1,
+                    0x66,
+                    0x3A,
+                    0x2F
+                };
 
-        public static readonly Guid IID_IWICBitmapFrameDecode = new Guid(0x3B16811B, 0x6A43, 0x4EC9, 0xA8, 0x13, 0x3D, 0x93, 0x0C, 0x13, 0xB9, 0x40);
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
-        public static readonly Guid IID_IWICProgressiveLevelControl = new Guid(0xDAAC296F, 0x7AA5, 0x4DBF, 0x8D, 0x15, 0x22, 0x5C, 0x59, 0x76, 0xF8, 0x91);
+        public static ref readonly Guid IID_IWICStream
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x60, 0xF8, 0x5F, 0x13,
+                    0xB7, 0x22,
+                    0xDF, 0x4D,
+                    0xB0,
+                    0xF6,
+                    0x21,
+                    0x8F,
+                    0x4F,
+                    0x29,
+                    0x9A,
+                    0x43
+                };
 
-        public static readonly Guid IID_IWICProgressCallback = new Guid(0x4776F9CD, 0x9517, 0x45FA, 0xBF, 0x24, 0xE8, 0x9C, 0x5E, 0xC5, 0xC6, 0x0C);
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
-        public static readonly Guid IID_IWICBitmapCodecProgressNotification = new Guid(0x64C1024E, 0xC3CF, 0x4462, 0x80, 0x78, 0x88, 0xC2, 0xB1, 0x1C, 0x46, 0xD9);
+        public static ref readonly Guid IID_IWICEnumMetadataItem
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x6D, 0xB4, 0x2B, 0xDC,
+                    0x07, 0x3F,
+                    0x1E, 0x48,
+                    0x86,
+                    0x25,
+                    0x22,
+                    0x0C,
+                    0x4A,
+                    0xED,
+                    0xBB,
+                    0x33
+                };
 
-        public static readonly Guid IID_IWICComponentInfo = new Guid(0x23BC3F0A, 0x698B, 0x4357, 0x88, 0x6B, 0xF2, 0x4D, 0x50, 0x67, 0x13, 0x34);
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
-        public static readonly Guid IID_IWICFormatConverterInfo = new Guid(0x9F34FB65, 0x13F4, 0x4F15, 0xBC, 0x57, 0x37, 0x26, 0xB5, 0xE5, 0x3D, 0x9F);
+        public static ref readonly Guid IID_IWICMetadataQueryReader
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x68, 0x96, 0x98, 0x30,
+                    0xC9, 0xE1,
+                    0x97, 0x45,
+                    0xB3,
+                    0x95,
+                    0x45,
+                    0x8E,
+                    0xED,
+                    0xB8,
+                    0x08,
+                    0xDF
+                };
 
-        public static readonly Guid IID_IWICBitmapCodecInfo = new Guid(0xE87A44C4, 0xB76E, 0x4C47, 0x8B, 0x09, 0x29, 0x8E, 0xB1, 0x2A, 0x27, 0x14);
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
-        public static readonly Guid IID_IWICBitmapEncoderInfo = new Guid(0x94C9B4EE, 0xA09F, 0x4F92, 0x8A, 0x1E, 0x4A, 0x9B, 0xCE, 0x7E, 0x76, 0xFB);
+        public static ref readonly Guid IID_IWICMetadataQueryWriter
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x1A, 0x79, 0x21, 0xA7,
+                    0xEF, 0x0D,
+                    0x06, 0x4D,
+                    0xBD,
+                    0x91,
+                    0x21,
+                    0x18,
+                    0xBF,
+                    0x1D,
+                    0xB1,
+                    0x0B
+                };
 
-        public static readonly Guid IID_IWICBitmapDecoderInfo = new Guid(0xD8CD007F, 0xD08F, 0x4191, 0x9B, 0xFC, 0x23, 0x6E, 0xA7, 0xF0, 0xE4, 0xB5);
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
-        public static readonly Guid IID_IWICPixelFormatInfo = new Guid(0xE8EDA601, 0x3D48, 0x431A, 0xAB, 0x44, 0x69, 0x05, 0x9B, 0xE8, 0x8B, 0xBE);
+        public static ref readonly Guid IID_IWICBitmapEncoder
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x03, 0x01, 0x00, 0x00,
+                    0xF2, 0xA8,
+                    0x77, 0x48,
+                    0xBA,
+                    0x0A,
+                    0xFD,
+                    0x2B,
+                    0x66,
+                    0x45,
+                    0xFB,
+                    0x94
+                };
 
-        public static readonly Guid IID_IWICPixelFormatInfo2 = new Guid(0xA9DB33A2, 0xAF5F, 0x43C7, 0xB6, 0x79, 0x74, 0xF5, 0x98, 0x4B, 0x5A, 0xA4);
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
+
+        public static ref readonly Guid IID_IWICBitmapFrameEncode
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x05, 0x01, 0x00, 0x00,
+                    0xF2, 0xA8,
+                    0x77, 0x48,
+                    0xBA,
+                    0x0A,
+                    0xFD,
+                    0x2B,
+                    0x66,
+                    0x45,
+                    0xFB,
+                    0x94
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
+
+        public static ref readonly Guid IID_IWICPlanarBitmapFrameEncode
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xB8, 0xB7, 0x28, 0xF9,
+                    0x21, 0x22,
+                    0xC1, 0x40,
+                    0xB7,
+                    0x2E,
+                    0x7E,
+                    0x82,
+                    0xF1,
+                    0x97,
+                    0x4D,
+                    0x1A
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
+
+        public static ref readonly Guid IID_IWICImageEncoder
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xF8, 0x5B, 0xC7, 0x04,
+                    0xE1, 0x3C,
+                    0x3B, 0x47,
+                    0xAC,
+                    0xC5,
+                    0x3C,
+                    0xC4,
+                    0xF5,
+                    0xE9,
+                    0x49,
+                    0x99
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
+
+        public static ref readonly Guid IID_IWICBitmapDecoder
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xE7, 0xE9, 0xDD, 0x9E,
+                    0xEE, 0x8D,
+                    0xEA, 0x47,
+                    0x99,
+                    0xDF,
+                    0xE6,
+                    0xFA,
+                    0xF2,
+                    0xED,
+                    0x44,
+                    0xBF
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
+
+        public static ref readonly Guid IID_IWICBitmapSourceTransform
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x1B, 0x81, 0x16, 0x3B,
+                    0x43, 0x6A,
+                    0xC9, 0x4E,
+                    0xB7,
+                    0x13,
+                    0x3D,
+                    0x5A,
+                    0x0C,
+                    0x13,
+                    0xB9,
+                    0x40
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
+
+        public static ref readonly Guid IID_IWICPlanarBitmapSourceTransform
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xCE, 0x9C, 0xFF, 0x3A,
+                    0x95, 0xBE,
+                    0x03, 0x43,
+                    0xB9,
+                    0x27,
+                    0xE7,
+                    0xD1,
+                    0x6F,
+                    0xF4,
+                    0xA6,
+                    0x13
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
+
+        public static ref readonly Guid IID_IWICBitmapFrameDecode
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x1B, 0x81, 0x16, 0x3B,
+                    0x43, 0x6A,
+                    0xC9, 0x4E,
+                    0xA8,
+                    0x13,
+                    0x3D,
+                    0x93,
+                    0x0C,
+                    0x13,
+                    0xB9,
+                    0x40
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
+
+        public static ref readonly Guid IID_IWICProgressiveLevelControl
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x6F, 0x29, 0xAC, 0xDA,
+                    0xA5, 0x7A,
+                    0xBF, 0x4D,
+                    0x8D,
+                    0x15,
+                    0x22,
+                    0x5C,
+                    0x59,
+                    0x76,
+                    0xF8,
+                    0x91
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
+
+        public static ref readonly Guid IID_IWICProgressCallback
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xCD, 0xF9, 0x76, 0x47,
+                    0x17, 0x95,
+                    0xFA, 0x45,
+                    0xBF,
+                    0x24,
+                    0xE8,
+                    0x9C,
+                    0x5E,
+                    0xC5,
+                    0xC6,
+                    0x0C
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
+
+        public static ref readonly Guid IID_IWICBitmapCodecProgressNotification
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x4E, 0x02, 0xC1, 0x64,
+                    0xCF, 0xC3,
+                    0x62, 0x44,
+                    0x80,
+                    0x78,
+                    0x88,
+                    0xC2,
+                    0xB1,
+                    0x1C,
+                    0x46,
+                    0xD9
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
+
+        public static ref readonly Guid IID_IWICComponentInfo
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x0A, 0x3F, 0xBC, 0x23,
+                    0x8B, 0x69,
+                    0x57, 0x43,
+                    0x88,
+                    0x6B,
+                    0xF2,
+                    0x4D,
+                    0x50,
+                    0x67,
+                    0x13,
+                    0x34
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
+
+        public static ref readonly Guid IID_IWICFormatConverterInfo
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x65, 0xFB, 0x34, 0x9F,
+                    0xF4, 0x13,
+                    0x15, 0x4F,
+                    0xBC,
+                    0x57,
+                    0x37,
+                    0x26,
+                    0xB5,
+                    0xE5,
+                    0x3D,
+                    0x9F
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
+
+        public static ref readonly Guid IID_IWICBitmapCodecInfo
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xC4, 0x44, 0x7A, 0xE8,
+                    0x6E, 0xB7,
+                    0x47, 0x4C,
+                    0x8B,
+                    0x09,
+                    0x29,
+                    0x8E,
+                    0xB1,
+                    0x2A,
+                    0x27,
+                    0x14
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
+
+        public static ref readonly Guid IID_IWICBitmapEncoderInfo
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xEE, 0xB4, 0xC9, 0x94,
+                    0x9F, 0xA0,
+                    0x92, 0x4F,
+                    0x8A,
+                    0x1E,
+                    0x4A,
+                    0x9B,
+                    0xCE,
+                    0x7E,
+                    0x76,
+                    0xFB
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
+
+        public static ref readonly Guid IID_IWICBitmapDecoderInfo
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x7F, 0x00, 0xCD, 0xD8,
+                    0x8F, 0xD0,
+                    0x91, 0x41,
+                    0x9B,
+                    0xFC,
+                    0x23,
+                    0x6E,
+                    0xA7,
+                    0xF0,
+                    0xE4,
+                    0xB5
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
+
+        public static ref readonly Guid IID_IWICPixelFormatInfo
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x01, 0xA6, 0xED, 0xE8,
+                    0x48, 0x3D,
+                    0x1A, 0x43,
+                    0xAB,
+                    0x44,
+                    0x69,
+                    0x05,
+                    0x9B,
+                    0xE8,
+                    0x8B,
+                    0xBE
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
+
+        public static ref readonly Guid IID_IWICPixelFormatInfo2
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xA2, 0x33, 0xDB, 0xA9,
+                    0x5F, 0xAF,
+                    0xC7, 0x43,
+                    0xB6,
+                    0x79,
+                    0x74,
+                    0xF5,
+                    0x98,
+                    0x4B,
+                    0x5A,
+                    0xA4
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 #endif
-        public static readonly Guid IID_IWICImagingFactory = new Guid(0xEC5EC8A9, 0xC395, 0x4314, 0x9C, 0x77, 0x54, 0xD7, 0xA9, 0x35, 0xFF, 0x70);
+        public static ref readonly Guid IID_IWICImagingFactory
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0xA9, 0xC8, 0x5E, 0xEC,
+                    0x95, 0xC3,
+                    0x14, 0x43,
+                    0x9C,
+                    0x77,
+                    0x54,
+                    0xD7,
+                    0xA9,
+                    0x35,
+                    0xFF,
+                    0x70
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 #if false
-        public static readonly Guid IID_IWICImagingFactory2 = new Guid(0x7B816B45, 0x1996, 0x4476, 0xB1, 0x32, 0xDE, 0x9E, 0x24, 0x7C, 0x8A, 0xF0);
+        public static ref readonly Guid IID_IWICImagingFactory2
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x45, 0x6B, 0x81, 0x7B,
+                    0x96, 0x19,
+                    0x76, 0x44,
+                    0xB1,
+                    0x32,
+                    0xDE,
+                    0x9E,
+                    0x24,
+                    0x7C,
+                    0x8A,
+                    0xF0
+                };
 
-        public static readonly Guid IID_IWICDevelopRawNotificationCallback = new Guid(0x95C75A6E, 0x3E8C, 0x4EC2, 0x85, 0xA8, 0xAE, 0xBC, 0xC5, 0x51, 0xE5, 0x9B);
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
-        public static readonly Guid IID_IWICDevelopRaw = new Guid(0xFBEC5E44, 0xF7BE, 0x4B65, 0xB7, 0xF8, 0xC0, 0xC8, 0x1F, 0xEF, 0x02, 0x6D);
+        public static ref readonly Guid IID_IWICDevelopRawNotificationCallback
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x6E, 0x5A, 0xC7, 0x95,
+                    0x8C, 0x3E,
+                    0xC2, 0x4E,
+                    0x85,
+                    0xA8,
+                    0xAE,
+                    0xBC,
+                    0xC5,
+                    0x51,
+                    0xE5,
+                    0x9B
+                };
 
-        public static readonly Guid IID_IWICDdsDecoder = new Guid(0x409CD537, 0x8532, 0x40CB, 0x97, 0x74, 0xE2, 0xFE, 0xB2, 0xDF, 0x4E, 0x9C);
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
-        public static readonly Guid IID_IWICDdsEncoder = new Guid(0x5CACDB4C, 0x407E, 0x41B3, 0xB9, 0x36, 0xD0, 0xF0, 0x10, 0xCD, 0x67, 0x32);
+        public static ref readonly Guid IID_IWICDevelopRaw
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x44, 0x5E, 0xEC, 0xFB,
+                    0xBE, 0xF7,
+                    0x65, 0x4B,
+                    0xB7,
+                    0xF8,
+                    0xC0,
+                    0xC8,
+                    0x1F,
+                    0xEF,
+                    0x02,
+                    0x6D
+                };
 
-        public static readonly Guid IID_IWICDdsFrameDecode = new Guid(0x3D4C0C61, 0x18A4, 0x41E4, 0xBD, 0x80, 0x48, 0x1A, 0x4F, 0xC9, 0xF4, 0x64);
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 
-        public static readonly Guid IID_IWICJpegFrameDecode = new Guid(0x8939F66E, 0xC46A, 0x4C21, 0xA9, 0xD1, 0x98, 0xB3, 0x27, 0xCE, 0x16, 0x79);
+        public static ref readonly Guid IID_IWICDdsDecoder
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x37, 0xD5, 0x9C, 0x40,
+                    0x32, 0x85,
+                    0xCB, 0x40,
+                    0x97,
+                    0x74,
+                    0xE2,
+                    0xFE,
+                    0xB2,
+                    0xDF,
+                    0x4E,
+                    0x9C
+                };
 
-        public static readonly Guid IID_IWICJpegFrameEncode = new Guid(0x2F0C601F, 0xD2C6, 0x468C, 0xAB, 0xFA, 0x49, 0x49, 0x5D, 0x98, 0x3E, 0xD1);
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
+
+        public static ref readonly Guid IID_IWICDdsEncoder
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x4C, 0xDB, 0xAC, 0x5C,
+                    0x7E, 0x40,
+                    0xB3, 0x41,
+                    0xB9,
+                    0x36,
+                    0xD0,
+                    0xF0,
+                    0x10,
+                    0xCD,
+                    0x67,
+                    0x32
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
+
+        public static ref readonly Guid IID_IWICDdsFrameDecode
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x61, 0x0C, 0x4C, 0x3D,
+                    0xA4, 0x18,
+                    0xE4, 0x41,
+                    0xBD,
+                    0x80,
+                    0x48,
+                    0x1A,
+                    0x4F,
+                    0xC9,
+                    0xF4,
+                    0x64
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
+
+        public static ref readonly Guid IID_IWICJpegFrameDecode
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x6E, 0xF6, 0x39, 0x89,
+                    0x6A, 0xC4,
+                    0x21, 0x4C,
+                    0xA9,
+                    0xD1,
+                    0x98,
+                    0xB3,
+                    0x27,
+                    0xCE,
+                    0x16,
+                    0x79
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
+
+        public static ref readonly Guid IID_IWICJpegFrameEncode
+        {
+            get
+            {
+                ReadOnlySpan<byte> data = new byte[] {
+                    0x1F, 0x60, 0x0C, 0x2F,
+                    0xC6, 0xD2,
+                    0x8C, 0x46,
+                    0xAB,
+                    0xFA,
+                    0x49,
+                    0x49,
+                    0x5D,
+                    0x98,
+                    0x3E,
+                    0xD1
+                };
+
+                Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
+                return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
+            }
+        }
 #endif
     }
 }
