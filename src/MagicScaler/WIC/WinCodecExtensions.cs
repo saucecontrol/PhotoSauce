@@ -24,10 +24,10 @@ namespace PhotoSauce.Interop.Wic
 				// Checking the current state is enough to trigger the CoInitializeEx call.  https://github.com/dotnet/runtime/issues/10261
 				_ = Thread.CurrentThread.GetApartmentState();
 
-				hr = CoCreateInstance(CLSID_WICImagingFactory2.GetAddressOf(), null, (uint)CLSCTX.CLSCTX_INPROC_SERVER, IID_IWICImagingFactory.GetAddressOf(), (void**)wicfactory.GetAddressOf());
+				hr = CoCreateInstance(CLSID_WICImagingFactory2.GetAddressOf(), null, (uint)CLSCTX.CLSCTX_INPROC_SERVER, __uuidof<IWICImagingFactory>(), (void**)wicfactory.GetAddressOf());
 				if (FAILED(hr))
 				{
-					if (SUCCEEDED(CoCreateInstance(CLSID_WICImagingFactory1.GetAddressOf(), null, (uint)CLSCTX.CLSCTX_INPROC_SERVER, IID_IWICImagingFactory.GetAddressOf(), (void**)wicfactory.GetAddressOf())))
+					if (SUCCEEDED(CoCreateInstance(CLSID_WICImagingFactory1.GetAddressOf(), null, (uint)CLSCTX.CLSCTX_INPROC_SERVER, __uuidof<IWICImagingFactory>(), (void**)wicfactory.GetAddressOf())))
 						throw new PlatformNotSupportedException("The current WIC version is not supported. Please install the Windows platform update. See: https://support.microsoft.com/kb/2670838");
 				}
 			}
@@ -39,6 +39,13 @@ namespace PhotoSauce.Interop.Wic
 		});
 
 		public static IWICImagingFactory* Factory => (IWICImagingFactory*)factory.Value;
+
+		[StackTraceHidden]
+		public static void EnsureFreeThreaded()
+		{
+			if (Thread.CurrentThread.GetApartmentState() == ApartmentState.STA)
+				throw new NotSupportedException("WIC integration is not supported on an STA thread, such as the UI thread in a WinForms or WPF application. Use a background thread (e.g. using Task.Run()) instead.");
+		}
 
 		public static class Metadata
 		{

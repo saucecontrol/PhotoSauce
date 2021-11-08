@@ -171,7 +171,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static void AddCropper(PipelineContext ctx)
 		{
-			if (ctx.Settings.Crop == ctx.Source.Area)
+			if ((PixelArea)ctx.Settings.Crop == ctx.Source.Area)
 				return;
 
 			var rect = (WICRect)ctx.Settings.Crop;

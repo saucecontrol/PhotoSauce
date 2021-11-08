@@ -4435,7 +4435,7 @@ namespace TerraFX.Interop
                 return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
             }
         }
-#endif
+
         public static ref readonly Guid IID_IWICImagingFactory
         {
             get
@@ -4458,7 +4458,7 @@ namespace TerraFX.Interop
                 return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));
             }
         }
-#if false
+
         public static ref readonly Guid IID_IWICImagingFactory2
         {
             get

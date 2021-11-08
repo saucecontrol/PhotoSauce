@@ -8,16 +8,6 @@ using TerraFX.Interop;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal interface IMetadata
-	{
-		string Name { get; }
-	}
-
-	internal interface IMetadataSource
-	{
-		bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata;
-	}
-
 	internal sealed class NoopMetadataSource : IMetadataSource
 	{
 		public static readonly IMetadataSource Instance = new NoopMetadataSource();

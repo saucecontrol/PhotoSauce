@@ -66,13 +66,13 @@ namespace PhotoSauce.MagicScaler
 
 			using var fs = File.OpenRead(imgPath);
 			using var stb = new StreamBufferInjector(fs);
-			using var ctx = new PipelineContext(settings, WicImageDecoder.Load(fs));
+			using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(fs));
 			buildPipeline(ctx);
 
 			return WriteOutput(ctx, outStream);
 		}
 
-#pragma warning disable 1573 // not all params have docs
+#pragma warning disable CS1573 // not all params have docs
 
 		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
 		/// <param name="imgBuffer">A buffer containing a supported input image container.</param>
@@ -84,7 +84,8 @@ namespace PhotoSauce.MagicScaler
 
 			fixed (byte* pbBuffer = imgBuffer)
 			{
-				using var ctx = new PipelineContext(settings, WicImageDecoder.Load(pbBuffer, imgBuffer.Length));
+				using var stm = new UnmanagedMemoryStream(pbBuffer, imgBuffer.Length);
+				using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(stm));
 				buildPipeline(ctx);
 
 				return WriteOutput(ctx, outStream);
@@ -100,7 +101,7 @@ namespace PhotoSauce.MagicScaler
 			checkOutStream(outStream);
 
 			using var stb = new StreamBufferInjector(imgStream);
-			using var ctx = new PipelineContext(settings, WicImageDecoder.Load(imgStream));
+			using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(imgStream));
 			buildPipeline(ctx);
 
 			return WriteOutput(ctx, outStream);
@@ -144,8 +145,8 @@ namespace PhotoSauce.MagicScaler
 			if (settings is null) throw new ArgumentNullException(nameof(settings));
 
 			var fs = File.OpenRead(imgPath);
-			var stb= new StreamBufferInjector(fs);
-			var ctx = new PipelineContext(settings, WicImageDecoder.Load(fs));
+			var stb = new StreamBufferInjector(fs);
+			var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(fs));
 			ctx.AddDispose(fs);
 			ctx.AddDispose(stb);
 			buildPipeline(ctx, false);
@@ -160,7 +161,7 @@ namespace PhotoSauce.MagicScaler
 			if (settings is null) throw new ArgumentNullException(nameof(settings));
 			checkInStream(imgStream);
 
-			var ctx = new PipelineContext(settings, WicImageDecoder.Load(imgStream));
+			var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(imgStream));
 			buildPipeline(ctx, false);
 
 			return new ProcessingPipeline(ctx);
@@ -198,19 +199,20 @@ namespace PhotoSauce.MagicScaler
 		{
 			MagicTransforms.AddExternalFormatConverter(ctx);
 
+			var mime = WicImageEncoder.FormatMap.GetValueOrDefault(ctx.Settings.SaveFormat, KnownMimeTypes.Png);
 			using var stb = new StreamBufferInjector(ostm);
-			using var enc = new WicImageEncoder(ctx.Settings.SaveFormat, ostm, ctx.Settings.EncoderConfig);
+			using var enc = CodecManager.GetEncoderForMimeType(mime, ostm, ctx.Settings.EncoderConfig);
 
-			if (ctx.IsAnimatedGifPipeline)
+			if (ctx.IsAnimatedGifPipeline && enc is WicImageEncoder wenc)
 			{
-				using var gif = new WicAnimatedGifEncoder(ctx, enc);
+				using var gif = new WicAnimatedGifEncoder(ctx, wenc);
 				gif.WriteGlobalMetadata();
 				gif.WriteFrames();
 			}
 			else
 			{
 				MagicTransforms.AddIndexedColorConverter(ctx);
-				enc.WriteFrame(ctx.Source, ctx.Metadata);
+				enc.WriteFrame(ctx.Source, ctx.Metadata, PixelArea.Default);
 			}
 
 			enc.Commit();

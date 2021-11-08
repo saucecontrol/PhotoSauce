@@ -1,8 +1,11 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
+using System.IO;
 using System.Drawing;
 using System.Numerics;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace PhotoSauce.MagicScaler
 {
@@ -70,7 +73,7 @@ namespace PhotoSauce.MagicScaler
 	}
 
 	/// <summary>An image container (file), made up of one or more <see cref="IImageFrame" /> instances.</summary>
-	public interface IImageContainer
+	public interface IImageContainer : IDisposable
 	{
 		/// <summary>The <see cref="FileFormat" /> (codec) of the image container.</summary>
 		FileFormat ContainerFormat { get; }
@@ -87,33 +90,89 @@ namespace PhotoSauce.MagicScaler
 		IImageFrame GetFrame(int index);
 	}
 
-	/// <summary>A <a href="https://en.wikipedia.org/wiki/Rational_number">rational number</a>, as defined by an integer numerator and denominator.</summary>
-	internal readonly struct Rational : IEquatable<Rational>
+	/// <summary>Base interface for metadata types.</summary>
+	public interface IMetadata
 	{
-		/// <summary>The numerator of the rational number.</summary>
-		public readonly int Numerator;
-		/// <summary>The denominator of the rational number.</summary>
-		public readonly int Denominator;
+		/// <summary>Friendly name of the metadata type.</summary>
+		string Name { get; }
+	}
 
-		/// <summary>Constructs a new <see cref="Rational" /> with the specified <see cref="Numerator" /> and <see cref="Denominator" />.</summary>
-		/// <param name="numerator">The numerator.</param>
-		/// <param name="denominator">The denominator.</param>
-		public Rational(int numerator, int denominator) => (Numerator, Denominator) = (numerator, denominator);
+	/// <summary>Provides a mechanism for accessing metadata from an image.</summary>
+	public interface IMetadataSource
+	{
+		/// <summary>Attempt to retrieve metadata of type <typeparamref name="T"/> from this source.</summary>
+		/// <typeparam name="T">The type of metadata to retrieve.</typeparam>
+		/// <param name="metadata">The value of the metadata, if available.</param>
+		/// <returns>True if the metadata was available, otherwise false.</returns>
+		bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata;
+	}
 
-		/// <inheritdoc />
-		public bool Equals(Rational other) => Numerator == other.Numerator && Denominator == other.Denominator;
+	/// <summary>Base interface for decoder configuration options.</summary>
+	public interface IDecoderOptions { }
 
-		/// <inheritdoc />
-		public override bool Equals(object? obj) => obj is Rational other && Equals(other);
-		/// <inheritdoc />
-		public override int GetHashCode() => (Numerator, Denominator).GetHashCode();
-		/// <inheritdoc />
+	/// <summary>Base interface for encoder configuration options.</summary>
+	public interface IEncoderOptions { }
+
+	/// <summary>An encoder capable of writing image data.</summary>
+	public interface IImageEncoder : IDisposable
+	{
+		/// <summary>Writes a new image frame to the encoder output, including the pixels and metadata provided.</summary>
+		/// <param name="source">The source of pixels for the new image frame.</param>
+		/// <param name="metadata">The source of metadata for the new image frame.</param>
+		/// <param name="region">The region of interest to take from thie pixel source.  If this value is <see cref="Rectangle.Empty" />, the entire source will be written.</param>
+		void WriteFrame(IPixelSource source, IMetadataSource metadata, Rectangle region);
+
+		/// <summary>Finish writing the image file, and disallow writing any more frames. For most single-frame formats, this method is a no-op.</summary>
+		void Commit();
+	}
+
+	/// <summary>Describes an image codec.</summary>
+	public interface IImageCodecInfo
+	{
+		/// <summary>The friendly name of the codec.</summary>
+		string Name { get; }
+		/// <summary>A list of <a href="https://en.wikipedia.org/wiki/Media_type">MIME types</a> supported by the codec.</summary>
+		IEnumerable<string> MimeTypes { get; }
+		/// <summary>A list of file extensions supported by the codec.</summary>
+		/// <remarks>A leading dot ('.') on the extension is optional.</remarks>
+		IEnumerable<string> FileExtensions { get; }
+		/// <summary>True if the codec supports transparency, otherwise false.</summary>
+		bool SupportsTransparency { get; }
+		/// <summary>True if the codec supports multiple image frames per container, otherwise false.</summary>
+		bool SupportsMultiFrame { get; }
+		/// <summary>True if the codec supports animation sequences, otherwise false.</summary>
+		bool SupportsAnimation { get; }
+	}
+
+	/// <summary>Describes an image decoder.</summary>
+	public interface IImageDecoderInfo : IImageCodecInfo
+	{
+		/// <summary>A list of "magic byte" patterns that may match files this decoder can read.</summary>
+		/// <remarks>No attempt will be made to decode an image with this decoder if its header does not match one of the <see cref="ContainerPattern" />s.</remarks>
+		IEnumerable<ContainerPattern> Patterns { get; }
+
+		/// <summary>A default set of options to be used for this decoder in the absence of per-instance overrides.</summary>
+		IDecoderOptions? DefaultConfig { get; }
+
+		/// <summary>A delegate capable of creating an instance of this decoder over a given <see cref="Stream" /> data source.</summary>
+		Func<Stream, IDecoderOptions?, IImageContainer?> Factory { get; }
+	}
+
+	/// <summary>Describes an image encoder.</summary>
+	public interface IImageEncoderInfo : IImageCodecInfo
+	{
+		/// <summary>A default set of options to be used for this encoder in the absence of per-instance overrides.</summary>
+		IEncoderOptions? DefaultConfig { get; }
+
+		/// <summary>A delegate capable of creating an instance of this encoder to write to a given <see cref="Stream" /> data source.</summary>
+		Func<Stream, IEncoderOptions?, IImageEncoder> Factory { get; }
+	}
+
+	/// <summary>A <a href="https://en.wikipedia.org/wiki/Rational_number">rational number</a>, as defined by an integer <paramref name="Numerator" /> and <paramref name="Denominator" />.</summary>
+	/// <param name="Numerator">The numerator of the rational number.</param>
+	/// <param name="Denominator">The denominator of the rational number.</param>
+	internal readonly record struct Rational(int Numerator, int Denominator)
+	{
 		public override string ToString() => $"{Numerator}/{Denominator}";
-
-		/// <inheritdoc cref="double.op_Equality" />
-		public static bool operator ==(Rational left, Rational right) => left.Equals(right);
-
-		/// <inheritdoc cref="double.op_Equality" />
-		public static bool operator !=(Rational left, Rational right) => !(left == right);
 	}
 }

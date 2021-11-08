@@ -248,14 +248,7 @@ namespace TerraFX.Interop
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly T** GetAddressOf()
         {
-#if false
-            return (T**)Unsafe.AsPointer(ref Unsafe.AsRef(in this));
-#else
-            fixed (T** ptr = &ptr_)
-            {
-                return ptr;
-            }
-#endif
+            return ((delegate*<in T*, T**>)(delegate*<ref nuint, void*>)&Unsafe.AsPointer<nuint>)(in ptr_);
         }
 
         /// <summary>Gets the address of the current <see cref="ComPtr{T}"/> instance as a raw <typeparamref name="T"/> double pointer.</summary>

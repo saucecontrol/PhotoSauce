@@ -83,9 +83,9 @@ namespace PhotoSauce.MagicScaler
 
 			using var fs = File.OpenRead(imgPath);
 			using var stb = new StreamBufferInjector(fs);
-			using var cnt = WicImageDecoder.Load(fs);
+			using var cnt = CodecManager.GetDecoderForStream(fs);
 
-			return fromWicImage(cnt, fi.Length, fi.LastWriteTimeUtc);
+			return fromContainer(cnt, fi.Length, fi.LastWriteTimeUtc);
 		}
 
 		/// <inheritdoc cref="Load(ReadOnlySpan{byte}, DateTime)" />
@@ -100,9 +100,10 @@ namespace PhotoSauce.MagicScaler
 
 			fixed (byte* pbBuffer = imgBuffer)
 			{
-				using var cnt = WicImageDecoder.Load(pbBuffer, imgBuffer.Length);
+				using var stm = new UnmanagedMemoryStream(pbBuffer, imgBuffer.Length);
+				using var cnt = CodecManager.GetDecoderForStream(stm);
 
-				return fromWicImage(cnt, imgBuffer.Length, lastModified);
+				return fromContainer(cnt, imgBuffer.Length, lastModified);
 			}
 		}
 
@@ -119,31 +120,29 @@ namespace PhotoSauce.MagicScaler
 			if (imgStream.Length <= 0 || imgStream.Position >= imgStream.Length) throw new ArgumentException("Input Stream is empty or positioned at its end", nameof(imgStream));
 
 			using var stb = new StreamBufferInjector(imgStream);
-			using var cnt = WicImageDecoder.Load(imgStream);
+			using var cnt = CodecManager.GetDecoderForStream(imgStream);
 
-			return fromWicImage(cnt, imgStream.Length, lastModified);
+			return fromContainer(cnt, imgStream.Length, lastModified);
 		}
 
-		private static ImageFileInfo fromWicImage(WicImageContainer cont, long fileSize, DateTime fileDate)
+		private static ImageFileInfo fromContainer(IImageContainer cont, long fileSize, DateTime fileDate)
 		{
 			var cfmt = cont.ContainerFormat;
-			var frames = cfmt == FileFormat.Gif ? getGifFrameInfo(cont) : getFrameInfo(cont);
+			var frames = cfmt == FileFormat.Gif && cont is WicImageContainer wcnt ? getGifFrameInfo(wcnt) : getFrameInfo(cont);
 
 			return new ImageFileInfo(cfmt, frames, fileSize, fileDate);
 		}
 
-		private static unsafe FrameInfo[] getFrameInfo(WicImageContainer cont)
+		private static unsafe FrameInfo[] getFrameInfo(IImageContainer cont)
 		{
 			var frames = new FrameInfo[cont.FrameCount];
 			for (int i = 0; i < frames.Length; i++)
 			{
-				using var frame = (WicImageFrame)cont.GetFrame(i);
+				using var frame = cont.GetFrame(i);
+				var src = frame.PixelSource;
 
-				uint width, height;
-				HRESULT.Check(frame.WicSource->GetSize(&width, &height));
-
-				var guid = default(Guid);
-				HRESULT.Check(frame.WicSource->GetPixelFormat(&guid));
+				uint width = (uint)src.Width, height = (uint)src.Height;
+				var guid = src.Format;
 
 				var pixfmt = PixelFormat.FromGuid(guid);
 				var orient = frame.ExifOrientation;

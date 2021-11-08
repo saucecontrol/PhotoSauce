@@ -5,7 +5,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Drawing.Drawing2D;
@@ -14,7 +13,6 @@ using GdiPixelFormat = System.Drawing.Imaging.PixelFormat;
 
 namespace PhotoSauce.MagicScaler
 {
-	[Obsolete("This class is meant only for testing/benchmarking and will be removed in a future version"), EditorBrowsable(EditorBrowsableState.Never)]
 	public static class GdiImageProcessor
 	{
 		private const int exifOrientationID = 274;

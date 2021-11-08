@@ -16,6 +16,7 @@ namespace PhotoSauce.MagicScaler
 		public IWICBitmapDecoder* WicDecoder { get; private set; }
 
 		public FileFormat ContainerFormat { get; }
+		public IDecoderOptions? Options { get; }
 		public bool IsAnimation { get; }
 		public int FrameCount { get; }
 
@@ -37,7 +38,7 @@ namespace PhotoSauce.MagicScaler
 			return new WicImageFrame(this, (uint)index);
 		}
 
-		public WicImageContainer(IWICBitmapDecoder* dec, FileFormat fmt)
+		public WicImageContainer(IWICBitmapDecoder* dec, FileFormat fmt, IDecoderOptions? options)
 		{
 			WicDecoder = dec;
 
@@ -45,21 +46,22 @@ namespace PhotoSauce.MagicScaler
 			HRESULT.Check(dec->GetFrameCount(&fcount));
 			FrameCount = (int)fcount;
 			ContainerFormat = fmt;
+			Options = options;
 
 			if (fmt == FileFormat.Gif && FrameCount > 1)
 				IsAnimation = true;
 		}
 
-		public static WicImageContainer Create(IWICBitmapDecoder* dec)
+		public static WicImageContainer Create(IWICBitmapDecoder* dec, IDecoderOptions? options = null)
 		{
 			var guid = default(Guid);
 			HRESULT.Check(dec->GetContainerFormat(&guid));
 
 			var fmt = WicImageDecoder.FormatMap.GetValueOrDefault(guid, FileFormat.Unknown);
 			if (fmt == FileFormat.Gif)
-				return new WicGifContainer(dec);
+				return new WicGifContainer(dec, options);
 
-			return new WicImageContainer(dec, fmt);
+			return new WicImageContainer(dec, fmt, options);
 		}
 
 		public virtual bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata
@@ -97,7 +99,7 @@ namespace PhotoSauce.MagicScaler
 
 		public readonly AnimationContainer AnimationMetadata;
 
-		public WicGifContainer(IWICBitmapDecoder* dec) : base(dec, FileFormat.Gif)
+		public WicGifContainer(IWICBitmapDecoder* dec, IDecoderOptions? options) : base(dec, FileFormat.Gif, options)
 		{
 			using var meta = default(ComPtr<IWICMetadataQueryReader>);
 			HRESULT.Check(dec->GetMetadataQueryReader(meta.GetAddressOf()));

@@ -5,8 +5,10 @@ using System.Drawing;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal readonly struct PixelArea : IEquatable<PixelArea>
+	internal readonly record struct PixelArea
 	{
+		public static PixelArea Default => default;
+
 		public readonly int X;
 		public readonly int Y;
 		public readonly int Width;
@@ -64,15 +66,6 @@ namespace PhotoSauce.MagicScaler
 
 			return new PixelArea(x, y, width, height);
 		}
-
-		public bool Equals(PixelArea other) => X == other.X && Y == other.Y && Width == other.Width && Height == other.Height;
-		public override bool Equals(object? obj) => obj is PixelArea other && Equals(other);
-
-		public override int GetHashCode() => (X, Y, Width, Height).GetHashCode();
-		public override string ToString() => (X, Y, Width, Height).ToString();
-
-		public static bool operator ==(in PixelArea left, in PixelArea right) => left.Equals(right);
-		public static bool operator !=(in PixelArea left, in PixelArea right) => !left.Equals(right);
 
 		public static implicit operator PixelArea(in Rectangle r) => new(r.X, r.Y, r.Width, r.Height);
 		public static implicit operator Rectangle(in PixelArea a) => new(a.X, a.Y, a.Width, a.Height);

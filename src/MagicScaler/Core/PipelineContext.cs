@@ -102,8 +102,8 @@ namespace PhotoSauce.MagicScaler
 			AnimationContext?.Dispose();
 			ImageFrame?.Dispose();
 
-			if (ownContainer && ImageContainer is IDisposable cdisp)
-				cdisp.Dispose();
+			if (ownContainer)
+				ImageContainer?.Dispose();
 
 			while (disposables?.Count > 0)
 				disposables.Pop().Dispose();

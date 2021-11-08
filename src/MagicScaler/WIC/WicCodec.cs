@@ -2,13 +2,12 @@
 
 using System;
 using System.IO;
+using System.Drawing;
 using System.Buffers;
-using System.Threading;
-using System.Diagnostics;
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
 
 using TerraFX.Interop;
@@ -29,10 +28,10 @@ namespace PhotoSauce.MagicScaler
 			[GUID_ContainerFormatTiff] = FileFormat.Tiff
 		};
 
+#if WICPROCESSOR
 		private static IWICBitmapDecoder* createDecoder(IStream* pStream)
 		{
-			if (Thread.CurrentThread.GetApartmentState() == ApartmentState.STA)
-				throw new NotSupportedException("WIC integration is not supported on an STA thread, such as the UI thread in a WinForms or WPF application. Use a background thread (e.g. using Task.Run()) instead.");
+			Wic.EnsureFreeThreaded();
 
 			using var decoder = default(ComPtr<IWICBitmapDecoder>);
 			int hr = Wic.Factory->CreateDecoderFromStream(pStream, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand, decoder.GetAddressOf());
@@ -43,7 +42,6 @@ namespace PhotoSauce.MagicScaler
 			return decoder.Detach();
 		}
 
-#if WICPROCESSOR
 		public static WicImageContainer Load(string fileName)
 		{
 			using var stm = default(ComPtr<IWICStream>);
@@ -54,7 +52,6 @@ namespace PhotoSauce.MagicScaler
 			var dec = createDecoder((IStream*)stm.Get());
 			return WicImageContainer.Create(dec);
 		}
-#endif
 
 		public static WicImageContainer Load(Stream inStream)
 		{
@@ -74,54 +71,71 @@ namespace PhotoSauce.MagicScaler
 			var dec = createDecoder((IStream*)stream.Get());
 			return WicImageContainer.Create(dec);
 		}
+#endif
+
+		public static WicImageContainer? Load(Guid clsid, Stream stream, IDecoderOptions? options)
+		{
+			Wic.EnsureFreeThreaded();
+
+			using var ccw = new ComPtr<IStream>(IStreamImpl.Wrap(stream));
+			using var decoder = default(ComPtr<IWICBitmapDecoder>);
+			HRESULT.Check(CoCreateInstance(&clsid, null, (uint)CLSCTX.CLSCTX_INPROC_SERVER, __uuidof<IWICBitmapDecoder>(), (void**)decoder.GetAddressOf()));
+
+			if (FAILED(decoder.Get()->Initialize(ccw, WICDecodeOptions.WICDecodeMetadataCacheOnDemand)))
+				return null;
+
+			return WicImageContainer.Create(decoder.Detach(), options);
+		}
 	}
 
-	internal sealed unsafe class WicImageEncoder : IDisposable
+	internal sealed unsafe class WicImageEncoder : IImageEncoder, IDisposable
 	{
-		private static readonly Dictionary<FileFormat, Guid> formatMap = new() {
-			[FileFormat.Bmp] = GUID_ContainerFormatBmp,
-			[FileFormat.Gif] = GUID_ContainerFormatGif,
-			[FileFormat.Jpeg] = GUID_ContainerFormatJpeg,
-			[FileFormat.Png] = GUID_ContainerFormatPng,
-			[FileFormat.Png8] = GUID_ContainerFormatPng,
-			[FileFormat.Tiff] = GUID_ContainerFormatTiff
+		public static readonly Dictionary<FileFormat, string> FormatMap = new() {
+			[FileFormat.Bmp] = KnownMimeTypes.Bmp,
+			[FileFormat.Gif] = KnownMimeTypes.Gif,
+			[FileFormat.Jpeg] = KnownMimeTypes.Jpeg,
+			[FileFormat.Png] = KnownMimeTypes.Png,
+			[FileFormat.Png8] = KnownMimeTypes.Png,
+			[FileFormat.Tiff] = KnownMimeTypes.Tiff
 		};
 
 		public IWICBitmapEncoder* WicEncoder { get; private set; }
 		public FileFormat Format { get; }
-		public IEncoderConfig? Config { get; }
+		public IEncoderOptions? Options { get; }
 
-		public WicImageEncoder(FileFormat format, Stream stm, IEncoderConfig? config)
+		public WicImageEncoder(Guid clsid, Stream stm, IEncoderOptions? options)
 		{
-			var fmtid = formatMap.GetValueOrDefault(format, GUID_ContainerFormatPng);
-
 			using var ccw = new ComPtr<IStream>(IStreamImpl.Wrap(stm));
 			using var encoder = default(ComPtr<IWICBitmapEncoder>);
-			HRESULT.Check(Wic.Factory->CreateEncoder(&fmtid, null, encoder.GetAddressOf()));
+			HRESULT.Check(CoCreateInstance(&clsid, null, (uint)CLSCTX.CLSCTX_INPROC_SERVER, __uuidof<IWICBitmapEncoder>(), (void**)encoder.GetAddressOf()));
 			HRESULT.Check(encoder.Get()->Initialize(ccw, WICBitmapEncoderCacheOption.WICBitmapEncoderNoCache));
 
+			var guid = default(Guid);
+			HRESULT.Check(encoder.Get()->GetContainerFormat(&guid));
+
+			Format = WicImageDecoder.FormatMap.GetValueOrDefault(guid, FileFormat.Unknown);
+			Options = options;
 			WicEncoder = encoder.Detach();
-			Format = WicImageDecoder.FormatMap[fmtid];
-			Config = config;
 		}
 
-		public void WriteFrame(PixelSource src, IMetadataSource meta, PixelArea area = default)
+		public void WriteFrame(IPixelSource source, IMetadataSource meta, Rectangle area)
 		{
 			var fmt = Format;
-			var encArea = area.IsEmpty ? src.Area : area;
+			var src = source.AsPixelSource();
+			var encArea = area.IsEmpty ? src.Area : (PixelArea)area;
 
 			using var frame = default(ComPtr<IWICBitmapFrameEncode>);
 			using (var pbag = default(ComPtr<IPropertyBag2>))
 			{
 				HRESULT.Check(WicEncoder->CreateNewFrame(frame.GetAddressOf(), pbag.GetAddressOf()));
 
-				if (fmt == FileFormat.Jpeg && Config is JpegEncoderConfig jconf)
+				if (fmt == FileFormat.Jpeg && Options is JpegEncoderOptions jconf)
 				{
 					pbag.Write("ImageQuality", jconf.Quality / 100f);
 					if (jconf.Subsample != ChromaSubsampleMode.Default)
 						pbag.Write("JpegYCrCbSubsampling", (byte)jconf.Subsample);
 				}
-				else if (fmt == FileFormat.Tiff && Config is TiffEncoderConfig tconf)
+				else if (fmt == FileFormat.Tiff && Options is TiffEncoderOptions tconf)
 				{
 					pbag.Write("TiffCompressionMethod", (byte)tconf.Compression);
 				}
@@ -391,6 +405,7 @@ namespace PhotoSauce.MagicScaler
 
 				if (decmeta.GetValueOrDefault<bool>(Wic.Metadata.Gif.GlobalPaletteFlag))
 				{
+					// TODO We don't need the entire global palette if we're only using the background color
 					if (SUCCEEDED(decmeta.Get()->GetMetadataByName(Wic.Metadata.Gif.BackgroundColorIndex, &pv)))
 					{
 						using var pal = default(ComPtr<IWICPalette>);
@@ -410,7 +425,7 @@ namespace PhotoSauce.MagicScaler
 
 				var pvae = new PROPVARIANT { vt = (ushort)(VARENUM.VT_UI1 | VARENUM.VT_VECTOR) };
 				pvae.Anonymous.blob.cbSize = 11;
-				pvae.Anonymous.blob.pBlobData = (byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(WicGifContainer.Netscape2_0));
+				pvae.Anonymous.blob.pBlobData = WicGifContainer.Netscape2_0.GetAddressOf();
 				HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.AppExtension, &pvae));
 
 				byte* pvdd = stackalloc byte[] { 3, 1, 0, 0 };

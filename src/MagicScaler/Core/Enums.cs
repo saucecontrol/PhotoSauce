@@ -175,4 +175,17 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>The display buffer should revert to the state preceding display of the current frame.</summary>
 		RestorePrevious = 3
 	}
+
+	/// <summary>Defines the codec vendors that are permitted for use in the pipeline.</summary>
+	public enum WicCodecPolicy
+	{
+		/// <summary>Include only codecs that are built in to Windows.</summary>
+		BuiltIn,
+		/// <summary>Include only codecs that are built in to Windows and installed codecs authored by Microsoft.</summary>
+		/// <remarks>Microsoft installed codecs include those installed from Microsoft Store, such as the RAW Image Extension.</remarks>
+		Microsoft,
+		/// <summary>Include any codecs that are registered with WIC, inlcuding those installed by third party vendors.</summary>
+		/// <remarks>Using third party codecs in server environments can be dangerous. Include them only if necessary and if properly tested.</remarks>
+		All
+	}
 }

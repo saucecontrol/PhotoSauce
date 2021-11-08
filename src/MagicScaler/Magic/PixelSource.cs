@@ -104,6 +104,8 @@ namespace PhotoSauce.MagicScaler
 		public PixelSourceContainer(IPixelSource source) => pixelSource = source;
 
 		public IImageFrame GetFrame(int index) => index == 0 ? new PixelSourceFrame(pixelSource) : throw new IndexOutOfRangeException();
+
+		void IDisposable.Dispose() { }
 	}
 
 	internal abstract class ChainedPixelSource : PixelSource

@@ -4,13 +4,11 @@
 #pragma warning disable CS1591
 using System;
 using System.IO;
-using System.ComponentModel;
 
 using PhotoSauce.MagicScaler.Transforms;
 
 namespace PhotoSauce.MagicScaler
 {
-	[Obsolete("This class is meant only for testing/benchmarking and will be removed in a future version"), EditorBrowsable(EditorBrowsableState.Never)]
 	public static class WicImageProcessor
 	{
 		public static ProcessImageResult ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
@@ -61,8 +59,9 @@ namespace PhotoSauce.MagicScaler
 			MagicTransforms.AddPad(ctx);
 			WicTransforms.AddIndexedColorConverter(ctx);
 
-			using var enc = new WicImageEncoder(ctx.Settings.SaveFormat, ostm, ctx.Settings.EncoderConfig);
-			enc.WriteFrame(ctx.Source, ctx.Metadata);
+			string? mime = WicImageEncoder.FormatMap.GetValueOrDefault(ctx.Settings.SaveFormat, KnownMimeTypes.Png);
+			using var enc = CodecManager.GetEncoderForMimeType(mime, ostm, ctx.Settings.EncoderConfig);
+			enc.WriteFrame(ctx.Source, ctx.Metadata, PixelArea.Default);
 			enc.Commit();
 
 			return new ProcessImageResult(ctx.UsedSettings, ctx.Stats);
