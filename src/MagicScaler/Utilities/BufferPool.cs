@@ -11,16 +11,43 @@ namespace PhotoSauce.MagicScaler
 	internal static partial class BufferPool
 	{
 		private const byte marker = 0b_01010101;
-		private const int sharedPoolMax = 1 << 20;
-		private const int largePoolMax = 1 << 24;
 
-		private static readonly ArrayPool<byte> largeBytePool = MagicImageProcessor.EnableLargeBufferPool ? ArrayPool<byte>.Create(largePoolMax, 4) : ArrayPool<byte>.Shared;
+		public const string MaxPooledBufferSizeName = $"{nameof(PhotoSauce)}.{nameof(MagicScaler)}.MaxPooledBufferSize";
 
-		private static ArrayPool<byte> getBytePool(int length) => length > sharedPoolMax && length <= largePoolMax ? largeBytePool : ArrayPool<byte>.Shared;
+		private static readonly int sharedPoolMax = hasLargeSharedPool() ? 1 << 30 : 1 << 20;
+		private static readonly int largePoolMax = getAppContextValue(MaxPooledBufferSizeName, hasLargeSharedPool() ? 1 << 30 : 1 << 24);
+		private static readonly ArrayPool<byte> largeBytePool = largePoolMax > sharedPoolMax ? ArrayPool<byte>.Create(largePoolMax, 4) : ArrayPool<byte>.Shared;
+
+		private static ArrayPool<byte> getBytePool(int length) => length <= sharedPoolMax ? ArrayPool<byte>.Shared : length <= largePoolMax ? largeBytePool : NoopArrayPool<byte>.Instance;
 
 		private static byte[] rentBytes(int length) => getBytePool(length).Rent(length);
 
 		private static void returnBytes(byte[]arr) => getBytePool(arr.Length).Return(arr);
+
+		private static bool hasLargeSharedPool()
+		{
+			// Starting from .NET 6, the shared ArrayPool allows arrays up to length 2^30 to be pooled.
+#if NET6_0_OR_GREATER
+			return true;
+#else
+			string ver = RuntimeInformation.FrameworkDescription;
+			return ver.Length > 6 && ver.StartsWith(".NET ", StringComparison.Ordinal) && char.IsNumber(ver[5]) && ver[5] != '5';
+#endif
+		}
+
+		private static int getAppContextValue(string name, int defaultValue)
+		{
+#if NETFRAMEWORK
+			var data = AppDomain.CurrentDomain.GetData(name);
+#else
+			var data = AppContext.GetData(name);
+#endif
+
+			if (data is int val || ((data is string s) && int.TryParse(s, out val)))
+				return val;
+
+			return defaultValue;
+		}
 
 		[Conditional("GUARDRAILS")]
 		private static void addBoundsMarkers(ArraySegment<byte> buff)
@@ -178,4 +205,18 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 #endif
+
+	internal sealed class NoopArrayPool<T> : ArrayPool<T>
+	{
+		public static NoopArrayPool<T> Instance = new();
+
+		public override T[] Rent(int minimumLength)
+#if NET5_0_OR_GREATER
+			=> GC.AllocateUninitializedArray<T>(minimumLength);
+#else
+			=> new T[minimumLength];
+#endif
+
+		public override void Return(T[] array, bool clearArray = false) { }
+	}
 }

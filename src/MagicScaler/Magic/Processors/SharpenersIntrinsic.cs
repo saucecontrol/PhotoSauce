@@ -56,7 +56,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 	internal sealed partial class Convolver3ChanIntrinsic : IConvolver
 	{
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma) => throw new NotImplementedException();
+		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma) =>
+			throw new NotImplementedException();
 	}
 
 	internal sealed partial class Convolver1ChanIntrinsic : IConvolver
@@ -85,7 +86,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 					if (threshold)
 					{
-						var sm = HWIntrinsics.AvxCompareGreaterThan(Avx.And(vd, vmsk), vthresh);
+#if NET5_0_OR_GREATER
+						var sm = Avx.CompareGreaterThan(Avx.And(vd, vmsk), vthresh);
+#else
+						var sm = Avx.Compare(Avx.And(vd, vmsk), vthresh, FloatComparisonMode.OrderedGreaterThanSignaling); // https://github.com/dotnet/runtime/issues/31193
+#endif
 						vd = Avx.And(vd, sm);
 					}
 					vd = Avx.Multiply(vd, vamt);

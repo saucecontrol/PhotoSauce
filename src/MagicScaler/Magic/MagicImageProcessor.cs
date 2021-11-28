@@ -2,8 +2,8 @@
 
 using System;
 using System.IO;
-using System.Buffers;
 using System.Numerics;
+using System.Diagnostics;
 using System.ComponentModel;
 
 using TerraFX.Interop;
@@ -16,10 +16,9 @@ namespace PhotoSauce.MagicScaler
 	/// <summary>Provides a set of methods for constructing a MagicScaler processing pipeline or for all-at-once processing of an image.</summary>
 	public static class MagicImageProcessor
 	{
-		/// <summary>True to allow the pipeline to maintain a pool of larger pixel buffers, false to restrict pooling to the built-in <see cref="ArrayPool{T}.Shared" />.</summary>
-		/// <include file='Docs/Remarks.xml' path='doc/member[@name="EnableLargeBufferPool"]/*'/>
-		/// <value>Default value: <see langword="true" /></value>
-		public static bool EnableLargeBufferPool { get; set; } = true;
+		/// <summary>"Use <see cref="AppContext"/> value instead."</summary>
+		[Obsolete($"Use {nameof(AppContext)} value {BufferPool.MaxPooledBufferSizeName} instead."), EditorBrowsable(EditorBrowsableState.Never)]
+		public static bool EnableLargeBufferPool { get; set; }
 
 		/// <summary>True to allow <a href="https://en.wikipedia.org/wiki/YCbCr">Y'CbCr</a> images to be processed in their native planar format, false to force RGB conversion before processing.</summary>
 		/// <include file='Docs/Remarks.xml' path='doc/member[@name="EnablePlanarPipeline"]/*'/>
@@ -38,8 +37,9 @@ namespace PhotoSauce.MagicScaler
 		/// <include file='Docs/Remarks.xml' path='doc/member[@name="EnableSimd"]/*'/>
 		/// <value>Default value: <see langword="true" /> if the runtime/JIT and hardware support hardware-accelerated <see cref="System.Numerics.Vector{T}" />, otherwise <see langword="false" /></value>
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static bool EnableSimd { get; set; } = Vector.IsHardwareAccelerated && (Vector<float>.Count == 4 || Vector<float>.Count == 8);
+		public static bool EnableSimd { get; set; } = Vector.IsHardwareAccelerated && (Vector<float>.Count is 4 or 8);
 
+		[StackTraceHidden]
 		private static void checkInStream(Stream imgStream)
 		{
 			if (imgStream is null) throw new ArgumentNullException(nameof(imgStream));
@@ -47,6 +47,7 @@ namespace PhotoSauce.MagicScaler
 			if (imgStream.Length <= 0 || imgStream.Position >= imgStream.Length) throw new ArgumentException("Input Stream is empty or positioned at its end", nameof(imgStream));
 		}
 
+		[StackTraceHidden]
 		private static void checkOutStream(Stream outStream)
 		{
 			if (outStream is null) throw new ArgumentNullException(nameof(outStream));
