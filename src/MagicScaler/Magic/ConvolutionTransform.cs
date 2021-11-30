@@ -199,7 +199,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 						Profiler.ResumeTiming();
 
 						if (bp != wp)
-							GreyConverter.ConvertLine(Format, bp, wp, SrcBuff!.Stride, WorkBuff!.Stride);
+							GreyConverter.ConvertLine(Format, bp, wp, SrcBuff!.Stride);
 
 						XProcessor.ConvolveSourceLine(wp, tp, ispan.Length - ly * IntBuff.Stride, mapxstart, XMap.Samples, lines);
 

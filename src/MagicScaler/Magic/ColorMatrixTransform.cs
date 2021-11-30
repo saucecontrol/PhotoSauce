@@ -22,7 +22,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			vec0 = new Vector4(matrix.M33, matrix.M23, matrix.M13, matrix.M43);
 			vec1 = new Vector4(matrix.M32, matrix.M22, matrix.M12, matrix.M42);
 			vec2 = new Vector4(matrix.M31, matrix.M21, matrix.M11, matrix.M41);
-			vec3 = new Vector4(matrix.M34, matrix.M24, matrix.M14, matrix.M44);
+			vec3 = new Vector4(        0f,         0f,         0f, matrix.M44);
 		}
 
 		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
@@ -33,8 +33,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			if (Format.NumericRepresentation == PixelNumericRepresentation.Float)
 #if HWINTRINSICS
-				if (Avx.IsSupported)
-					copyPixelsAvx(prc, cbStride, pbBuffer);
+				if (Sse41.IsSupported)
+					copyPixelsSse41(prc, cbStride, pbBuffer);
 				else
 #endif
 					copyPixelsFloat(prc, cbStride, pbBuffer);
@@ -152,61 +152,73 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		private unsafe void copyPixelsAvx(in PixelArea prc, int cbStride, IntPtr pbBuffer)
+		private unsafe void copyPixelsSse41(in PixelArea prc, int cbStride, IntPtr pbBuffer)
 		{
 			int chan = Format.ChannelCount;
 
-			var vt0 = Unsafe.ReadUnaligned<Vector128<float>>(ref Unsafe.As<float, byte>(ref Unsafe.AsRef(vec0.X)));
-			var vt1 = Unsafe.ReadUnaligned<Vector128<float>>(ref Unsafe.As<float, byte>(ref Unsafe.AsRef(vec1.X)));
-			var vt2 = Unsafe.ReadUnaligned<Vector128<float>>(ref Unsafe.As<float, byte>(ref Unsafe.AsRef(vec2.X)));
-			var vt3 = Unsafe.ReadUnaligned<Vector128<float>>(ref Unsafe.As<float, byte>(ref Unsafe.AsRef(vec3.X)));
+			var vm0 = Unsafe.ReadUnaligned<Vector128<float>>(ref Unsafe.As<float, byte>(ref Unsafe.AsRef(vec0.X)));
+			var vm1 = Unsafe.ReadUnaligned<Vector128<float>>(ref Unsafe.As<float, byte>(ref Unsafe.AsRef(vec1.X)));
+			var vm2 = Unsafe.ReadUnaligned<Vector128<float>>(ref Unsafe.As<float, byte>(ref Unsafe.AsRef(vec2.X)));
+			var vm3 = Unsafe.ReadUnaligned<Vector128<float>>(ref Unsafe.As<float, byte>(ref Unsafe.AsRef(vec3.X)));
 
-			var vm0 = Avx.InsertVector128(vt0.ToVector256Unsafe(), vt0, 1);
-			var vm1 = Avx.InsertVector128(vt1.ToVector256Unsafe(), vt1, 1);
-			var vm2 = Avx.InsertVector128(vt2.ToVector256Unsafe(), vt2, 1);
-			var vm3 = Avx.InsertVector128(vt3.ToVector256Unsafe(), vt3, 1);
+			var vml0 = Sse.UnpackLow(vm0, vm1).AsDouble();
+			var vmh0 = Sse.UnpackHigh(vm0, vm1).AsDouble();
+			var vml1 = Sse.UnpackLow(vm2, vm3).AsDouble();
+			var vmh1 = Sse.UnpackHigh(vm2, vm3).AsDouble();
 
-			var vone = Vector256.Create(1f);
+			vm0 = Sse2.UnpackLow(vml0, vml1).AsSingle();
+			vm1 = Sse2.UnpackHigh(vml0, vml1).AsSingle();
+			vm2 = Sse2.UnpackLow(vmh0, vmh1).AsSingle();
+			vm3 = Sse2.UnpackHigh(vmh0, vmh1).AsSingle();
+			var vone = Vector128.Create(1f);
 
 			for (int y = 0; y < prc.Height; y++)
 			{
 				float* ip = (float*)((byte*)pbBuffer + y * cbStride), ipe = ip + prc.Width * chan;
 
-				ipe -= Vector256<float>.Count;
-				while (ip <= ipe)
+				if (Avx.IsSupported)
 				{
-					var vi = Avx.LoadVector256(ip);
-					var vn = Avx.Blend(vi, vone, HWIntrinsics.BlendMaskAlpha);
+					var wm0 = vm0.ToVector256Unsafe().WithUpper(vm0);
+					var wm1 = vm1.ToVector256Unsafe().WithUpper(vm1);
+					var wm2 = vm2.ToVector256Unsafe().WithUpper(vm2);
+					var wm3 = vm3.ToVector256Unsafe().WithUpper(vm3);
+					var wone = Vector256.Create(1f);
 
-					var vr0 = Avx.DotProduct(vn, vm0, 0b_1111_0001);
-					var vr1 = Avx.DotProduct(vn, vm1, 0b_1111_0010);
-					var vr2 = Avx.DotProduct(vn, vm2, 0b_1111_0100);
+					ipe -= Vector256<float>.Count;
+					while (ip <= ipe)
+					{
+						var vi = Avx.LoadVector256(ip);
 
-					vi = Avx.Multiply(vi, vm3);
-					vi = Avx.Blend(vi, vr0, 0b_0001_0001);
-					vi = Avx.Blend(vi, vr1, 0b_0010_0010);
-					vi = Avx.Blend(vi, vr2, 0b_0100_0100);
+						var vr0 = Avx.Multiply(Avx.Shuffle(vi, vi, HWIntrinsics.ShuffleMaskChan0), wm0);
+						var vr1 = Avx.Multiply(Avx.Shuffle(vi, vi, HWIntrinsics.ShuffleMaskChan1), wm1);
+						vr0 = HWIntrinsics.MultiplyAdd(vr0, Avx.Shuffle(vi, vi, HWIntrinsics.ShuffleMaskChan2), wm2);
+						vr1 = HWIntrinsics.MultiplyAdd(vr1, Avx.Blend(wone, vi, HWIntrinsics.BlendMaskAlpha), wm3);
+						vi = Avx.Add(vr0, vr1);
 
-					Avx.Store(ip, vi);
+						Avx.Store(ip, vi);
+						ip += Vector256<float>.Count;
+					}
+					ipe += Vector256<float>.Count;
 
-					ip += Vector256<float>.Count;
+					vm0 = wm0.GetLower();
+					vm1 = wm1.GetLower();
+					vm2 = wm2.GetLower();
+					vm3 = wm3.GetLower();
+					vone = wone.GetLower();
 				}
 
-				if (ip <= ipe + Vector128<float>.Count)
+				while (ip < ipe)
 				{
 					var vi = Sse.LoadVector128(ip);
-					var vn = Sse41.Blend(vi, vone.GetLower(), HWIntrinsics.BlendMaskAlpha);
 
-					var vr0 = Sse41.DotProduct(vn, vm0.GetLower(), 0b_1111_0001);
-					var vr1 = Sse41.DotProduct(vn, vm1.GetLower(), 0b_1111_0010);
-					var vr2 = Sse41.DotProduct(vn, vm2.GetLower(), 0b_1111_0100);
-
-					vi = Sse.Multiply(vi, vm3.GetLower());
-					vi = Sse41.Blend(vi, vr0, 0b_0001_0001);
-					vi = Sse41.Blend(vi, vr1, 0b_0010_0010);
-					vi = Sse41.Blend(vi, vr2, 0b_0100_0100);
+					var vr0 = Sse.Multiply(Sse.Shuffle(vi, vi, HWIntrinsics.ShuffleMaskChan0), vm0);
+					var vr1 = Sse.Multiply(Sse.Shuffle(vi, vi, HWIntrinsics.ShuffleMaskChan1), vm1);
+					vr0 = HWIntrinsics.MultiplyAdd(vr0, Sse.Shuffle(vi, vi, HWIntrinsics.ShuffleMaskChan2), vm2);
+					vr1 = HWIntrinsics.MultiplyAdd(vr1, Sse41.Blend(vone, vi, HWIntrinsics.BlendMaskAlpha), vm3);
+					vi = Sse.Add(vr0, vr1);
 
 					Sse.Store(ip, vi);
+					ip += Vector128<float>.Count;
 				}
 			}
 		}
