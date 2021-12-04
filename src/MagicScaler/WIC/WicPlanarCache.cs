@@ -76,7 +76,7 @@ namespace PhotoSauce.MagicScaler
 		public PixelSource SourceCb => sourceCb;
 		public PixelSource SourceCr => sourceCr;
 
-		private void copyPixels(WicPlane plane, in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		private void copyPixels(WicPlane plane, in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
 			Debug.Assert(cbStride >= prc.Width);
 			Debug.Assert(cbBufferSize >= (prc.Height - 1) * cbStride + prc.Width);
@@ -94,7 +94,7 @@ namespace PhotoSauce.MagicScaler
 					loadBuffer(plane, line);
 
 				var lspan = buff.PrepareRead(line, 1).Slice(prc.X, prc.Width);
-				Unsafe.CopyBlockUnaligned(ref *((byte*)pbBuffer + y * cbStride), ref MemoryMarshal.GetReference(lspan), (uint)lspan.Length);
+				Unsafe.CopyBlockUnaligned(ref *(pbBuffer + y * cbStride), ref MemoryMarshal.GetReference(lspan), (uint)lspan.Length);
 			}
 		}
 
@@ -174,7 +174,7 @@ namespace PhotoSauce.MagicScaler
 				cachePlane = plane;
 			}
 
-			protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer) =>
+			protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer) =>
 				cacheSource.copyPixels(cachePlane, prc, cbStride, cbBufferSize, pbBuffer);
 
 			protected override void Dispose(bool disposing)

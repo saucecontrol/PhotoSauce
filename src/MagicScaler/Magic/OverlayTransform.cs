@@ -39,14 +39,13 @@ namespace PhotoSauce.MagicScaler.Transforms
 				lineBuff = BufferPool.RentAligned<byte>(over.Width * bytesPerPixel);
 		}
 
-		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
 			var inner = new PixelArea(offsX, offsY, overSource.Width, overSource.Height);
 
 			int tx = Math.Max(prc.X - inner.X, 0);
 			int tw = Math.Min(prc.Width, Math.Min(Math.Max(prc.X + prc.Width - inner.X, 0), inner.Width - tx));
 			int cx = Math.Max(inner.X - prc.X, 0);
-			byte* pb = (byte*)pbBuffer;
 
 			for (int y = 0; y < prc.Height; y++)
 			{
@@ -55,14 +54,14 @@ namespace PhotoSauce.MagicScaler.Transforms
 				if (copyBase || tw < prc.Width || cy < inner.Y || cy >= inner.Y + inner.Height)
 				{
 					Profiler.PauseTiming();
-					PrevSource.CopyPixels(new PixelArea(prc.X, cy, prc.Width, 1), cbStride, cbBufferSize, (IntPtr)pb);
+					PrevSource.CopyPixels(new PixelArea(prc.X, cy, prc.Width, 1), cbStride, cbBufferSize, pbBuffer);
 					Profiler.ResumeTiming();
 				}
 
 				if (tw > 0 && cy >= inner.Y && cy < inner.Y + inner.Height)
 				{
 					var area = new PixelArea(tx, cy - inner.Y, tw, 1);
-					var ptr = (IntPtr)(pb + cx * bytesPerPixel);
+					byte* ptr = pbBuffer + cx * bytesPerPixel;
 
 					if (lineBuff.Length == 0)
 						copyPixelsDirect(area, cbStride, cbBufferSize, ptr);
@@ -70,24 +69,24 @@ namespace PhotoSauce.MagicScaler.Transforms
 						copyPixelsBuffered(area, ptr);
 				}
 
-				pb += cbStride;
+				pbBuffer += cbStride;
 			}
 		}
 
-		private void copyPixelsDirect(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		private unsafe void copyPixelsDirect(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
 			Profiler.PauseTiming();
 			overSource.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
 			Profiler.ResumeTiming();
 		}
 
-		private unsafe void copyPixelsBuffered(in PixelArea prc, IntPtr pbBuffer)
+		private unsafe void copyPixelsBuffered(in PixelArea prc, byte* pbBuffer)
 		{
 			var buffspan = lineBuff.Span;
 			fixed (byte* buff = buffspan)
 			{
 				Profiler.PauseTiming();
-				overSource.CopyPixels(prc, buffspan.Length, buffspan.Length, (IntPtr)buff);
+				overSource.CopyPixels(prc, buffspan.Length, buffspan.Length, buff);
 				Profiler.ResumeTiming();
 
 				uint* ip = (uint*)buff, ipe = ip + prc.Width;

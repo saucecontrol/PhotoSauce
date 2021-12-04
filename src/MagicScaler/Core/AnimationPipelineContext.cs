@@ -47,7 +47,7 @@ namespace PhotoSauce.MagicScaler
 					var area = new PixelArea(anifrm.OffsetLeft, anifrm.OffsetTop, src.Width, src.Height);
 					using var frameSource = frame is WicGifFrame wicFrame ? wicFrame.Source : src.AsPixelSource();
 					using var overlay = new OverlayTransform(fbuff, frameSource, anifrm.OffsetLeft, anifrm.OffsetTop, true, true);
-					overlay.CopyPixels(area, fbuff.Stride, fspan.Length, (IntPtr)buff);
+					overlay.CopyPixels(area, fbuff.Stride, fspan.Length, buff);
 				}
 			}
 

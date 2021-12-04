@@ -82,7 +82,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			cursrc = newsrc;
 		}
 
-		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
 			var buffspan = lineBuff.Span;
 			if (buffspan.Length == 0) throw new ObjectDisposedException(nameof(PlanarConversionTransform));
@@ -97,12 +97,12 @@ namespace PhotoSauce.MagicScaler.Transforms
 					var lrc = new PixelArea(prc.X, prc.Y + y, prc.Width, 1);
 
 					Profiler.PauseTiming();
-					PrevSource.CopyPixels(lrc, (int)bstride, (int)bstride, (IntPtr)bstart);
-					sourceCb.CopyPixels(lrc, (int)bstride, (int)bstride, (IntPtr)(bstart + bstride));
-					sourceCr.CopyPixels(lrc, (int)bstride, (int)bstride, (IntPtr)(bstart + bstride * 2));
+					PrevSource.CopyPixels(lrc, (int)bstride, (int)bstride, bstart);
+					sourceCb.CopyPixels(lrc, (int)bstride, (int)bstride, bstart + bstride);
+					sourceCr.CopyPixels(lrc, (int)bstride, (int)bstride, bstart + bstride * 2);
 					Profiler.ResumeTiming();
 
-					byte* op = (byte*)pbBuffer + y * cbStride;
+					byte* op = pbBuffer + y * cbStride;
 					if (Format.NumericRepresentation == PixelNumericRepresentation.Float)
 #if HWINTRINSICS
 						if (HWIntrinsics.IsSupported && cb >= (uint)Vector128<byte>.Count * 4)

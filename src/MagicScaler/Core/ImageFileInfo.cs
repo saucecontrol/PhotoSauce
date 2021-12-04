@@ -81,9 +81,9 @@ namespace PhotoSauce.MagicScaler
 			if (!fi.Exists)
 				throw new FileNotFoundException("File not found", imgPath);
 
-			using var fs = File.OpenRead(imgPath);
-			using var stb = new StreamBufferInjector(fs);
-			using var cnt = CodecManager.GetDecoderForStream(fs);
+			using var fs = new FileStream(imgPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+			using var bfs = new PoolBufferedStream(fs);
+			using var cnt = CodecManager.GetDecoderForStream(bfs);
 
 			return fromContainer(cnt, fi.Length, fi.LastWriteTimeUtc);
 		}
@@ -100,8 +100,8 @@ namespace PhotoSauce.MagicScaler
 
 			fixed (byte* pbBuffer = imgBuffer)
 			{
-				using var stm = new UnmanagedMemoryStream(pbBuffer, imgBuffer.Length);
-				using var cnt = CodecManager.GetDecoderForStream(stm);
+				using var ums = new UnmanagedMemoryStream(pbBuffer, imgBuffer.Length);
+				using var cnt = CodecManager.GetDecoderForStream(ums);
 
 				return fromContainer(cnt, imgBuffer.Length, lastModified);
 			}
@@ -119,8 +119,8 @@ namespace PhotoSauce.MagicScaler
 			if (!imgStream.CanSeek || !imgStream.CanRead) throw new ArgumentException("Input Stream must allow Seek and Read", nameof(imgStream));
 			if (imgStream.Length <= 0 || imgStream.Position >= imgStream.Length) throw new ArgumentException("Input Stream is empty or positioned at its end", nameof(imgStream));
 
-			using var stb = new StreamBufferInjector(imgStream);
-			using var cnt = CodecManager.GetDecoderForStream(imgStream);
+			using var bfs = PoolBufferedStream.WrapIfFile(imgStream);
+			using var cnt = CodecManager.GetDecoderForStream(bfs ?? imgStream);
 
 			return fromContainer(cnt, imgStream.Length, lastModified);
 		}

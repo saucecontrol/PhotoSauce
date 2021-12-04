@@ -23,7 +23,7 @@ namespace PhotoSauce.MagicScaler
 		protected PixelSource() => Profiler = MagicImageProcessor.EnablePixelSourceStats ? new ProcessingProfiler(this) : NoopProfiler.Instance;
 
 		[Conditional("GUARDRAILS")]
-		private void checkBounds(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		private unsafe void checkBounds(in PixelArea prc, int cbStride, int cbBufferSize, void* pbBuffer)
 		{
 			int cbLine = MathUtil.DivCeiling(prc.Width * Format.BitsPerPixel, 8);
 
@@ -36,13 +36,13 @@ namespace PhotoSauce.MagicScaler
 			if ((prc.Height - 1) * cbStride + cbLine > cbBufferSize)
 				throw new ArgumentOutOfRangeException(nameof(cbBufferSize), "Buffer is too small for the requested area");
 
-			if (pbBuffer == IntPtr.Zero)
+			if (pbBuffer is null)
 				throw new ArgumentOutOfRangeException(nameof(pbBuffer), "Buffer pointer is invalid");
 		}
 
-		protected abstract void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer);
+		protected abstract unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer);
 
-		public void CopyPixels(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		public unsafe void CopyPixels(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
 			checkBounds(prc, cbStride, cbBufferSize, pbBuffer);
 
@@ -67,7 +67,7 @@ namespace PhotoSauce.MagicScaler
 				throw new ArgumentOutOfRangeException(nameof(buffer), "Buffer is too small for the requested area");
 
 			fixed (byte* pbBuffer = buffer)
-				CopyPixels(prc, cbStride, cbBuffer, (IntPtr)pbBuffer);
+				CopyPixels(prc, cbStride, cbBuffer, pbBuffer);
 		}
 
 		protected virtual void Dispose(bool disposing) { }
@@ -162,7 +162,7 @@ namespace PhotoSauce.MagicScaler
 		public override int Width => default;
 		public override int Height => default;
 
-		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer) { }
+		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer) { }
 	}
 
 	internal sealed class FrameBufferSource : PixelSource
@@ -206,7 +206,7 @@ namespace PhotoSauce.MagicScaler
 
 		public override string ToString() => $"{nameof(FrameBufferSource)}: {Format.Name}";
 
-		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
 			var buffspan = frameBuff.Span;
 			if (buffspan.Length == 0) throw new ObjectDisposedException(nameof(FrameBufferSource));
@@ -217,7 +217,7 @@ namespace PhotoSauce.MagicScaler
 			ref byte buff = ref buffspan[prc.Y * Stride + prc.X * bpp];
 
 			for (int y = 0; y < prc.Height; y++)
-				Unsafe.CopyBlockUnaligned(ref *((byte*)pbBuffer + y * cbStride), ref Unsafe.Add(ref buff, y * Stride), (uint)cb);
+				Unsafe.CopyBlockUnaligned(ref *(pbBuffer + y * cbStride), ref Unsafe.Add(ref buff, y * Stride), (uint)cb);
 		}
 	}
 
@@ -250,7 +250,7 @@ namespace PhotoSauce.MagicScaler
 				ChromaSubsampleMode.Subsample444;
 		}
 
-		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer) => throw new NotImplementedException();
+		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer) => throw new NotImplementedException();
 
 		protected override void Dispose(bool disposing)
 		{
@@ -277,8 +277,8 @@ namespace PhotoSauce.MagicScaler
 
 			public PixelSourceFromIPixelSource(IPixelSource source) => (upstreamSource, Format) = (source, PixelFormat.FromGuid(source.Format));
 
-			protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer) =>
-				upstreamSource.CopyPixels(prc, cbStride, new Span<byte>(pbBuffer.ToPointer(), cbBufferSize));
+			protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer) =>
+				upstreamSource.CopyPixels(prc, cbStride, new Span<byte>(pbBuffer, cbBufferSize));
 
 			public override string? ToString() => upstreamSource.ToString();
 		}

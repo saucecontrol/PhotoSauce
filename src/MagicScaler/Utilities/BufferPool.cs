@@ -210,11 +210,11 @@ namespace PhotoSauce.MagicScaler
 	{
 		public static NoopArrayPool<T> Instance = new();
 
-		public override T[] Rent(int minimumLength)
+		public override T[] Rent(int minimumLength) =>
 #if NET5_0_OR_GREATER
-			=> GC.AllocateUninitializedArray<T>(minimumLength);
+			GC.AllocateUninitializedArray<T>(minimumLength);
 #else
-			=> new T[minimumLength];
+			new T[minimumLength];
 #endif
 
 		public override void Return(T[] array, bool clearArray = false) { }

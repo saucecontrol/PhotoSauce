@@ -96,10 +96,24 @@ namespace PhotoSauce.Interop.Wic
 		public int Read(IStreamImpl* pinst, void* pv, uint cb, uint* pcbRead)
 		{
 			var stm = Unsafe.As<Stream>(pinst->source.Target!);
-			int read = stm.Read(new Span<byte>(pv, (int)cb));
+			uint read = 0;
+
+			if (cb == 1)
+			{
+				int res = stm.ReadByte();
+				if (res >= 0)
+				{
+					*(byte*)pv = (byte)res;
+					read = cb;
+				}
+			}
+			else
+			{
+				read = (uint)stm.Read(new Span<byte>(pv, (int)cb));
+			}
 
 			if (pcbRead is not null)
-				*pcbRead = (uint)read;
+				*pcbRead = read;
 
 			return S_OK;
 		}
@@ -111,7 +125,11 @@ namespace PhotoSauce.Interop.Wic
 		public int Write(IStreamImpl* pinst, void* pv, uint cb, uint* pcbWritten)
 		{
 			var stm = Unsafe.As<Stream>(pinst->source.Target!);
-			stm.Write(new ReadOnlySpan<byte>(pv, (int)cb));
+
+			if (cb == 1)
+				stm.WriteByte(*(byte*)pv);
+			else
+				stm.Write(new ReadOnlySpan<byte>(pv, (int)cb));
 
 			if (pcbWritten is not null)
 				*pcbWritten = cb;
@@ -143,7 +161,7 @@ namespace PhotoSauce.Interop.Wic
 				cpos = stm.Seek(npos, (SeekOrigin)dwOrigin);
 
 			if (plibNewPosition is not null)
-				plibNewPosition->QuadPart = (ulong)(cpos - pinst->offset);
+				plibNewPosition->QuadPart = (ulong)cpos - pinst->offset;
 
 			return S_OK;
 		}

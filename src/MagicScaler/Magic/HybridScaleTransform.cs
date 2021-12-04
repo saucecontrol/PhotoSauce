@@ -38,7 +38,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			Height = DivCeiling(PrevSource.Height, scale);
 		}
 
-		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
 			var buffspan = lineBuff.Span;
 			if (buffspan.Length == 0) throw new ObjectDisposedException(nameof(HybridScaleTransform));
@@ -57,7 +57,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					int iih = Math.Min(ih, PrevSource.Height - iy);
 
 					Profiler.PauseTiming();
-					PrevSource.CopyPixels(new PixelArea(prc.X * scale, iy, iiw, iih), stride, buffspan.Length, (IntPtr)bstart);
+					PrevSource.CopyPixels(new PixelArea(prc.X * scale, iy, iiw, iih), stride, buffspan.Length, bstart);
 					Profiler.ResumeTiming();
 
 					for (int i = 0; iiw < iw && i < iih; i++)
@@ -86,7 +86,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					{
 						byte* ip = bstart, op = bstart;
 						if (ratio == 2)
-							op = (byte*)pbBuffer + y * cbStride;
+							op = pbBuffer + y * cbStride;
 
 						for (int i = 0; i < ratio; i += 2)
 						{

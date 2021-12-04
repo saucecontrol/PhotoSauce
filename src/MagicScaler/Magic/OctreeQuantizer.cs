@@ -14,7 +14,7 @@ namespace PhotoSauce.MagicScaler
 {
 	internal sealed unsafe class OctreeQuantizer : IDisposable
 	{
-		private const int maxHistogramSize = 8191; // max possible nodes with 3 bits saved to stuff level into one of the indices
+		private const int maxHistogramSize = 8191; // max possible nodes with 3 bits reserved to stuff level into one of the indices
 		private const int maxSamples = 1 << 22;    // can have as many as 2^24 samples before possible overflow in sums
 		private const int maxPaletteSize = 256;
 		private const uint alphaThreshold = 85;

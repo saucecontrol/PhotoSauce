@@ -50,7 +50,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			vmatte = new Vector4(mb, mg, mr, 1f) * new Vector4(maa);
 		}
 
-		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
 			Profiler.PauseTiming();
 			PrevSource.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
@@ -66,7 +66,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			else if (Format == PixelFormat.Pbgra64UQ15Linear)
 				applyMatteLinear(prc, (ushort*)pbBuffer, cbStride / sizeof(ushort));
 			else if (Format == PixelFormat.Bgra32)
-				applyMatteCompanded(prc, (byte*)pbBuffer, cbStride);
+				applyMatteCompanded(prc, pbBuffer, cbStride);
 			else
 				throw new NotSupportedException("Pixel format not supported.");
 		}

@@ -67,7 +67,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			mapNextFree = seedPaletteMap(mapBuff.Span);
 		}
 
-		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
 			if (palBuff.Length == 0) throw new ObjectDisposedException(nameof(IndexedColorTransform));
 			if (paletteLength == 0) throw new InvalidOperationException("No palette has been set.");
@@ -91,7 +91,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				for (nint y = 0; y < prc.Height; y++)
 				{
 					byte* pline = pimg + (prc.Y + y) * source.Stride + prc.X * channels;
-					byte* poutline = (byte*)pbBuffer + y * cbStride;
+					byte* poutline = pbBuffer + y * cbStride;
 					short* perrline = perr + prc.X * channels + channels;
 
 					if (!dither)
@@ -547,8 +547,6 @@ namespace PhotoSauce.MagicScaler.Transforms
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static nuint findNearestColorSse41(uint* ppal, nuint maxidx, Vector128<short> vpix)
 		{
-			const byte shuffleMaskRed = 0b_10_10_10_10;
-
 			Vector128<int> vdst;
 			Vector128<uint> vidx;
 
@@ -571,7 +569,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					pp += Vector256<short>.Count;
 
 					var wavg = Avx2.ShiftRightArithmetic(Avx2.Average(vpal.AsUInt16(), wppix.AsUInt16()).AsInt16(), 3);
-					wavg = Avx2.MultiplyLow(Avx2.ShuffleHigh(Avx2.ShuffleLow(wavg, shuffleMaskRed), shuffleMaskRed), wmul);
+					wavg = Avx2.MultiplyLow(Avx2.ShuffleHigh(Avx2.ShuffleLow(wavg, HWIntrinsics.ShuffleMaskChan2), HWIntrinsics.ShuffleMaskChan2), wmul);
 
 					var wdif = Avx2.Subtract(vpal, wppix);
 					var wdip = Avx2.MultiplyAddAdjacent(wdif, Avx2.MultiplyLow(Avx2.Add(wavg, wadd), wdif));
@@ -608,7 +606,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					pp += Vector128<short>.Count;
 
 					var vavg = Sse2.ShiftRightArithmetic(Sse2.Average(vpal.AsUInt16(), vppix.AsUInt16()).AsInt16(), 3);
-					vavg = Sse2.MultiplyLow(Sse2.ShuffleHigh(Sse2.ShuffleLow(vavg, shuffleMaskRed), shuffleMaskRed), vmul);
+					vavg = Sse2.MultiplyLow(Sse2.ShuffleHigh(Sse2.ShuffleLow(vavg, HWIntrinsics.ShuffleMaskChan2), HWIntrinsics.ShuffleMaskChan2), vmul);
 
 					var vdif = Sse2.Subtract(vpal, vppix);
 					var vdip = Sse2.MultiplyAddAdjacent(vdif, Sse2.MultiplyLow(Sse2.Add(vavg, vadd), vdif));

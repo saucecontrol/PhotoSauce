@@ -433,7 +433,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 				var buffC = new FrameBufferSource(ctx.Source.Width, ctx.Source.Height, ctx.Source.Format);
 				fixed (byte* pbuff = buffC.Span)
-					ctx.Source.CopyPixels(ctx.Source.Area, buffC.Stride, buffC.Span.Length, (IntPtr)pbuff);
+					ctx.Source.CopyPixels(ctx.Source.Area, buffC.Stride, buffC.Span.Length, pbuff);
 
 				using var quant = new OctreeQuantizer();
 				var ppq = ctx.AddProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.CreatePalette));

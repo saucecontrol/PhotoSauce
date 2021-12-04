@@ -64,9 +64,8 @@ namespace PhotoSauce.MagicScaler
 		{
 			using var stream = default(ComPtr<IWICStream>);
 			HRESULT.Check(Wic.Factory->CreateStream(stream.GetAddressOf()));
-			var ptr = (IntPtr)pbBuffer;
 
-			HRESULT.Check(stream.Get()->InitializeFromMemory((byte*)ptr, (uint)cbBuffer));
+			HRESULT.Check(stream.Get()->InitializeFromMemory(pbBuffer, (uint)cbBuffer));
 
 			var dec = createDecoder((IStream*)stream.Get());
 			return WicImageContainer.Create(dec);
@@ -517,7 +516,7 @@ namespace PhotoSauce.MagicScaler
 
 			var buff = frame.Source;
 			fixed (byte* pbuff = buff.Span)
-				context.Source.CopyPixels(frame.Area, buff.Stride, buff.Span.Length, (IntPtr)pbuff);
+				context.Source.CopyPixels(frame.Area, buff.Stride, buff.Span.Length, pbuff);
 		}
 
 		private void writeFrame(AnimationBufferFrame src, IProfiler ppq)

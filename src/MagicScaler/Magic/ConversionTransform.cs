@@ -106,7 +106,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				throw new NotSupportedException("Unsupported pixel format");
 		}
 
-		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
 			if (PrevSource.Format.BitsPerPixel != Format.BitsPerPixel)
 				copyPixelsBuffered(prc, cbStride, cbBufferSize, pbBuffer);
@@ -114,7 +114,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				copyPixelsDirect(prc, cbStride, cbBufferSize, pbBuffer);
 		}
 
-		private unsafe void copyPixelsBuffered(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		private unsafe void copyPixelsBuffered(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
 			var buffspan = lineBuff.Span;
 			if (buffspan.Length == 0) throw new ObjectDisposedException(nameof(ConversionTransform));
@@ -126,25 +126,25 @@ namespace PhotoSauce.MagicScaler.Transforms
 				for (int y = 0; y < prc.Height; y++)
 				{
 					Profiler.PauseTiming();
-					PrevSource.CopyPixels(new PixelArea(prc.X, prc.Y + y, prc.Width, 1), buffspan.Length, buffspan.Length, (IntPtr)bstart);
+					PrevSource.CopyPixels(new PixelArea(prc.X, prc.Y + y, prc.Width, 1), buffspan.Length, buffspan.Length, bstart);
 					Profiler.ResumeTiming();
 
-					byte* op = (byte*)pbBuffer + y * cbStride;
+					byte* op = pbBuffer + y * cbStride;
 					processor.ConvertLine(bstart, op, cb);
 				}
 			}
 		}
 
-		private unsafe void copyPixelsDirect(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		private unsafe void copyPixelsDirect(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
 			int cb = MathUtil.DivCeiling(prc.Width * PrevSource.Format.BitsPerPixel, 8);
 
 			for (int y = 0; y < prc.Height; y++)
 			{
-				byte* op = (byte*)pbBuffer + y * cbStride;
+				byte* op = pbBuffer + y * cbStride;
 
 				Profiler.PauseTiming();
-				PrevSource.CopyPixels(new PixelArea(prc.X, prc.Y + y, prc.Width, 1), cbStride, cb, (IntPtr)op);
+				PrevSource.CopyPixels(new PixelArea(prc.X, prc.Y + y, prc.Width, 1), cbStride, cb, op);
 				Profiler.ResumeTiming();
 
 				processor.ConvertLine(op, op, cb);

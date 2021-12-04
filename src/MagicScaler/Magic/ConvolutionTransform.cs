@@ -142,7 +142,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
-		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
 			if (XMap is null)
 				throw new ObjectDisposedException(nameof(ConvolutionTransform<TPixel, TWeight>));
@@ -162,7 +162,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					if (!IntBuff.ContainsRange(iy, smapy))
 						loadBuffer(iy, smapy);
 
-					ConvolveLine((byte*)pbBuffer + y * cbStride, (byte*)pmapy, smapy, iy, oy + y, ox, ow);
+					ConvolveLine(pbBuffer + y * cbStride, (byte*)pmapy, smapy, iy, oy + y, ox, ow);
 				}
 			}
 		}
@@ -195,7 +195,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					for (int ly = 0; ly < cli; ly++)
 					{
 						Profiler.PauseTiming();
-						PrevSource.CopyPixels(new PixelArea(0, fli + ly, PrevSource.Width, 1), bspan.Length, bspan.Length, (IntPtr)bp);
+						PrevSource.CopyPixels(new PixelArea(0, fli + ly, PrevSource.Width, 1), bspan.Length, bspan.Length, bp);
 						Profiler.ResumeTiming();
 
 						if (bp != wp)

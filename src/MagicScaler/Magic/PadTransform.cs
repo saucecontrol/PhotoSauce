@@ -26,13 +26,12 @@ namespace PhotoSauce.MagicScaler.Transforms
 			Passthrough = !replay;
 		}
 
-		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
 			int bpp = Format.BytesPerPixel;
 			int tx = Math.Max(prc.X - inner.X, 0);
 			int tw = Math.Min(prc.Width, Math.Min(Math.Max(prc.X + prc.Width - inner.X, 0), inner.Width - tx));
 			int cx = Math.Max(inner.X - prc.X, 0);
-			byte* pb = (byte*)pbBuffer;
 
 			for (int y = 0; y < prc.Height; y++)
 			{
@@ -43,13 +42,13 @@ namespace PhotoSauce.MagicScaler.Transforms
 					switch (bpp)
 					{
 						case 1:
-							new Span<byte>(pb, prc.Width).Fill((byte)fill);
+							new Span<byte>(pbBuffer, prc.Width).Fill((byte)fill);
 							break;
 						case 3:
-							new Span<triple>(pb, prc.Width).Fill((triple)fill);
+							new Span<triple>(pbBuffer, prc.Width).Fill((triple)fill);
 							break;
 						case 4:
-							new Span<uint>(pb, prc.Width).Fill(fill);
+							new Span<uint>(pbBuffer, prc.Width).Fill(fill);
 							break;
 					}
 				}
@@ -57,11 +56,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 				if (tw > 0 && cy >= inner.Y && cy < inner.Y + inner.Height)
 				{
 					Profiler.PauseTiming();
-					PrevSource.CopyPixels(new PixelArea(tx, cy - inner.Y, tw, 1), cbStride, cbBufferSize, (IntPtr)(pb + cx * bpp));
+					PrevSource.CopyPixels(new PixelArea(tx, cy - inner.Y, tw, 1), cbStride, cbBufferSize, pbBuffer + cx * bpp);
 					Profiler.ResumeTiming();
 				}
 
-				pb += cbStride;
+				pbBuffer += cbStride;
 			}
 		}
 

@@ -67,9 +67,9 @@ namespace PhotoSauce.ManagedCodecs
 
 		private static void encode<TPixel>(TgaEncoder enc, Stream stm, IPixelSource src, GdiRect srcArea) where TPixel : unmanaged, IPixel<TPixel>
 		{
-			var img = new Image<TPixel>(srcArea.Width, srcArea.Height);
-			var rect = new GdiRect(srcArea.X, srcArea.Y, srcArea.Width, 1);
+			using var img = new Image<TPixel>(srcArea.Width, srcArea.Height);
 
+			var rect = new GdiRect(srcArea.X, srcArea.Y, srcArea.Width, 1);
 			for (int i = 0; i < srcArea.Height; i++)
 			{
 				var span = MemoryMarshal.AsBytes(img.GetPixelRowSpan(i));
@@ -112,7 +112,7 @@ namespace PhotoSauce.ManagedCodecs
 			return fmt is TgaFormat ? new TargaContainer(imgStream, info.PixelType.BitsPerPixel) : null;
 		}
 
-		/// <summary>Loads a TARGA image from the specified path.</summary>
+		/// <summary>Loads a TARGA image from an input <see cref="Stream"/>.</summary>
 		/// <param name="imgStream">A <see cref="Stream" /> containing the image file.</param>
 		/// <returns>A <see cref="TargaContainer"/> encapsulating the image.</returns>
 		public static TargaContainer Load(Stream imgStream)
@@ -162,13 +162,13 @@ namespace PhotoSauce.ManagedCodecs
 		private int bytesPerPixel => decodedFrame switch {
 			ImageFrame<L8>    => 1,
 			ImageFrame<Bgr24> => 3,
-			                _ => 4
+			_                 => 4
 		};
 
 		public Guid Format => decodedFrame switch {
 			ImageFrame<L8>    => PixelFormats.Grey8bpp,
 			ImageFrame<Bgr24> => PixelFormats.Bgr24bpp,
-			                _ => PixelFormats.Bgra32bpp
+			_                 => PixelFormats.Bgra32bpp
 		};
 
 		public int Width => decodedFrame.Width;

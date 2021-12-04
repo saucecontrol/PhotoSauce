@@ -25,7 +25,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			vec3 = new Vector4(        0f,         0f,         0f, matrix.M44);
 		}
 
-		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, IntPtr pbBuffer)
+		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
 			Profiler.PauseTiming();
 			PrevSource.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
@@ -44,7 +44,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				copyPixelsByte(prc, cbStride, pbBuffer);
 		}
 
-		private unsafe void copyPixelsByte(in PixelArea prc, int cbStride, IntPtr pbBuffer)
+		private unsafe void copyPixelsByte(in PixelArea prc, int cbStride, byte* pbBuffer)
 		{
 			int* pm = stackalloc[] {
 				Fix15(vec0.X), Fix15(vec0.Y), Fix15(vec0.Z), Fix15(vec0.W),
@@ -58,7 +58,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			for (int y = 0; y < prc.Height; y++)
 			{
-				byte* ip = (byte*)pbBuffer + y * cbStride, ipe = ip + prc.Width * chan;
+				byte* ip = pbBuffer + y * cbStride, ipe = ip + prc.Width * chan;
 				while (ip < ipe)
 				{
 					int i0 = ip[0];
@@ -81,7 +81,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
-		private unsafe void copyPixelsFixed(in PixelArea prc, int cbStride, IntPtr pbBuffer)
+		private unsafe void copyPixelsFixed(in PixelArea prc, int cbStride, byte* pbBuffer)
 		{
 			int* pm = stackalloc[] {
 				Fix15(vec0.X), Fix15(vec0.Y), Fix15(vec0.Z), Fix15(vec0.W),
@@ -95,7 +95,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			for (int y = 0; y < prc.Height; y++)
 			{
-				ushort* ip = (ushort*)((byte*)pbBuffer + y * cbStride), ipe = ip + prc.Width * chan;
+				ushort* ip = (ushort*)(pbBuffer + y * cbStride), ipe = ip + prc.Width * chan;
 				while (ip < ipe)
 				{
 					int i0 = ip[0];
@@ -118,7 +118,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
-		private unsafe void copyPixelsFloat(in PixelArea prc, int cbStride, IntPtr pbBuffer)
+		private unsafe void copyPixelsFloat(in PixelArea prc, int cbStride, byte* pbBuffer)
 		{
 			int chan = Format.ChannelCount;
 			bool alpha = Format.AlphaRepresentation != PixelAlphaRepresentation.None;
@@ -128,7 +128,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			for (int y = 0; y < prc.Height; y++)
 			{
-				float* ip = (float*)((byte*)pbBuffer + y * cbStride), ipe = ip + prc.Width * chan;
+				float* ip = (float*)(pbBuffer + y * cbStride), ipe = ip + prc.Width * chan;
 				while (ip < ipe)
 				{
 					var vn = Unsafe.ReadUnaligned<Vector4>(ip);
@@ -152,7 +152,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		private unsafe void copyPixelsSse41(in PixelArea prc, int cbStride, IntPtr pbBuffer)
+		private unsafe void copyPixelsSse41(in PixelArea prc, int cbStride, byte* pbBuffer)
 		{
 			int chan = Format.ChannelCount;
 
@@ -174,7 +174,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			for (int y = 0; y < prc.Height; y++)
 			{
-				float* ip = (float*)((byte*)pbBuffer + y * cbStride), ipe = ip + prc.Width * chan;
+				float* ip = (float*)(pbBuffer + y * cbStride), ipe = ip + prc.Width * chan;
 
 				if (Avx.IsSupported)
 				{

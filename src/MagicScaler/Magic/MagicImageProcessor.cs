@@ -65,9 +65,9 @@ namespace PhotoSauce.MagicScaler
 			if (settings is null) throw new ArgumentNullException(nameof(settings));
 			checkOutStream(outStream);
 
-			using var fs = File.OpenRead(imgPath);
-			using var stb = new StreamBufferInjector(fs);
-			using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(fs));
+			using var fs = new FileStream(imgPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+			using var bfs = new PoolBufferedStream(fs);
+			using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(bfs));
 			buildPipeline(ctx);
 
 			return WriteOutput(ctx, outStream);
@@ -85,8 +85,8 @@ namespace PhotoSauce.MagicScaler
 
 			fixed (byte* pbBuffer = imgBuffer)
 			{
-				using var stm = new UnmanagedMemoryStream(pbBuffer, imgBuffer.Length);
-				using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(stm));
+				using var ums = new UnmanagedMemoryStream(pbBuffer, imgBuffer.Length);
+				using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(ums));
 				buildPipeline(ctx);
 
 				return WriteOutput(ctx, outStream);
@@ -101,8 +101,8 @@ namespace PhotoSauce.MagicScaler
 			checkInStream(imgStream);
 			checkOutStream(outStream);
 
-			using var stb = new StreamBufferInjector(imgStream);
-			using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(imgStream));
+			using var bfs = PoolBufferedStream.WrapIfFile(imgStream);
+			using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(bfs ?? imgStream));
 			buildPipeline(ctx);
 
 			return WriteOutput(ctx, outStream);
@@ -145,11 +145,10 @@ namespace PhotoSauce.MagicScaler
 			if (imgPath is null) throw new ArgumentNullException(nameof(imgPath));
 			if (settings is null) throw new ArgumentNullException(nameof(settings));
 
-			var fs = File.OpenRead(imgPath);
-			var stb = new StreamBufferInjector(fs);
-			var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(fs));
-			ctx.AddDispose(fs);
-			ctx.AddDispose(stb);
+			var fs = new FileStream(imgPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+			var bfs = new PoolBufferedStream(fs, true);
+			var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(bfs));
+			ctx.AddDispose(bfs);
 			buildPipeline(ctx, false);
 
 			return new ProcessingPipeline(ctx);
@@ -162,7 +161,11 @@ namespace PhotoSauce.MagicScaler
 			if (settings is null) throw new ArgumentNullException(nameof(settings));
 			checkInStream(imgStream);
 
-			var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(imgStream));
+			var bfs = PoolBufferedStream.WrapIfFile(imgStream);
+			var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(bfs ?? imgStream));
+			if (bfs is not null)
+				ctx.AddDispose(bfs);
+
 			buildPipeline(ctx, false);
 
 			return new ProcessingPipeline(ctx);
@@ -201,8 +204,8 @@ namespace PhotoSauce.MagicScaler
 			MagicTransforms.AddExternalFormatConverter(ctx);
 
 			var mime = WicImageEncoder.FormatMap.GetValueOrDefault(ctx.Settings.SaveFormat, KnownMimeTypes.Png);
-			using var stb = new StreamBufferInjector(ostm);
-			using var enc = CodecManager.GetEncoderForMimeType(mime, ostm, ctx.Settings.EncoderConfig);
+			using var bfs = PoolBufferedStream.WrapIfFile(ostm);
+			using var enc = CodecManager.GetEncoderForMimeType(mime, bfs ?? ostm, ctx.Settings.EncoderConfig);
 
 			if (ctx.IsAnimatedGifPipeline && enc is WicImageEncoder wenc)
 			{
