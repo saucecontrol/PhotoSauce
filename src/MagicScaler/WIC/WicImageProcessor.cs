@@ -59,8 +59,7 @@ namespace PhotoSauce.MagicScaler
 			MagicTransforms.AddPad(ctx);
 			WicTransforms.AddIndexedColorConverter(ctx);
 
-			string? mime = WicImageEncoder.FormatMap.GetValueOrDefault(ctx.Settings.SaveFormat, KnownMimeTypes.Png);
-			using var enc = CodecManager.GetEncoderForMimeType(mime, ostm, ctx.Settings.EncoderConfig);
+			using var enc = ctx.Settings.EncoderInfo.Factory(ostm, ctx.Settings.EncoderOptions);
 			enc.WriteFrame(ctx.Source, ctx.Metadata, PixelArea.Default);
 			enc.Commit();
 

@@ -20,6 +20,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		public const string Avif = "image/avif";
 		public const string Bmp = "image/bmp";
+		public const string Dds = "image/vnd.ms-dds";
 		public const string Gif = "image/gif";
 		public const string Heif = "image/heif";
 		public const string Jpeg = "image/jpeg";
@@ -34,6 +35,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		public const string Avif = ".avif";
 		public const string Bmp = ".bmp";
+		public const string Dds = ".dds";
 		public const string Gif = ".gif";
 		public const string Heif = ".heif";
 		public const string Jpeg = ".jpg";
@@ -106,7 +108,8 @@ namespace PhotoSauce.MagicScaler
 		Func<Stream, IEncoderOptions?, IImageEncoder> Factory,
 		bool SupportsTransparency,
 		bool SupportsMultiFrame,
-		bool SupportsAnimation
+		bool SupportsAnimation,
+		bool SupportsColorProfile
 	) : CodecInfo(Name, MimeTypes, FileExtensions, SupportsTransparency, SupportsMultiFrame, SupportsAnimation), IImageEncoderInfo;
 
 	/// <summary>Represents the set of configured codecs for the processing pipeline.</summary>
@@ -198,23 +201,9 @@ namespace PhotoSauce.MagicScaler
 			throw new InvalidDataException("Image format not supported.  Please ensure the input file is an image and that a codec capable of reading the image is registered.");
 		}
 
-		internal IImageEncoder GetEncoderForFileExtension(string extension, Stream stm, IEncoderOptions? options)
-		{
-			var encinfo = encoderExtensionMap.GetValueOrDefault(extension);
-			if (encinfo is null)
-				throw new NotSupportedException($"An encoder for file extension '{extension}' could not be found.");
+		internal bool TryGetEncoderForFileExtension(string extension, [NotNullWhen(true)] out IImageEncoderInfo? info) => (info = encoderExtensionMap.GetValueOrDefault(extension)) is not null;
 
-			return encinfo.Factory(stm, options ?? encinfo.DefaultConfig);
-		}
-
-		internal IImageEncoder GetEncoderForMimeType(string mimeType, Stream stm, IEncoderOptions? options)
-		{
-			var encinfo = encoderMimeMap.GetValueOrDefault(mimeType);
-			if (encinfo is null)
-				throw new NotSupportedException($"An encoder for MIME type '{mimeType}' could not be found.");
-
-			return encinfo.Factory(stm, options ?? encinfo.DefaultConfig);
-		}
+		internal bool TryGetEncoderForMimeType(string mimeType, [NotNullWhen(true)] out IImageEncoderInfo? info) => (info = encoderMimeMap.GetValueOrDefault(mimeType)) is not null;
 
 		internal void ResetCaches()
 		{
@@ -238,8 +227,15 @@ namespace PhotoSauce.MagicScaler
 			encoderExtensionMap.Clear();
 			foreach (var enc in codecs.OfType<IImageEncoderInfo>().SelectMany(i => i.FileExtensions.Select(s => (Info: i, Extension: s))))
 			{
-				if (!encoderExtensionMap.ContainsKey(enc.Extension))
-					encoderExtensionMap.Add(enc.Extension, enc.Info);
+				string ext = enc.Extension;
+				if (string.IsNullOrEmpty(ext))
+					continue;
+
+				if (ext[0] != '.')
+					ext = string.Concat(".", ext);
+
+				if (!encoderExtensionMap.ContainsKey(ext))
+					encoderExtensionMap.Add(ext, enc.Info);
 			}
 		}
 
@@ -251,6 +247,15 @@ namespace PhotoSauce.MagicScaler
 	internal static class CodecManager
 	{
 		private static volatile CodecCollection? codecs;
+
+		internal static readonly EncoderInfo FallbackEncoder = new(
+			nameof(FallbackEncoder),
+			new[] { "*" },
+			new[] { "*" },
+			null,
+			(s, o) => throw new NotSupportedException("No encoders are registered."),
+			false, false, false, false
+		);
 
 		private static CodecCollection getCodecs()
 		{
@@ -279,8 +284,8 @@ namespace PhotoSauce.MagicScaler
 
 		internal static IImageContainer GetDecoderForStream(Stream stm) => getCodecs().GetDecoderForStream(stm);
 
-		internal static IImageEncoder GetEncoderForFileExtension(string extension, Stream stm, IEncoderOptions? options) => getCodecs().GetEncoderForFileExtension(extension, stm, options);
+		internal static bool TryGetEncoderForFileExtension(string extension, [NotNullWhen(true)] out IImageEncoderInfo? info) => getCodecs().TryGetEncoderForFileExtension(extension, out info);
 
-		internal static IImageEncoder GetEncoderForMimeType(string mimeType, Stream stm, IEncoderOptions? options) => getCodecs().GetEncoderForMimeType(mimeType, stm, options);
+		internal static bool TryGetEncoderForMimeType(string mimeType, [NotNullWhen(true)] out IImageEncoderInfo? info) => getCodecs().TryGetEncoderForMimeType(mimeType, out info);
 	}
 }

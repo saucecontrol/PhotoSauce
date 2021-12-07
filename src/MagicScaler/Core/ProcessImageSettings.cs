@@ -105,6 +105,7 @@ namespace PhotoSauce.MagicScaler
 		private int jpegQuality;
 		private ChromaSubsampleMode jpegSubsampling;
 		private ImageFileInfo? imageInfo;
+		private IImageEncoderInfo? encoderInfo;
 		internal Size InnerSize;
 		internal Size OuterSize;
 		internal bool AutoCrop;
@@ -127,6 +128,12 @@ namespace PhotoSauce.MagicScaler
 			unsharpMask.Equals(empty.unsharpMask)
 		;
 
+		internal IImageEncoderInfo EncoderInfo
+		{
+			get => encoderInfo ??= CodecManager.TryGetEncoderForMimeType(SaveFormat.ToMimeType(), out var info) ? info : CodecManager.FallbackEncoder;
+			set => encoderInfo = value;
+		}
+
 		internal Rectangle InnerRect => new(
 			x: (OuterSize.Width - InnerSize.Width) / 2,
 			y: (OuterSize.Height - InnerSize.Height) / 2,
@@ -134,7 +141,7 @@ namespace PhotoSauce.MagicScaler
 			height: InnerSize.Height
 		);
 
-		internal IEncoderOptions? EncoderConfig => SaveFormat switch {
+		internal IEncoderOptions? EncoderOptions => SaveFormat switch {
 			FileFormat.Jpeg => new JpegEncoderOptions(JpegQuality, JpegSubsampleMode, false),
 			FileFormat.Tiff => new TiffEncoderOptions(TiffCompressionMode.None),
 			_ => null
@@ -581,7 +588,7 @@ namespace PhotoSauce.MagicScaler
 			if (!Sharpen)
 				UnsharpMask = UnsharpMaskSettings.None;
 
-			if (ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed && (SaveFormat == FileFormat.Bmp || SaveFormat == FileFormat.Gif))
+			if (ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed && !EncoderInfo.SupportsColorProfile)
 				ColorProfileMode = ColorProfileMode.ConvertToSrgb;
 
 			imageInfo = img;

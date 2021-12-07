@@ -6,7 +6,6 @@ using System.Drawing;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Diagnostics.CodeAnalysis;
 
@@ -20,14 +19,6 @@ namespace PhotoSauce.MagicScaler
 {
 	internal static unsafe class WicImageDecoder
 	{
-		public static readonly Dictionary<Guid, FileFormat> FormatMap = new() {
-			[GUID_ContainerFormatBmp] = FileFormat.Bmp,
-			[GUID_ContainerFormatGif] = FileFormat.Gif,
-			[GUID_ContainerFormatJpeg] = FileFormat.Jpeg,
-			[GUID_ContainerFormatPng] = FileFormat.Png,
-			[GUID_ContainerFormatTiff] = FileFormat.Tiff
-		};
-
 #if WICPROCESSOR
 		private static IWICBitmapDecoder* createDecoder(IStream* pStream)
 		{
@@ -89,17 +80,7 @@ namespace PhotoSauce.MagicScaler
 
 	internal sealed unsafe class WicImageEncoder : IImageEncoder, IDisposable
 	{
-		public static readonly Dictionary<FileFormat, string> FormatMap = new() {
-			[FileFormat.Bmp] = KnownMimeTypes.Bmp,
-			[FileFormat.Gif] = KnownMimeTypes.Gif,
-			[FileFormat.Jpeg] = KnownMimeTypes.Jpeg,
-			[FileFormat.Png] = KnownMimeTypes.Png,
-			[FileFormat.Png8] = KnownMimeTypes.Png,
-			[FileFormat.Tiff] = KnownMimeTypes.Tiff
-		};
-
 		public IWICBitmapEncoder* WicEncoder { get; private set; }
-		public FileFormat Format { get; }
 		public IEncoderOptions? Options { get; }
 
 		public WicImageEncoder(Guid clsid, Stream stm, IEncoderOptions? options)
@@ -112,33 +93,34 @@ namespace PhotoSauce.MagicScaler
 			var guid = default(Guid);
 			HRESULT.Check(encoder.Get()->GetContainerFormat(&guid));
 
-			Format = WicImageDecoder.FormatMap.GetValueOrDefault(guid, FileFormat.Unknown);
 			Options = options;
 			WicEncoder = encoder.Detach();
 		}
 
 		public void WriteFrame(IPixelSource source, IMetadataSource meta, Rectangle area)
 		{
-			var fmt = Format;
 			var src = source.AsPixelSource();
 			var encArea = area.IsEmpty ? src.Area : (PixelArea)area;
+
+			var fmt = default(Guid);
+			HRESULT.Check(WicEncoder->GetContainerFormat(&fmt));
 
 			using var frame = default(ComPtr<IWICBitmapFrameEncode>);
 			using (var pbag = default(ComPtr<IPropertyBag2>))
 			{
 				HRESULT.Check(WicEncoder->CreateNewFrame(frame.GetAddressOf(), pbag.GetAddressOf()));
 
-				if (fmt == FileFormat.Jpeg && Options is JpegEncoderOptions jconf)
+				if (fmt == GUID_ContainerFormatJpeg && Options is JpegEncoderOptions jconf)
 				{
 					pbag.Write("ImageQuality", jconf.Quality / 100f);
 					if (jconf.Subsample != ChromaSubsampleMode.Default)
 						pbag.Write("JpegYCrCbSubsampling", (byte)jconf.Subsample);
 				}
-				else if (fmt == FileFormat.Tiff && Options is TiffEncoderOptions tconf)
+				else if (fmt == GUID_ContainerFormatTiff && Options is TiffEncoderOptions tconf)
 				{
 					pbag.Write("TiffCompressionMethod", (byte)tconf.Compression);
 				}
-				else if (fmt == FileFormat.Bmp && src.Format.AlphaRepresentation != PixelAlphaRepresentation.None)
+				else if (fmt == GUID_ContainerFormatBmp && src.Format.AlphaRepresentation != PixelAlphaRepresentation.None)
 				{
 					pbag.Write("EnableV5Header32bppBGRA", true);
 				}
@@ -162,13 +144,13 @@ namespace PhotoSauce.MagicScaler
 					// Chromium ignores the iCCP tag if the others are present, so we keep the V4 reference profiles for PNG.
 					var cc = default(IWICColorContext*);
 					if (prof == ColorProfile.sRGB)
-						cc = (fmt == FileFormat.Png ? WicColorProfile.Srgb : WicColorProfile.SrgbCompact).Value.WicColorContext;
+						cc = (fmt == GUID_ContainerFormatPng ? WicColorProfile.Srgb : WicColorProfile.SrgbCompact).Value.WicColorContext;
 					else if (prof == ColorProfile.sGrey)
-						cc = (fmt == FileFormat.Png ? WicColorProfile.Grey : WicColorProfile.GreyCompact).Value.WicColorContext;
+						cc = (fmt == GUID_ContainerFormatPng ? WicColorProfile.Grey : WicColorProfile.GreyCompact).Value.WicColorContext;
 					else if (prof == ColorProfile.AdobeRgb)
-						cc = (fmt == FileFormat.Png ? WicColorProfile.AdobeRgb : WicColorProfile.AdobeRgbCompact).Value.WicColorContext;
+						cc = (fmt == GUID_ContainerFormatPng ? WicColorProfile.AdobeRgb : WicColorProfile.AdobeRgbCompact).Value.WicColorContext;
 					else if (prof == ColorProfile.DisplayP3)
-						cc = (fmt == FileFormat.Png ? WicColorProfile.DisplayP3 : WicColorProfile.DisplayP3Compact).Value.WicColorContext;
+						cc = (fmt == GUID_ContainerFormatPng ? WicColorProfile.DisplayP3 : WicColorProfile.DisplayP3Compact).Value.WicColorContext;
 
 					using var wcc = default(ComPtr<IWICColorContext>);
 					if (cc is null)
@@ -182,7 +164,7 @@ namespace PhotoSauce.MagicScaler
 
 				if (hasWriter && baseprops.Orientation >= Orientation.Normal)
 				{
-					string orientationPath = fmt == FileFormat.Jpeg ? Wic.Metadata.OrientationJpeg : Wic.Metadata.OrientationExif;
+					string orientationPath = fmt == GUID_ContainerFormatJpeg ? Wic.Metadata.OrientationJpeg : Wic.Metadata.OrientationExif;
 					var pv = new PROPVARIANT { vt = (ushort)VARENUM.VT_UI2 };
 					pv.Anonymous.uiVal = (ushort)baseprops.Orientation;
 					_ = metawriter.Get()->SetMetadataByName(orientationPath, &pv);
@@ -243,7 +225,7 @@ namespace PhotoSauce.MagicScaler
 				HRESULT.Check(frame->SetPixelFormat(&oformat));
 				if (oformat != src.Format.FormatGuid)
 				{
-					Debug.Fail("Conversion Missing");
+					Debug.WriteLine($"Conversion Missing {PixelFormat.FromGuid(src.Format.FormatGuid).Name} -> {PixelFormat.FromGuid(oformat).Name}");
 
 					using var conv = default(ComPtr<IWICFormatConverter>);
 					HRESULT.Check(Wic.Factory->CreateFormatConverter(conv.GetAddressOf()));

@@ -47,7 +47,7 @@ namespace PhotoSauce.MagicScaler
 					pUnk.Attach(formats[i]);
 					HRESULT.Check(pUnk.As(&pCod));
 
-					var vuid = Guid.Empty;
+					var vuid = default(Guid);
 					HRESULT.Check(pCod.Get()->GetVendorGUID(&vuid));
 
 					if ((policy < WicCodecPolicy.All && vuid != GUID_VendorMicrosoftBuiltIn && vuid != GUID_VendorMicrosoft) || (policy < WicCodecPolicy.Microsoft && vuid != GUID_VendorMicrosoft))
@@ -85,7 +85,7 @@ namespace PhotoSauce.MagicScaler
 					pCod.Get()->DoesSupportAnimation(&anim);
 					pCod.Get()->DoesSupportMultiframe(&mult);
 
-					var cuid = Guid.Empty;
+					var cuid = default(Guid);
 					HRESULT.Check(pCod.Get()->GetCLSID(&cuid));
 
 					bool trans = chrm != 0;
@@ -130,15 +130,17 @@ namespace PhotoSauce.MagicScaler
 					}
 					else
 					{
+						string mime = mimes.First();
+						bool prof = mime is not (KnownMimeTypes.Bmp or KnownMimeTypes.Gif or KnownMimeTypes.Dds);
 						var clsid = cuid;
-						var options = mimes.First() switch {
+						var options = mime switch {
 							KnownMimeTypes.Png => PngEncoderOptions.Default,
 							KnownMimeTypes.Jpeg => JpegEncoderOptions.Default,
 							KnownMimeTypes.Tiff => TiffEncoderOptions.Default,
 							_ => default(IEncoderOptions)
 						};
 
-						codecs.Add(new EncoderInfo(name, mimes, extensions, options, (stm, opt) => new WicImageEncoder(clsid, stm, opt), trans, mult != 0, anim != 0));
+						codecs.Add(new EncoderInfo(name, mimes, extensions, options, (stm, opt) => new WicImageEncoder(clsid, stm, opt), trans, mult != 0, anim != 0, prof));
 					}
 				}
 			}

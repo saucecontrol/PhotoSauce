@@ -2,6 +2,7 @@
 
 using System;
 using System.Buffers.Binary;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
 using TerraFX.Interop;
@@ -13,6 +14,14 @@ namespace PhotoSauce.MagicScaler
 {
 	internal unsafe class WicImageContainer : IImageContainer, IMetadataSource, IDisposable
 	{
+		public static readonly Dictionary<Guid, FileFormat> FormatMap = new() {
+			[GUID_ContainerFormatBmp] = FileFormat.Bmp,
+			[GUID_ContainerFormatGif] = FileFormat.Gif,
+			[GUID_ContainerFormatJpeg] = FileFormat.Jpeg,
+			[GUID_ContainerFormatPng] = FileFormat.Png,
+			[GUID_ContainerFormatTiff] = FileFormat.Tiff
+		};
+
 		public IWICBitmapDecoder* WicDecoder { get; private set; }
 
 		public FileFormat ContainerFormat { get; }
@@ -57,7 +66,7 @@ namespace PhotoSauce.MagicScaler
 			var guid = default(Guid);
 			HRESULT.Check(dec->GetContainerFormat(&guid));
 
-			var fmt = WicImageDecoder.FormatMap.GetValueOrDefault(guid, FileFormat.Unknown);
+			var fmt = FormatMap.GetValueOrDefault(guid, FileFormat.Unknown);
 			if (fmt == FileFormat.Gif)
 				return new WicGifContainer(dec, options);
 

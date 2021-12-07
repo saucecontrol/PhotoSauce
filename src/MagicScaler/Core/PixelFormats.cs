@@ -398,7 +398,7 @@ namespace PhotoSauce.MagicScaler
 						using var pPix = default(ComPtr<IWICPixelFormatInfo2>);
 						HRESULT.Check(pUnk.As(&pPix));
 
-						var guid = Guid.Empty;
+						var guid = default(Guid);
 						HRESULT.Check(pPix.Get()->GetFormatGUID(&guid));
 						if (dic.ContainsKey(guid))
 							continue;

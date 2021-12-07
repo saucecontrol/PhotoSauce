@@ -88,7 +88,7 @@ namespace PhotoSauce.MagicScaler
 				if (Settings.SaveFormat == FileFormat.Auto)
 					Settings.SetSaveFormat(ImageContainer.ContainerFormat, Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
 
-				if (Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed && (Settings.SaveFormat == FileFormat.Bmp || Settings.SaveFormat == FileFormat.Gif))
+				if (Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed && !Settings.EncoderInfo.SupportsColorProfile)
 					Settings.ColorProfileMode = ColorProfileMode.ConvertToSrgb;
 			}
 

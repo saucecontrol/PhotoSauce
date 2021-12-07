@@ -160,6 +160,20 @@ namespace PhotoSauce.MagicScaler
 			buffrem.CopyTo(dest);
 			readpos += buffrem.Length;
 
+			// Shouldn't have to do this, but the WIC GIF codec does not behave properly if we return
+			// fewer bytes than it requested. Attempt a direct read to make up the difference.
+			if (buffrem.Length < dest.Length && readlen == bufflen)
+			{
+				flushRead();
+
+				int read = array.Array is not null
+					? backingStream.Read(array.Array, array.Offset + buffrem.Length, array.Count - buffrem.Length)
+					: backingStream.Read(dest.Slice(buffrem.Length));
+ 
+				stmpos += read;
+				return buffrem.Length + read;
+			}
+
 			return buffrem.Length;
 		}
 
@@ -279,6 +293,9 @@ namespace PhotoSauce.MagicScaler
 
 		protected override void Dispose(bool disposing)
 		{
+			if (buffer is null)
+				return;
+
 			Flush();
 
 			ArrayPool<byte>.Shared.TryReturn(buffer);

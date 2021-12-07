@@ -45,6 +45,14 @@ namespace PhotoSauce.MagicScaler
 
 		public static bool IsGrey(this Color c) => c.R == c.G && c.G == c.B;
 
+		public static string ToMimeType(this FileFormat fmt) => fmt switch {
+			FileFormat.Bmp  => KnownMimeTypes.Bmp,
+			FileFormat.Gif  => KnownMimeTypes.Gif,
+			FileFormat.Jpeg => KnownMimeTypes.Jpeg,
+			FileFormat.Tiff => KnownMimeTypes.Tiff,
+			_               => KnownMimeTypes.Png
+		};
+
 		public static string GetFileExtension(this FileFormat fmt, string? preferredExtension = null)
 		{
 			if (fmt == FileFormat.Png8)

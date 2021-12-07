@@ -76,6 +76,33 @@ namespace PhotoSauce.MagicScaler
 #pragma warning disable CS1573 // not all params have docs
 
 		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
+		/// <param name="outPath">The path to which the output image will be written.</param>
+		/// <remarks>If <paramref name="outPath"/> already exists, it will be overwritten.</remarks>
+		public static ProcessImageResult ProcessImage(string imgPath, string outPath, ProcessImageSettings settings)
+		{
+			if (imgPath is null) throw new ArgumentNullException(nameof(imgPath));
+			if (outPath is null) throw new ArgumentNullException(nameof(outPath));
+			if (settings is null) throw new ArgumentNullException(nameof(settings));
+
+			if (settings.SaveFormat == FileFormat.Auto)
+			{
+				string extension = Path.GetExtension(outPath);
+				if (CodecManager.TryGetEncoderForFileExtension(extension, out var info))
+					settings.EncoderInfo = info;
+				else
+					throw new NotSupportedException($"An encoder for file extension '{extension}' could not be found.");
+			}
+
+			using var fsi = new FileStream(imgPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+			using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
+			using var bfi = new PoolBufferedStream(fsi);
+			using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(bfi));
+			buildPipeline(ctx);
+
+			return WriteOutput(ctx, fso);
+		}
+
+		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
 		/// <param name="imgBuffer">A buffer containing a supported input image container.</param>
 		public static unsafe ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
@@ -203,9 +230,8 @@ namespace PhotoSauce.MagicScaler
 		{
 			MagicTransforms.AddExternalFormatConverter(ctx);
 
-			var mime = WicImageEncoder.FormatMap.GetValueOrDefault(ctx.Settings.SaveFormat, KnownMimeTypes.Png);
 			using var bfs = PoolBufferedStream.WrapIfFile(ostm);
-			using var enc = CodecManager.GetEncoderForMimeType(mime, bfs ?? ostm, ctx.Settings.EncoderConfig);
+			using var enc = ctx.Settings.EncoderInfo.Factory(bfs ?? ostm, ctx.Settings.EncoderOptions);
 
 			if (ctx.IsAnimatedGifPipeline && enc is WicImageEncoder wenc)
 			{

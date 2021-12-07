@@ -67,13 +67,16 @@ namespace PhotoSauce.ManagedCodecs
 
 		private static void encode<TPixel>(TgaEncoder enc, Stream stm, IPixelSource src, GdiRect srcArea) where TPixel : unmanaged, IPixel<TPixel>
 		{
+			if (srcArea == default)
+				srcArea = new(0, 0, src.Width, src.Height);
+
 			using var img = new Image<TPixel>(srcArea.Width, srcArea.Height);
 
 			var rect = new GdiRect(srcArea.X, srcArea.Y, srcArea.Width, 1);
 			for (int i = 0; i < srcArea.Height; i++)
 			{
 				var span = MemoryMarshal.AsBytes(img.GetPixelRowSpan(i));
-				rect.Y += i;
+				rect.Y = i;
 				src.CopyPixels(rect, span.Length, span);
 			}
 
@@ -233,6 +236,7 @@ namespace PhotoSauce.ManagedCodecs
 				TargaEncoderOptions.Default,
 				(s, c) => new TargaEncoder(s, c),
 				true,
+				false,
 				false,
 				false
 			));

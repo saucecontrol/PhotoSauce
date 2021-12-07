@@ -166,6 +166,9 @@ namespace PhotoSauce.MagicScaler
 
 		/// <summary>A delegate capable of creating an instance of this encoder to write to a given <see cref="Stream" /> data source.</summary>
 		Func<Stream, IEncoderOptions?, IImageEncoder> Factory { get; }
+
+		/// <summary>True if the codec supports ICC color profiles, otherwise false.</summary>
+		bool SupportsColorProfile { get; }
 	}
 
 	/// <summary>A <a href="https://en.wikipedia.org/wiki/Rational_number">rational number</a>, as defined by an integer <paramref name="Numerator" /> and <paramref name="Denominator" />.</summary>
