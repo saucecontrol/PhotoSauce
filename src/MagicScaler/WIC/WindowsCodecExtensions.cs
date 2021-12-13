@@ -126,7 +126,7 @@ namespace PhotoSauce.MagicScaler
 							_ => default(IDecoderOptions)
 						};
 
-						codecs.Add(new DecoderInfo(name, mimes, extensions, patterns, options, (stm, opt) => WicImageDecoder.Load(clsid, stm, opt), trans, mult != 0, anim != 0));
+						codecs.Add(new DecoderInfo(name, mimes, extensions, patterns, options, (stm, opt) => WicImageDecoder.TryLoad(clsid, stm, opt), trans, mult != 0, anim != 0));
 					}
 					else
 					{

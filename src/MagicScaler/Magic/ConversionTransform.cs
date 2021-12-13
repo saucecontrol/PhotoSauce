@@ -101,6 +101,15 @@ namespace PhotoSauce.MagicScaler.Transforms
 				else
 					processor = ChannelChanger<byte>.GetConverter(srcFormat.ChannelCount, Format.ChannelCount);
 			}
+			else if (srcFormat.NumericRepresentation == Format.NumericRepresentation && srcFormat.ChannelCount == Format.ChannelCount && srcFormat.ColorRepresentation != Format.ColorRepresentation)
+			{
+				if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Float)
+					processor = ChannelChanger<float>.GetConverter(srcFormat.ChannelCount, Format.ChannelCount);
+				else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Fixed)
+					processor = ChannelChanger<ushort>.GetConverter(srcFormat.ChannelCount, Format.ChannelCount);
+				else
+					processor = ChannelChanger<byte>.GetConverter(srcFormat.ChannelCount, Format.ChannelCount);
+			}
 
 			if (processor is null)
 				throw new NotSupportedException("Unsupported pixel format");

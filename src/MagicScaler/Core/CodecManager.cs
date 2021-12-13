@@ -100,6 +100,7 @@ namespace PhotoSauce.MagicScaler
 	/// <param name="SupportsTransparency"><inheritdoc cref="IImageCodecInfo.SupportsTransparency" path="/summary/node()" /></param>
 	/// <param name="SupportsMultiFrame"><inheritdoc cref="IImageCodecInfo.SupportsMultiFrame" path="/summary/node()" /></param>
 	/// <param name="SupportsAnimation"><inheritdoc cref="IImageCodecInfo.SupportsAnimation" path="/summary/node()" /></param>
+	/// <param name="SupportsColorProfile"><inheritdoc cref="IImageEncoderInfo.SupportsColorProfile" path="/summary/node()" /></param>
 	public sealed record class EncoderInfo(
 		string Name,
 		IEnumerable<string> MimeTypes,

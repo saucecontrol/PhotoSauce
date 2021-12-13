@@ -95,7 +95,7 @@ namespace PhotoSauce.MagicScaler
 		private static readonly Lazy<Dictionary<Guid, PixelFormat>> cache = new(getFormatCache);
 
 		public static readonly PixelFormat Y8 = new(
-			guid: new(0x91b4db54, 0x2df9, 0x42f0, 0xb4, 0x49, 0x29, 0x09, 0xbb, 0x3d, 0xf8, 0x8e),
+			guid: Windows.GUID_WICPixelFormat8bppY,
 			name: "8bpp Y",
 			bpp: 8,
 			channels: 1,
@@ -106,7 +106,7 @@ namespace PhotoSauce.MagicScaler
 		);
 
 		public static readonly PixelFormat Cb8 = new(
-			guid: new(0x1339f224, 0x6bfe, 0x4c3e, 0x93, 0x02, 0xe4, 0xf3, 0xa6, 0xd0, 0xca, 0x2a),
+			guid: Windows.GUID_WICPixelFormat8bppCb,
 			name: "8bpp Cb",
 			bpp: 8,
 			channels: 1,
@@ -115,7 +115,7 @@ namespace PhotoSauce.MagicScaler
 		);
 
 		public static readonly PixelFormat Cr8 = new(
-			guid: new(0xb8145053, 0x2116, 0x49f0, 0x88, 0x35, 0xed, 0x84, 0x4b, 0x20, 0x5c, 0x51),
+			guid: Windows.GUID_WICPixelFormat8bppCr,
 			name: "8bpp Cr",
 			bpp: 8,
 			channels: 1,
@@ -124,7 +124,7 @@ namespace PhotoSauce.MagicScaler
 		);
 
 		public static readonly PixelFormat Indexed8 = new(
-			guid: new(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x04),
+			guid: Windows.GUID_WICPixelFormat8bppIndexed,
 			name: "8bpp Indexed",
 			bpp: 8,
 			channels: 1,
@@ -133,7 +133,7 @@ namespace PhotoSauce.MagicScaler
 		);
 
 		public static readonly PixelFormat Grey8 = new(
-			guid: new(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x08),
+			guid: Windows.GUID_WICPixelFormat8bppGray,
 			name: "8bpp Grey",
 			bpp: 8,
 			channels: 1,
@@ -144,7 +144,7 @@ namespace PhotoSauce.MagicScaler
 		);
 
 		public static readonly PixelFormat Bgr24 = new(
-			guid: new(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x0c),
+			guid: Windows.GUID_WICPixelFormat24bppBGR,
 			name: "24bpp BGR",
 			bpp: 24,
 			channels: 3,
@@ -154,8 +154,19 @@ namespace PhotoSauce.MagicScaler
 			wicNative: true
 		);
 
+		public static readonly PixelFormat Rgb24 = new(
+			guid: Windows.GUID_WICPixelFormat24bppRGB,
+			name: "24bpp RGB",
+			bpp: 24,
+			channels: 3,
+			numericRepresentation: PixelNumericRepresentation.UnsignedInteger,
+			colorRepresentation: PixelColorRepresentation.Rgb,
+			encoding: PixelValueEncoding.Companded,
+			wicNative: true
+		);
+
 		public static readonly PixelFormat Bgrx32 = new(
-			guid: new(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x0e),
+			guid: Windows.GUID_WICPixelFormat32bppBGR,
 			name: "32bpp BGRX",
 			bpp: 32,
 			channels: 4,
@@ -166,7 +177,7 @@ namespace PhotoSauce.MagicScaler
 		);
 
 		public static readonly PixelFormat Bgra32 = new(
-			guid: new(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x0f),
+			guid: Windows.GUID_WICPixelFormat32bppBGRA,
 			name: "32bpp BGRA",
 			bpp: 32,
 			channels: 4,
@@ -177,8 +188,20 @@ namespace PhotoSauce.MagicScaler
 			wicNative: true
 		);
 
+		public static readonly PixelFormat Rgba32 = new(
+			guid: Windows.GUID_WICPixelFormat32bppRGBA,
+			name: "32bpp RGBA",
+			bpp: 32,
+			channels: 4,
+			numericRepresentation: PixelNumericRepresentation.UnsignedInteger,
+			colorRepresentation: PixelColorRepresentation.Rgb,
+			alphaRepresentation: PixelAlphaRepresentation.Unassociated,
+			encoding: PixelValueEncoding.Companded,
+			wicNative: true
+		);
+
 		public static readonly PixelFormat Pbgra32 = new(
-			guid: new(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x10),
+			guid: Windows.GUID_WICPixelFormat32bppPBGRA,
 			name: "32bpp pBGRA",
 			bpp: 32,
 			channels: 4,
@@ -190,7 +213,7 @@ namespace PhotoSauce.MagicScaler
 		);
 
 		public static readonly PixelFormat Cmyk32 = new(
-			guid: new(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x1c),
+			guid: Windows.GUID_WICPixelFormat32bppCMYK,
 			name: "32bpp CMYK",
 			bpp: 32,
 			channels: 4,

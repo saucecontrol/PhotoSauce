@@ -69,6 +69,7 @@
 	<ItemGroup>
 		<InternalsVisibleTo Include="$(Company).WebRSize" />
 		<InternalsVisibleTo Include="$(Company).ManagedCodecs" />
+		<InternalsVisibleTo Include="$(Company).NativeCodecs" />
 	</ItemGroup>
 
 </Project>

@@ -3,14 +3,14 @@ distributed under licenses different than the PhotoSauce software.
 
 The attached notices are provided for information only.
 
-License notice for .NET Core
-----------------------------
+License notice for .NET Runtime
+-------------------------------
 
 Copyright (c) .NET Foundation and Contributors. All rights reserved.
 Licensed under the MIT License
 
 Available at
-https://github.com/dotnet/corefx/blob/master/LICENSE.TXT
+https://github.com/dotnet/runtime/blob/main/LICENSE.TXT
 
 License notice for TerraFX.Interop.Windows
 ------------------------------------------
@@ -29,3 +29,12 @@ Licensed under the Apache License, Version 2.0
 
 Available at
 https://github.com/SixLabors/ImageSharp/blob/master/LICENSE
+
+License notice for libjxl
+-------------------------
+
+Copyright (c) the JPEG XL Project Authors. All rights reserved.
+Licensed under a 3-clause BSD License.
+
+Available at
+https://github.com/libjxl/libjxl/blob/main/LICENSE

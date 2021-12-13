@@ -27,23 +27,18 @@ namespace PhotoSauce.MagicScaler.Transforms
 			throw new NotSupportedException(nameof(T) + " must be float, ushort, or byte");
 		}
 
-		public static IConversionProcessor<T, T> GetConverter(int chanIn, int chanOut)
-		{
-			if (chanIn == 1 && chanOut == 3)
-				return Change1to3Chan.Instance;
-			if (chanIn == 1 && chanOut == 4)
-				return Change1to4Chan.Instance;
-			else if (chanIn == 3 && chanOut == 1)
-				return Change3to1Chan.Instance;
-			else if (chanIn == 3 && chanOut == 4)
-				return Change3to4Chan.Instance;
-			else if (chanIn == 4 && chanOut == 1)
-				return Change4to1Chan.Instance;
-			else if (chanIn == 4 && chanOut == 3)
-				return Change4to3Chan.Instance;
-
-			throw new NotSupportedException("Unsupported pixel format");
-		}
+		public static IConversionProcessor<T, T> GetConverter(int chanIn, int chanOut) =>
+			(chanIn, chanOut) switch {
+				(1, 3) => Change1to3Chan.Instance,
+				(1, 4) => Change1to4Chan.Instance,
+				(3, 1) => Change3to1Chan.Instance,
+				(3, 4) => Change3to4Chan.Instance,
+				(4, 1) => Change4to1Chan.Instance,
+				(4, 3) => Change4to3Chan.Instance,
+				(3, 3) => Swap3Chan.Instance,
+				(4, 4) => Swap4Chan.Instance,
+				_      => throw new NotSupportedException("Unsupported pixel format")
+			};
 
 		private sealed class Change1to3Chan : IConversionProcessor<T, T>
 		{
@@ -369,6 +364,96 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 					ip += 4;
 					op += 3;
+				}
+			}
+		}
+
+		private sealed class Swap3Chan : IConversionProcessor<T, T>
+		{
+			public static readonly Swap3Chan Instance = new();
+
+			private Swap3Chan() { }
+
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			{
+				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
+
+#if HWINTRINSICS
+				if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count)
+				{
+					var mask = (ReadOnlySpan<byte>)(new byte[] { 2, 1, 0, 5, 4, 3, 8, 7, 6, 11, 10, 9, 14, 13, 12, 15 });
+					var vmask = Sse2.LoadVector128(mask.GetAddressOf());
+
+					ipe -= Vector128<byte>.Count;
+					do
+					{
+						var v0 = Sse2.LoadVector128((byte*)ip);
+						ip += Vector128<byte>.Count - 1;
+
+						v0 = Ssse3.Shuffle(v0, vmask);
+
+						Sse2.Store((byte*)op, v0);
+						op += Vector128<byte>.Count - 1;
+					}
+					while (ip <= ipe);
+					ipe += Vector128<byte>.Count;
+				}
+#endif
+
+				ipe -= 3;
+				while (ip <= ipe)
+				{
+					T t   = ip[0];
+					op[0] = ip[2];
+					op[2] = t;
+
+					ip += 3;
+					op += 3;
+				}
+			}
+		}
+
+		private sealed class Swap4Chan : IConversionProcessor<T, T>
+		{
+			public static readonly Swap4Chan Instance = new();
+
+			private Swap4Chan() { }
+
+			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			{
+				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
+
+#if HWINTRINSICS
+				if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count)
+				{
+					var mask = (ReadOnlySpan<byte>)(new byte[] { 2, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15 });
+					var vmask = Sse2.LoadVector128(mask.GetAddressOf());
+
+					ipe -= Vector128<byte>.Count;
+					do
+					{
+						var v0 = Sse2.LoadVector128((byte*)ip);
+						ip += Vector128<byte>.Count;
+
+						v0 = Ssse3.Shuffle(v0, vmask);
+
+						Sse2.Store((byte*)op, v0);
+						op += Vector128<byte>.Count;
+					}
+					while (ip <= ipe);
+					ipe += Vector128<byte>.Count;
+				}
+#endif
+
+				ipe -= 4;
+				while (ip <= ipe)
+				{
+					T t = ip[0];
+					op[0] = ip[2];
+					op[2] = t;
+
+					ip += 4;
+					op += 4;
 				}
 			}
 		}

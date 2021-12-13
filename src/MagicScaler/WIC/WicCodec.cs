@@ -63,7 +63,7 @@ namespace PhotoSauce.MagicScaler
 		}
 #endif
 
-		public static WicImageContainer? Load(Guid clsid, Stream stream, IDecoderOptions? options)
+		public static WicImageContainer? TryLoad(Guid clsid, Stream stream, IDecoderOptions? options)
 		{
 			Wic.EnsureFreeThreaded();
 

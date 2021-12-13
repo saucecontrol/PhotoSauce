@@ -109,13 +109,23 @@ namespace PhotoSauce.Interop.Wic
 			}
 			else
 			{
-				read = (uint)stm.Read(new Span<byte>(pv, (int)cb));
+				var buff = new Span<byte>(pv, (int)cb);
+
+				int rb;
+				do
+				{
+					rb = stm.Read(buff);
+					buff = buff.Slice(rb);
+				}
+				while (rb != 0 && buff.Length != 0);
+
+				read = cb - (uint)buff.Length;
 			}
 
 			if (pcbRead is not null)
 				*pcbRead = read;
 
-			return S_OK;
+			return read == cb ? S_OK : S_FALSE;
 		}
 
 #if NET5_0_OR_GREATER

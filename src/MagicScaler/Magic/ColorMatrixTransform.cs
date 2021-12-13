@@ -1,6 +1,5 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
-using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
