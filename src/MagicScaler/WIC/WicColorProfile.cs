@@ -69,7 +69,7 @@ namespace PhotoSauce.MagicScaler
 				HRESULT.Check(cc->GetProfileBytes(0, null, &cb));
 
 			using var buff = BufferPool.RentLocal<byte>((int)cb);
-			fixed (byte* pbuff = buff.Span)
+			fixed (byte* pbuff = buff)
 				HRESULT.Check(cc->GetProfileBytes(cb, pbuff, &cb));
 
 			return ColorProfile.Cache.GetOrAdd(buff.Span);

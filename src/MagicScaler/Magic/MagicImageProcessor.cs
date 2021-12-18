@@ -16,7 +16,7 @@ namespace PhotoSauce.MagicScaler
 	/// <summary>Provides a set of methods for constructing a MagicScaler processing pipeline or for all-at-once processing of an image.</summary>
 	public static class MagicImageProcessor
 	{
-		/// <summary>"Use <see cref="AppContext"/> value instead."</summary>
+		/// <summary>"Use the <c>PhotoSauce.MagicScaler.MaxPooledBufferSize</c> <see cref="AppContext"/> value instead."</summary>
 		[Obsolete($"Use {nameof(AppContext)} value {BufferPool.MaxPooledBufferSizeName} instead."), EditorBrowsable(EditorBrowsableState.Never)]
 		public static bool EnableLargeBufferPool { get; set; }
 
@@ -29,8 +29,8 @@ namespace PhotoSauce.MagicScaler
 		/// <value>Default value: <see langword="false" /></value>
 		public static bool EnableXmpOrientation { get; set; }
 
-		/// <summary>True to enable internal <see cref="IPixelSource"/> instrumentation, false to disable.  When disabled, no <see cref="PixelSourceStats" /> will be collected for the pipeline stages.</summary>
-		/// <value>Default value: <see langword="false" /></value>
+		/// <summary>"Use the <c>PhotoSauce.MagicScaler.EnablePixelSourceStats</c> <see cref="AppContext"/> switch instead."</summary>
+		[Obsolete($"Use {nameof(AppContext)} switch {StatsManager.SwitchName} instead."), EditorBrowsable(EditorBrowsableState.Never)]
 		public static bool EnablePixelSourceStats { get; set; }
 
 		/// <summary>Overrides the default <a href="https://en.wikipedia.org/wiki/SIMD">SIMD</a> support detection to force floating point processing on or off.</summary>
@@ -106,7 +106,7 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="imgBuffer">A buffer containing a supported input image container.</param>
 		public static unsafe ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
-			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
+			if (imgBuffer.Length is 0) throw new ArgumentNullException(nameof(imgBuffer));
 			if (settings is null) throw new ArgumentNullException(nameof(settings));
 			checkOutStream(outStream);
 
@@ -264,7 +264,6 @@ namespace PhotoSauce.MagicScaler
 				processPlanar = EnablePlanarPipeline && wicFrame.SupportsPlanarProcessing && ctx.Settings.Interpolation.WeightingFunction.Support >= 0.5;
 				bool profilingPassThrough = processPlanar || (wicFrame.SupportsNativeScale && ctx.Settings.HybridScaleRatio > 1);
 				ctx.Source = ctx.AddProfiler(new ComPtr<IWICBitmapSource>(wicFrame.WicSource).AsPixelSource(nameof(IWICBitmapFrameDecode), !profilingPassThrough));
-				ctx.Metadata = new MagicMetadataFilter(ctx);
 			}
 			else if (ctx.ImageFrame is IYccImageFrame yccFrame)
 			{
@@ -275,7 +274,11 @@ namespace PhotoSauce.MagicScaler
 			else
 			{
 				ctx.Source = ctx.ImageFrame.PixelSource.AsPixelSource();
+				if (ctx.ImageFrame.PixelSource is IProfileSource prof)
+					ctx.AddProfiler(prof);
 			}
+
+			ctx.Metadata = new MagicMetadataFilter(ctx);
 
 			MagicTransforms.AddGifFrameBuffer(ctx, !ctx.IsAnimatedGifPipeline);
 

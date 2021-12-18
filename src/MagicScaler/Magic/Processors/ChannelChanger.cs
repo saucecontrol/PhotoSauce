@@ -24,7 +24,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			if (typeof(T) == typeof(byte))
 				return (T)(object)byte.MaxValue;
 
-			throw new NotSupportedException(nameof(T) + " must be float, ushort, or byte");
+			throw new NotSupportedException($"{nameof(T)} must be float, ushort, or byte");
 		}
 
 		public static IConversionProcessor<T, T> GetConverter(int chanIn, int chanOut) =>

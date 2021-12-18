@@ -56,7 +56,7 @@ namespace PhotoSauce.MagicScaler
 
 		public IProfiler AddProfiler(string name)
 		{
-			if (!MagicImageProcessor.EnablePixelSourceStats)
+			if (!StatsManager.ProfilingEnabled)
 				return NoopProfiler.Instance;
 
 			var prof = new ProcessingProfiler(name);
@@ -65,9 +65,9 @@ namespace PhotoSauce.MagicScaler
 			return prof;
 		}
 
-		public T AddProfiler<T>(T source) where T : PixelSource
+		public T AddProfiler<T>(T source) where T : IProfileSource
 		{
-			if (MagicImageProcessor.EnablePixelSourceStats)
+			if (StatsManager.ProfilingEnabled)
 			{
 				profilers ??= new(capacity: 8);
 				if (!profilers.Contains(source.Profiler))
@@ -85,10 +85,10 @@ namespace PhotoSauce.MagicScaler
 			{
 				Settings.Fixup(Source.Width, Source.Height, Orientation.SwapsDimensions());
 
-				if (Settings.SaveFormat == FileFormat.Auto && Settings.EncoderInfo is null)
+				if (Settings.SaveFormat == FileFormat.Auto)
 					Settings.SetSaveFormat(ImageContainer.ContainerFormat, Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
 
-				if (Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed && !(Settings.EncoderInfo?.SupportsColorProfile ?? false))
+				if (Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed && !Settings.EncoderInfo.SupportsColorProfile)
 					Settings.ColorProfileMode = ColorProfileMode.ConvertToSrgb;
 			}
 

@@ -22,6 +22,8 @@ namespace PhotoSauce.MagicScaler
 
 		public WicPixelSource(PixelSource? managed, IWICBitmapSource* source, string name, bool profile = true) : base()
 		{
+			profile = profile && StatsManager.ProfilingEnabled;
+
 			sourceName = name;
 			upstreamManaged = managed;
 			upstreamSource = profile ? source : null;

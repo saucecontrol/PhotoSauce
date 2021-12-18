@@ -134,7 +134,7 @@ namespace PhotoSauce.MagicScaler
 					HRESULT.Check(Wic.Factory->CreateBitmapFromSource(ctx.Source.AsIWICBitmapSource(), WICBitmapCreateCacheOption.WICBitmapCacheOnDemand, bmp.GetAddressOf()));
 					ctx.Source = ctx.AddProfiler(new ComPtr<IWICBitmapSource>((IWICBitmapSource*)bmp.Get()).AsPixelSource(ctx.Source, nameof(IWICBitmap)));
 
-					var pp = ctx.AddProfiler(nameof(IWICPalette) + "." + nameof(IWICPalette.InitializeFromBitmap));
+					var pp = ctx.AddProfiler($"{nameof(IWICPalette)}.{nameof(IWICPalette.InitializeFromBitmap)}");
 					pp.ResumeTiming(ctx.Source.Area);
 					HRESULT.Check(pal.Get()->InitializeFromBitmap(ctx.Source.AsIWICBitmapSource(), 256u, curFormat.AlphaRepresentation == PixelAlphaRepresentation.None ? 0 : -1));
 					pp.PauseTiming();
@@ -223,7 +223,7 @@ namespace PhotoSauce.MagicScaler
 			HRESULT.Check(Wic.Factory->CreateBitmapScaler(scaler.GetAddressOf()));
 			HRESULT.Check(scaler.Get()->Initialize(ctx.Source.AsIWICBitmapSource(), width, height, WICBitmapInterpolationMode.WICBitmapInterpolationModeFant));
 
-			ctx.Source = ctx.AddProfiler(new ComPtr<IWICBitmapSource>((IWICBitmapSource*)scaler.Get()).AsPixelSource(ctx.Source, nameof(IWICBitmapScaler) + " (hybrid)"));
+			ctx.Source = ctx.AddProfiler(new ComPtr<IWICBitmapSource>((IWICBitmapSource*)scaler.Get()).AsPixelSource(ctx.Source, $"{nameof(IWICBitmapScaler)} (hybrid)"));
 			ctx.Settings.HybridMode = HybridScaleMode.Off;
 		}
 #endif
@@ -276,7 +276,7 @@ namespace PhotoSauce.MagicScaler
 			}
 
 			var crop = ((PixelArea)ctx.Settings.Crop).DeOrient(ctx.Orientation, (int)ow, (int)oh).ProportionalScale((int)ow, (int)oh, (int)cw, (int)ch);
-			var cache = new WicPlanarCache(transform.Detach(), new Span<WICBitmapPlaneDescription>(desc, PlanarPixelFormats.Length), WICBitmapTransformOptions.WICBitmapTransformRotate0, cw, ch, crop);
+			var cache = ctx.AddProfiler(new WicPlanarCache(transform.Detach(), new Span<WICBitmapPlaneDescription>(desc, PlanarPixelFormats.Length), WICBitmapTransformOptions.WICBitmapTransformRotate0, cw, ch, crop));
 
 			ctx.Source = new PlanarPixelSource(cache.SourceY, cache.SourceCb, cache.SourceCr);
 			ctx.Settings.Crop = ctx.Source.Area.ReOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height);

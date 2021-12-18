@@ -51,7 +51,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					throw new NotSupportedException("Pixel format not supported.");
 
 				if (PrevSource is not FrameBufferSource)
-					throw new NotSupportedException("Color source must be " + nameof(FrameBufferSource));
+					throw new NotSupportedException($"Color source must be {nameof(FrameBufferSource)}");
 
 				errBuff = BufferPool.RentAligned<short>((Width + 2) * channels, true);
 				mapBuff = BufferPool.RentAligned<PaletteMapNode>(maxPaletteMapSize);
@@ -84,9 +84,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 			var source = (FrameBufferSource)PrevSource;
 
 			fixed (byte* pimg = source.Span)
-			fixed (short* perr = errBuff.Span)
+			fixed (short* perr = errBuff)
 			fixed (uint* ppal = palBuff, pilut = &LookupTables.OctreeIndexTable[0])
-			fixed (PaletteMapNode* ptree = mapBuff.Span)
+			fixed (PaletteMapNode* ptree = mapBuff)
 			{
 				for (nint y = 0; y < prc.Height; y++)
 				{

@@ -22,7 +22,7 @@ namespace PhotoSauce.MagicScaler
 
 		private static byte[] rentBytes(int length) => getBytePool(length).Rent(length);
 
-		private static void returnBytes(byte[]arr) => getBytePool(arr.Length).Return(arr);
+		private static void returnBytes(byte[] arr) => getBytePool(arr.Length).Return(arr);
 
 		private static bool hasLargeSharedPool()
 		{
@@ -97,7 +97,7 @@ namespace PhotoSauce.MagicScaler
 			addBoundsMarkers(buff);
 
 			if (clear)
-				Unsafe.InitBlock(ref buff.Array![0], 0, (uint)buff.Count);
+				Unsafe.InitBlock(ref arr.GetDataRef(), 0, (uint)length);
 
 			return buff;
 		}
@@ -107,14 +107,14 @@ namespace PhotoSauce.MagicScaler
 			int pad = HWIntrinsics.VectorCount<byte>() - sizeof(nuint);
 			var arr = rentBytes(length + pad);
 
-			int mask = HWIntrinsics.VectorCount<byte>() - 1;
-			int offs = (mask + 1 - ((int)Unsafe.AsPointer(ref arr[0]) & mask)) & mask;
+			nint mask = (nint)HWIntrinsics.VectorCount<byte>() - 1;
+			nint offs = (mask + 1 - ((nint)Unsafe.AsPointer(ref arr.GetDataRef()) & mask)) & mask;
 
-			var buff = new ArraySegment<byte>(arr, offs, length);
+			var buff = new ArraySegment<byte>(arr, (int)offs, length);
 			addBoundsMarkers(buff);
 
 			if (clear)
-				Unsafe.InitBlock(ref buff.Array![buff.Offset], 0, (uint)buff.Count);
+				Unsafe.InitBlock(ref Unsafe.Add(ref arr.GetDataRef(), offs), 0, (uint)length);
 
 			return buff;
 		}
@@ -162,6 +162,8 @@ namespace PhotoSauce.MagicScaler
 			public int Length => span.Length;
 			public Span<T> Span => span;
 
+			public ref T GetPinnableReference() => ref span.GetPinnableReference();
+
 			public void Dispose() => ReturnRaw(buffer);
 		}
 	}
@@ -200,6 +202,8 @@ namespace PhotoSauce.MagicScaler
 			public T[] Array => array;
 			public int Length => length;
 			public Span<T> Span => array.AsSpan(0, length);
+
+			public ref T GetPinnableReference() => ref array.GetDataRef();
 
 			public void Dispose() => ArrayPool<T>.Shared.TryReturn(array);
 		}

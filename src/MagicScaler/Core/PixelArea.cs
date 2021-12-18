@@ -2,6 +2,7 @@
 
 using System;
 using System.Drawing;
+using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler
 {
@@ -68,7 +69,7 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		public static implicit operator PixelArea(in Rectangle r) => new(r.X, r.Y, r.Width, r.Height);
-		public static implicit operator Rectangle(in PixelArea a) => new(a.X, a.Y, a.Width, a.Height);
+		public static implicit operator Rectangle(in PixelArea a) => Unsafe.As<PixelArea, Rectangle>(ref Unsafe.AsRef(a));
 
 		public static implicit operator PixelArea(Size s) => new(0, 0, s.Width, s.Height);
 	}

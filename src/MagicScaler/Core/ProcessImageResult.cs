@@ -9,6 +9,11 @@ using PhotoSauce.MagicScaler.Transforms;
 
 namespace PhotoSauce.MagicScaler
 {
+	internal interface IProfileSource
+	{
+		public IProfiler Profiler { get; }
+	}
+
 	internal interface IProfiler
 	{
 		public void PauseTiming();
@@ -45,6 +50,15 @@ namespace PhotoSauce.MagicScaler
 
 			timer.Start();
 		}
+	}
+
+	internal static class StatsManager
+	{
+		public const string SwitchName = $"{nameof(PhotoSauce)}.{nameof(MagicScaler)}.EnablePixelSourceStats";
+
+		public static readonly bool ProfilingEnabled = AppContext.TryGetSwitch(SwitchName, out bool enabled) && enabled;
+
+		public static IProfiler GetProfiler(object src) => ProfilingEnabled ? new ProcessingProfiler(src) : NoopProfiler.Instance;
 	}
 
 	/// <summary>Represents basic instrumentation information for a single pipeline step.</summary>
@@ -87,7 +101,7 @@ namespace PhotoSauce.MagicScaler
 		public ProcessImageSettings Settings { get; }
 
 		/// <summary>Basic instrumentation for the operation.  There will be one <see cref="PixelSourceStats" /> instance for each pipeline step.</summary>
-		/// <remarks>This collection will be empty unless <see cref="MagicImageProcessor.EnablePixelSourceStats" /> is set to <see langword="true" />.</remarks>
+		/// <remarks>This collection will be empty unless the PhotoSauce.MagicScaler.EnablePixelSourceStats <see cref="AppContext" /> switch is set to <see langword="true" />.</remarks>
 		public IEnumerable<PixelSourceStats> Stats { get; }
 	}
 

@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal abstract class PixelSource : IPixelSource, IDisposable
+	internal abstract class PixelSource : IPixelSource, IProfileSource, IDisposable
 	{
 		public abstract PixelFormat Format { get; }
 
@@ -20,7 +20,7 @@ namespace PhotoSauce.MagicScaler
 
 		public PixelArea Area => new(0, 0, Width, Height);
 
-		protected PixelSource() => Profiler = MagicImageProcessor.EnablePixelSourceStats ? new ProcessingProfiler(this) : NoopProfiler.Instance;
+		protected PixelSource() => Profiler = StatsManager.GetProfiler(this);
 
 		[Conditional("GUARDRAILS")]
 		private unsafe void checkBounds(in PixelArea prc, int cbStride, int cbBufferSize, void* pbBuffer)

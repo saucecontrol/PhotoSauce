@@ -120,9 +120,9 @@ namespace PhotoSauce.WebRSize
 
 			if (tsource?.Task == task)
 			{
-				ctx.Trace.Write(nameof(WebRSize), nameof(MagicImageProcessor.ProcessImage) + " Begin");
+				ctx.Trace.Write(nameof(WebRSize), $"{nameof(MagicImageProcessor.ProcessImage)} Begin");
 				await process(tsource, ctx.Request.Path, cachePath, s);
-				ctx.Trace.Write(nameof(WebRSize), nameof(MagicImageProcessor.ProcessImage) + " End");
+				ctx.Trace.Write(nameof(WebRSize), $"{nameof(MagicImageProcessor.ProcessImage)} End");
 			}
 
 			var img = await task;

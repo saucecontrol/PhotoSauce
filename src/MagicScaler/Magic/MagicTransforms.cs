@@ -435,12 +435,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 				fixed (byte* pbuff = buffC.Span)
 					ctx.Source.CopyPixels(ctx.Source.Area, buffC.Stride, buffC.Span.Length, pbuff);
 
-				using var quant = new OctreeQuantizer();
-				var ppq = ctx.AddProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.CreatePalette));
-
-				ppq.ResumeTiming(buffC.Area);
+				using var quant = ctx.AddProfiler(new OctreeQuantizer());
 				bool isExact = quant.CreatePalette(buffC.Span, buffC.Width, buffC.Height, buffC.Stride);
-				ppq.PauseTiming();
 
 				var iconv = new IndexedColorTransform(buffC);
 				iconv.SetPalette(quant.Palette, isExact);

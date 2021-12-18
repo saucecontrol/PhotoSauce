@@ -11,7 +11,7 @@ using PhotoSauce.Interop.Wic;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal sealed unsafe class WicPlanarCache : IDisposable
+	internal sealed unsafe class WicPlanarCache : IProfileSource, IDisposable
 	{
 		private enum WicPlane { Y, Cb, Cr }
 
@@ -21,7 +21,6 @@ namespace PhotoSauce.MagicScaler
 		private readonly int buffHeight;
 
 		private readonly WICBitmapTransformOptions sourceTransformOptions;
-		private readonly PlanarCachePixelSource sourceY, sourceCb, sourceCr;
 		private readonly PixelBuffer buffY, buffCb, buffCr;
 		private readonly WICRect scaledCrop;
 
@@ -67,14 +66,18 @@ namespace PhotoSauce.MagicScaler
 			buffCb = new PixelBuffer(MathUtil.DivCeiling(buffHeight, subsampleRatioY), strideC);
 			buffCr = new PixelBuffer(MathUtil.DivCeiling(buffHeight, subsampleRatioY), strideC);
 
-			sourceY = new PlanarCachePixelSource(this, WicPlane.Y, descY);
-			sourceCb = new PlanarCachePixelSource(this, WicPlane.Cb, descCb);
-			sourceCr = new PlanarCachePixelSource(this, WicPlane.Cr, descCr);
+			SourceY = new PlanarCachePixelSource(this, WicPlane.Y, descY);
+			SourceCb = new PlanarCachePixelSource(this, WicPlane.Cb, descCb);
+			SourceCr = new PlanarCachePixelSource(this, WicPlane.Cr, descCr);
+
+			Profiler = StatsManager.GetProfiler(this);
 		}
 
-		public PixelSource SourceY => sourceY;
-		public PixelSource SourceCb => sourceCb;
-		public PixelSource SourceCr => sourceCr;
+		public PixelSource SourceY { get; }
+		public PixelSource SourceCb { get; }
+		public PixelSource SourceCr { get; }
+
+		public IProfiler Profiler { get; }
 
 		private void copyPixels(WicPlane plane, in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
@@ -84,7 +87,7 @@ namespace PhotoSauce.MagicScaler
 			var buff = plane switch {
 				WicPlane.Cb => buffCb,
 				WicPlane.Cr => buffCr,
-				_ => buffY
+				_           => buffY
 			};
 
 			for (int y = 0; y < prc.Height; y++)
@@ -127,7 +130,9 @@ namespace PhotoSauce.MagicScaler
 					new WICBitmapPlane { Format = formats[2], pbBuffer = pBuffCr, cbStride = (uint)strideC, cbBufferSize = (uint)spanCr.Length }
 				};
 
+				Profiler.PauseTiming();
 				HRESULT.Check(sourceTransform->CopyPixels(&sourceRect, scaledWidth, scaledHeight, sourceTransformOptions, WICPlanarOptions.WICPlanarOptionsDefault, sourcePlanes, (uint)WicTransforms.PlanarPixelFormats.Length));
+				Profiler.ResumeTiming(Unsafe.As<WICRect, PixelArea>(ref sourceRect));
 			}
 		}
 
@@ -136,6 +141,8 @@ namespace PhotoSauce.MagicScaler
 			dispose(true);
 			GC.SuppressFinalize(this);
 		}
+
+		public override string ToString() => nameof(WicPlanarCache);
 
 		private void dispose(bool disposing)
 		{

@@ -426,7 +426,7 @@ namespace PhotoSauce.MagicScaler
 				bgColor = (uint)anicnt.BackgroundColor;
 
 			var ppt = context.AddProfiler(nameof(TemporalFilters));
-			var ppq = context.AddProfiler(nameof(OctreeQuantizer) + ": " + nameof(OctreeQuantizer.CreatePalette));
+			var ppq = context.AddProfiler($"{nameof(OctreeQuantizer)}: {nameof(OctreeQuantizer.CreatePalette)}");
 
 			writeFrame(Current, ppq);
 
@@ -503,14 +503,12 @@ namespace PhotoSauce.MagicScaler
 
 		private void writeFrame(AnimationBufferFrame src, IProfiler ppq)
 		{
-			using (var quant = new OctreeQuantizer())
+			using (var quant = new OctreeQuantizer(ppq))
 			{
 				var buffC = EncodeFrame.Source;
 				var buffCSpan = buffC.Span.Slice(src.Area.Y * buffC.Stride + src.Area.X * buffC.Format.BytesPerPixel);
 
-				ppq.ResumeTiming(src.Area);
 				bool isExact = quant.CreatePalette(buffCSpan, src.Area.Width, src.Area.Height, buffC.Stride);
-				ppq.PauseTiming();
 
 				IndexedSource.SetPalette(quant.Palette, isExact);
 				IndexedSource.ReInit(buffC);

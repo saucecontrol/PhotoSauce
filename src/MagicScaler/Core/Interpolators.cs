@@ -30,7 +30,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 	/// <summary>Implements <a href="http://www.imagemagick.org/Usage/filter/#point">Point</a> (Nearest Neighbor) interpolation.</summary>
 	public sealed class PointInterpolator : IInterpolator, IUniquelyIdentifiable
 	{
-		private const string fullName = nameof(PhotoSauce) + "." + nameof(MagicScaler) + "." + nameof(Interpolators) + "." + nameof(PointInterpolator);
+		private const string fullName = $"{nameof(PhotoSauce)}.{nameof(MagicScaler)}.{nameof(Interpolators)}.{nameof(PointInterpolator)}";
 
 		private static readonly Guid guid = new Guid(Blake2b.ComputeHash(Unsafe.SizeOf<Guid>(), MemoryMarshal.AsBytes(fullName.AsSpan())));
 		Guid IUniquelyIdentifiable.UniqueID => guid;
@@ -48,7 +48,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 	/// <summary>Implements <a href="http://www.imagemagick.org/Usage/filter/#box">Box</a> (Averaging) interpolation.</summary>
 	public sealed class BoxInterpolator : IInterpolator, IUniquelyIdentifiable
 	{
-		private const string fullName = nameof(PhotoSauce) + "." + nameof(MagicScaler) + "." + nameof(Interpolators) + "." + nameof(BoxInterpolator);
+		private const string fullName = $"{nameof(PhotoSauce)}.{nameof(MagicScaler)}.{nameof(Interpolators)}.{nameof(BoxInterpolator)}";
 
 		private static readonly Guid guid = new Guid(Blake2b.ComputeHash(Unsafe.SizeOf<Guid>(), MemoryMarshal.AsBytes(fullName.AsSpan())));
 		Guid IUniquelyIdentifiable.UniqueID => guid;
@@ -66,7 +66,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 	/// <summary>Implements <a href="http://www.imagemagick.org/Usage/filter/#triangle">Linear</a> (Triangle/Tent) interpolation.</summary>
 	public sealed class LinearInterpolator : IInterpolator, IUniquelyIdentifiable
 	{
-		private const string fullName = nameof(PhotoSauce) + "." + nameof(MagicScaler) + "." + nameof(Interpolators) + "." + nameof(LinearInterpolator);
+		private const string fullName = $"{nameof(PhotoSauce)}.{nameof(MagicScaler)}.{nameof(Interpolators)}.{nameof(LinearInterpolator)}";
 
 		private static readonly Guid guid = new Guid(Blake2b.ComputeHash(Unsafe.SizeOf<Guid>(), MemoryMarshal.AsBytes(fullName.AsSpan())));
 		Guid IUniquelyIdentifiable.UniqueID => guid;
@@ -84,7 +84,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 	/// <summary>Implements <a href="http://www.imagemagick.org/Usage/filter/#gaussian">Gaussian</a> (Blurring) interpolation.</summary>
 	public sealed class GaussianInterpolator : IInterpolator, IUniquelyIdentifiable
 	{
-		private const string fullName = nameof(PhotoSauce) + "." + nameof(MagicScaler) + "." + nameof(Interpolators) + "." + nameof(GaussianInterpolator);
+		private const string fullName = $"{nameof(PhotoSauce)}.{nameof(MagicScaler)}.{nameof(Interpolators)}.{nameof(GaussianInterpolator)}";
 
 		private readonly double support, s0, s1;
 		private readonly string displayString;
@@ -123,7 +123,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 	/// <summary>Implements <a href="http://neildodgson.com/pubs/quad.pdf">Quadratic</a> interpolation.</summary>
 	public sealed class QuadraticInterpolator : IInterpolator, IUniquelyIdentifiable
 	{
-		private const string fullName = nameof(PhotoSauce) + "." + nameof(MagicScaler) + "." + nameof(Interpolators) + "." + nameof(QuadraticInterpolator);
+		private const string fullName = $"{nameof(PhotoSauce)}.{nameof(MagicScaler)}.{nameof(Interpolators)}.{nameof(QuadraticInterpolator)}";
 
 		private readonly double r, r0, r1, r2, r3;
 		private readonly string displayString;
@@ -173,7 +173,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 	/// <summary>Implements <a href="http://www.imagemagick.org/Usage/filter/#cubics">Cubic</a> interpolation.</summary>
 	public sealed class CubicInterpolator : IInterpolator, IUniquelyIdentifiable
 	{
-		private const string fullName = nameof(PhotoSauce) + "." + nameof(MagicScaler) + "." + nameof(Interpolators) + "." + nameof(CubicInterpolator);
+		private const string fullName = $"{nameof(PhotoSauce)}.{nameof(MagicScaler)}.{nameof(Interpolators)}.{nameof(CubicInterpolator)}";
 
 		private readonly double support, p0, p2, p3, q0, q1, q2, q3;
 		private readonly string displayString;
@@ -230,7 +230,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 	/// <summary>Implements <a href="http://en.wikipedia.org/wiki/Lanczos_resampling">Lanczos</a> interpolation.</summary>
 	public sealed class LanczosInterpolator : IInterpolator, IUniquelyIdentifiable
 	{
-		private const string fullName = nameof(PhotoSauce) + "." + nameof(MagicScaler) + "." + nameof(Interpolators) + "." + nameof(LanczosInterpolator);
+		private const string fullName = $"{nameof(PhotoSauce)}.{nameof(MagicScaler)}.{nameof(Interpolators)}.{nameof(LanczosInterpolator)}";
 
 		private readonly double support, isupport;
 		private readonly string displayString;
@@ -280,7 +280,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 	/// <summary>Implements <a href="http://www.panotools.org/dersch/interpolator/interpolator.html">Spline 36</a> interpolation.</summary>
 	public sealed class Spline36Interpolator : IInterpolator, IUniquelyIdentifiable
 	{
-		private const string fullName = nameof(PhotoSauce) + "." + nameof(MagicScaler) + "." + nameof(Interpolators) + "." + nameof(Spline36Interpolator);
+		private const string fullName = $"{nameof(PhotoSauce)}.{nameof(MagicScaler)}.{nameof(Interpolators)}.{nameof(Spline36Interpolator)}";
 
 		private static readonly Guid guid = new Guid(Blake2b.ComputeHash(Unsafe.SizeOf<Guid>(), MemoryMarshal.AsBytes(fullName.AsSpan())));
 		Guid IUniquelyIdentifiable.UniqueID => guid;

@@ -130,7 +130,7 @@ namespace PhotoSauce.MagicScaler
 				if (idx < cc)
 				{
 					using var buff = BufferPool.RentLocal<uint>((int)cc);
-					fixed (uint* pbuff = buff.Span)
+					fixed (uint* pbuff = buff)
 					{
 						HRESULT.Check(pal.Get()->GetColors(cc, pbuff, &cc));
 						bgColor = (int)pbuff[idx];

@@ -282,7 +282,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			var wspan = WorkBuff != SrcBuff ? WorkBuff!.PrepareRead(oy, 1) : bspan;
 			var tspan = IntBuff.PrepareRead(iy, smapy);
 
-			fixed (byte* bstart = bspan, wstart = wspan, tstart = tspan, blurstart = blurBuff.Span)
+			fixed (byte* bstart = bspan, wstart = wspan, tstart = tspan, blurstart = blurBuff)
 			{
 				YProcessor.WriteDestLine(tstart, blurstart, ox, ow, pmapy, smapy);
 				processor.SharpenLine(bstart, wstart, blurstart, ostart, ox, ow, amount, threshold, Format.Encoding == PixelValueEncoding.Linear);

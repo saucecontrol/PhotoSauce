@@ -76,7 +76,7 @@ namespace PhotoSauce.MagicScaler
 		private static void convertWeights(ReadOnlySpan<float> kernel, Span<T> mbuff, int channels)
 		{
 			if (typeof(T) != typeof(int) && typeof(T) != typeof(float))
-				throw new NotSupportedException(nameof(T) + " must be int or float");
+				throw new NotSupportedException($"{nameof(T)} must be int or float");
 
 			if (mbuff.IsEmpty || mbuff.Length < kernel.Length * channels)
 				throw new ArgumentException("Buffer too small", nameof(mbuff));

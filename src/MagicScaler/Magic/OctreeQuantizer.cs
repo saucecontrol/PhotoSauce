@@ -12,7 +12,7 @@ using System.Runtime.Intrinsics.X86;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal sealed unsafe class OctreeQuantizer : IDisposable
+	internal sealed unsafe class OctreeQuantizer : IProfileSource, IDisposable
 	{
 		private const int maxHistogramSize = 8191; // max possible nodes with 3 bits reserved to stuff level into one of the indices
 		private const int maxSamples = 1 << 22;    // can have as many as 2^24 samples before possible overflow in sums
@@ -27,10 +27,18 @@ namespace PhotoSauce.MagicScaler
 
 		public ReadOnlySpan<uint> Palette => palBuffer.Span.Slice(0, paletteLength);
 
-		public OctreeQuantizer() => palBuffer = BufferPool.Rent<uint>(maxPaletteSize, true);
+		public IProfiler Profiler { get; }
+
+		public OctreeQuantizer(IProfiler? prof = null)
+		{
+			palBuffer = BufferPool.Rent<uint>(maxPaletteSize, true);
+
+			Profiler = prof ?? StatsManager.GetProfiler(this);
+		}
 
 		public bool CreatePalette(Span<byte> image, nint width, nint height, nint stride)
 		{
+			Profiler.ResumeTiming(new PixelArea(0, 0, (int)width, (int)height));
 			using var nodeBuffer = BufferPool.RentLocalAligned<HistogramNode>(maxHistogramSize, true);
 
 			float subsampleRatio = 1f;
@@ -44,7 +52,10 @@ namespace PhotoSauce.MagicScaler
 				createHistogram(image, listBuffer.Span, nodeBuffer.Span, width, height, stride, subsampleRatio);
 			}
 
-			return buildPalette(nodeBuffer.Span, subsampleRatio > 1f);
+			bool isExact = buildPalette(nodeBuffer.Span, subsampleRatio > 1f);
+			Profiler.PauseTiming();
+
+			return isExact;
 		}
 
 		public void Dispose()
@@ -52,6 +63,8 @@ namespace PhotoSauce.MagicScaler
 			palBuffer.Dispose();
 			palBuffer = default;
 		}
+
+		public override string ToString() => $"{nameof(OctreeQuantizer)}: {nameof(CreatePalette)}";
 
 		private void createHistogram(Span<byte> image, Span<ushort> listBuffer, Span<HistogramNode> nodeBuffer, nint width, nint height, nint stride, float subsampleRatio)
 		{
@@ -344,7 +357,7 @@ namespace PhotoSauce.MagicScaler
 #endif
 
 			fixed (HistogramNode* ptree = nodeBuffer)
-			fixed (WeightedNode* pweights = weightBuffer.Span)
+			fixed (WeightedNode* pweights = weightBuffer)
 			fixed (float* gt = &LookupTables.SrgbGamma[0], igt = &LookupTables.SrgbInverseGamma[0])
 			{
 				for (nuint i = 0; i < 64; i++)

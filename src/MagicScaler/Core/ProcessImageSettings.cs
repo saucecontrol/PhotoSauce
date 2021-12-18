@@ -554,7 +554,10 @@ namespace PhotoSauce.MagicScaler
 
 		internal void SetSaveFormat(FileFormat containerType, bool frameHasAlpha)
 		{
-			if (containerType == FileFormat.Gif) // Restrict to animated only?
+			if (encoderInfo is not null)
+				return;
+
+			if (containerType == FileFormat.Gif)
 				SaveFormat = FileFormat.Gif;
 			else if (containerType == FileFormat.Png || ((frameHasAlpha || InnerSize != OuterSize) && MatteColor.IsTransparent()))
 				SaveFormat = FileFormat.Png;

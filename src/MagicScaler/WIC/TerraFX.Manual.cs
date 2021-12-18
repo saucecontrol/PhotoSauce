@@ -27,8 +27,8 @@ namespace TerraFX.Interop
 	{
 		public WICRect(int x, int y, int width, int height) => (X, Y, Width, Height) = (x, y, width, height);
 
-		public static implicit operator WICRect(in PixelArea a) => new(a.X, a.Y, a.Width, a.Height);
-		public static implicit operator WICRect(in Rectangle r) => new(r.X, r.Y, r.Width, r.Height);
+		public static implicit operator WICRect(in PixelArea a) => Unsafe.As<PixelArea, WICRect>(ref Unsafe.AsRef(a));
+		public static implicit operator WICRect(in Rectangle r) => Unsafe.As<Rectangle, WICRect>(ref Unsafe.AsRef(r));
 	}
 
 	internal unsafe ref partial struct ComPtr<T>

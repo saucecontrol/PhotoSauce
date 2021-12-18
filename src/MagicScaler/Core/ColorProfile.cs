@@ -709,7 +709,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		private static byte[] getResourceBinary(string name)
 		{
-			string resName = nameof(PhotoSauce) + "." + nameof(MagicScaler) + ".Resources." + name;
+			string resName = $"{nameof(PhotoSauce)}.{nameof(MagicScaler)}.Resources.{name}";
 			using var stm = typeof(IccProfiles).Assembly.GetManifestResourceStream(resName)!;
 
 			var buff = new byte[(int)stm.Length];

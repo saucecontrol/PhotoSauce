@@ -431,7 +431,7 @@ namespace PhotoSauce.MagicScaler
 						HRESULT.Check(pPix.Get()->GetFriendlyName(0, null, &cch));
 						if (cch <= chbuff.Length)
 						{
-							fixed (char* pbuff = chbuff.Span)
+							fixed (char* pbuff = chbuff)
 							{
 								HRESULT.Check(pPix.Get()->GetFriendlyName(cch, (ushort*)pbuff, &cch));
 								name = new string(pbuff);
