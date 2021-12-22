@@ -245,14 +245,15 @@ namespace PhotoSauce.MagicScaler
 #pragma warning restore CS0649
 	}
 
-	internal static class CodecManager
+	/// <summary>Manages registration of encoders, decoders, and image type mappings.</summary>
+	public static class CodecManager
 	{
 		private static volatile CodecCollection? codecs;
 
 		internal static readonly EncoderInfo FallbackEncoder = new(
 			nameof(FallbackEncoder),
-			new[] { "*" },
-			new[] { "*" },
+			new[] { string.Empty },
+			new[] { string.Empty },
 			null,
 			(s, o) => throw new NotSupportedException("No encoders are registered."),
 			false, false, false, false
@@ -266,8 +267,11 @@ namespace PhotoSauce.MagicScaler
 			return codecs;
 		}
 
+		/// <summary>Configure codecs for the application lifetime.</summary>
+		/// <param name="configure">A callback that allows manipulation of the codec collection before it is registered with the pipeline.</param>
+		/// <exception cref="InvalidOperationException"></exception>
 		[MemberNotNull(nameof(codecs))]
-		internal static void Configure(Action<CodecCollection>? configure)
+		public static void Configure(Action<CodecCollection>? configure)
 		{
 			var cc = new CodecCollection();
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))

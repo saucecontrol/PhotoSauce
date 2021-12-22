@@ -14,7 +14,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 	internal sealed class OrientationTransformInternal : ChainedPixelSource
 	{
 		private readonly Orientation orient;
-		private readonly PixelBuffer? outBuff;
+		private readonly PixelBuffer<BufferType.Caching>? outBuff;
 		private readonly int bytesPerPixel;
 
 		private RentedBuffer<byte> lineBuff;
@@ -41,7 +41,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			int bufferStride = MathUtil.PowerOfTwoCeiling(Width * bytesPerPixel, IntPtr.Size);
 			if (orient.RequiresCache())
-				outBuff = new PixelBuffer(Height, bufferStride);
+				outBuff = new PixelBuffer<BufferType.Caching>(Height, bufferStride);
 		}
 
 		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
@@ -78,8 +78,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			if (!outBuff.ContainsLine(0))
 			{
-				int fl = 0, lc = Height;
-				fixed (byte* bstart = outBuff.PrepareLoad(ref fl, ref lc))
+				fixed (byte* bstart = outBuff.PrepareLoad(0, Height))
 				{
 					if (orient.SwapsDimensions())
 						loadBufferTransposed(bstart);

@@ -5,91 +5,123 @@ using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal sealed class PixelBuffer : IDisposable
+	internal sealed class PixelBuffer<T> : IDisposable where T : struct, BufferType
 	{
-		private readonly int minCapacity;
-		private readonly int window;
-		private readonly bool clear;
+		private readonly T tval;
 
 		private int capacity;
 		private int start;
 		private int loaded;
 		private int consumed;
-		private ArraySegment<byte> buffer;
+
+		private byte[]? buffArray;
+		private byte buffOffset;
+
+		private int buffLength
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => window + capacity * Stride;
+		}
+
+		private int window
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get
+			{
+				if (typeof(T) == typeof(BufferType.Windowed))
+				{
+					var wval = (BufferType.Windowed)(object)tval;
+					return wval.window;
+				}
+
+				return 0;
+			}
+		}
 
 		public readonly int Stride;
 
-		public PixelBuffer(int minLines, int stride, bool clearNew = false, int windowSize = 0)
+		public PixelBuffer(int minLines, int stride, T param = default)
 		{
-			minCapacity = minLines;
-			window = windowSize;
-			clear = clearNew;
+			capacity = minLines;
 			Stride = stride;
+			tval = param;
 		}
 
 		private Span<byte> init(int first, int lines)
 		{
-			if (buffer.Array is null)
+			if (buffArray is null)
 			{
-				var buff = BufferPool.RentRawAligned(window + Math.Max(minCapacity, lines) * Stride, clear);
+				if (capacity == 0)
+					throw new ObjectDisposedException(nameof(PixelBuffer<T>));
 
-				capacity = (buff.Array!.Length - buff.Offset - window) / Stride;
-				buffer = new ArraySegment<byte>(buff.Array, buff.Offset, window + capacity * Stride);
+				var buff = BufferPool.RentRawAligned(window + Math.Max(capacity, lines) * Stride);
+
+				buffArray = buff.Array!;
+				buffOffset = (byte)buff.Offset;
+				capacity = (buffArray.Length - buffOffset - window) / Stride;
+
+				if (typeof(T) == typeof(BufferType.Sliding) || typeof(T) == typeof(BufferType.Windowed))
+					Unsafe.InitBlockUnaligned(ref buffArray[(nuint)buffOffset], 0, (uint)buffLength);
+			}
+			else if (lines > capacity)
+			{
+				grow(0, 0);
 			}
 
 			start = first;
 			loaded = lines;
 			consumed = 0;
 
-			return buffer.AsSpan(0, window != 0 ? window : lines * Stride);
+			return new Span<byte>(buffArray, buffOffset, window != 0 ? window : lines * Stride);
 		}
 
 		private void grow(int cbKeep, int cbKill)
 		{
-			var tbuff = BufferPool.RentRawAligned(buffer.Count * 2);
+			var tbuff = BufferPool.RentRawAligned(window + capacity * Stride * 2);
 
 			if (cbKeep > 0)
-				Unsafe.CopyBlockUnaligned(ref tbuff.Array![tbuff.Offset], ref buffer.Array![buffer.Offset + cbKill], (uint)cbKeep);
+				Unsafe.CopyBlockUnaligned(ref tbuff.Array![tbuff.Offset], ref buffArray![buffOffset + cbKill], (uint)cbKeep);
 
-			BufferPool.ReturnRaw(buffer);
+			BufferPool.ReturnRaw(new ArraySegment<byte>(buffArray!, buffOffset, buffLength));
 
-			capacity = (tbuff.Array!.Length - tbuff.Offset - window) / Stride;
-			buffer = new ArraySegment<byte>(tbuff.Array, tbuff.Offset, window + capacity * Stride);
+			buffArray = tbuff.Array!;
+			buffOffset = (byte)tbuff.Offset;
+			capacity = (buffArray.Length - buffOffset - window) / Stride;
 
-			if (clear)
-				Unsafe.InitBlockUnaligned(ref buffer.Array![buffer.Offset + cbKeep], 0, (uint)(buffer.Count - cbKeep));
+			if (typeof(T) == typeof(BufferType.Sliding) || typeof(T) == typeof(BufferType.Windowed))
+				Unsafe.InitBlockUnaligned(ref buffArray[buffOffset + cbKeep], 0, (uint)(buffLength - cbKeep));
 		}
 
 		private unsafe void slide(int cbKeep, int cbKill)
 		{
-			fixed (byte* pb = &buffer.Array![buffer.Offset])
-				Buffer.MemoryCopy(pb + cbKill, pb, buffer.Count, cbKeep);
+			fixed (byte* pb = &buffArray![(nuint)buffOffset])
+				Buffer.MemoryCopy(pb + cbKill, pb, buffLength, cbKeep);
 		}
 
 		public Span<byte> PrepareLoad(ref int first, ref int lines)
 		{
-			if (buffer.Array is null || first < start || first > (start + loaded))
+			if (buffArray is null || first < start || first > (start + loaded))
 				return init(first, lines);
 
-			int toLoad;
-			int toKeep;
+			int toLoad, toKeep;
+			int next = first;
 			if (first + lines <= start + capacity)
 			{
 				toKeep = loaded;
 				toLoad = (first + lines) - (start + loaded);
-				first = start + loaded;
+				next = start + loaded;
 			}
 			else
 			{
 				int newStart = Math.Min(start + consumed, first);
 				toKeep = Math.Max(start + loaded - newStart, 0);
 				toLoad = (first + lines) - (newStart + toKeep);
-				first += lines - toLoad;
+				next += lines - toLoad;
 				int toKill = loaded - toKeep;
 
 				if (toKeep != 0)
 				{
-					int cbKeep = window == 0 ? toKeep * Stride : window - (Math.Min(minCapacity, loaded) - toKeep) * Stride;
+					int cbKeep = window == 0 ? toKeep * Stride : window - (Math.Min(lines, loaded) - toKeep) * Stride;
 					int cbKill = toKill * Stride;
 
 					if (capacity - toKeep < toLoad)
@@ -102,10 +134,29 @@ namespace PhotoSauce.MagicScaler
 				consumed -= toKill;
 			}
 
-			lines = toLoad;
 			loaded = toKeep + toLoad;
 
-			return buffer.AsSpan((first - start) * Stride, window == 0 ? lines * Stride : window - (minCapacity - toLoad) * Stride);
+			if (typeof(T) == typeof(BufferType.Caching))
+				return default;
+
+			int reqlines = lines;
+			lines = toLoad;
+			first = next;
+
+			return new Span<byte>(buffArray, buffOffset + (next - start) * Stride, window == 0 ? toLoad * Stride : window - (reqlines - toLoad) * Stride);
+		}
+
+		public Span<byte> PrepareLoad(int first, int lines)
+		{
+			if (typeof(T) == typeof(BufferType.Caching))
+			{
+				PrepareLoad(ref first, ref lines);
+
+				int offset = first - start;
+				return new Span<byte>(buffArray, buffOffset + offset * Stride, lines * Stride);
+			}
+
+			throw new NotSupportedException();
 		}
 
 		public ReadOnlySpan<byte> PrepareRead(int first, int lines)
@@ -113,7 +164,7 @@ namespace PhotoSauce.MagicScaler
 			int offset = first - start;
 			consumed = Math.Max(consumed, offset + lines);
 
-			return new ReadOnlySpan<byte>(buffer.Array, buffer.Offset + offset * Stride, window != 0 ? window : lines * Stride);
+			return new ReadOnlySpan<byte>(buffArray, buffOffset + offset * Stride, window != 0 ? window : lines * Stride);
 		}
 
 		public bool ContainsLine(int line) => line >= start && line < start + loaded;
@@ -124,11 +175,21 @@ namespace PhotoSauce.MagicScaler
 
 		public void Dispose()
 		{
+			if (buffArray is null)
+				return;
+
 			Reset();
 
-			BufferPool.ReturnRaw(buffer);
-			buffer = default;
+			BufferPool.ReturnRaw(new ArraySegment<byte>(buffArray!, buffOffset, buffLength));
+			buffArray = null;
 			capacity = 0;
 		}
+	}
+
+	internal interface BufferType
+	{
+		public readonly struct Caching : BufferType { }
+		public readonly struct Sliding : BufferType { }
+		public readonly struct Windowed : BufferType { public readonly int window; public Windowed(int w) => window = w; }
 	}
 }

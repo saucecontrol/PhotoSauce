@@ -21,7 +21,7 @@ namespace PhotoSauce.MagicScaler
 		private readonly int buffHeight;
 
 		private readonly WICBitmapTransformOptions sourceTransformOptions;
-		private readonly PixelBuffer buffY, buffCb, buffCr;
+		private readonly PixelBuffer<BufferType.Caching> buffY, buffCb, buffCr;
 		private readonly WICRect scaledCrop;
 
 		private IWICPlanarBitmapSourceTransform* sourceTransform;
@@ -62,9 +62,9 @@ namespace PhotoSauce.MagicScaler
 			strideC = MathUtil.PowerOfTwoCeiling((int)descCb.Width, IntPtr.Size);
 
 			buffHeight = Math.Min(scrop.Height, transformOptions.RequiresCache() ? (int)descY.Height : 16);
-			buffY = new PixelBuffer(buffHeight, strideY);
-			buffCb = new PixelBuffer(MathUtil.DivCeiling(buffHeight, subsampleRatioY), strideC);
-			buffCr = new PixelBuffer(MathUtil.DivCeiling(buffHeight, subsampleRatioY), strideC);
+			buffY = new PixelBuffer<BufferType.Caching>(buffHeight, strideY);
+			buffCb = new PixelBuffer<BufferType.Caching>(MathUtil.DivCeiling(buffHeight, subsampleRatioY), strideC);
+			buffCr = new PixelBuffer<BufferType.Caching>(MathUtil.DivCeiling(buffHeight, subsampleRatioY), strideC);
 
 			SourceY = new PlanarCachePixelSource(this, WicPlane.Y, descY);
 			SourceCb = new PlanarCachePixelSource(this, WicPlane.Cb, descCb);
@@ -112,14 +112,12 @@ namespace PhotoSauce.MagicScaler
 				Math.Min(buffHeight, scaledCrop.Height - prcY)
 			);
 
-			int lineY = prcY;
-			int lineCb = lineY / subsampleRatioY, lineCr = lineCb;
-			int heightY = sourceRect.Height;
-			int heightCb = MathUtil.DivCeiling(heightY, subsampleRatioY), heightCr = heightCb;
+			int lineC = prcY / subsampleRatioY;
+			int heightC = MathUtil.DivCeiling(sourceRect.Height, subsampleRatioY);
 
-			var spanY = buffY.PrepareLoad(ref lineY, ref heightY);
-			var spanCb = buffCb.PrepareLoad(ref lineCb, ref heightCb);
-			var spanCr = buffCr.PrepareLoad(ref lineCr, ref heightCr);
+			var spanY = buffY.PrepareLoad(prcY, sourceRect.Height);
+			var spanCb = buffCb.PrepareLoad(lineC, heightC);
+			var spanCr = buffCr.PrepareLoad(lineC, heightC);
 
 			fixed (byte* pBuffY = spanY, pBuffCb = spanCb, pBuffCr = spanCr)
 			{

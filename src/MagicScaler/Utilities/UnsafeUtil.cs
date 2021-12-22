@@ -3,6 +3,9 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
+#if !NET5_0_OR_GREATER
+using System.Reflection;
+#endif
 
 namespace PhotoSauce.MagicScaler
 {
@@ -41,7 +44,7 @@ namespace PhotoSauce.MagicScaler
 
 #if !NET5_0_OR_GREATER
 		public static T CreateMethodDelegate<T>(this Type t, string method) where T : Delegate =>
-			(T)t.GetMethod(method)!.CreateDelegate(typeof(T), null);
+			(T)t.GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance)!.CreateDelegate(typeof(T), null);
 #endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

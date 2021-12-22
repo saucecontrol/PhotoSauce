@@ -96,7 +96,7 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="lastModified">The last modified date of the image container.</param>
 		public static unsafe ImageFileInfo Load(ReadOnlySpan<byte> imgBuffer, DateTime lastModified)
 		{
-			if (imgBuffer == default) throw new ArgumentNullException(nameof(imgBuffer));
+			if (imgBuffer.Length is 0) throw new ArgumentNullException(nameof(imgBuffer));
 
 			fixed (byte* pbBuffer = imgBuffer)
 			{

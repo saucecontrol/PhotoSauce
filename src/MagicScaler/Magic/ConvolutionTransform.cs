@@ -52,8 +52,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 		};
 
 		protected readonly IConvolver XProcessor, YProcessor;
-		protected readonly PixelBuffer IntBuff;
-		protected readonly PixelBuffer? SrcBuff, WorkBuff;
+		protected readonly PixelBuffer<BufferType.Windowed> IntBuff;
+		protected readonly PixelBuffer<BufferType.Sliding>? SrcBuff, WorkBuff;
 
 		protected KernelMap<TWeight> XMap, YMap;
 
@@ -125,16 +125,16 @@ namespace PhotoSauce.MagicScaler.Transforms
 			Height = mapy.Pixels;
 
 			int bpp = workfmt.BytesPerPixel / Unsafe.SizeOf<TPixel>() * Unsafe.SizeOf<TWeight>();
-			IntBuff = new PixelBuffer(mapy.Samples, bpp, true, mapy.Samples * mapx.Pixels * bpp);
+			IntBuff = new PixelBuffer<BufferType.Windowed>(mapy.Samples, bpp, new(mapy.Samples * mapx.Pixels * bpp));
 
 			if (bufferSource = lumaMode)
 			{
-				SrcBuff = new PixelBuffer(mapy.Samples, BufferStride, true);
+				SrcBuff = new PixelBuffer<BufferType.Sliding>(mapy.Samples, BufferStride);
 
 				if (workfmt.IsBinaryCompatibleWith(infmt))
 					WorkBuff = SrcBuff;
 				else
-					WorkBuff = new PixelBuffer(mapy.Samples, MathUtil.PowerOfTwoCeiling(source.Width * workfmt.BytesPerPixel, IntPtr.Size), true);
+					WorkBuff = new PixelBuffer<BufferType.Sliding>(mapy.Samples, MathUtil.PowerOfTwoCeiling(source.Width * workfmt.BytesPerPixel, IntPtr.Size));
 			}
 			else
 			{

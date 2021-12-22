@@ -19,7 +19,7 @@ namespace PhotoSauce.Interop.Libjxl
         public void* opaque;
 
         [NativeTypeName("jpegxl_alloc_func")]
-#if !NET5_0_OR_GREATER
+#if NET5_0_OR_GREATER
         public delegate* unmanaged[Cdecl]<void*, nuint, void*> alloc;
 #else
         public void* _alloc;
@@ -41,7 +41,7 @@ namespace PhotoSauce.Interop.Libjxl
 #endif
 
         [NativeTypeName("jpegxl_free_func")]
-#if !NET5_0_OR_GREATER
+#if NET5_0_OR_GREATER
         public delegate* unmanaged[Cdecl]<void*, void*, void> free;
 #else
         public void* _free;
