@@ -57,9 +57,9 @@ namespace PhotoSauce.MagicScaler
 		public static ReadOnlySpan<byte> ShuffleMask4ChanPairs => new byte[] { 0, 4, 1, 5, 2, 6, 3, 7, 8, 12, 9, 13, 10, 14, 11, 15 };
 		public static ReadOnlySpan<byte> ShuffleMask3To3xChan => new byte[] { 0, 1, 2, _, 3, 4, 5, _, 6, 7, 8, _, 9, 10, 11, _ };
 		public static ReadOnlySpan<byte> ShuffleMask3xTo3Chan => new byte[] { 0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, _, _, _, _ };
-		public static ReadOnlySpan<byte> ShuffleMask8bitAlpha => new byte[] { 3, 3, 7, 7, 3, 3, 7, 7, 11, 11, 15, 15, 11, 11, 15, 15 };
-		public static ReadOnlySpan<byte> ShuffleMask8bitEven => new byte[] { _, 0, _, 4, _, 2, _, 6, _, 8, _, 12, _, 10, _, 14 };
-		public static ReadOnlySpan<byte> ShuffleMask8bitOdd => new byte[] { _, 1, _, 5, _, 3, _, 7, _, 9, _, 13, _, 11, _, 15 };
+		public static ReadOnlySpan<byte> ShuffleMask8bitAlpha => new byte[] { _, 3, _, 7, _, 3, _, 7, _, 11, _, 15, _, 11, _, 15 };
+		public static ReadOnlySpan<byte> ShuffleMask8bitEven => new byte[] { 0, 0, 4, 4, 2, 2, 6, 6, 8, 8, 12, 12, 10, 10, 14, 14 };
+		public static ReadOnlySpan<byte> ShuffleMask8bitOdd => new byte[] { 1, 1, 5, 5, 3, 3, 7, 7, 9, 9, 13, 13, 11, 11, 15, 15 };
 
 		public static ReadOnlySpan<byte> GatherMask3x => new byte[] { 0, 0, 0, 0x80, 0, 0, 0, 0x80, 0, 0, 0, 0x80, 0, 0, 0, 0 };
 		public static ReadOnlySpan<byte> ScaleUQ15WithAlphaInt => new byte[] { 0, 0x80, 0, 0, 0, 0x80, 0, 0, 0, 0x80, 0, 0, 0xff, 0, 0, 0 };
