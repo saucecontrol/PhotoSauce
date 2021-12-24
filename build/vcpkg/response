@@ -1,0 +1,10 @@
+--overlay-triplets
+build/vcpkg/triplets
+--downloads-root
+out/vcpkg/downloads
+--x-buildtrees-root
+out/vcpkg/buildtrees
+--x-install-root
+out/vcpkg/install
+--x-packages-root
+out/vcpkg/packages

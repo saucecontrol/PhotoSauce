@@ -15,7 +15,7 @@ using PhotoSauce.MagicScaler;
 using PhotoSauce.Interop.Libjxl;
 using static PhotoSauce.Interop.Libjxl.Libjxl;
 
-namespace PhotoSauce.NativeCodecs
+namespace PhotoSauce.NativeCodecs.Libjxl
 {
 	internal sealed unsafe class JxlContainer : IImageContainer, IDisposable
 	{
@@ -516,6 +516,21 @@ namespace PhotoSauce.NativeCodecs
 		public const uint libjxlver = 6001;
 
 		private static readonly Lazy<bool> dependencyValid = new(() => {
+#if NETFRAMEWORK
+			[DllImport("kernel32", ExactSpelling = true)]
+			static extern IntPtr LoadLibraryW(ushort* lpLibFileName);
+
+			string lib = RuntimeInformation.ProcessArchitecture switch {
+				Architecture.Arm64 => @"arm64\jxl",
+				Architecture.X64 => @"x64\jxl",
+				Architecture.X86 => @"x86\jxl",
+				_ => "jxl"
+			};
+
+			fixed (char* plib = lib)
+				LoadLibraryW((ushort*)plib);
+#endif
+
 			uint ver = JxlDecoderVersion();
 			if (ver != libjxlver || (ver = JxlEncoderVersion()) != libjxlver)
 				throw new NotSupportedException($"Incorrect {libjxl} version was loaded.  Expected {libjxlver}, found {ver}.");
@@ -529,7 +544,7 @@ namespace PhotoSauce.NativeCodecs
 	}
 
 	/// <inheritdoc cref="WindowsCodecExtensions" />
-	public static partial class CodecCollectionExtensions
+	public static class CodecCollectionExtensions
 	{
 		/// <inheritdoc cref="WindowsCodecExtensions.UseWicCodecs(CodecCollection, WicCodecPolicy)" />
 		public static void UseJpegXL(this CodecCollection codecs)

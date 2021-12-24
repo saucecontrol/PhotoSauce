@@ -68,8 +68,8 @@
 
 	<ItemGroup>
 		<InternalsVisibleTo Include="$(Company).WebRSize" />
-		<InternalsVisibleTo Include="$(Company).ManagedCodecs" />
-		<InternalsVisibleTo Include="$(Company).NativeCodecs" />
+		<InternalsVisibleTo Include="$(Company).ManagedCodecs.ImageSharp" />
+		<InternalsVisibleTo Include="$(Company).NativeCodecs.Libjxl" />
 	</ItemGroup>
 
 </Project>

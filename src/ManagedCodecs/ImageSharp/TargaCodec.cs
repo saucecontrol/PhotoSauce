@@ -13,7 +13,7 @@ using PhotoSauce.MagicScaler;
 
 using GdiRect = System.Drawing.Rectangle;
 
-namespace PhotoSauce.ManagedCodecs
+namespace PhotoSauce.ManagedCodecs.ImageSharp
 {
 	internal readonly record struct TargaEncoderOptions(TgaCompression Compression) : IEncoderOptions
 	{
@@ -212,7 +212,7 @@ namespace PhotoSauce.ManagedCodecs
 	}
 
 	/// <inheritdoc cref="WindowsCodecExtensions" />
-	public static partial class CodecCollectionExtensions
+	public static class CodecCollectionExtensions
 	{
 		/// <inheritdoc cref="WindowsCodecExtensions.UseWicCodecs(CodecCollection, WicCodecPolicy)" />
 		public static void UseTarga(this CodecCollection codecs)

@@ -6,3 +6,6 @@
 	path = modules/CompactProfiles
 	url = https://github.com/saucecontrol/Compact-ICC-Profiles
 	update = merge
+[submodule "modules/vcpkg"]
+	path = modules/vcpkg
+	url = https://github.com/microsoft/vcpkg

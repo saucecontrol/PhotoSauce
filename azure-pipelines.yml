@@ -1,30 +1,97 @@
-trigger:
-- master
-
-pool:
-  vmImage: windows-latest
-
 name: $(Year:yy)$(DayOfYear)$(Rev:r)
-steps:
-- checkout: self
-  submodules: true
+trigger:
+  branches:
+    include:
+    - master
+  paths:
+    exclude:
+    - readme.md
 
-- task: UseDotNet@2
-  displayName: Ensure 6.0 SDK
-  inputs:
-    version: 6.0.x
-    includePreviewVersions: true
+variables:
+  azureNuget: https://pkgs.dev.azure.com/saucecontrol/PhotoSauce/_packaging/photosauce_ci/nuget/v3/index.json
 
-- script: |
-    dotnet build src\MagicScaler -c Dist --version-suffix ci$(Build.BuildNumber)
-    dotnet build src\WebRSize -c Dist --version-suffix ci$(Build.BuildNumber)
-  displayName: Build
+jobs:
+- job: native
+  variables:
+    VCPKG_BINARY_SOURCES: clear;nuget,$(azureNuget),readwrite
 
-- task: NuGetAuthenticate@0
-  condition: ne(variables['Build.Reason'], 'PullRequest')
+  strategy:
+    matrix:
+      linux:
+        imageName: ubuntu-latest
+      windows:
+        imageName: windows-latest
 
-- script: |
-    dotnet nuget push --api-key AzureArtifacts --source https://pkgs.dev.azure.com/saucecontrol/PhotoSauce/_packaging/photosauce_ci/nuget/v3/index.json out\bin\MagicScaler\Dist\PhotoSauce.MagicScaler.*.nupkg
-    dotnet nuget push --api-key AzureArtifacts --source https://pkgs.dev.azure.com/saucecontrol/PhotoSauce/_packaging/photosauce_ci/nuget/v3/index.json out\bin\WebRSize\Dist\PhotoSauce.WebRSize.*.nupkg
-  displayName: Push
-  condition: ne(variables['Build.Reason'], 'PullRequest')
+  pool:
+    vmImage: $(imageName)
+
+  steps:
+  - checkout: self
+    submodules: true
+
+  - task: NuGetAuthenticate@0
+
+  - script: |
+      sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
+      modules/vcpkg/bootstrap-vcpkg.sh
+      modules/vcpkg/vcpkg install libjxl:x64-linux-staticdependencies libjxl:arm64-linux-staticdependencies @build/vcpkg/response
+    displayName: Build Linux
+    condition: eq(variables['Agent.OS'], 'Linux')
+
+  - script: |
+      start /B /wait modules\vcpkg\bootstrap-vcpkg.bat
+      modules\vcpkg\vcpkg install libjxl:x86-windows-staticdependencies libjxl:x64-windows-staticdependencies libjxl:arm64-windows-staticdependencies @build\vcpkg\response
+    displayName: Build Windows
+    condition: eq(variables['Agent.OS'], 'Windows_NT')
+
+  - publish: out/vcpkg/install
+    displayName: Publish Native Binaries
+    artifact: $(System.JobIdentifier)
+
+- job: managed
+  dependsOn: native
+
+  steps:
+  - checkout: self
+    submodules: true
+
+  - download: current
+    displayName: Download Native Binaries
+
+  - task: CopyFiles@2
+    displayName: Copy Linux Binaries
+    inputs:
+      sourceFolder: $(Pipeline.Workspace)/native.linux
+      targetFolder: out/vcpkg/install
+
+  - task: CopyFiles@2
+    displayName: Copy Windows Binaries
+    inputs:
+      sourceFolder: $(Pipeline.Workspace)/native.windows
+      targetFolder: out/vcpkg/install
+
+  - task: UseDotNet@2
+    displayName: Ensure 6.0 SDK
+    inputs:
+      version: 6.0.x
+      performMultiLevelLookup: true
+
+  - script: |
+      dotnet build -c Dist --version-suffix ci$(Build.BuildNumber) src/MagicScaler
+      dotnet build -c Dist --version-suffix ci$(Build.BuildNumber) --no-dependencies src/WebRSize
+      dotnet build -c Dist --version-suffix ci$(Build.BuildNumber) --no-dependencies src/NativeCodecs/Libjxl
+    displayName: Build Managed
+
+  - publish: out/bin
+    displayName: Publish Managed Binaries
+    artifact: managed
+
+  - task: NuGetAuthenticate@0
+    condition: ne(variables['Build.Reason'], 'PullRequest')
+
+  - script: |
+      dotnet nuget push --source $(azureNuget) --api-key AzureArtifacts out/bin/MagicScaler/Dist/PhotoSauce.MagicScaler.*.nupkg
+      dotnet nuget push --source $(azureNuget) --api-key AzureArtifacts out/bin/WebRSize/Dist/PhotoSauce.WebRSize.*.nupkg
+      dotnet nuget push --source $(azureNuget) --api-key AzureArtifacts out/bin/NativeCodecs.Libjxl/Dist/PhotoSauce.NativeCodecs.*.nupkg
+    displayName: Push Packages
+    condition: ne(variables['Build.Reason'], 'PullRequest')
