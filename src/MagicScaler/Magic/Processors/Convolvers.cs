@@ -587,8 +587,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
 		{
-			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15[0])
-			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15[0])
+			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15.GetDataRef())
+			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15.GetDataRef())
 			{
 				int iamt = Fix15(amt);
 				int threshold = (thresh * byte.MaxValue).Round();
@@ -910,8 +910,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
 		{
-			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15[0])
-			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15[0])
+			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15.GetDataRef())
+			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15.GetDataRef())
 			{
 				int iamt = Fix15(amt);
 				int threshold = (thresh * byte.MaxValue).Round();
@@ -1161,8 +1161,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
 		{
-			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15[0])
-			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15[0])
+			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15.GetDataRef())
+			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15.GetDataRef())
 			{
 				int iamt = Fix15(amt);
 				int threshold = (thresh * byte.MaxValue).Round();

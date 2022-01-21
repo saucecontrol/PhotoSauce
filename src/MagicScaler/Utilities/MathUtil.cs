@@ -84,7 +84,7 @@ namespace PhotoSauce.MagicScaler
 		public static byte ClampToByte(uint x) => (byte)Min(x, byte.MaxValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static uint Fix15(byte x) => UnFix15((uint)x * (UQ15One * UQ15One / byte.MaxValue));
+		public static uint Fix15(byte x) => ((uint)x * (((UQ15One << 8) + byte.MaxValue / 2) / byte.MaxValue)) >> 8;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int Fix15(float x) => Round(x * UQ15One);
@@ -103,9 +103,6 @@ namespace PhotoSauce.MagicScaler
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int UnFix8(int x) => x + (iround >> 7) >> 8;
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static uint UnFix10(uint x) => x + (iround >> 5) >> 10;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int UnFix15(int x) => x + iround >> ishift;
@@ -165,9 +162,6 @@ namespace PhotoSauce.MagicScaler
 		public static uint FastAvgBytesD(uint x, uint y) => (x & y) + (((x ^ y) & maskb) >> 1);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static uint FastFix15(byte x) => ((uint)x * ((UQ15One << 8) / byte.MaxValue + 1)) >> 8;
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int FastAbs(int x) => (x ^ (x >> 31)) - (x >> 31);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -175,7 +169,7 @@ namespace PhotoSauce.MagicScaler
 		{
 #if HWINTRINSICS
 			if (Sse.IsSupported)
-				return Sse.Max(Vector128.CreateScalarUnsafe(x), Vector128.CreateScalarUnsafe(o)).ToScalar();
+				return Sse.MaxScalar(Vector128.CreateScalarUnsafe(x), Vector128.CreateScalarUnsafe(o)).ToScalar();
 			else
 #endif
 				return x < o ? o : x;
@@ -186,7 +180,7 @@ namespace PhotoSauce.MagicScaler
 		{
 #if HWINTRINSICS
 			if (Sse.IsSupported)
-				return Sse.Min(Vector128.CreateScalarUnsafe(x), Vector128.CreateScalarUnsafe(o)).ToScalar();
+				return Sse.MinScalar(Vector128.CreateScalarUnsafe(x), Vector128.CreateScalarUnsafe(o)).ToScalar();
 			else
 #endif
 				return x > o ? o : x;

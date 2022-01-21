@@ -69,7 +69,7 @@ namespace PhotoSauce.MagicScaler
 		private void createHistogram(Span<byte> image, Span<ushort> listBuffer, Span<HistogramNode> nodeBuffer, nint width, nint height, nint stride, float subsampleRatio)
 		{
 			fixed (byte* pimage = image)
-			fixed (uint* pilut = &LookupTables.OctreeIndexTable[0])
+			fixed (uint* pilut = &LookupTables.OctreeIndexTable.GetDataRef())
 			fixed (ushort* pfree = listBuffer)
 			fixed (HistogramNode* ptree = nodeBuffer)
 			{
@@ -358,7 +358,7 @@ namespace PhotoSauce.MagicScaler
 
 			fixed (HistogramNode* ptree = nodeBuffer)
 			fixed (WeightedNode* pweights = weightBuffer)
-			fixed (float* gt = &LookupTables.SrgbGamma[0], igt = &LookupTables.SrgbInverseGamma[0])
+			fixed (float* gt = &LookupTables.SrgbGamma.GetDataRef(), igt = &LookupTables.SrgbInverseGamma.GetDataRef())
 			{
 				for (nuint i = 0; i < 64; i++)
 					convertNodes(ptree, igt, ptree + i, 1, level, cpix);
@@ -386,7 +386,7 @@ namespace PhotoSauce.MagicScaler
 		{
 			fixed (HistogramNode* ptree = nodeBuffer)
 			fixed (uint* ppal = palBuffer)
-			fixed (byte* gt = &LookupTables.SrgbGammaUQ15[0])
+			fixed (byte* gt = &LookupTables.SrgbGammaUQ15.GetDataRef())
 			{
 				nuint palidx = 0;
 				for (int i = 0; i < weights.Length; i++)
@@ -413,7 +413,7 @@ namespace PhotoSauce.MagicScaler
 		private void makePaletteExact(Span<HistogramNode> nodeBuffer)
 		{
 			fixed (HistogramNode* ptree = nodeBuffer)
-			fixed (uint* ppal = palBuffer, pilut = &LookupTables.OctreeIndexTable[0])
+			fixed (uint* ppal = palBuffer, pilut = &LookupTables.OctreeIndexTable.GetDataRef())
 			{
 				nuint palidx = 0;
 				for (nuint i = 0; i < 64; i++)
@@ -636,12 +636,6 @@ namespace PhotoSauce.MagicScaler
 			public static void SetChild(HistogramNode* node, nuint idx, nuint child)
 			{
 				*((ushort*)node + idx) |= (ushort)child;
-			}
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void ClearChild(HistogramNode* node, nuint idx)
-			{
-				*((ushort*)node + idx) &= unchecked((ushort)~ChildMask);
 			}
 		}
 

@@ -2,8 +2,8 @@
 
 	<PropertyGroup>
 		<VersionPrefix>0.0.1</VersionPrefix>
-		<TargetFrameworks>net5.0;net472</TargetFrameworks>
-		<TargetFrameworks Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">$(TargetFrameworks);net461;netstandard2.0</TargetFrameworks>
+		<TargetFrameworks>net461;net5.0</TargetFrameworks>
+		<TargetFrameworks Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">$(TargetFrameworks);netstandard2.0</TargetFrameworks>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -11,7 +11,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Include="package\build\*" Pack="true" PackagePath="build/net461;buildMultiTargeting/net461;buildTransitive/net461;build/net472;buildMultiTargeting/net472;buildTransitive/net472" />
+		<None Include="Package\build\*" Pack="true" PackagePath="build/net461/;buildMultiTargeting/net461/;buildTransitive/net461/" />
 		<None Include="$(RepositoryRoot)out\vcpkg\install\x64-linux-staticdependencies\lib\libjxl.so" Link="Package\native\x64-linux\libjxl.so" Pack="true" PackagePath="runtimes/linux-x64/native/" />
 		<None Include="$(RepositoryRoot)out\vcpkg\install\x64-windows-staticdependencies\bin\jxl.dll" Link="Package\native\x64-windows\jxl.dll" Pack="true" PackagePath="runtimes/win-x64/native/" />
 		<None Include="$(RepositoryRoot)out\vcpkg\install\x86-windows-staticdependencies\bin\jxl.dll" Link="Package\native\x86-windows\jxl.dll" Pack="true" PackagePath="runtimes/win-x86/native/" />
@@ -19,4 +19,7 @@
 		<None Include="$(RepositoryRoot)out\vcpkg\install\arm64-windows-staticdependencies\bin\jxl.dll" Link="Package\native\arm64-windows\jxl.dll" Pack="true" PackagePath="runtimes/win-arm64/native/" />
 	</ItemGroup>
 
+	<ItemGroup Condition="'$(Configuration)'!='Dist'">
+		<Content Include="$(RepositoryRoot)out\vcpkg\install\x64-windows-staticdependencies\bin\jxl.dll" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+	</ItemGroup>
 </Project>

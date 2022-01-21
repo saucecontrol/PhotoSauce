@@ -403,7 +403,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				ipe -= 3;
 				while (ip <= ipe)
 				{
-					T t   = ip[0];
+					var t = ip[0];
 					op[0] = ip[2];
 					op[2] = t;
 
@@ -448,7 +448,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				ipe -= 4;
 				while (ip <= ipe)
 				{
-					T t = ip[0];
+					var t = ip[0];
 					op[0] = ip[2];
 					op[2] = t;
 

@@ -2,6 +2,7 @@
 
 using System;
 using System.Numerics;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 #if HWINTRINSICS
@@ -53,257 +54,314 @@ namespace PhotoSauce.MagicScaler
 
 	internal static unsafe class GreyConverter
 	{
-		public static void ConvertLine(PixelFormat inFormat, byte* ipstart, byte* opstart, nint cb)
+		private static readonly Dictionary<PixelFormat, IConversionProcessor> processorMap = new() {
+			[PixelFormat.Bgr24              ] = Processor3.Instance,
+			[PixelFormat.Bgra32             ] = Processor3X.Instance,
+			[PixelFormat.Bgrx32             ] = Processor3X.Instance,
+			[PixelFormat.Pbgra32            ] = Processor3X.Instance,
+			[PixelFormat.Bgr48UQ15Linear    ] = UQ15Processor3.Instance,
+			[PixelFormat.Pbgra64UQ15Linear  ] = UQ15Processor3X.Instance,
+			[PixelFormat.Grey16UQ15Linear   ] = UQ15Processor.Instance,
+			[PixelFormat.Y16UQ15Linear      ] = UQ15Processor.Instance,
+			[PixelFormat.Grey32FloatLinear  ] = FloatProcessor.Instance,
+			[PixelFormat.Y32FloatLinear     ] = FloatProcessor.Instance,
+			[PixelFormat.Bgr96Float         ] = FloatProcessor3<EncodingType.Companded>.Instance,
+			[PixelFormat.Bgr96FloatLinear   ] = FloatProcessor3<EncodingType.Linear>.Instance,
+			[PixelFormat.Pbgra128Float      ] = FloatProcessor3X<EncodingType.Companded>.Instance,
+			[PixelFormat.Pbgra128FloatLinear] = FloatProcessor3X<EncodingType.Linear>.Instance,
+			[PixelFormat.Bgrx128Float       ] = FloatProcessor3X<EncodingType.Companded>.Instance,
+			[PixelFormat.Bgrx128FloatLinear ] = FloatProcessor3X<EncodingType.Linear>.Instance,
+		};
+
+		public static IConversionProcessor GetProcessor(PixelFormat format)
 		{
-			if (inFormat == PixelFormat.Grey32FloatLinear || inFormat == PixelFormat.Y32FloatLinear)
-				greyLinearToGreyFloat(ipstart, opstart, cb);
-			else if (inFormat == PixelFormat.Grey16UQ15Linear || inFormat == PixelFormat.Y16UQ15Linear)
-				greyLinearToGreyUQ15(ipstart, opstart, cb);
-			else if (inFormat == PixelFormat.Bgr24)
-				bgrToGreyByte(ipstart, opstart, cb);
-			else if (inFormat == PixelFormat.Bgr48UQ15Linear)
-				bgrToGreyUQ15(ipstart, opstart, cb);
-			else if (inFormat == PixelFormat.Bgrx32 || inFormat == PixelFormat.Bgra32 || inFormat == PixelFormat.Pbgra32)
-				bgrxToGreyByte(ipstart, opstart, cb);
-			else if (inFormat == PixelFormat.Pbgra64UQ15Linear)
-				bgrxToGreyUQ15(ipstart, opstart, cb);
-			else if (inFormat == PixelFormat.Bgr96Float)
-				bgrToGreyFloat(ipstart, opstart, cb, false);
-			else if (inFormat == PixelFormat.Bgrx128Float || inFormat == PixelFormat.Pbgra128Float)
-				bgrxToGreyFloat(ipstart, opstart, cb, false);
-			else if (inFormat == PixelFormat.Bgr96FloatLinear)
-				bgrToGreyFloat(ipstart, opstart, cb, true);
-			else if (inFormat == PixelFormat.Bgrx128FloatLinear || inFormat == PixelFormat.Pbgra128FloatLinear)
-				bgrxToGreyFloat(ipstart, opstart, cb, true);
-			else
-				throw new NotSupportedException("Unsupported pixel format");
+			if (processorMap.TryGetValue(format, out var processor))
+				return processor;
+
+			throw new NotSupportedException("Unsupported pixel format");
 		}
 
-		private static void bgrToGreyByte(byte* ipstart, byte* opstart, nint cb)
+		private sealed class Processor3 : IConversionProcessor<byte, byte>
 		{
-			byte* ip = ipstart, ipe = ipstart + cb - 3, op = opstart;
+			private const int channels = 3;
 
-			while (ip <= ipe)
+			public static readonly Processor3 Instance = new();
+
+			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
 			{
-				byte y = Rec601Luma.FromBgr(ip[0], ip[1], ip[2]);
-				op[0] = y;
-
-				ip += 3;
-				op++;
-			}
-		}
-
-		private static void bgrToGreyUQ15(byte* ipstart, byte* opstart, nint cb)
-		{
-			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15[0])
-			{
-				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb) - 3, op = (ushort*)opstart;
-				byte* gt = gtstart;
+				byte* ip = ipstart, ipe = ipstart + cb - channels, op = opstart;
 
 				while (ip <= ipe)
 				{
-					uint y = Rec709Luma.FromBgr(ip[0], ip[1], ip[2]);
-					op[0] = gt[y];
+					byte y = Rec601Luma.FromBgr(ip[0], ip[1], ip[2]);
+					op[0] = y;
 
-					ip += 3;
+					ip += channels;
 					op++;
 				}
 			}
 		}
 
-		private static void bgrToGreyFloat(byte* ipstart, byte* opstart, nint cb, bool linear)
+		private sealed class UQ15Processor3 : IConversionProcessor<ushort, ushort>
 		{
-			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - 3, op = (float*)opstart;
-			var clum = linear ? Rec709Luma.Coefficients : Rec601Luma.Coefficients;
-			var vzero = Vector4.Zero;
-			float cbl = clum.X, cgl = clum.Y, crl = clum.Z;
+			private const int channels = 3;
 
-			while (ip <= ipe)
+			public static readonly UQ15Processor3 Instance = new();
+
+			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
 			{
-				float c0 = ip[0] * cbl, c1 = ip[1] * cgl, c2 = ip[2] * crl;
-				ip += 3;
-
-				float f0 = c0 + c1 + c2;
-
-				if (linear)
+				fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15.GetDataRef())
 				{
-					var vt = default(Vector4);
-					vt.X = f0;
-					f0 = Vector4.SquareRoot(Vector4.Max(vt, vzero)).X;
+					ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb) - channels, op = (ushort*)opstart;
+					byte* gt = gtstart;
+
+					while (ip <= ipe)
+					{
+						uint y = Rec709Luma.FromBgr(ip[0], ip[1], ip[2]);
+						op[0] = gt[y];
+
+						ip += channels;
+						op++;
+					}
 				}
-
-				*op++ = f0;
 			}
 		}
 
-		private static void bgrxToGreyByte(byte* ipstart, byte* opstart, nint cb)
+		private sealed class FloatProcessor3<TEnc> : IConversionProcessor<float, float> where TEnc : struct, EncodingType
 		{
-			byte* ip = ipstart, ipe = ipstart + cb - 4, op = opstart;
+			private const int channels = 3;
 
-			while (ip <= ipe)
+			public static readonly FloatProcessor3<TEnc> Instance = new();
+
+			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
 			{
-				byte y = Rec601Luma.FromBgr(ip[0], ip[1], ip[2]);
-				op[0] = y;
+				bool linear = typeof(TEnc) == typeof(EncodingType.Linear);
 
-				ip += 4;
-				op++;
-			}
-		}
-
-		private static void bgrxToGreyUQ15(byte* ipstart, byte* opstart, nint cb)
-		{
-			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15[0])
-			{
-				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb) - 4, op = (ushort*)opstart;
-				byte* gt = gtstart;
+				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - channels, op = (float*)opstart;
+				var clum = linear ? Rec709Luma.Coefficients : Rec601Luma.Coefficients;
+				var vzero = Vector4.Zero;
+				float cbl = clum.X, cgl = clum.Y, crl = clum.Z;
 
 				while (ip <= ipe)
 				{
-					uint y = Rec709Luma.FromBgr(ip[0], ip[1], ip[2]);
-					op[0] = gt[y];
+					float c0 = ip[0] * cbl, c1 = ip[1] * cgl, c2 = ip[2] * crl;
+					ip += channels;
 
-					ip += 4;
-					op++;
-				}
-			}
-		}
-
-		private static void bgrxToGreyFloat(byte* ipstart, byte* opstart, nint cb, bool linear)
-		{
-			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb), op = (float*)opstart;
-			var clum = linear ? Rec709Luma.Coefficients : Rec601Luma.Coefficients;
-
-#if HWINTRINSICS
-			if (Avx.IsSupported && cb >= Vector256<byte>.Count * 4)
-			{
-				var vcbl = Vector256.Create(clum.X);
-				var vcgl = Vector256.Create(clum.Y);
-				var vcrl = Vector256.Create(clum.Z);
-				var vzero = Vector256<float>.Zero;
-				var vmaskp = Avx.LoadVector256((int*)HWIntrinsics.PermuteMaskDeinterleave8x32.GetAddressOf());
-				ipe -= Vector256<float>.Count * 4;
-
-				LoopTop:
-				do
-				{
-					var v0 = Avx.LoadVector256(ip);
-					var v1 = Avx.LoadVector256(ip + Vector256<float>.Count);
-					var v2 = Avx.LoadVector256(ip + Vector256<float>.Count * 2);
-					var v3 = Avx.LoadVector256(ip + Vector256<float>.Count * 3);
-					ip += Vector256<float>.Count * 4;
-
-					var vl0 = Avx.UnpackLow(v0, v1).AsDouble();
-					var vh0 = Avx.UnpackHigh(v0, v1).AsDouble();
-					var vl1 = Avx.UnpackLow(v2, v3).AsDouble();
-					var vh1 = Avx.UnpackHigh(v2, v3).AsDouble();
-
-					var vb = Avx.UnpackLow(vl0, vl1).AsSingle();
-					var vg = Avx.UnpackHigh(vl0, vl1).AsSingle();
-					var vr = Avx.UnpackLow(vh0, vh1).AsSingle();
-
-					vb = Avx.Multiply(vb, vcbl);
-					vg = Avx.Multiply(vg, vcgl);
-					vb = HWIntrinsics.MultiplyAdd(vb, vr, vcrl);
-					vb = Avx2.PermuteVar8x32(Avx.Add(vb, vg), vmaskp);
+					float f0 = c0 + c1 + c2;
 
 					if (linear)
-						vb = Avx.Sqrt(Avx.Max(vb, vzero));
+					{
+						var vt = default(Vector4);
+						vt.X = f0;
+						f0 = Vector4.SquareRoot(Vector4.Max(vt, vzero)).X;
+					}
 
-					Avx.Store(op, vb);
-					op += Vector256<float>.Count;
+					*op++ = f0;
 				}
-				while (ip <= ipe);
-
-				if (ip < ipe + Vector256<float>.Count * 4)
-				{
-					nint offs = UnsafeUtil.ByteOffset(ipe, ip);
-					ip = UnsafeUtil.SubtractOffset(ip, offs);
-					op = UnsafeUtil.SubtractOffset(op, offs / 4);
-					goto LoopTop;
-				}
-
-				return;
-			}
-#endif
-
-			var vzero4 = Vector4.Zero;
-			var vlum = new Vector4(clum, vzero4.X);
-
-			while (ip < ipe)
-			{
-				float f0 = Vector4.Dot(Unsafe.ReadUnaligned<Vector4>(ip), vlum);
-				ip += 4;
-
-				if (linear)
-				{
-					var vt = default(Vector4);
-					vt.X = f0;
-					f0 = Vector4.SquareRoot(Vector4.Max(vt, vzero4)).X;
-				}
-
-				*op++ = f0;
 			}
 		}
 
-		private static void greyLinearToGreyUQ15(byte* ipstart, byte* opstart, nint cb)
+		private sealed class Processor3X : IConversionProcessor<byte, byte>
 		{
-			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15[0])
+			private const int channels = 4;
+
+			public static readonly Processor3X Instance = new();
+
+			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
 			{
-				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb), op = (ushort*)opstart;
-				byte* gt = gtstart;
+				byte* ip = ipstart, ipe = ipstart + cb - channels, op = opstart;
+
+				while (ip <= ipe)
+				{
+					byte y = Rec601Luma.FromBgr(ip[0], ip[1], ip[2]);
+					op[0] = y;
+
+					ip += channels;
+					op++;
+				}
+			}
+		}
+
+		private sealed class UQ15Processor3X : IConversionProcessor<ushort, ushort>
+		{
+			private const int channels = 4;
+
+			public static readonly UQ15Processor3X Instance = new();
+
+			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			{
+				fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15.GetDataRef())
+				{
+					ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb) - channels, op = (ushort*)opstart;
+					byte* gt = gtstart;
+
+					while (ip <= ipe)
+					{
+						uint y = Rec709Luma.FromBgr(ip[0], ip[1], ip[2]);
+						op[0] = gt[y];
+
+						ip += channels;
+						op++;
+					}
+				}
+			}
+		}
+
+		private sealed class FloatProcessor3X<TEnc> : IConversionProcessor<float, float> where TEnc : struct, EncodingType
+		{
+			private const int channels = 4;
+
+			public static readonly FloatProcessor3X<TEnc> Instance = new();
+
+			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			{
+				bool linear = typeof(TEnc) == typeof(EncodingType.Linear);
+
+				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb), op = (float*)opstart;
+				var clum = linear ? Rec709Luma.Coefficients : Rec601Luma.Coefficients;
+
+#if HWINTRINSICS
+				if (Avx.IsSupported && cb >= Vector256<byte>.Count * 4)
+				{
+					var vcbl = Vector256.Create(clum.X);
+					var vcgl = Vector256.Create(clum.Y);
+					var vcrl = Vector256.Create(clum.Z);
+					var vzero = Vector256<float>.Zero;
+					var vmaskp = Avx.LoadVector256((int*)HWIntrinsics.PermuteMaskDeinterleave8x32.GetAddressOf());
+					ipe -= Vector256<float>.Count * 4;
+
+					LoopTop:
+					do
+					{
+						var v0 = Avx.LoadVector256(ip);
+						var v1 = Avx.LoadVector256(ip + Vector256<float>.Count);
+						var v2 = Avx.LoadVector256(ip + Vector256<float>.Count * 2);
+						var v3 = Avx.LoadVector256(ip + Vector256<float>.Count * 3);
+						ip += Vector256<float>.Count * 4;
+
+						var vl0 = Avx.UnpackLow(v0, v1).AsDouble();
+						var vh0 = Avx.UnpackHigh(v0, v1).AsDouble();
+						var vl1 = Avx.UnpackLow(v2, v3).AsDouble();
+						var vh1 = Avx.UnpackHigh(v2, v3).AsDouble();
+
+						var vb = Avx.UnpackLow(vl0, vl1).AsSingle();
+						var vg = Avx.UnpackHigh(vl0, vl1).AsSingle();
+						var vr = Avx.UnpackLow(vh0, vh1).AsSingle();
+
+						vb = Avx.Multiply(vb, vcbl);
+						vg = Avx.Multiply(vg, vcgl);
+						vb = HWIntrinsics.MultiplyAdd(vb, vr, vcrl);
+						vb = Avx2.PermuteVar8x32(Avx.Add(vb, vg), vmaskp);
+
+						if (linear)
+							vb = Avx.Sqrt(Avx.Max(vb, vzero));
+
+						Avx.Store(op, vb);
+						op += Vector256<float>.Count;
+					}
+					while (ip <= ipe);
+
+					if (ip < ipe + Vector256<float>.Count * 4)
+					{
+						nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+						ip = UnsafeUtil.SubtractOffset(ip, offs);
+						op = UnsafeUtil.SubtractOffset(op, offs / 4);
+						goto LoopTop;
+					}
+
+					return;
+				}
+#endif
+
+				var vzero4 = Vector4.Zero;
+				var vlum = new Vector4(clum, vzero4.X);
 
 				while (ip < ipe)
-					*op++ = gt[(nuint)ClampToUQ15One((uint)*ip++)];
+				{
+					float f0 = Vector4.Dot(Unsafe.ReadUnaligned<Vector4>(ip), vlum);
+					ip += channels;
+
+					if (linear)
+					{
+						var vt = default(Vector4);
+						vt.X = f0;
+						f0 = Vector4.SquareRoot(Vector4.Max(vt, vzero4)).X;
+					}
+
+					*op++ = f0;
+				}
 			}
 		}
 
-#if HWINTRINSICS
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-#endif
-		private static void greyLinearToGreyFloat(byte* ipstart, byte* opstart, nint cb)
+		private sealed class UQ15Processor : IConversionProcessor<ushort, ushort>
 		{
-			float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb), op = (float*)opstart;
+			public static readonly UQ15Processor Instance = new();
+
+			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			{
+				fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15.GetDataRef())
+				{
+					ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb), op = (ushort*)opstart;
+					byte* gt = gtstart;
+
+					while (ip < ipe)
+						*op++ = gt[(nuint)ClampToUQ15One((uint)*ip++)];
+				}
+			}
+		}
+
+		private sealed class FloatProcessor : IConversionProcessor<float, float>
+		{
+			public static readonly FloatProcessor Instance = new();
 
 #if HWINTRINSICS
-			if (Avx.IsSupported)
-			{
-				var vzero = Vector256<float>.Zero;
-
-				ipe -= Vector256<float>.Count;
-				while (ip <= ipe)
-				{
-					var v = Avx.Max(vzero, Avx.LoadVector256(ip));
-					ip += Vector256<float>.Count;
-
-					v = Avx.Sqrt(v);
-
-					Avx.Store(op, v);
-					op += Vector256<float>.Count;
-				}
-				ipe += Vector256<float>.Count;
-			}
-			else
+			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
+			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
 			{
-				var vzero = VectorF.Zero;
+				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb), op = (float*)opstart;
 
-				ipe -= VectorF.Count;
-				while (ip <= ipe)
+#if HWINTRINSICS
+				if (Avx.IsSupported)
 				{
-					var v = Unsafe.ReadUnaligned<VectorF>(ip);
-					ip += VectorF.Count;
+					var vzero = Vector256<float>.Zero;
 
-					v = Vector.SquareRoot(Vector.Max(v, vzero));
+					ipe -= Vector256<float>.Count;
+					while (ip <= ipe)
+					{
+						var v = Avx.Max(vzero, Avx.LoadVector256(ip));
+						ip += Vector256<float>.Count;
 
-					Unsafe.WriteUnaligned(op, v);
-					op += VectorF.Count;
+						v = Avx.Sqrt(v);
+
+						Avx.Store(op, v);
+						op += Vector256<float>.Count;
+					}
+					ipe += Vector256<float>.Count;
 				}
-				ipe += VectorF.Count;
-			}
+				else
+#endif
+				{
+					var vzero = VectorF.Zero;
 
-			float fmin = Vector4.Zero.X;
-			while (ip < ipe)
-				*op++ = FastMax(*ip++, fmin).Sqrt();
+					ipe -= VectorF.Count;
+					while (ip <= ipe)
+					{
+						var v = Unsafe.ReadUnaligned<VectorF>(ip);
+						ip += VectorF.Count;
+
+						v = Vector.SquareRoot(Vector.Max(v, vzero));
+
+						Unsafe.WriteUnaligned(op, v);
+						op += VectorF.Count;
+					}
+					ipe += VectorF.Count;
+				}
+
+				float fmin = Vector4.Zero.X;
+				while (ip < ipe)
+					*op++ = FastMax(*ip++, fmin).Sqrt();
+			}
 		}
 	}
 }

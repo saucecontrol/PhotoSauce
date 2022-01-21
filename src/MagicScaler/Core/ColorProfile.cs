@@ -633,7 +633,7 @@ namespace PhotoSauce.MagicScaler
 
 	internal class CurveProfile : ColorProfile
 	{
-		private readonly ConcurrentDictionary<(Type, Type, ConverterDirection, bool), IConverter> converterCache = new();
+		private readonly ConcurrentDictionary<(Type, Type, Type, bool), IConverter> converterCache = new();
 
 		public bool IsLinear { get; }
 		public ProfileCurve Curve { get; }
@@ -644,7 +644,7 @@ namespace PhotoSauce.MagicScaler
 			Curve = curve ?? new ProfileCurve(null!, LookupTables.Alpha);
 		}
 
-		private IConverter addConverter((Type tfrom, Type tto, ConverterDirection direction, bool videoLevels) cacheKey) => converterCache.GetOrAdd(cacheKey, _ => {
+		private IConverter addConverter((Type tfrom, Type tto, Type tenc, bool videoLevels) cacheKey) => converterCache.GetOrAdd(cacheKey, _ => {
 			if (IsLinear)
 			{
 				if (cacheKey.tfrom == typeof(float) && cacheKey.tto == typeof(float))
@@ -657,7 +657,7 @@ namespace PhotoSauce.MagicScaler
 					return UQ15Converter.Instance;
 			}
 
-			if (cacheKey.direction == ConverterDirection.FromLinear)
+			if (cacheKey.tenc == typeof(EncodingType.Linear))
 			{
 				var gt = Curve.Gamma;
 
@@ -669,7 +669,7 @@ namespace PhotoSauce.MagicScaler
 					return new ConverterFromLinear<float, byte>(gt == LookupTables.SrgbGamma ? LookupTables.SrgbGammaUQ15 : LookupTables.MakeUQ15Gamma(gt));
 			}
 
-			if (cacheKey.direction == ConverterDirection.ToLinear)
+			if (cacheKey.tenc == typeof(EncodingType.Companded))
 			{
 				var igt = Curve.InverseGamma;
 
@@ -684,9 +684,9 @@ namespace PhotoSauce.MagicScaler
 			throw new ArgumentException("Invalid Type combination", nameof(cacheKey));
 		});
 
-		public IConverter<TFrom, TTo> GetConverter<TFrom, TTo>(ConverterDirection direction, bool videoRange = false) where TFrom : unmanaged where TTo : unmanaged
+		public IConverter<TFrom, TTo> GetConverter<TFrom, TTo, TEnc>(bool videoRange = false) where TFrom : unmanaged where TTo : unmanaged
 		{
-			var cacheKey = (typeof(TFrom), typeof(TTo), direction, videoRange);
+			var cacheKey = (typeof(TFrom), typeof(TTo), typeof(TEnc), videoRange);
 
 			return (IConverter<TFrom, TTo>)(converterCache.TryGetValue(cacheKey, out var converter) ? converter : addConverter(cacheKey));
 		}

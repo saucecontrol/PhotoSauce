@@ -517,14 +517,17 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 
 		private static readonly Lazy<bool> dependencyValid = new(() => {
 #if NETFRAMEWORK
+			// netfx doesn't have RID-based native dependency resolution, so we include a .props
+			// file that copies binaries for all supported architectures to the output folder,
+			// then make a perfunctory attempt to load the right one before the first P/Invoke.
 			[DllImport("kernel32", ExactSpelling = true)]
 			static extern IntPtr LoadLibraryW(ushort* lpLibFileName);
 
 			string lib = RuntimeInformation.ProcessArchitecture switch {
 				Architecture.Arm64 => @"arm64\jxl",
-				Architecture.X64 => @"x64\jxl",
-				Architecture.X86 => @"x86\jxl",
-				_ => "jxl"
+				Architecture.X64   => @"x64\jxl",
+				Architecture.X86   => @"x86\jxl",
+				_                  => "jxl"
 			};
 
 			fixed (char* plib = lib)
@@ -547,7 +550,7 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 	public static class CodecCollectionExtensions
 	{
 		/// <inheritdoc cref="WindowsCodecExtensions.UseWicCodecs(CodecCollection, WicCodecPolicy)" />
-		public static void UseJpegXL(this CodecCollection codecs)
+		public static void UseLibjxl(this CodecCollection codecs)
 		{
 			string[] jxlMime = new[] { "image/jxl" };
 			string[] jxlExtension = new[] { ".jxl" };

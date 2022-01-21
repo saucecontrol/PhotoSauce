@@ -442,8 +442,8 @@ if (t.sharpen) {
 <#
 if (t.pixelType == "ushort") {
 #>
-			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15[0])
-			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15[0])
+			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15.GetDataRef())
+			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15.GetDataRef())
 			{
 <#
 	PushIndent("\t");

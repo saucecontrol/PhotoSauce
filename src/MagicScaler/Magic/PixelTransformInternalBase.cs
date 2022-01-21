@@ -14,11 +14,6 @@ namespace PhotoSauce.MagicScaler.Transforms
 		void Init(IPixelSource source);
 	}
 
-	internal interface IPixelTransformInternal : IPixelTransform
-	{
-		void Init(PipelineContext ctx);
-	}
-
 	/// <summary>Provides a minimal base implementation of <see cref="IPixelTransform" />, which simply passes calls through to the upstream source.</summary>
 	/// <remarks>This class is intended for internal use only.</remarks>
 	[EditorBrowsable(EditorBrowsableState.Never)]
@@ -41,6 +36,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 			fixed (byte* pbBuffer = buffer)
 				Source.CopyPixels(sourceArea, cbStride, buffer.Length, pbBuffer);
 		}
+
+		internal abstract void Init(PipelineContext ctx);
 
 		void IPixelTransform.Init(IPixelSource source) => throw new NotImplementedException();
 	}

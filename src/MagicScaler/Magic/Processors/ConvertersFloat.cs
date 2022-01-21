@@ -229,7 +229,7 @@ namespace PhotoSauce.MagicScaler
 
 			private void convertScalar(byte* ip, byte* ipe, float* op)
 			{
-				fixed (float* atstart = &valueTable[0])
+				fixed (float* atstart = &valueTable.GetDataRef())
 				{
 					float* at = atstart;
 
@@ -402,7 +402,7 @@ namespace PhotoSauce.MagicScaler
 
 			private static void convertScalar(byte* ip, byte* ipe, float* op)
 			{
-				fixed (float* atstart = &LookupTables.Alpha[0])
+				fixed (float* atstart = &LookupTables.Alpha.GetDataRef())
 				{
 					float* at = atstart;
 
@@ -431,7 +431,7 @@ namespace PhotoSauce.MagicScaler
 #endif
 			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
 			{
-				fixed (float* atstart = &LookupTables.Alpha[0])
+				fixed (float* atstart = &LookupTables.Alpha.GetDataRef())
 				{
 					byte* ip = ipstart, ipe = ipstart + cb;
 					float* op = (float*)opstart, at = atstart;

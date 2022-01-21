@@ -215,7 +215,7 @@ namespace PhotoSauce.ManagedCodecs.ImageSharp
 	public static class CodecCollectionExtensions
 	{
 		/// <inheritdoc cref="WindowsCodecExtensions.UseWicCodecs(CodecCollection, WicCodecPolicy)" />
-		public static void UseTarga(this CodecCollection codecs)
+		public static void UseImageSharpTga(this CodecCollection codecs)
 		{
 			var targa = TgaFormat.Instance;
 			codecs.Add(new DecoderInfo(

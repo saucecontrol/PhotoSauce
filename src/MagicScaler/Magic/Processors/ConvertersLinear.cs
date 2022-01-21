@@ -35,7 +35,7 @@ namespace PhotoSauce.MagicScaler
 
 			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
-				fixed (TTo* igtstart = &igt[0])
+				fixed (TTo* igtstart = &igt.GetDataRef())
 				{
 					if (typeof(TFrom) == typeof(byte) && typeof(TTo) == typeof(ushort))
 						convertUQ15(istart, ostart, (ushort*)igtstart, cb);
@@ -48,9 +48,10 @@ namespace PhotoSauce.MagicScaler
 
 			private static void convertUQ15(byte* ipstart, byte* opstart, ushort* igtstart, nint cb)
 			{
-				byte* ip = ipstart, ipe = ipstart + cb - 8;
+				byte* ip = ipstart, ipe = ipstart + cb;
 				ushort* op = (ushort*)opstart, igt = igtstart;
 
+				ipe -= 8;
 				while (ip <= ipe)
 				{
 					ushort o0 = igt[(nuint)ip[0]];
@@ -179,7 +180,7 @@ namespace PhotoSauce.MagicScaler
 
 			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
-				fixed (TTo* igtstart = &igt[0])
+				fixed (TTo* igtstart = &igt.GetDataRef())
 				{
 					if (typeof(TFrom) == typeof(byte) && typeof(TTo) == typeof(ushort))
 						convertUQ15(istart, ostart, (ushort*)igtstart, cb);
@@ -200,7 +201,7 @@ namespace PhotoSauce.MagicScaler
 					uint i0 = igt[(nuint)ip[0]];
 					uint i1 = igt[(nuint)ip[1]];
 					uint i2 = igt[(nuint)ip[2]];
-					uint i3 = FastFix15(ip[3]);
+					uint i3 = Fix15(ip[3]);
 					ip += 4;
 
 					i0 = UnFix15(i0 * i3);
@@ -294,7 +295,7 @@ namespace PhotoSauce.MagicScaler
 
 			private static void convertFloatScalar(byte* ip, byte* ipe, float* op, float* igt)
 			{
-				fixed (float* atstart = &LookupTables.Alpha[0])
+				fixed (float* atstart = &LookupTables.Alpha.GetDataRef())
 				{
 					float* at = atstart;
 
@@ -324,7 +325,7 @@ namespace PhotoSauce.MagicScaler
 
 			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
-				fixed (TTo* igtstart = &igt[0])
+				fixed (TTo* igtstart = &igt.GetDataRef())
 				{
 					if (typeof(TFrom) == typeof(byte) && typeof(TTo) == typeof(float))
 						convertFloat(istart, ostart, (float*)igtstart, cb);
@@ -376,7 +377,7 @@ namespace PhotoSauce.MagicScaler
 
 			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
-				fixed (TTo* gtstart = &gt[0])
+				fixed (TTo* gtstart = &gt.GetDataRef())
 				{
 					if (typeof(TFrom) == typeof(ushort) && typeof(TTo) == typeof(byte))
 						convertUQ15(istart, ostart, (byte*)gtstart, cb);
@@ -567,7 +568,7 @@ namespace PhotoSauce.MagicScaler
 
 			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
-				fixed (TTo* gtstart = &gt[0])
+				fixed (TTo* gtstart = &gt.GetDataRef())
 				{
 					if (typeof(TFrom) == typeof(ushort) && typeof(TTo) == typeof(byte))
 						convertUQ15(istart, ostart, (byte*)gtstart, cb);
@@ -762,7 +763,7 @@ namespace PhotoSauce.MagicScaler
 
 			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
-				fixed (TTo* gtstart = &gt[0])
+				fixed (TTo* gtstart = &gt.GetDataRef())
 				{
 					if (typeof(TFrom) == typeof(float) && typeof(TTo) == typeof(byte))
 						convertFloat(istart, ostart, (byte*)gtstart, cb);

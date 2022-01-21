@@ -68,7 +68,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 	}
 
 	/// <summary>Adds solid-colored padding pixels to an image.</summary>
-	public sealed class PadTransform : PixelTransformInternalBase, IPixelTransformInternal
+	public sealed class PadTransform : PixelTransformInternalBase
 	{
 		private readonly Color padColor;
 		private readonly Rectangle padRect;
@@ -93,7 +93,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			padRect = Rectangle.FromLTRB(left, top, right, bottom);
 		}
 
-		void IPixelTransformInternal.Init(PipelineContext ctx)
+		internal override void Init(PipelineContext ctx)
 		{
 			if (!padRect.IsEmpty)
 			{

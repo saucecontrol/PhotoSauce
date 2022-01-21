@@ -57,13 +57,27 @@ namespace PhotoSauce.MagicScaler
 		public static ReadOnlySpan<byte> ShuffleMask4ChanPairs => new byte[] { 0, 4, 1, 5, 2, 6, 3, 7, 8, 12, 9, 13, 10, 14, 11, 15 };
 		public static ReadOnlySpan<byte> ShuffleMask3To3xChan => new byte[] { 0, 1, 2, _, 3, 4, 5, _, 6, 7, 8, _, 9, 10, 11, _ };
 		public static ReadOnlySpan<byte> ShuffleMask3xTo3Chan => new byte[] { 0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, _, _, _, _ };
-		public static ReadOnlySpan<byte> ShuffleMask8bitAlpha => new byte[] { _, 3, _, 7, _, 3, _, 7, _, 11, _, 15, _, 11, _, 15 };
-		public static ReadOnlySpan<byte> ShuffleMask8bitEven => new byte[] { 0, 0, 4, 4, 2, 2, 6, 6, 8, 8, 12, 12, 10, 10, 14, 14 };
-		public static ReadOnlySpan<byte> ShuffleMask8bitOdd => new byte[] { 1, 1, 5, 5, 3, 3, 7, 7, 9, 9, 13, 13, 11, 11, 15, 15 };
+		public static ReadOnlySpan<byte> ShuffleMaskDeinterleave1x16 => new byte[] { 0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15 };
+		public static ReadOnlySpan<byte> ShuffleMaskWidenAlpha => new byte[] { 3, _, 7, _, 11, _, 15, _, 3, _, 7, _, 11, _, 15, _ };
+		public static ReadOnlySpan<byte> ShuffleMaskWidenEven => new byte[] { 0, _, 4, _, 8, _, 12, _, 2, _, 6, _, 10, _, 14, _ };
+		public static ReadOnlySpan<byte> ShuffleMaskWidenOdd => new byte[] { 1, _, 5, _, 9, _, 13, _, 3, _, 7, _, 11, _, 15, _ };
+		public static ReadOnlySpan<byte> IndicesUInt64 => new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0 };
 
 		public static ReadOnlySpan<byte> GatherMask3x => new byte[] { 0, 0, 0, 0x80, 0, 0, 0, 0x80, 0, 0, 0, 0x80, 0, 0, 0, 0 };
 		public static ReadOnlySpan<byte> ScaleUQ15WithAlphaInt => new byte[] { 0, 0x80, 0, 0, 0, 0x80, 0, 0, 0, 0x80, 0, 0, 0xff, 0, 0, 0 };
 		public static ReadOnlySpan<byte> ScaleUQ15WithAlphaFloat => new byte[] { 0, 0, 0, 0x47, 0, 0, 0, 0x47, 0, 0, 0, 0x47, 0, 0, 0x7f, 0x43 };
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe Vector128<ulong> CreateVector128(ulong val) =>
+			sizeof(nuint) == sizeof(uint)
+				? Sse2.UnpackLow(Vector128.Create((uint)val), Vector128.Create((uint)(val >> 32))).AsUInt64()
+				: Vector128.Create(val);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe Vector256<ulong> CreateVector256(ulong val) =>
+			sizeof(nuint) == sizeof(uint)
+				? Avx2.UnpackLow(Vector256.Create((uint)val), Vector256.Create((uint)(val >> 32))).AsUInt64()
+				: Vector256.Create(val);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Vector256<float> AvxCompareEqual(Vector256<float> v1, Vector256<float> v2) => Avx.Compare(v1, v2, FloatComparisonMode.OrderedEqualNonSignaling);

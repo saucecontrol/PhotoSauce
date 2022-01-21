@@ -12,7 +12,11 @@ using static PhotoSauce.MagicScaler.MathUtil;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal enum ConverterDirection { ToLinear, FromLinear }
+	internal interface EncodingType
+	{
+		public readonly struct Companded : EncodingType { }
+		public readonly struct Linear : EncodingType { }
+	}
 
 	internal interface IConversionProcessor
 	{

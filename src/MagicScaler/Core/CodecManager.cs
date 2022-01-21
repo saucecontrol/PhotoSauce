@@ -74,7 +74,7 @@ namespace PhotoSauce.MagicScaler
 	/// <param name="MimeTypes"><inheritdoc cref="IImageCodecInfo.MimeTypes" path="/summary/node()" /></param>
 	/// <param name="FileExtensions"><inheritdoc cref="IImageCodecInfo.FileExtensions" path="/summary/node()" /></param>
 	/// <param name="Patterns"><inheritdoc cref="IImageDecoderInfo.Patterns" path="/summary/node()" /></param>
-	/// <param name="DefaultConfig"><inheritdoc cref="IImageDecoderInfo.DefaultConfig" path="/summary/node()" /></param>
+	/// <param name="DefaultOptions"><inheritdoc cref="IImageDecoderInfo.DefaultOptions" path="/summary/node()" /></param>
 	/// <param name="Factory"><inheritdoc cref="IImageDecoderInfo.Factory" path="/summary/node()" /></param>
 	/// <param name="SupportsTransparency"><inheritdoc cref="IImageCodecInfo.SupportsTransparency" path="/summary/node()" /></param>
 	/// <param name="SupportsMultiFrame"><inheritdoc cref="IImageCodecInfo.SupportsMultiFrame" path="/summary/node()" /></param>
@@ -84,7 +84,7 @@ namespace PhotoSauce.MagicScaler
 		IEnumerable<string> MimeTypes,
 		IEnumerable<string> FileExtensions,
 		IEnumerable<ContainerPattern> Patterns,
-		IDecoderOptions? DefaultConfig,
+		IDecoderOptions? DefaultOptions,
 		Func<Stream, IDecoderOptions?, IImageContainer?> Factory,
 		bool SupportsTransparency,
 		bool SupportsMultiFrame,
@@ -95,7 +95,7 @@ namespace PhotoSauce.MagicScaler
 	/// <param name="Name"><inheritdoc cref="IImageCodecInfo.Name" path="/summary/node()" /></param>
 	/// <param name="MimeTypes"><inheritdoc cref="IImageCodecInfo.MimeTypes" path="/summary/node()" /></param>
 	/// <param name="FileExtensions"><inheritdoc cref="IImageCodecInfo.FileExtensions" path="/summary/node()" /></param>
-	/// <param name="DefaultConfig"><inheritdoc cref="IImageEncoderInfo.DefaultConfig" path="/summary/node()" /></param>
+	/// <param name="DefaultOptions"><inheritdoc cref="IImageEncoderInfo.DefaultOptions" path="/summary/node()" /></param>
 	/// <param name="Factory"><inheritdoc cref="IImageEncoderInfo.Factory" path="/summary/node()" /></param>
 	/// <param name="SupportsTransparency"><inheritdoc cref="IImageCodecInfo.SupportsTransparency" path="/summary/node()" /></param>
 	/// <param name="SupportsMultiFrame"><inheritdoc cref="IImageCodecInfo.SupportsMultiFrame" path="/summary/node()" /></param>
@@ -105,7 +105,7 @@ namespace PhotoSauce.MagicScaler
 		string Name,
 		IEnumerable<string> MimeTypes,
 		IEnumerable<string> FileExtensions,
-		IEncoderOptions? DefaultConfig,
+		IEncoderOptions? DefaultOptions,
 		Func<Stream, IEncoderOptions?, IImageEncoder> Factory,
 		bool SupportsTransparency,
 		bool SupportsMultiFrame,
@@ -177,7 +177,7 @@ namespace PhotoSauce.MagicScaler
 					var vcm = Unsafe.ReadUnaligned<Vector128<byte>>(ref Unsafe.As<ulong, byte>(ref Unsafe.AsRef(in pat.m1)));
 					if (Sse2.MoveMask(Sse2.CompareEqual(Sse2.And(vtv, vcm), vcv)) == ushort.MaxValue)
 					{
-						var dec = pat.dec.Factory(stm, options ?? pat.dec.DefaultConfig);
+						var dec = pat.dec.Factory(stm, options ?? pat.dec.DefaultOptions);
 						if (dec is not null)
 							return dec;
 					}
@@ -192,7 +192,7 @@ namespace PhotoSauce.MagicScaler
 				{
 					if ((((tv0 & pat.m1) ^ pat.p1) | ((tv1 & pat.m2) ^ pat.p2)) == 0)
 					{
-						var dec = pat.dec.Factory(stm, options ?? pat.dec.DefaultConfig);
+						var dec = pat.dec.Factory(stm, options ?? pat.dec.DefaultOptions);
 						if (dec is not null)
 							return dec;
 					}

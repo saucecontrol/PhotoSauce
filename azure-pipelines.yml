@@ -12,6 +12,7 @@ variables:
 
 jobs:
 - job: native
+  timeoutInMinutes: 0
   variables:
     VCPKG_BINARY_SOURCES: clear;nuget,$(azureNuget),readwrite
 
@@ -19,8 +20,14 @@ jobs:
     matrix:
       linux:
         imageName: ubuntu-latest
+        setupScript: |
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
+          modules/vcpkg/bootstrap-vcpkg.sh
+        buildScript: modules/vcpkg/vcpkg install libjxl:x64-linux-staticdependencies libjxl:arm64-linux-staticdependencies @build/vcpkg/response
       windows:
         imageName: windows-latest
+        setupScript: modules\vcpkg\bootstrap-vcpkg.bat
+        buildScript: modules\vcpkg\vcpkg install libjxl:x86-windows-staticdependencies libjxl:x64-windows-staticdependencies libjxl:arm64-windows-staticdependencies @build\vcpkg\response
 
   pool:
     vmImage: $(imageName)
@@ -31,18 +38,11 @@ jobs:
 
   - task: NuGetAuthenticate@0
 
-  - script: |
-      sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
-      modules/vcpkg/bootstrap-vcpkg.sh
-      modules/vcpkg/vcpkg install libjxl:x64-linux-staticdependencies libjxl:arm64-linux-staticdependencies @build/vcpkg/response
-    displayName: Build Linux
-    condition: eq(variables['Agent.OS'], 'Linux')
+  - script: $(setupScript)
+    displayName: Setup
 
-  - script: |
-      start /B /wait modules\vcpkg\bootstrap-vcpkg.bat
-      modules\vcpkg\vcpkg install libjxl:x86-windows-staticdependencies libjxl:x64-windows-staticdependencies libjxl:arm64-windows-staticdependencies @build\vcpkg\response
-    displayName: Build Windows
-    condition: eq(variables['Agent.OS'], 'Windows_NT')
+  - script: $(buildScript)
+    displayName: Build Native
 
   - publish: out/vcpkg/install
     displayName: Publish Native Binaries

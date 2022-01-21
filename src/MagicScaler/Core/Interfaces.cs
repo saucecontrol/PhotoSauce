@@ -151,8 +151,8 @@ namespace PhotoSauce.MagicScaler
 		/// <remarks>No attempt will be made to decode an image with this decoder if its header does not match one of the <see cref="ContainerPattern" />s.</remarks>
 		IEnumerable<ContainerPattern> Patterns { get; }
 
-		/// <summary>A default set of options to be used for this decoder in the absence of per-instance overrides.</summary>
-		IDecoderOptions? DefaultConfig { get; }
+		/// <summary>Default codec options to be used for this decoder in the absence of per-instance overrides.</summary>
+		IDecoderOptions? DefaultOptions { get; }
 
 		/// <summary>A delegate capable of creating an instance of this decoder over a given <see cref="Stream" /> data source.</summary>
 		Func<Stream, IDecoderOptions?, IImageContainer?> Factory { get; }
@@ -161,8 +161,8 @@ namespace PhotoSauce.MagicScaler
 	/// <summary>Describes an image encoder.</summary>
 	public interface IImageEncoderInfo : IImageCodecInfo
 	{
-		/// <summary>A default set of options to be used for this encoder in the absence of per-instance overrides.</summary>
-		IEncoderOptions? DefaultConfig { get; }
+		/// <summary>Default codec options to be used for this encoder in the absence of per-instance overrides.</summary>
+		IEncoderOptions? DefaultOptions { get; }
 
 		/// <summary>A delegate capable of creating an instance of this encoder to write to a given <see cref="Stream" /> data source.</summary>
 		Func<Stream, IEncoderOptions?, IImageEncoder> Factory { get; }

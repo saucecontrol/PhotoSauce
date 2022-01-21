@@ -227,7 +227,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 	}
 
 	/// <summary>Transforms an image according to coefficients in a <see cref="Matrix4x4" />.</summary>
-	public sealed class ColorMatrixTransform : PixelTransformInternalBase, IPixelTransformInternal
+	public sealed class ColorMatrixTransform : PixelTransformInternalBase
 	{
 		private readonly Matrix4x4 matrix;
 
@@ -235,7 +235,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		/// <param name="matrix">A 4x4 matrix of coefficients.  The channel order is RGBA, column-major.</param>
 		public ColorMatrixTransform(Matrix4x4 matrix) => this.matrix = matrix;
 
-		void IPixelTransformInternal.Init(PipelineContext ctx)
+		internal override void Init(PipelineContext ctx)
 		{
 			if (ctx.Source.Format.Encoding == PixelValueEncoding.Linear)
 			{

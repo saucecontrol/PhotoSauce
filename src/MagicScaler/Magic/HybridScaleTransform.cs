@@ -122,146 +122,215 @@ namespace PhotoSauce.MagicScaler.Transforms
 #endif
 		private static unsafe void process4A(byte* ipstart, byte* opstart, nuint stride)
 		{
+			const ushort scalec = ((UQ15One << 8) + byte.MaxValue / 2) / byte.MaxValue;
+			const uint scalea = (byte.MaxValue << 16) + byte.MaxValue << 2;
+
 			byte* ip = ipstart, ipe = ipstart + stride;
 			byte* op = opstart;
 
 #if HWINTRINSICS
-			const byte blendMaskAlpha = 0b_1100_1100;
-			const ushort scaleAlpha = (UQ15One << 8) / byte.MaxValue + 1;
-			const ulong bitMaskAlpha = 0xffff0000ffff0000ul;
-
-			if (Avx2.IsSupported && stride >= (nuint)Vector256<byte>.Count)
+			if (Avx2.IsSupported && stride >= (nuint)Vector256<byte>.Count * 2)
 			{
-				fixed (int* iatstart = LookupTables.InverseAlpha)
+				var vshufa = Avx2.BroadcastVector128ToVector256(HWIntrinsics.ShuffleMaskWidenAlpha.GetAddressOf());
+				var vmaske = Avx2.BroadcastVector128ToVector256(HWIntrinsics.ShuffleMaskWidenEven.GetAddressOf());
+				var vmasko = Avx2.BroadcastVector128ToVector256(HWIntrinsics.ShuffleMaskWidenOdd.GetAddressOf());
+				var vmaskd = Avx2.BroadcastVector128ToVector256(HWIntrinsics.ShuffleMaskDeinterleave1x16.GetAddressOf());
+				var vscala = Vector256.Create((float)scalea);
+				var vscalc = Vector256.Create(scalec);
+
+				ipe -= Vector256<byte>.Count * 2;
+				do
 				{
-					var vshufa = Avx2.BroadcastVector128ToVector256(HWIntrinsics.ShuffleMask8bitAlpha.GetAddressOf());
-					var vmaske = Avx2.BroadcastVector128ToVector256(HWIntrinsics.ShuffleMask8bitEven.GetAddressOf());
-					var vmasko = Avx2.BroadcastVector128ToVector256(HWIntrinsics.ShuffleMask8bitOdd.GetAddressOf());
-					var vmaskp = Avx2.BroadcastVector128ToVector256((int*)HWIntrinsics.PermuteMaskEvenOdd8x32.GetAddressOf() + Vector128<int>.Count);
+					byte* ipn = ip + stride;
+					var vi0 = Avx.LoadVector256(ip);
+					var vi1 = Avx.LoadVector256(ip + Vector256<byte>.Count);
+					var vi2 = Avx.LoadVector256(ipn);
+					var vi3 = Avx.LoadVector256(ipn + Vector256<byte>.Count);
+					ip += Vector256<byte>.Count * 2;
 
-					var vmaska = Vector256.Create(bitMaskAlpha).AsByte();
-					var vscale = Vector256.Create(scaleAlpha);
-					var vone = Vector256.Create((short)1);
+					var va0 = Avx2.Shuffle(vi0, vshufa).AsUInt16();
+					var ve0 = Avx2.MultiplyLow(Avx2.Shuffle(vi0, vmaske).AsUInt16(), va0);
+					var vo0 = Avx2.MultiplyLow(Avx2.Shuffle(vi0, vmasko).AsUInt16(), va0);
 
-					ipe -= Vector256<byte>.Count;
-					do
-					{
-						var vi0 = Avx.LoadVector256(ip);
-						var vi1 = Avx.LoadVector256(ip + stride);
-						ip += Vector256<byte>.Count;
+					var va2 = Avx2.Shuffle(vi2, vshufa).AsUInt16();
+					var ve2 = Avx2.MultiplyLow(Avx2.Shuffle(vi2, vmaske).AsUInt16(), va2);
+					var vo2 = Avx2.MultiplyLow(Avx2.Shuffle(vi2, vmasko).AsUInt16(), va2);
 
-						var va0 = Avx2.MultiplyHigh(Avx2.Shuffle(vi0, vshufa).AsUInt16(), vscale);
-						var va1 = Avx2.MultiplyHigh(Avx2.Shuffle(vi1, vshufa).AsUInt16(), vscale);
+					va0 = Avx2.Add(va0, va2);
+					ve0 = Avx2.Average(ve0, ve2);
+					vo0 = Avx2.Average(vo0, vo2);
 
-						var ve0 = Avx2.MultiplyHigh(Avx2.Shuffle(vi0, vmaske).AsUInt16(), va0);
-						var ve1 = Avx2.MultiplyHigh(Avx2.Shuffle(vi1, vmaske).AsUInt16(), va1);
+					va0 = Avx2.Add(va0, Avx2.ShiftRightLogical128BitLane(va0, 2));
+					ve0 = Avx2.Average(ve0, Avx2.ShiftRightLogical128BitLane(ve0, 2));
+					vo0 = Avx2.Average(vo0, Avx2.ShiftRightLogical128BitLane(vo0, 2));
 
-						ve0 = Avx2.Average(ve0, ve1);
-						var ve = Avx2.MultiplyAddAdjacent(ve0.AsInt16(), vone);
+					var va1 = Avx2.Shuffle(vi1, vshufa).AsUInt16();
+					var ve1 = Avx2.MultiplyLow(Avx2.Shuffle(vi1, vmaske).AsUInt16(), va1);
+					var vo1 = Avx2.MultiplyLow(Avx2.Shuffle(vi1, vmasko).AsUInt16(), va1);
 
-						vi0 = Avx2.Or(vi0, vmaska);
-						vi1 = Avx2.Or(vi1, vmaska);
+					var va3 = Avx2.Shuffle(vi3, vshufa).AsUInt16();
+					var ve3 = Avx2.MultiplyLow(Avx2.Shuffle(vi3, vmaske).AsUInt16(), va3);
+					var vo3 = Avx2.MultiplyLow(Avx2.Shuffle(vi3, vmasko).AsUInt16(), va3);
 
-						var vo0 = Avx2.MultiplyHigh(Avx2.Shuffle(vi0, vmasko).AsUInt16(), va0);
-						var vo1 = Avx2.MultiplyHigh(Avx2.Shuffle(vi1, vmasko).AsUInt16(), va1);
+					va1 = Avx2.Add(va1, va3);
+					ve1 = Avx2.Average(ve1, ve3);
+					vo1 = Avx2.Average(vo1, vo3);
 
-						vo0 = Avx2.Average(vo0, vo1);
-						var vo = Avx2.MultiplyAddAdjacent(vo0.AsInt16(), vone);
+					va1 = Avx2.Add(va1, Avx2.ShiftRightLogical128BitLane(va1, 2));
+					ve1 = Avx2.Average(ve1, Avx2.ShiftRightLogical128BitLane(ve1, 2));
+					vo1 = Avx2.Average(vo1, Avx2.ShiftRightLogical128BitLane(vo1, 2));
 
-						ulong* iat = (ulong*)iatstart;
-						var vai = Avx2.ShiftRightLogical(vo, 7);
-						vai = Avx2.PermuteVar8x32(vai, vmaskp);
-						vai = Avx2.GatherVector256(iat, vai.GetLower(), sizeof(ulong)).AsInt32();
+					var va = Avx2.UnpackLow(va0.AsUInt64(), va1.AsUInt64()).AsUInt16();
+					var v0 = Avx2.UnpackLow(ve0.AsUInt64(), ve1.AsUInt64()).AsUInt16();
+					var v1 = Avx2.UnpackLow(vo0.AsUInt64(), vo1.AsUInt64()).AsUInt16();
+					var v2 = Avx2.UnpackHigh(ve0.AsUInt64(), ve1.AsUInt64()).AsUInt16();
 
-						var vb = vo;
-						ve = Avx2.ShiftRightLogical(Avx2.MultiplyLow(ve, vai), 15);
-						vo = Avx2.ShiftRightLogical(Avx2.MultiplyLow(vo, vai), 15);
-						vo = Avx2.Blend(vo.AsInt16(), vb.AsInt16(), blendMaskAlpha).AsInt32();
+					v0 = Avx2.MultiplyHigh(v0, vscalc);
+					v1 = Avx2.MultiplyHigh(v1, vscalc);
+					v2 = Avx2.MultiplyHigh(v2, vscalc);
 
-						var vs0 = Avx2.PackUnsignedSaturate(Avx2.UnpackLow(ve, vo), Avx2.UnpackHigh(ve, vo));
-						vs0 = Avx2.ShiftRightLogical(vs0, 8);
+					var vmaskl = Avx2.ShiftRightLogical(Avx2.CompareEqual(va, va).AsUInt32(), 16).AsUInt16();
+					var vai = Avx2.And(va, vmaskl).AsInt32();
+					var v0i = Avx2.And(v0, vmaskl).AsInt32();
+					var v1i = Avx2.And(v1, vmaskl).AsInt32();
+					var v2i = Avx2.And(v2, vmaskl).AsInt32();
 
-						vi0 = Avx2.PackUnsignedSaturate(vs0.AsInt16(), vs0.AsInt16());
-						vi0 = Avx2.Permute4x64(vi0.AsUInt64(), HWIntrinsics.PermuteMaskDeinterleave4x64).AsByte();
+					var vrnd = Avx2.ShiftRightLogical(vscalc.AsInt32(), 30);
+					var vma = Avx.ConvertToVector256Int32WithTruncation(Avx.Divide(vscala, Avx.ConvertToVector256Single(vai)));
+					vma = Avx2.BlendVariable(vma, Vector256<int>.Zero, Avx2.CompareGreaterThan(vrnd, vai));
 
-						Sse2.Store(op, vi0.GetLower());
-						op += Vector128<byte>.Count;
-					}
-					while (ip <= ipe);
-					ipe += Vector256<byte>.Count;
+					vai = Avx2.ShiftRightLogical(Avx2.Add(vai, vrnd), 2);
+					v0i = Avx2.MultiplyLow(v0i, vma);
+					v1i = Avx2.MultiplyLow(v1i, vma);
+					v2i = Avx2.MultiplyLow(v2i, vma);
+
+					vrnd = Avx2.ShiftLeftLogical(vrnd, 21);
+					v0i = Avx2.Add(v0i, vrnd);
+					v1i = Avx2.Add(v1i, vrnd);
+					v2i = Avx2.Add(v2i, vrnd);
+
+					v0i = Avx2.ShiftRightLogical(v0i, 23);
+					v1i = Avx2.ShiftRightLogical(v1i, 23);
+					v2i = Avx2.ShiftRightLogical(v2i, 23);
+
+					var vil = Avx2.PackSignedSaturate(v0i, v1i);
+					var vih = Avx2.PackSignedSaturate(v2i, vai);
+					vi0 = Avx2.PackUnsignedSaturate(vil, vih);
+					vi0 = Avx2.Shuffle(vi0, vmaskd);
+					vi0 = Avx2.Permute4x64(vi0.AsUInt64(), HWIntrinsics.PermuteMaskDeinterleave4x64).AsByte();
+
+					Avx.Store(op, vi0);
+					op += Vector256<byte>.Count;
 				}
+				while (ip <= ipe);
+				ipe += Vector256<byte>.Count * 2;
 			}
-			else if (Sse41.IsSupported && stride >= (nuint)Vector128<byte>.Count)
+			else if (Sse41.IsSupported && stride >= (nuint)Vector128<byte>.Count * 2)
 			{
-				fixed (int* iatstart = LookupTables.InverseAlpha)
+				var vshufa = Sse2.LoadVector128(HWIntrinsics.ShuffleMaskWidenAlpha.GetAddressOf());
+				var vmaske = Sse2.LoadVector128(HWIntrinsics.ShuffleMaskWidenEven.GetAddressOf());
+				var vmasko = Sse2.LoadVector128(HWIntrinsics.ShuffleMaskWidenOdd.GetAddressOf());
+				var vmaskd = Sse2.LoadVector128(HWIntrinsics.ShuffleMaskDeinterleave1x16.GetAddressOf());
+				var vscala = Vector128.Create((float)scalea);
+				var vscalc = Vector128.Create(scalec);
+
+				ipe -= Vector128<byte>.Count * 2;
+				do
 				{
-					var vshufa = Sse2.LoadVector128(HWIntrinsics.ShuffleMask8bitAlpha.GetAddressOf());
-					var vmaske = Sse2.LoadVector128(HWIntrinsics.ShuffleMask8bitEven.GetAddressOf());
-					var vmasko = Sse2.LoadVector128(HWIntrinsics.ShuffleMask8bitOdd.GetAddressOf());
+					byte* ipn = ip + stride;
+					var vi0 = Sse2.LoadVector128(ip);
+					var vi1 = Sse2.LoadVector128(ip + Vector128<byte>.Count);
+					var vi2 = Sse2.LoadVector128(ipn);
+					var vi3 = Sse2.LoadVector128(ipn + Vector128<byte>.Count);
+					ip += Vector128<byte>.Count * 2;
 
-					var vmaska = Vector128.Create(bitMaskAlpha).AsByte();
-					var vscale = Vector128.Create(scaleAlpha);
-					var vone = Vector128.Create((short)1);
+					var va0 = Ssse3.Shuffle(vi0, vshufa).AsUInt16();
+					var ve0 = Sse2.MultiplyLow(Ssse3.Shuffle(vi0, vmaske).AsUInt16(), va0);
+					var vo0 = Sse2.MultiplyLow(Ssse3.Shuffle(vi0, vmasko).AsUInt16(), va0);
 
-					ipe -= Vector128<byte>.Count;
-					do
-					{
-						var vi0 = Sse2.LoadVector128(ip);
-						var vi1 = Sse2.LoadVector128(ip + stride);
-						ip += Vector128<byte>.Count;
+					var va2 = Ssse3.Shuffle(vi2, vshufa).AsUInt16();
+					var ve2 = Sse2.MultiplyLow(Ssse3.Shuffle(vi2, vmaske).AsUInt16(), va2);
+					var vo2 = Sse2.MultiplyLow(Ssse3.Shuffle(vi2, vmasko).AsUInt16(), va2);
 
-						var va0 = Sse2.MultiplyHigh(Ssse3.Shuffle(vi0, vshufa).AsUInt16(), vscale);
-						var va1 = Sse2.MultiplyHigh(Ssse3.Shuffle(vi1, vshufa).AsUInt16(), vscale);
+					va0 = Sse2.Add(va0, va2);
+					ve0 = Sse2.Average(ve0, ve2);
+					vo0 = Sse2.Average(vo0, vo2);
 
-						var ve0 = Sse2.MultiplyHigh(Ssse3.Shuffle(vi0, vmaske).AsUInt16(), va0);
-						var ve1 = Sse2.MultiplyHigh(Ssse3.Shuffle(vi1, vmaske).AsUInt16(), va1);
+					va0 = Sse2.Add(va0, Sse2.ShiftRightLogical128BitLane(va0, 2));
+					ve0 = Sse2.Average(ve0, Sse2.ShiftRightLogical128BitLane(ve0, 2));
+					vo0 = Sse2.Average(vo0, Sse2.ShiftRightLogical128BitLane(vo0, 2));
 
-						ve0 = Sse2.Average(ve0, ve1);
-						var ve = Sse2.MultiplyAddAdjacent(ve0.AsInt16(), vone);
+					var va1 = Ssse3.Shuffle(vi1, vshufa).AsUInt16();
+					var ve1 = Sse2.MultiplyLow(Ssse3.Shuffle(vi1, vmaske).AsUInt16(), va1);
+					var vo1 = Sse2.MultiplyLow(Ssse3.Shuffle(vi1, vmasko).AsUInt16(), va1);
 
-						vi0 = Sse2.Or(vi0, vmaska);
-						vi1 = Sse2.Or(vi1, vmaska);
+					var va3 = Ssse3.Shuffle(vi3, vshufa).AsUInt16();
+					var ve3 = Sse2.MultiplyLow(Ssse3.Shuffle(vi3, vmaske).AsUInt16(), va3);
+					var vo3 = Sse2.MultiplyLow(Ssse3.Shuffle(vi3, vmasko).AsUInt16(), va3);
 
-						var vo0 = Sse2.MultiplyHigh(Ssse3.Shuffle(vi0, vmasko).AsUInt16(), va0);
-						var vo1 = Sse2.MultiplyHigh(Ssse3.Shuffle(vi1, vmasko).AsUInt16(), va1);
+					va1 = Sse2.Add(va1, va3);
+					ve1 = Sse2.Average(ve1, ve3);
+					vo1 = Sse2.Average(vo1, vo3);
 
-						vo0 = Sse2.Average(vo0, vo1);
-						var vo = Sse2.MultiplyAddAdjacent(vo0.AsInt16(), vone);
+					va1 = Sse2.Add(va1, Sse2.ShiftRightLogical128BitLane(va1, 2));
+					ve1 = Sse2.Average(ve1, Sse2.ShiftRightLogical128BitLane(ve1, 2));
+					vo1 = Sse2.Average(vo1, Sse2.ShiftRightLogical128BitLane(vo1, 2));
 
-						ulong* iat = (ulong*)iatstart;
-						var vai = Sse2.ShiftRightLogical(vo, 7);
-						var vai0 = Sse2.LoadScalarVector128(iat + Sse41.Extract(vai.AsUInt32(), 1));
-						var vai1 = Sse2.LoadScalarVector128(iat + Sse41.Extract(vai.AsUInt32(), 3));
-						vai = Sse2.UnpackLow(vai0, vai1).AsInt32();
+					var va = Sse2.UnpackLow(va0.AsUInt64(), va1.AsUInt64()).AsUInt16();
+					var v0 = Sse2.UnpackLow(ve0.AsUInt64(), ve1.AsUInt64()).AsUInt16();
+					var v1 = Sse2.UnpackLow(vo0.AsUInt64(), vo1.AsUInt64()).AsUInt16();
+					var v2 = Sse2.UnpackHigh(ve0.AsUInt64(), ve1.AsUInt64()).AsUInt16();
 
-						var vb = vo;
-						ve = Sse2.ShiftRightLogical(Sse41.MultiplyLow(ve, vai), 15);
-						vo = Sse2.ShiftRightLogical(Sse41.MultiplyLow(vo, vai), 15);
-						vo = Sse41.Blend(vo.AsInt16(), vb.AsInt16(), blendMaskAlpha).AsInt32();
+					v0 = Sse2.MultiplyHigh(v0, vscalc);
+					v1 = Sse2.MultiplyHigh(v1, vscalc);
+					v2 = Sse2.MultiplyHigh(v2, vscalc);
 
-						var vs0 = Sse41.PackUnsignedSaturate(Sse2.UnpackLow(ve, vo), Sse2.UnpackHigh(ve, vo));
-						vs0 = Sse2.ShiftRightLogical(vs0, 8);
+					var vmaskl = Sse2.ShiftRightLogical(Sse2.CompareEqual(va, va).AsUInt32(), 16).AsUInt16();
+					var vai = Sse2.And(va, vmaskl).AsInt32();
+					var v0i = Sse2.And(v0, vmaskl).AsInt32();
+					var v1i = Sse2.And(v1, vmaskl).AsInt32();
+					var v2i = Sse2.And(v2, vmaskl).AsInt32();
 
-						vi0 = Sse2.PackUnsignedSaturate(vs0.AsInt16(), vs0.AsInt16());
+					var vrnd = Sse2.ShiftRightLogical(vscalc.AsInt32(), 30);
+					var vma = Sse2.ConvertToVector128Int32WithTruncation(Sse.Divide(vscala, Sse2.ConvertToVector128Single(vai)));
+					vma = Sse41.BlendVariable(vma, Vector128<int>.Zero, Sse2.CompareGreaterThan(vrnd, vai));
 
-						Sse2.StoreScalar((long*)op, vi0.AsInt64());
-						op += Vector128<byte>.Count / 2;
-					}
-					while (ip <= ipe);
-					ipe += Vector128<byte>.Count;
+					vai = Sse2.ShiftRightLogical(Sse2.Add(vai, vrnd), 2);
+					v0i = Sse41.MultiplyLow(v0i, vma);
+					v1i = Sse41.MultiplyLow(v1i, vma);
+					v2i = Sse41.MultiplyLow(v2i, vma);
+
+					vrnd = Sse2.ShiftLeftLogical(vrnd, 21);
+					v0i = Sse2.Add(v0i, vrnd);
+					v1i = Sse2.Add(v1i, vrnd);
+					v2i = Sse2.Add(v2i, vrnd);
+
+					v0i = Sse2.ShiftRightLogical(v0i, 23);
+					v1i = Sse2.ShiftRightLogical(v1i, 23);
+					v2i = Sse2.ShiftRightLogical(v2i, 23);
+
+					var vil = Sse2.PackSignedSaturate(v0i, v1i);
+					var vih = Sse2.PackSignedSaturate(v2i, vai);
+					vi0 = Sse2.PackUnsignedSaturate(vil, vih);
+					vi0 = Ssse3.Shuffle(vi0, vmaskd);
+
+					Sse2.Store(op, vi0);
+					op += Vector128<byte>.Count;
 				}
+				while (ip <= ipe);
+				ipe += Vector128<byte>.Count * 2;
 			}
 #endif
 
 			while (ip < ipe)
 			{
-				uint i0a0 = FastFix15(ip[3]);
-				uint i0a1 = FastFix15(ip[7]);
-				uint i1a0 = FastFix15(ip[stride + 3]);
-				uint i1a1 = FastFix15(ip[stride + 7]);
-				uint iaa  = i0a0 + i0a1 + i1a0 + i1a1 >> 2;
+				uint i0a0 = ip[3];
+				uint i0a1 = ip[7];
+				uint i1a0 = ip[stride + 3];
+				uint i1a1 = ip[stride + 7];
+				uint iaa  = i0a0 + i0a1 + i1a0 + i1a1;
 
-				if (iaa < (UQ15Round >> 8))
+				if (iaa < 2)
 				{
 					*(uint*)op = 0;
 				}
@@ -284,15 +353,15 @@ namespace PhotoSauce.MagicScaler.Transforms
 					i1 += ipn[5] * i1a1;
 					i2 += ipn[6] * i1a1;
 
-					uint iaai = UQ15One * UQ15One / iaa;
-					i0 = UnFix10(i0) * iaai;
-					i1 = UnFix10(i1) * iaai;
-					i2 = UnFix10(i2) * iaai;
+					uint iaai = scalea / iaa;
+					i0 = ((i0 + 3 >> 2) * scalec >> 17) * iaai;
+					i1 = ((i1 + 3 >> 2) * scalec >> 17) * iaai;
+					i2 = ((i2 + 3 >> 2) * scalec >> 17) * iaai;
 
 					op[0] = UnFix22ToByte(i0);
 					op[1] = UnFix22ToByte(i1);
 					op[2] = UnFix22ToByte(i2);
-					op[3] = (byte)UnFix15(iaa * byte.MaxValue);
+					op[3] = (byte)(iaa + 2 >> 2);
 				}
 
 				ip += sizeof(uint) * 2;

@@ -139,7 +139,7 @@ namespace PhotoSauce.MagicScaler
 			if (source.IsValueCreated)
 				throw new NotSupportedException("A Transform cannot be added once the Pipeline Source is materialized");
 
-			if (transform is IPixelTransformInternal tint)
+			if (transform is PixelTransformInternalBase tint)
 			{
 				tint.Init(Context);
 				return this;

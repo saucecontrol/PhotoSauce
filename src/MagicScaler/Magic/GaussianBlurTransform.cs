@@ -3,7 +3,7 @@
 namespace PhotoSauce.MagicScaler.Transforms
 {
 	/// <summary>Applies a <a href="https://en.wikipedia.org/wiki/Gaussian_blur">Gaussian blur</a> to an image.</summary>
-	public sealed class GaussianBlurTransform : PixelTransformInternalBase, IPixelTransformInternal
+	public sealed class GaussianBlurTransform : PixelTransformInternalBase
 	{
 		private readonly double radius;
 
@@ -11,19 +11,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 		/// <param name="radius">The blur radius (sigma value).</param>
 		public GaussianBlurTransform(double radius) => this.radius = radius;
 
-		void IPixelTransformInternal.Init(PipelineContext ctx)
+		internal override void Init(PipelineContext ctx)
 		{
 			MagicTransforms.AddInternalFormatConverter(ctx, allow96bppFloat: true);
 
-			var fmt = ctx.Source.Format;
-			if (fmt.NumericRepresentation == PixelNumericRepresentation.Float)
-				ctx.Source = ctx.AddProfiler(ConvolutionTransform<float, float>.CreateBlur(ctx.Source, radius));
-			else if (fmt.NumericRepresentation == PixelNumericRepresentation.Fixed)
-				ctx.Source = ctx.AddProfiler(ConvolutionTransform<ushort, int>.CreateBlur(ctx.Source, radius));
-			else
-				ctx.Source = ctx.AddProfiler(ConvolutionTransform<byte, int>.CreateBlur(ctx.Source, radius));
-
-			Source = ctx.Source;
+			Source = ctx.Source = ctx.AddProfiler(ConvolutionTransform.CreateBlur(ctx.Source, radius));
 		}
 	}
 }

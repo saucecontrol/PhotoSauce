@@ -19,7 +19,6 @@ namespace PhotoSauce.MagicScaler.Transforms
 		private const int channels = 4;
 		private const uint minLeafLevel = 3;
 		private const uint alphaThreshold = 85;
-		private const uint transparentValue = 0x00ff00ffu;
 
 		private bool dither;
 		private int paletteLength;
@@ -30,29 +29,34 @@ namespace PhotoSauce.MagicScaler.Transforms
 		private RentedBuffer<short> errBuff;
 		private RentedBuffer<PaletteMapNode> mapBuff;
 
-		public ReadOnlySpan<uint> Palette => palBuff.Span.Slice(0, paletteLength);
+		public ReadOnlySpan<uint> Palette => palBuff.Span.Slice(isFixedGrey ? 0 : maxPaletteSize, paletteLength);
 
 		public override PixelFormat Format => PixelFormat.Indexed8;
 
+		private bool isFixedGrey => PrevSource.Format == PixelFormat.Grey8;
+		private int paletteColors => paletteLength - 1;
+
 		public IndexedColorTransform(PixelSource source) : base(source)
 		{
-			palBuff = BufferPool.Rent<uint>(maxPaletteSize, true);
-
-			if (PrevSource.Format == PixelFormat.Grey8)
+			if (isFixedGrey)
 			{
-				paletteLength = 256;
+				palBuff = BufferPool.Rent<uint>(maxPaletteSize);
+				paletteLength = palBuff.Length;
+
 				var palSpan = palBuff.Span;
 				for (int i = 0; i < palSpan.Length; i++)
-					palSpan[i] = (uint)(0xff << 24 | i << 16 | i << 8 | i);
+					palSpan[i] = (uint)i * 0x10101u | 0xff000000u;
 			}
 			else
 			{
-				if (PrevSource.Format != PixelFormat.Bgra32)
+				var pfmt = PrevSource.Format;
+				if (pfmt.ChannelCount != channels || pfmt.BytesPerPixel != channels || pfmt.ColorRepresentation != PixelColorRepresentation.Bgr)
 					throw new NotSupportedException("Pixel format not supported.");
 
 				if (PrevSource is not FrameBufferSource)
 					throw new NotSupportedException($"Color source must be {nameof(FrameBufferSource)}");
 
+				palBuff = BufferPool.Rent<uint>(maxPaletteSize * 2, true);
 				errBuff = BufferPool.RentAligned<short>((Width + 2) * channels, true);
 				mapBuff = BufferPool.RentAligned<PaletteMapNode>(maxPaletteMapSize);
 			}
@@ -60,7 +64,13 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public void SetPalette(ReadOnlySpan<uint> pal, bool isExact)
 		{
+			if (pal.Length < 2) throw new ArgumentException("Palette must have at least two entries.", nameof(pal));
+
 			pal.CopyTo(palBuff.Span);
+			pal.CopyTo(palBuff.Span.Slice(maxPaletteSize));
+
+			palBuff.Span.Slice(pal.Length - 1, maxPaletteSize - pal.Length).Fill(MemoryMarshal.GetReference(pal));
+
 			paletteLength = pal.Length;
 			dither = !isExact;
 
@@ -72,7 +82,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			if (palBuff.Length == 0) throw new ObjectDisposedException(nameof(IndexedColorTransform));
 			if (paletteLength == 0) throw new InvalidOperationException("No palette has been set.");
 
-			if (PrevSource.Format == PixelFormat.Grey8)
+			if (isFixedGrey)
 			{
 				Profiler.PauseTiming();
 				PrevSource.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
@@ -85,7 +95,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			fixed (byte* pimg = source.Span)
 			fixed (short* perr = errBuff)
-			fixed (uint* ppal = palBuff, pilut = &LookupTables.OctreeIndexTable[0])
+			fixed (uint* ppal = palBuff, pilut = &LookupTables.OctreeIndexTable.GetDataRef())
 			fixed (PaletteMapNode* ptree = mapBuff)
 			{
 				for (nint y = 0; y < prc.Height; y++)
@@ -135,14 +145,14 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			palMap.Clear();
 
-			fixed (uint* ppal = palBuff, pilut = &LookupTables.OctreeIndexTable[0])
+			fixed (uint* ppal = palBuff, pilut = &LookupTables.OctreeIndexTable.GetDataRef())
 			fixed (PaletteMapNode* pmap = palMap)
 			{
 				nuint nextFree = 512;
 				nuint level = 6;
 				nuint ll = minLeafLevel;
 
-				for (nuint i = 0; i < (nuint)(paletteLength - 1); i++)
+				for (nuint i = 0; i < (uint)paletteColors; i++)
 				{
 					nuint cpal = ppal[i];
 					nuint idx = getNodeIndex(pilut, cpal);
@@ -242,11 +252,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 		private void remapDitherSse41(byte* pimage, short* perror, byte* pout, uint* pilut, PaletteMapNode* pmap, uint* ppal, nint cp)
 		{
 			nuint nextFree = mapNextFree;
-			nuint maxidx = (uint)paletteLength - 1;
+			nuint maxcol = (uint)paletteColors - 1;
 			nuint level = leafLevel;
-			nuint pidx = maxidx;
-
-			ppal[maxidx] = ppal[maxidx - 1];
+			nuint pidx = maxcol;
 
 			var vpmax = Vector128.Create((short)byte.MaxValue);
 			var vprnd = Vector128.Create((short)7);
@@ -265,7 +273,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				if (ip[3] < alphaThreshold)
 				{
 					vppix = vzero;
-					pidx = maxidx;
+					pidx = maxcol + 1;
 					goto FoundExact;
 				}
 
@@ -311,7 +319,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 						break;
 				}
 
-				pidx = getPaletteIndexSse41(ppal, node, idx & 7, vppix, maxidx);
+				pidx = getPaletteIndexSse41(ppal, node, idx & 7, vppix, maxcol);
 				var vdiff = Sse2.Subtract(vppix, Sse41.ConvertToVector128Int16((byte*)(ppal + pidx)));
 
 				Sse2.StoreScalar((long*)(ep - channels), Sse2.Add(vperr, Sse2.Add(vdiff, vdiff)).AsInt64());
@@ -332,7 +340,6 @@ namespace PhotoSauce.MagicScaler.Transforms
 			while (ip < ipe);
 
 			Sse2.StoreScalar((long*)(ep - channels), vperr.AsInt64());
-			ppal[maxidx] = transparentValue;
 
 			mapNextFree = (uint)nextFree;
 		}
@@ -341,9 +348,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 		private void remapDitherScalar(byte* pimage, short* perror, byte* pout, uint* pilut, PaletteMapNode* pmap, uint* ppal, nint cp)
 		{
 			nuint nextFree = mapNextFree;
-			nuint maxidx = (uint)paletteLength - 1;
+			nuint maxcol = (uint)paletteColors - 1;
 			nuint level = leafLevel;
-			nuint pidx = maxidx;
+			nuint pidx = maxcol;
 
 			byte* ip = pimage, ipe = ip + cp * sizeof(uint);
 			byte* op = pout;
@@ -358,7 +365,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				if (ip[3] < alphaThreshold)
 				{
 					ppix = 0;
-					pidx = maxidx;
+					pidx = maxcol + 1;
 					goto FoundExact;
 				}
 
@@ -400,7 +407,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 						break;
 				}
 
-				pidx = getPaletteIndex(ppal, node, idx & 7, ppix, maxidx);
+				pidx = getPaletteIndex(ppal, node, idx & 7, ppix, maxcol);
 
 				byte* pcol = (byte*)(ppal + pidx);
 				int db = (byte)(ppix      ) - pcol[0];
@@ -448,9 +455,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 		private void remap(byte* pimage, byte* pout, uint* pilut, PaletteMapNode* pmap, uint* ppal, nint cp)
 		{
 			nuint nextFree = mapNextFree;
-			nuint maxidx = (uint)paletteLength - 1;
+			nuint maxcol = (uint)paletteColors - 1;
 			nuint level = leafLevel;
-			nuint pidx = maxidx;
+			nuint pidx = maxcol;
 
 			byte* ip = pimage, ipe = ip + cp * sizeof(uint);
 			byte* op = pout;
@@ -461,7 +468,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				if (ip[3] < alphaThreshold)
 				{
 					ppix = 0;
-					pidx = maxidx;
+					pidx = maxcol + 1;
 					goto Found;
 				}
 
@@ -499,7 +506,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 						break;
 				}
 
-				pidx = getPaletteIndex(ppal, node, idx & 7, ppix, maxidx);
+				pidx = getPaletteIndex(ppal, node, idx & 7, ppix, maxcol);
 
 			Found:
 				ip += channels;
@@ -552,16 +559,18 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			if (Avx2.IsSupported)
 			{
-				var wmul = Vector256.Create(0x0001_0000_fffful).AsInt16();
-				var wadd = Vector256.Create(0x0040_0080_0060ul).AsInt16();
+				var wmul = HWIntrinsics.CreateVector256(0x0001_0000_fffful).AsInt16();
+				var wadd = HWIntrinsics.CreateVector256(0x0040_0080_0060ul).AsInt16();
 
-				var winc = Vector256.Create((ulong)Vector256<ulong>.Count).AsUInt32();
-				var wcnt = Vector256.Create(0ul, 1ul, 2ul, 3ul).AsUInt32();
-				var widx = Vector256.Create((ulong)(maxidx - 1)).AsUInt32();
-				var wdst = Vector256.Create((ulong)int.MaxValue).AsInt32();
+				var widm = HWIntrinsics.CreateVector256((ulong)maxidx).AsUInt32();
+				var wdsm = HWIntrinsics.CreateVector256((ulong)int.MaxValue).AsInt32();
+				var winc = HWIntrinsics.CreateVector256((ulong)Vector256<ulong>.Count).AsUInt32();
+				var wcnt = Avx.LoadVector256(HWIntrinsics.IndicesUInt64.GetAddressOf()).AsUInt32();
+				var widx = widm;
+				var wdst = wdsm;
 
 				var wppix = Avx2.BroadcastScalarToVector256(vpix.AsUInt64()).AsInt16();
-				byte* pp = (byte*)ppal, ppe = pp + maxidx * sizeof(uint);
+				byte* pp = (byte*)ppal, ppe = (byte*)(ppal + maxidx);
 
 				do
 				{
@@ -576,29 +585,31 @@ namespace PhotoSauce.MagicScaler.Transforms
 					wdip = Avx2.Add(wdip, Avx2.Shuffle(wdip, HWIntrinsics.ShuffleMaskOddToEven));
 
 					var wmsk = Avx2.CompareGreaterThan(wdst, wdip);
-					widx = Avx2.BlendVariable(widx.AsByte(), wcnt.AsByte(), wmsk.AsByte()).AsUInt32();
-					wdst = Avx2.BlendVariable(wdst.AsByte(), wdip.AsByte(), wmsk.AsByte()).AsInt32();
+					widx = Avx2.BlendVariable(widx, wcnt, wmsk.AsUInt32());
+					wdst = Avx2.BlendVariable(wdst, wdip, wmsk);
 
 					wcnt = Avx2.Add(wcnt, winc);
 				}
-				while (pp < ppe);
+				while (pp <= ppe);
+
+				wdst = Avx2.BlendVariable(wdst, wdsm, Avx2.CompareGreaterThan(widx.AsInt32(), widm.AsInt32()));
 
 				var vmsk = Sse2.CompareGreaterThan(wdst.GetLower(), wdst.GetUpper());
-				vidx = Sse41.BlendVariable(widx.GetLower().AsByte(), widx.GetUpper().AsByte(), vmsk.AsByte()).AsUInt32();
-				vdst = Sse41.BlendVariable(wdst.GetLower().AsByte(), wdst.GetUpper().AsByte(), vmsk.AsByte()).AsInt32();
+				vidx = Sse41.BlendVariable(widx.GetLower(), widx.GetUpper(), vmsk.AsUInt32());
+				vdst = Sse41.BlendVariable(wdst.GetLower(), wdst.GetUpper(), vmsk);
 			}
 			else
 			{
-				var vmul = Vector128.Create(0x0001_0000_fffful).AsInt16();
-				var vadd = Vector128.Create(0x0040_0080_0060ul).AsInt16();
+				var vmul = HWIntrinsics.CreateVector128(0x0001_0000_fffful).AsInt16();
+				var vadd = HWIntrinsics.CreateVector128(0x0040_0080_0060ul).AsInt16();
 
-				var vinc = Vector128.Create((ulong)Vector128<ulong>.Count).AsUInt32();
-				var vcnt = Vector128.Create(0ul, 1ul).AsUInt32();
-				vidx = Vector128.Create((ulong)(maxidx - 1)).AsUInt32();
-				vdst = Vector128.Create((ulong)int.MaxValue).AsInt32();
+				vidx = HWIntrinsics.CreateVector128((ulong)maxidx).AsUInt32();
+				vdst = HWIntrinsics.CreateVector128((ulong)int.MaxValue).AsInt32();
+				var vinc = HWIntrinsics.CreateVector128((ulong)Vector128<ulong>.Count).AsUInt32();
+				var vcnt = Sse2.LoadVector128(HWIntrinsics.IndicesUInt64.GetAddressOf()).AsUInt32();
 
 				var vppix = Sse2.UnpackLow(vpix.AsUInt64(), vpix.AsUInt64()).AsInt16();
-				byte* pp = (byte*)ppal, ppe = pp + maxidx * sizeof(uint);
+				byte* pp = (byte*)ppal, ppe = (byte*)(ppal + maxidx);
 
 				do
 				{
@@ -613,15 +624,16 @@ namespace PhotoSauce.MagicScaler.Transforms
 					vdip = Sse2.Add(vdip, Sse2.Shuffle(vdip, HWIntrinsics.ShuffleMaskOddToEven));
 
 					var vmsk = Sse2.CompareGreaterThan(vdst, vdip);
-					vidx = Sse41.BlendVariable(vidx.AsByte(), vcnt.AsByte(), vmsk.AsByte()).AsUInt32();
-					vdst = Sse41.BlendVariable(vdst.AsByte(), vdip.AsByte(), vmsk.AsByte()).AsInt32();
+					vidx = Sse41.BlendVariable(vidx, vcnt, vmsk.AsUInt32());
+					vdst = Sse41.BlendVariable(vdst, vdip, vmsk);
 
 					vcnt = Sse2.Add(vcnt, vinc);
 				}
-				while (pp < ppe);
+				while (pp <= ppe);
 			}
 
-			return Sse41.Extract(vdst, 2) < Sse2.ConvertToInt32(vdst) ? Sse41.Extract(vidx, 2) : Sse2.ConvertToUInt32(vidx);
+			var vmsr = Sse2.CompareGreaterThan(vdst, Sse2.UnpackHigh(vdst.AsUInt64(), vdst.AsUInt64()).AsInt32()).AsUInt32();
+			return Sse2.ConvertToUInt32(Sse41.BlendVariable(vidx, Sse2.UnpackHigh(vidx.AsUInt64(), vidx.AsUInt64()).AsUInt32(), vmsr));
 		}
 #endif
 
@@ -630,13 +642,12 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			int dist = int.MaxValue;
 			nuint pidx = maxidx;
-			nuint plen = pidx;
 
 			int cb = (byte)(color      );
 			int cg = (byte)(color >>  8);
 			int cr = (byte)(color >> 16);
 
-			for (nuint i = 0; i < plen; i++)
+			for (nuint i = 0; i <= maxidx; i++)
 			{
 				byte* pc = (byte*)(ppal + i);
 				int db = pc[0] - cb;
@@ -694,7 +705,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				nuint* children = (nuint*)node;
 				if (children[0] != 0) return true;
 				if (children[1] != 0) return true;
-				if (sizeof(nuint) == sizeof(ulong))
+				if (sizeof(nuint) == sizeof(uint))
 				{
 					if (children[2] != 0) return true;
 					if (children[3] != 0) return true;

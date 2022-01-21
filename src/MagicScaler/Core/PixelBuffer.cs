@@ -31,7 +31,7 @@ namespace PhotoSauce.MagicScaler
 				if (typeof(T) == typeof(BufferType.Windowed))
 				{
 					var wval = (BufferType.Windowed)(object)tval;
-					return wval.window;
+					return wval.Window;
 				}
 
 				return 0;
@@ -155,6 +155,10 @@ namespace PhotoSauce.MagicScaler
 				int offset = first - start;
 				return new Span<byte>(buffArray, buffOffset + offset * Stride, lines * Stride);
 			}
+			if (typeof(T) == typeof(BufferType.Sliding))
+			{
+				return PrepareLoad(ref first, ref lines);
+			}
 
 			throw new NotSupportedException();
 		}
@@ -190,6 +194,6 @@ namespace PhotoSauce.MagicScaler
 	{
 		public readonly struct Caching : BufferType { }
 		public readonly struct Sliding : BufferType { }
-		public readonly struct Windowed : BufferType { public readonly int window; public Windowed(int w) => window = w; }
+		public readonly struct Windowed : BufferType { public readonly int Window; public Windowed(int w) => Window = w; }
 	}
 }

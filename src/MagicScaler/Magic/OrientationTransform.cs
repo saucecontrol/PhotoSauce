@@ -445,7 +445,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 					if (Ssse3.IsSupported && cb >= Vector128<byte>.Count)
 					{
-						var mask = (ReadOnlySpan<byte>)(new byte[] { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 });
+						var mask = (ReadOnlySpan<byte>)(new byte[] { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 });
 						var vshuf = Sse2.LoadVector128(mask.GetAddressOf());
 
 						pe -= Vector128<byte>.Count;
@@ -565,7 +565,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 	}
 
 	/// <summary>Transforms an image by changing its column/row order according to an <see cref="Orientation" /> value.</summary>
-	public sealed class OrientationTransform : PixelTransformInternalBase, IPixelTransformInternal
+	public sealed class OrientationTransform : PixelTransformInternalBase
 	{
 		private readonly Orientation orientation;
 
@@ -573,7 +573,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		/// <param name="orientation">The <see cref="Orientation" /> correction to apply to the image.</param>
 		public OrientationTransform(Orientation orientation) => this.orientation = orientation;
 
-		void IPixelTransformInternal.Init(PipelineContext ctx)
+		internal override void Init(PipelineContext ctx)
 		{
 			MagicTransforms.AddFlipRotator(ctx, orientation);
 

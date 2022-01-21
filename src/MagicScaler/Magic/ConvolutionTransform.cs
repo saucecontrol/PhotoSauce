@@ -1,7 +1,6 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
-using System.Diagnostics;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
@@ -21,7 +20,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		IConvolver IntrinsicImpl { get; }
 	}
 
-	internal class ConvolutionTransform<TPixel, TWeight> : ChainedPixelSource where TPixel : unmanaged where TWeight : unmanaged
+	internal class ConvolutionTransform<TPixel, TWeight, TConv> : ChainedPixelSource where TPixel : unmanaged where TWeight : unmanaged where TConv : struct, ConvolutionType
 	{
 		protected static readonly Dictionary<PixelFormat, IConvolver> ProcessorMap = new() {
 			[PixelFormat.Cmyk32             ] = Convolver4ChanByte.Instance,
@@ -53,41 +52,19 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		protected readonly IConvolver XProcessor, YProcessor;
 		protected readonly PixelBuffer<BufferType.Windowed> IntBuff;
-		protected readonly PixelBuffer<BufferType.Sliding>? SrcBuff, WorkBuff;
 
 		protected KernelMap<TWeight> XMap, YMap;
-
-		private readonly bool bufferSource;
-
-		private RentedBuffer<byte> lineBuff;
+		protected TConv ConvBuff;
 
 		public override PixelFormat Format { get; }
 		public override int Width { get; }
 		public override int Height { get; }
 
-		public static ConvolutionTransform<TPixel, TWeight> CreateResize(PixelSource src, int width, int height, InterpolationSettings interpolatorx, InterpolationSettings interpolatory, bool offsetX, bool offsetY)
-		{
-			var fmt = src.Format;
-			var mx = KernelMap<TWeight>.CreateResample(src.Width, width, interpolatorx, fmt.ChannelCount, offsetX);
-			var my = KernelMap<TWeight>.CreateResample(src.Height, height, interpolatory, fmt.ChannelCount == 3 ? 4 : fmt.ChannelCount, offsetY);
-
-			return new ConvolutionTransform<TPixel, TWeight>(src, mx, my);
-		}
-
-		public static ConvolutionTransform<TPixel, TWeight> CreateBlur(PixelSource src, double radius)
-		{
-			var fmt = src.Format;
-			var mx = KernelMap<TWeight>.CreateBlur(src.Width, radius, fmt.ChannelCount);
-			var my = KernelMap<TWeight>.CreateBlur(src.Height, radius, fmt.ChannelCount == 3 ? 4 : fmt.ChannelCount);
-
-			return new ConvolutionTransform<TPixel, TWeight>(src, mx, my);
-		}
-
-		protected ConvolutionTransform(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, bool lumaMode = false) : base(source)
+		protected ConvolutionTransform(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy) : base(source)
 		{
 			var infmt = source.Format;
 			var workfmt = infmt;
-			if (lumaMode)
+			if (typeof(TConv) == typeof(ConvolutionType.Buffered))
 			{
 				if (infmt.ColorRepresentation != PixelColorRepresentation.Grey && infmt.ColorRepresentation != PixelColorRepresentation.Bgr)
 					throw new NotSupportedException("Unsupported pixel format: " + infmt.Name);
@@ -127,25 +104,30 @@ namespace PhotoSauce.MagicScaler.Transforms
 			int bpp = workfmt.BytesPerPixel / Unsafe.SizeOf<TPixel>() * Unsafe.SizeOf<TWeight>();
 			IntBuff = new PixelBuffer<BufferType.Windowed>(mapy.Samples, bpp, new(mapy.Samples * mapx.Pixels * bpp));
 
-			if (bufferSource = lumaMode)
+			if (typeof(TConv) == typeof(ConvolutionType.Buffered))
 			{
-				SrcBuff = new PixelBuffer<BufferType.Sliding>(mapy.Samples, BufferStride);
+				var srcBuff = new PixelBuffer<BufferType.Sliding>(mapy.Samples, BufferStride);
+				var wrkBuff = default(PixelBuffer<BufferType.Sliding>);
+				var converter = default(IConversionProcessor);
 
-				if (workfmt.IsBinaryCompatibleWith(infmt))
-					WorkBuff = SrcBuff;
-				else
-					WorkBuff = new PixelBuffer<BufferType.Sliding>(mapy.Samples, MathUtil.PowerOfTwoCeiling(source.Width * workfmt.BytesPerPixel, IntPtr.Size));
+				if (!workfmt.IsBinaryCompatibleWith(infmt))
+				{
+					wrkBuff = new PixelBuffer<BufferType.Sliding>(mapy.Samples, MathUtil.PowerOfTwoCeiling(source.Width * workfmt.BytesPerPixel, IntPtr.Size));
+					converter = GreyConverter.GetProcessor(infmt);
+				}
+
+				ConvBuff = (TConv)(object)(new ConvolutionType.Buffered(srcBuff, wrkBuff, converter));
 			}
 			else
 			{
-				lineBuff = BufferPool.RentAligned<byte>(BufferStride);
+				ConvBuff = (TConv)(object)(new ConvolutionType.Direct(BufferPool.RentAligned<byte>(BufferStride)));
 			}
 		}
 
 		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
 			if (XMap is null)
-				throw new ObjectDisposedException(nameof(ConvolutionTransform<TPixel, TWeight>));
+				throw new ObjectDisposedException(nameof(ConvolutionTransform<TPixel, TWeight, TConv>));
 
 			fixed (byte* mapystart = YMap.Map)
 			{
@@ -170,24 +152,38 @@ namespace PhotoSauce.MagicScaler.Transforms
 		protected override void Reset()
 		{
 			IntBuff.Reset();
-			SrcBuff?.Reset();
-			WorkBuff?.Reset();
+
+			if (typeof(TConv) == typeof(ConvolutionType.Buffered))
+			{
+				var cbuf = (ConvolutionType.Buffered)(object)ConvBuff;
+				cbuf.SrcBuff.Reset();
+				cbuf.WorkBuff?.Reset();
+			}
 		}
 
 		private unsafe void loadBuffer(int first, int lines)
 		{
-			Debug.Assert((!bufferSource && lineBuff.Length != 0) || (WorkBuff is not null && SrcBuff is not null));
-
 			fixed (byte* mapxstart = XMap.Map)
 			{
 				int fli = first, cli = lines;
 				var ispan = IntBuff.PrepareLoad(ref fli, ref cli);
 
-				int flb = first, clb = lines;
-				var bspan = bufferSource ? SrcBuff!.PrepareLoad(ref flb, ref clb) : lineBuff.Span;
-
-				int flw = first, clw = lines;
-				var wspan = bufferSource && WorkBuff != SrcBuff ? WorkBuff!.PrepareLoad(ref flw, ref clw) : bspan;
+				Span<byte> bspan, wspan;
+				if (typeof(TConv) == typeof(ConvolutionType.Buffered))
+				{
+					var cbuf = (ConvolutionType.Buffered)(object)ConvBuff;
+					bspan = cbuf.SrcBuff!.PrepareLoad(first, lines);
+					if (cbuf.WorkBuff is not null)
+						wspan = cbuf.WorkBuff.PrepareLoad(first, lines);
+					else
+						wspan = bspan;
+				}
+				else
+				{
+					var cbuf = (ConvolutionType.Direct)(object)ConvBuff;
+					bspan = cbuf.LineBuff.Span;
+					wspan = bspan;
+				}
 
 				fixed (byte* bline = bspan, wline = wspan, tline = ispan)
 				{
@@ -198,17 +194,21 @@ namespace PhotoSauce.MagicScaler.Transforms
 						PrevSource.CopyPixels(new PixelArea(0, fli + ly, PrevSource.Width, 1), bspan.Length, bspan.Length, bp);
 						Profiler.ResumeTiming();
 
-						if (bp != wp)
-							GreyConverter.ConvertLine(Format, bp, wp, SrcBuff!.Stride);
+						if (typeof(TConv) == typeof(ConvolutionType.Buffered) && bp != wp)
+						{
+							var cbuf = (ConvolutionType.Buffered)(object)ConvBuff;
+							cbuf.Converter!.ConvertLine(bp, wp, cbuf.SrcBuff.Stride);
+						}
 
 						XProcessor.ConvolveSourceLine(wp, tp, ispan.Length - ly * IntBuff.Stride, mapxstart, XMap.Samples, lines);
 
 						tp += IntBuff.Stride;
 
-						if (bufferSource)
+						if (typeof(TConv) == typeof(ConvolutionType.Buffered))
 						{
-							wp += WorkBuff!.Stride;
-							bp += SrcBuff!.Stride;
+							var cbuf = (ConvolutionType.Buffered)(object)ConvBuff;
+							wp += (cbuf.WorkBuff ?? cbuf.SrcBuff).Stride;
+							bp += cbuf.SrcBuff.Stride;
 						}
 					}
 				}
@@ -234,11 +234,19 @@ namespace PhotoSauce.MagicScaler.Transforms
 				YMap = null!;
 
 				IntBuff.Dispose();
-				SrcBuff?.Dispose();
-				WorkBuff?.Dispose();
 
-				lineBuff.Dispose();
-				lineBuff = default;
+				if (typeof(TConv) == typeof(ConvolutionType.Buffered))
+				{
+					var cbuf = (ConvolutionType.Buffered)(object)ConvBuff;
+					cbuf.SrcBuff.Dispose();
+					cbuf.WorkBuff?.Dispose();
+				}
+				else
+				{
+					var cbuf = (ConvolutionType.Direct)(object)ConvBuff;
+					cbuf.LineBuff.Dispose();
+					ConvBuff = default;
+				}
 			}
 
 			base.Dispose(disposing);
@@ -247,25 +255,20 @@ namespace PhotoSauce.MagicScaler.Transforms
 		public override string? ToString() => $"{XProcessor}: {Format.Name}";
 	}
 
-	internal sealed class UnsharpMaskTransform<TPixel, TWeight> : ConvolutionTransform<TPixel, TWeight> where TPixel : unmanaged where TWeight : unmanaged
+	internal sealed class DirectConvolutionTransform<TPixel, TWeight> : ConvolutionTransform<TPixel, TWeight, ConvolutionType.Direct> where TPixel : unmanaged where TWeight : unmanaged
+	{
+		public DirectConvolutionTransform(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy) : base(source, mapx, mapy) { }
+	}
+
+	internal sealed class UnsharpMaskTransform<TPixel, TWeight> : ConvolutionTransform<TPixel, TWeight, ConvolutionType.Buffered> where TPixel : unmanaged where TWeight : unmanaged
 	{
 		private readonly IConvolver processor;
 		private readonly float amount, threshold;
 
 		private RentedBuffer<byte> blurBuff;
 
-		public static UnsharpMaskTransform<TPixel, TWeight> CreateSharpen(PixelSource src, UnsharpMaskSettings sharp)
+		public UnsharpMaskTransform(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, UnsharpMaskSettings ss) : base(source, mapx, mapy)
 		{
-			var mx = KernelMap<TWeight>.CreateBlur(src.Width, sharp.Radius, 1);
-			var my = KernelMap<TWeight>.CreateBlur(src.Height, sharp.Radius, 1);
-
-			return new UnsharpMaskTransform<TPixel, TWeight>(src, mx, my, sharp);
-		}
-
-		private UnsharpMaskTransform(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy, UnsharpMaskSettings ss) : base(source, mapx, mapy, true)
-		{
-			Debug.Assert(SrcBuff is not null && WorkBuff is not null);
-
 			processor = ProcessorMap[Format];
 			if (HWIntrinsics.IsSupported && processor is IVectorConvolver vc)
 				processor = vc.IntrinsicImpl;
@@ -273,13 +276,13 @@ namespace PhotoSauce.MagicScaler.Transforms
 			amount = ss.Amount * 0.01f;
 			threshold = (float)ss.Threshold / byte.MaxValue;
 
-			blurBuff = BufferPool.RentAligned<byte>(WorkBuff.Stride);
+			blurBuff = BufferPool.RentAligned<byte>(ConvBuff.WorkBuff?.Stride ?? ConvBuff.SrcBuff.Stride);
 		}
 
 		protected override unsafe void ConvolveLine(byte* ostart, byte* pmapy, int smapy, int iy, int oy, int ox, int ow)
 		{
-			var bspan = SrcBuff!.PrepareRead(oy, 1);
-			var wspan = WorkBuff != SrcBuff ? WorkBuff!.PrepareRead(oy, 1) : bspan;
+			var bspan = ConvBuff.SrcBuff.PrepareRead(oy, 1);
+			var wspan = ConvBuff.WorkBuff is not null ? ConvBuff.WorkBuff.PrepareRead(oy, 1) : bspan;
 			var tspan = IntBuff.PrepareRead(iy, smapy);
 
 			fixed (byte* bstart = bspan, wstart = wspan, tstart = tspan, blurstart = blurBuff)
@@ -301,5 +304,75 @@ namespace PhotoSauce.MagicScaler.Transforms
 		}
 
 		public override string ToString() => $"{processor}: Sharpen";
+	}
+
+	internal static class ConvolutionTransform
+	{
+		private static PixelSource createResample<TPixel, TWeight>(PixelSource src, int width, int height, InterpolationSettings interpolatorx, InterpolationSettings interpolatory, bool offsetX, bool offsetY) where TPixel : unmanaged where TWeight : unmanaged
+		{
+			var fmt = src.Format;
+			var mx = KernelMap<TWeight>.CreateResample(src.Width, width, interpolatorx, fmt.ChannelCount, offsetX);
+			var my = KernelMap<TWeight>.CreateResample(src.Height, height, interpolatory, fmt.ChannelCount == 3 ? 4 : fmt.ChannelCount, offsetY);
+
+			return new DirectConvolutionTransform<TPixel, TWeight>(src, mx, my);
+		}
+
+		private static PixelSource createBlur<TPixel, TWeight>(PixelSource src, double radius) where TPixel : unmanaged where TWeight : unmanaged
+		{
+			var fmt = src.Format;
+			var mx = KernelMap<TWeight>.CreateBlur(src.Width, radius, fmt.ChannelCount);
+			var my = KernelMap<TWeight>.CreateBlur(src.Height, radius, fmt.ChannelCount == 3 ? 4 : fmt.ChannelCount);
+
+			return new DirectConvolutionTransform<TPixel, TWeight>(src, mx, my);
+		}
+
+		private static PixelSource createSharpen<TPixel, TWeight>(PixelSource src, UnsharpMaskSettings sharp) where TPixel : unmanaged where TWeight : unmanaged
+		{
+			var mx = KernelMap<TWeight>.CreateBlur(src.Width, sharp.Radius, 1);
+			var my = KernelMap<TWeight>.CreateBlur(src.Height, sharp.Radius, 1);
+
+			return new UnsharpMaskTransform<TPixel, TWeight>(src, mx, my, sharp);
+		}
+
+		public static PixelSource CreateResample(PixelSource src, int width, int height, InterpolationSettings interpolatorx, InterpolationSettings interpolatory, bool offsetX = false, bool offsetY = false) =>
+			src.Format.NumericRepresentation switch {
+				PixelNumericRepresentation.Float =>	createResample<float, float>(src, width, height, interpolatorx, interpolatory, offsetX, offsetY),
+				PixelNumericRepresentation.Fixed =>	createResample<ushort, int>(src, width, height, interpolatorx, interpolatory, offsetX, offsetY),
+				_                                => createResample<byte, int>(src, width, height, interpolatorx, interpolatory, offsetX, offsetY)
+			};
+
+		public static PixelSource CreateBlur(PixelSource src, double radius) =>
+			src.Format.NumericRepresentation switch {
+				PixelNumericRepresentation.Float => createBlur<float, float>(src, radius),
+				PixelNumericRepresentation.Fixed => createBlur<ushort, int>(src, radius),
+				_                                => createBlur<byte, int>(src, radius)
+			};
+
+		public static PixelSource CreateSharpen(PixelSource src, UnsharpMaskSettings ss) =>
+			src.Format.NumericRepresentation switch {
+				PixelNumericRepresentation.Float => createSharpen<float, float>(src, ss),
+				PixelNumericRepresentation.Fixed => createSharpen<ushort, int>(src, ss),
+				_                                => createSharpen<byte, int>(src, ss)
+			};
+	}
+
+	internal interface ConvolutionType
+	{
+		public struct Direct : ConvolutionType
+		{
+			public RentedBuffer<byte> LineBuff;
+
+			public Direct(RentedBuffer<byte> buff) => LineBuff = buff;
+		}
+
+		public readonly struct Buffered : ConvolutionType
+		{
+			public readonly PixelBuffer<BufferType.Sliding> SrcBuff;
+			public readonly PixelBuffer<BufferType.Sliding>? WorkBuff;
+			public readonly IConversionProcessor? Converter;
+
+			public Buffered(PixelBuffer<BufferType.Sliding> src, PixelBuffer<BufferType.Sliding>? work, IConversionProcessor? conv) =>
+				(SrcBuff, WorkBuff, Converter) = (src, work, conv);
+		}
 	}
 }

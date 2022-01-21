@@ -11,9 +11,8 @@ namespace PhotoSauce.MagicScaler
 {
 	internal static unsafe class UnsafeUtil
 	{
-#pragma warning disable CS0649 // fields are never initialized
+		[StructLayout(LayoutKind.Sequential)]
 		private sealed class RawArrayData { public nuint LengthPadded; public byte Data; }
-#pragma warning restore CS0649
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ref T GetDataRef<T>(this T[] array) =>

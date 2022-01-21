@@ -152,7 +152,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			if (ctx.Source is PlanarPixelSource plsrc)
 			{
 				if (plsrc.SourceY.Width != width || plsrc.SourceY.Height != height)
-					plsrc.SourceY = ctx.AddProfiler(makeFilter(plsrc.SourceY, width, height, interpolatorx, interpolatory));
+					plsrc.SourceY = ctx.AddProfiler(ConvolutionTransform.CreateResample(plsrc.SourceY, width, height, interpolatorx, interpolatory));
 
 				if (swap ? subsample.IsSubsampledY() : subsample.IsSubsampledX())
 					width = MathUtil.DivCeiling(width, 2);
@@ -172,25 +172,14 @@ namespace PhotoSauce.MagicScaler.Transforms
 					offsetY = frame.ChromaPosition.HasFlag(ChromaPosition.CositedVertical) && plsrc.ChromaSubsampling.IsSubsampledY();
 				}
 
-				plsrc.SourceCb = ctx.AddProfiler(makeFilter(plsrc.SourceCb, width, height, interpolatorx, interpolatory, offsetX, offsetY));
-				plsrc.SourceCr = ctx.AddProfiler(makeFilter(plsrc.SourceCr, width, height, interpolatorx, interpolatory, offsetX, offsetY));
+				plsrc.SourceCb = ctx.AddProfiler(ConvolutionTransform.CreateResample(plsrc.SourceCb, width, height, interpolatorx, interpolatory, offsetX, offsetY));
+				plsrc.SourceCr = ctx.AddProfiler(ConvolutionTransform.CreateResample(plsrc.SourceCr, width, height, interpolatorx, interpolatory, offsetX, offsetY));
 				plsrc.ChromaSubsampling = subsample;
 
 				return;
 			}
 
-			ctx.Source = ctx.AddProfiler(makeFilter(ctx.Source, width, height, interpolatorx, interpolatory));
-
-			static PixelSource makeFilter(PixelSource src, int width, int height, InterpolationSettings interpolatorx, InterpolationSettings interpolatory, bool offsetX = false, bool offsetY = false)
-			{
-				var fmt = src.Format;
-				if (fmt.NumericRepresentation == PixelNumericRepresentation.Float)
-					return ConvolutionTransform<float, float>.CreateResize(src, width, height, interpolatorx, interpolatory, offsetX, offsetY);
-				else if (fmt.NumericRepresentation == PixelNumericRepresentation.Fixed)
-					return ConvolutionTransform<ushort, int>.CreateResize(src, width, height, interpolatorx, interpolatory, offsetX, offsetY);
-				else
-					return ConvolutionTransform<byte, int>.CreateResize(src, width, height, interpolatorx, interpolatory, offsetX, offsetY);
-			}
+			ctx.Source = ctx.AddProfiler(ConvolutionTransform.CreateResample(ctx.Source, width, height, interpolatorx, interpolatory));
 		}
 
 		public static void AddHybridScaler(PipelineContext ctx)
@@ -228,20 +217,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 				return;
 
 			if (ctx.Source is PlanarPixelSource plsrc)
-				plsrc.SourceY = ctx.AddProfiler(makeFilter(plsrc.SourceY, ss));
+				plsrc.SourceY = ctx.AddProfiler(ConvolutionTransform.CreateSharpen(plsrc.SourceY, ss));
 			else
-				ctx.Source = ctx.AddProfiler(makeFilter(ctx.Source, ss));
-
-			static PixelSource makeFilter(PixelSource src, UnsharpMaskSettings ss)
-			{
-				var fmt = src.Format;
-				if (fmt.NumericRepresentation == PixelNumericRepresentation.Float)
-					return UnsharpMaskTransform<float, float>.CreateSharpen(src, ss);
-				else if (fmt.NumericRepresentation == PixelNumericRepresentation.Fixed)
-					return UnsharpMaskTransform<ushort, int>.CreateSharpen(src, ss);
-				else
-					return UnsharpMaskTransform<byte, int>.CreateSharpen(src, ss);
-			}
+				ctx.Source = ctx.AddProfiler(ConvolutionTransform.CreateSharpen(ctx.Source, ss));
 		}
 
 		public static void AddMatte(PipelineContext ctx)

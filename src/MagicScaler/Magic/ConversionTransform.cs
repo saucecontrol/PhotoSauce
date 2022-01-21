@@ -36,41 +36,41 @@ namespace PhotoSauce.MagicScaler.Transforms
 			{
 				if (Format.NumericRepresentation == PixelNumericRepresentation.Fixed)
 					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
-						processor = srcProfile.GetConverter<byte, ushort>(ConverterDirection.ToLinear).Processor3A;
+						processor = srcProfile.GetConverter<byte, ushort, EncodingType.Companded>().Processor3A;
 					else
-						processor = srcProfile.GetConverter<byte, ushort>(ConverterDirection.ToLinear, videoLevels).Processor;
+						processor = srcProfile.GetConverter<byte, ushort, EncodingType.Companded>(videoLevels).Processor;
 				else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger && Format.NumericRepresentation == PixelNumericRepresentation.Float)
 					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
-						processor = srcProfile.GetConverter<byte, float>(ConverterDirection.ToLinear).Processor3A;
+						processor = srcProfile.GetConverter<byte, float, EncodingType.Companded>().Processor3A;
 					else if (srcFormat.ChannelCount == 3 && Format.ChannelCount == 4)
-						processor = srcProfile.GetConverter<byte, float>(ConverterDirection.ToLinear).Processor3X;
+						processor = srcProfile.GetConverter<byte, float, EncodingType.Companded>().Processor3X;
 					else
-						processor = srcProfile.GetConverter<byte, float>(ConverterDirection.ToLinear, videoLevels).Processor;
+						processor = srcProfile.GetConverter<byte, float, EncodingType.Companded>(videoLevels).Processor;
 				else if (Format.NumericRepresentation == PixelNumericRepresentation.Float)
 					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
-						processor = srcProfile.GetConverter<float, float>(ConverterDirection.ToLinear).Processor3A;
+						processor = srcProfile.GetConverter<float, float, EncodingType.Companded>().Processor3A;
 					else
-						processor = srcProfile.GetConverter<float, float>(ConverterDirection.ToLinear).Processor;
+						processor = srcProfile.GetConverter<float, float, EncodingType.Companded>().Processor;
 			}
 			else if (srcFormat.Encoding == PixelValueEncoding.Linear && Format.Encoding == PixelValueEncoding.Companded)
 			{
 				if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Fixed)
 					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
-						processor = dstProfile.GetConverter<ushort, byte>(ConverterDirection.FromLinear).Processor3A;
+						processor = dstProfile.GetConverter<ushort, byte, EncodingType.Linear>().Processor3A;
 					else
-						processor = dstProfile.GetConverter<ushort, byte>(ConverterDirection.FromLinear).Processor;
+						processor = dstProfile.GetConverter<ushort, byte, EncodingType.Linear>().Processor;
 				else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Float && Format.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger)
 					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
-						processor = dstProfile.GetConverter<float, byte>(ConverterDirection.FromLinear).Processor3A;
+						processor = dstProfile.GetConverter<float, byte, EncodingType.Linear>().Processor3A;
 					else if (srcFormat.ChannelCount == 4 && Format.ChannelCount == 3)
-						processor = dstProfile.GetConverter<float, byte>(ConverterDirection.FromLinear).Processor3X;
+						processor = dstProfile.GetConverter<float, byte, EncodingType.Linear>().Processor3X;
 					else
-						processor = dstProfile.GetConverter<float, byte>(ConverterDirection.FromLinear).Processor;
+						processor = dstProfile.GetConverter<float, byte, EncodingType.Linear>().Processor;
 				else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Float)
 					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
-						processor = dstProfile.GetConverter<float, float>(ConverterDirection.FromLinear).Processor3A;
+						processor = dstProfile.GetConverter<float, float, EncodingType.Linear>().Processor3A;
 					else
-						processor = dstProfile.GetConverter<float, float>(ConverterDirection.FromLinear).Processor;
+						processor = dstProfile.GetConverter<float, float, EncodingType.Linear>().Processor;
 			}
 			else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger && Format.NumericRepresentation == PixelNumericRepresentation.Float)
 			{
@@ -118,12 +118,12 @@ namespace PhotoSauce.MagicScaler.Transforms
 		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
 			if (PrevSource.Format.BitsPerPixel != Format.BitsPerPixel)
-				copyPixelsBuffered(prc, cbStride, cbBufferSize, pbBuffer);
+				copyPixelsBuffered(prc, cbStride, pbBuffer);
 			else
-				copyPixelsDirect(prc, cbStride, cbBufferSize, pbBuffer);
+				copyPixelsDirect(prc, cbStride, pbBuffer);
 		}
 
-		private unsafe void copyPixelsBuffered(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
+		private unsafe void copyPixelsBuffered(in PixelArea prc, int cbStride, byte* pbBuffer)
 		{
 			var buffspan = lineBuff.Span;
 			if (buffspan.Length == 0) throw new ObjectDisposedException(nameof(ConversionTransform));
@@ -144,7 +144,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
-		private unsafe void copyPixelsDirect(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
+		private unsafe void copyPixelsDirect(in PixelArea prc, int cbStride, byte* pbBuffer)
 		{
 			int cb = MathUtil.DivCeiling(prc.Width * PrevSource.Format.BitsPerPixel, 8);
 
@@ -175,7 +175,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 	}
 
 	/// <summary>Converts an image to an alternate pixel format.</summary>
-	public sealed class FormatConversionTransform : PixelTransformInternalBase, IPixelTransformInternal
+	public sealed class FormatConversionTransform : PixelTransformInternalBase
 	{
 		private readonly Guid outFormat;
 
@@ -189,7 +189,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			this.outFormat = outFormat;
 		}
 
-		void IPixelTransformInternal.Init(PipelineContext ctx)
+		internal override void Init(PipelineContext ctx)
 		{
 			MagicTransforms.AddExternalFormatConverter(ctx);
 
