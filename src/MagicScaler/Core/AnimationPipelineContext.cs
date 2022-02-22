@@ -14,7 +14,6 @@ namespace PhotoSauce.MagicScaler
 	{
 		public FrameBufferSource? FrameBufferSource;
 		public FrameDisposalMethod LastDisposal = FrameDisposalMethod.RestoreBackground;
-		public int LastFrame = -1;
 
 		public unsafe void UpdateFrameBuffer(IImageFrame frame, in AnimationContainer anicnt, in AnimationFrame anifrm)
 		{

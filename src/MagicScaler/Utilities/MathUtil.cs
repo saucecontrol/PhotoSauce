@@ -253,7 +253,8 @@ namespace PhotoSauce.MagicScaler
 			return x;
 		}
 
-		// Implementation taken from https://source.dot.net/#System.Private.CoreLib/Matrix4x4.cs,1509
+		// Implementation taken from
+		//   https://github.com/dotnet/runtime/blob/release/6.0/src/libraries/System.Private.CoreLib/src/System/Numerics/Matrix4x4.cs#L1556
 		// Because of the number of calculations and rounding steps, using float intermediates results in loss of precision.
 		// This is the same logic but with double precision intermediate calculations.
 		public static Matrix4x4 InvertPrecise(this Matrix4x4 matrix)

@@ -4,6 +4,7 @@ using System;
 using System.Drawing;
 using System.Diagnostics;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace PhotoSauce.MagicScaler.Transforms
 {
@@ -404,27 +405,40 @@ namespace PhotoSauce.MagicScaler.Transforms
 		public static unsafe void AddIndexedColorConverter(PipelineContext ctx)
 		{
 			var curFormat = ctx.Source.Format;
-			if (ctx.Settings.IndexedColor && curFormat.NumericRepresentation != PixelNumericRepresentation.Indexed && curFormat.ColorRepresentation != PixelColorRepresentation.Grey)
-			{
-				if (curFormat != PixelFormat.Bgra32)
-					ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, null, null, PixelFormat.Bgra32));
+			var indexedOptions = ctx.Settings.EncoderOptions as IIndexedEncoderOptions;
+			bool autoPalette256 = indexedOptions?.MaxPaletteSize >= 256 && indexedOptions.PredefinedPalette is null;
 
-				var buffC = new FrameBufferSource(ctx.Source.Width, ctx.Source.Height, ctx.Source.Format);
-				fixed (byte* pbuff = buffC.Span)
-					ctx.Source.CopyPixels(ctx.Source.Area, buffC.Stride, buffC.Span.Length, pbuff);
-
-				using var quant = ctx.AddProfiler(new OctreeQuantizer());
-				bool isExact = quant.CreatePalette(buffC.Span, buffC.Width, buffC.Height, buffC.Stride);
-
-				var iconv = new IndexedColorTransform(buffC);
-				iconv.SetPalette(quant.Palette, isExact);
-
-				ctx.Source.Dispose();
-				ctx.Source = ctx.AddProfiler(iconv);
-			}
-			else if ((ctx.Settings.IndexedColor || ctx.Settings.SaveFormat == FileFormat.Bmp) && curFormat.ColorRepresentation == PixelColorRepresentation.Grey)
+			if (curFormat.ColorRepresentation == PixelColorRepresentation.Grey && (ctx.Settings.SaveFormat == FileFormat.Bmp || autoPalette256))
 			{
 				ctx.Source = ctx.AddProfiler(new IndexedColorTransform(ctx.Source));
+			}
+			else if (indexedOptions is not null && curFormat.NumericRepresentation != PixelNumericRepresentation.Indexed)
+			{
+				if (curFormat != PixelFormat.Bgra32 && curFormat != PixelFormat.Bgrx32)
+					ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, null, null, curFormat.AlphaRepresentation != PixelAlphaRepresentation.None ? PixelFormat.Bgra32 : PixelFormat.Bgrx32));
+
+				var iconv = default(IndexedColorTransform);
+				if (indexedOptions.PredefinedPalette is not null)
+				{
+					iconv = new IndexedColorTransform(ctx.Source);
+					iconv.SetPalette(MemoryMarshal.Cast<int, uint>(indexedOptions.PredefinedPalette.AsSpan()), indexedOptions.Dither == DitherMode.None);
+				}
+				else
+				{
+					var buffC = new FrameBufferSource(ctx.Source.Width, ctx.Source.Height, ctx.Source.Format);
+					fixed (byte* pbuff = buffC.Span)
+						ctx.Source.CopyPixels(ctx.Source.Area, buffC.Stride, buffC.Span.Length, pbuff);
+
+					ctx.Source.Dispose();
+
+					using var quant = ctx.AddProfiler(new OctreeQuantizer());
+					bool isExact = quant.CreatePalette(indexedOptions.MaxPaletteSize, buffC.Span, buffC.Width, buffC.Height, buffC.Stride);
+
+					iconv = new IndexedColorTransform(buffC);
+					iconv.SetPalette(quant.Palette, isExact || indexedOptions.Dither == DitherMode.None);
+				}
+
+				ctx.Source = ctx.AddProfiler(iconv);
 			}
 		}
 
@@ -435,13 +449,15 @@ namespace PhotoSauce.MagicScaler.Transforms
 			if (!ctx.ImageContainer.IsAnimation && nometa)
 				return;
 
-			if (replay && ctx.Settings.FrameIndex > 0 && ctx.ImageContainer is WicGifContainer gif)
-				gif.ReplayGifAnimation(ctx, ctx.Settings.FrameIndex - 1);
+			if (replay && ctx.ImageContainer is WicGifContainer gif && gif.IsAnimation)
+			{
+				if (gif.FrameOffset != 0)
+					gif.ReplayGifAnimation(ctx, gif.FrameOffset);
+
+				replay = false;
+			}
 
 			var disposal = anifrm.Disposal;
-			if (disposal == FrameDisposalMethod.RestorePrevious && ctx.Settings.FrameIndex == 0)
-				disposal = FrameDisposalMethod.Preserve;
-
 			var ldisp = ctx.AnimationContext?.LastDisposal ?? FrameDisposalMethod.RestoreBackground;
 			var innerArea = new PixelArea(anifrm.OffsetLeft, anifrm.OffsetTop, ctx.Source.Width, ctx.Source.Height);
 
@@ -456,10 +472,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				if (anicnt.RequiresScreenBuffer && disposal == FrameDisposalMethod.Preserve)
 					anictx.UpdateFrameBuffer(ctx.ImageFrame, anicnt, anifrm);
 
-				anictx.LastDisposal = disposal;
-				anictx.LastFrame = ctx.Settings.FrameIndex;
-
-				ldisp = disposal;
+				ldisp = anictx.LastDisposal = disposal;
 			}
 
 			if (!anicnt.RequiresScreenBuffer)

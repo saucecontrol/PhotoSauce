@@ -287,7 +287,7 @@ namespace PhotoSauce.MagicScaler
 			codecs = cc;
 		}
 
-		internal static IImageContainer GetDecoderForStream(Stream stm) => getCodecs().GetDecoderForStream(stm);
+		internal static IImageContainer GetDecoderForStream(Stream stm, IDecoderOptions? opt = null) => getCodecs().GetDecoderForStream(stm, opt);
 
 		internal static bool TryGetEncoderForFileExtension(string extension, [NotNullWhen(true)] out IImageEncoderInfo? info) => getCodecs().TryGetEncoderForFileExtension(extension, out info);
 

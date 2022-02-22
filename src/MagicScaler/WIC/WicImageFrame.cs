@@ -84,28 +84,31 @@ namespace PhotoSauce.MagicScaler
 				SupportsNativeScale = tw < frameWidth || th < frameHeight;
 			}
 
-			using var ptransform = default(ComPtr<IWICPlanarBitmapSourceTransform>);
-			if (SUCCEEDED(source.Get()->QueryInterface(__uuidof<IWICPlanarBitmapSourceTransform>(), (void**)ptransform.GetAddressOf())))
+			if (MagicImageProcessor.EnablePlanarPipeline && (Container.Options is not IPlanarDecoderOptions opt || opt.AllowPlanar))
 			{
-				var fmts = WicTransforms.PlanarPixelFormats;
-				var desc = stackalloc WICBitmapPlaneDescription[fmts.Length];
-				fixed (Guid* pfmt = fmts)
+				using var ptransform = default(ComPtr<IWICPlanarBitmapSourceTransform>);
+				if (SUCCEEDED(source.Get()->QueryInterface(__uuidof<IWICPlanarBitmapSourceTransform>(), (void**)ptransform.GetAddressOf())))
 				{
-					uint tw = frameWidth, th = frameHeight, st = 0;
-					HRESULT.Check(ptransform.Get()->DoesSupportTransform(
-						&tw, &th,
-						WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault,
-						pfmt, desc, (uint)fmts.Length, (int*)&st
-					));
+					var fmts = WicTransforms.PlanarPixelFormats;
+					var desc = stackalloc WICBitmapPlaneDescription[fmts.Length];
+					fixed (Guid* pfmt = fmts)
+					{
+						uint tw = frameWidth, th = frameHeight, st = 0;
+						HRESULT.Check(ptransform.Get()->DoesSupportTransform(
+							&tw, &th,
+							WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault,
+							pfmt, desc, (uint)fmts.Length, (int*)&st
+						));
 
-					SupportsPlanarProcessing = st != 0;
+						SupportsPlanarProcessing = st != 0;
+					}
+
+					ChromaSubsampling =
+						desc[1].Width < desc[0].Width && desc[1].Height < desc[0].Height ? WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling420 :
+						desc[1].Width < desc[0].Width ? WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling422 :
+						desc[1].Height < desc[0].Height ? WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling440 :
+						WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling444;
 				}
-
-				ChromaSubsampling =
-					desc[1].Width < desc[0].Width && desc[1].Height < desc[0].Height ? WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling420 :
-					desc[1].Width < desc[0].Width ? WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling422 :
-					desc[1].Height < desc[0].Height ? WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling440 :
-					WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling444;
 			}
 
 			var guid = default(Guid);
@@ -113,7 +116,7 @@ namespace PhotoSauce.MagicScaler
 			if (PixelFormat.FromGuid(guid).NumericRepresentation == PixelNumericRepresentation.Indexed)
 			{
 				var newFormat = PixelFormat.Bgr24;
-				if (Container.ContainerFormat == FileFormat.Gif && Container.FrameCount > 1)
+				if (Container.ContainerFormat == FileFormat.Gif && Container.IsAnimation)
 				{
 					newFormat = PixelFormat.Bgra32;
 				}
@@ -269,6 +272,9 @@ namespace PhotoSauce.MagicScaler
 			var duration = new Rational(meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameDelay), 100);
 			var disposal = ((FrameDisposalMethod)meta.GetValueOrDefault<byte>(Wic.Metadata.Gif.FrameDisposal)).Clamp();
 			var hasAlpha = meta.GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
+
+			if (index == 0 && disposal == FrameDisposalMethod.RestorePrevious)
+				disposal = FrameDisposalMethod.Preserve;
 
 			AnimationMetadata = new(left, top, duration, disposal, hasAlpha);
 		}

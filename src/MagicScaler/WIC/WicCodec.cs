@@ -33,7 +33,7 @@ namespace PhotoSauce.MagicScaler
 			return decoder.Detach();
 		}
 
-		public static WicImageContainer Load(string fileName)
+		public static WicImageContainer Load(string fileName, IDecoderOptions? options)
 		{
 			using var stm = default(ComPtr<IWICStream>);
 			HRESULT.Check(Wic.Factory->CreateStream(stm.GetAddressOf()));
@@ -41,17 +41,17 @@ namespace PhotoSauce.MagicScaler
 				HRESULT.Check(stm.Get()->InitializeFromFilename((ushort*)pname, GENERIC_READ));
 
 			var dec = createDecoder((IStream*)stm.Get());
-			return WicImageContainer.Create(dec);
+			return WicImageContainer.Create(dec, options);
 		}
 
-		public static WicImageContainer Load(Stream inStream)
+		public static WicImageContainer Load(Stream inStream, IDecoderOptions? options)
 		{
 			using var ccw = new ComPtr<IStream>(IStreamImpl.Wrap(inStream));
 			var dec = createDecoder(ccw);
-			return WicImageContainer.Create(dec);
+			return WicImageContainer.Create(dec, options);
 		}
 
-		public static WicImageContainer Load(byte* pbBuffer, int cbBuffer)
+		public static WicImageContainer Load(byte* pbBuffer, int cbBuffer, IDecoderOptions? options)
 		{
 			using var stream = default(ComPtr<IWICStream>);
 			HRESULT.Check(Wic.Factory->CreateStream(stream.GetAddressOf()));
@@ -59,7 +59,7 @@ namespace PhotoSauce.MagicScaler
 			HRESULT.Check(stream.Get()->InitializeFromMemory(pbBuffer, (uint)cbBuffer));
 
 			var dec = createDecoder((IStream*)stream.Get());
-			return WicImageContainer.Create(dec);
+			return WicImageContainer.Create(dec, options);
 		}
 #endif
 
@@ -112,17 +112,30 @@ namespace PhotoSauce.MagicScaler
 
 				if (fmt == GUID_ContainerFormatJpeg && Options is JpegEncoderOptions jconf)
 				{
-					pbag.Write("ImageQuality", jconf.Quality / 100f);
-					if (jconf.Subsample != ChromaSubsampleMode.Default)
-						pbag.Write("JpegYCrCbSubsampling", (byte)jconf.Subsample);
+					int qual = jconf.Quality != 0 ? jconf.Quality : SettingsUtil.GetDefaultQuality(Math.Max(source.Width, source.Height));
+					var subs = jconf.Subsample != default ? jconf.Subsample : SettingsUtil.GetDefaultSubsampling(qual);
+					pbag.Write("ImageQuality", qual / 100f);
+					pbag.Write("JpegYCrCbSubsampling", (byte)subs);
+
+					if (jconf.SuppressApp0)
+						pbag.Write("SuppressApp0", jconf.SuppressApp0);
+				}
+				else if (fmt == GUID_ContainerFormatPng && Options is PngEncoderOptions pconf)
+				{
+					if (pconf.Filter != PngFilterMode.Unspecified)
+						pbag.Write("FilterOption", (byte)pconf.Filter);
+					if (pconf.Interlace)
+						pbag.Write("InterlaceOption", pconf.Interlace);
 				}
 				else if (fmt == GUID_ContainerFormatTiff && Options is TiffEncoderOptions tconf)
 				{
-					pbag.Write("TiffCompressionMethod", (byte)tconf.Compression);
+					if (tconf.Compression != TiffCompressionMode.Unspecified)
+						pbag.Write("TiffCompressionMethod", (byte)tconf.Compression);
 				}
-				else if (fmt == GUID_ContainerFormatBmp && src.Format.AlphaRepresentation != PixelAlphaRepresentation.None)
+				else if (fmt == GUID_ContainerFormatBmp)
 				{
-					pbag.Write("EnableV5Header32bppBGRA", true);
+					if (src.Format.AlphaRepresentation != PixelAlphaRepresentation.None)
+						pbag.Write("EnableV5Header32bppBGRA", true);
 				}
 
 				HRESULT.Check(frame.Get()->Initialize(pbag));
@@ -180,9 +193,16 @@ namespace PhotoSauce.MagicScaler
 					metawriter.SetValue(Wic.Metadata.Gif.FrameLeft, (ushort)anifrm.OffsetLeft);
 				if (anifrm.OffsetTop != 0)
 					metawriter.SetValue(Wic.Metadata.Gif.FrameTop, (ushort)anifrm.OffsetTop);
+			}
 
-				metawriter.SetValue(Wic.Metadata.Gif.TransparencyFlag, anifrm.HasAlpha);
-				metawriter.SetValue(Wic.Metadata.Gif.TransparentColorIndex, (byte)(((IndexedColorTransform)src).Palette.Length - 1));
+			if (hasWriter && fmt == GUID_ContainerFormatGif && source is IndexedColorTransform idxt)
+			{
+				var pal = idxt.Palette;
+				if (pal[^1] <= 0x00ffffffu)
+				{
+					metawriter.SetValue(Wic.Metadata.Gif.TransparencyFlag, true);
+					metawriter.SetValue(Wic.Metadata.Gif.TransparentColorIndex, (byte)(pal.Length - 1));
+				}
 			}
 
 			if (hasWriter && meta.TryGetMetadata<WicFrameMetadataReader>(out var wicmeta))
@@ -428,7 +448,8 @@ namespace PhotoSauce.MagicScaler
 			var ppt = context.AddProfiler(nameof(TemporalFilters));
 			var ppq = context.AddProfiler($"{nameof(OctreeQuantizer)}: {nameof(OctreeQuantizer.CreatePalette)}");
 
-			writeFrame(Current, ppq);
+			var encopt = context.Settings.EncoderOptions is GifEncoderOptions gifopt ? gifopt : GifEncoderOptions.Default;
+			writeFrame(Current, encopt, ppq);
 
 			while (moveNext())
 			{
@@ -436,7 +457,7 @@ namespace PhotoSauce.MagicScaler
 				TemporalFilters.Dedupe(this, bgColor);
 				ppt.PauseTiming();
 
-				writeFrame(Current, ppq);
+				writeFrame(Current, encopt, ppq);
 			}
 		}
 
@@ -465,8 +486,6 @@ namespace PhotoSauce.MagicScaler
 
 		private void moveToFrame(int index)
 		{
-			context.Settings.FrameIndex = index;
-
 			context.ImageFrame.Dispose();
 			context.ImageFrame = context.ImageContainer.GetFrame(index);
 
@@ -501,21 +520,26 @@ namespace PhotoSauce.MagicScaler
 				context.Source.CopyPixels(frame.Area, buff.Stride, buff.Span.Length, pbuff);
 		}
 
-		private void writeFrame(AnimationBufferFrame src, IProfiler ppq)
+		private void writeFrame(AnimationBufferFrame src, in GifEncoderOptions gifopt, IProfiler ppq)
 		{
-			using (var quant = new OctreeQuantizer(ppq))
+			if (gifopt.PredefinedPalette is not null)
 			{
+				IndexedSource.SetPalette(MemoryMarshal.Cast<int, uint>(gifopt.PredefinedPalette.AsSpan()), gifopt.Dither == DitherMode.None);
+			}
+			else
+			{
+				using var quant = new OctreeQuantizer(ppq);
 				var buffC = EncodeFrame.Source;
 				var buffCSpan = buffC.Span.Slice(src.Area.Y * buffC.Stride + src.Area.X * buffC.Format.BytesPerPixel);
 
-				bool isExact = quant.CreatePalette(buffCSpan, src.Area.Width, src.Area.Height, buffC.Stride);
-
-				IndexedSource.SetPalette(quant.Palette, isExact);
-				IndexedSource.ReInit(buffC);
-
-				context.Source = IndexedSource;
-				context.Metadata = src;
+				bool isExact = quant.CreatePalette(gifopt.MaxPaletteSize, buffCSpan, src.Area.Width, src.Area.Height, buffC.Stride);
+				IndexedSource.SetPalette(quant.Palette, isExact || gifopt.Dither == DitherMode.None);
 			}
+
+			IndexedSource.ReInit(EncodeFrame.Source);
+
+			context.Source = IndexedSource;
+			context.Metadata = src;
 
 			encoder.WriteFrame(context.Source, context.Metadata, src.Area);
 		}

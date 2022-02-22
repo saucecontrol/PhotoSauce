@@ -84,13 +84,12 @@ namespace PhotoSauce.MagicScaler
 		{
 			using var img = Image.FromStream(istm, s.ColorProfileMode != ColorProfileMode.Ignore, false);
 
-			if (s.FrameIndex > 0)
+			if (s.DecoderOptions is IMultiFrameDecoderOptions opt)
 			{
 				var fd = img.RawFormat.Guid == ImageFormat.Gif.Guid ? FrameDimension.Time : FrameDimension.Page;
-				if (img.GetFrameCount(fd) > s.FrameIndex)
-					img.SelectActiveFrame(fd, s.FrameIndex);
-				else
-					throw new ArgumentOutOfRangeException(nameof(s), "Invalid Frame Index");
+				int fi = opt.FrameRange.GetOffsetAndLength(img.GetFrameCount(fd)).Offset;
+
+				img.SelectActiveFrame(fd, fi);
 			}
 
 			if (s.OrientationMode == OrientationMode.Normalize)
@@ -132,26 +131,27 @@ namespace PhotoSauce.MagicScaler
 					bmp.Save(ostm, ImageFormat.Bmp);
 					break;
 				case FileFormat.Tiff:
-					using (var encoderParams = new EncoderParameters(1))
-					using (var param = new EncoderParameter(Encoder.Compression, (long)EncoderValue.CompressionNone))
 					{
+						using var param = new EncoderParameter(Encoder.Compression, (long)EncoderValue.CompressionNone);
+						using var encoderParams = new EncoderParameters(1);
 						encoderParams.Param[0] = param;
 						bmp.Save(ostm, tiffCodec, encoderParams);
 					}
 					break;
 				case FileFormat.Jpeg:
-					using (var encoderParams = new EncoderParameters(1))
-					using (var param = new EncoderParameter(Encoder.Quality, s.JpegQuality))
 					{
+						using var param = new EncoderParameter(Encoder.Quality, s.LossyQuality);
+						using var encoderParams = new EncoderParameters(1);
 						encoderParams.Param[0] = param;
 						bmp.Save(ostm, jpegCodec, encoderParams);
 					}
 					break;
+				case FileFormat.Gif:
+				case FileFormat.Png8:
+					bmp.Save(ostm, ImageFormat.Gif);
+					break;
 				default:
-					if (s.IndexedColor)
-						bmp.Save(ostm, ImageFormat.Gif);
-					else
-						bmp.Save(ostm, ImageFormat.Png);
+					bmp.Save(ostm, ImageFormat.Png);
 					break;
 			}
 

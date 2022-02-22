@@ -102,29 +102,25 @@ namespace PhotoSauce.MagicScaler
 
 		private InterpolationSettings interpolation;
 		private UnsharpMaskSettings unsharpMask;
-		private int jpegQuality;
-		private ChromaSubsampleMode jpegSubsampling;
 		private ImageFileInfo? imageInfo;
 		private IImageEncoderInfo? encoderInfo;
+
 		internal Size InnerSize;
 		internal Size OuterSize;
 		internal bool AutoCrop;
 
-		internal bool IndexedColor => SaveFormat == FileFormat.Png8 || SaveFormat == FileFormat.Gif;
-
 		internal bool IsNormalized => imageInfo is not null;
 
 		internal bool IsEmpty =>
-			OuterSize       == empty.OuterSize       &&
-			jpegQuality     == empty.jpegQuality     &&
-			jpegSubsampling == empty.jpegSubsampling &&
-			FrameIndex      == empty.FrameIndex      &&
-			DpiX            == empty.DpiX            &&
-			DpiY            == empty.DpiY            &&
-			Crop            == empty.Crop            &&
-			CropBasis       == empty.CropBasis       &&
-			SaveFormat      == empty.SaveFormat      &&
-			MatteColor      == empty.MatteColor      &&
+			OuterSize       == empty.OuterSize  &&
+			DpiX            == empty.DpiX       &&
+			DpiY            == empty.DpiY       &&
+			Crop            == empty.Crop       &&
+			CropBasis       == empty.CropBasis  &&
+			SaveFormat      == empty.SaveFormat &&
+			MatteColor      == empty.MatteColor &&
+			EncoderOptions  is null             &&
+			DecoderOptions  is null             &&
 			unsharpMask.Equals(empty.unsharpMask)
 		;
 
@@ -141,18 +137,15 @@ namespace PhotoSauce.MagicScaler
 			height: InnerSize.Height
 		);
 
-		internal IEncoderOptions? EncoderOptions => SaveFormat switch {
-			FileFormat.Jpeg => new JpegEncoderOptions(JpegQuality, JpegSubsampleMode, false),
-			FileFormat.Tiff => new TiffEncoderOptions(TiffCompressionMode.None),
-			_ => null
-		};
-
 		internal double ScaleRatio =>
 			Math.Min(InnerSize.Width > 0 ? (double)Crop.Width / InnerSize.Width : 0d, InnerSize.Height > 0 ? (double)Crop.Height / InnerSize.Height : 0d);
 
-		/// <summary>The 0-based index of the image frame to process from within the container.</summary>
-		/// <value>Default value: <c>0</c></value>
-		public int FrameIndex { get; set; }
+		internal int LossyQuality =>
+			EncoderOptions is ILossyEncoderOptions opt && opt.Quality != default ? opt.Quality : SettingsUtil.GetDefaultQuality(Math.Max(Width, Height));
+
+		internal ChromaSubsampleMode Subsample =>
+			EncoderOptions is IPlanarEncoderOptions opt && opt.Subsample != default ? opt.Subsample : SettingsUtil.GetDefaultSubsampling(LossyQuality);
+
 		/// <summary>The horizontal DPI of the output image.  A value of <c>0</c> will preserve the DPI of the input image.</summary>
 		/// <remarks>This affects the image metadata only.  Not all image formats support a DPI setting and most applications will ignore it.</remarks>
 		/// <value>Default value: <c>96</c></value>
@@ -204,6 +197,12 @@ namespace PhotoSauce.MagicScaler
 		/// <include file='Docs/Remarks.xml' path='doc/member[@name="MetadataNames"]/*'/>
 		/// <value>Default value: <see cref="Enumerable.Empty" /></value>
 		public IEnumerable<string> MetadataNames { get; set; } = Enumerable.Empty<string>();
+		/// <summary>Codec options to be passed to the image encoder.</summary>
+		/// <value>Default value: calculated based on input image properties and ouput size, or taken from the codec's configuration.</value>
+		public IEncoderOptions? EncoderOptions { get; set; }
+		/// <summary>Codec options to be passed to the image decoder.</summary>
+		/// <value>Default value: taken from the codec's default configuration.</value>
+		public IDecoderOptions? DecoderOptions { get; set; }
 
 		/// <summary>The width of the output image in pixels.  If auto-cropping is enabled, a value of <c>0</c> will set the width automatically based on the output height.</summary>
 		/// <remarks>If <see cref="Width"/> and <see cref="Height"/> are both set to <c>0</c>, no resizing will be performed but a crop may still be applied.</remarks>
@@ -251,21 +250,22 @@ namespace PhotoSauce.MagicScaler
 		/// <value>Default value: calculated based on output image size</value>
 		public int JpegQuality
 		{
-			get
-			{
-				if (jpegQuality > 0)
-					return jpegQuality;
-
-				int res = Math.Max(Width, Height);
-				return res <= 160 ? 95 : res <= 320 ? 93 : res <= 480 ? 91 : res <= 640 ? 89 : res <= 1280 ? 87 : res <= 1920 ? 85 : 83;
-			}
+			get => LossyQuality;
 			set
 			{
 				if (value < 0 || value > 100)
 					throw new ArgumentOutOfRangeException(nameof(JpegQuality), "Value must be between 0 and 100");
 
-				jpegQuality = value;
+				EncoderOptions = EncoderOptions is JpegEncoderOptions jopt ? jopt with { Quality = value } : new JpegEncoderOptions(value, default, default);
 			}
+		}
+
+		/// <summary>The 0-based index of the image frame to process from within the container.</summary>
+		/// <value>Default value: taken from <see cref="DecoderOptions" />, or <c>0</c></value>
+		public int FrameIndex
+		{
+			get => DecoderOptions is IMultiFrameDecoderOptions opt ? opt.FrameRange.GetOffsetAndLength(imageInfo?.Frames.Count ?? int.MaxValue).Offset : 0;
+			set => DecoderOptions = new MultiFrameDecoderOptions(value..(value+1));
 		}
 
 		/// <summary>Determines what type of chroma subsampling is used for the output image.</summary>
@@ -273,14 +273,8 @@ namespace PhotoSauce.MagicScaler
 		/// <value>Default value: calculated based on <see cref="JpegQuality"/></value>
 		public ChromaSubsampleMode JpegSubsampleMode
 		{
-			get
-			{
-				if (jpegSubsampling != ChromaSubsampleMode.Default)
-					return jpegSubsampling;
-
-				return JpegQuality >= 95 ? ChromaSubsampleMode.Subsample444 : JpegQuality >= 90 ? ChromaSubsampleMode.Subsample422 : ChromaSubsampleMode.Subsample420;
-			}
-			set => jpegSubsampling = value;
+			get => Subsample;
+			set => EncoderOptions = EncoderOptions is JpegEncoderOptions jopt ? jopt with { Subsample = value } : new JpegEncoderOptions(default, value, default);
 		}
 
 		/// <summary>Determines how resampling interpolation is performed.</summary>
@@ -288,25 +282,7 @@ namespace PhotoSauce.MagicScaler
 		/// <value>Default value: calculated based on resize ratio</value>
 		public InterpolationSettings Interpolation
 		{
-			get
-			{
-				if (interpolation.Blur > 0d)
-					return interpolation;
-
-				var interpolator = InterpolationSettings.Spline36;
-				double rat = ScaleRatio / HybridScaleRatio;
-
-				if (rat == 1.0)
-					interpolator = InterpolationSettings.Linear;
-				else if (rat < 0.5)
-					interpolator = InterpolationSettings.Lanczos;
-				else if (rat > 16.0)
-					interpolator = InterpolationSettings.Quadratic;
-				else if (rat > 4.0)
-					interpolator = InterpolationSettings.CatmullRom;
-
-				return interpolator;
-			}
+			get => interpolation.Blur > 0d ? interpolation : SettingsUtil.GetDefaultInterpolation(ScaleRatio / HybridScaleRatio);
 			set => interpolation = value;
 		}
 
@@ -315,31 +291,7 @@ namespace PhotoSauce.MagicScaler
 		/// <value>Default value: calculated based on resize ratio</value>
 		public UnsharpMaskSettings UnsharpMask
 		{
-			get
-			{
-				if (unsharpMask.Amount > 0)
-					return unsharpMask;
-
-				if (!Sharpen || ScaleRatio == 1.0)
-					return UnsharpMaskSettings.None;
-
-				if (ScaleRatio < 0.5)
-					return new UnsharpMaskSettings(40, 1.5, 0);
-				else if (ScaleRatio < 1.0)
-					return new UnsharpMaskSettings(30, 1.0, 0);
-				else if (ScaleRatio < 2.0)
-					return new UnsharpMaskSettings(25, 0.75, 4);
-				else if (ScaleRatio < 4.0)
-					return new UnsharpMaskSettings(75, 0.5, 2);
-				else if (ScaleRatio < 6.0)
-					return new UnsharpMaskSettings(50, 0.75, 2);
-				else if (ScaleRatio < 8.0)
-					return new UnsharpMaskSettings(100, 0.6, 1);
-				else if (ScaleRatio < 10.0)
-					return new UnsharpMaskSettings(125, 0.5, 0);
-				else
-					return new UnsharpMaskSettings(150, 0.5, 0);
-			}
+			get => unsharpMask.Amount > 0 ? unsharpMask : SettingsUtil.GetDefaultUnsharpMask(!Sharpen ? 1.0 : ScaleRatio);
 			set => unsharpMask = value;
 		}
 
@@ -352,10 +304,8 @@ namespace PhotoSauce.MagicScaler
 			if (dic.Count == 0) return new ProcessImageSettings();
 
 			var s = new ProcessImageSettings {
-				FrameIndex = Math.Max(int.TryParse(dic.GetValueOrDefault("frame") ?? dic.GetValueOrDefault("page"), out int f) ? f : 0, 0),
 				Width = Math.Max(int.TryParse(dic.GetValueOrDefault("width") ?? dic.GetValueOrDefault("w"), out int w) ? w : 0, 0),
 				Height = Math.Max(int.TryParse(dic.GetValueOrDefault("height") ?? dic.GetValueOrDefault("h"), out int h) ? h : 0, 0),
-				JpegQuality = Math.Max(int.TryParse(dic.GetValueOrDefault("quality") ?? dic.GetValueOrDefault("q"), out int q) ? q : 0, 0)
 			};
 
 			s.Sharpen = bool.TryParse(dic.GetValueOrDefault("sharpen"), out bool bs) ? bs : s.Sharpen;
@@ -384,6 +334,14 @@ namespace PhotoSauce.MagicScaler
 
 			foreach (var cap in subsampleExpression.Value.Match(dic.GetValueOrDefault("subsample") ?? string.Empty).Captures.Cast<Capture>())
 				s.JpegSubsampleMode = Enum.TryParse(string.Concat("Subsample", cap!.Value), true, out ChromaSubsampleMode csub) ? csub : s.JpegSubsampleMode;
+
+			int jq = Math.Max(int.TryParse(dic.GetValueOrDefault("quality") ?? dic.GetValueOrDefault("q"), out int q) ? q : 0, 0);
+			if (jq != 0)
+				s.JpegQuality = jq;
+
+			int fi = Math.Max(int.TryParse(dic.GetValueOrDefault("frame") ?? dic.GetValueOrDefault("page"), out int f) ? f : 0, 0);
+			if (fi != 0)
+				s.FrameIndex = fi;
 
 			string? colorName = dic.GetValueOrDefault("bgcolor") ?? dic.GetValueOrDefault("bg");
 			if (!string.IsNullOrWhiteSpace(colorName) && ColorParser.TryParse(colorName, out var color))
@@ -567,23 +525,16 @@ namespace PhotoSauce.MagicScaler
 
 		internal void NormalizeFrom(ImageFileInfo img)
 		{
-			if (FrameIndex >= img.Frames.Count || img.Frames.Count + FrameIndex < 0) throw new InvalidOperationException($"Invalid {nameof(FrameIndex)}");
-
-			if (FrameIndex < 0)
-				FrameIndex = img.Frames.Count + FrameIndex;
-
-			var frame = img.Frames[FrameIndex];
+			int index = DecoderOptions is IMultiFrameDecoderOptions opt ? opt.FrameRange.GetOffsetAndLength(img.Frames.Count).Offset : 0;
+			var frame = img.Frames[index];
 
 			Fixup(frame.Width, frame.Height, OrientationMode != OrientationMode.Normalize && frame.ExifOrientation.SwapsDimensions());
 
 			if (SaveFormat == FileFormat.Auto)
 				SetSaveFormat(img.ContainerType, frame.HasAlpha);
 
-			if (SaveFormat != FileFormat.Jpeg)
-			{
-				JpegSubsampleMode = ChromaSubsampleMode.Default;
-				JpegQuality = 0;
-			}
+			if (SaveFormat != FileFormat.Jpeg && EncoderOptions is JpegEncoderOptions)
+				EncoderOptions = null;
 
 			if (!frame.HasAlpha && InnerSize == OuterSize)
 				MatteColor = Color.Empty;

@@ -361,7 +361,7 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 
 	internal sealed unsafe class JxlEncoder : IImageEncoder
 	{
-		private readonly JxlEncoderOptions options;
+		private readonly IJxlEncoderOptions options;
 		private readonly Stream stream;
 
 		private IntPtr encoder, encopt;
@@ -370,19 +370,24 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 		public JxlEncoder(Stream outStream, IEncoderOptions? jxlOptions)
 		{
 			stream = outStream;
-			options = jxlOptions is JxlEncoderOptions opt ? opt : JxlEncoderOptions.Default;
+			options = jxlOptions is IJxlEncoderOptions opt ? opt : JxlLossyEncoderOptions.Default;
 
 			encoder = JxlFactory.CreateEncoder();
 			encopt = JxlEncoderOptionsCreate(encoder, default);
-			if (options.lossless)
+			JxlError.Check(JxlEncoderOptionsSetEffort(encopt, (int)options.EncodeSpeed));
+			JxlError.Check(JxlEncoderOptionsSetDecodingSpeed(encopt, (int)options.DecodeSpeed));
+
+			if (options is JxlLossyEncoderOptions lopt)
 			{
-				JxlError.Check(JxlEncoderOptionsSetLossless(encopt, JXL_TRUE));
+				// current version of encoder will AV if this is set over 4 (including the default of 7) for lossy
+				if (options.EncodeSpeed > JxlEncodeSpeed.Cheetah)
+					JxlError.Check(JxlEncoderOptionsSetEffort(encopt, 4));
+
+				JxlError.Check(JxlEncoderOptionsSetDistance(encopt, lopt.Distance));
 			}
 			else
 			{
-				JxlError.Check(JxlEncoderOptionsSetEffort(encopt, 4)); // current version of encoder will AV if this is set over 4 (including the default of 7)
-				JxlError.Check(JxlEncoderOptionsSetDistance(encopt, 1.5f));
-				JxlError.Check(JxlEncoderOptionsSetDecodingSpeed(encopt, 1));
+				JxlError.Check(JxlEncoderOptionsSetLossless(encopt, JXL_TRUE));
 			}
 		}
 
@@ -414,6 +419,9 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 				source.CopyPixels(sourceArea, stride, pixbuff.Span);
 			}
 
+			if (options is JxlLossyEncoderOptions lopt && lopt.Distance == default)
+				JxlError.Check(JxlEncoderOptionsSetDistance(encopt, JxlLossyEncoderOptions.DistanceFromQuality(SettingsUtil.GetDefaultQuality(Math.Max(sourceArea.Width, sourceArea.Height)))));
+
 			bool hasProps = metadata.TryGetMetadata<BaseImageProperties>(out var baseprops);
 
 			var basinf = default(JxlBasicInfo);
@@ -431,7 +439,7 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 
 			if (hasProps && baseprops.ColorProfile is ColorProfile prof)
 			{
-				fixed (byte* pp = &prof.ProfileBytes[0])
+				fixed (byte* pp = &prof.ProfileBytes.GetDataRef())
 					JxlError.Check(JxlEncoderSetICCProfile(encoder, pp, (uint)prof.ProfileBytes.Length));
 			}
 			else
@@ -488,11 +496,6 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 		}
 
 		~JxlEncoder() => Dispose();
-	}
-
-	internal readonly record struct JxlEncoderOptions(bool lossless) : IEncoderOptions
-	{
-		public static JxlEncoderOptions Default => new(false);
 	}
 
 	internal static class JxlError
@@ -564,7 +567,7 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 					new ContainerPattern(0, new byte[] { 0x00, 0x00, 0x00, 0x0c, 0x4a, 0x58, 0x4c, 0x20, 0x0d, 0x0a, 0x87, 0x0a }, new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff })
 				},
 				null,
-				(s, c) => JxlContainer.TryLoad(s, c),
+				JxlContainer.TryLoad,
 				true,
 				false,
 				false
@@ -573,7 +576,7 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 				JxlFactory.libjxl,
 				jxlMime,
 				jxlExtension,
-				JxlEncoderOptions.Default,
+				JxlLossyEncoderOptions.Default,
 				(s, c) => new JxlEncoder(s, c),
 				true,
 				false,

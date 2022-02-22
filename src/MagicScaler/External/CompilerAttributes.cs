@@ -1,8 +1,8 @@
 // Borrowed from
-//   https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/Diagnostics/StackTraceHiddenAttribute.cs
-//   https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/Diagnostics/CodeAnalysis/NullableAttributes.cs
-//   https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/SkipLocalsInitAttribute.cs
-//   https://github.com/dotnet/runtime/blob/main/src/libraries/Common/src/System/Runtime/CompilerServices/IsExternalInit.cs
+//   https://github.com/dotnet/runtime/blob/release/6.0/src/libraries/System.Private.CoreLib/src/System/Diagnostics/StackTraceHiddenAttribute.cs
+//   https://github.com/dotnet/runtime/blob/release/6.0/src/libraries/System.Private.CoreLib/src/System/Diagnostics/CodeAnalysis/NullableAttributes.cs
+//   https://github.com/dotnet/runtime/blob/release/6.0/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/SkipLocalsInitAttribute.cs
+//   https://github.com/dotnet/runtime/blob/release/6.0/src/libraries/Common/src/System/Runtime/CompilerServices/IsExternalInit.cs
 // These shims enable support for some C# 8-10 features on downlevel platforms.
 // Some of these attributes are not functional on platforms that don't include them, but their presence allows use without conditional compilation.
 

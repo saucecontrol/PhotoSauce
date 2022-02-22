@@ -33,9 +33,7 @@ namespace PhotoSauce.MagicScaler
 		public WicPipelineContext WicContext => wicContext ??= new WicPipelineContext();
 
 		public bool IsAnimatedGifPipeline =>
-			ImageContainer.IsAnimation &&
-			(Settings.SaveFormat == FileFormat.Gif || Settings.SaveFormat == FileFormat.Auto) &&
-			Settings.FrameIndex == 0 && ImageContainer.FrameCount > 1;
+			ImageContainer.IsAnimation && Settings.SaveFormat is FileFormat.Gif or FileFormat.Auto && ImageContainer.FrameCount > 1;
 
 		public PipelineContext(ProcessImageSettings settings, IImageContainer cont, bool ownCont = true)
 		{
@@ -91,6 +89,15 @@ namespace PhotoSauce.MagicScaler
 				if (Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed && !Settings.EncoderInfo.SupportsColorProfile)
 					Settings.ColorProfileMode = ColorProfileMode.ConvertToSrgb;
 			}
+
+			if (Settings.SaveFormat == FileFormat.Png8 && Settings.EncoderOptions is not PngIndexedEncoderOptions)
+				Settings.EncoderOptions = PngIndexedEncoderOptions.Default;
+
+			if (Settings.SaveFormat == FileFormat.Gif && Settings.EncoderOptions is not GifEncoderOptions)
+				Settings.EncoderOptions = GifEncoderOptions.Default;
+
+			if (Settings.EncoderOptions is null)
+				Settings.EncoderOptions = Settings.EncoderInfo.DefaultOptions;
 
 			UsedSettings = Settings.Clone();
 		}

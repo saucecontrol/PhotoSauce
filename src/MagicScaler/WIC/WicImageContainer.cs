@@ -28,6 +28,7 @@ namespace PhotoSauce.MagicScaler
 		public IDecoderOptions? Options { get; }
 		public bool IsAnimation { get; }
 		public int FrameCount { get; }
+		public int FrameOffset { get; }
 
 		public bool IsRawContainer {
 			get {
@@ -42,23 +43,25 @@ namespace PhotoSauce.MagicScaler
 
 		public virtual IImageFrame GetFrame(int index)
 		{
-			if ((uint)index >= (uint)FrameCount) throw new IndexOutOfRangeException("Frame index does not exist");
+			if ((uint)index >= (uint)FrameCount) throw new IndexOutOfRangeException("Invalid frame index.");
 
-			return new WicImageFrame(this, (uint)index);
+			return new WicImageFrame(this, (uint)(FrameOffset + index));
 		}
 
 		public WicImageContainer(IWICBitmapDecoder* dec, FileFormat fmt, IDecoderOptions? options)
 		{
 			WicDecoder = dec;
-
-			uint fcount;
-			HRESULT.Check(dec->GetFrameCount(&fcount));
-			FrameCount = (int)fcount;
 			ContainerFormat = fmt;
 			Options = options;
 
-			if (fmt == FileFormat.Gif && FrameCount > 1)
-				IsAnimation = true;
+			uint fcount;
+			HRESULT.Check(dec->GetFrameCount(&fcount));
+			if (options is IMultiFrameDecoderOptions opt)
+				(FrameOffset, FrameCount) = opt.FrameRange.GetOffsetAndLength((int)fcount);
+			else
+				(FrameOffset, FrameCount) = (0, (int)fcount);
+
+			IsAnimation = fmt == FileFormat.Gif && fcount > 1;
 		}
 
 		public static WicImageContainer Create(IWICBitmapDecoder* dec, IDecoderOptions? options = null)
@@ -153,9 +156,9 @@ namespace PhotoSauce.MagicScaler
 
 		public override IImageFrame GetFrame(int index)
 		{
-			if ((uint)index >= (uint)FrameCount) throw new IndexOutOfRangeException("Frame index does not exist");
+			if ((uint)(FrameOffset + index) >= (uint)(FrameOffset + FrameCount)) throw new IndexOutOfRangeException("Invalid frame index.");
 
-			return new WicGifFrame(this, (uint)index);
+			return new WicGifFrame(this, (uint)(FrameOffset + index));
 		}
 
 		public override bool TryGetMetadata<T>(out T metadata)
@@ -169,15 +172,12 @@ namespace PhotoSauce.MagicScaler
 			return base.TryGetMetadata(out metadata!);
 		}
 
-		public void ReplayGifAnimation(PipelineContext ctx, int playTo)
+		public void ReplayGifAnimation(PipelineContext ctx, int offset)
 		{
 			var anictx = ctx.AnimationContext ??= new AnimationPipelineContext();
-			if (anictx.LastFrame > playTo)
-				anictx.LastFrame = -1;
-
-			for (; anictx.LastFrame < playTo; anictx.LastFrame++)
+			for (int i = -offset; i <= 0; i++)
 			{
-				var gifFrame = (WicGifFrame)GetFrame(anictx.LastFrame + 1);
+				var gifFrame = (WicGifFrame)GetFrame(i);
 				if (gifFrame.AnimationMetadata.Disposal == FrameDisposalMethod.Preserve)
 					anictx.UpdateFrameBuffer(gifFrame, AnimationMetadata, gifFrame.AnimationMetadata);
 

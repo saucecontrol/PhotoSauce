@@ -25,6 +25,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		private uint leafLevel;
 		private uint mapNextFree;
 
+		private RentedBuffer<byte> lineBuff;
 		private RentedBuffer<uint> palBuff;
 		private RentedBuffer<short> errBuff;
 		private RentedBuffer<PaletteMapNode> mapBuff;
@@ -54,7 +55,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					throw new NotSupportedException("Pixel format not supported.");
 
 				if (PrevSource is not FrameBufferSource)
-					throw new NotSupportedException($"Color source must be {nameof(FrameBufferSource)}");
+					lineBuff = BufferPool.Rent<byte>(BufferStride);
 
 				palBuff = BufferPool.Rent<uint>(maxPaletteSize * 2, true);
 				errBuff = BufferPool.RentAligned<short>((Width + 2) * channels, true);
@@ -64,7 +65,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public void SetPalette(ReadOnlySpan<uint> pal, bool isExact)
 		{
-			if (pal.Length < 2) throw new ArgumentException("Palette must have at least two entries.", nameof(pal));
+			if (pal.Length < 1 || pal.Length > maxPaletteSize) throw new ArgumentException($"Palette must have between 1 and {maxPaletteSize} entries.", nameof(pal));
 
 			pal.CopyTo(palBuff.Span);
 			pal.CopyTo(palBuff.Span.Slice(maxPaletteSize));
@@ -80,29 +81,53 @@ namespace PhotoSauce.MagicScaler.Transforms
 		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
 			if (palBuff.Length == 0) throw new ObjectDisposedException(nameof(IndexedColorTransform));
-			if (paletteLength == 0) throw new InvalidOperationException("No palette has been set.");
 
 			if (isFixedGrey)
-			{
-				Profiler.PauseTiming();
-				PrevSource.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
-				Profiler.ResumeTiming();
+				copyPixelsDirect(prc, cbStride, cbBufferSize, pbBuffer);
+			else
+				copyPixelsBuffered(prc, cbStride, pbBuffer);
+		}
 
-				return;
+		private unsafe void copyPixelsDirect(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
+		{
+			Profiler.PauseTiming();
+			PrevSource.CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
+			Profiler.ResumeTiming();
+		}
+
+		private unsafe void copyPixelsBuffered(in PixelArea prc, nint cbStride, byte* pbBuffer)
+		{
+			if (paletteLength == 0) throw new InvalidOperationException("No palette has been set.");
+
+			nint lstride = 0;
+			var lspan = lineBuff.Span;
+			if (PrevSource is FrameBufferSource fbuff)
+			{
+				lstride = fbuff.Stride;
+				lspan = fbuff.Span;
 			}
 
-			var source = (FrameBufferSource)PrevSource;
-
-			fixed (byte* pimg = source.Span)
+			fixed (byte* pimg = lspan)
 			fixed (short* perr = errBuff)
 			fixed (uint* ppal = palBuff, pilut = &LookupTables.OctreeIndexTable.GetDataRef())
 			fixed (PaletteMapNode* ptree = mapBuff)
 			{
 				for (nint y = 0; y < prc.Height; y++)
 				{
-					byte* pline = pimg + (prc.Y + y) * source.Stride + prc.X * channels;
+					byte* pline = pimg;
+					if (lstride != 0)
+					{
+						pline = pimg + ((nint)(uint)prc.Y + y) * lstride + (nint)(uint)prc.X * channels;
+					}
+					else
+					{
+						Profiler.PauseTiming();
+						PrevSource.CopyPixels(prc, lineBuff.Length, lineBuff.Length, pline);
+						Profiler.ResumeTiming();
+					}
+
 					byte* poutline = pbBuffer + y * cbStride;
-					short* perrline = perr + prc.X * channels + channels;
+					short* perrline = perr + (nint)(uint)prc.X * channels + channels;
 
 					if (!dither)
 						remap(pline, poutline, pilut, ptree, ppal, prc.Width);

@@ -35,7 +35,7 @@ namespace PhotoSauce.MagicScaler
 
 		/// <summary>Overrides the default <a href="https://en.wikipedia.org/wiki/SIMD">SIMD</a> support detection to force floating point processing on or off.</summary>
 		/// <include file='Docs/Remarks.xml' path='doc/member[@name="EnableSimd"]/*'/>
-		/// <value>Default value: <see langword="true" /> if the runtime/JIT and hardware support hardware-accelerated <see cref="System.Numerics.Vector{T}" />, otherwise <see langword="false" /></value>
+		/// <value>Default value: <see langword="true" /> if the runtime/JIT and hardware support hardware-accelerated <see cref="Vector{T}" />, otherwise <see langword="false" /></value>
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static bool EnableSimd { get; set; } = Vector.IsHardwareAccelerated && (Vector<float>.Count is 4 or 8);
 
@@ -67,7 +67,7 @@ namespace PhotoSauce.MagicScaler
 
 			using var fs = new FileStream(imgPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
 			using var bfs = new PoolBufferedStream(fs);
-			using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(bfs));
+			using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(bfs, settings.DecoderOptions));
 			buildPipeline(ctx);
 
 			return WriteOutput(ctx, outStream);
@@ -96,7 +96,7 @@ namespace PhotoSauce.MagicScaler
 			using var fsi = new FileStream(imgPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
 			using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
 			using var bfi = new PoolBufferedStream(fsi);
-			using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(bfi));
+			using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(bfi, settings.DecoderOptions));
 			buildPipeline(ctx);
 
 			return WriteOutput(ctx, fso);
@@ -113,7 +113,7 @@ namespace PhotoSauce.MagicScaler
 			fixed (byte* pbBuffer = imgBuffer)
 			{
 				using var ums = new UnmanagedMemoryStream(pbBuffer, imgBuffer.Length);
-				using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(ums));
+				using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(ums, settings.DecoderOptions));
 				buildPipeline(ctx);
 
 				return WriteOutput(ctx, outStream);
@@ -129,7 +129,7 @@ namespace PhotoSauce.MagicScaler
 			checkOutStream(outStream);
 
 			using var bfs = PoolBufferedStream.WrapIfFile(imgStream);
-			using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(bfs ?? imgStream));
+			using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(bfs ?? imgStream, settings.DecoderOptions));
 			buildPipeline(ctx);
 
 			return WriteOutput(ctx, outStream);
@@ -174,7 +174,7 @@ namespace PhotoSauce.MagicScaler
 
 			var fs = new FileStream(imgPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
 			var bfs = new PoolBufferedStream(fs, true);
-			var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(bfs));
+			var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(bfs, settings.DecoderOptions));
 			ctx.AddDispose(bfs);
 			buildPipeline(ctx, false);
 
@@ -189,7 +189,7 @@ namespace PhotoSauce.MagicScaler
 			checkInStream(imgStream);
 
 			var bfs = PoolBufferedStream.WrapIfFile(imgStream);
-			var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(bfs ?? imgStream));
+			var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(bfs ?? imgStream, settings.DecoderOptions));
 			if (bfs is not null)
 				ctx.AddDispose(bfs);
 
@@ -252,7 +252,7 @@ namespace PhotoSauce.MagicScaler
 
 		private static unsafe void buildPipeline(PipelineContext ctx, bool closedPipeline = true)
 		{
-			ctx.ImageFrame = ctx.ImageContainer.GetFrame(ctx.Settings.FrameIndex);
+			ctx.ImageFrame = ctx.ImageContainer.GetFrame(0);
 			ctx.Settings.ColorProfileMode = closedPipeline ? ctx.Settings.ColorProfileMode : ColorProfileMode.ConvertToSrgb;
 
 			bool processPlanar = false;
@@ -261,7 +261,7 @@ namespace PhotoSauce.MagicScaler
 
 			if (wicFrame is not null)
 			{
-				processPlanar = EnablePlanarPipeline && wicFrame.SupportsPlanarProcessing && ctx.Settings.Interpolation.WeightingFunction.Support >= 0.5;
+				processPlanar = wicFrame.SupportsPlanarProcessing && ctx.Settings.Interpolation.WeightingFunction.Support >= 0.5;
 				bool profilingPassThrough = processPlanar || (wicFrame.SupportsNativeScale && ctx.Settings.HybridScaleRatio > 1);
 				ctx.Source = ctx.AddProfiler(new ComPtr<IWICBitmapSource>(wicFrame.WicSource).AsPixelSource(nameof(IWICBitmapFrameDecode), !profilingPassThrough));
 			}
@@ -280,14 +280,13 @@ namespace PhotoSauce.MagicScaler
 
 			ctx.Metadata = new MagicMetadataFilter(ctx);
 
-			MagicTransforms.AddGifFrameBuffer(ctx, !ctx.IsAnimatedGifPipeline);
+			MagicTransforms.AddGifFrameBuffer(ctx);
 
 			ctx.FinalizeSettings();
 			ctx.Settings.UnsharpMask = ctx.UsedSettings.UnsharpMask;
-			ctx.Settings.JpegQuality = ctx.UsedSettings.JpegQuality;
-			ctx.Settings.JpegSubsampleMode = ctx.UsedSettings.JpegSubsampleMode;
+			ctx.Settings.EncoderOptions = ctx.UsedSettings.EncoderOptions;
 
-			var subsample = ctx.Settings.JpegSubsampleMode;
+			var subsample = ctx.Settings.Subsample;
 			if (processPlanar)
 			{
 				if (wicFrame is not null)

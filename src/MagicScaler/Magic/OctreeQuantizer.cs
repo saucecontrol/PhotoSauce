@@ -36,8 +36,10 @@ namespace PhotoSauce.MagicScaler
 			Profiler = prof ?? StatsManager.GetProfiler(this);
 		}
 
-		public bool CreatePalette(Span<byte> image, nint width, nint height, nint stride)
+		public bool CreatePalette(int targetColors, Span<byte> image, nint width, nint height, nint stride)
 		{
+			if (targetColors < 1 || targetColors > maxPaletteSize) throw new ArgumentOutOfRangeException(nameof(targetColors), $"Target palette size must be between 1 and {maxPaletteSize}");
+
 			Profiler.ResumeTiming(new PixelArea(0, 0, (int)width, (int)height));
 			using var nodeBuffer = BufferPool.RentLocalAligned<HistogramNode>(maxHistogramSize, true);
 
@@ -52,7 +54,7 @@ namespace PhotoSauce.MagicScaler
 				createHistogram(image, listBuffer.Span, nodeBuffer.Span, width, height, stride, subsampleRatio);
 			}
 
-			bool isExact = buildPalette(nodeBuffer.Span, subsampleRatio > 1f);
+			bool isExact = buildPalette(nodeBuffer.Span, targetColors - 1, subsampleRatio > 1f);
 			Profiler.PauseTiming();
 
 			return isExact;
@@ -326,13 +328,12 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		private bool buildPalette(Span<HistogramNode> nodeBuffer, bool isSubsampled)
+		private bool buildPalette(Span<HistogramNode> nodeBuffer, int targetColors, bool isSubsampled)
 		{
 			var nc = (Span<int>)stackalloc int[] { 0, 0, 0, 0, 0, 0, 0, 0 };
 			uint cpix = getNodeCounts(nodeBuffer, nc, leafLevel);
 
 			uint level = leafLevel;
-			int targetColors = maxPaletteSize - 1;
 			for (uint i = 2; i < leafLevel; i++)
 			{
 				if (nc[(int)i] > targetColors + targetColors / 2)

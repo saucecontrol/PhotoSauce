@@ -120,10 +120,10 @@ namespace PhotoSauce.MagicScaler
 
 						var clsid = cuid;
 						var options = mimes.First() switch {
-							KnownMimeTypes.Gif => GifDecoderOptions.Default,
+							KnownMimeTypes.Gif  => GifDecoderOptions.Default,
 							KnownMimeTypes.Jpeg => JpegDecoderOptions.Default,
 							KnownMimeTypes.Tiff => TiffDecoderOptions.Default,
-							_ => default(IDecoderOptions)
+							_                   => default(IDecoderOptions)
 						};
 
 						codecs.Add(new DecoderInfo(name, mimes, extensions, patterns, options, (stm, opt) => WicImageDecoder.TryLoad(clsid, stm, opt), trans, mult != 0, anim != 0));
@@ -134,10 +134,11 @@ namespace PhotoSauce.MagicScaler
 						bool prof = mime is not (KnownMimeTypes.Bmp or KnownMimeTypes.Gif or KnownMimeTypes.Dds);
 						var clsid = cuid;
 						var options = mime switch {
-							KnownMimeTypes.Png => PngEncoderOptions.Default,
+							KnownMimeTypes.Gif  => GifEncoderOptions.Default,
+							KnownMimeTypes.Png  => PngEncoderOptions.Default,
 							KnownMimeTypes.Jpeg => JpegEncoderOptions.Default,
 							KnownMimeTypes.Tiff => TiffEncoderOptions.Default,
-							_ => default(IEncoderOptions)
+							_                   => default(IEncoderOptions)
 						};
 
 						codecs.Add(new EncoderInfo(name, mimes, extensions, options, (stm, opt) => new WicImageEncoder(clsid, stm, opt), trans, mult != 0, anim != 0, prof));

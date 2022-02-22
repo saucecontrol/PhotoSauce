@@ -163,7 +163,7 @@ namespace PhotoSauce.MagicScaler
 			int cwidth = cmeta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenWidth);
 			int cheight = cmeta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenHeight);
 
-			bool alpha = cont.FrameCount > 1;
+			bool alpha = cont.IsAnimation;
 			if (!alpha)
 			{
 				using var frame = default(ComPtr<IWICBitmapFrameDecode>);

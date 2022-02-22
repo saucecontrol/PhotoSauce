@@ -67,6 +67,7 @@ namespace PhotoSauce.MagicScaler
 		public static ReadOnlySpan<byte> ScaleUQ15WithAlphaInt => new byte[] { 0, 0x80, 0, 0, 0, 0x80, 0, 0, 0, 0x80, 0, 0, 0xff, 0, 0, 0 };
 		public static ReadOnlySpan<byte> ScaleUQ15WithAlphaFloat => new byte[] { 0, 0, 0, 0x47, 0, 0, 0, 0x47, 0, 0, 0, 0x47, 0, 0, 0x7f, 0x43 };
 
+		// https://github.com/dotnet/runtime/issues/64784
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe Vector128<ulong> CreateVector128(ulong val) =>
 			sizeof(nuint) == sizeof(uint)

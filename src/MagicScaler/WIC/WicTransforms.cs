@@ -103,8 +103,11 @@ namespace PhotoSauce.MagicScaler
 		public static void AddIndexedColorConverter(PipelineContext ctx)
 		{
 			var curFormat = ctx.Source.Format;
-			bool greyToIndexed = (ctx.Settings.IndexedColor || ctx.Settings.SaveFormat == FileFormat.Bmp) && curFormat.ColorRepresentation == PixelColorRepresentation.Grey;
-			if ((ctx.Settings.IndexedColor && curFormat.NumericRepresentation != PixelNumericRepresentation.Indexed) || greyToIndexed)
+			var indexedOptions = ctx.Settings.EncoderOptions as IIndexedEncoderOptions;
+			bool autoPalette256 = indexedOptions?.MaxPaletteSize >= 256 && indexedOptions.PredefinedPalette is null;
+			bool greyToIndexed = curFormat.ColorRepresentation == PixelColorRepresentation.Grey && (ctx.Settings.SaveFormat == FileFormat.Bmp || autoPalette256);
+
+			if (greyToIndexed || (indexedOptions is not null && curFormat.NumericRepresentation != PixelNumericRepresentation.Indexed))
 			{
 				using var conv = default(ComPtr<IWICFormatConverter>);
 				HRESULT.Check(Wic.Factory->CreateFormatConverter(conv.GetAddressOf()));
@@ -115,18 +118,19 @@ namespace PhotoSauce.MagicScaler
 				if (FAILED(conv.Get()->CanConvert(&cfmt, &nfmt, &bval)) || bval == 0)
 					throw new NotSupportedException("Can't convert to destination pixel format");
 
-				var ptt = WICBitmapPaletteType.WICBitmapPaletteTypeCustom;
-				var bdt = WICBitmapDitherType.WICBitmapDitherTypeErrorDiffusion;
+				var palType = greyToIndexed ? WICBitmapPaletteType.WICBitmapPaletteTypeFixedGray256 : WICBitmapPaletteType.WICBitmapPaletteTypeCustom;
+				var ditType = greyToIndexed || indexedOptions!.Dither == DitherMode.None ? WICBitmapDitherType.WICBitmapDitherTypeNone : WICBitmapDitherType.WICBitmapDitherTypeErrorDiffusion;
 				using var pal = default(ComPtr<IWICPalette>);
 				HRESULT.Check(Wic.Factory->CreatePalette(pal.GetAddressOf()));
 
 				if (greyToIndexed)
 				{
-					ptt = WICBitmapPaletteType.WICBitmapPaletteTypeFixedGray256;
-					bdt = WICBitmapDitherType.WICBitmapDitherTypeNone;
-
-					HRESULT.Check(Wic.Factory->CreatePalette(pal.GetAddressOf()));
 					HRESULT.Check(pal.Get()->InitializePredefined(WICBitmapPaletteType.WICBitmapPaletteTypeFixedGray256, 0));
+				}
+				else if (indexedOptions!.PredefinedPalette is int[] cpal)
+				{
+					fixed (int* ppal = cpal)
+						HRESULT.Check(pal.Get()->InitializeCustom((uint*)ppal, (uint)cpal.Length));
 				}
 				else
 				{
@@ -136,11 +140,11 @@ namespace PhotoSauce.MagicScaler
 
 					var pp = ctx.AddProfiler($"{nameof(IWICPalette)}.{nameof(IWICPalette.InitializeFromBitmap)}");
 					pp.ResumeTiming(ctx.Source.Area);
-					HRESULT.Check(pal.Get()->InitializeFromBitmap(ctx.Source.AsIWICBitmapSource(), 256u, curFormat.AlphaRepresentation == PixelAlphaRepresentation.None ? 0 : -1));
+					HRESULT.Check(pal.Get()->InitializeFromBitmap(ctx.Source.AsIWICBitmapSource(), (uint)indexedOptions.MaxPaletteSize, curFormat.AlphaRepresentation == PixelAlphaRepresentation.None ? -1 : -1));
 					pp.PauseTiming();
 				}
 
-				HRESULT.Check(conv.Get()->Initialize(ctx.Source.AsIWICBitmapSource(), &nfmt, bdt, pal, 33.33, ptt));
+				HRESULT.Check(conv.Get()->Initialize(ctx.Source.AsIWICBitmapSource(), &nfmt, ditType, pal, 33.33, palType));
 				ctx.Source = ctx.AddProfiler(new ComPtr<IWICBitmapSource>((IWICBitmapSource*)conv.Get()).AsPixelSource(ctx.Source, $"{nameof(IWICFormatConverter)}: {curFormat.Name}->{PixelFormat.Indexed8.Name}"));
 			}
 		}
