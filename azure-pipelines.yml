@@ -51,6 +51,9 @@ jobs:
 - job: managed
   dependsOn: native
 
+  pool:
+    vmImage: ubuntu-latest
+
   steps:
   - checkout: self
     submodules: true
