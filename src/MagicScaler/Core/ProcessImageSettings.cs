@@ -82,11 +82,11 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>Constructs a new <see cref="InterpolationSettings" /> instance with the specified values.</summary>
 		/// <param name="weighting">The weighting function implementation.</param>
 		/// <param name="blur">The blur factor for the weighting function.</param>
-		public InterpolationSettings(IInterpolator weighting, double blur)
+		public InterpolationSettings(IInterpolator weighting!!, double blur)
 		{
 			if (blur < 0.5 || blur > 1.5) throw new ArgumentOutOfRangeException(nameof(blur), "Value must be between 0.5 and 1.5");
 
-			WeightingFunction = weighting ?? throw new ArgumentNullException(nameof(weighting));
+			WeightingFunction = weighting;
 			this.blur = blur;
 		}
 	}
@@ -298,9 +298,8 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>Create a new <see cref="ProcessImageSettings" /> instance based on name/value pairs in a dictionary.</summary>
 		/// <param name="dic">The dictionary containing the name/value pairs.</param>
 		/// <returns>A new settings instance.</returns>
-		public static ProcessImageSettings FromDictionary(IDictionary<string, string?> dic)
+		public static ProcessImageSettings FromDictionary(IDictionary<string, string?> dic!!)
 		{
-			if (dic == null) throw new ArgumentNullException(nameof(dic));
 			if (dic.Count == 0) return new ProcessImageSettings();
 
 			var s = new ProcessImageSettings {

@@ -19,7 +19,7 @@
 		<PackageTags>Image Resize Resample Process Crop Sharpen Rotate Flip WIC JPEG JPG PNG GIF TIFF</PackageTags>
 		<PackageReleaseNotes>See $(RepositoryUrl)/releases for release-specific notes.</PackageReleaseNotes>
 
-		<LangVersion>10</LangVersion>
+		<LangVersion>preview</LangVersion>
 		<Features>strict</Features>
 		<Nullable>annotations</Nullable>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -50,8 +50,12 @@
 	<PropertyGroup Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">
 		<Deterministic>true</Deterministic>
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>
-		<IsTrimmable>true</IsTrimmable>
+		<!--<IsTrimmable>true</IsTrimmable> https://github.com/dotnet/linker/issues/2622 --> 
 	</PropertyGroup>
+
+	<ItemGroup>
+    <PackageReference Include="Microsoft.Net.Compilers.Toolset" Version="4.2.0-1.final" PrivateAssets="all" />		
+	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">
 		<None Include="$(MSBuildThisFileDirectory)$(Company).png" Pack="true" PackagePath="package" />

@@ -1,14 +1,12 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
+using System.IO;
 using System.Buffers;
 using System.Drawing;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
-#if !BUILTIN_SPAN
-using System.IO;
-#endif
 #if NETFRAMEWORK
 using System.Linq;
 using System.Configuration;
@@ -69,6 +67,21 @@ namespace PhotoSauce.MagicScaler
 			}
 
 			return ext;
+		}
+
+		public static void EnsureValidForInput(this Stream stm)
+		{
+			if (!stm.CanSeek || !stm.CanRead)
+				throw new InvalidOperationException("Input Stream must allow Seek and Read.");
+
+			if ((ulong)stm.Position >= (ulong)stm.Length)
+				throw new InvalidOperationException("Input Stream is empty or positioned at its end.");
+		}
+
+		public static void EnsureValidForOutput(this Stream stm)
+		{
+			if (!stm.CanSeek || !stm.CanWrite)
+				throw new InvalidOperationException("Output Stream must allow Seek and Write.");
 		}
 
 		public static void TryReturn<T>(this ArrayPool<T> pool, T[]? buff)

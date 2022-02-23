@@ -134,7 +134,7 @@ namespace PhotoSauce.MagicScaler
 
 		/// <summary>Adds a new transform filter to the pipeline.  Because a filter may alter dimensions or pixel format of an image, filters may not be added once the <see cref="PixelSource" /> has been retrieved.</summary>
 		/// <param name="transform">The <see cref="IPixelTransform" /> that implements the filter.</param>
-		public ProcessingPipeline AddTransform(IPixelTransform transform)
+		public ProcessingPipeline AddTransform(IPixelTransform transform!!)
 		{
 			if (source.IsValueCreated)
 				throw new NotSupportedException("A Transform cannot be added once the Pipeline Source is materialized");
@@ -155,7 +155,12 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>Completes processing of the pipeline, writing the output image to <paramref name="outStream" />.</summary>
 		/// <param name="outStream">The stream to which the output image will be written. The stream must allow Seek and Write.</param>
 		/// <returns>A <see cref="ProcessImageResult" /> containing the settings used and basic instrumentation for the pipeline.</returns>
-		public ProcessImageResult WriteOutput(Stream outStream) => MagicImageProcessor.WriteOutput(Context, outStream);
+		public ProcessImageResult WriteOutput(Stream outStream!!)
+		{
+			outStream.EnsureValidForOutput();
+
+			return MagicImageProcessor.WriteOutput(Context, outStream);
+		}
 
 		/// <inheritdoc />
 		public void Dispose() => Context.Dispose();

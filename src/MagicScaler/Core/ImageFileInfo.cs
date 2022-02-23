@@ -75,12 +75,9 @@ namespace PhotoSauce.MagicScaler
 
 		/// <summary>Constructs a new <see cref="ImageFileInfo" /> instance by reading the metadata from an image file header.</summary>
 		/// <param name="imgPath">The path to the image file.</param>
-		public static ImageFileInfo Load(string imgPath)
+		public static ImageFileInfo Load(string imgPath!!)
 		{
 			var fi = new FileInfo(imgPath);
-			if (!fi.Exists)
-				throw new FileNotFoundException("File not found", imgPath);
-
 			using var fs = new FileStream(imgPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
 			using var bfs = new PoolBufferedStream(fs);
 			using var cnt = CodecManager.GetDecoderForStream(bfs);
@@ -113,11 +110,9 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>Constructs a new <see cref="ImageFileInfo" /> instance by reading the metadata from an image file exposed by a <see cref="Stream" />.</summary>
 		/// <param name="imgStream">The stream containing the image data.</param>
 		/// <param name="lastModified">The last modified date of the image container.</param>
-		public static ImageFileInfo Load(Stream imgStream, DateTime lastModified)
+		public static ImageFileInfo Load(Stream imgStream!!, DateTime lastModified)
 		{
-			if (imgStream is null) throw new ArgumentNullException(nameof(imgStream));
-			if (!imgStream.CanSeek || !imgStream.CanRead) throw new ArgumentException("Input Stream must allow Seek and Read", nameof(imgStream));
-			if (imgStream.Length <= 0 || imgStream.Position >= imgStream.Length) throw new ArgumentException("Input Stream is empty or positioned at its end", nameof(imgStream));
+			imgStream.EnsureValidForInput();
 
 			using var bfs = PoolBufferedStream.WrapIfFile(imgStream);
 			using var cnt = CodecManager.GetDecoderForStream(bfs ?? imgStream);

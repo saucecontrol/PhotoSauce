@@ -30,9 +30,8 @@ namespace PhotoSauce.MagicScaler
 
 		public static Stream? WrapIfFile(Stream stm) => stm is FileStream fs ? new PoolBufferedStream(fs) : null;
 
-		public PoolBufferedStream(Stream stm, bool own = false)
+		public PoolBufferedStream(Stream stm!!, bool own = false)
 		{
-			if (stm is null) throw new ArgumentNullException(nameof(stm));
 			if (!stm.CanSeek) throw new NotSupportedException("Stream must support Seek.");
 
 			backingStream = stm;

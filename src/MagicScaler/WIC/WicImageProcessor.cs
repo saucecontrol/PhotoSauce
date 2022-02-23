@@ -11,14 +11,14 @@ namespace PhotoSauce.MagicScaler
 {
 	public static class WicImageProcessor
 	{
-		public static ProcessImageResult ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
+		public static ProcessImageResult ProcessImage(string imgPath!!, Stream outStream!!, ProcessImageSettings settings!!)
 		{
 			using var ctx = new PipelineContext(settings, WicImageDecoder.Load(imgPath, settings.DecoderOptions));
 
 			return processImage(ctx, outStream);
 		}
 
-		public static unsafe ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
+		public static unsafe ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream!!, ProcessImageSettings settings!!)
 		{
 			fixed (byte* pbBuffer = imgBuffer)
 			{
@@ -28,7 +28,7 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		public static ProcessImageResult ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings)
+		public static ProcessImageResult ProcessImage(Stream imgStream!!, Stream outStream!!, ProcessImageSettings settings!!)
 		{
 			using var ctx = new PipelineContext(settings, WicImageDecoder.Load(imgStream, settings.DecoderOptions));
 
