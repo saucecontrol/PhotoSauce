@@ -12,7 +12,7 @@ namespace PhotoSauce.MagicScaler
 		private int capacity;
 		private int start;
 		private int loaded;
-		private int consumed;
+		private int read;
 
 		private byte[]? buffArray;
 		private byte buffOffset;
@@ -38,6 +38,23 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
+		private int consumed
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => typeof(T) == typeof(BufferType.Windowed) ? loaded : read;
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			set
+			{
+				if (typeof(T) != typeof(BufferType.Windowed))
+					read = value;
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private (int, int) getValidRange() => typeof(T) == typeof(BufferType.Windowed) && loaded > read
+				? (start + loaded - read, read)
+				: (start, loaded);
+
 		public readonly int Stride;
 
 		public PixelBuffer(int minLines, int stride, T param = default)
@@ -45,6 +62,7 @@ namespace PhotoSauce.MagicScaler
 			capacity = minLines;
 			Stride = stride;
 			tval = param;
+			read = typeof(T) == typeof(BufferType.Windowed) ? minLines : 0;
 		}
 
 		private Span<byte> init(int first, int lines)
@@ -100,7 +118,8 @@ namespace PhotoSauce.MagicScaler
 
 		public Span<byte> PrepareLoad(ref int first, ref int lines)
 		{
-			if (buffArray is null || first < start || first > (start + loaded))
+			var (firstValid, linesValid) = getValidRange();
+			if (buffArray is null || first < firstValid || first > (firstValid + linesValid))
 				return init(first, lines);
 
 			int toLoad, toKeep;
@@ -171,11 +190,20 @@ namespace PhotoSauce.MagicScaler
 			return new ReadOnlySpan<byte>(buffArray, buffOffset + offset * Stride, window != 0 ? window : lines * Stride);
 		}
 
-		public bool ContainsLine(int line) => line >= start && line < start + loaded;
+		public bool ContainsLine(int line) => ContainsRange(line, 1);
 
-		public bool ContainsRange(int first, int lines) => first >= start && first + lines <= start + loaded;
+		public bool ContainsRange(int first, int lines)
+		{
+			var (firstValid, linesValid) = getValidRange();
+			return first >= firstValid && first + lines <= firstValid + linesValid;
+		}
 
-		public void Reset() => start = loaded = consumed = 0;
+		public void Reset()
+		{
+			start = loaded = 0;
+			if (typeof(T) != typeof(BufferType.Windowed))
+				read = 0;
+		}
 
 		public void Dispose()
 		{
