@@ -8,16 +8,18 @@ using System.Runtime.CompilerServices;
 namespace PhotoSauce.MagicScaler
 {
 	/// <summary>A sample <see cref="IPixelSource" /> implementation.  Creates a test pattern of stair-stepped color or grey bars.</summary>
+	/// <remarks>This pixel source is useful when a simple recognizable pattern is desired.  It produces output at <c>memcpy</c> speed.</remarks>
 	public sealed class TestPatternPixelSource : IPixelSource, IDisposable
 	{
-		private static readonly Guid[] formats = new[] { Guid.Empty, PixelFormats.Grey8bpp, Guid.Empty, PixelFormats.Bgr24bpp, PixelFormats.Bgra32bpp };
+		private static readonly Guid[] formats = new[] { default, PixelFormats.Grey8bpp, default, PixelFormats.Bgr24bpp, PixelFormats.Bgra32bpp };
 
-		private readonly Lazy<IMemoryOwner<byte>> pixels;
 		private readonly int channels;
 		private readonly int cols;
 		private readonly int rows;
 		private readonly int stride;
 		private readonly double rheight;
+
+		private byte[]? pixels;
 
 		/// <inheritdoc />
 		public Guid Format => formats[channels];
@@ -45,18 +47,14 @@ namespace PhotoSauce.MagicScaler
 			rheight = (double)rows / height;
 
 			stride = MathUtil.PowerOfTwoCeiling(width * channels, IntPtr.Size);
-			pixels = new Lazy<IMemoryOwner<byte>>(() => {
-				var buff = MemoryPool<byte>.Shared.Rent(stride * rows);
-				drawPattern(buff.Memory.Span);
-				return buff;
-			});
 		}
 
-		private unsafe void drawPattern(Span<byte> buff)
+		private unsafe byte[] getPattern()
 		{
 			const uint mask = 0xf0f0f0f0u; // limits the max intensity of color values
 
-			fixed (byte* buffStart = buff)
+			var buff = ArrayPool<byte>.Shared.Rent(stride * rows);
+			fixed (byte* buffStart = &buff[0])
 			{
 				uint barVal = mask;
 				double cwidth = (double)Width / cols;
@@ -102,6 +100,8 @@ namespace PhotoSauce.MagicScaler
 					Unsafe.InitBlockUnaligned(buffStart + rowOffs + colOffs, blankVal, (uint)(stride - colOffs));
 				}
 			}
+
+			return buff;
 		}
 
 		/// <inheritdoc />
@@ -119,19 +119,22 @@ namespace PhotoSauce.MagicScaler
 			if ((rh - 1) * cbStride + cb > buffer.Length)
 				throw new ArgumentOutOfRangeException(nameof(buffer), "Buffer is too small for the requested area");
 
-			var pixspan = pixels.Value.Memory.Span;
+			pixels ??= getPattern();
 			for (int y = 0; y < rh; y++)
 			{
 				int row = Math.Min((int)((ry + y) * rheight), rows - 1);
-				Unsafe.CopyBlockUnaligned(ref buffer[y * cbStride], ref pixspan[row * stride + rx * channels], (uint)cb);
+				Unsafe.CopyBlockUnaligned(ref buffer[y * cbStride], ref pixels[row * stride + rx * channels], (uint)cb);
 			}
 		}
 
 		/// <inheritdoc />
 		public void Dispose()
 		{
-			if (pixels.IsValueCreated)
-				pixels.Value.Dispose();
+			if (pixels is null)
+				return;
+
+			ArrayPool<byte>.Shared.Return(pixels);
+			pixels = default;
 		}
 
 		/// <inheritdoc />
