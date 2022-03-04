@@ -26,7 +26,6 @@ namespace PhotoSauce.MagicScaler
 
 		public FileFormat ContainerFormat { get; }
 		public IDecoderOptions? Options { get; }
-		public bool IsAnimation { get; }
 		public int FrameCount { get; }
 		public int FrameOffset { get; }
 
@@ -43,12 +42,12 @@ namespace PhotoSauce.MagicScaler
 
 		public virtual IImageFrame GetFrame(int index)
 		{
-			if ((uint)index >= (uint)FrameCount) throw new IndexOutOfRangeException("Invalid frame index.");
+			if ((uint)(FrameOffset + index) >= (uint)(FrameOffset + FrameCount)) throw new IndexOutOfRangeException("Invalid frame index.");
 
 			return new WicImageFrame(this, (uint)(FrameOffset + index));
 		}
 
-		public WicImageContainer(IWICBitmapDecoder* dec, FileFormat fmt, IDecoderOptions? options)
+		protected WicImageContainer(IWICBitmapDecoder* dec, FileFormat fmt, IDecoderOptions? options)
 		{
 			WicDecoder = dec;
 			ContainerFormat = fmt;
@@ -60,8 +59,6 @@ namespace PhotoSauce.MagicScaler
 				(FrameOffset, FrameCount) = opt.FrameRange.GetOffsetAndLength((int)fcount);
 			else
 				(FrameOffset, FrameCount) = (0, (int)fcount);
-
-			IsAnimation = fmt == FileFormat.Gif && fcount > 1;
 		}
 
 		public static WicImageContainer Create(IWICBitmapDecoder* dec, IDecoderOptions? options = null)
@@ -110,6 +107,8 @@ namespace PhotoSauce.MagicScaler
 		};
 
 		public readonly AnimationContainer AnimationMetadata;
+
+		public bool IsAnimation => FrameOffset + FrameCount > 1;
 
 		public WicGifContainer(IWICBitmapDecoder* dec, IDecoderOptions? options) : base(dec, FileFormat.Gif, options)
 		{
@@ -172,9 +171,9 @@ namespace PhotoSauce.MagicScaler
 			return base.TryGetMetadata(out metadata!);
 		}
 
-		public void ReplayGifAnimation(PipelineContext ctx, int offset)
+		public void ReplayAnimation(PipelineContext ctx, int offset)
 		{
-			var anictx = ctx.AnimationContext ??= new AnimationPipelineContext();
+			var anictx = ctx.AnimationContext ??= new();
 			for (int i = -offset; i <= 0; i++)
 			{
 				var gifFrame = (WicGifFrame)GetFrame(i);

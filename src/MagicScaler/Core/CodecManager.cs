@@ -51,7 +51,7 @@ namespace PhotoSauce.MagicScaler
 	/// <param name="Pattern">A byte pattern to match at the given <paramref name="Offset" />.</param>
 	/// <param name="Mask">A mask to apply to image bytes (using binary <see langword="&amp;" />) before matching against the <paramref name="Pattern"/>.</param>
 	/// <remarks>The total length described by (<paramref name="Offset" /> + <paramref name="Pattern" />.Length) should not be more than 16 bytes.</remarks>
-	public readonly record struct ContainerPattern(int Offset, byte[] Pattern, byte[] Mask);
+	public readonly record struct ContainerPattern(int Offset, byte[] Pattern!!, byte[] Mask!!);
 
 	/// <inheritdoc />
 	/// <param name="Name"><inheritdoc cref="IImageCodecInfo.Name" path="/summary/node()" /></param>
@@ -80,12 +80,12 @@ namespace PhotoSauce.MagicScaler
 	/// <param name="SupportsMultiFrame"><inheritdoc cref="IImageCodecInfo.SupportsMultiFrame" path="/summary/node()" /></param>
 	/// <param name="SupportsAnimation"><inheritdoc cref="IImageCodecInfo.SupportsAnimation" path="/summary/node()" /></param>
 	public sealed record class DecoderInfo(
-		string Name,
-		IEnumerable<string> MimeTypes,
-		IEnumerable<string> FileExtensions,
-		IEnumerable<ContainerPattern> Patterns,
+		string Name!!,
+		IEnumerable<string> MimeTypes!!,
+		IEnumerable<string> FileExtensions!!,
+		IEnumerable<ContainerPattern> Patterns!!,
 		IDecoderOptions? DefaultOptions,
-		Func<Stream, IDecoderOptions?, IImageContainer?> Factory,
+		Func<Stream, IDecoderOptions?, IImageContainer?> Factory!!,
 		bool SupportsTransparency,
 		bool SupportsMultiFrame,
 		bool SupportsAnimation
@@ -95,6 +95,7 @@ namespace PhotoSauce.MagicScaler
 	/// <param name="Name"><inheritdoc cref="IImageCodecInfo.Name" path="/summary/node()" /></param>
 	/// <param name="MimeTypes"><inheritdoc cref="IImageCodecInfo.MimeTypes" path="/summary/node()" /></param>
 	/// <param name="FileExtensions"><inheritdoc cref="IImageCodecInfo.FileExtensions" path="/summary/node()" /></param>
+	/// <param name="PixelFormats"><inheritdoc cref="IImageEncoderInfo.PixelFormats" path="/summary/node()" /></param>
 	/// <param name="DefaultOptions"><inheritdoc cref="IImageEncoderInfo.DefaultOptions" path="/summary/node()" /></param>
 	/// <param name="Factory"><inheritdoc cref="IImageEncoderInfo.Factory" path="/summary/node()" /></param>
 	/// <param name="SupportsTransparency"><inheritdoc cref="IImageCodecInfo.SupportsTransparency" path="/summary/node()" /></param>
@@ -102,11 +103,12 @@ namespace PhotoSauce.MagicScaler
 	/// <param name="SupportsAnimation"><inheritdoc cref="IImageCodecInfo.SupportsAnimation" path="/summary/node()" /></param>
 	/// <param name="SupportsColorProfile"><inheritdoc cref="IImageEncoderInfo.SupportsColorProfile" path="/summary/node()" /></param>
 	public sealed record class EncoderInfo(
-		string Name,
-		IEnumerable<string> MimeTypes,
-		IEnumerable<string> FileExtensions,
+		string Name!!,
+		IEnumerable<string> MimeTypes!!,
+		IEnumerable<string> FileExtensions!!,
+		IEnumerable<Guid> PixelFormats!!,
 		IEncoderOptions? DefaultOptions,
-		Func<Stream, IEncoderOptions?, IImageEncoder> Factory,
+		Func<Stream, IEncoderOptions?, IImageEncoder> Factory!!,
 		bool SupportsTransparency,
 		bool SupportsMultiFrame,
 		bool SupportsAnimation,
@@ -126,13 +128,13 @@ namespace PhotoSauce.MagicScaler
 		public int Count => codecs.Count;
 
 		/// <inheritdoc />
-		public bool Contains(IImageCodecInfo item) => codecs.Contains(item);
+		public bool Contains(IImageCodecInfo item!!) => codecs.Contains(item);
 
 		/// <inheritdoc />
-		public void Add(IImageCodecInfo item) => codecs.Add(item);
+		public void Add(IImageCodecInfo item!!) => codecs.Add(item);
 
 		/// <inheritdoc />
-		public bool Remove(IImageCodecInfo item) => codecs.Remove(item);
+		public bool Remove(IImageCodecInfo item!!) => codecs.Remove(item);
 
 		/// <inheritdoc />
 		public void Clear() => codecs.Clear();
@@ -151,7 +153,7 @@ namespace PhotoSauce.MagicScaler
 		internal IImageContainer GetDecoderForStream(Stream stm, IDecoderOptions? options = null)
 		{
 			if ((stm.Length - stm.Position) < sizeof(ulong) * 2)
-				throw new InvalidDataException("The given data is too small to be a valid image.");
+				throw new InvalidDataException("The input is too small to be a valid image.");
 
 			int rem = sizeof(ulong) * 2;
 #if BUILTIN_SPAN
@@ -240,9 +242,8 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-#pragma warning disable CS0649 // fields are never initialized
+		[StructLayout(LayoutKind.Sequential)]
 		private struct DecoderPattern { public ulong m1; public ulong m2; public ulong p1; public ulong p2; public IImageDecoderInfo dec; }
-#pragma warning restore CS0649
 	}
 
 	/// <summary>Manages registration of encoders, decoders, and image type mappings.</summary>
@@ -254,6 +255,7 @@ namespace PhotoSauce.MagicScaler
 			nameof(FallbackEncoder),
 			new[] { string.Empty },
 			new[] { string.Empty },
+			Enumerable.Empty<Guid>(),
 			null,
 			(s, o) => throw new NotSupportedException("No encoders are registered."),
 			false, false, false, false
@@ -292,5 +294,11 @@ namespace PhotoSauce.MagicScaler
 		internal static bool TryGetEncoderForFileExtension(string extension, [NotNullWhen(true)] out IImageEncoderInfo? info) => getCodecs().TryGetEncoderForFileExtension(extension, out info);
 
 		internal static bool TryGetEncoderForMimeType(string mimeType, [NotNullWhen(true)] out IImageEncoderInfo? info) => getCodecs().TryGetEncoderForMimeType(mimeType, out info);
+
+		internal static bool SupportsMimeType(this IImageEncoderInfo enc, string mime) => enc.MimeTypes is string[] arr ? Array.IndexOf(arr, mime) >= 0 : enc.MimeTypes.Contains(mime);
+
+		internal static bool SupportsPixelFormat(this IImageEncoderInfo enc, Guid fmt) => enc.PixelFormats is Guid[] arr ? Array.IndexOf(arr, fmt) >= 0 : enc.PixelFormats.Contains(fmt);
+
+		internal static bool SupportsPlanar(this IImageEncoderInfo enc) => SupportsPixelFormat(enc, PixelFormat.Y8.FormatGuid);
 	}
 }

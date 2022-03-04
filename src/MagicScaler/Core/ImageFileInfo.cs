@@ -123,7 +123,7 @@ namespace PhotoSauce.MagicScaler
 		private static ImageFileInfo fromContainer(IImageContainer cont, long fileSize, DateTime fileDate)
 		{
 			var cfmt = cont.ContainerFormat;
-			var frames = cfmt == FileFormat.Gif && cont is WicImageContainer wcnt ? getGifFrameInfo(wcnt) : getFrameInfo(cont);
+			var frames = cont is WicGifContainer gif ? getGifFrameInfo(gif) : getFrameInfo(cont);
 
 			return new ImageFileInfo(cfmt, frames, fileSize, fileDate);
 		}
@@ -150,26 +150,26 @@ namespace PhotoSauce.MagicScaler
 			return frames;
 		}
 
-		private static unsafe FrameInfo[] getGifFrameInfo(WicImageContainer cont)
+		private static unsafe FrameInfo[] getGifFrameInfo(WicGifContainer gif)
 		{
 			using var cmeta = default(ComPtr<IWICMetadataQueryReader>);
-			HRESULT.Check(cont.WicDecoder->GetMetadataQueryReader(cmeta.GetAddressOf()));
+			HRESULT.Check(gif.WicDecoder->GetMetadataQueryReader(cmeta.GetAddressOf()));
 
 			int cwidth = cmeta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenWidth);
 			int cheight = cmeta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenHeight);
 
-			bool alpha = cont.IsAnimation;
+			bool alpha = gif.IsAnimation;
 			if (!alpha)
 			{
 				using var frame = default(ComPtr<IWICBitmapFrameDecode>);
 				using var fmeta = default(ComPtr<IWICMetadataQueryReader>);
-				HRESULT.Check(cont.WicDecoder->GetFrame(0, frame.GetAddressOf()));
+				HRESULT.Check(gif.WicDecoder->GetFrame(0, frame.GetAddressOf()));
 				HRESULT.Check(frame.Get()->GetMetadataQueryReader(fmeta.GetAddressOf()));
 
 				alpha = fmeta.GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
 			}
 
-			var frames = new FrameInfo[cont.FrameCount];
+			var frames = new FrameInfo[gif.FrameCount];
 			for (int i = 0; i < frames.Length; i++)
 				frames[i] = new FrameInfo(cwidth, cheight, alpha, Orientation.Normal);
 

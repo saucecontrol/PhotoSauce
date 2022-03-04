@@ -1,6 +1,7 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
+using System.Drawing;
 using System.Diagnostics.CodeAnalysis;
 
 using TerraFX.Interop;
@@ -116,7 +117,7 @@ namespace PhotoSauce.MagicScaler
 			if (PixelFormat.FromGuid(guid).NumericRepresentation == PixelNumericRepresentation.Indexed)
 			{
 				var newFormat = PixelFormat.Bgr24;
-				if (Container.ContainerFormat == FileFormat.Gif && Container.IsAnimation)
+				if (Container is WicGifContainer gif && gif.IsAnimation)
 				{
 					newFormat = PixelFormat.Bgra32;
 				}
@@ -250,6 +251,7 @@ namespace PhotoSauce.MagicScaler
 	internal sealed unsafe class WicGifFrame : WicImageFrame
 	{
 		public readonly AnimationFrame AnimationMetadata;
+		public readonly Size Size;
 
 		public WicGifFrame(WicGifContainer cont, uint index) : base(cont, index)
 		{
@@ -268,6 +270,7 @@ namespace PhotoSauce.MagicScaler
 
 			width = (uint)Math.Min(width, cont.AnimationMetadata.ScreenWidth - left);
 			height = (uint)Math.Min(height, cont.AnimationMetadata.ScreenHeight - top);
+			Size = new((int)width, (int)height);
 
 			var duration = new Rational(meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameDelay), 100);
 			var disposal = ((FrameDisposalMethod)meta.GetValueOrDefault<byte>(Wic.Metadata.Gif.FrameDisposal)).Clamp();

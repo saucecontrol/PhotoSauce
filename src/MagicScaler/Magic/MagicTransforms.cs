@@ -101,7 +101,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, ctx.SourceColorProfile, ctx.DestColorProfile, ofmt));
 		}
 
-		public static void AddExternalFormatConverter(PipelineContext ctx, bool forceChroma = false)
+		public static void AddExternalFormatConverter(PipelineContext ctx, bool lastChance = false)
 		{
 			var ifmt = ctx.Source.Format;
 			var ofmt = ifmt;
@@ -122,7 +122,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					plsrc.SourceCb = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCb, null, null, ofmtb));
 					plsrc.SourceCr = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCr, null, null, ofmtc));
 				}
-				else if (forceChroma && plsrc.VideoChromaLevels)
+				else if (lastChance && plsrc.VideoChromaLevels)
 				{
 					plsrc.SourceCb = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCb, null, null, plsrc.SourceCb.Format, plsrc.VideoChromaLevels));
 					plsrc.SourceCr = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCr, null, null, plsrc.SourceCr.Format, plsrc.VideoChromaLevels));
@@ -134,6 +134,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			if (ofmt != ifmt)
 				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, ctx.SourceColorProfile, ctx.DestColorProfile, ofmt));
+			else if (lastChance && ifmt == PixelFormat.Bgrx32 && ctx.Settings.EncoderInfo.SupportsPixelFormat(PixelFormat.Bgr24.FormatGuid))
+				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, null, null, PixelFormat.Bgr24));
 		}
 
 		public static void AddHighQualityScaler(PipelineContext ctx, ChromaSubsampleMode subsample = ChromaSubsampleMode.Subsample444)
@@ -232,9 +234,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 			if (fmt.NumericRepresentation == PixelNumericRepresentation.Float && fmt.Encoding == PixelValueEncoding.Companded)
 				AddInternalFormatConverter(ctx, PixelValueEncoding.Linear);
 
-			ctx.Source = ctx.AddProfiler(new MatteTransform(ctx.Source, ctx.Settings.MatteColor, !ctx.IsAnimatedGifPipeline));
+			bool discardAlpha = !ctx.IsAnimationPipeline && !ctx.Settings.MatteColor.IsTransparent();
+			ctx.Source = ctx.AddProfiler(new MatteTransform(ctx.Source, ctx.Settings.MatteColor, discardAlpha));
 
-			if (!ctx.IsAnimatedGifPipeline && ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None && !ctx.Settings.MatteColor.IsTransparent())
+			if (discardAlpha && ctx.Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None)
 			{
 				var oldFmt = ctx.Source.Format;
 				var newFmt = oldFmt == PixelFormat.Pbgra64UQ15Linear ? PixelFormat.Bgr48UQ15Linear
@@ -404,18 +407,27 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public static unsafe void AddIndexedColorConverter(PipelineContext ctx)
 		{
+			var encinfo = ctx.Settings.EncoderInfo;
+			if (!encinfo.SupportsPixelFormat(PixelFormat.Indexed8.FormatGuid))
+				return;
+
 			var curFormat = ctx.Source.Format;
 			var indexedOptions = ctx.Settings.EncoderOptions as IIndexedEncoderOptions;
-			bool autoPalette256 = indexedOptions?.MaxPaletteSize >= 256 && indexedOptions.PredefinedPalette is null;
+			if (indexedOptions is null && encinfo.SupportsPixelFormat(curFormat.FormatGuid))
+				return;
 
-			if (curFormat.ColorRepresentation == PixelColorRepresentation.Grey && (ctx.Settings.SaveFormat == FileFormat.Bmp || autoPalette256))
+			indexedOptions ??= ctx.Settings.EncoderInfo.DefaultOptions as IIndexedEncoderOptions;
+			bool autoPalette256 = indexedOptions is null || (indexedOptions.MaxPaletteSize >= 256 && indexedOptions.PredefinedPalette is null);
+
+			if (curFormat.ColorRepresentation == PixelColorRepresentation.Grey && autoPalette256)
 			{
 				ctx.Source = ctx.AddProfiler(new IndexedColorTransform(ctx.Source));
 			}
-			else if (indexedOptions is not null && curFormat.NumericRepresentation != PixelNumericRepresentation.Indexed)
+			else if (curFormat.NumericRepresentation != PixelNumericRepresentation.Indexed && indexedOptions is not null)
 			{
-				if (curFormat != PixelFormat.Bgra32 && curFormat != PixelFormat.Bgrx32)
-					ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, null, null, curFormat.AlphaRepresentation != PixelAlphaRepresentation.None ? PixelFormat.Bgra32 : PixelFormat.Bgrx32));
+				var newfmt = curFormat.AlphaRepresentation != PixelAlphaRepresentation.None ? PixelFormat.Bgra32 : PixelFormat.Bgrx32;
+				if (curFormat != newfmt)
+					ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, null, null, newfmt));
 
 				var iconv = default(IndexedColorTransform);
 				if (indexedOptions.PredefinedPalette is not null)
@@ -442,17 +454,25 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 		}
 
-		public static unsafe void AddGifFrameBuffer(PipelineContext ctx, bool replay = true)
+		public static unsafe void AddAnimationFrameBuffer(PipelineContext ctx, bool replay = true)
 		{
-			var anifrm = AnimationFrame.Default;
-			bool nometa = ctx.ImageFrame is not IMetadataSource fmsrc || !fmsrc.TryGetMetadata(out anifrm);
-			if (!ctx.ImageContainer.IsAnimation && nometa)
+			var anicnt = default(AnimationContainer);
+			var anifrm = default(AnimationFrame);
+
+			bool nocntmeta = ctx.ImageContainer is not IMetadataSource cmsrc || !cmsrc.TryGetMetadata(out anicnt);
+			bool nofrmmeta = ctx.ImageFrame is not IMetadataSource fmsrc || !fmsrc.TryGetMetadata(out anifrm);
+			if (nocntmeta && nofrmmeta)
 				return;
+
+			if (nocntmeta || anicnt.ScreenWidth is 0 || anicnt.ScreenHeight is 0)
+				anicnt = new(ctx.Source.Width, ctx.Source.Height);
+			if (nofrmmeta)
+				anifrm = AnimationFrame.Default;
 
 			if (replay && ctx.ImageContainer is WicGifContainer gif && gif.IsAnimation)
 			{
 				if (gif.FrameOffset != 0)
-					gif.ReplayGifAnimation(ctx, gif.FrameOffset);
+					gif.ReplayAnimation(ctx, gif.FrameOffset);
 
 				replay = false;
 			}
@@ -460,14 +480,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 			var disposal = anifrm.Disposal;
 			var ldisp = ctx.AnimationContext?.LastDisposal ?? FrameDisposalMethod.RestoreBackground;
 			var innerArea = new PixelArea(anifrm.OffsetLeft, anifrm.OffsetTop, ctx.Source.Width, ctx.Source.Height);
-
-			if (ctx.ImageContainer is not IMetadataSource cmsrc || !cmsrc.TryGetMetadata<AnimationContainer>(out var anicnt))
-				anicnt = new AnimationContainer(innerArea.Width, innerArea.Height);
-
 			bool useBuffer = !replay && disposal == FrameDisposalMethod.Preserve;
+
 			if (!replay)
 			{
-				var anictx = ctx.AnimationContext ??= new AnimationPipelineContext();
+				var anictx = ctx.AnimationContext ??= new();
 
 				if (anicnt.RequiresScreenBuffer && disposal == FrameDisposalMethod.Preserve)
 					anictx.UpdateFrameBuffer(ctx.ImageFrame, anicnt, anifrm);

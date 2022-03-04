@@ -17,7 +17,7 @@ namespace PhotoSauce.ManagedCodecs.ImageSharp
 {
 	internal readonly record struct TargaEncoderOptions(TgaCompression Compression) : IEncoderOptions
 	{
-		public static TargaEncoderOptions Default => new(TgaCompression.None);
+		public static TargaEncoderOptions Default => default;
 	}
 
 	/// <summary>Encoder for TARGA image files.</summary>
@@ -98,9 +98,6 @@ namespace PhotoSauce.ManagedCodecs.ImageSharp
 
 		/// <inheritdoc />
 		public FileFormat ContainerFormat => FileFormat.Unknown;
-
-		/// <inheritdoc />
-		public bool IsAnimation => false;
 
 		int IImageContainer.FrameCount => 1;
 
@@ -218,6 +215,8 @@ namespace PhotoSauce.ManagedCodecs.ImageSharp
 		public static void UseImageSharpTga(this CodecCollection codecs)
 		{
 			var targa = TgaFormat.Instance;
+			var pixelFormats = new[] { PixelFormats.Grey8bpp, PixelFormats.Bgr24bpp, PixelFormats.Bgra32bpp };
+
 			codecs.Add(new DecoderInfo(
 				$"{nameof(SixLabors.ImageSharp)} {targa.Name}",
 				targa.MimeTypes,
@@ -233,6 +232,7 @@ namespace PhotoSauce.ManagedCodecs.ImageSharp
 				$"{nameof(SixLabors.ImageSharp)} {targa.Name}",
 				targa.MimeTypes,
 				targa.FileExtensions,
+				pixelFormats,
 				TargaEncoderOptions.Default,
 				(s, c) => new TargaEncoder(s, c),
 				true,

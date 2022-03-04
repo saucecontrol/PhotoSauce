@@ -102,12 +102,20 @@ namespace PhotoSauce.MagicScaler
 #if WICPROCESSOR
 		public static void AddIndexedColorConverter(PipelineContext ctx)
 		{
+			var encinfo = ctx.Settings.EncoderInfo;
+			if (!encinfo.SupportsPixelFormat(PixelFormat.Indexed8.FormatGuid))
+				return;
+
 			var curFormat = ctx.Source.Format;
 			var indexedOptions = ctx.Settings.EncoderOptions as IIndexedEncoderOptions;
-			bool autoPalette256 = indexedOptions?.MaxPaletteSize >= 256 && indexedOptions.PredefinedPalette is null;
-			bool greyToIndexed = curFormat.ColorRepresentation == PixelColorRepresentation.Grey && (ctx.Settings.SaveFormat == FileFormat.Bmp || autoPalette256);
+			if (indexedOptions is null && encinfo.SupportsPixelFormat(curFormat.FormatGuid))
+				return;
 
-			if (greyToIndexed || (indexedOptions is not null && curFormat.NumericRepresentation != PixelNumericRepresentation.Indexed))
+			indexedOptions ??= ctx.Settings.EncoderInfo.DefaultOptions as IIndexedEncoderOptions;
+			bool autoPalette256 = indexedOptions is null || (indexedOptions.MaxPaletteSize >= 256 && indexedOptions.PredefinedPalette is null);
+			bool greyToIndexed = curFormat.ColorRepresentation == PixelColorRepresentation.Grey && autoPalette256;
+
+			if (greyToIndexed || (curFormat.NumericRepresentation != PixelNumericRepresentation.Indexed && indexedOptions is not null))
 			{
 				using var conv = default(ComPtr<IWICFormatConverter>);
 				HRESULT.Check(Wic.Factory->CreateFormatConverter(conv.GetAddressOf()));
@@ -241,6 +249,12 @@ namespace PhotoSauce.MagicScaler
 			using var transform = default(ComPtr<IWICBitmapSourceTransform>);
 			if (FAILED(wsrc.WicSource->QueryInterface(__uuidof<IWICBitmapSourceTransform>(), (void**)transform.GetAddressOf())))
 				return;
+
+			// WIC HEIF decoder will report any size as valid but then fail on CopyPixels if the scale ratio is greater than 8:1
+			var contfmt = default(Guid);
+			HRESULT.Check(((WicImageContainer)ctx.ImageContainer).WicDecoder->GetContainerFormat(&contfmt));
+			if (contfmt == GUID_ContainerFormatHeif)
+				ratio = ratio.Clamp(1, 8);
 
 			uint ow = (uint)ctx.Source.Width, oh = (uint)ctx.Source.Height;
 			uint cw = (uint)MathUtil.DivCeiling((int)ow, ratio), ch = (uint)MathUtil.DivCeiling((int)oh, ratio);

@@ -30,10 +30,10 @@ namespace PhotoSauce.MagicScaler
 
 		public IEnumerable<PixelSourceStats> Stats => profilers?.OfType<ProcessingProfiler>().Select(p => p.Stats!) ?? Enumerable.Empty<PixelSourceStats>();
 
-		public WicPipelineContext WicContext => wicContext ??= new WicPipelineContext();
+		public WicPipelineContext WicContext => wicContext ??= new();
 
-		public bool IsAnimatedGifPipeline =>
-			ImageContainer.IsAnimation && Settings.SaveFormat is FileFormat.Gif or FileFormat.Auto && ImageContainer.FrameCount > 1;
+		public bool IsAnimationPipeline =>
+			 Settings.EncoderInfo.SupportsAnimation && ImageContainer.FrameCount > 1 && ImageContainer is IMetadataSource meta && meta.TryGetMetadata<AnimationContainer>(out _);
 
 		public PipelineContext(ProcessImageSettings settings, IImageContainer cont, bool ownCont = true)
 		{
@@ -90,11 +90,8 @@ namespace PhotoSauce.MagicScaler
 					Settings.ColorProfileMode = ColorProfileMode.ConvertToSrgb;
 			}
 
-			if (Settings.SaveFormat == FileFormat.Png8 && Settings.EncoderOptions is not PngIndexedEncoderOptions)
+			if (Settings.SaveFormat == FileFormat.Png8 && Settings.EncoderOptions is not IIndexedEncoderOptions)
 				Settings.EncoderOptions = PngIndexedEncoderOptions.Default;
-
-			if (Settings.SaveFormat == FileFormat.Gif && Settings.EncoderOptions is not GifEncoderOptions)
-				Settings.EncoderOptions = GifEncoderOptions.Default;
 
 			if (Settings.EncoderOptions is null)
 				Settings.EncoderOptions = Settings.EncoderInfo.DefaultOptions;

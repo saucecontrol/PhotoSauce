@@ -110,8 +110,9 @@ namespace PhotoSauce.MagicScaler
 			{
 				HRESULT.Check(WicEncoder->CreateNewFrame(frame.GetAddressOf(), pbag.GetAddressOf()));
 
-				if (fmt == GUID_ContainerFormatJpeg && Options is JpegEncoderOptions jconf)
+				if (fmt == GUID_ContainerFormatJpeg)
 				{
+					var jconf = Options is JpegEncoderOptions jc ? jc : JpegEncoderOptions.Default;
 					int qual = jconf.Quality != 0 ? jconf.Quality : SettingsUtil.GetDefaultQuality(Math.Max(source.Width, source.Height));
 					var subs = jconf.Subsample != default ? jconf.Subsample : SettingsUtil.GetDefaultSubsampling(qual);
 					pbag.Write("ImageQuality", qual / 100f);
@@ -120,7 +121,7 @@ namespace PhotoSauce.MagicScaler
 					if (jconf.SuppressApp0)
 						pbag.Write("SuppressApp0", jconf.SuppressApp0);
 				}
-				else if (fmt == GUID_ContainerFormatPng && Options is PngEncoderOptions pconf)
+				else if (fmt == GUID_ContainerFormatPng && Options is IPngEncoderOptions pconf)
 				{
 					if (pconf.Filter != PngFilterMode.Unspecified)
 						pbag.Write("FilterOption", (byte)pconf.Filter);
@@ -496,7 +497,7 @@ namespace PhotoSauce.MagicScaler
 			else
 				context.Source = context.ImageFrame.PixelSource.AsPixelSource();
 
-			MagicTransforms.AddGifFrameBuffer(context, false);
+			MagicTransforms.AddAnimationFrameBuffer(context, false);
 
 			if (lastSource is ChainedPixelSource chain && chain.Passthrough)
 			{

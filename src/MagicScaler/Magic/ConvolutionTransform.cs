@@ -25,6 +25,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		protected static readonly Dictionary<PixelFormat, IConvolver> ProcessorMap = new() {
 			[PixelFormat.Cmyk32             ] = Convolver4ChanByte.Instance,
 			[PixelFormat.Pbgra32            ] = Convolver4ChanByte.Instance,
+			[PixelFormat.Bgrx32             ] = Convolver4ChanByte.Instance,
 			[PixelFormat.Pbgra64UQ15Linear  ] = Convolver4ChanUQ15.Instance,
 			[PixelFormat.Bgra32             ] = ConvolverBgraByte.Instance,
 			[PixelFormat.Bgr24              ] = ConvolverBgrByte.Instance,
@@ -358,9 +359,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 	internal interface ConvolutionType
 	{
-		public struct Direct : ConvolutionType
+		public readonly struct Direct : ConvolutionType
 		{
-			public RentedBuffer<byte> LineBuff;
+			public readonly RentedBuffer<byte> LineBuff;
 
 			public Direct(RentedBuffer<byte> buff) => LineBuff = buff;
 		}

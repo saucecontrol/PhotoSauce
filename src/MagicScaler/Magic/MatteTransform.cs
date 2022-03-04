@@ -25,15 +25,20 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public override PixelFormat Format { get; }
 
-		public MatteTransform(PixelSource source, Color color, bool allowFormatChange) : base(source)
+		public MatteTransform(PixelSource source, Color color, bool discardAlpha) : base(source)
 		{
 			Format = source.Format;
 
 			if (Format.ColorRepresentation != PixelColorRepresentation.Bgr || Format.AlphaRepresentation == PixelAlphaRepresentation.None)
 				throw new NotSupportedException("Pixel format not supported.  Must be BGRA");
 
-			if (allowFormatChange && Format == PixelFormat.Pbgra128FloatLinear && !color.IsTransparent())
-				Format = PixelFormat.Bgrx128FloatLinear;
+			if (discardAlpha)
+			{
+				if (Format == PixelFormat.Pbgra128FloatLinear)
+					Format = PixelFormat.Bgrx128FloatLinear;
+				else if (Format == PixelFormat.Bgra32)
+					Format = PixelFormat.Bgrx32;
+			}
 
 			var igtq = LookupTables.SrgbInverseGammaUQ15;
 
@@ -72,7 +77,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 						applyMatteLinearFloat(ppix, cp);
 				else if (Format == PixelFormat.Pbgra64UQ15Linear)
 					applyMatteLinear(ppix, cp);
-				else if (Format == PixelFormat.Bgra32)
+				else if (Format == PixelFormat.Bgra32 || Format == PixelFormat.Bgrx32)
 					applyMatteCompanded(ppix, cp);
 				else
 					throw new NotSupportedException("Pixel format not supported.");

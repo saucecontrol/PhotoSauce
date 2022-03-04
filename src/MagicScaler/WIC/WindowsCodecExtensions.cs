@@ -88,16 +88,14 @@ namespace PhotoSauce.MagicScaler
 					var cuid = default(Guid);
 					HRESULT.Check(pCod.Get()->GetCLSID(&cuid));
 
+					HRESULT.Check(pCod.Get()->GetPixelFormats(0, null, &cch));
+					var pix = new Guid[cch];
+					fixed (Guid* pg = pix)
+						HRESULT.Check(pCod.Get()->GetPixelFormats(cch, pg, &cch));
+
 					bool trans = chrm != 0;
 					if (!trans)
-					{
-						HRESULT.Check(pCod.Get()->GetPixelFormats(0, null, &cch));
-						var pix = new Guid[cch];
-						fixed (Guid* pg = pix)
-							HRESULT.Check(pCod.Get()->GetPixelFormats(cch, pg, &cch));
-
 						trans = pix.Any(f => PixelFormat.FromGuid(f).AlphaRepresentation != PixelAlphaRepresentation.None);
-					}
 
 					if (type is WICComponentType.WICDecoder)
 					{
@@ -141,7 +139,9 @@ namespace PhotoSauce.MagicScaler
 							_                   => default(IEncoderOptions)
 						};
 
-						codecs.Add(new EncoderInfo(name, mimes, extensions, options, (stm, opt) => new WicImageEncoder(clsid, stm, opt), trans, mult != 0, anim != 0, prof));
+						pix = mime is KnownMimeTypes.Jpeg ? pix.Concat(new[] { PixelFormat.Y8.FormatGuid }).ToArray() : pix;
+
+						codecs.Add(new EncoderInfo(name, mimes, extensions, pix, options, (stm, opt) => new WicImageEncoder(clsid, stm, opt), trans, mult != 0, anim != 0, prof));
 					}
 				}
 			}

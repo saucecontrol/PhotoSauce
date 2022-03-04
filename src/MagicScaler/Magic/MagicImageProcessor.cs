@@ -190,12 +190,12 @@ namespace PhotoSauce.MagicScaler
 
 		internal static unsafe ProcessImageResult WriteOutput(PipelineContext ctx, Stream ostm)
 		{
-			MagicTransforms.AddExternalFormatConverter(ctx);
+			MagicTransforms.AddExternalFormatConverter(ctx, true);
 
 			using var bfs = PoolBufferedStream.WrapIfFile(ostm);
 			using var enc = ctx.Settings.EncoderInfo.Factory(bfs ?? ostm, ctx.Settings.EncoderOptions);
 
-			if (ctx.IsAnimatedGifPipeline && enc is WicImageEncoder wenc)
+			if (ctx.IsAnimationPipeline && enc is WicImageEncoder wenc)
 			{
 				using var gif = new WicAnimatedGifEncoder(ctx, wenc);
 				gif.WriteGlobalMetadata();
@@ -242,7 +242,7 @@ namespace PhotoSauce.MagicScaler
 
 			ctx.Metadata = new MagicMetadataFilter(ctx);
 
-			MagicTransforms.AddGifFrameBuffer(ctx);
+			MagicTransforms.AddAnimationFrameBuffer(ctx);
 
 			ctx.FinalizeSettings();
 			ctx.Settings.UnsharpMask = ctx.UsedSettings.UnsharpMask;
@@ -267,11 +267,11 @@ namespace PhotoSauce.MagicScaler
 					}
 				}
 
-				if (ctx.Settings.SaveFormat == FileFormat.Jpeg && ctx.Orientation.SwapsDimensions())
+				if (outputPlanar && ctx.Orientation.SwapsDimensions())
 				{
-					if (subsample.IsSubsampledX() && (ctx.Settings.InnerSize.Width & 1) != 0)
+					if (subsample.IsSubsampledX() && (ctx.Settings.OuterSize.Width & 1) != 0)
 						outputPlanar = false;
-					if (subsample.IsSubsampledY() && (ctx.Settings.InnerSize.Height & 1) != 0)
+					if (subsample.IsSubsampledY() && (ctx.Settings.OuterSize.Height & 1) != 0)
 						outputPlanar = false;
 				}
 			}
@@ -281,7 +281,7 @@ namespace PhotoSauce.MagicScaler
 			if (processPlanar)
 			{
 				bool savePlanar = outputPlanar
-					&& ctx.Settings.SaveFormat == FileFormat.Jpeg
+					&& ctx.Settings.EncoderInfo.SupportsPlanar()
 					&& ctx.Settings.OuterSize == ctx.Settings.InnerSize
 					&& ctx.DestColorProfile == ctx.SourceColorProfile;
 
@@ -295,7 +295,7 @@ namespace PhotoSauce.MagicScaler
 
 				if (savePlanar)
 				{
-					MagicTransforms.AddExternalFormatConverter(ctx, true);
+					MagicTransforms.AddExternalFormatConverter(ctx);
 					MagicTransforms.AddExifFlipRotator(ctx);
 				}
 				else

@@ -45,8 +45,6 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 
 		public FileFormat ContainerFormat => FileFormat.Unknown;
 
-		public bool IsAnimation => false;
-
 		int IImageContainer.FrameCount => 1;
 
 		private void moveToFrameData(bool readMetadata = false)
@@ -555,8 +553,9 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 		/// <inheritdoc cref="WindowsCodecExtensions.UseWicCodecs(CodecCollection, WicCodecPolicy)" />
 		public static void UseLibjxl(this CodecCollection codecs)
 		{
-			string[] jxlMime = new[] { "image/jxl" };
-			string[] jxlExtension = new[] { ".jxl" };
+			var jxlMime = new[] { "image/jxl" };
+			var jxlExtension = new[] { ".jxl" };
+			var pixelFormats = new[] { PixelFormat.Grey8.FormatGuid, PixelFormat.Rgb24.FormatGuid, PixelFormat.Rgba32.FormatGuid };
 
 			codecs.Add(new DecoderInfo(
 				JxlFactory.libjxl,
@@ -576,6 +575,7 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 				JxlFactory.libjxl,
 				jxlMime,
 				jxlExtension,
+				pixelFormats,
 				JxlLossyEncoderOptions.Default,
 				(s, c) => new JxlEncoder(s, c),
 				true,

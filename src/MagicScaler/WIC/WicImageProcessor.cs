@@ -43,7 +43,7 @@ namespace PhotoSauce.MagicScaler
 			ctx.Source = ctx.AddProfiler(frame.Source);
 			ctx.Metadata = new MagicMetadataFilter(ctx);
 
-			MagicTransforms.AddGifFrameBuffer(ctx);
+			MagicTransforms.AddAnimationFrameBuffer(ctx);
 
 			ctx.FinalizeSettings();
 

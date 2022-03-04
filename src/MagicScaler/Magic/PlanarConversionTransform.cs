@@ -16,7 +16,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 	internal sealed class PlanarConversionTransform : ChainedPixelSource
 	{
 		private const int ichromaOffset = 128;
-		private const float videoChromaScale = 224f;
+		private const float videoChromaScale = VideoChromaScale;
 		private const float fchromaOffset = (float)ichromaOffset / byte.MaxValue;
 
 		private readonly float coeffCb0, coeffCb1, coeffCr0, coeffCr1;

@@ -311,7 +311,9 @@ namespace PhotoSauce.MagicScaler
 			s.ResizeMode = Enum.TryParse(dic.GetValueOrDefault("mode"), true, out CropScaleMode mode) ? mode : s.ResizeMode;
 			s.BlendingMode = Enum.TryParse(dic.GetValueOrDefault("gamma"), true, out GammaMode bm) ? bm : s.BlendingMode;
 			s.HybridMode = Enum.TryParse(dic.GetValueOrDefault("hybrid"), true, out HybridScaleMode hyb) ? hyb : s.HybridMode;
-			s.SaveFormat = Enum.TryParse(dic.GetValueOrDefault("format")?.ToLowerInvariant().Replace("jpg", "jpeg"), true, out FileFormat fmt) ? fmt : s.SaveFormat;
+
+			if (Enum.TryParse(dic.GetValueOrDefault("format")?.ToLowerInvariant().Replace("jpg", "jpeg"), true, out FileFormat fmt))
+				s.SaveFormat = fmt;
 
 			if (cropExpression.Value.IsMatch(dic.GetValueOrDefault("crop") ?? string.Empty))
 			{
@@ -532,9 +534,6 @@ namespace PhotoSauce.MagicScaler
 			if (SaveFormat == FileFormat.Auto)
 				SetSaveFormat(img.ContainerType, frame.HasAlpha);
 
-			if (SaveFormat != FileFormat.Jpeg && EncoderOptions is JpegEncoderOptions)
-				EncoderOptions = null;
-
 			if (!frame.HasAlpha && InnerSize == OuterSize)
 				MatteColor = Color.Empty;
 
@@ -569,7 +568,7 @@ namespace PhotoSauce.MagicScaler
 			hash.Update(UnsharpMask);
 			hash.Update(SaveFormat);
 
-			if (SaveFormat == FileFormat.Jpeg)
+			if (EncoderInfo.SupportsMimeType(KnownMimeTypes.Jpeg))
 			{
 				hash.Update(JpegSubsampleMode);
 				hash.Update(JpegQuality);

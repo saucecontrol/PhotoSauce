@@ -78,9 +78,6 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>The <see cref="FileFormat" /> (codec) of the image container.</summary>
 		FileFormat ContainerFormat { get; }
 
-		/// <summary>True if this container's frames represent an animation, otherwise false.</summary>
-		bool IsAnimation { get; }
-
 		/// <summary>The total number of image frames in this container.</summary>
 		int FrameCount { get; }
 
@@ -161,6 +158,9 @@ namespace PhotoSauce.MagicScaler
 	/// <summary>Describes an image encoder.</summary>
 	public interface IImageEncoderInfo : IImageCodecInfo
 	{
+		/// <summary>A list of the pixel format GUIDs supported by this encoder.</summary>
+		IEnumerable<Guid> PixelFormats { get; }
+
 		/// <summary>Default codec options to be used for this encoder in the absence of per-instance overrides.</summary>
 		IEncoderOptions? DefaultOptions { get; }
 
@@ -169,13 +169,5 @@ namespace PhotoSauce.MagicScaler
 
 		/// <summary>True if the codec supports ICC color profiles, otherwise false.</summary>
 		bool SupportsColorProfile { get; }
-	}
-
-	/// <summary>A <a href="https://en.wikipedia.org/wiki/Rational_number">rational number</a>, as defined by an integer <paramref name="Numerator" /> and <paramref name="Denominator" />.</summary>
-	/// <param name="Numerator">The numerator of the rational number.</param>
-	/// <param name="Denominator">The denominator of the rational number.</param>
-	internal readonly record struct Rational(int Numerator, int Denominator)
-	{
-		public override string ToString() => $"{Numerator}/{Denominator}";
 	}
 }

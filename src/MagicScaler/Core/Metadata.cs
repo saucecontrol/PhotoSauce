@@ -96,6 +96,14 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
+	/// <summary>A <a href="https://en.wikipedia.org/wiki/Rational_number">rational number</a>, as defined by an integer <paramref name="Numerator" /> and <paramref name="Denominator" />.</summary>
+	/// <param name="Numerator">The numerator of the rational number.</param>
+	/// <param name="Denominator">The denominator of the rational number.</param>
+	internal readonly record struct Rational(int Numerator, int Denominator)
+	{
+		public override string ToString() => $"{Numerator}/{Denominator}";
+	}
+
 	/// <summary>Defines global/container metadata for a sequence of animated frames.</summary>
 	internal readonly struct AnimationContainer : IMetadata
 	{
@@ -124,7 +132,7 @@ namespace PhotoSauce.MagicScaler
 	internal readonly struct AnimationFrame : IMetadata
 	{
 		// Rather arbitrary default of NTSC film speed
-		internal static AnimationFrame Default = new(0, 0, new Rational(1001, 24000), FrameDisposalMethod.Unspecified, false);
+		internal static AnimationFrame Default = new(default, default, new Rational(1001, 24000), default, default);
 
 		public string Name => nameof(AnimationFrame);
 
