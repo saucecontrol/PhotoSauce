@@ -63,7 +63,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					var area = new PixelArea(tx, cy - inner.Y, tw, 1);
 					byte* ptr = pbBuffer + cx * bytesPerPixel;
 
-					if (lineBuff.Length == 0)
+					if (lineBuff.IsEmpty)
 						copyPixelsDirect(area, cbStride, cbBufferSize, ptr);
 					else
 						copyPixelsBuffered(area, ptr);

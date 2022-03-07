@@ -62,7 +62,7 @@ namespace PhotoSauce.MagicScaler
 		/// <remarks>If <paramref name="outPath"/> already exists, it will be overwritten.</remarks>
 		public static ProcessImageResult ProcessImage(string imgPath!!, string outPath!!, ProcessImageSettings settings!!)
 		{
-			if (settings.SaveFormat == FileFormat.Auto)
+			if (settings.EncoderInfo is null)
 			{
 				string extension = Path.GetExtension(outPath);
 				if (CodecManager.TryGetEncoderForFileExtension(extension, out var info))
@@ -84,7 +84,7 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="imgBuffer">A buffer containing a supported input image container.</param>
 		public static unsafe ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream!!, ProcessImageSettings settings!!)
 		{
-			if (imgBuffer.Length is 0) throw new ArgumentNullException(nameof(imgBuffer));
+			if (imgBuffer.IsEmpty) throw new ArgumentNullException(nameof(imgBuffer));
 			outStream.EnsureValidForOutput();
 
 			fixed (byte* pbBuffer = imgBuffer)
@@ -193,7 +193,7 @@ namespace PhotoSauce.MagicScaler
 			MagicTransforms.AddExternalFormatConverter(ctx, true);
 
 			using var bfs = PoolBufferedStream.WrapIfFile(ostm);
-			using var enc = ctx.Settings.EncoderInfo.Factory(bfs ?? ostm, ctx.Settings.EncoderOptions);
+			using var enc = ctx.Settings.EncoderInfo!.Factory(bfs ?? ostm, ctx.Settings.EncoderOptions);
 
 			if (ctx.IsAnimationPipeline && enc is WicImageEncoder wenc)
 			{
@@ -281,7 +281,7 @@ namespace PhotoSauce.MagicScaler
 			if (processPlanar)
 			{
 				bool savePlanar = outputPlanar
-					&& ctx.Settings.EncoderInfo.SupportsPlanar()
+					&& ctx.Settings.EncoderInfo!.SupportsPlanar()
 					&& ctx.Settings.OuterSize == ctx.Settings.InnerSize
 					&& ctx.DestColorProfile == ctx.SourceColorProfile;
 

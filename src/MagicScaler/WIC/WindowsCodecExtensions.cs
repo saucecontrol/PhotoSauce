@@ -19,11 +19,12 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="policy">Policy that determines which registered WIC codecs are allowed.</param>
 		public static void UseWicCodecs(this CodecCollection codecs, WicCodecPolicy policy)
 		{
-			codecs.AddRange(getWicCodecs(WICComponentType.WICDecoder, policy));
-			codecs.AddRange(getWicCodecs(WICComponentType.WICEncoder, policy));
+			// If there is more than one Camera RAW codec installed, generally the newer one is more capable, so we deprioritize the original one.
+			codecs.AddRange(getWicCodecs(WICComponentType.WICDecoder, policy).OrderBy(c => c.Format == GUID_ContainerFormatRaw ? 1 : 0).Select(c => c.Codec));
+			codecs.AddRange(getWicCodecs(WICComponentType.WICEncoder, policy).Select(c => c.Codec));
 		}
 
-		private static unsafe List<IImageCodecInfo> getWicCodecs(WICComponentType type, WicCodecPolicy policy)
+		private static unsafe List<(Guid Format, IImageCodecInfo Codec)> getWicCodecs(WICComponentType type, WicCodecPolicy policy)
 		{
 			const int bch = 512;
 			const int bcc = 16;
@@ -34,7 +35,7 @@ namespace PhotoSauce.MagicScaler
 
 			var pbuff = stackalloc char[bch];
 			var formats = stackalloc IUnknown*[bcc];
-			var codecs = new List<IImageCodecInfo>();
+			var codecs = new List<(Guid, IImageCodecInfo)>();
 
 			uint count = bcc;
 			while (count > 0)
@@ -88,6 +89,9 @@ namespace PhotoSauce.MagicScaler
 					var cuid = default(Guid);
 					HRESULT.Check(pCod.Get()->GetCLSID(&cuid));
 
+					var ctid = default(Guid);
+					HRESULT.Check(pCod.Get()->GetContainerFormat(&ctid));
+
 					HRESULT.Check(pCod.Get()->GetPixelFormats(0, null, &cch));
 					var pix = new Guid[cch];
 					fixed (Guid* pg = pix)
@@ -96,6 +100,9 @@ namespace PhotoSauce.MagicScaler
 					bool trans = chrm != 0;
 					if (!trans)
 						trans = pix.Any(f => PixelFormat.FromGuid(f).AlphaRepresentation != PixelAlphaRepresentation.None);
+
+					if (extensions.Length != 0 && !ImageFileExtensions.All.ContainsInsensitive(extensions[0]))
+						extensions = extensions.OrderBy(e => ImageFileExtensions.All.ContainsInsensitive(e) ? 0 : 1).ToArray();
 
 					if (type is WICComponentType.WICDecoder)
 					{
@@ -116,32 +123,37 @@ namespace PhotoSauce.MagicScaler
 							});
 						}
 
+						bool raw = ctid == GUID_ContainerFormatRaw || ctid == GUID_ContainerFormatRaw2;
+						string mime = raw ? "image/RAW" : mimes.First();
+						raw |= ctid == GUID_ContainerFormatAdng;
+
 						var clsid = cuid;
-						var options = mimes.First() switch {
-							KnownMimeTypes.Gif  => GifDecoderOptions.Default,
-							KnownMimeTypes.Jpeg => JpegDecoderOptions.Default,
-							KnownMimeTypes.Tiff => TiffDecoderOptions.Default,
-							_                   => default(IDecoderOptions)
+						var options = mime switch {
+							ImageMimeTypes.Gif  => GifDecoderOptions.Default,
+							ImageMimeTypes.Jpeg => JpegDecoderOptions.Default,
+							ImageMimeTypes.Tiff => TiffDecoderOptions.Default,
+							_                   => raw ? CameraRawDecoderOptions.Default : default(IDecoderOptions)
 						};
 
-						codecs.Add(new DecoderInfo(name, mimes, extensions, patterns, options, (stm, opt) => WicImageDecoder.TryLoad(clsid, stm, opt), trans, mult != 0, anim != 0));
+						codecs.Add((ctid, new DecoderInfo(name, mimes, extensions, patterns, options, (stm, opt) => WicImageDecoder.TryLoad(clsid, mime, stm, opt), trans, mult != 0, anim != 0)));
 					}
 					else
 					{
 						string mime = mimes.First();
-						bool prof = mime is not (KnownMimeTypes.Bmp or KnownMimeTypes.Gif or KnownMimeTypes.Dds);
+						bool prof = mime is not (ImageMimeTypes.Bmp or ImageMimeTypes.Gif or ImageMimeTypes.Dds);
+
 						var clsid = cuid;
 						var options = mime switch {
-							KnownMimeTypes.Gif  => GifEncoderOptions.Default,
-							KnownMimeTypes.Png  => PngEncoderOptions.Default,
-							KnownMimeTypes.Jpeg => JpegEncoderOptions.Default,
-							KnownMimeTypes.Tiff => TiffEncoderOptions.Default,
+							ImageMimeTypes.Gif  => GifEncoderOptions.Default,
+							ImageMimeTypes.Png  => PngEncoderOptions.Default,
+							ImageMimeTypes.Jpeg => JpegEncoderOptions.Default,
+							ImageMimeTypes.Tiff => TiffEncoderOptions.Default,
 							_                   => default(IEncoderOptions)
 						};
 
-						pix = mime is KnownMimeTypes.Jpeg ? pix.Concat(new[] { PixelFormat.Y8.FormatGuid }).ToArray() : pix;
+						pix = mime is ImageMimeTypes.Jpeg ? pix.Concat(new[] { PixelFormat.Y8.FormatGuid }).ToArray() : pix;
 
-						codecs.Add(new EncoderInfo(name, mimes, extensions, pix, options, (stm, opt) => new WicImageEncoder(clsid, stm, opt), trans, mult != 0, anim != 0, prof));
+						codecs.Add((ctid, new EncoderInfo(name, mimes, extensions, pix, options, (stm, opt) => new WicImageEncoder(clsid, mime, stm, opt), trans, mult != 0, anim != 0, prof)));
 					}
 				}
 			}

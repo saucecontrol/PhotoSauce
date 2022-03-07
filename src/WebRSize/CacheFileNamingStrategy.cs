@@ -2,6 +2,7 @@
 
 using System.IO;
 using System.Web;
+using System.Linq;
 using System.Text;
 
 using PhotoSauce.MagicScaler;
@@ -31,6 +32,10 @@ namespace PhotoSauce.WebRSize
 		protected static string WrapFileName(string newPath, ProcessImageSettings settings, bool includeResolution = true)
 		{
 			string file = VirtualPathUtility.GetFileName(newPath);
+			string ext = Path.GetExtension(file);
+			if (!settings.EncoderInfo.FileExtensions.Contains(ext))
+				ext = settings.EncoderInfo.FileExtensions.FirstOrDefault() ?? ".img";
+
 			var sb = new StringBuilder(128);
 			sb.Append(VirtualPathUtility.GetDirectory(newPath).Substring(1));
 			sb.Append('/');
@@ -41,8 +46,10 @@ namespace PhotoSauce.WebRSize
 			if (includeResolution)
 				sb.AppendFormat(".{0}x{1}", settings.Width, settings.Height);
 
-			sb.Append('.');
-			sb.Append(settings.SaveFormat.GetFileExtension(Path.GetExtension(file)));
+			if (!ext.StartsWith("."))
+				sb.Append('.');
+
+			sb.Append(ext);
 
 			return VirtualPathUtility.Combine(cacheRoot, sb.ToString());
 		}

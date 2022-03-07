@@ -97,7 +97,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		private readonly IPixelSource pixelSource;
 
-		public FileFormat ContainerFormat => FileFormat.Unknown;
+		public string? MimeType => null;
 		public int FrameCount => 1;
 
 		public PixelSourceContainer(IPixelSource source) => pixelSource = source;
@@ -208,7 +208,7 @@ namespace PhotoSauce.MagicScaler
 		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
 			var buffspan = frameBuff.Span;
-			if (buffspan.Length == 0) throw new ObjectDisposedException(nameof(FrameBufferSource));
+			if (buffspan.IsEmpty) throw new ObjectDisposedException(nameof(FrameBufferSource));
 
 			int bpp = Format.BytesPerPixel;
 			int cb = prc.Width * bpp;

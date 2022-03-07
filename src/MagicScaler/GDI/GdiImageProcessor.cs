@@ -102,9 +102,9 @@ namespace PhotoSauce.MagicScaler
 			bool alpha = ((ImageFlags)img.Flags).HasFlag(ImageFlags.HasAlpha);
 			var pixelFormat = alpha && s.MatteColor.IsTransparent() ? GdiPixelFormat.Format32bppArgb : GdiPixelFormat.Format24bppRgb;
 			var mode = s.Interpolation.WeightingFunction.Support < 0.1 ? InterpolationMode.NearestNeighbor :
-			           s.Interpolation.WeightingFunction.Support < 1.0 ? s.ScaleRatio > 1.0 ? InterpolationMode.Bilinear : InterpolationMode.NearestNeighbor :
-			           s.Interpolation.WeightingFunction.Support > 1.0 ? s.ScaleRatio > 1.0 || s.Interpolation.Blur > 1.0 ? InterpolationMode.HighQualityBicubic : InterpolationMode.Bicubic :
-			           s.ScaleRatio > 1.0 ? InterpolationMode.HighQualityBilinear : InterpolationMode.Bilinear;
+								 s.Interpolation.WeightingFunction.Support < 1.0 ? s.ScaleRatio > 1.0 ? InterpolationMode.Bilinear : InterpolationMode.NearestNeighbor :
+								 s.Interpolation.WeightingFunction.Support > 1.0 ? s.ScaleRatio > 1.0 || s.Interpolation.Blur > 1.0 ? InterpolationMode.HighQualityBicubic : InterpolationMode.Bicubic :
+								 s.ScaleRatio > 1.0 ? InterpolationMode.HighQualityBilinear : InterpolationMode.Bilinear;
 
 			using var src = img.HybridScale(s, mode);
 			using var iat = new ImageAttributes();
@@ -125,34 +125,32 @@ namespace PhotoSauce.MagicScaler
 
 			gfx.DrawImage(src, s.InnerRect, s.Crop.X, s.Crop.Y, s.Crop.Width, s.Crop.Height, GraphicsUnit.Pixel, iat);
 
-			switch (s.SaveFormat)
+			var enc = s.EncoderInfo ?? CodecManager.FallbackEncoder;
+			if (enc.SupportsMimeType(ImageMimeTypes.Bmp))
 			{
-				case FileFormat.Bmp:
-					bmp.Save(ostm, ImageFormat.Bmp);
-					break;
-				case FileFormat.Tiff:
-					{
-						using var param = new EncoderParameter(Encoder.Compression, (long)EncoderValue.CompressionNone);
-						using var encoderParams = new EncoderParameters(1);
-						encoderParams.Param[0] = param;
-						bmp.Save(ostm, tiffCodec, encoderParams);
-					}
-					break;
-				case FileFormat.Jpeg:
-					{
-						using var param = new EncoderParameter(Encoder.Quality, s.LossyQuality);
-						using var encoderParams = new EncoderParameters(1);
-						encoderParams.Param[0] = param;
-						bmp.Save(ostm, jpegCodec, encoderParams);
-					}
-					break;
-				case FileFormat.Gif:
-				case FileFormat.Png8:
-					bmp.Save(ostm, ImageFormat.Gif);
-					break;
-				default:
-					bmp.Save(ostm, ImageFormat.Png);
-					break;
+				bmp.Save(ostm, ImageFormat.Bmp);
+			}
+			else if (enc.SupportsMimeType(ImageMimeTypes.Tiff))
+			{
+				using var param = new EncoderParameter(Encoder.Compression, (long)EncoderValue.CompressionNone);
+				using var encoderParams = new EncoderParameters(1);
+				encoderParams.Param[0] = param;
+				bmp.Save(ostm, tiffCodec, encoderParams);
+			}
+			else if (enc.SupportsMimeType(ImageMimeTypes.Jpeg))
+			{
+				using var param = new EncoderParameter(Encoder.Quality, s.LossyQuality);
+				using var encoderParams = new EncoderParameters(1);
+				encoderParams.Param[0] = param;
+				bmp.Save(ostm, jpegCodec, encoderParams);
+			}
+			else if (enc.SupportsMimeType(ImageMimeTypes.Gif) || s.EncoderOptions is IIndexedEncoderOptions)
+			{
+				bmp.Save(ostm, ImageFormat.Gif);
+			}
+			else
+			{
+				bmp.Save(ostm, ImageFormat.Png);
 			}
 
 			return new ProcessImageResult(usedSettings, Enumerable.Empty<PixelSourceStats>());

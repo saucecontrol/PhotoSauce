@@ -55,7 +55,7 @@ namespace PhotoSauce.MagicScaler
 				{
 					// WIC doesn't support 16bpc CMYK conversion with color profile
 					if (curFormat.BitsPerPixel == 64)
-						ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, null, null, PixelFormat.Cmyk32));
+						ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, PixelFormat.Cmyk32));
 
 					var guid = GUID_WICPixelFormat24bppBGR;
 					using var trans = default(ComPtr<IWICColorTransform>);
@@ -102,7 +102,7 @@ namespace PhotoSauce.MagicScaler
 #if WICPROCESSOR
 		public static void AddIndexedColorConverter(PipelineContext ctx)
 		{
-			var encinfo = ctx.Settings.EncoderInfo;
+			var encinfo = ctx.Settings.EncoderInfo!;
 			if (!encinfo.SupportsPixelFormat(PixelFormat.Indexed8.FormatGuid))
 				return;
 
@@ -111,7 +111,7 @@ namespace PhotoSauce.MagicScaler
 			if (indexedOptions is null && encinfo.SupportsPixelFormat(curFormat.FormatGuid))
 				return;
 
-			indexedOptions ??= ctx.Settings.EncoderInfo.DefaultOptions as IIndexedEncoderOptions;
+			indexedOptions ??= encinfo.DefaultOptions as IIndexedEncoderOptions;
 			bool autoPalette256 = indexedOptions is null || (indexedOptions.MaxPaletteSize >= 256 && indexedOptions.PredefinedPalette is null);
 			bool greyToIndexed = curFormat.ColorRepresentation == PixelColorRepresentation.Grey && autoPalette256;
 

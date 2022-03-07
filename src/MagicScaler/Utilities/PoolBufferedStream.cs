@@ -128,7 +128,7 @@ namespace PhotoSauce.MagicScaler
 			byte[] lbuf = buffer ?? throwObjectDisposed();
 
 			var buffrem = lbuf.AsSpan(readpos, readlen - readpos);
-			if (buffrem.Length == 0)
+			if (buffrem.IsEmpty)
 			{
 				if (writepos != 0)
 					flushWrite();
@@ -145,7 +145,7 @@ namespace PhotoSauce.MagicScaler
 				}
 
 				buffrem = buffer.AsSpan(0, backingStream.Read(buffer, 0, bufflen));
-				if (buffrem.Length == 0)
+				if (buffrem.IsEmpty)
 					return 0;
 
 				readpos = 0;
@@ -229,7 +229,7 @@ namespace PhotoSauce.MagicScaler
 				flushWrite();
 			}
 
-			if (source.Length == 0)
+			if (source.IsEmpty)
 			{
 				return;
 			}

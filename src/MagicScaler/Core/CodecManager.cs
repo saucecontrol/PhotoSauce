@@ -3,6 +3,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -16,34 +17,62 @@ using System.Runtime.Intrinsics.X86;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal static class KnownMimeTypes
+	/// <summary>Well-known <a href="https://en.wikipedia.org/wiki/Media_type">MIME types</a> for image formats.</summary>
+	public static class ImageMimeTypes
 	{
+#pragma warning disable CS1591 // Missing XML comments
 		public const string Avif = "image/avif";
-		public const string Bmp = "image/bmp";
-		public const string Dds = "image/vnd.ms-dds";
-		public const string Gif = "image/gif";
-		public const string Heif = "image/heif";
+		public const string Bmp  = "image/bmp";
+		public const string Dds  = "image/vnd.ms-dds";
+		public const string Gif  = "image/gif";
+		public const string Heic = "image/heic";
 		public const string Jpeg = "image/jpeg";
-		public const string Jxl = "image/jxl";
-		public const string Jxr = "image/vnd.ms-photo"; // actual IANA assignment is image/jxr, but WIC reports otherwise
-		public const string Png = "image/png";
+		public const string Jxl  = "image/jxl";
+		public const string Jxr =  "image/vnd.ms-photo"; // actual IANA assignment is image/jxr, but WIC reports otherwise
+		public const string Png  = "image/png";
 		public const string Tiff = "image/tiff";
 		public const string Webp = "image/webp";
+#pragma warning restore CS1591
+
+		internal static string? ToMimeType(this FileFormat fmt) => fmt switch {
+			FileFormat.Bmp  => Bmp,
+			FileFormat.Gif  => Gif,
+			FileFormat.Png  => Png,
+			FileFormat.Png8 => Png,
+			FileFormat.Jpeg => Jpeg,
+			FileFormat.Tiff => Tiff,
+			_               => default
+		};
+
+		internal static FileFormat ToFileFormat(string? mime, bool indexed = false) => mime switch {
+			Bmp  => FileFormat.Bmp,
+			Gif  => FileFormat.Gif,
+			Png  => indexed ? FileFormat.Png8 : FileFormat.Png,
+			Jpeg => FileFormat.Jpeg,
+			Tiff => FileFormat.Tiff,
+			_    => default
+		};
 	}
 
-	internal static class KnownFileExtensions
+	internal static class ImageFileExtensions
 	{
 		public const string Avif = ".avif";
-		public const string Bmp = ".bmp";
-		public const string Dds = ".dds";
-		public const string Gif = ".gif";
-		public const string Heif = ".heif";
-		public const string Jpeg = ".jpg";
-		public const string Jxl = ".jxl";
-		public const string Jxr = ".jxr";
-		public const string Png = ".png";
-		public const string Tiff = ".tif";
+		public const string Bmp  = ".bmp";
+		public const string Dds  = ".dds";
+		public const string Gif  = ".gif";
+		public const string Heic = ".heic";
+		public const string Jpeg = ".jpeg";
+		public const string Jxl  = ".jxl";
+		public const string Jxr  = ".jxr";
+		public const string Png  = ".png";
+		public const string Tiff = ".tiff";
 		public const string Webp = ".webp";
+
+		internal static string[] All = typeof(ImageFileExtensions)
+			.GetFields(BindingFlags.Public | BindingFlags.Static)
+			.Where(f => f.FieldType == typeof(string))
+			.Select(f => (string)f.GetValue(null)!)
+			.ToArray();
 	}
 
 	/// <summary>A pattern used to match <a href="https://en.wikipedia.org/wiki/List_of_file_signatures">magic bytes</a> in an image file header.</summary>
@@ -121,8 +150,8 @@ namespace PhotoSauce.MagicScaler
 	{
 		private readonly List<IImageCodecInfo> codecs = new();
 		private readonly List<DecoderPattern> decoderPatternMap = new();
-		private readonly Dictionary<string, IImageEncoderInfo> encoderMimeMap = new();
-		private readonly Dictionary<string, IImageEncoderInfo> encoderExtensionMap = new();
+		private readonly Dictionary<string, IImageEncoderInfo> encoderMimeMap = new(StringComparer.OrdinalIgnoreCase);
+		private readonly Dictionary<string, IImageEncoderInfo> encoderExtensionMap = new(StringComparer.OrdinalIgnoreCase);
 
 		/// <inheritdoc />
 		public int Count => codecs.Count;
@@ -253,8 +282,8 @@ namespace PhotoSauce.MagicScaler
 
 		internal static readonly EncoderInfo FallbackEncoder = new(
 			nameof(FallbackEncoder),
-			new[] { string.Empty },
-			new[] { string.Empty },
+			Enumerable.Empty<string>(),
+			Enumerable.Empty<string>(),
 			Enumerable.Empty<Guid>(),
 			null,
 			(s, o) => throw new NotSupportedException("No encoders are registered."),
@@ -295,9 +324,9 @@ namespace PhotoSauce.MagicScaler
 
 		internal static bool TryGetEncoderForMimeType(string mimeType, [NotNullWhen(true)] out IImageEncoderInfo? info) => getCodecs().TryGetEncoderForMimeType(mimeType, out info);
 
-		internal static bool SupportsMimeType(this IImageEncoderInfo enc, string mime) => enc.MimeTypes is string[] arr ? Array.IndexOf(arr, mime) >= 0 : enc.MimeTypes.Contains(mime);
+		internal static bool SupportsMimeType(this IImageEncoderInfo enc, string mime) => enc.MimeTypes.ContainsInsensitive(mime);
 
-		internal static bool SupportsPixelFormat(this IImageEncoderInfo enc, Guid fmt) => enc.PixelFormats is Guid[] arr ? Array.IndexOf(arr, fmt) >= 0 : enc.PixelFormats.Contains(fmt);
+		internal static bool SupportsPixelFormat(this IImageEncoderInfo enc, Guid fmt) => enc.PixelFormats.Contains(fmt);
 
 		internal static bool SupportsPlanar(this IImageEncoderInfo enc) => SupportsPixelFormat(enc, PixelFormat.Y8.FormatGuid);
 	}

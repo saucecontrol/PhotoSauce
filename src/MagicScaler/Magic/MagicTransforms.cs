@@ -83,14 +83,14 @@ namespace PhotoSauce.MagicScaler.Transforms
 				if (ofmt != ifmt || plsrc.VideoLumaLevels)
 				{
 					bool forceSrgb = (ofmt == PixelFormat.Y32FloatLinear || ofmt == PixelFormat.Y16UQ15Linear) && ctx.SourceColorProfile != ColorProfile.sRGB;
-					plsrc.SourceY = ctx.AddProfiler(new ConversionTransform(plsrc.SourceY, forceSrgb ? ColorProfile.sRGB : ctx.SourceColorProfile, ctx.DestColorProfile, ofmt, plsrc.VideoLumaLevels));
+					plsrc.SourceY = ctx.AddProfiler(new ConversionTransform(plsrc.SourceY, ofmt, forceSrgb ? ColorProfile.sRGB : ctx.SourceColorProfile, ctx.DestColorProfile, plsrc.VideoLumaLevels));
 					plsrc.VideoLumaLevels = false;
 				}
 
 				if (MagicImageProcessor.EnableSimd && internalFormatMapSimd.TryGetValue(plsrc.SourceCb.Format, out var ofmtb) && internalFormatMapSimd.TryGetValue(plsrc.SourceCr.Format, out var ofmtc))
 				{
-					plsrc.SourceCb = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCb, null, null, ofmtb, plsrc.VideoChromaLevels));
-					plsrc.SourceCr = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCr, null, null, ofmtc, plsrc.VideoChromaLevels));
+					plsrc.SourceCb = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCb, ofmtb, videoLevels: plsrc.VideoChromaLevels));
+					plsrc.SourceCr = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCr, ofmtc, videoLevels: plsrc.VideoChromaLevels));
 					plsrc.VideoChromaLevels = false;
 				}
 
@@ -98,7 +98,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 
 			if (ofmt != ifmt)
-				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, ctx.SourceColorProfile, ctx.DestColorProfile, ofmt));
+				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, ofmt, ctx.SourceColorProfile, ctx.DestColorProfile));
 		}
 
 		public static void AddExternalFormatConverter(PipelineContext ctx, bool lastChance = false)
@@ -113,19 +113,19 @@ namespace PhotoSauce.MagicScaler.Transforms
 				if (ofmt != ifmt || plsrc.VideoLumaLevels)
 				{
 					bool forceSrgb = (ifmt == PixelFormat.Y32FloatLinear || ifmt == PixelFormat.Y16UQ15Linear) && ctx.SourceColorProfile != ColorProfile.sRGB;
-					plsrc.SourceY = ctx.AddProfiler(new ConversionTransform(plsrc.SourceY, ctx.SourceColorProfile, forceSrgb ? ColorProfile.sRGB : ctx.DestColorProfile, ofmt, plsrc.VideoLumaLevels));
+					plsrc.SourceY = ctx.AddProfiler(new ConversionTransform(plsrc.SourceY, ofmt, ctx.SourceColorProfile, forceSrgb ? ColorProfile.sRGB : ctx.DestColorProfile, plsrc.VideoLumaLevels));
 					plsrc.VideoLumaLevels = false;
 				}
 
 				if (externalFormatMap.TryGetValue(plsrc.SourceCb.Format, out var ofmtb) && externalFormatMap.TryGetValue(plsrc.SourceCr.Format, out var ofmtc))
 				{
-					plsrc.SourceCb = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCb, null, null, ofmtb));
-					plsrc.SourceCr = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCr, null, null, ofmtc));
+					plsrc.SourceCb = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCb, ofmtb));
+					plsrc.SourceCr = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCr, ofmtc));
 				}
 				else if (lastChance && plsrc.VideoChromaLevels)
 				{
-					plsrc.SourceCb = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCb, null, null, plsrc.SourceCb.Format, plsrc.VideoChromaLevels));
-					plsrc.SourceCr = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCr, null, null, plsrc.SourceCr.Format, plsrc.VideoChromaLevels));
+					plsrc.SourceCb = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCb, plsrc.SourceCb.Format, videoLevels: plsrc.VideoChromaLevels));
+					plsrc.SourceCr = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCr, plsrc.SourceCr.Format, videoLevels: plsrc.VideoChromaLevels));
 					plsrc.VideoChromaLevels = false;
 				}
 
@@ -133,9 +133,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 
 			if (ofmt != ifmt)
-				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, ctx.SourceColorProfile, ctx.DestColorProfile, ofmt));
-			else if (lastChance && ifmt == PixelFormat.Bgrx32 && ctx.Settings.EncoderInfo.SupportsPixelFormat(PixelFormat.Bgr24.FormatGuid))
-				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, null, null, PixelFormat.Bgr24));
+				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, ofmt, ctx.SourceColorProfile, ctx.DestColorProfile));
+			else if (lastChance && ifmt == PixelFormat.Bgrx32 && ctx.Settings.EncoderInfo!.SupportsPixelFormat(PixelFormat.Bgr24.FormatGuid))
+				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, PixelFormat.Bgr24));
 		}
 
 		public static void AddHighQualityScaler(PipelineContext ctx, ChromaSubsampleMode subsample = ChromaSubsampleMode.Subsample444)
@@ -244,7 +244,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					: oldFmt == PixelFormat.Bgra32 ? PixelFormat.Bgr24
 					: throw new NotSupportedException("Unsupported pixel format");
 
-				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, null, null, newFmt));
+				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, newFmt));
 			}
 		}
 
@@ -257,9 +257,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			var fmt = ctx.Source.Format;
 			if (fmt.AlphaRepresentation == PixelAlphaRepresentation.None && ctx.Settings.MatteColor.IsTransparent())
-				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, null, null, PixelFormat.Bgra32));
+				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, PixelFormat.Bgra32));
 			else if (fmt.ColorRepresentation == PixelColorRepresentation.Grey && !ctx.Settings.MatteColor.IsGrey())
-				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, null, null, PixelFormat.Bgr24));
+				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, PixelFormat.Bgr24));
 
 			ctx.Source = ctx.AddProfiler(new PadTransformInternal(ctx.Source, ctx.Settings.MatteColor, ctx.Settings.InnerRect, ctx.Settings.OuterSize));
 		}
@@ -407,7 +407,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public static unsafe void AddIndexedColorConverter(PipelineContext ctx)
 		{
-			var encinfo = ctx.Settings.EncoderInfo;
+			var encinfo = ctx.Settings.EncoderInfo!;
 			if (!encinfo.SupportsPixelFormat(PixelFormat.Indexed8.FormatGuid))
 				return;
 
@@ -416,7 +416,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			if (indexedOptions is null && encinfo.SupportsPixelFormat(curFormat.FormatGuid))
 				return;
 
-			indexedOptions ??= ctx.Settings.EncoderInfo.DefaultOptions as IIndexedEncoderOptions;
+			indexedOptions ??= encinfo.DefaultOptions as IIndexedEncoderOptions;
 			bool autoPalette256 = indexedOptions is null || (indexedOptions.MaxPaletteSize >= 256 && indexedOptions.PredefinedPalette is null);
 
 			if (curFormat.ColorRepresentation == PixelColorRepresentation.Grey && autoPalette256)
@@ -427,7 +427,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			{
 				var newfmt = curFormat.AlphaRepresentation != PixelAlphaRepresentation.None ? PixelFormat.Bgra32 : PixelFormat.Bgrx32;
 				if (curFormat != newfmt)
-					ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, null, null, newfmt));
+					ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, newfmt));
 
 				var iconv = default(IndexedColorTransform);
 				if (indexedOptions.PredefinedPalette is not null)

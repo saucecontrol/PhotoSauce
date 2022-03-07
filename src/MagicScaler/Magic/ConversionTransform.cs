@@ -12,10 +12,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public override PixelFormat Format { get; }
 
-		public ConversionTransform(PixelSource source, ColorProfile? sourceProfile, ColorProfile? destProfile, PixelFormat destFormat, bool videoLevels = false) : base(source)
+		public ConversionTransform(PixelSource source, PixelFormat destFormat, ColorProfile? sourceProfile = null, ColorProfile? destProfile = null, bool videoLevels = false) : base(source)
 		{
-			var srcProfile = sourceProfile as CurveProfile ?? ColorProfile.sRGB;
-			var dstProfile = destProfile as CurveProfile ?? ColorProfile.sRGB;
 			var srcFormat = source.Format;
 
 			processor = null!;
@@ -34,6 +32,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 			else if (srcFormat.Encoding == PixelValueEncoding.Companded && Format.Encoding == PixelValueEncoding.Linear)
 			{
+				var srcProfile = sourceProfile as CurveProfile ?? ColorProfile.sRGB;
 				if (Format.NumericRepresentation == PixelNumericRepresentation.Fixed)
 					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
 						processor = srcProfile.GetConverter<byte, ushort, EncodingType.Companded>().Processor3A;
@@ -54,6 +53,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 			else if (srcFormat.Encoding == PixelValueEncoding.Linear && Format.Encoding == PixelValueEncoding.Companded)
 			{
+				var dstProfile = destProfile as CurveProfile ?? ColorProfile.sRGB;
 				if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Fixed)
 					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
 						processor = dstProfile.GetConverter<ushort, byte, EncodingType.Linear>().Processor3A;
@@ -126,7 +126,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		private unsafe void copyPixelsBuffered(in PixelArea prc, int cbStride, byte* pbBuffer)
 		{
 			var buffspan = lineBuff.Span;
-			if (buffspan.Length == 0) throw new ObjectDisposedException(nameof(ConversionTransform));
+			if (buffspan.IsEmpty) throw new ObjectDisposedException(nameof(ConversionTransform));
 
 			fixed (byte* bstart = buffspan)
 			{
@@ -194,7 +194,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			MagicTransforms.AddExternalFormatConverter(ctx);
 
 			if (ctx.Source.Format.FormatGuid != outFormat)
-				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, null, null, PixelFormat.FromGuid(outFormat)));
+				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, PixelFormat.FromGuid(outFormat)));
 
 			Source = ctx.Source;
 		}

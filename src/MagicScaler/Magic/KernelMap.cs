@@ -255,10 +255,12 @@ namespace PhotoSauce.MagicScaler
 		public int Samples { get; }
 		public int Channels { get; }
 
-		public ReadOnlySpan<byte> Map {
-			get {
+		public ReadOnlySpan<byte> Map
+		{
+			get
+			{
 				var span = map.Span;
-				if (refCount <= 0 || span.Length == 0)
+				if (refCount <= 0 || span.IsEmpty)
 					throw new ObjectDisposedException(nameof(KernelMap<T>));
 
 				return span;

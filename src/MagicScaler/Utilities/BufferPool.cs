@@ -176,6 +176,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static RentedBuffer<T> Wrap(ArraySegment<byte> buff) => new(buff);
 
+		public bool IsEmpty => buffer.Count == 0;
 		public int Length => (int)((uint)buffer.Count / (uint)Unsafe.SizeOf<T>());
 		public Span<T> Span => MemoryMarshal.Cast<byte, T>(buffer);
 

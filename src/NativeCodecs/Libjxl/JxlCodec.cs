@@ -43,7 +43,7 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 
 		private JxlContainer(Stream stm, long pos, IntPtr dec) => (stream, stmpos, decoder) = (stm, pos, dec);
 
-		public FileFormat ContainerFormat => FileFormat.Unknown;
+		public string MimeType => ImageMimeTypes.Jxl;
 
 		int IImageContainer.FrameCount => 1;
 
@@ -365,7 +365,9 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 		private IntPtr encoder, encopt;
 		private bool written;
 
-		public JxlEncoder(Stream outStream, IEncoderOptions? jxlOptions)
+		public static JxlEncoder Create(Stream outStream, IEncoderOptions? jxlOptions) => new(outStream, jxlOptions);
+
+		private JxlEncoder(Stream outStream, IEncoderOptions? jxlOptions)
 		{
 			stream = outStream;
 			options = jxlOptions is IJxlEncoderOptions opt ? opt : JxlLossyEncoderOptions.Default;
@@ -409,7 +411,7 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 
 			if (srcfmt != dstfmt)
 			{
-				using var tran = new MagicScaler.Transforms.ConversionTransform(source.AsPixelSource(), null, null, dstfmt);
+				using var tran = new MagicScaler.Transforms.ConversionTransform(source.AsPixelSource(), dstfmt);
 				((IPixelSource)tran).CopyPixels(sourceArea, stride, pixbuff.Span);
 			}
 			else
@@ -521,18 +523,15 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 			// netfx doesn't have RID-based native dependency resolution, so we include a .props
 			// file that copies binaries for all supported architectures to the output folder,
 			// then make a perfunctory attempt to load the right one before the first P/Invoke.
-			[DllImport("kernel32", ExactSpelling = true)]
-			static extern IntPtr LoadLibraryW(ushort* lpLibFileName);
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+			{
+				[DllImport("kernel32", ExactSpelling = true)]
+				static extern IntPtr LoadLibraryW(ushort* lpLibFileName);
 
-			string lib = RuntimeInformation.ProcessArchitecture switch {
-				Architecture.Arm64 => @"arm64\jxl",
-				Architecture.X64   => @"x64\jxl",
-				Architecture.X86   => @"x86\jxl",
-				_                  => "jxl"
-			};
-
-			fixed (char* plib = lib)
-				LoadLibraryW((ushort*)plib);
+				string lib = Path.Combine(RuntimeInformation.ProcessArchitecture.ToString(), "jxl");
+				fixed (char* plib = lib)
+					LoadLibraryW((ushort*)plib);
+			}
 #endif
 
 			uint ver = JxlDecoderVersion();
@@ -553,17 +552,16 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 		/// <inheritdoc cref="WindowsCodecExtensions.UseWicCodecs(CodecCollection, WicCodecPolicy)" />
 		public static void UseLibjxl(this CodecCollection codecs)
 		{
-			var jxlMime = new[] { "image/jxl" };
-			var jxlExtension = new[] { ".jxl" };
-			var pixelFormats = new[] { PixelFormat.Grey8.FormatGuid, PixelFormat.Rgb24.FormatGuid, PixelFormat.Rgba32.FormatGuid };
+			var jxlMime = new[] { ImageMimeTypes.Jxl };
+			var jxlExtension = new[] { ImageFileExtensions.Jxl };
 
 			codecs.Add(new DecoderInfo(
 				JxlFactory.libjxl,
 				jxlMime,
 				jxlExtension,
-				new[] {
-					new ContainerPattern(0, new byte[] { 0xff, 0x0a }, new byte[] { 0xff, 0xff }),
-					new ContainerPattern(0, new byte[] { 0x00, 0x00, 0x00, 0x0c, 0x4a, 0x58, 0x4c, 0x20, 0x0d, 0x0a, 0x87, 0x0a }, new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff })
+				new ContainerPattern[] {
+					new(0, new byte[] { 0xff, 0x0a }, new byte[] { 0xff, 0xff }),
+					new(0, new byte[] { 0x00, 0x00, 0x00, 0x0c, 0x4a, 0x58, 0x4c, 0x20, 0x0d, 0x0a, 0x87, 0x0a }, new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff })
 				},
 				null,
 				JxlContainer.TryLoad,
@@ -575,9 +573,9 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 				JxlFactory.libjxl,
 				jxlMime,
 				jxlExtension,
-				pixelFormats,
+				new[] { PixelFormat.Grey8.FormatGuid, PixelFormat.Rgb24.FormatGuid, PixelFormat.Rgba32.FormatGuid },
 				JxlLossyEncoderOptions.Default,
-				(s, c) => new JxlEncoder(s, c),
+				JxlEncoder.Create,
 				true,
 				false,
 				false,

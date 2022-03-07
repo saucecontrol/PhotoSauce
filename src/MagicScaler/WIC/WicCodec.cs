@@ -8,6 +8,9 @@ using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Diagnostics.CodeAnalysis;
+#if WICPROCESSOR
+using System.Collections.Generic;
+#endif
 
 using TerraFX.Interop;
 using static TerraFX.Interop.Windows;
@@ -20,6 +23,14 @@ namespace PhotoSauce.MagicScaler
 	internal static unsafe class WicImageDecoder
 	{
 #if WICPROCESSOR
+		private static readonly Dictionary<Guid, string> formatMap = new() {
+			[GUID_ContainerFormatBmp] = ImageMimeTypes.Bmp,
+			[GUID_ContainerFormatGif] = ImageMimeTypes.Gif,
+			[GUID_ContainerFormatPng] = ImageMimeTypes.Png,
+			[GUID_ContainerFormatJpeg] = ImageMimeTypes.Jpeg,
+			[GUID_ContainerFormatTiff] = ImageMimeTypes.Tiff
+		};
+
 		private static IWICBitmapDecoder* createDecoder(IStream* pStream)
 		{
 			Wic.EnsureFreeThreaded();
@@ -33,6 +44,14 @@ namespace PhotoSauce.MagicScaler
 			return decoder.Detach();
 		}
 
+		private static string? getMimeType(IWICBitmapDecoder* dec)
+		{
+			var guid = default(Guid);
+			HRESULT.Check(dec->GetContainerFormat(&guid));
+
+			return formatMap.GetValueOrDefault(guid);
+		}
+
 		public static WicImageContainer Load(string fileName, IDecoderOptions? options)
 		{
 			using var stm = default(ComPtr<IWICStream>);
@@ -41,14 +60,14 @@ namespace PhotoSauce.MagicScaler
 				HRESULT.Check(stm.Get()->InitializeFromFilename((ushort*)pname, GENERIC_READ));
 
 			var dec = createDecoder((IStream*)stm.Get());
-			return WicImageContainer.Create(dec, options);
+			return WicImageContainer.Create(dec, getMimeType(dec), options);
 		}
 
 		public static WicImageContainer Load(Stream inStream, IDecoderOptions? options)
 		{
 			using var ccw = new ComPtr<IStream>(IStreamImpl.Wrap(inStream));
 			var dec = createDecoder(ccw);
-			return WicImageContainer.Create(dec, options);
+			return WicImageContainer.Create(dec, getMimeType(dec), options);
 		}
 
 		public static WicImageContainer Load(byte* pbBuffer, int cbBuffer, IDecoderOptions? options)
@@ -59,22 +78,23 @@ namespace PhotoSauce.MagicScaler
 			HRESULT.Check(stream.Get()->InitializeFromMemory(pbBuffer, (uint)cbBuffer));
 
 			var dec = createDecoder((IStream*)stream.Get());
-			return WicImageContainer.Create(dec, options);
+			return WicImageContainer.Create(dec, getMimeType(dec), options);
 		}
 #endif
 
-		public static WicImageContainer? TryLoad(Guid clsid, Stream stream, IDecoderOptions? options)
+		public static WicImageContainer? TryLoad(Guid clsid, string mime, Stream stream, IDecoderOptions? options)
 		{
 			Wic.EnsureFreeThreaded();
 
-			using var ccw = new ComPtr<IStream>(IStreamImpl.Wrap(stream));
 			using var decoder = default(ComPtr<IWICBitmapDecoder>);
-			HRESULT.Check(CoCreateInstance(&clsid, null, (uint)CLSCTX.CLSCTX_INPROC_SERVER, __uuidof<IWICBitmapDecoder>(), (void**)decoder.GetAddressOf()));
+			if (FAILED(CoCreateInstance(&clsid, null, (uint)CLSCTX.CLSCTX_INPROC_SERVER, __uuidof<IWICBitmapDecoder>(), (void**)decoder.GetAddressOf())))
+				throw new NotSupportedException($"The WIC decoder with CLSID '{clsid}' for MIME type '{mime}' could not be instantiated.  This codec should be unregistered.");
 
+			using var ccw = new ComPtr<IStream>(IStreamImpl.Wrap(stream));
 			if (FAILED(decoder.Get()->Initialize(ccw, WICDecodeOptions.WICDecodeMetadataCacheOnDemand)))
 				return null;
 
-			return WicImageContainer.Create(decoder.Detach(), options);
+			return WicImageContainer.Create(decoder.Detach(), mime, options);
 		}
 	}
 
@@ -83,11 +103,13 @@ namespace PhotoSauce.MagicScaler
 		public IWICBitmapEncoder* WicEncoder { get; private set; }
 		public IEncoderOptions? Options { get; }
 
-		public WicImageEncoder(Guid clsid, Stream stm, IEncoderOptions? options)
+		public WicImageEncoder(Guid clsid, string mime, Stream stm, IEncoderOptions? options)
 		{
-			using var ccw = new ComPtr<IStream>(IStreamImpl.Wrap(stm));
 			using var encoder = default(ComPtr<IWICBitmapEncoder>);
-			HRESULT.Check(CoCreateInstance(&clsid, null, (uint)CLSCTX.CLSCTX_INPROC_SERVER, __uuidof<IWICBitmapEncoder>(), (void**)encoder.GetAddressOf()));
+			if (FAILED(CoCreateInstance(&clsid, null, (uint)CLSCTX.CLSCTX_INPROC_SERVER, __uuidof<IWICBitmapEncoder>(), (void**)encoder.GetAddressOf())))
+				throw new NotSupportedException($"The WIC encoder with CLSID '{clsid}' for MIME type '{mime}' could not be instantiated.  This codec should be unregistered.");
+
+			using var ccw = new ComPtr<IStream>(IStreamImpl.Wrap(stm));
 			HRESULT.Check(encoder.Get()->Initialize(ccw, WICBitmapEncoderCacheOption.WICBitmapEncoderNoCache));
 
 			var guid = default(Guid);
@@ -112,13 +134,18 @@ namespace PhotoSauce.MagicScaler
 
 				if (fmt == GUID_ContainerFormatJpeg)
 				{
-					var jconf = Options is JpegEncoderOptions jc ? jc : JpegEncoderOptions.Default;
-					int qual = jconf.Quality != 0 ? jconf.Quality : SettingsUtil.GetDefaultQuality(Math.Max(source.Width, source.Height));
-					var subs = jconf.Subsample != default ? jconf.Subsample : SettingsUtil.GetDefaultSubsampling(qual);
+					int qual = Options is ILossyEncoderOptions lopt && lopt.Quality != default
+						? lopt.Quality
+						: SettingsUtil.GetDefaultQuality(Math.Max(source.Width, source.Height));
+
+					var subs = Options is IPlanarEncoderOptions popt && popt.Subsample != default
+						? popt.Subsample
+						: SettingsUtil.GetDefaultSubsampling(qual);
+
 					pbag.Write("ImageQuality", qual / 100f);
 					pbag.Write("JpegYCrCbSubsampling", (byte)subs);
 
-					if (jconf.SuppressApp0)
+					if (Options is JpegEncoderOptions jconf && jconf.SuppressApp0)
 						pbag.Write("SuppressApp0", jconf.SuppressApp0);
 				}
 				else if (fmt == GUID_ContainerFormatPng && Options is IPngEncoderOptions pconf)
@@ -137,6 +164,14 @@ namespace PhotoSauce.MagicScaler
 				{
 					if (src.Format.AlphaRepresentation != PixelAlphaRepresentation.None)
 						pbag.Write("EnableV5Header32bppBGRA", true);
+				}
+				else if (fmt == GUID_ContainerFormatWmp || fmt == GUID_ContainerFormatHeif)
+				{
+					int qual = Options is ILossyEncoderOptions opt && opt.Quality != 0
+						? opt.Quality
+						: SettingsUtil.GetDefaultQuality(Math.Max(source.Width, source.Height));
+
+					pbag.Write("ImageQuality", qual / 100f);
 				}
 
 				HRESULT.Check(frame.Get()->Initialize(pbag));
@@ -351,7 +386,7 @@ namespace PhotoSauce.MagicScaler
 			encoder = enc;
 
 			if (ctx.Source.Format != PixelFormat.Bgra32)
-				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, null, null, PixelFormat.Bgra32));
+				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, PixelFormat.Bgra32));
 
 			lastSource = ctx.Source;
 			lastFrame = ctx.ImageContainer.FrameCount - 1;

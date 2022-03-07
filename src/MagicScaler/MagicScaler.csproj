@@ -43,6 +43,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<Compile Include="..\Shared\PolyFills\*.cs" Link="External\Polyfills\%(FileName)%(Extension)" />
+		<Compile Include="..\Shared\Interop\*.cs" Link="External\Interop\%(FileName)%(Extension)" />
 		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\Blake2b\*.cs" Link="External\Blake2Fast\Blake2b\%(FileName)%(Extension)" />
 		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\IBlake2Incremental.cs" Link="External\Blake2Fast\%(FileName)%(Extension)" />
 		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\ThrowHelper.cs" Link="External\Blake2Fast\%(FileName)%(Extension)" />
@@ -68,7 +70,6 @@
 
 	<ItemGroup>
 		<InternalsVisibleTo Include="$(Company).WebRSize" />
-		<InternalsVisibleTo Include="$(Company).ManagedCodecs.ImageSharp" />
 		<InternalsVisibleTo Include="$(Company).NativeCodecs.Libjxl" />
 	</ItemGroup>
 

@@ -2,6 +2,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
@@ -30,7 +31,9 @@ namespace PhotoSauce.ManagedCodecs.ImageSharp
 		/// <summary>Creates a new <see cref="TargaEncoder" /> instance.</summary>
 		/// <param name="outStream">The <see cref="Stream" /> to which the image will be written.</param>
 		/// <param name="tgaOptions">Options for the image format.</param>
-		public TargaEncoder(Stream outStream, IEncoderOptions? tgaOptions)
+		public static TargaEncoder Create(Stream outStream!!, IEncoderOptions? tgaOptions) => new(outStream, tgaOptions);
+
+		private TargaEncoder(Stream outStream, IEncoderOptions? tgaOptions)
 		{
 			stream = outStream;
 			options = tgaOptions is TargaEncoderOptions opt ? opt : TargaEncoderOptions.Default;
@@ -97,13 +100,13 @@ namespace PhotoSauce.ManagedCodecs.ImageSharp
 		};
 
 		/// <inheritdoc />
-		public FileFormat ContainerFormat => FileFormat.Unknown;
+		public string MimeType => TgaFormat.Instance.DefaultMimeType;
 
 		int IImageContainer.FrameCount => 1;
 
 		IImageFrame IImageContainer.GetFrame(int index) => index == 0 ? new TargaFrame(decodedImage.Frames.RootFrame) : throw new IndexOutOfRangeException("Invalid frame index");
 
-		internal static TargaContainer? TryLoad(Stream imgStream)
+		internal static TargaContainer? TryLoad(Stream imgStream, IDecoderOptions? _)
 		{
 			long pos = imgStream.Position;
 			var info = Image.Identify(imgStream, out var fmt);
@@ -115,7 +118,7 @@ namespace PhotoSauce.ManagedCodecs.ImageSharp
 		/// <summary>Loads a TARGA image from an input <see cref="Stream"/>.</summary>
 		/// <param name="imgStream">A <see cref="Stream" /> containing the image file.</param>
 		/// <returns>A <see cref="TargaContainer"/> encapsulating the image.</returns>
-		public static TargaContainer Load(Stream imgStream)
+		public static TargaContainer Load(Stream imgStream!!)
 		{
 			long pos = imgStream.Position;
 			var info = Image.Identify(imgStream, out var fmt);
@@ -215,26 +218,27 @@ namespace PhotoSauce.ManagedCodecs.ImageSharp
 		public static void UseImageSharpTga(this CodecCollection codecs)
 		{
 			var targa = TgaFormat.Instance;
-			var pixelFormats = new[] { PixelFormats.Grey8bpp, PixelFormats.Bgr24bpp, PixelFormats.Bgra32bpp };
+			var mimeTypes = new[] { targa.DefaultMimeType }.Concat(targa.MimeTypes).Distinct().ToArray();
+			var fileExtensions = targa.FileExtensions.Select(e => e.StartsWith(".") ? e : string.Concat(".", e)).ToArray();
 
 			codecs.Add(new DecoderInfo(
 				$"{nameof(SixLabors.ImageSharp)} {targa.Name}",
-				targa.MimeTypes,
-				targa.FileExtensions,
+				mimeTypes,
+				fileExtensions,
 				new[] { new ContainerPattern(0, new byte[] { 0, 0, 0 }, new byte[] { 0, 0b_1111_1110, 0b_1111_0100 }) },
 				null,
-				(s, c) => TargaContainer.TryLoad(s),
+				TargaContainer.TryLoad,
 				true,
 				false,
 				false
 			));
 			codecs.Add(new EncoderInfo(
 				$"{nameof(SixLabors.ImageSharp)} {targa.Name}",
-				targa.MimeTypes,
-				targa.FileExtensions,
-				pixelFormats,
+				mimeTypes,
+				fileExtensions,
+				new[] { PixelFormats.Grey8bpp, PixelFormats.Bgr24bpp, PixelFormats.Bgra32bpp },
 				TargaEncoderOptions.Default,
-				(s, c) => new TargaEncoder(s, c),
+				TargaEncoder.Create,
 				true,
 				false,
 				false,

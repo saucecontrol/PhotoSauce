@@ -5,6 +5,7 @@ using System.Linq;
 using System.Drawing;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using System.Diagnostics.CodeAnalysis;
 
 using Blake2Fast;
 using PhotoSauce.MagicScaler.Interpolators;
@@ -103,8 +104,8 @@ namespace PhotoSauce.MagicScaler
 		private InterpolationSettings interpolation;
 		private UnsharpMaskSettings unsharpMask;
 		private ImageFileInfo? imageInfo;
-		private IImageEncoderInfo? encoderInfo;
 
+		internal IImageEncoderInfo? EncoderInfo;
 		internal Size InnerSize;
 		internal Size OuterSize;
 		internal bool AutoCrop;
@@ -117,18 +118,12 @@ namespace PhotoSauce.MagicScaler
 			DpiY            == empty.DpiY       &&
 			Crop            == empty.Crop       &&
 			CropBasis       == empty.CropBasis  &&
-			SaveFormat      == empty.SaveFormat &&
 			MatteColor      == empty.MatteColor &&
+			EncoderInfo     is null             &&
 			EncoderOptions  is null             &&
 			DecoderOptions  is null             &&
 			unsharpMask.Equals(empty.unsharpMask)
 		;
-
-		internal IImageEncoderInfo EncoderInfo
-		{
-			get => encoderInfo ??= CodecManager.TryGetEncoderForMimeType(SaveFormat.ToMimeType(), out var info) ? info : CodecManager.FallbackEncoder;
-			set => encoderInfo = value;
-		}
 
 		internal Rectangle InnerRect => new(
 			x: (OuterSize.Width - InnerSize.Width) / 2,
@@ -172,9 +167,6 @@ namespace PhotoSauce.MagicScaler
 		/// <include file='Docs/Remarks.xml' path='doc/member[@name="Anchor"]/*'/>
 		/// <value>Default value: <see cref="CropAnchor.Center" /></value>
 		public CropAnchor Anchor { get; set; }
-		/// <summary>Determines the container format of the output image. A value of <see cref="FileFormat.Auto" /> will choose the output codec based on the input image type.</summary>
-		/// <value>Default value: <see cref="FileFormat.Auto" /></value>
-		public FileFormat SaveFormat { get; set; }
 		/// <summary>The background color to use when converting to a non-transparent format and the fill color for <see cref="CropScaleMode.Pad" /> mode.</summary>
 		/// <include file='Docs/Remarks.xml' path='doc/member[@name="MatteColor"]/*'/>
 		/// <value>Default value: <see cref="Color.Empty" /></value>
@@ -295,6 +287,32 @@ namespace PhotoSauce.MagicScaler
 			set => unsharpMask = value;
 		}
 
+		/// <summary>Determines the container format of the output image. A value of <see cref="FileFormat.Auto" /> will choose the output codec based on the input image type.</summary>
+		/// <value>Default value: <see cref="FileFormat.Auto" /></value>
+		public FileFormat SaveFormat
+		{
+			get => ImageMimeTypes.ToFileFormat(EncoderInfo?.MimeTypes.FirstOrDefault(), EncoderOptions is IIndexedEncoderOptions);
+			set
+			{
+				if (value == FileFormat.Png8 && EncoderOptions is not IIndexedEncoderOptions)
+					EncoderOptions = PngIndexedEncoderOptions.Default;
+
+				EncoderInfo = value != default ? CodecManager.TryGetEncoderForMimeType(value.ToMimeType()!, out var enc) ? enc : CodecManager.FallbackEncoder : null;
+			}
+		}
+
+		/// <summary>Sets the preferred format of the output image.  If no encoder is set, the pipeline will choose the output codec based on the input image type or <see cref="EncoderOptions" />.</summary>
+		/// <param name="mimeType">The MIME type of the preferred encoder. Common formats can be found in <see cref="ImageMimeTypes" />.</param>
+		/// <remarks>If a matching encoder is not registered, the pipeline may choose an alternate encoder.</remarks>
+		public bool TrySetEncoderFormat(string mimeType!!)
+		{
+			bool found = CodecManager.TryGetEncoderForMimeType(mimeType, out var enc);
+			if (found)
+				EncoderInfo = enc;
+
+			return found;
+		}
+
 		/// <summary>Create a new <see cref="ProcessImageSettings" /> instance based on name/value pairs in a dictionary.</summary>
 		/// <param name="dic">The dictionary containing the name/value pairs.</param>
 		/// <returns>A new settings instance.</returns>
@@ -312,8 +330,17 @@ namespace PhotoSauce.MagicScaler
 			s.BlendingMode = Enum.TryParse(dic.GetValueOrDefault("gamma"), true, out GammaMode bm) ? bm : s.BlendingMode;
 			s.HybridMode = Enum.TryParse(dic.GetValueOrDefault("hybrid"), true, out HybridScaleMode hyb) ? hyb : s.HybridMode;
 
-			if (Enum.TryParse(dic.GetValueOrDefault("format")?.ToLowerInvariant().Replace("jpg", "jpeg"), true, out FileFormat fmt))
-				s.SaveFormat = fmt;
+			if (dic.GetValueOrDefault("format") is string fmt)
+			{
+				if (fmt.EqualsInsensitive("png8"))
+				{
+					s.EncoderOptions = PngIndexedEncoderOptions.Default;
+					fmt = "png";
+				}
+
+				if (CodecManager.TryGetEncoderForFileExtension(string.Concat(".", fmt), out var enc))
+					s.EncoderInfo = enc;
+			}
 
 			if (cropExpression.Value.IsMatch(dic.GetValueOrDefault("crop") ?? string.Empty))
 			{
@@ -511,17 +538,18 @@ namespace PhotoSauce.MagicScaler
 				OuterSize = InnerSize;
 		}
 
-		internal void SetSaveFormat(FileFormat containerType, bool frameHasAlpha)
+		[MemberNotNull(nameof(EncoderInfo))]
+		internal void SetEncoder(string? containerType, bool frameHasAlpha)
 		{
-			if (encoderInfo is not null)
-				return;
-
-			if (containerType == FileFormat.Gif)
-				SaveFormat = FileFormat.Gif;
-			else if (containerType == FileFormat.Png || ((frameHasAlpha || InnerSize != OuterSize) && MatteColor.IsTransparent()))
-				SaveFormat = FileFormat.Png;
+			IImageEncoderInfo? enc;
+			if (containerType == ImageMimeTypes.Gif)
+				CodecManager.TryGetEncoderForMimeType(ImageMimeTypes.Gif, out enc);
+			else if (containerType == ImageMimeTypes.Png || ((frameHasAlpha || InnerSize != OuterSize) && MatteColor.IsTransparent()))
+				CodecManager.TryGetEncoderForMimeType(ImageMimeTypes.Png, out enc);
 			else
-				SaveFormat = FileFormat.Jpeg;
+				CodecManager.TryGetEncoderForMimeType(ImageMimeTypes.Jpeg, out enc);
+
+			EncoderInfo = enc ?? CodecManager.FallbackEncoder;
 		}
 
 		internal void NormalizeFrom(ImageFileInfo img)
@@ -531,14 +559,14 @@ namespace PhotoSauce.MagicScaler
 
 			Fixup(frame.Width, frame.Height, OrientationMode != OrientationMode.Normalize && frame.ExifOrientation.SwapsDimensions());
 
-			if (SaveFormat == FileFormat.Auto)
-				SetSaveFormat(img.ContainerType, frame.HasAlpha);
-
 			if (!frame.HasAlpha && InnerSize == OuterSize)
 				MatteColor = Color.Empty;
 
 			if (!Sharpen)
 				UnsharpMask = UnsharpMaskSettings.None;
+
+			if (EncoderInfo is null)
+				SetEncoder(img.MimeType, frame.HasAlpha);
 
 			if (ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed && !EncoderInfo.SupportsColorProfile)
 				ColorProfileMode = ColorProfileMode.ConvertToSrgb;
@@ -568,7 +596,7 @@ namespace PhotoSauce.MagicScaler
 			hash.Update(UnsharpMask);
 			hash.Update(SaveFormat);
 
-			if (EncoderInfo.SupportsMimeType(KnownMimeTypes.Jpeg))
+			if (EncoderInfo!.SupportsMimeType(ImageMimeTypes.Jpeg))
 			{
 				hash.Update(JpegSubsampleMode);
 				hash.Update(JpegQuality);

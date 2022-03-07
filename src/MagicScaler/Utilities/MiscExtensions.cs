@@ -2,13 +2,13 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Buffers;
 using System.Drawing;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 #if NETFRAMEWORK
-using System.Linq;
 using System.Configuration;
 using System.Collections.Specialized;
 #endif
@@ -37,37 +37,13 @@ namespace PhotoSauce.MagicScaler
 
 		public static bool IsSubsampledY(this ChromaSubsampleMode o) => o == ChromaSubsampleMode.Subsample420 || o == ChromaSubsampleMode.Subsample440;
 
-		public static bool InsensitiveEquals(this string s1, string s2) => string.Equals(s1, s2, StringComparison.OrdinalIgnoreCase);
+		public static bool EqualsInsensitive(this string s1, string s2) => string.Equals(s1, s2, StringComparison.OrdinalIgnoreCase);
+
+		public static bool ContainsInsensitive(this IEnumerable<string> c, string s) => c.Contains(s, StringComparer.OrdinalIgnoreCase);
 
 		public static bool IsTransparent(this Color c) => c.A < byte.MaxValue;
 
 		public static bool IsGrey(this Color c) => c.R == c.G && c.G == c.B;
-
-		public static string ToMimeType(this FileFormat fmt) => fmt switch {
-			FileFormat.Bmp  => KnownMimeTypes.Bmp,
-			FileFormat.Gif  => KnownMimeTypes.Gif,
-			FileFormat.Jpeg => KnownMimeTypes.Jpeg,
-			FileFormat.Tiff => KnownMimeTypes.Tiff,
-			_               => KnownMimeTypes.Png
-		};
-
-		public static string GetFileExtension(this FileFormat fmt, string? preferredExtension = null)
-		{
-			if (fmt == FileFormat.Png8)
-				fmt = FileFormat.Png;
-
-			string ext = fmt.ToString().ToLowerInvariant();
-			if (!string.IsNullOrEmpty(preferredExtension))
-			{
-				if (preferredExtension[0] == '.')
-					preferredExtension = preferredExtension.Substring(1);
-
-				if (preferredExtension.InsensitiveEquals(ext) || (preferredExtension.InsensitiveEquals("jpg") && fmt == FileFormat.Jpeg) || (preferredExtension.InsensitiveEquals("tif") && fmt == FileFormat.Tiff))
-					return preferredExtension;
-			}
-
-			return ext;
-		}
 
 		public static void EnsureValidForInput(this Stream stm)
 		{

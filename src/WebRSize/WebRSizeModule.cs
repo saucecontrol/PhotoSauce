@@ -53,7 +53,7 @@ namespace PhotoSauce.WebRSize
 					s.Width = s.Height = 100;
 
 				ifi = new ImageFileInfo(s.Width > 0 ? s.Width : s.Height, s.Height > 0 ? s.Height : s.Width);
-				s.SaveFormat = FileFormat.Png;
+				s.TrySetEncoderFormat(ImageMimeTypes.Png);
 			}
 
 			ifi ??= vpp is CachingAsyncVirtualPathProvider vppAF ? await vppAF.GetImageInfoAsync(path).ConfigureAwait(false) : await CacheHelper.GetImageInfoAsync(vpp, path).ConfigureAwait(false);

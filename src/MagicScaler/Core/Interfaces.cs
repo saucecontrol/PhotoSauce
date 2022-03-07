@@ -75,8 +75,8 @@ namespace PhotoSauce.MagicScaler
 	/// <summary>An image container (file), made up of one or more <see cref="IImageFrame" /> instances.</summary>
 	public interface IImageContainer : IDisposable
 	{
-		/// <summary>The <see cref="FileFormat" /> (codec) of the image container.</summary>
-		FileFormat ContainerFormat { get; }
+		/// <summary>The <a href="https://en.wikipedia.org/wiki/Media_type">MIME type</a> of the image container, if applicable.</summary>
+		string? MimeType { get; }
 
 		/// <summary>The total number of image frames in this container.</summary>
 		int FrameCount { get; }
@@ -131,7 +131,7 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>A list of <a href="https://en.wikipedia.org/wiki/Media_type">MIME types</a> supported by the codec.</summary>
 		IEnumerable<string> MimeTypes { get; }
 		/// <summary>A list of file extensions supported by the codec.</summary>
-		/// <remarks>A leading dot ('.') on the extension is optional.</remarks>
+		/// <remarks>Extensions should include a leading dot ('.').</remarks>
 		IEnumerable<string> FileExtensions { get; }
 		/// <summary>True if the codec supports transparency, otherwise false.</summary>
 		bool SupportsTransparency { get; }

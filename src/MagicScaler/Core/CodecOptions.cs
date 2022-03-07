@@ -39,6 +39,14 @@ public interface IPngEncoderOptions : IEncoderOptions
 	bool Interlace { get; }
 }
 
+/// <summary>Generic options for lossy encoders.</summary>
+/// <param name="Quality"><inheritdoc cref="ILossyEncoderOptions.Quality" path="/summary/node()" /></param>
+public readonly record struct LossyEncoderOptions(int Quality) : ILossyEncoderOptions
+{
+	/// <summary>Default lossy encoder options.</summary>
+	public static LossyEncoderOptions Default => default;
+}
+
 /// <summary>JPEG encoder options.</summary>
 /// <param name="Quality"><inheritdoc cref="ILossyEncoderOptions.Quality" path="/summary/node()" /></param>
 /// <param name="Subsample"><inheritdoc cref="IPlanarEncoderOptions.Subsample" path="/summary/node()" /></param>
@@ -127,6 +135,14 @@ public readonly record struct TiffDecoderOptions(Range FrameRange) : IMultiFrame
 	public static TiffDecoderOptions Default => new(..);
 }
 
+/// <summary>Camera RAW decoder options.</summary>
+/// <param name="UsePreview">Determines whether a preview image is used in place of the RAW frame.</param>
+public readonly record struct CameraRawDecoderOptions(RawPreviewMode UsePreview) : IDecoderOptions
+{
+	/// <summary>Default Camera RAW decoder options.</summary>
+	public static CameraRawDecoderOptions Default => new(RawPreviewMode.FullResolutionOnly);
+}
+
 internal readonly record struct MultiFrameDecoderOptions(Range FrameRange) : IMultiFrameDecoderOptions { }
 
 /// <summary>Represents the PNG <a href="https://www.w3.org/TR/PNG-Filters.html">prediction filter</a> applied to image lines before compression.</summary>
@@ -185,3 +201,13 @@ public enum DitherMode
 	ErrorDiffusion
 }
 
+/// <summary>Represents the options for use of preview images from camera RAW codecs.</summary>
+public enum RawPreviewMode
+{
+	/// <summary>If available, the preview image will always be used in place of the RAW frame.</summary>
+	Always,
+	/// <summary>The preview image will be used only if it matches the resolution of the RAW frame.</summary>
+	FullResolutionOnly,
+	/// <summary>The RAW frame will always be used, even if a preview is available.</summary>
+	Never
+}

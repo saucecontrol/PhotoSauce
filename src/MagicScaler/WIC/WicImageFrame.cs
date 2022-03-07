@@ -59,25 +59,31 @@ namespace PhotoSauce.MagicScaler
 			{
 				string orientationPath =
 					MagicImageProcessor.EnableXmpOrientation ? Wic.Metadata.OrientationWindowsPolicy :
-					Container.ContainerFormat == FileFormat.Jpeg ? Wic.Metadata.OrientationJpeg :
+					Container.MimeType == ImageMimeTypes.Jpeg ? Wic.Metadata.OrientationJpeg :
 					Wic.Metadata.OrientationExif;
 
 				ExifOrientation = ((Orientation)metareader.GetValueOrDefault<ushort>(orientationPath)).Clamp();
 				WicMetadataReader = metareader.Detach();
 			}
 
-			using var preview = default(ComPtr<IWICBitmapSource>);
-			if (decoder.IsRawContainer && index == 0 && SUCCEEDED(decoder.WicDecoder->GetPreview(preview.GetAddressOf())))
+			if (index == 0 && Container.Options is CameraRawDecoderOptions ropt && ropt.UsePreview != RawPreviewMode.Never)
 			{
-				uint pw, ph;
-				HRESULT.Check(preview.Get()->GetSize(&pw, &ph));
+				using var preview = default(ComPtr<IWICBitmapSource>);
+				if (SUCCEEDED(decoder.WicDecoder->GetPreview(preview.GetAddressOf())))
+				{
+					uint pw, ph;
+					HRESULT.Check(preview.Get()->GetSize(&pw, &ph));
 
-				if (pw == frameWidth && ph == frameHeight)
-					source.Attach(preview.Detach());
+					if (ropt.UsePreview == RawPreviewMode.Always || (pw == frameWidth && ph == frameHeight))
+					{
+						(frameWidth, frameHeight) = (pw, ph);
+						source.Attach(preview.Detach());
+					}
+				}
 			}
 
 			using var transform = default(ComPtr<IWICBitmapSourceTransform>);
-			if (SUCCEEDED(source.Get()->QueryInterface(__uuidof<IWICBitmapSourceTransform>(), (void**)transform.GetAddressOf())))
+			if (SUCCEEDED(source.As(&transform)))
 			{
 				uint tw = 1, th = 1;
 				HRESULT.Check(transform.Get()->GetClosestSize(&tw, &th));
@@ -85,10 +91,10 @@ namespace PhotoSauce.MagicScaler
 				SupportsNativeScale = tw < frameWidth || th < frameHeight;
 			}
 
-			if (MagicImageProcessor.EnablePlanarPipeline && (Container.Options is not IPlanarDecoderOptions opt || opt.AllowPlanar))
+			if (MagicImageProcessor.EnablePlanarPipeline && (Container.Options is not IPlanarDecoderOptions popt || popt.AllowPlanar))
 			{
 				using var ptransform = default(ComPtr<IWICPlanarBitmapSourceTransform>);
-				if (SUCCEEDED(source.Get()->QueryInterface(__uuidof<IWICPlanarBitmapSourceTransform>(), (void**)ptransform.GetAddressOf())))
+				if (SUCCEEDED(source.As(&ptransform)))
 				{
 					var fmts = WicTransforms.PlanarPixelFormats;
 					var desc = stackalloc WICBitmapPlaneDescription[fmts.Length];
@@ -238,7 +244,7 @@ namespace PhotoSauce.MagicScaler
 					{
 						var r03 = (ReadOnlySpan<byte>)(new[] { (byte)'R', (byte)'0', (byte)'3' });
 						var meta = ComPtr<IWICMetadataQueryReader>.Wrap(WicMetadataReader);
-						if (meta.GetValueOrDefault(Container.ContainerFormat == FileFormat.Jpeg ? Wic.Metadata.InteropIndexJpeg : Wic.Metadata.InteropIndexExif, buff).SequenceEqual(r03))
+						if (meta.GetValueOrDefault(Container.MimeType == ImageMimeTypes.Jpeg ? Wic.Metadata.InteropIndexJpeg : Wic.Metadata.InteropIndexExif, buff).SequenceEqual(r03))
 							return WicColorProfile.AdobeRgb.Value;
 					}
 				}

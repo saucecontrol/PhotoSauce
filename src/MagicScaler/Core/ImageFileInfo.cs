@@ -47,18 +47,16 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>The last modified date of the image container, if applicable.</summary>
 		public DateTime FileDate { get; }
 		/// <summary>The format of the image container (e.g. JPEG, PNG).</summary>
-		public FileFormat ContainerType { get; private set; }
+		public FileFormat ContainerType => ImageMimeTypes.ToFileFormat(MimeType);
+		/// <summary>The MIME type of the image container.</summary>
+		public string? MimeType { get; }
 		/// <summary>One or more <see cref="FrameInfo" /> instances describing each image frame in the container.</summary>
-		public IReadOnlyList<FrameInfo> Frames { get; private set; }
+		public IReadOnlyList<FrameInfo> Frames { get; }
 
 		/// <summary>Constructs a new <see cref="ImageFileInfo" /> instance with a single frame of the specified <paramref name="width" /> and <paramref name="height" />.</summary>
 		/// <param name="width">The width of the image frame in pixels.</param>
 		/// <param name="height">The height of the image frame in pixels.</param>
-		public ImageFileInfo(int width, int height)
-		{
-			Frames = new[] { new FrameInfo(width, height, false, Orientation.Normal) };
-			ContainerType = FileFormat.Unknown;
-		}
+		public ImageFileInfo(int width, int height) => Frames = new[] { new FrameInfo(width, height, false, Orientation.Normal) };
 
 		/// <summary>Constructs a new <see cref="ImageFileInfo" /> instance the specified values.</summary>
 		/// <param name="containerType">The <see cref="FileFormat" /> of the image container.</param>
@@ -67,7 +65,20 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="fileDate">The last modified date of the image file.</param>
 		public ImageFileInfo(FileFormat containerType, IReadOnlyList<FrameInfo> frames, long fileSize, DateTime fileDate)
 		{
-			ContainerType = containerType;
+			MimeType = containerType.ToMimeType();
+			Frames = frames;
+			FileSize = fileSize;
+			FileDate = fileDate;
+		}
+
+		/// <summary>Constructs a new <see cref="ImageFileInfo" /> instance the specified values.</summary>
+		/// <param name="mimeType">The MIME type of the image container.</param>
+		/// <param name="frames">A list containing one <see cref="FrameInfo" /> per image frame in the container.</param>
+		/// <param name="fileSize">The size in bytes of the image file.</param>
+		/// <param name="fileDate">The last modified date of the image file.</param>
+		public ImageFileInfo(string? mimeType, IReadOnlyList<FrameInfo> frames, long fileSize, DateTime fileDate)
+		{
+			MimeType = mimeType;
 			Frames = frames;
 			FileSize = fileSize;
 			FileDate = fileDate;
@@ -93,7 +104,7 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="lastModified">The last modified date of the image container.</param>
 		public static unsafe ImageFileInfo Load(ReadOnlySpan<byte> imgBuffer, DateTime lastModified)
 		{
-			if (imgBuffer.Length is 0) throw new ArgumentNullException(nameof(imgBuffer));
+			if (imgBuffer.IsEmpty) throw new ArgumentNullException(nameof(imgBuffer));
 
 			fixed (byte* pbBuffer = imgBuffer)
 			{
@@ -122,10 +133,9 @@ namespace PhotoSauce.MagicScaler
 
 		private static ImageFileInfo fromContainer(IImageContainer cont, long fileSize, DateTime fileDate)
 		{
-			var cfmt = cont.ContainerFormat;
 			var frames = cont is WicGifContainer gif ? getGifFrameInfo(gif) : getFrameInfo(cont);
 
-			return new ImageFileInfo(cfmt, frames, fileSize, fileDate);
+			return new ImageFileInfo(cont.MimeType, frames, fileSize, fileDate);
 		}
 
 		private static unsafe FrameInfo[] getFrameInfo(IImageContainer cont)

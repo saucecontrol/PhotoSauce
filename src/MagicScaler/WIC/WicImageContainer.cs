@@ -2,11 +2,9 @@
 
 using System;
 using System.Buffers.Binary;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
 using TerraFX.Interop;
-using static TerraFX.Interop.Windows;
 
 using PhotoSauce.Interop.Wic;
 
@@ -14,31 +12,12 @@ namespace PhotoSauce.MagicScaler
 {
 	internal unsafe class WicImageContainer : IImageContainer, IMetadataSource, IDisposable
 	{
-		public static readonly Dictionary<Guid, FileFormat> FormatMap = new() {
-			[GUID_ContainerFormatBmp] = FileFormat.Bmp,
-			[GUID_ContainerFormatGif] = FileFormat.Gif,
-			[GUID_ContainerFormatJpeg] = FileFormat.Jpeg,
-			[GUID_ContainerFormatPng] = FileFormat.Png,
-			[GUID_ContainerFormatTiff] = FileFormat.Tiff
-		};
-
 		public IWICBitmapDecoder* WicDecoder { get; private set; }
 
-		public FileFormat ContainerFormat { get; }
+		public string? MimeType { get; }
 		public IDecoderOptions? Options { get; }
 		public int FrameCount { get; }
 		public int FrameOffset { get; }
-
-		public bool IsRawContainer {
-			get {
-				if (ContainerFormat != FileFormat.Unknown)
-					return false;
-
-				var guid = default(Guid);
-				HRESULT.Check(WicDecoder->GetContainerFormat(&guid));
-				return guid == GUID_ContainerFormatRaw || guid == GUID_ContainerFormatRaw2 || guid == GUID_ContainerFormatAdng;
-			}
-		}
 
 		public virtual IImageFrame GetFrame(int index)
 		{
@@ -47,10 +26,10 @@ namespace PhotoSauce.MagicScaler
 			return new WicImageFrame(this, (uint)(FrameOffset + index));
 		}
 
-		protected WicImageContainer(IWICBitmapDecoder* dec, FileFormat fmt, IDecoderOptions? options)
+		protected WicImageContainer(IWICBitmapDecoder* dec, string? mime, IDecoderOptions? options)
 		{
 			WicDecoder = dec;
-			ContainerFormat = fmt;
+			MimeType = mime;
 			Options = options;
 
 			uint fcount;
@@ -61,16 +40,12 @@ namespace PhotoSauce.MagicScaler
 				(FrameOffset, FrameCount) = (0, (int)fcount);
 		}
 
-		public static WicImageContainer Create(IWICBitmapDecoder* dec, IDecoderOptions? options = null)
+		public static WicImageContainer Create(IWICBitmapDecoder* dec, string? mime, IDecoderOptions? options = null)
 		{
-			var guid = default(Guid);
-			HRESULT.Check(dec->GetContainerFormat(&guid));
-
-			var fmt = FormatMap.GetValueOrDefault(guid, FileFormat.Unknown);
-			if (fmt == FileFormat.Gif)
+			if (mime == ImageMimeTypes.Gif)
 				return new WicGifContainer(dec, options);
 
-			return new WicImageContainer(dec, fmt, options);
+			return new WicImageContainer(dec, mime, options);
 		}
 
 		public virtual bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata
@@ -110,7 +85,7 @@ namespace PhotoSauce.MagicScaler
 
 		public bool IsAnimation => FrameOffset + FrameCount > 1;
 
-		public WicGifContainer(IWICBitmapDecoder* dec, IDecoderOptions? options) : base(dec, FileFormat.Gif, options)
+		public WicGifContainer(IWICBitmapDecoder* dec, IDecoderOptions? options) : base(dec, ImageMimeTypes.Gif, options)
 		{
 			using var meta = default(ComPtr<IWICMetadataQueryReader>);
 			HRESULT.Check(dec->GetMetadataQueryReader(meta.GetAddressOf()));

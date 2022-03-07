@@ -181,7 +181,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		/// <summary>Include only codecs that are built in to Windows.</summary>
 		BuiltIn,
-		/// <summary>Include only codecs that are built in to Windows and installed codecs authored by Microsoft.</summary>
+		/// <summary>Include only codecs that are built in to Windows, plus installed codecs authored by Microsoft.</summary>
 		/// <remarks>Microsoft installed codecs include those installed from Microsoft Store, such as the RAW Image Extension.</remarks>
 		Microsoft,
 		/// <summary>Include any codecs that are registered with WIC, inlcuding those installed by third party vendors.</summary>

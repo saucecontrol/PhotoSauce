@@ -85,7 +85,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
 			var buffspan = lineBuff.Span;
-			if (buffspan.Length == 0) throw new ObjectDisposedException(nameof(PlanarConversionTransform));
+			if (buffspan.IsEmpty) throw new ObjectDisposedException(nameof(PlanarConversionTransform));
 
 			fixed (byte* bstart = buffspan)
 			{

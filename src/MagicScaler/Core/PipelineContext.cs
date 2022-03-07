@@ -33,7 +33,7 @@ namespace PhotoSauce.MagicScaler
 		public WicPipelineContext WicContext => wicContext ??= new();
 
 		public bool IsAnimationPipeline =>
-			 Settings.EncoderInfo.SupportsAnimation && ImageContainer.FrameCount > 1 && ImageContainer is IMetadataSource meta && meta.TryGetMetadata<AnimationContainer>(out _);
+			 Settings.EncoderInfo!.SupportsAnimation && ImageContainer.FrameCount > 1 && ImageContainer is IMetadataSource meta && meta.TryGetMetadata<AnimationContainer>(out _);
 
 		public PipelineContext(ProcessImageSettings settings, IImageContainer cont, bool ownCont = true)
 		{
@@ -83,18 +83,15 @@ namespace PhotoSauce.MagicScaler
 			{
 				Settings.Fixup(Source.Width, Source.Height, Orientation.SwapsDimensions());
 
-				if (Settings.SaveFormat == FileFormat.Auto)
-					Settings.SetSaveFormat(ImageContainer.ContainerFormat, Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
+				if (Settings.EncoderInfo is null)
+					Settings.SetEncoder(ImageContainer.MimeType, Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
 
 				if (Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed && !Settings.EncoderInfo.SupportsColorProfile)
 					Settings.ColorProfileMode = ColorProfileMode.ConvertToSrgb;
 			}
 
-			if (Settings.SaveFormat == FileFormat.Png8 && Settings.EncoderOptions is not IIndexedEncoderOptions)
-				Settings.EncoderOptions = PngIndexedEncoderOptions.Default;
-
 			if (Settings.EncoderOptions is null)
-				Settings.EncoderOptions = Settings.EncoderInfo.DefaultOptions;
+				Settings.EncoderOptions = Settings.EncoderInfo!.DefaultOptions;
 
 			UsedSettings = Settings.Clone();
 		}

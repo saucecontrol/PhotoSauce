@@ -59,7 +59,7 @@ namespace PhotoSauce.MagicScaler
 			MagicTransforms.AddPad(ctx);
 			WicTransforms.AddIndexedColorConverter(ctx);
 
-			using var enc = ctx.Settings.EncoderInfo.Factory(ostm, ctx.Settings.EncoderOptions);
+			using var enc = ctx.Settings.EncoderInfo!.Factory(ostm, ctx.Settings.EncoderOptions);
 			enc.WriteFrame(ctx.Source, ctx.Metadata, PixelArea.Default);
 			enc.Commit();
 
