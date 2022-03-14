@@ -4,7 +4,7 @@ using System;
 using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 
-using TerraFX.Interop;
+using TerraFX.Interop.Windows;
 
 using PhotoSauce.Interop.Wic;
 
@@ -90,11 +90,11 @@ namespace PhotoSauce.MagicScaler
 			using var meta = default(ComPtr<IWICMetadataQueryReader>);
 			HRESULT.Check(dec->GetMetadataQueryReader(meta.GetAddressOf()));
 
-			int screenWidth = meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenWidth);
-			int screenHeight = meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenHeight);
+			int screenWidth = meta.Get()->GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenWidth);
+			int screenHeight = meta.Get()->GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenHeight);
 
 			int bgColor = 0;
-			if (meta.GetValueOrDefault<bool>(Wic.Metadata.Gif.GlobalPaletteFlag))
+			if (meta.Get()->GetValueOrDefault<bool>(Wic.Metadata.Gif.GlobalPaletteFlag))
 			{
 				using var pal = default(ComPtr<IWICPalette>);
 				HRESULT.Check(Wic.Factory->CreatePalette(pal.GetAddressOf()));
@@ -103,7 +103,7 @@ namespace PhotoSauce.MagicScaler
 				uint cc;
 				HRESULT.Check(pal.Get()->GetColorCount(&cc));
 
-				uint idx = meta.GetValueOrDefault<byte>(Wic.Metadata.Gif.BackgroundColorIndex);
+				uint idx = meta.Get()->GetValueOrDefault<byte>(Wic.Metadata.Gif.BackgroundColorIndex);
 				if (idx < cc)
 				{
 					using var buff = BufferPool.RentLocal<uint>((int)cc);
@@ -117,10 +117,10 @@ namespace PhotoSauce.MagicScaler
 
 			int loopCount = 0;
 			var sbuff = (Span<byte>)stackalloc byte[16];
-			var appext = meta.GetValueOrDefault(Wic.Metadata.Gif.AppExtension, sbuff);
+			var appext = meta.Get()->GetValueOrDefault(Wic.Metadata.Gif.AppExtension, sbuff);
 			if (appext.Length == 11 && (Netscape2_0.SequenceEqual(appext) || Animexts1_0.SequenceEqual(appext)))
 			{
-				var appdata = meta.GetValueOrDefault(Wic.Metadata.Gif.AppExtensionData, sbuff);
+				var appdata = meta.Get()->GetValueOrDefault(Wic.Metadata.Gif.AppExtensionData, sbuff);
 				if (appdata.Length >= 4 && appdata[0] >= 3 && appdata[1] == 1)
 					loopCount = BinaryPrimitives.ReadUInt16LittleEndian(appdata.Slice(2));
 			}

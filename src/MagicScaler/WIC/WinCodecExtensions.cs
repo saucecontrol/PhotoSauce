@@ -6,8 +6,10 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
-using TerraFX.Interop;
-using static TerraFX.Interop.Windows;
+using TerraFX.Interop.Windows;
+using static TerraFX.Interop.Windows.S;
+using static TerraFX.Interop.Windows.CLSID;
+using static TerraFX.Interop.Windows.Windows;
 
 using PhotoSauce.MagicScaler;
 
@@ -108,10 +110,10 @@ namespace PhotoSauce.Interop.Wic
 
 		public static bool IsSubsampledY(this WICJpegYCrCbSubsamplingOption o) => MiscExtensions.IsSubsampledY((ChromaSubsampleMode)o);
 
-		public static T GetValueOrDefault<T>(this ComPtr<IWICMetadataQueryReader> meta, string name) where T : unmanaged
+		public static T GetValueOrDefault<T>(this ref IWICMetadataQueryReader meta, string name) where T : unmanaged
 		{
 			var pv = default(PROPVARIANT);
-			if (FAILED(meta.Get()->GetMetadataByName(name, &pv)))
+			if (FAILED(meta.GetMetadataByName(name, &pv)))
 				return default;
 
 			if (pv.TryGetValue(out T val))
@@ -123,10 +125,10 @@ namespace PhotoSauce.Interop.Wic
 			return default;
 		}
 
-		public static Span<T> GetValueOrDefault<T>(this ComPtr<IWICMetadataQueryReader> meta, string name, Span<T> span) where T : unmanaged
+		public static Span<T> GetValueOrDefault<T>(this ref IWICMetadataQueryReader meta, string name, Span<T> span) where T : unmanaged
 		{
 			var pv = default(PROPVARIANT);
-			if (FAILED(meta.Get()->GetMetadataByName(name, &pv)))
+			if (FAILED(meta.GetMetadataByName(name, &pv)))
 				return default;
 
 			int len = 0;
@@ -168,7 +170,7 @@ namespace PhotoSauce.Interop.Wic
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool TryGetValue<T>(in this PROPVARIANT pv, out T val) where T : unmanaged
+		public static bool TryGetValue<T>(this in PROPVARIANT pv, out T val) where T : unmanaged
 		{
 			if (typeof(T) == typeof(bool))
 			{

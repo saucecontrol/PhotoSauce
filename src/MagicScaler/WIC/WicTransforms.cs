@@ -2,8 +2,9 @@
 
 using System;
 
-using TerraFX.Interop;
-using static TerraFX.Interop.Windows;
+using TerraFX.Interop.Windows;
+using static TerraFX.Interop.Windows.GUID;
+using static TerraFX.Interop.Windows.Windows;
 
 using PhotoSauce.Interop.Wic;
 using PhotoSauce.MagicScaler.Transforms;
@@ -89,10 +90,10 @@ namespace PhotoSauce.MagicScaler
 			using var conv = default(ComPtr<IWICFormatConverter>);
 			HRESULT.Check(Wic.Factory->CreateFormatConverter(conv.GetAddressOf()));
 
-			int bval;
+			BOOL bval;
 			var cfmt = curFormat.FormatGuid;
 			var nfmt = newFormat.FormatGuid;
-			if (FAILED(conv.Get()->CanConvert(&cfmt, &nfmt, &bval)) || bval == 0)
+			if (FAILED(conv.Get()->CanConvert(&cfmt, &nfmt, &bval)) || !bval)
 				throw new NotSupportedException("Can't convert to destination pixel format");
 
 			HRESULT.Check(conv.Get()->Initialize(ctx.Source.AsIWICBitmapSource(), &nfmt, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0, WICBitmapPaletteType.WICBitmapPaletteTypeCustom));
@@ -120,10 +121,10 @@ namespace PhotoSauce.MagicScaler
 				using var conv = default(ComPtr<IWICFormatConverter>);
 				HRESULT.Check(Wic.Factory->CreateFormatConverter(conv.GetAddressOf()));
 
-				int bval;
+				BOOL bval;
 				var cfmt = curFormat.FormatGuid;
 				var nfmt = PixelFormat.Indexed8.FormatGuid;
-				if (FAILED(conv.Get()->CanConvert(&cfmt, &nfmt, &bval)) || bval == 0)
+				if (FAILED(conv.Get()->CanConvert(&cfmt, &nfmt, &bval)) || !bval)
 					throw new NotSupportedException("Can't convert to destination pixel format");
 
 				var palType = greyToIndexed ? WICBitmapPaletteType.WICBitmapPaletteTypeFixedGray256 : WICBitmapPaletteType.WICBitmapPaletteTypeCustom;
@@ -287,9 +288,9 @@ namespace PhotoSauce.MagicScaler
 			var desc = stackalloc WICBitmapPlaneDescription[PlanarPixelFormats.Length];
 			fixed (Guid* pfmt = PlanarPixelFormats)
 			{
-				int bval;
+				BOOL bval;
 				HRESULT.Check(transform.Get()->DoesSupportTransform(&cw, &ch, WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault, pfmt, desc, (uint)PlanarPixelFormats.Length, &bval));
-				if (bval == 0)
+				if (!bval)
 					throw new NotSupportedException("Requested planar transform not supported");
 			}
 

@@ -4,8 +4,8 @@ using System;
 using System.Drawing;
 using System.Diagnostics.CodeAnalysis;
 
-using TerraFX.Interop;
-using static TerraFX.Interop.Windows;
+using TerraFX.Interop.Windows;
+using static TerraFX.Interop.Windows.Windows;
 
 using PhotoSauce.Interop.Wic;
 
@@ -62,7 +62,7 @@ namespace PhotoSauce.MagicScaler
 					Container.MimeType == ImageMimeTypes.Jpeg ? Wic.Metadata.OrientationJpeg :
 					Wic.Metadata.OrientationExif;
 
-				ExifOrientation = ((Orientation)metareader.GetValueOrDefault<ushort>(orientationPath)).Clamp();
+				ExifOrientation = ((Orientation)metareader.Get()->GetValueOrDefault<ushort>(orientationPath)).Clamp();
 				WicMetadataReader = metareader.Detach();
 			}
 
@@ -100,14 +100,15 @@ namespace PhotoSauce.MagicScaler
 					var desc = stackalloc WICBitmapPlaneDescription[fmts.Length];
 					fixed (Guid* pfmt = fmts)
 					{
-						uint tw = frameWidth, th = frameHeight, st = 0;
+						BOOL bval;
+						uint tw = frameWidth, th = frameHeight;
 						HRESULT.Check(ptransform.Get()->DoesSupportTransform(
 							&tw, &th,
 							WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault,
-							pfmt, desc, (uint)fmts.Length, (int*)&st
+							pfmt, desc, (uint)fmts.Length, &bval
 						));
 
-						SupportsPlanarProcessing = st != 0;
+						SupportsPlanarProcessing = bval;
 					}
 
 					ChromaSubsampling =
@@ -133,10 +134,10 @@ namespace PhotoSauce.MagicScaler
 					HRESULT.Check(Wic.Factory->CreatePalette(pal.GetAddressOf()));
 					HRESULT.Check(source.Get()->CopyPalette(pal));
 
-					int bval;
-					if (SUCCEEDED(pal.Get()->HasAlpha(&bval)) && bval != 0)
+					BOOL bval;
+					if (SUCCEEDED(pal.Get()->HasAlpha(&bval)) && bval)
 						newFormat = PixelFormat.Bgra32;
-					else if ((SUCCEEDED(pal.Get()->IsGrayscale(&bval)) && bval != 0) || (SUCCEEDED(pal.Get()->IsBlackWhite(&bval)) && bval != 0))
+					else if ((SUCCEEDED(pal.Get()->IsGrayscale(&bval)) && bval) || (SUCCEEDED(pal.Get()->IsBlackWhite(&bval)) && bval))
 						newFormat = PixelFormat.Grey8;
 				}
 
@@ -243,8 +244,7 @@ namespace PhotoSauce.MagicScaler
 					if (ecs == (uint)ExifColorSpace.Uncalibrated)
 					{
 						var r03 = (ReadOnlySpan<byte>)(new[] { (byte)'R', (byte)'0', (byte)'3' });
-						var meta = ComPtr<IWICMetadataQueryReader>.Wrap(WicMetadataReader);
-						if (meta.GetValueOrDefault(Container.MimeType == ImageMimeTypes.Jpeg ? Wic.Metadata.InteropIndexJpeg : Wic.Metadata.InteropIndexExif, buff).SequenceEqual(r03))
+						if (WicMetadataReader->GetValueOrDefault(Container.MimeType == ImageMimeTypes.Jpeg ? Wic.Metadata.InteropIndexJpeg : Wic.Metadata.InteropIndexExif, buff).SequenceEqual(r03))
 							return WicColorProfile.AdobeRgb.Value;
 					}
 				}
@@ -270,17 +270,17 @@ namespace PhotoSauce.MagicScaler
 			bool full = width >= cont.AnimationMetadata.ScreenWidth && height >= cont.AnimationMetadata.ScreenHeight;
 			if (!full)
 			{
-				left = meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameLeft);
-				top = meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameTop);
+				left = meta.Get()->GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameLeft);
+				top = meta.Get()->GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameTop);
 			}
 
 			width = (uint)Math.Min(width, cont.AnimationMetadata.ScreenWidth - left);
 			height = (uint)Math.Min(height, cont.AnimationMetadata.ScreenHeight - top);
 			Size = new((int)width, (int)height);
 
-			var duration = new Rational(meta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameDelay), 100);
-			var disposal = ((FrameDisposalMethod)meta.GetValueOrDefault<byte>(Wic.Metadata.Gif.FrameDisposal)).Clamp();
-			var hasAlpha = meta.GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
+			var duration = new Rational(meta.Get()->GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameDelay), 100);
+			var disposal = ((FrameDisposalMethod)meta.Get()->GetValueOrDefault<byte>(Wic.Metadata.Gif.FrameDisposal)).Clamp();
+			var hasAlpha = meta.Get()->GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
 
 			if (index == 0 && disposal == FrameDisposalMethod.RestorePrevious)
 				disposal = FrameDisposalMethod.Preserve;

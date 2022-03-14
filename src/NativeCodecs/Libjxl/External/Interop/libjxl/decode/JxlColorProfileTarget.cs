@@ -1,14 +1,13 @@
 // Copyright © Clinton Ingram and Contributors. Licensed under the MIT License (MIT).
 
-// Ported from libjxl headers
+// Ported from libjxl headers (decode.h)
 // Original source Copyright (c) the JPEG XL Project Authors. All rights reserved.
 // See third-party-notices in the repository root for more information.
 
-namespace PhotoSauce.Interop.Libjxl
+namespace PhotoSauce.Interop.Libjxl;
+
+internal enum JxlColorProfileTarget
 {
-    internal enum JxlColorProfileTarget
-    {
-        JXL_COLOR_PROFILE_TARGET_ORIGINAL = 0,
-        JXL_COLOR_PROFILE_TARGET_DATA = 1,
-    }
+    JXL_COLOR_PROFILE_TARGET_ORIGINAL = 0,
+    JXL_COLOR_PROFILE_TARGET_DATA = 1,
 }

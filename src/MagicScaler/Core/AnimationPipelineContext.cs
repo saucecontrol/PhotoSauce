@@ -3,7 +3,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-using TerraFX.Interop;
+using TerraFX.Interop.Windows;
 
 using PhotoSauce.MagicScaler.Transforms;
 

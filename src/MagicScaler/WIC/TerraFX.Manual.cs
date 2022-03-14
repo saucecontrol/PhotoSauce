@@ -7,18 +7,16 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
-using static TerraFX.Interop.Windows;
-
 using PhotoSauce.MagicScaler;
 
-namespace TerraFX.Interop
+namespace TerraFX.Interop.Windows
 {
-	internal partial struct HRESULT
+	internal readonly partial record struct HRESULT
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Check(int hr)
+		public static void Check(HRESULT hr)
 		{
-			if (FAILED(hr))
+			if (hr.FAILED)
 				Marshal.ThrowExceptionForHR(hr);
 		}
 	}
@@ -29,27 +27,6 @@ namespace TerraFX.Interop
 
 		public static implicit operator WICRect(in PixelArea a) => Unsafe.As<PixelArea, WICRect>(ref Unsafe.AsRef(a));
 		public static implicit operator WICRect(in Rectangle r) => Unsafe.As<Rectangle, WICRect>(ref Unsafe.AsRef(r));
-	}
-
-	internal unsafe ref partial struct ComPtr<T>
-	{
-		public ComPtr<U> Cast<U>() where U : unmanaged
-		{
-			var ret = new ComPtr<U>();
-			ret.Attach((U*)ptr_);
-
-			return ret;
-		}
-
-		public static ComPtr<T> Wrap(T* ptr)
-		{
-			var ret = new ComPtr<T>();
-			ret.Attach(ptr);
-
-			return ret;
-		}
-
-		public static implicit operator ComPtr<T>(T* ptr) => ComPtr<T>.Wrap(ptr);
 	}
 
 	internal unsafe partial struct IWICMetadataQueryReader

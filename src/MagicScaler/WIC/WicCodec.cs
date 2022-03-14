@@ -12,8 +12,10 @@ using System.Diagnostics.CodeAnalysis;
 using System.Collections.Generic;
 #endif
 
-using TerraFX.Interop;
-using static TerraFX.Interop.Windows;
+using TerraFX.Interop.Windows;
+using static TerraFX.Interop.Windows.GUID;
+using static TerraFX.Interop.Windows.WINCODEC;
+using static TerraFX.Interop.Windows.Windows;
 
 using PhotoSauce.Interop.Wic;
 using PhotoSauce.MagicScaler.Transforms;
@@ -440,7 +442,7 @@ namespace PhotoSauce.MagicScaler
 				//pv.Anonymous.uiVal = (ushort)context.Source.Height;
 				//HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.LogicalScreenHeight, &pv));
 
-				if (decmeta.GetValueOrDefault<bool>(Wic.Metadata.Gif.GlobalPaletteFlag))
+				if (decmeta.Get()->GetValueOrDefault<bool>(Wic.Metadata.Gif.GlobalPaletteFlag))
 				{
 					// TODO We don't need the entire global palette if we're only using the background color
 					if (SUCCEEDED(decmeta.Get()->GetMetadataByName(Wic.Metadata.Gif.BackgroundColorIndex, &pv)))

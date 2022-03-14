@@ -4,8 +4,9 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 
-using TerraFX.Interop;
-using static TerraFX.Interop.Windows;
+using TerraFX.Interop.Windows;
+using static TerraFX.Interop.Windows.GUID;
+using static TerraFX.Interop.Windows.Windows;
 
 using PhotoSauce.Interop.Wic;
 
@@ -81,7 +82,7 @@ namespace PhotoSauce.MagicScaler
 					if (!name.StartsWith(fname))
 						name = string.Concat(author, " ", name);
 
-					int chrm, anim, mult;
+					BOOL chrm, anim, mult;
 					pCod.Get()->DoesSupportChromakey(&chrm);
 					pCod.Get()->DoesSupportAnimation(&anim);
 					pCod.Get()->DoesSupportMultiframe(&mult);
@@ -97,7 +98,7 @@ namespace PhotoSauce.MagicScaler
 					fixed (Guid* pg = pix)
 						HRESULT.Check(pCod.Get()->GetPixelFormats(cch, pg, &cch));
 
-					bool trans = chrm != 0;
+					bool trans = chrm;
 					if (!trans)
 						trans = pix.Any(f => PixelFormat.FromGuid(f).AlphaRepresentation != PixelAlphaRepresentation.None);
 
@@ -135,7 +136,7 @@ namespace PhotoSauce.MagicScaler
 							_                   => raw ? CameraRawDecoderOptions.Default : default(IDecoderOptions)
 						};
 
-						codecs.Add((ctid, new DecoderInfo(name, mimes, extensions, patterns, options, (stm, opt) => WicImageDecoder.TryLoad(clsid, mime, stm, opt), trans, mult != 0, anim != 0)));
+						codecs.Add((ctid, new DecoderInfo(name, mimes, extensions, patterns, options, (stm, opt) => WicImageDecoder.TryLoad(clsid, mime, stm, opt), trans, mult, anim)));
 					}
 					else
 					{
@@ -153,7 +154,7 @@ namespace PhotoSauce.MagicScaler
 
 						pix = mime is ImageMimeTypes.Jpeg ? pix.Concat(new[] { PixelFormat.Y8.FormatGuid }).ToArray() : pix;
 
-						codecs.Add((ctid, new EncoderInfo(name, mimes, extensions, pix, options, (stm, opt) => new WicImageEncoder(clsid, mime, stm, opt), trans, mult != 0, anim != 0, prof)));
+						codecs.Add((ctid, new EncoderInfo(name, mimes, extensions, pix, options, (stm, opt) => new WicImageEncoder(clsid, mime, stm, opt), trans, mult, anim, prof)));
 					}
 				}
 			}

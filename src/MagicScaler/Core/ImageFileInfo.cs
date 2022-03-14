@@ -4,7 +4,7 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 
-using TerraFX.Interop;
+using TerraFX.Interop.Windows;
 
 using PhotoSauce.Interop.Wic;
 
@@ -165,8 +165,8 @@ namespace PhotoSauce.MagicScaler
 			using var cmeta = default(ComPtr<IWICMetadataQueryReader>);
 			HRESULT.Check(gif.WicDecoder->GetMetadataQueryReader(cmeta.GetAddressOf()));
 
-			int cwidth = cmeta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenWidth);
-			int cheight = cmeta.GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenHeight);
+			int cwidth = cmeta.Get()->GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenWidth);
+			int cheight = cmeta.Get()->GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenHeight);
 
 			bool alpha = gif.IsAnimation;
 			if (!alpha)
@@ -176,7 +176,7 @@ namespace PhotoSauce.MagicScaler
 				HRESULT.Check(gif.WicDecoder->GetFrame(0, frame.GetAddressOf()));
 				HRESULT.Check(frame.Get()->GetMetadataQueryReader(fmeta.GetAddressOf()));
 
-				alpha = fmeta.GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
+				alpha = fmeta.Get()->GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
 			}
 
 			var frames = new FrameInfo[gif.FrameCount];

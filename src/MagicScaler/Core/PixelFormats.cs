@@ -6,7 +6,8 @@ using System.Reflection;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
-using TerraFX.Interop;
+using TerraFX.Interop.Windows;
+using static TerraFX.Interop.Windows.GUID;
 
 using PhotoSauce.Interop.Wic;
 
@@ -95,7 +96,7 @@ namespace PhotoSauce.MagicScaler
 		private static readonly Lazy<Dictionary<Guid, PixelFormat>> cache = new(getFormatCache);
 
 		public static readonly PixelFormat Y8 = new(
-			guid: Windows.GUID_WICPixelFormat8bppY,
+			guid: GUID_WICPixelFormat8bppY,
 			name: "8bpp Y",
 			bpp: 8,
 			channels: 1,
@@ -106,7 +107,7 @@ namespace PhotoSauce.MagicScaler
 		);
 
 		public static readonly PixelFormat Cb8 = new(
-			guid: Windows.GUID_WICPixelFormat8bppCb,
+			guid: GUID_WICPixelFormat8bppCb,
 			name: "8bpp Cb",
 			bpp: 8,
 			channels: 1,
@@ -115,7 +116,7 @@ namespace PhotoSauce.MagicScaler
 		);
 
 		public static readonly PixelFormat Cr8 = new(
-			guid: Windows.GUID_WICPixelFormat8bppCr,
+			guid: GUID_WICPixelFormat8bppCr,
 			name: "8bpp Cr",
 			bpp: 8,
 			channels: 1,
@@ -124,7 +125,7 @@ namespace PhotoSauce.MagicScaler
 		);
 
 		public static readonly PixelFormat Indexed8 = new(
-			guid: Windows.GUID_WICPixelFormat8bppIndexed,
+			guid: GUID_WICPixelFormat8bppIndexed,
 			name: "8bpp Indexed",
 			bpp: 8,
 			channels: 1,
@@ -133,7 +134,7 @@ namespace PhotoSauce.MagicScaler
 		);
 
 		public static readonly PixelFormat Grey8 = new(
-			guid: Windows.GUID_WICPixelFormat8bppGray,
+			guid: GUID_WICPixelFormat8bppGray,
 			name: "8bpp Grey",
 			bpp: 8,
 			channels: 1,
@@ -144,7 +145,7 @@ namespace PhotoSauce.MagicScaler
 		);
 
 		public static readonly PixelFormat Bgr24 = new(
-			guid: Windows.GUID_WICPixelFormat24bppBGR,
+			guid: GUID_WICPixelFormat24bppBGR,
 			name: "24bpp BGR",
 			bpp: 24,
 			channels: 3,
@@ -155,7 +156,7 @@ namespace PhotoSauce.MagicScaler
 		);
 
 		public static readonly PixelFormat Rgb24 = new(
-			guid: Windows.GUID_WICPixelFormat24bppRGB,
+			guid: GUID_WICPixelFormat24bppRGB,
 			name: "24bpp RGB",
 			bpp: 24,
 			channels: 3,
@@ -166,7 +167,7 @@ namespace PhotoSauce.MagicScaler
 		);
 
 		public static readonly PixelFormat Bgrx32 = new(
-			guid: Windows.GUID_WICPixelFormat32bppBGR,
+			guid: GUID_WICPixelFormat32bppBGR,
 			name: "32bpp BGRX",
 			bpp: 32,
 			channels: 4,
@@ -177,7 +178,7 @@ namespace PhotoSauce.MagicScaler
 		);
 
 		public static readonly PixelFormat Bgra32 = new(
-			guid: Windows.GUID_WICPixelFormat32bppBGRA,
+			guid: GUID_WICPixelFormat32bppBGRA,
 			name: "32bpp BGRA",
 			bpp: 32,
 			channels: 4,
@@ -189,7 +190,7 @@ namespace PhotoSauce.MagicScaler
 		);
 
 		public static readonly PixelFormat Rgba32 = new(
-			guid: Windows.GUID_WICPixelFormat32bppRGBA,
+			guid: GUID_WICPixelFormat32bppRGBA,
 			name: "32bpp RGBA",
 			bpp: 32,
 			channels: 4,
@@ -201,7 +202,7 @@ namespace PhotoSauce.MagicScaler
 		);
 
 		public static readonly PixelFormat Pbgra32 = new(
-			guid: Windows.GUID_WICPixelFormat32bppPBGRA,
+			guid: GUID_WICPixelFormat32bppPBGRA,
 			name: "32bpp pBGRA",
 			bpp: 32,
 			channels: 4,
@@ -213,7 +214,7 @@ namespace PhotoSauce.MagicScaler
 		);
 
 		public static readonly PixelFormat Cmyk32 = new(
-			guid: Windows.GUID_WICPixelFormat32bppCMYK,
+			guid: GUID_WICPixelFormat32bppCMYK,
 			name: "32bpp CMYK",
 			bpp: 32,
 			channels: 4,
@@ -444,7 +445,7 @@ namespace PhotoSauce.MagicScaler
 						uint bpp, channels, trans;
 						HRESULT.Check(pPix.Get()->GetBitsPerPixel(&bpp));
 						HRESULT.Check(pPix.Get()->GetChannelCount(&channels));
-						HRESULT.Check(pPix.Get()->SupportsTransparency((int*)&trans));
+						HRESULT.Check(pPix.Get()->SupportsTransparency((BOOL*)&trans));
 
 						var colorRep =
 							name.Contains("BGR") ? PixelColorRepresentation.Bgr :

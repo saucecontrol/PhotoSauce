@@ -12,9 +12,11 @@ using System.Runtime.CompilerServices;
 using PhotoSauce.MagicScaler;
 #endif
 
-using TerraFX.Interop;
-using static TerraFX.Interop.Windows;
-using STATSTG = TerraFX.Interop.STATSTG;
+using TerraFX.Interop.Windows;
+using static TerraFX.Interop.Windows.E;
+using static TerraFX.Interop.Windows.S;
+using static TerraFX.Interop.Windows.Windows;
+using STATSTG = TerraFX.Interop.Windows.STATSTG;
 
 namespace PhotoSauce.Interop.Wic
 {
@@ -49,13 +51,15 @@ namespace PhotoSauce.Interop.Wic
 		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
 		static
 #endif
-		private int queryInterface(IStreamImpl* pinst, Guid* riid, void** ppvObject)
+		private int queryInterface(IStream* pinst, Guid* riid, void** ppvObject)
 		{
+			var pthis = (IStreamImpl*)pinst;
+
 			var iid = *riid;
 			if (iid == __uuidof<IStream>() || iid == __uuidof<ISequentialStream>() || iid == __uuidof<IUnknown>())
 			{
-				Interlocked.Increment(ref pinst->refCount);
-				*ppvObject = pinst;
+				Interlocked.Increment(ref pthis->refCount);
+				*ppvObject = pthis;
 				return S_OK;
 			}
 
@@ -66,23 +70,25 @@ namespace PhotoSauce.Interop.Wic
 		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
 		static
 #endif
-		private uint addRef(IStreamImpl* pinst) => (uint)Interlocked.Increment(ref pinst->refCount);
+		private uint addRef(IStream* pinst) => (uint)Interlocked.Increment(ref ((IStreamImpl*)pinst)->refCount);
 
 #if NET5_0_OR_GREATER
 		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
 		static
 #endif
-		private uint release(IStreamImpl* pinst)
+		private uint release(IStream* pinst)
 		{
-			uint cnt = (uint)Interlocked.Decrement(ref pinst->refCount);
+			var pthis = (IStreamImpl*)pinst;
+
+			uint cnt = (uint)Interlocked.Decrement(ref pthis->refCount);
 			if (cnt == 0)
 			{
-				pinst->source.Free();
-				*pinst = default;
+				pthis->source.Free();
+				*pthis = default;
 #if NET6_0_OR_GREATER
-				NativeMemory.Free(pinst);
+				NativeMemory.Free(pthis);
 #else
-				Marshal.FreeHGlobal((IntPtr)pinst);
+				Marshal.FreeHGlobal((IntPtr)pthis);
 #endif
 			}
 
@@ -93,9 +99,9 @@ namespace PhotoSauce.Interop.Wic
 		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
 		static
 #endif
-		private int read(IStreamImpl* pinst, void* pv, uint cb, uint* pcbRead)
+		private int read(IStream* pinst, void* pv, uint cb, uint* pcbRead)
 		{
-			var stm = Unsafe.As<Stream>(pinst->source.Target!);
+			var stm = Unsafe.As<Stream>(((IStreamImpl*)pinst)->source.Target!);
 			uint read = 0;
 
 			if (cb == 1)
@@ -132,9 +138,9 @@ namespace PhotoSauce.Interop.Wic
 		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
 		static
 #endif
-		private int write(IStreamImpl* pinst, void* pv, uint cb, uint* pcbWritten)
+		private int write(IStream* pinst, void* pv, uint cb, uint* pcbWritten)
 		{
-			var stm = Unsafe.As<Stream>(pinst->source.Target!);
+			var stm = Unsafe.As<Stream>(((IStreamImpl*)pinst)->source.Target!);
 
 			if (cb == 1)
 				stm.WriteByte(*(byte*)pv);
@@ -151,9 +157,10 @@ namespace PhotoSauce.Interop.Wic
 		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
 		static
 #endif
-		private int seek(IStreamImpl* pinst, LARGE_INTEGER dlibMove, uint dwOrigin, ULARGE_INTEGER* plibNewPosition)
+		private int seek(IStream* pinst, LARGE_INTEGER dlibMove, uint dwOrigin, ULARGE_INTEGER* plibNewPosition)
 		{
-			var stm = Unsafe.As<Stream>(pinst->source.Target!);
+			var pthis = (IStreamImpl*)pinst;
+			var stm = Unsafe.As<Stream>(pthis->source.Target!);
 			long npos = dlibMove.QuadPart;
 
 			if (dwOrigin == (uint)SeekOrigin.Begin)
@@ -163,7 +170,7 @@ namespace PhotoSauce.Interop.Wic
 				if (npos < 0 && stm.Length > int.MaxValue && stm.Length <= uint.MaxValue)
 					npos = (uint)npos;
 
-				npos += pinst->offset;
+				npos += pthis->offset;
 			}
 
 			long cpos = stm.Position;
@@ -171,7 +178,7 @@ namespace PhotoSauce.Interop.Wic
 				cpos = stm.Seek(npos, (SeekOrigin)dwOrigin);
 
 			if (plibNewPosition is not null)
-				plibNewPosition->QuadPart = (ulong)cpos - pinst->offset;
+				plibNewPosition->QuadPart = (ulong)cpos - pthis->offset;
 
 			return S_OK;
 		}
@@ -180,10 +187,11 @@ namespace PhotoSauce.Interop.Wic
 		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
 		static
 #endif
-		private int setSize(IStreamImpl* pinst, ULARGE_INTEGER libNewSize)
+		private int setSize(IStream* pinst, ULARGE_INTEGER libNewSize)
 		{
-			var stm = Unsafe.As<Stream>(pinst->source.Target!);
-			stm.SetLength((long)libNewSize.QuadPart + pinst->offset);
+			var pthis = (IStreamImpl*)pinst;
+			var stm = Unsafe.As<Stream>(pthis->source.Target!);
+			stm.SetLength((long)libNewSize.QuadPart + pthis->offset);
 
 			return S_OK;
 		}
@@ -192,15 +200,15 @@ namespace PhotoSauce.Interop.Wic
 		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
 		static
 #endif
-		private int copyTo(IStreamImpl* pinst, IStream* pstm, ULARGE_INTEGER cb, ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten) => E_NOTIMPL;
+		private int copyTo(IStream* pinst, IStream* pstm, ULARGE_INTEGER cb, ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten) => E_NOTIMPL;
 
 #if NET5_0_OR_GREATER
 		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
 		static
 #endif
-		private int commit(IStreamImpl* pinst, uint grfCommitFlags)
+		private int commit(IStream* pinst, uint grfCommitFlags)
 		{
-			var stm = Unsafe.As<Stream>(pinst->source.Target!);
+			var stm = Unsafe.As<Stream>(((IStreamImpl*)pinst)->source.Target!);
 			stm.Flush();
 
 			return S_OK;
@@ -210,28 +218,29 @@ namespace PhotoSauce.Interop.Wic
 		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
 		static
 #endif
-		private int revert(IStreamImpl* pinst) => E_NOTIMPL;
+		private int revert(IStream* pinst) => E_NOTIMPL;
 
 #if NET5_0_OR_GREATER
 		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
 		static
 #endif
-		private int lockRegion(IStreamImpl* pinst, ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, uint dwLockType) => E_NOTIMPL;
+		private int lockRegion(IStream* pinst, ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, uint dwLockType) => E_NOTIMPL;
 
 #if NET5_0_OR_GREATER
 		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
 		static
 #endif
-		private int unlockRegion(IStreamImpl* pinst, ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, uint dwLockType) => E_NOTIMPL;
+		private int unlockRegion(IStream* pinst, ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, uint dwLockType) => E_NOTIMPL;
 
 #if NET5_0_OR_GREATER
 		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
 		static
 #endif
-		private int stat(IStreamImpl* pinst, STATSTG* pstatstg, uint grfStatFlag)
+		private int stat(IStream* pinst, STATSTG* pstatstg, uint grfStatFlag)
 		{
-			var stm = Unsafe.As<Stream>(pinst->source.Target!);
-			*pstatstg = new STATSTG { cbSize = new ULARGE_INTEGER { QuadPart = (ulong)(stm.Length - pinst->offset) }, type = (uint)STGTY.STGTY_STREAM };
+			var pthis = (IStreamImpl*)pinst;
+			var stm = Unsafe.As<Stream>(pthis->source.Target!);
+			*pstatstg = new STATSTG { cbSize = new ULARGE_INTEGER { QuadPart = (ulong)(stm.Length - pthis->offset) }, type = (uint)STGTY.STGTY_STREAM };
 
 			return S_OK;
 		}
@@ -240,23 +249,23 @@ namespace PhotoSauce.Interop.Wic
 		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
 		static
 #endif
-		private int clone(IStreamImpl* pinst, IStream** ppstm) => E_NOTIMPL;
+		private int clone(IStream* pinst, IStream** ppstm) => E_NOTIMPL;
 
 #if !NET5_0_OR_GREATER
-		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int QueryInterface(IStreamImpl* pinst, Guid* riid, void** ppvObject);
-		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate uint AddRef(IStreamImpl* pinst);
-		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate uint Release(IStreamImpl* pinst);
-		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int Read(IStreamImpl* pinst, void* pv, uint cb, uint* pcbRead);
-		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int Write(IStreamImpl* pinst, void* pv, uint cb, uint* pcbWritten);
-		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int Seek(IStreamImpl* pinst, LARGE_INTEGER dlibMove, uint dwOrigin, ULARGE_INTEGER* plibNewPosition);
-		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int SetSize(IStreamImpl* pinst, ULARGE_INTEGER libNewSize);
-		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int CopyTo(IStreamImpl* pinst, IStream* pstm, ULARGE_INTEGER cb, ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten);
-		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int Commit(IStreamImpl* pinst, uint grfCommitFlags);
-		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int Revert(IStreamImpl* pinst);
-		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int LockRegion(IStreamImpl* pinst, ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, uint dwLockType);
-		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int UnlockRegion(IStreamImpl* pinst, ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, uint dwLockType);
-		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int Stat(IStreamImpl* pinst, STATSTG* pstatstg, uint grfStatFlag);
-		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int Clone(IStreamImpl* pinst, IStream** ppstm);
+		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int QueryInterface(IStream* pinst, Guid* riid, void** ppvObject);
+		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate uint AddRef(IStream* pinst);
+		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate uint Release(IStream* pinst);
+		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int Read(IStream* pinst, void* pv, uint cb, uint* pcbRead);
+		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int Write(IStream* pinst, void* pv, uint cb, uint* pcbWritten);
+		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int Seek(IStream* pinst, LARGE_INTEGER dlibMove, uint dwOrigin, ULARGE_INTEGER* plibNewPosition);
+		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int SetSize(IStream* pinst, ULARGE_INTEGER libNewSize);
+		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int CopyTo(IStream* pinst, IStream* pstm, ULARGE_INTEGER cb, ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten);
+		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int Commit(IStream* pinst, uint grfCommitFlags);
+		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int Revert(IStream* pinst);
+		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int LockRegion(IStream* pinst, ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, uint dwLockType);
+		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int UnlockRegion(IStream* pinst, ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, uint dwLockType);
+		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int Stat(IStream* pinst, STATSTG* pstatstg, uint grfStatFlag);
+		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int Clone(IStream* pinst, IStream** ppstm);
 
 		private static readonly QueryInterface delQueryInterface = typeof(IStreamImpl).CreateMethodDelegate<QueryInterface>(nameof(queryInterface));
 		private static readonly AddRef delAddRef = typeof(IStreamImpl).CreateMethodDelegate<AddRef>(nameof(addRef));
@@ -279,7 +288,7 @@ namespace PhotoSauce.Interop.Wic
 		private static void** createVtbl()
 		{
 #if NET5_0_OR_GREATER
-			var vtbl = (Vtbl*)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(IStreamImpl), sizeof(Vtbl));
+			var vtbl = (IStream.Vtbl<IStream>*)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(IStreamImpl), sizeof(IStream.Vtbl<IStream>));
 			vtbl->QueryInterface = &queryInterface;
 			vtbl->AddRef = &addRef;
 			vtbl->Release = &release;
@@ -295,69 +304,24 @@ namespace PhotoSauce.Interop.Wic
 			vtbl->Stat	= &stat;
 			vtbl->Clone = &clone;
 #else
-			var vtbl = (Vtbl*)Marshal.AllocHGlobal(sizeof(Vtbl));
-			vtbl->QueryInterface = (delegate* unmanaged[Stdcall]<IStreamImpl*, Guid*, void**, int>)Marshal.GetFunctionPointerForDelegate(delQueryInterface);
-			vtbl->AddRef = (delegate* unmanaged[Stdcall]<IStreamImpl*, uint>)Marshal.GetFunctionPointerForDelegate(delAddRef);
-			vtbl->Release = (delegate* unmanaged[Stdcall]<IStreamImpl*, uint>)Marshal.GetFunctionPointerForDelegate(delRelease);
-			vtbl->Read = (delegate* unmanaged[Stdcall]<IStreamImpl*, void*, uint, uint*, int>)Marshal.GetFunctionPointerForDelegate(delRead);
-			vtbl->Write = (delegate* unmanaged[Stdcall]<IStreamImpl*, void*, uint, uint*, int>)Marshal.GetFunctionPointerForDelegate(delWrite);
-			vtbl->Seek = (delegate* unmanaged[Stdcall]<IStreamImpl*, LARGE_INTEGER, uint, ULARGE_INTEGER*, int>)Marshal.GetFunctionPointerForDelegate(delSeek);
-			vtbl->SetSize = (delegate* unmanaged[Stdcall]<IStreamImpl*, ULARGE_INTEGER, int>)Marshal.GetFunctionPointerForDelegate(delSetSize);
-			vtbl->CopyTo = (delegate* unmanaged[Stdcall]<IStreamImpl*, IStream*, ULARGE_INTEGER, ULARGE_INTEGER*, ULARGE_INTEGER*, int>)Marshal.GetFunctionPointerForDelegate(delCopyTo);
-			vtbl->Commit = (delegate* unmanaged[Stdcall]<IStreamImpl*, uint, int>)Marshal.GetFunctionPointerForDelegate(delCommit);
-			vtbl->Revert = (delegate* unmanaged[Stdcall]<IStreamImpl*, int>)Marshal.GetFunctionPointerForDelegate(delRevert);
-			vtbl->LockRegion = (delegate* unmanaged[Stdcall]<IStreamImpl*, ULARGE_INTEGER, ULARGE_INTEGER, uint, int>)Marshal.GetFunctionPointerForDelegate(delLockRegion);
-			vtbl->UnlockRegion = (delegate* unmanaged[Stdcall]<IStreamImpl*, ULARGE_INTEGER, ULARGE_INTEGER, uint, int>)Marshal.GetFunctionPointerForDelegate(delUnlockRegion);
-			vtbl->Stat = (delegate* unmanaged[Stdcall]<IStreamImpl*, STATSTG*, uint, int>)Marshal.GetFunctionPointerForDelegate(delStat);
-			vtbl->Clone = (delegate* unmanaged[Stdcall]<IStreamImpl*, IStream**, int>)Marshal.GetFunctionPointerForDelegate(delClone);
+			var vtbl = (IStream.Vtbl<IStream>*)Marshal.AllocHGlobal(sizeof(IStream.Vtbl<IStream>));
+			vtbl->QueryInterface = (delegate* unmanaged[Stdcall]<IStream*, Guid*, void**, int>)Marshal.GetFunctionPointerForDelegate(delQueryInterface);
+			vtbl->AddRef = (delegate* unmanaged[Stdcall]<IStream*, uint>)Marshal.GetFunctionPointerForDelegate(delAddRef);
+			vtbl->Release = (delegate* unmanaged[Stdcall]<IStream*, uint>)Marshal.GetFunctionPointerForDelegate(delRelease);
+			vtbl->Read = (delegate* unmanaged[Stdcall]<IStream*, void*, uint, uint*, int>)Marshal.GetFunctionPointerForDelegate(delRead);
+			vtbl->Write = (delegate* unmanaged[Stdcall]<IStream*, void*, uint, uint*, int>)Marshal.GetFunctionPointerForDelegate(delWrite);
+			vtbl->Seek = (delegate* unmanaged[Stdcall]<IStream*, LARGE_INTEGER, uint, ULARGE_INTEGER*, int>)Marshal.GetFunctionPointerForDelegate(delSeek);
+			vtbl->SetSize = (delegate* unmanaged[Stdcall]<IStream*, ULARGE_INTEGER, int>)Marshal.GetFunctionPointerForDelegate(delSetSize);
+			vtbl->CopyTo = (delegate* unmanaged[Stdcall]<IStream*, IStream*, ULARGE_INTEGER, ULARGE_INTEGER*, ULARGE_INTEGER*, int>)Marshal.GetFunctionPointerForDelegate(delCopyTo);
+			vtbl->Commit = (delegate* unmanaged[Stdcall]<IStream*, uint, int>)Marshal.GetFunctionPointerForDelegate(delCommit);
+			vtbl->Revert = (delegate* unmanaged[Stdcall]<IStream*, int>)Marshal.GetFunctionPointerForDelegate(delRevert);
+			vtbl->LockRegion = (delegate* unmanaged[Stdcall]<IStream*, ULARGE_INTEGER, ULARGE_INTEGER, uint, int>)Marshal.GetFunctionPointerForDelegate(delLockRegion);
+			vtbl->UnlockRegion = (delegate* unmanaged[Stdcall]<IStream*, ULARGE_INTEGER, ULARGE_INTEGER, uint, int>)Marshal.GetFunctionPointerForDelegate(delUnlockRegion);
+			vtbl->Stat = (delegate* unmanaged[Stdcall]<IStream*, STATSTG*, uint, int>)Marshal.GetFunctionPointerForDelegate(delStat);
+			vtbl->Clone = (delegate* unmanaged[Stdcall]<IStream*, IStream**, int>)Marshal.GetFunctionPointerForDelegate(delClone);
 #endif
 
 			return (void**)vtbl;
-		}
-
-		public partial struct Vtbl
-		{
-			[NativeTypeName("HRESULT (const IID &, void **) __attribute__((stdcall))")]
-			public delegate* unmanaged[Stdcall]<IStreamImpl*, Guid*, void**, int> QueryInterface;
-
-			[NativeTypeName("ULONG () __attribute__((stdcall))")]
-			public delegate* unmanaged[Stdcall]<IStreamImpl*, uint> AddRef;
-
-			[NativeTypeName("ULONG () __attribute__((stdcall))")]
-			public delegate* unmanaged[Stdcall]<IStreamImpl*, uint> Release;
-
-			[NativeTypeName("HRESULT (void *, ULONG, ULONG *) __attribute__((stdcall))")]
-			public delegate* unmanaged[Stdcall]<IStreamImpl*, void*, uint, uint*, int> Read;
-
-			[NativeTypeName("HRESULT (const void *, ULONG, ULONG *) __attribute__((stdcall))")]
-			public delegate* unmanaged[Stdcall]<IStreamImpl*, void*, uint, uint*, int> Write;
-
-			[NativeTypeName("HRESULT (LARGE_INTEGER, DWORD, ULARGE_INTEGER *) __attribute__((stdcall))")]
-			public delegate* unmanaged[Stdcall]<IStreamImpl*, LARGE_INTEGER, uint, ULARGE_INTEGER*, int> Seek;
-
-			[NativeTypeName("HRESULT (ULARGE_INTEGER) __attribute__((stdcall))")]
-			public delegate* unmanaged[Stdcall]<IStreamImpl*, ULARGE_INTEGER, int> SetSize;
-
-			[NativeTypeName("HRESULT (IStream *, ULARGE_INTEGER, ULARGE_INTEGER *, ULARGE_INTEGER *) __attribute__((stdcall))")]
-			public delegate* unmanaged[Stdcall]<IStreamImpl*, IStream*, ULARGE_INTEGER, ULARGE_INTEGER*, ULARGE_INTEGER*, int> CopyTo;
-
-			[NativeTypeName("HRESULT (DWORD) __attribute__((stdcall))")]
-			public delegate* unmanaged[Stdcall]<IStreamImpl*, uint, int> Commit;
-
-			[NativeTypeName("HRESULT () __attribute__((stdcall))")]
-			public delegate* unmanaged[Stdcall]<IStreamImpl*, int> Revert;
-
-			[NativeTypeName("HRESULT (ULARGE_INTEGER, ULARGE_INTEGER, DWORD) __attribute__((stdcall))")]
-			public delegate* unmanaged[Stdcall]<IStreamImpl*, ULARGE_INTEGER, ULARGE_INTEGER, uint, int> LockRegion;
-
-			[NativeTypeName("HRESULT (ULARGE_INTEGER, ULARGE_INTEGER, DWORD) __attribute__((stdcall))")]
-			public delegate* unmanaged[Stdcall]<IStreamImpl*, ULARGE_INTEGER, ULARGE_INTEGER, uint, int> UnlockRegion;
-
-			[NativeTypeName("HRESULT (STATSTG *, DWORD) __attribute__((stdcall))")]
-			public delegate* unmanaged[Stdcall]<IStreamImpl*, STATSTG*, uint, int> Stat;
-
-			[NativeTypeName("HRESULT (IStream **) __attribute__((stdcall))")]
-			public delegate* unmanaged[Stdcall]<IStreamImpl*, IStream**, int> Clone;
 		}
 	}
 }

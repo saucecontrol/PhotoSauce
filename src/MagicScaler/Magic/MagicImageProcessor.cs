@@ -5,7 +5,7 @@ using System.IO;
 using System.Numerics;
 using System.ComponentModel;
 
-using TerraFX.Interop;
+using TerraFX.Interop.Windows;
 
 using PhotoSauce.Interop.Wic;
 using PhotoSauce.MagicScaler.Transforms;

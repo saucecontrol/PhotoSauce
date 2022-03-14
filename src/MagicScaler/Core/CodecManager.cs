@@ -28,7 +28,7 @@ namespace PhotoSauce.MagicScaler
 		public const string Heic = "image/heic";
 		public const string Jpeg = "image/jpeg";
 		public const string Jxl  = "image/jxl";
-		public const string Jxr =  "image/vnd.ms-photo"; // actual IANA assignment is image/jxr, but WIC reports otherwise
+		public const string Jxr  = "image/vnd.ms-photo"; // actual IANA assignment is image/jxr, but WIC reports otherwise
 		public const string Png  = "image/png";
 		public const string Tiff = "image/tiff";
 		public const string Webp = "image/webp";

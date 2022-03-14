@@ -2,7 +2,7 @@
 
 using System;
 
-using TerraFX.Interop;
+using TerraFX.Interop.Windows;
 
 using PhotoSauce.Interop.Wic;
 

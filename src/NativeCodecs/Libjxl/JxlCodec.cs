@@ -515,6 +515,7 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 
 	internal static unsafe class JxlFactory
 	{
+		public const string DisplayName = $"{libjxl} 0.6.1";
 		public const string libjxl = nameof(libjxl);
 		public const uint libjxlver = 6001;
 
@@ -556,7 +557,7 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 			var jxlExtension = new[] { ImageFileExtensions.Jxl };
 
 			codecs.Add(new DecoderInfo(
-				JxlFactory.libjxl,
+				JxlFactory.DisplayName,
 				jxlMime,
 				jxlExtension,
 				new ContainerPattern[] {
@@ -570,7 +571,7 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 				false
 			));
 			codecs.Add(new EncoderInfo(
-				JxlFactory.libjxl,
+				JxlFactory.DisplayName,
 				jxlMime,
 				jxlExtension,
 				new[] { PixelFormat.Grey8.FormatGuid, PixelFormat.Rgb24.FormatGuid, PixelFormat.Rgba32.FormatGuid },

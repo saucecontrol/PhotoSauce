@@ -4,7 +4,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
-using TerraFX.Interop;
+using TerraFX.Interop.Windows;
 
 namespace PhotoSauce.MagicScaler
 {
