@@ -91,7 +91,7 @@ namespace PhotoSauce.MagicScaler
 				float* op = (float*)opstart, igt = igtstart;
 
 #if HWINTRINSICS
-				if (Avx2.IsSupported && cb >= Vector256<byte>.Count)
+				if (Avx2.IsSupported && HWIntrinsics.HasFastGather && cb >= Vector256<byte>.Count)
 					convertFloatAvx2(ip, ipe, op, igt);
 				else
 #endif
@@ -128,7 +128,7 @@ namespace PhotoSauce.MagicScaler
 
 				if (ip < ipe + Vector256<byte>.Count)
 				{
-					nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+					nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
 					ip = UnsafeUtil.SubtractOffset(ip, offs);
 					op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<byte, float>(offs));
 					goto LoopTop;
@@ -285,7 +285,7 @@ namespace PhotoSauce.MagicScaler
 
 				if (ip < ipe + Vector256<byte>.Count)
 				{
-					nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+					nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
 					ip = UnsafeUtil.SubtractOffset(ip, offs);
 					op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<byte, float>(offs));
 					goto LoopTop;
@@ -488,7 +488,7 @@ namespace PhotoSauce.MagicScaler
 
 				if (ip < ipe + Vector256<float>.Count * 4)
 				{
-					nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+					nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
 					ip = UnsafeUtil.SubtractOffset(ip, offs);
 					op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<float, byte>(offs));
 					goto LoopTop;
@@ -542,7 +542,7 @@ namespace PhotoSauce.MagicScaler
 
 				if (ip < ipe + VectorF.Count)
 				{
-					nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+					nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
 					ip = UnsafeUtil.SubtractOffset(ip, offs);
 					op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<float, byte>(offs));
 					goto LoopTop;
@@ -717,7 +717,7 @@ namespace PhotoSauce.MagicScaler
 
 				if (ip < ipe + Vector256<float>.Count * 4)
 				{
-					nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+					nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
 					ip = UnsafeUtil.SubtractOffset(ip, offs);
 					op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<float, byte>(offs));
 					goto LoopTop;

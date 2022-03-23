@@ -11,45 +11,53 @@ namespace PhotoSauce.MagicScaler
 {
 	internal static unsafe class UnsafeUtil
 	{
-		[StructLayout(LayoutKind.Sequential)]
-		private sealed class RawArrayData { public nuint LengthPadded; public byte Data; }
-
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ref T GetDataRef<T>(this T[] array) =>
 #if NET5_0_OR_GREATER
 			ref MemoryMarshal.GetArrayDataReference(array);
+#elif NETFRAMEWORK
+			ref sizeof(nuint) == sizeof(ulong) ? ref getRefOrNull(array) : ref array[0];
 #else
-			ref Unsafe.As<byte, T>(ref Unsafe.As<RawArrayData>(array).Data);
+			ref getRefOrNull(array);
 #endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static nint ByteOffset<T>(T* tgt, T* cur) where T : unmanaged =>
-			Unsafe.ByteOffset(ref *tgt, ref *cur);
+		public static nuint ByteOffset<T>(T* tgt, T* cur) where T : unmanaged =>
+			(nuint)(nint)Unsafe.ByteOffset(ref *tgt, ref *cur);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T* SubtractOffset<T>(T* ptr, nint offset) where T : unmanaged =>
-			(T*)Unsafe.AsPointer(ref Unsafe.SubtractByteOffset(ref *ptr, offset));
+		public static T* SubtractOffset<T>(T* ptr, nuint offset) where T : unmanaged =>
+			(T*)Unsafe.AsPointer(ref Unsafe.SubtractByteOffset(ref *ptr, (nint)offset));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static nint ConvertOffset<TFrom, TTo>(nint offset) where TFrom : unmanaged where TTo : unmanaged
+		public static nuint ConvertOffset<TFrom, TTo>(nuint offset) where TFrom : unmanaged where TTo : unmanaged
 		{
 			if (sizeof(TFrom) > sizeof(TTo))
-				return offset / (sizeof(TFrom) / sizeof(TTo));
+				return offset / (nuint)(sizeof(TFrom) / sizeof(TTo));
 			else if (sizeof(TFrom) < sizeof(TTo))
-				return offset * (sizeof(TTo) / sizeof(TFrom));
+				return offset * (nuint)(sizeof(TTo) / sizeof(TFrom));
 			else
 				return offset;
 		}
 
-#if !NET5_0_OR_GREATER
-		public static T CreateMethodDelegate<T>(this Type t, string method) where T : Delegate =>
-			(T)t.GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance)!.CreateDelegate(typeof(T), null);
-#endif
-
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Guid* GetAddressOf(in this Guid val) => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(val));
+		public static Guid* GetAddressOf(this in Guid val) => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(val));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* GetAddressOf(this ReadOnlySpan<byte> val) => (byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(val));
+
+#if !NET5_0_OR_GREATER
+		public static T CreateMethodDelegate<T>(this Type t, string method) where T : Delegate =>
+			(T)t.GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance)!.CreateDelegate(typeof(T), null);
+
+		private static ref T getRefOrNull<T>(this T[] array)
+		{
+			ref T ar = ref Unsafe.AsRef<T>(null);
+			if (0 < (uint)array.Length)
+				ar = ref array[0];
+
+			return ref ar;
+		}
+#endif
 	}
 }

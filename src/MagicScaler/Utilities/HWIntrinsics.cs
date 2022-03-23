@@ -36,6 +36,23 @@ namespace PhotoSauce.MagicScaler
 			Vector<T>.Count;
 
 #if HWINTRINSICS
+		public static bool HasFastGather = getFastGather();
+
+#if NET5_0_OR_GREATER
+		private static bool getFastGather()
+		{
+			bool intel = X86Base.CpuId(0, 0) is (_, 0x756e6547, 0x6c65746e, 0x49656e69); // "Genu", "ntel", "ineI"
+			uint fms = (uint)X86Base.CpuId(1, 0).Eax;
+			uint fam = ((fms & 0xfu << 20) >> 16) + ((fms & 0xfu << 8) >> 8);
+			uint mod = ((fms & 0xfu << 16) >> 12) + ((fms & 0xfu << 4) >> 4);
+
+			// Intel Skylake and newer -- AMD is still slow as of Zen 3
+			return intel && fam == 6 && mod >= 0x4e;
+		}
+#else
+		private static bool getFastGather() => false;
+#endif
+
 		private const byte _ = 0x80;
 		public const byte BlendMaskAlpha = 0b_1000_1000;
 		public const byte ShuffleMaskChan0 = 0b_00_00_00_00;

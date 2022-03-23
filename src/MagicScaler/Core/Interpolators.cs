@@ -36,7 +36,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 		Guid IUniquelyIdentifiable.UniqueID => guid;
 
 		/// <inheritdoc />
-		public double Support => 0.000001;
+		public double Support => 1e-8;
 
 		/// <inheritdoc />
 		public double GetValue(double d) => 1.0;
@@ -261,7 +261,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 		/// <inheritdoc />
 		public double GetValue(double d)
 		{
-			if (d <= 0.000000005)
+			if (d <= 5e-10)
 				return 1.0;
 
 			if (d < support)

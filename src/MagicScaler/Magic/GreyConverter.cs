@@ -263,7 +263,7 @@ namespace PhotoSauce.MagicScaler
 
 					if (ip < ipe + Vector256<float>.Count * 4)
 					{
-						nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+						nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
 						ip = UnsafeUtil.SubtractOffset(ip, offs);
 						op = UnsafeUtil.SubtractOffset(op, offs / 4);
 						goto LoopTop;

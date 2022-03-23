@@ -208,11 +208,11 @@ namespace PhotoSauce.MagicScaler
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static float Lerp(float l, float h, float d) => (h - l) * d + l;
 
-		public static bool IsRoughlyEqualTo(this double x, double y) => Abs(x - y) < 0.0001;
+		public static bool IsRoughlyEqualTo(this double x, double y) => Abs(x - y) < 1e-4;
 
-		public static unsafe bool IsRouglyEqualTo(this Matrix4x4 m1, Matrix4x4 m2)
+		public static unsafe bool IsRouglyEqualTo(this in Matrix4x4 m1, in Matrix4x4 m2)
 		{
-			const float epsilon = 0.001f;
+			const float epsilon = 1e-3f;
 
 #if HWINTRINSICS
 			if (Sse.IsSupported)
@@ -220,11 +220,12 @@ namespace PhotoSauce.MagicScaler
 				var veps = Vector128.Create(epsilon);
 				var vmsk = Vector128.Create(0x7fffffff).AsSingle();
 
-				return
-					Sse.MoveMask(Sse.CompareNotLessThan(Sse.And(Sse.Subtract(Sse.LoadVector128(&m1.M11), Sse.LoadVector128(&m2.M11)), vmsk), veps)) == 0 &&
-					Sse.MoveMask(Sse.CompareNotLessThan(Sse.And(Sse.Subtract(Sse.LoadVector128(&m1.M21), Sse.LoadVector128(&m2.M21)), vmsk), veps)) == 0 &&
-					Sse.MoveMask(Sse.CompareNotLessThan(Sse.And(Sse.Subtract(Sse.LoadVector128(&m1.M31), Sse.LoadVector128(&m2.M31)), vmsk), veps)) == 0 &&
-					Sse.MoveMask(Sse.CompareNotLessThan(Sse.And(Sse.Subtract(Sse.LoadVector128(&m1.M41), Sse.LoadVector128(&m2.M41)), vmsk), veps)) == 0;
+				var v0 = Sse.CompareNotLessThan(Sse.And(Sse.Subtract(m1.getRowVector(0), m2.getRowVector(0)), vmsk), veps);
+				var v1 = Sse.CompareNotLessThan(Sse.And(Sse.Subtract(m1.getRowVector(1), m2.getRowVector(1)), vmsk), veps);
+				var v2 = Sse.CompareNotLessThan(Sse.And(Sse.Subtract(m1.getRowVector(2), m2.getRowVector(2)), vmsk), veps);
+				var v3 = Sse.CompareNotLessThan(Sse.And(Sse.Subtract(m1.getRowVector(3), m2.getRowVector(3)), vmsk), veps);
+
+				return Sse.MoveMask(Sse.Or(Sse.Or(v0, v1), Sse.Or(v2, v3))) == 0;
 			}
 #endif
 
@@ -239,25 +240,30 @@ namespace PhotoSauce.MagicScaler
 
 		public static uint GCD(uint x, uint y)
 		{
-			if (x == 0) return y;
-			if (y == 0) return x;
+			if (x < y)
+				(x, y) = (y, x);
 
-			do
+			while (y != 0)
 			{
 				uint t = y;
 				y = x % y;
 				x = t;
 			}
-			while (y != 0);
 
 			return x;
 		}
+
+#if HWINTRINSICS
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static Vector128<float> getRowVector(this in Matrix4x4 m, int r) =>
+			Unsafe.ReadUnaligned<Vector128<float>>(ref Unsafe.As<float, byte>(ref Unsafe.Add(ref Unsafe.AsRef(m.M11), r * Vector128<float>.Count)));
+#endif
 
 		// Implementation taken from
 		//   https://github.com/dotnet/runtime/blob/release/6.0/src/libraries/System.Private.CoreLib/src/System/Numerics/Matrix4x4.cs#L1556
 		// Because of the number of calculations and rounding steps, using float intermediates results in loss of precision.
 		// This is the same logic but with double precision intermediate calculations.
-		public static Matrix4x4 InvertPrecise(this Matrix4x4 matrix)
+		public static Matrix4x4 InvertPrecise(this in Matrix4x4 matrix)
 		{
 			double a = matrix.M11, b = matrix.M12, c = matrix.M13, d = matrix.M14;
 			double e = matrix.M21, f = matrix.M22, g = matrix.M23, h = matrix.M24;
@@ -326,10 +332,23 @@ namespace PhotoSauce.MagicScaler
 			return result;
 		}
 
-		public static bool IsNaN(this Matrix4x4 m) =>
-			float.IsNaN(m.M11) || float.IsNaN(m.M12) || float.IsNaN(m.M13) || float.IsNaN(m.M14) ||
-			float.IsNaN(m.M21) || float.IsNaN(m.M22) || float.IsNaN(m.M23) || float.IsNaN(m.M24) ||
-			float.IsNaN(m.M31) || float.IsNaN(m.M32) || float.IsNaN(m.M33) || float.IsNaN(m.M34) ||
-			float.IsNaN(m.M41) || float.IsNaN(m.M42) || float.IsNaN(m.M43) || float.IsNaN(m.M44);
+		public static bool IsNaN(this in Matrix4x4 m)
+		{
+#if HWINTRINSICS
+			if (Sse.IsSupported)
+			{
+				var v0 = Sse.CompareUnordered(m.getRowVector(0), m.getRowVector(1));
+				var v1 = Sse.CompareUnordered(m.getRowVector(2), m.getRowVector(3));
+
+				return Sse.MoveMask(Sse.Or(v0, v1)) != 0;
+			}
+#endif
+
+			return
+				float.IsNaN(m.M11) || float.IsNaN(m.M12) || float.IsNaN(m.M13) || float.IsNaN(m.M14) ||
+				float.IsNaN(m.M21) || float.IsNaN(m.M22) || float.IsNaN(m.M23) || float.IsNaN(m.M24) ||
+				float.IsNaN(m.M31) || float.IsNaN(m.M32) || float.IsNaN(m.M33) || float.IsNaN(m.M34) ||
+				float.IsNaN(m.M41) || float.IsNaN(m.M42) || float.IsNaN(m.M43) || float.IsNaN(m.M44);
+		}
 	}
 }

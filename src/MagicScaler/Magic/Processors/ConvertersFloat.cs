@@ -119,7 +119,7 @@ namespace PhotoSauce.MagicScaler
 
 					if (ip < ipe + Vector256<byte>.Count)
 					{
-						nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+						nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
 						ip = UnsafeUtil.SubtractOffset(ip, offs);
 						op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<byte, float>(offs));
 						goto LoopTop;
@@ -175,7 +175,7 @@ namespace PhotoSauce.MagicScaler
 
 					if (ip < ipe + Vector128<byte>.Count)
 					{
-						nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+						nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
 						ip = UnsafeUtil.SubtractOffset(ip, offs);
 						op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<byte, float>(offs));
 						goto LoopTop;
@@ -219,7 +219,7 @@ namespace PhotoSauce.MagicScaler
 
 				if (ip < ipe + Vector<byte>.Count)
 				{
-					nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+					nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
 					ip = UnsafeUtil.SubtractOffset(ip, offs);
 					op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<byte, float>(offs));
 					goto LoopTop;
@@ -336,7 +336,7 @@ namespace PhotoSauce.MagicScaler
 
 					if (ip < ipe + Vector256<byte>.Count)
 					{
-						nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+						nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
 						ip = UnsafeUtil.SubtractOffset(ip, offs);
 						op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<byte, float>(offs));
 						goto LoopTop;
@@ -391,7 +391,7 @@ namespace PhotoSauce.MagicScaler
 
 					if (ip < ipe + Vector128<byte>.Count)
 					{
-						nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+						nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
 						ip = UnsafeUtil.SubtractOffset(ip, offs);
 						op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<byte, float>(offs));
 						goto LoopTop;
@@ -578,7 +578,7 @@ namespace PhotoSauce.MagicScaler
 
 					if (ip < ipe + Vector256<float>.Count * 4)
 					{
-						nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+						nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
 						ip = UnsafeUtil.SubtractOffset(ip, offs);
 						op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<float, byte>(offs));
 						goto LoopTop;
@@ -615,7 +615,7 @@ namespace PhotoSauce.MagicScaler
 
 					if (ip < ipe + Vector128<float>.Count * 4)
 					{
-						nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+						nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
 						ip = UnsafeUtil.SubtractOffset(ip, offs);
 						op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<float, byte>(offs));
 						goto LoopTop;
@@ -690,7 +690,7 @@ namespace PhotoSauce.MagicScaler
 
 				if (ip < ipe + unrollCount)
 				{
-					nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+					nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
 					ip = UnsafeUtil.SubtractOffset(ip, offs);
 					op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<float, byte>(offs));
 					goto LoopTop;
@@ -793,7 +793,7 @@ namespace PhotoSauce.MagicScaler
 
 					if (ip < ipe + Vector256<float>.Count * 4)
 					{
-						nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+						nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
 						ip = UnsafeUtil.SubtractOffset(ip, offs);
 						op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<float, byte>(offs));
 						goto LoopTop;
@@ -862,7 +862,7 @@ namespace PhotoSauce.MagicScaler
 
 					if (ip < ipe + Vector128<float>.Count * 4)
 					{
-						nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+						nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
 						ip = UnsafeUtil.SubtractOffset(ip, offs);
 						op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<float, byte>(offs));
 						goto LoopTop;
@@ -1099,7 +1099,7 @@ namespace PhotoSauce.MagicScaler
 
 				if (ip < ipe + Vector256<float>.Count)
 				{
-					nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+					nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
 					ip = UnsafeUtil.SubtractOffset(ip, offs);
 					Avx.Store(ip, vlast);
 					goto LoopTop;
@@ -1201,7 +1201,7 @@ namespace PhotoSauce.MagicScaler
 
 				if (ip < ipe + Vector256<float>.Count)
 				{
-					nint offs = UnsafeUtil.ByteOffset(ipe, ip);
+					nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
 					ip = UnsafeUtil.SubtractOffset(ip, offs);
 					Avx.Store(ip, vlast);
 					goto LoopTop;
