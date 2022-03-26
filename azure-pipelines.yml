@@ -21,7 +21,8 @@ jobs:
       linux:
         imageName: ubuntu-latest
         setupScript: |
-          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
+          sudo apt-get update
+          sudo apt-get install -y g++-aarch64-linux-gnu
           modules/vcpkg/bootstrap-vcpkg.sh
         buildScript: modules/vcpkg/vcpkg install libjxl:x64-linux-staticdependencies libjxl:arm64-linux-staticdependencies @build/vcpkg/response
       windows:
