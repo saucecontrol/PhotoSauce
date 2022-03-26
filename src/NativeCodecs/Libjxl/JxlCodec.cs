@@ -23,8 +23,8 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 		private readonly long stmpos;
 		private IntPtr decoder;
 
+		private RentedBuffer<byte> profile;
 		private JxlBasicInfo basinfo;
-		private ColorProfile? profile;
 		private bool pixready;
 
 		private JxlPixelFormat pixelfmt
@@ -89,11 +89,9 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 						var pixfmt = pixelfmt;
 						JxlError.Check(JxlDecoderGetICCProfileSize(decoder, &pixfmt, JxlColorProfileTarget.JXL_COLOR_PROFILE_TARGET_DATA, &icclen));
 
-						using var iccbuf = BufferPool.RentLocal<byte>((int)icclen);
-						fixed (byte* picc = iccbuf)
-							JxlError.Check(JxlDecoderGetColorAsICCProfile(decoder, &pixfmt, JxlColorProfileTarget.JXL_COLOR_PROFILE_TARGET_DATA, picc, (nuint)iccbuf.Length));
-
-						profile = ColorProfile.Parse(iccbuf.Span);
+						profile = BufferPool.Rent<byte>((int)icclen);
+						fixed (byte* picc = profile)
+							JxlError.Check(JxlDecoderGetColorAsICCProfile(decoder, &pixfmt, JxlColorProfileTarget.JXL_COLOR_PROFILE_TARGET_DATA, picc, (nuint)profile.Length));
 					}
 					else if (status == JxlDecoderStatus.JXL_DEC_NEED_IMAGE_OUT_BUFFER)
 					{
@@ -168,6 +166,8 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 			if (decoder == default)
 				return;
 
+			profile.Dispose();
+
 			JxlDecoderDestroy(decoder);
 			decoder = default;
 
@@ -182,14 +182,6 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 			private JxlPixelSource pixsrc;
 
 			public JxlFrame(JxlContainer cont) => container = cont;
-
-			double IImageFrame.DpiX => 96;
-
-			double IImageFrame.DpiY => 96;
-
-			Orientation IImageFrame.ExifOrientation => (Orientation)container.basinfo.orientation;
-
-			ReadOnlySpan<byte> IImageFrame.IccProfile => container.profile?.ProfileBytes ?? Array.Empty<byte>();
 
 			public IPixelSource PixelSource
 			{
@@ -379,7 +371,7 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 
 			if (options is JxlLossyEncoderOptions lopt)
 			{
-				// current version of encoder will AV if this is set over 4 (including the default of 7) for lossy
+				// current version of encoder will AV on write if this is set over 4 (including the default of 7) for lossy
 				if (options.EncodeSpeed > JxlEncodeSpeed.Cheetah)
 					JxlError.Check(JxlEncoderOptionsSetEffort(encopt, 4));
 
@@ -422,8 +414,6 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 			if (options is JxlLossyEncoderOptions lopt && lopt.Distance == default)
 				JxlError.Check(JxlEncoderOptionsSetDistance(encopt, JxlLossyEncoderOptions.DistanceFromQuality(SettingsUtil.GetDefaultQuality(Math.Max(sourceArea.Width, sourceArea.Height)))));
 
-			bool hasProps = metadata.TryGetMetadata<BaseImageProperties>(out var baseprops);
-
 			var basinf = default(JxlBasicInfo);
 			JxlEncoderInitBasicInfo(&basinf);
 			basinf.xsize = (uint)sourceArea.Width;
@@ -432,13 +422,16 @@ namespace PhotoSauce.NativeCodecs.Libjxl
 			basinf.num_color_channels = (uint)(dstfmt.ChannelCount - (dstfmt.AlphaRepresentation == PixelAlphaRepresentation.None ? 0 : 1));
 			basinf.alpha_bits = dstfmt.AlphaRepresentation == PixelAlphaRepresentation.None ? 0 : basinf.bits_per_sample;
 			basinf.alpha_premultiplied = dstfmt.AlphaRepresentation == PixelAlphaRepresentation.Associated ? JXL_TRUE : JXL_FALSE;
-			basinf.orientation = hasProps ? (JxlOrientation)baseprops.Orientation.Clamp() : JxlOrientation.JXL_ORIENT_IDENTITY;
 			basinf.uses_original_profile = JXL_TRUE;
+
+			if (metadata.TryGetMetadata<OrientationMetadata>(out var orient))
+				basinf.orientation = (JxlOrientation)orient.Orientation.Clamp();
 
 			JxlError.Check(JxlEncoderSetBasicInfo(encoder, &basinf));
 
-			if (hasProps && baseprops.ColorProfile is ColorProfile prof)
+			if (metadata.TryGetMetadata<ColorProfileMetadata>(out var disprof))
 			{
+				var prof = disprof.Profile;
 				fixed (byte* pp = &prof.ProfileBytes.GetDataRef())
 					JxlError.Check(JxlEncoderSetICCProfile(encoder, pp, (uint)prof.ProfileBytes.Length));
 			}

@@ -184,42 +184,42 @@ namespace PhotoSauce.MagicScaler
 
 			HRESULT.Check(frame.Get()->SetSize((uint)encArea.Width, (uint)encArea.Height));
 
-			if (meta.TryGetMetadata<BaseImageProperties>(out var baseprops))
+			if (meta.TryGetMetadata<ResolutionMetadata>(out var res) && res.IsValid)
+				HRESULT.Check(frame.Get()->SetResolution((double)res.ResolutionX, (double)res.ResolutionY));
+
+			if (meta.TryGetMetadata<ColorProfileMetadata>(out var prof))
 			{
-				HRESULT.Check(frame.Get()->SetResolution(baseprops.DpiX, baseprops.DpiY));
+				var cp = prof.Profile;
 
-				if (baseprops.ColorProfile is ColorProfile prof)
+				// We give preference to V2 compact profiles when possible, for the file size and compatibility advantages.
+				// However, WIC writes gAMA and cHRM tags along with iCCP when a V2 ICC profile is written to a PNG frame.
+				// Chromium ignores the iCCP tag if the others are present, so we keep the V4 reference profiles for PNG.
+				var cc = default(IWICColorContext*);
+				if (cp == ColorProfile.sRGB)
+					cc = (fmt == GUID_ContainerFormatPng ? WicColorProfile.Srgb : WicColorProfile.SrgbCompact).Value.WicColorContext;
+				else if (cp == ColorProfile.sGrey)
+					cc = (fmt == GUID_ContainerFormatPng ? WicColorProfile.Grey : WicColorProfile.GreyCompact).Value.WicColorContext;
+				else if (cp == ColorProfile.AdobeRgb)
+					cc = (fmt == GUID_ContainerFormatPng ? WicColorProfile.AdobeRgb : WicColorProfile.AdobeRgbCompact).Value.WicColorContext;
+				else if (cp == ColorProfile.DisplayP3)
+					cc = (fmt == GUID_ContainerFormatPng ? WicColorProfile.DisplayP3 : WicColorProfile.DisplayP3Compact).Value.WicColorContext;
+
+				using var wcc = default(ComPtr<IWICColorContext>);
+				if (cc is null)
 				{
-					// We give preference to V2 compact profiles when possible, for the file size and compatibility advantages.
-					// However, WIC writes gAMA and cHRM tags along with iCCP when a V2 ICC profile is written to a PNG frame.
-					// Chromium ignores the iCCP tag if the others are present, so we keep the V4 reference profiles for PNG.
-					var cc = default(IWICColorContext*);
-					if (prof == ColorProfile.sRGB)
-						cc = (fmt == GUID_ContainerFormatPng ? WicColorProfile.Srgb : WicColorProfile.SrgbCompact).Value.WicColorContext;
-					else if (prof == ColorProfile.sGrey)
-						cc = (fmt == GUID_ContainerFormatPng ? WicColorProfile.Grey : WicColorProfile.GreyCompact).Value.WicColorContext;
-					else if (prof == ColorProfile.AdobeRgb)
-						cc = (fmt == GUID_ContainerFormatPng ? WicColorProfile.AdobeRgb : WicColorProfile.AdobeRgbCompact).Value.WicColorContext;
-					else if (prof == ColorProfile.DisplayP3)
-						cc = (fmt == GUID_ContainerFormatPng ? WicColorProfile.DisplayP3 : WicColorProfile.DisplayP3Compact).Value.WicColorContext;
-
-					using var wcc = default(ComPtr<IWICColorContext>);
-					if (cc is null)
-					{
-						wcc.Attach(WicColorProfile.CreateContextFromProfile(prof.ProfileBytes));
-						cc = wcc;
-					}
-
-					_ = frame.Get()->SetColorContexts(1, &cc);
+					wcc.Attach(WicColorProfile.CreateContextFromProfile(cp.ProfileBytes));
+					cc = wcc;
 				}
 
-				if (hasWriter && baseprops.Orientation >= Orientation.Normal)
-				{
-					string orientationPath = fmt == GUID_ContainerFormatJpeg ? Wic.Metadata.OrientationJpeg : Wic.Metadata.OrientationExif;
-					var pv = new PROPVARIANT { vt = (ushort)VARENUM.VT_UI2 };
-					pv.Anonymous.uiVal = (ushort)baseprops.Orientation;
-					_ = metawriter.Get()->SetMetadataByName(orientationPath, &pv);
-				}
+				_ = frame.Get()->SetColorContexts(1, &cc);
+			}
+
+			if (hasWriter && meta.TryGetMetadata<OrientationMetadata>(out var orient))
+			{
+				string orientationPath = fmt == GUID_ContainerFormatJpeg ? Wic.Metadata.OrientationJpeg : Wic.Metadata.OrientationExif;
+				var pv = new PROPVARIANT { vt = (ushort)VARENUM.VT_UI2 };
+				pv.Anonymous.uiVal = (ushort)orient.Orientation;
+				_ = metawriter.Get()->SetMetadataByName(orientationPath, &pv);
 			}
 
 			if (hasWriter && meta is WicAnimatedGifEncoder.AnimationBufferFrame && meta.TryGetMetadata<AnimationFrame>(out var anifrm))
@@ -347,7 +347,7 @@ namespace PhotoSauce.MagicScaler
 			public readonly FrameBufferSource Source;
 			public PixelArea Area;
 			public FrameDisposalMethod Disposal;
-			public int Delay;
+			public uint Delay;
 			public bool Trans;
 
 			public AnimationBufferFrame(int width, int height, PixelFormat format) =>
@@ -549,7 +549,7 @@ namespace PhotoSauce.MagicScaler
 				anifrm = AnimationFrame.Default;
 
 			frame.Disposal = anifrm.Disposal == FrameDisposalMethod.RestoreBackground ? FrameDisposalMethod.RestoreBackground : FrameDisposalMethod.Preserve;
-			frame.Delay = ((int)Math.Round(anifrm.Duration.Numerator / (double)anifrm.Duration.Denominator.Clamp(1, int.MaxValue) * 100d)).Clamp(ushort.MinValue, ushort.MaxValue);
+			frame.Delay = ((uint)Math.Round(anifrm.Duration.Numerator / (double)anifrm.Duration.Denominator.Clamp(1, int.MaxValue) * 100d)).Clamp(ushort.MinValue, ushort.MaxValue);
 			frame.Trans = anifrm.HasAlpha;
 			frame.Area = context.Source.Area;
 

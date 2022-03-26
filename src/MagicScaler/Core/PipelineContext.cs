@@ -77,7 +77,7 @@ namespace PhotoSauce.MagicScaler
 
 		public void FinalizeSettings()
 		{
-			Orientation = Settings.OrientationMode == OrientationMode.Normalize ? ImageFrame.ExifOrientation : Orientation.Normal;
+			Orientation = Settings.OrientationMode == OrientationMode.Normalize && ImageFrame is IMetadataSource meta && meta.TryGetMetadata<OrientationMetadata>(out var o) ? o.Orientation : Orientation.Normal;
 
 			if (!Settings.IsNormalized)
 			{

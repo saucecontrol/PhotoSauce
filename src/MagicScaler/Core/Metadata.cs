@@ -1,5 +1,6 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -21,8 +22,6 @@ namespace PhotoSauce.MagicScaler
 
 	internal readonly unsafe struct WicFrameMetadataReader : IMetadata
 	{
-		public string Name => nameof(WicFrameMetadataReader);
-
 		public readonly IWICMetadataQueryReader* Reader;
 		public readonly IEnumerable<string> CopyNames;
 
@@ -33,17 +32,28 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	internal readonly struct BaseImageProperties : IMetadata
+	internal interface IIccProfileSource : IMetadata
 	{
-		public string Name => nameof(BaseImageProperties);
+		int ProfileLength { get; }
+		void CopyProfile(Span<byte> dest);
+	}
 
-		public readonly double DpiX;
-		public readonly double DpiY;
-		public readonly Orientation Orientation;
-		public readonly ColorProfile? ColorProfile;
+	internal readonly record struct ColorProfileMetadata(ColorProfile Profile) : IMetadata { }
 
-		public BaseImageProperties(double dpix, double dpiy, Orientation orientation, ColorProfile? profile) =>
-			(DpiX, DpiY, Orientation, ColorProfile) = (dpix, dpiy, orientation, profile);
+	internal readonly record struct OrientationMetadata(Orientation Orientation) : IMetadata { }
+
+	internal readonly record struct ResolutionMetadata(Rational ResolutionX, Rational ResolutionY, ResolutionUnit Units) : IMetadata
+	{
+		public static readonly ResolutionMetadata Default = new(new(96, 1), new(96, 1), ResolutionUnit.Inch);
+
+		public bool IsValid => ResolutionX.Denominator != 0 && ResolutionY.Denominator != 0;
+
+		public ResolutionMetadata ToDpi() => Units switch {
+			ResolutionUnit.Inch       => this,
+			ResolutionUnit.Centimeter => new(((double)ResolutionX /  2.54).ToRational(), ((double)ResolutionY /  2.54).ToRational(), ResolutionUnit.Inch),
+			ResolutionUnit.Meter      => new(((double)ResolutionX * 39.37).ToRational(), ((double)ResolutionY * 39.37).ToRational(), ResolutionUnit.Inch),
+			_                         => new(((double)ResolutionX * 96.0 ).ToRational(), ((double)ResolutionY * 96.0 ).ToRational(), ResolutionUnit.Inch)
+		};
 	}
 
 	internal interface IMetadataTransform
@@ -54,31 +64,57 @@ namespace PhotoSauce.MagicScaler
 	internal sealed class MagicMetadataFilter : IMetadataSource
 	{
 		private readonly PipelineContext context;
+		private readonly IMetadataSource source;
 
-		public MagicMetadataFilter(PipelineContext ctx) => context = ctx;
+		public MagicMetadataFilter(PipelineContext ctx) => (context, source) = (ctx, ctx.ImageFrame as IMetadataSource ?? ctx.Metadata);
 
 		public unsafe bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata
 		{
-			if (typeof(T) == typeof(BaseImageProperties))
+			var settings = context.Settings;
+
+			if (typeof(T) == typeof(ResolutionMetadata))
 			{
-				var settings = context.Settings;
+				var res = new ResolutionMetadata(settings.DpiX.ToRational(), settings.DpiY.ToRational(), ResolutionUnit.Inch);
+				if (settings.DpiX == default || settings.DpiY == default)
+				{
+					res = source.TryGetMetadata<ResolutionMetadata>(out var r) && r.IsValid ? r : ResolutionMetadata.Default;
+					if (settings.DpiX != default)
+						res = res.ToDpi() with { ResolutionX = settings.DpiX.ToRational() };
+					if (settings.DpiY != default)
+						res = res.ToDpi() with { ResolutionY = settings.DpiY.ToRational() };
+				}
 
-				double dpix = settings.DpiX > 0d ? settings.DpiX : context.ImageFrame.DpiX;
-				double dpiy = settings.DpiY > 0d ? settings.DpiY : context.ImageFrame.DpiY;
-				bool writeOrientation = settings.OrientationMode == OrientationMode.Preserve && context.ImageFrame.ExifOrientation != Orientation.Normal;
-				bool writeColorProfile =
-					settings.ColorProfileMode == ColorProfileMode.NormalizeAndEmbed ||
-					settings.ColorProfileMode == ColorProfileMode.Preserve ||
-					(settings.ColorProfileMode == ColorProfileMode.Normalize && context.DestColorProfile != ColorProfile.sRGB && context.DestColorProfile != ColorProfile.sGrey);
-
-				metadata = (T)(object)(new BaseImageProperties(dpix, dpiy, writeOrientation ? context.ImageFrame.ExifOrientation : 0, writeColorProfile ? context.DestColorProfile : null));
+				metadata = (T)(object)res;
 				return true;
+			}
+
+			if (typeof(T) == typeof(OrientationMetadata))
+			{
+				if (settings.OrientationMode == OrientationMode.Preserve && source.TryGetMetadata<OrientationMetadata>(out var orient) && orient.Orientation != Orientation.Normal)
+				{
+					metadata = (T)(object)(new OrientationMetadata(orient.Orientation));
+					return true;
+				}
+
+				metadata = default;
+				return false;
+			}
+
+			if (typeof(T) == typeof(ColorProfileMetadata))
+			{
+				if (settings.ColorProfileMode is ColorProfileMode.NormalizeAndEmbed or ColorProfileMode.Preserve || (settings.ColorProfileMode is ColorProfileMode.Normalize && context.DestColorProfile != ColorProfile.sRGB && context.DestColorProfile != ColorProfile.sGrey))
+				{
+					metadata = (T)(object)(new ColorProfileMetadata(context.DestColorProfile!));
+					return true;
+				}
+
+				metadata = default;
+				return false;
 			}
 
 			if (typeof(T) == typeof(WicFrameMetadataReader))
 			{
-				var settings = context.Settings;
-				if (context.ImageFrame is WicImageFrame wicfrm && wicfrm.WicMetadataReader is not null && settings.MetadataNames != Enumerable.Empty<string>())
+				if (source is WicImageFrame wicfrm && wicfrm.WicMetadataReader is not null && settings.MetadataNames.Any())
 				{
 					metadata = (T)(object)(new WicFrameMetadataReader(wicfrm.WicMetadataReader, settings.MetadataNames));
 					return true;
@@ -88,27 +124,24 @@ namespace PhotoSauce.MagicScaler
 				return false;
 			}
 
-			if (context.ImageFrame is IMetadataSource frmsrc)
-				return frmsrc.TryGetMetadata(out metadata);
-
-			metadata = default;
-			return false;
+			return source.TryGetMetadata(out metadata);
 		}
 	}
 
 	/// <summary>A <a href="https://en.wikipedia.org/wiki/Rational_number">rational number</a>, as defined by an integer <paramref name="Numerator" /> and <paramref name="Denominator" />.</summary>
 	/// <param name="Numerator">The numerator of the rational number.</param>
 	/// <param name="Denominator">The denominator of the rational number.</param>
-	internal readonly record struct Rational(int Numerator, int Denominator)
+	internal readonly record struct Rational(uint Numerator, uint Denominator)
 	{
 		public override string ToString() => $"{Numerator}/{Denominator}";
+
+		public static implicit operator Rational((uint n, uint d) f) => new(f.n, f.d);
+		public static explicit operator double(Rational r) => r.Denominator is 0 ? double.NaN : (double)r.Numerator / r.Denominator;
 	}
 
 	/// <summary>Defines global/container metadata for a sequence of animated frames.</summary>
 	internal readonly struct AnimationContainer : IMetadata
 	{
-		public string Name => nameof(AnimationContainer);
-
 		/// <summary>The width of the animation's logical screen.  Values less than 1 imply the width is equal to the width of the first frame.</summary>
 		public readonly int ScreenWidth;
 
@@ -133,8 +166,6 @@ namespace PhotoSauce.MagicScaler
 	{
 		// Rather arbitrary default of NTSC film speed
 		internal static AnimationFrame Default = new(default, default, new Rational(1001, 24000), default, default);
-
-		public string Name => nameof(AnimationFrame);
 
 		/// <summary>The horizontal offset of the frame's content, relative to the logical screen.</summary>
 		public readonly int OffsetLeft;

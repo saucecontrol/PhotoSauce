@@ -31,22 +31,6 @@ namespace PhotoSauce.MagicScaler
 	/// <summary>A single image frame within an <see cref="IImageContainer" /></summary>
 	public interface IImageFrame : IDisposable
 	{
-		/// <summary>The horizontal resolution of the image frame, in dots/pixels per inch.</summary>
-		/// <remarks>Implementation note: If the frame source has no resolution information, a default value of 72 or 96 is suitable.</remarks>
-		double DpiX { get; }
-
-		/// <summary>The vertical resolution of the image frame, in dots/pixels per inch.</summary>
-		/// <remarks>Implementation note: If the frame source has no resolution information, a default value of 72 or 96 is suitable.</remarks>
-		double DpiY { get; }
-
-		/// <summary>The <see cref="Orientation"/> of the image frame.</summary>
-		/// <remarks>Implementation note: If the frame source has no orientation information, a default value of <see cref="Orientation.Normal"/> is suitable.</remarks>
-		Orientation ExifOrientation { get; }
-
-		/// <summary>The <a href="https://en.wikipedia.org/wiki/ICC_profile">ICC color profile</a> that describes the color space of the image frame.</summary>
-		/// <remarks>If this value is <see cref="ReadOnlySpan{T}.Empty" />, colors will be interpreted as <a href="https://en.wikipedia.org/wiki/SRGB">sRGB or sYCC</a>.</remarks>
-		ReadOnlySpan<byte> IccProfile { get; }
-
 		/// <summary>The <see cref="IPixelSource" /> to retrieve pixels from this image frame.</summary>
 		IPixelSource PixelSource { get; }
 	}
@@ -88,11 +72,7 @@ namespace PhotoSauce.MagicScaler
 	}
 
 	/// <summary>Base interface for metadata types.</summary>
-	public interface IMetadata
-	{
-		/// <summary>Friendly name of the metadata type.</summary>
-		string Name { get; }
-	}
+	public interface IMetadata { }
 
 	/// <summary>Provides a mechanism for accessing metadata from an image.</summary>
 	public interface IMetadataSource

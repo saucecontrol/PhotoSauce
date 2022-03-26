@@ -587,14 +587,14 @@ namespace PhotoSauce.MagicScaler
 			hash.Update(InnerSize);
 			hash.Update(OuterSize);
 			hash.Update(MatteColor.ToArgb());
-			hash.Update(BlendingMode);
-			hash.Update(OrientationMode);
-			hash.Update(ColorProfileMode);
+			hash.Update((int)BlendingMode);
+			hash.Update((int)OrientationMode);
+			hash.Update((int)ColorProfileMode);
 			hash.Update(HybridScaleRatio);
 			hash.Update(uif.UniqueID);
 			hash.Update(Interpolation.Blur);
 			hash.Update(UnsharpMask);
-			hash.Update(SaveFormat);
+			hash.Update((int)SaveFormat);
 
 			if (EncoderInfo!.SupportsMimeType(ImageMimeTypes.Jpeg))
 			{

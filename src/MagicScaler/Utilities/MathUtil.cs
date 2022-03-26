@@ -54,6 +54,9 @@ namespace PhotoSauce.MagicScaler
 		public static int Clamp(this int x, int min, int max) => Min(Max(min, x), max);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static uint Clamp(this uint x, uint min, uint max) => Min(Max(min, x), max);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static double Clamp(this double x, double min, double max) => Min(Max(min, x), max);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -207,6 +210,58 @@ namespace PhotoSauce.MagicScaler
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static float Lerp(float l, float h, float d) => (h - l) * d + l;
+
+		private static (T, T) toFraction<T>(this double v) where T : unmanaged
+		{
+			const double epsilon = 1e-10;
+			const int maxIterations = 21;
+
+			ulong maxVal;
+			if (typeof(T) == typeof(uint))
+				maxVal = uint.MaxValue;
+			else if (typeof(T) == typeof(int))
+				maxVal = int.MaxValue;
+			else
+				throw new ArgumentException("Invalid type.", nameof(T));
+
+			if (double.IsNaN(v))
+				return default;
+
+			int sign = Sign(v);
+			double va = Abs(v);
+
+			if ((typeof(T) == typeof(uint) && sign <= 0) || va < 1d / maxVal)
+				return Unsafe.As<(int, int), (T, T)>(ref Unsafe.AsRef((0, 1)));
+
+			if (va > maxVal)
+				return Unsafe.As<(int, int), (T, T)>(ref Unsafe.AsRef((sign, 0)));
+
+			double f = va;
+			long np = 0, n = 1;
+			long dp = 1, d = 0;
+
+			ulong maxDenominator = va > 1 ? 1u << 16 : 1u << 14;
+			for (int i = 0; i < maxIterations; i++)
+			{
+				long w = (long)f;
+				long nn = w * n + np;
+				long dn = w * d + dp;
+
+				if (((ulong)nn > maxVal || (ulong)dn > maxDenominator) && i > 1)
+					break;
+				else if (Abs(((double)nn / dn - va) / va) <= epsilon)
+					i = maxIterations;
+				else
+					f = 1 / (f - w);
+
+				(n, np) = (nn, n);
+				(d, dp) = (dn, d);
+			}
+
+			return Unsafe.As<(int, int), (T, T)>(ref Unsafe.AsRef(((int)(n * sign), (int)d)));
+		}
+
+		public static Rational ToRational(this double d) => d.toFraction<uint>();
 
 		public static bool IsRoughlyEqualTo(this double x, double y) => Abs(x - y) < 1e-4;
 

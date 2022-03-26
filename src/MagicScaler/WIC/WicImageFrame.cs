@@ -18,11 +18,6 @@ namespace PhotoSauce.MagicScaler
 
 		public readonly WicImageContainer Container;
 
-		public double DpiX { get; }
-		public double DpiY { get; }
-		public Orientation ExifOrientation { get; } = Orientation.Normal;
-		public ReadOnlySpan<byte> IccProfile => ColorProfileSource.ParsedProfile.ProfileBytes;
-
 		public bool SupportsNativeScale { get; }
 		public bool SupportsPlanarProcessing { get; }
 
@@ -47,24 +42,12 @@ namespace PhotoSauce.MagicScaler
 
 			using var source = new ComPtr<IWICBitmapSource>((IWICBitmapSource*)frame.Get());
 
-			double dpix, dpiy;
-			HRESULT.Check(frame.Get()->GetResolution(&dpix, &dpiy));
-			(DpiX, DpiY) = (dpix, dpiy);
-
 			uint frameWidth, frameHeight;
 			HRESULT.Check(frame.Get()->GetSize(&frameWidth, &frameHeight));
 
 			using var metareader = default(ComPtr<IWICMetadataQueryReader>);
 			if (SUCCEEDED(frame.Get()->GetMetadataQueryReader(metareader.GetAddressOf())))
-			{
-				string orientationPath =
-					MagicImageProcessor.EnableXmpOrientation ? Wic.Metadata.OrientationWindowsPolicy :
-					Container.MimeType == ImageMimeTypes.Jpeg ? Wic.Metadata.OrientationJpeg :
-					Wic.Metadata.OrientationExif;
-
-				ExifOrientation = ((Orientation)metareader.Get()->GetValueOrDefault<ushort>(orientationPath)).Clamp();
 				WicMetadataReader = metareader.Detach();
-			}
 
 			if (index == 0 && Container.Options is CameraRawDecoderOptions ropt && ropt.UsePreview != RawPreviewMode.Never)
 			{
@@ -153,7 +136,36 @@ namespace PhotoSauce.MagicScaler
 			WicSource = source.Detach();
 		}
 
-		public virtual bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata => Container.TryGetMetadata(out metadata);
+		public virtual bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata
+		{
+			if (typeof(T) == typeof(ResolutionMetadata))
+			{
+				double dpix, dpiy;
+				HRESULT.Check(WicFrame->GetResolution(&dpix, &dpiy));
+
+				metadata = (T)(object)(new ResolutionMetadata(dpix.ToRational(), dpiy.ToRational(), ResolutionUnit.Inch));
+				return true;
+			}
+
+			if (typeof(T) == typeof(OrientationMetadata))
+			{
+				var orient = Orientation.Normal;
+				if (WicMetadataReader is not null)
+				{
+					string orientationPath =
+						MagicImageProcessor.EnableXmpOrientation ? Wic.Metadata.OrientationWindowsPolicy :
+						Container.MimeType == ImageMimeTypes.Jpeg ? Wic.Metadata.OrientationJpeg :
+						Wic.Metadata.OrientationExif;
+
+					orient = ((Orientation)WicMetadataReader->GetValueOrDefault<ushort>(orientationPath)).Clamp();
+				}
+
+				metadata = (T)(object)(new OrientationMetadata(orient));
+				return true;
+			}
+
+			return Container.TryGetMetadata(out metadata);
+		}
 
 		public void Dispose()
 		{

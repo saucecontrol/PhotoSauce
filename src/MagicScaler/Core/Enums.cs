@@ -7,7 +7,7 @@ namespace PhotoSauce.MagicScaler
 {
 	/// <summary>Defines the horizontal and vertical anchor positions for auto cropping.</summary>
 	[Flags]
-	public enum CropAnchor
+	public enum CropAnchor : byte
 	{
 		/// <summary>Crop to the image center.</summary>
 		Center = 0,
@@ -22,7 +22,7 @@ namespace PhotoSauce.MagicScaler
 	}
 
 	/// <summary>Defines the modes for auto cropping and scaling.</summary>
-	public enum CropScaleMode
+	public enum CropScaleMode : byte
 	{
 		/// <summary>Preserve the aspect ratio of the input image.  Crop if necessary to fit the output dimensions.</summary>
 		Crop,
@@ -37,7 +37,7 @@ namespace PhotoSauce.MagicScaler
 	}
 
 	/// <summary>Defines the modes that control speed vs. quality trade-offs for high-ratio scaling operations.</summary>
-	public enum HybridScaleMode
+	public enum HybridScaleMode : byte
 	{
 		/// <summary>Allow lower-quality downscaling to a size at least 3x the target size.  Use high-quality scaling to reach the final size.</summary>
 		FavorQuality,
@@ -50,7 +50,7 @@ namespace PhotoSauce.MagicScaler
 	}
 
 	/// <summary>Defines the modes that control <a href="http://blog.johnnovak.net/2016/09/21/what-every-coder-should-know-about-gamma/">gamma correction</a> in pixel blending.</summary>
-	public enum GammaMode
+	public enum GammaMode : byte
 	{
 		/// <summary>Convert values to linear RGB before blending.  This is more mathematically correct and more visually pleasing in most cases.</summary>
 		Linear,
@@ -59,7 +59,7 @@ namespace PhotoSauce.MagicScaler
 	}
 
 	/// <summary>Defines known image container formats for auto-detection and output configuration.</summary>
-	public enum FileFormat
+	public enum FileFormat : byte
 	{
 		/// <summary>Set output container format automatically based on input format and image contents.  The container format will be a web-friendly format (JPEG, PNG, or GIF).</summary>
 		Auto,
@@ -80,7 +80,7 @@ namespace PhotoSauce.MagicScaler
 	}
 
 	/// <summary>Defines the modes that control <a href="https://en.wikipedia.org/wiki/ICC_profile">ICC Color Profile</a> handling.</summary>
-	public enum ColorProfileMode
+	public enum ColorProfileMode : byte
 	{
 		/// <summary>Convert the input image to a well-known RGB color space during processing.  A minimal compatible color profile will be embedded unless the output image is in the the sRGB color space.</summary>
 		/// <include file='Docs/Remarks.xml' path='doc/member[@name="ColorProfileMode.Normalize"]/*'/>
@@ -94,7 +94,7 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>Convert the input image to the <a href="https://en.wikipedia.org/wiki/SRGB">sRGB color space</a> during processing.  Output an untagged sRGB image.</summary>
 		ConvertToSrgb,
 		/// <summary>Ignore any embedded profiles and treat the image as <a href="https://en.wikipedia.org/wiki/SRGB">sRGB</a> data.  Do not tag the output image.</summary>
-		Ignore = 0xff
+		Ignore = byte.MaxValue
 	}
 
 	/// <summary>Represents orientation correction to be applied to an image.  The values in this enumeration match the values defined in the <a href="https://en.wikipedia.org/wiki/Exif">Exif</a> specification.</summary>
@@ -119,14 +119,14 @@ namespace PhotoSauce.MagicScaler
 	}
 
 	/// <summary>Defines the modes that control <a href="https://magnushoff.com/articles/jpeg-orientation/">Exif Orientation</a> correction.</summary>
-	public enum OrientationMode
+	public enum OrientationMode : byte
 	{
 		/// <summary>Correct the image orientation according to the Exif tag on load.  Save the output in normal orientation.  This option ensures maximum compatibility with viewer software.</summary>
 		Normalize,
 		/// <summary>Preserve the orientation of the input image and tag the output image to reflect the orientation.  If the output format does not support orientation tagging, it will be discarded.</summary>
 		Preserve,
 		/// <summary>Ignore any orientation tag and treat the image as if its stored orientation is normal.  Do not tag the output image.  This option should only be used if the Exif orientation of the input image is known to be incorrect.</summary>
-		Ignore = 0xff
+		Ignore = byte.MaxValue
 	}
 
 	/// <summary>Defines the positioning of chroma components relative to their associated luma components when chroma planes are subsampled.</summary>
@@ -164,7 +164,7 @@ namespace PhotoSauce.MagicScaler
 	}
 
 	/// <summary>Defines the modes that control disposal of image frames in an animation.</summary>
-	internal enum FrameDisposalMethod
+	internal enum FrameDisposalMethod : byte
 	{
 		/// <summary>Disposal is not defined.  This has the same behavior as <see cref="Preserve" />.</summary>
 		Unspecified = 0,
@@ -174,6 +174,14 @@ namespace PhotoSauce.MagicScaler
 		RestoreBackground = 2,
 		/// <summary>The display buffer should revert to the state preceding display of the current frame.</summary>
 		RestorePrevious = 3
+	}
+
+	internal enum ResolutionUnit
+	{
+		Virtual,
+		Inch,
+		Centimeter,
+		Meter
 	}
 
 	/// <summary>Defines the codec vendors that are permitted for use in the pipeline.</summary>

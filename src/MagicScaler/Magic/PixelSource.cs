@@ -81,11 +81,6 @@ namespace PhotoSauce.MagicScaler
 
 	internal sealed class PixelSourceFrame : IImageFrame
 	{
-		public double DpiX => 96d;
-		public double DpiY => 96d;
-		public Orientation ExifOrientation { get; } = Orientation.Normal;
-		public ReadOnlySpan<byte> IccProfile => default;
-
 		public IPixelSource PixelSource { get; }
 
 		public PixelSourceFrame(IPixelSource source) => PixelSource = source;

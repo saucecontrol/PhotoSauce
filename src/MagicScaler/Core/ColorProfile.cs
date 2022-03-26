@@ -71,7 +71,7 @@ namespace PhotoSauce.MagicScaler
 			public const uint para = 'p' << 24 | 'a' << 16 | 'r' << 8 | 'a';
 		}
 
-		private readonly record struct TagEntry(uint Tag, int Pos, int Len);
+		private readonly record struct TagEntry(uint Tag, Range Range);
 
 		internal enum ProfileColorSpace
 		{
@@ -285,9 +285,9 @@ namespace PhotoSauce.MagicScaler
 		{
 			matrix = default;
 
-			var hdr = bXYZ.Slice(0, 8);
+			var hdr = bXYZ[..8];
 			uint tag = ReadUInt32BigEndian(hdr);
-			if (tag != IccTypes.XYZ || !hdr.SequenceEqual(gXYZ.Slice(0, 8)) || !hdr.SequenceEqual(rXYZ.Slice(0, 8)))
+			if (tag is not IccTypes.XYZ || !hdr.SequenceEqual(gXYZ[..8]) || !hdr.SequenceEqual(rXYZ[..8]))
 				return false;
 
 			int bx = ReadInt32BigEndian(bXYZ.Slice(8));
@@ -339,12 +339,12 @@ namespace PhotoSauce.MagicScaler
 					{
 						case 0:
 							return false;
-						case 256:
+						case 0x100:
 							return true;
-						case 461:
+						case 0x1cd:
 							gd = 1.8;
 							break;
-						case 563:
+						case 0x233:
 							curve = AdobeRgb.Curve;
 							return true;
 						default:
@@ -390,9 +390,6 @@ namespace PhotoSauce.MagicScaler
 				var param = trc.Slice(12);
 				int g = ReadInt32BigEndian(param);
 
-				if (func == 0 && g == 0x10000)
-					return true;
-
 				if (
 					(g == 0) ||
 					(func == 1 && param.Length < 12) ||
@@ -422,7 +419,7 @@ namespace PhotoSauce.MagicScaler
 
 				// prevent divide by 0 and some uninvertible curves.
 				if (
-					(a == 0) ||
+					(a == 0 && func > 0) ||
 					((uint)c > 0x10000u && func >= 2) ||
 					((uint)d > 0x10000u && func >= 3) ||
 					((uint)e > 0x10000u && func == 4)
@@ -432,6 +429,14 @@ namespace PhotoSauce.MagicScaler
 				double da = a * div, db = b * div, dc = c * div, dd = d * div, de = e * div, df = f * div, dg = g * div;
 				switch (func)
 				{
+					case 0:
+						curve = g switch {
+							0x10000            => default,
+							0x1cd00 or 0x1cccd => curveFromPower(1.8),
+							0x23300 or 0x23333 => AdobeRgb.Curve,
+							_                  => curveFromPower(dg)
+						};
+						return true;
 					case 1:
 						dd = -db / da;
 						break;
@@ -445,7 +450,7 @@ namespace PhotoSauce.MagicScaler
 						break;
 				}
 
-				curve = func == 0 ? curveFromPower(dg) : curveFromParameters(da, db, dc, dd, de, df, dg);
+				curve = curveFromParameters(da, db, dc, dd, de, df, dg);
 			}
 
 			return true;
@@ -465,7 +470,7 @@ namespace PhotoSauce.MagicScaler
 
 			uint acsp = ReadUInt32BigEndian(prof.Slice(36));
 			var ver = prof.Slice(8, 4);
-			if ((ver[0] != 2 && ver[0] != 4) || acsp != IccStrings.acsp)
+			if (acsp is not IccStrings.acsp || ver[0] is not (2 or 4))
 				return invalidProfile;
 
 			var dataColorSpace = ReadUInt32BigEndian(prof.Slice(16)) switch {
@@ -481,7 +486,7 @@ namespace PhotoSauce.MagicScaler
 				_              => ProfileColorSpace.Other
 			};
 
-			if (pcsColorSpace != ProfileColorSpace.Xyz || (dataColorSpace != ProfileColorSpace.Rgb && dataColorSpace != ProfileColorSpace.Grey))
+			if (pcsColorSpace is not ProfileColorSpace.Xyz || (dataColorSpace is not (ProfileColorSpace.Rgb or ProfileColorSpace.Grey)))
 				return new ColorProfile(prof.ToArray(), dataColorSpace, pcsColorSpace, ColorProfileType.Unknown);
 
 			uint tagCount = ReadUInt32BigEndian(prof.Slice(headerLength));
@@ -498,19 +503,20 @@ namespace PhotoSauce.MagicScaler
 				uint pos = ReadUInt32BigEndian(prof.Slice(entryStart + 4));
 				uint cb = ReadUInt32BigEndian(prof.Slice(entryStart + 8));
 
-				if (len < (pos + cb))
+				uint end = pos + cb;
+				if (len < end)
 					return invalidProfile;
 
 				// not handling these yet, so we'll hand off to WCS
-				if (tag == IccTags.A2B0 || tag == IccTags.B2A0)
+				if (tag is IccTags.A2B0 or IccTags.B2A0)
 					return new ColorProfile(prof.ToArray(), dataColorSpace, pcsColorSpace, ColorProfileType.Table);
 
-				tagEntries[i] = new(tag, (int)pos, (int)cb);
+				tagEntries[i] = new(tag, (int)pos..(int)end);
 			}
 
 			if (dataColorSpace == ProfileColorSpace.Grey
 				&& tryGetTagEntry(tagEntries, IccTags.kTRC, out var kTRC)
-				&& tryGetCurve(prof.Slice(kTRC.Pos, kTRC.Len), out var curve)
+				&& tryGetCurve(prof[kTRC.Range], out var curve)
 			) return new CurveProfile(prof.ToArray(), curve, dataColorSpace, pcsColorSpace);
 
 			if (dataColorSpace == ProfileColorSpace.Rgb
@@ -522,13 +528,13 @@ namespace PhotoSauce.MagicScaler
 				&& tryGetTagEntry(tagEntries, IccTags.rXYZ, out var rXYZ)
 			)
 			{
-				var bTRCData = prof.Slice(bTRC.Pos, bTRC.Len);
-				var gTRCData = prof.Slice(gTRC.Pos, gTRC.Len);
-				var rTRCData = prof.Slice(rTRC.Pos, rTRC.Len);
+				var bTRCData = prof[bTRC.Range];
+				var gTRCData = prof[gTRC.Range];
+				var rTRCData = prof[rTRC.Range];
 
 				if (bTRCData.SequenceEqual(gTRCData) && bTRCData.SequenceEqual(rTRCData)
 					&& tryGetCurve(bTRCData, out var rgbcurve)
-					&& tryGetMatrix(prof.Slice(bXYZ.Pos, bXYZ.Len), prof.Slice(gXYZ.Pos, gXYZ.Len), prof.Slice(rXYZ.Pos, rXYZ.Len), out var matrix)
+					&& tryGetMatrix(prof[bXYZ.Range], prof[gXYZ.Range], prof[rXYZ.Range], out var matrix)
 				)
 				{
 					var imatrix = matrix.InvertPrecise();
@@ -602,10 +608,9 @@ namespace PhotoSauce.MagicScaler
 
 		public ColorProfileType ProfileType { get; protected set; }
 
-		public bool IsCompatibleWith(PixelFormat fmt) =>
-			(DataColorSpace == ProfileColorSpace.Cmyk && fmt.ColorRepresentation == PixelColorRepresentation.Cmyk) ||
-			(DataColorSpace == ProfileColorSpace.Grey && fmt.ColorRepresentation == PixelColorRepresentation.Grey) ||
-			(DataColorSpace == ProfileColorSpace.Rgb && (fmt.ColorRepresentation == PixelColorRepresentation.Rgb || fmt.ColorRepresentation == PixelColorRepresentation.Bgr));
+		public bool IsCompatibleWith(PixelFormat fmt) => (DataColorSpace, fmt.ColorRepresentation) is
+			(ProfileColorSpace.Rgb, PixelColorRepresentation.Bgr) or (ProfileColorSpace.Rgb, PixelColorRepresentation.Rgb) or
+			(ProfileColorSpace.Cmyk, PixelColorRepresentation.Cmyk) or (ProfileColorSpace.Grey, PixelColorRepresentation.Grey);
 
 		private ColorProfile() => ProfileBytes = Array.Empty<byte>();
 

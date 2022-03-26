@@ -141,14 +141,6 @@ namespace PhotoSauce.ManagedCodecs.ImageSharp
 
 		internal TargaFrame(ImageFrame frame) => decodedFrame = frame;
 
-		double IImageFrame.DpiX => 96;
-
-		double IImageFrame.DpiY => 96;
-
-		Orientation IImageFrame.ExifOrientation => Orientation.Normal;
-
-		ReadOnlySpan<byte> IImageFrame.IccProfile => default;
-
 		/// <inheritdoc />
 		public IPixelSource PixelSource => new ImagePixelSource(decodedFrame);
 

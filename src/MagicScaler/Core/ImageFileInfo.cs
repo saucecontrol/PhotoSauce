@@ -147,10 +147,9 @@ namespace PhotoSauce.MagicScaler
 				var src = frame.PixelSource;
 
 				uint width = (uint)src.Width, height = (uint)src.Height;
-				var guid = src.Format;
+				var pixfmt = PixelFormat.FromGuid(src.Format);
 
-				var pixfmt = PixelFormat.FromGuid(guid);
-				var orient = frame.ExifOrientation;
+				var orient = frame is IMetadataSource meta && meta.TryGetMetadata<OrientationMetadata>(out var o) ? o.Orientation : Orientation.Normal;
 				if (orient.SwapsDimensions())
 					(width, height) = (height, width);
 
