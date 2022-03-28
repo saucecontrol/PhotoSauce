@@ -154,7 +154,7 @@ namespace PhotoSauce.MagicScaler
 			}
 
 			if (buffrem.Length > dest.Length)
-				buffrem = buffrem.Slice(0, dest.Length);
+				buffrem = buffrem[..dest.Length];
 
 			buffrem.CopyTo(dest);
 
@@ -218,9 +218,9 @@ namespace PhotoSauce.MagicScaler
 					}
 					else
 					{
-						source.Slice(0, bufflen - writepos).CopyTo(buffrem);
+						source[..(bufflen - writepos)].CopyTo(buffrem);
 						writepos += buffrem.Length;
-						source = source.Slice(buffrem.Length);
+						source = source[buffrem.Length..];
 						if (array.Array is not null)
 							array = array.Slice(buffrem.Length);
 					}

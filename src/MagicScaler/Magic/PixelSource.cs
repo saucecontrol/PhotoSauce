@@ -70,13 +70,13 @@ namespace PhotoSauce.MagicScaler
 				CopyPixels(prc, cbStride, cbBuffer, pbBuffer);
 		}
 
-		protected virtual void Dispose(bool disposing) { }
-
-		public void Dispose()
+		protected virtual void Dispose(bool disposing)
 		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
+			if (disposing)
+				GC.SuppressFinalize(this);
 		}
+
+		public void Dispose() => Dispose(true);
 	}
 
 	internal sealed class PixelSourceFrame : IImageFrame

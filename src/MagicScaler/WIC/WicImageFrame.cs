@@ -164,7 +164,11 @@ namespace PhotoSauce.MagicScaler
 				return true;
 			}
 
-			return Container.TryGetMetadata(out metadata);
+			if (Container is IMetadataSource cont)
+				return cont.TryGetMetadata(out metadata);
+
+			metadata = default;
+			return false;
 		}
 
 		public void Dispose()

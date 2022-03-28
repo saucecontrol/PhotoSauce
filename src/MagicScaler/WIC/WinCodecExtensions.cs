@@ -156,7 +156,7 @@ namespace PhotoSauce.Interop.Wic
 				{
 					var str = new string(pv.Anonymous.pszVal);
 					len = Math.Min(span.Length, str.Length);
-					MemoryMarshal.Cast<char, T>(str.AsSpan()).Slice(0, len).CopyTo(span);
+					MemoryMarshal.Cast<char, T>(str.AsSpan())[..len].CopyTo(span);
 				}
 			}
 			else
@@ -166,7 +166,7 @@ namespace PhotoSauce.Interop.Wic
 
 			HRESULT.Check(PropVariantClear(&pv));
 
-			return span.Slice(0, len);
+			return span[..len];
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

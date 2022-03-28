@@ -1,6 +1,6 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
-#pragma warning disable IDE0060, CS3016
+#pragma warning disable IDE0060
 
 using System;
 using System.Threading;
@@ -16,7 +16,7 @@ using PhotoSauce.MagicScaler;
 
 namespace PhotoSauce.Interop.Wic
 {
-	internal unsafe struct IWICBitmapSourceImpl
+	internal unsafe ref struct IWICBitmapSourceImpl
 	{
 		private readonly void** lpVtbl;
 		private readonly GCHandle source;

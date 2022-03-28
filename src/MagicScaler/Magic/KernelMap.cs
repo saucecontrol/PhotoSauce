@@ -154,11 +154,11 @@ namespace PhotoSauce.MagicScaler
 
 			int cacheLen = isize == osize ? klen : 0;
 			int buffLen = klen * channels + cacheLen;
-			using var kbuff = buffLen <= maxStackAlloc ? BufferPool.WrapLocal((stackalloc float[maxStackAlloc]).Slice(0, buffLen)) : BufferPool.RentLocal<float>(buffLen);
+			using var kbuff = buffLen <= maxStackAlloc ? BufferPool.WrapLocal((stackalloc float[maxStackAlloc])[..buffLen]) : BufferPool.RentLocal<float>(buffLen);
 
 			var kcache = kbuff.Span.Slice(buffLen - cacheLen, cacheLen);
 			var kernel = kbuff.Span.Slice(buffLen - klen - cacheLen, klen);
-			var mbuff = MemoryMarshal.Cast<float, T>(kbuff.Span.Slice(0, Math.Min(klen, isize) * channels));
+			var mbuff = MemoryMarshal.Cast<float, T>(kbuff.Span[..(Math.Min(klen, isize) * channels)]);
 			var mbytes = MemoryMarshal.AsBytes(mbuff);
 
 			if (cacheLen > 0)
@@ -180,18 +180,18 @@ namespace PhotoSauce.MagicScaler
 					if (cacheLen > 0)
 						kcache.CopyTo(kernel);
 					else
-						fillWeights(kernel.Slice(0, ksize), interpolator.WeightingFunction, start, spoint, cscale);
+						fillWeights(kernel[..ksize], interpolator.WeightingFunction, start, spoint, cscale);
 
 					spoint += sinc;
 
 					if (kpad > 0)
-						kernel.Slice(ksize).Clear();
+						kernel[ksize..].Clear();
 
 					var kclamp = kernel;
 					if (start < 0 || start + kernel.Length > isize)
 					{
 						start = clamp(start, isize, kernel);
-						kclamp = kernel.Slice(0, Math.Min(kernel.Length, isize));
+						kclamp = kernel[..Math.Min(kernel.Length, isize)];
 					}
 
 					*mpi++ = start;

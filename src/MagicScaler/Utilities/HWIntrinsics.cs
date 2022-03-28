@@ -50,7 +50,7 @@ namespace PhotoSauce.MagicScaler
 			return intel && fam == 6 && mod >= 0x4e;
 		}
 #else
-		private static bool getFastGather() => false;
+		private static bool getFastGather() => true;
 #endif
 
 		private const byte _ = 0x80;

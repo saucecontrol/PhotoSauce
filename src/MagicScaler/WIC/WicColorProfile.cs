@@ -23,7 +23,7 @@ namespace PhotoSauce.MagicScaler
 		public static WicColorProfile GetDefaultFor(PixelFormat fmt) => fmt.ColorRepresentation switch {
 			PixelColorRepresentation.Cmyk => Cmyk.Value,
 			PixelColorRepresentation.Grey => Grey.Value,
-			_ => Srgb.Value
+			_                             => Srgb.Value
 		};
 
 		public static WicColorProfile GetSourceProfile(WicColorProfile wicprof, ColorProfileMode mode)
@@ -99,12 +99,6 @@ namespace PhotoSauce.MagicScaler
 			ParsedProfile = prof ?? GetProfileFromContext(cc, 0);
 		}
 
-		public void Dispose()
-		{
-			dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
 		private void dispose(bool disposing)
 		{
 			if (!ownContext || WicColorContext is null)
@@ -112,7 +106,12 @@ namespace PhotoSauce.MagicScaler
 
 			WicColorContext->Release();
 			WicColorContext = null;
+
+			if (disposing)
+				GC.SuppressFinalize(this);
 		}
+
+		public void Dispose() => dispose(true);
 
 		~WicColorProfile() => dispose(false);
 	}

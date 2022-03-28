@@ -11,12 +11,6 @@ namespace PhotoSauce.MagicScaler
 		public IWICColorContext* SourceColorContext { get; set; }
 		public IWICColorContext* DestColorContext { get; set; }
 
-		public void Dispose()
-		{
-			dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
 		private void dispose(bool disposing)
 		{
 			if (SourceColorContext is not null)
@@ -30,7 +24,12 @@ namespace PhotoSauce.MagicScaler
 				DestColorContext->Release();
 				DestColorContext = null;
 			}
+
+			if (disposing)
+				GC.SuppressFinalize(this);
 		}
+
+		public void Dispose() => dispose(true);
 
 		~WicPipelineContext() => dispose(false);
 	}

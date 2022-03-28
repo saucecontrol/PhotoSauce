@@ -10,7 +10,7 @@ using PhotoSauce.Interop.Wic;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal unsafe class WicImageContainer : IImageContainer, IMetadataSource, IDisposable
+	internal unsafe class WicImageContainer : IImageContainer
 	{
 		public IWICBitmapDecoder* WicDecoder { get; private set; }
 
@@ -48,18 +48,6 @@ namespace PhotoSauce.MagicScaler
 			return new WicImageContainer(dec, mime, options);
 		}
 
-		public virtual bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata
-		{
-			metadata = default;
-			return false;
-		}
-
-		public virtual void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
 		protected virtual void Dispose(bool disposing)
 		{
 			if (WicDecoder is null)
@@ -67,12 +55,17 @@ namespace PhotoSauce.MagicScaler
 
 			WicDecoder->Release();
 			WicDecoder = null;
+
+			if (disposing)
+				GC.SuppressFinalize(this);
 		}
+
+		public void Dispose() => Dispose(true);
 
 		~WicImageContainer() => Dispose(false);
 	}
 
-	internal sealed unsafe class WicGifContainer : WicImageContainer
+	internal sealed unsafe class WicGifContainer : WicImageContainer, IMetadataSource
 	{
 		public static ReadOnlySpan<byte> Animexts1_0 => new[] {
 			(byte)'A', (byte)'N', (byte)'I', (byte)'M', (byte)'E', (byte)'X', (byte)'T', (byte)'S', (byte)'1', (byte)'.', (byte)'0'
@@ -122,7 +115,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				var appdata = meta.Get()->GetValueOrDefault(Wic.Metadata.Gif.AppExtensionData, sbuff);
 				if (appdata.Length >= 4 && appdata[0] >= 3 && appdata[1] == 1)
-					loopCount = BinaryPrimitives.ReadUInt16LittleEndian(appdata.Slice(2));
+					loopCount = BinaryPrimitives.ReadUInt16LittleEndian(appdata[2..]);
 			}
 
 			AnimationMetadata = new(screenWidth, screenHeight, loopCount, bgColor, true);
@@ -135,7 +128,7 @@ namespace PhotoSauce.MagicScaler
 			return new WicGifFrame(this, (uint)(FrameOffset + index));
 		}
 
-		public override bool TryGetMetadata<T>(out T metadata)
+		public bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata
 		{
 			if (typeof(T) == typeof(AnimationContainer))
 			{
@@ -143,7 +136,8 @@ namespace PhotoSauce.MagicScaler
 				return true;
 			}
 
-			return base.TryGetMetadata(out metadata!);
+			metadata = default;
+			return false;
 		}
 
 		public void ReplayAnimation(PipelineContext ctx, int offset)

@@ -89,7 +89,7 @@ namespace PhotoSauce.ManagedCodecs.ImageSharp
 	}
 
 	/// <summary>Represents a TARGA image file.</summary>
-	public sealed class TargaContainer : IImageContainer, IDisposable
+	public sealed class TargaContainer : IImageContainer
 	{
 		private readonly Image decodedImage;
 

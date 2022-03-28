@@ -1,6 +1,6 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
-#pragma warning disable IDE0060, CS3016
+#pragma warning disable IDE0060
 
 using System;
 using System.IO;
@@ -20,7 +20,7 @@ using STATSTG = TerraFX.Interop.Windows.STATSTG;
 
 namespace PhotoSauce.Interop.Wic
 {
-	internal unsafe struct IStreamImpl
+	internal unsafe ref struct IStreamImpl
 	{
 		private readonly void** lpVtbl;
 		private readonly GCHandle source;
@@ -121,7 +121,7 @@ namespace PhotoSauce.Interop.Wic
 				do
 				{
 					rb = stm.Read(buff);
-					buff = buff.Slice(rb);
+					buff = buff[rb..];
 				}
 				while (rb != 0 && buff.Length != 0);
 

@@ -134,12 +134,6 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		public void Dispose()
-		{
-			dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
 		public override string ToString() => nameof(WicPlanarCache);
 
 		private void dispose(bool disposing)
@@ -147,16 +141,19 @@ namespace PhotoSauce.MagicScaler
 			if (sourceTransform is null)
 				return;
 
+			sourceTransform->Release();
+			sourceTransform = null;
+
 			if (disposing)
 			{
 				buffY.Dispose();
 				buffCb.Dispose();
 				buffCr.Dispose();
+				GC.SuppressFinalize(this);
 			}
-
-			sourceTransform->Release();
-			sourceTransform = null;
 		}
+
+		public void Dispose() => dispose(true);
 
 		~WicPlanarCache() => dispose(false);
 

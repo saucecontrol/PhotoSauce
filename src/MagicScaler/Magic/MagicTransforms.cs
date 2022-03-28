@@ -341,14 +341,22 @@ namespace PhotoSauce.MagicScaler.Transforms
 			{
 				WicTransforms.AddColorProfileReader(ctx);
 			}
-			else if (ctx.ImageFrame is IMetadataSource meta && meta.TryGetMetadata<IIccProfileSource>(out var icc))
+			else
 			{
-				using var buff = BufferPool.RentLocal<byte>(icc.ProfileLength);
-				icc.CopyProfile(buff.Span);
-
-				var profile = ColorProfile.Cache.GetOrAdd(buff.Span);
 				var fmt = ctx.ImageFrame is IYccImageFrame ? PixelFormat.Bgr24 : ctx.Source.Format;
-				ctx.SourceColorProfile = profile.IsValid && profile.IsCompatibleWith(fmt) ? ColorProfile.GetSourceProfile(profile, mode) : ColorProfile.GetDefaultFor(fmt);
+				var profile = ColorProfile.GetDefaultFor(fmt);
+
+				if (ctx.ImageFrame is IMetadataSource meta && meta.TryGetMetadata<IIccProfileSource>(out var icc))
+				{
+					using var buff = BufferPool.RentLocal<byte>(icc.ProfileLength);
+					icc.CopyProfile(buff.Span);
+
+					var prof = ColorProfile.Cache.GetOrAdd(buff.Span);
+					if (prof.IsValid && prof.IsCompatibleWith(fmt))
+						profile = ColorProfile.GetSourceProfile(prof, mode);
+				}
+
+				ctx.SourceColorProfile = profile;
 				ctx.DestColorProfile = ColorProfile.GetDestProfile(ctx.SourceColorProfile, mode);
 			}
 		}

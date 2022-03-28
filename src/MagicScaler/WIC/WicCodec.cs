@@ -322,12 +322,6 @@ namespace PhotoSauce.MagicScaler
 
 		public void Commit() => HRESULT.Check(WicEncoder->Commit());
 
-		public void Dispose()
-		{
-			dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
 		private void dispose(bool disposing)
 		{
 			if (WicEncoder is null)
@@ -335,7 +329,12 @@ namespace PhotoSauce.MagicScaler
 
 			WicEncoder->Release();
 			WicEncoder = null;
+
+			if (disposing)
+				GC.SuppressFinalize(this);
 		}
+
+		public void Dispose() => dispose(true);
 
 		~WicImageEncoder() => dispose(false);
 	}
@@ -568,7 +567,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				using var quant = new OctreeQuantizer(ppq);
 				var buffC = EncodeFrame.Source;
-				var buffCSpan = buffC.Span.Slice(src.Area.Y * buffC.Stride + src.Area.X * buffC.Format.BytesPerPixel);
+				var buffCSpan = buffC.Span[(src.Area.Y * buffC.Stride + src.Area.X * buffC.Format.BytesPerPixel)..];
 
 				bool isExact = quant.CreatePalette(gifopt.MaxPaletteSize, buffCSpan, src.Area.Width, src.Area.Height, buffC.Stride);
 				IndexedSource.SetPalette(quant.Palette, isExact || gifopt.Dither == DitherMode.None);

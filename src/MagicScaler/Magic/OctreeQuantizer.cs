@@ -25,7 +25,7 @@ namespace PhotoSauce.MagicScaler
 
 		private RentedBuffer<uint> palBuffer;
 
-		public ReadOnlySpan<uint> Palette => palBuffer.Span.Slice(0, paletteLength);
+		public ReadOnlySpan<uint> Palette => palBuffer.Span[..paletteLength];
 
 		public IProfiler Profiler { get; }
 
@@ -370,7 +370,7 @@ namespace PhotoSauce.MagicScaler
 					addReducibleNodes(ptree, pweights, gt, ptree + i, ref reducibleCount, 1, leafLevel - 1);
 			}
 
-			var weights = weightBuffer.Span.Slice(0, (int)reducibleCount);
+			var weights = weightBuffer.Span[..(int)reducibleCount];
 			int reduceCount = histogramColors - targetColors;
 
 #if NET5_0_OR_GREATER
@@ -379,7 +379,7 @@ namespace PhotoSauce.MagicScaler
 			Array.Sort(weightBuffer.Array, 0, weights.Length);
 #endif
 
-			selectPalette(nodeBuffer, weights.Slice(reduceCount));
+			selectPalette(nodeBuffer, weights[reduceCount..]);
 			return false;
 		}
 

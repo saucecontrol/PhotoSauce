@@ -26,7 +26,7 @@ public readonly record struct JxlLosslessEncoderOptions(JxlEncodeSpeed EncodeSpe
 public readonly record struct JxlLossyEncoderOptions(float Distance, JxlEncodeSpeed EncodeSpeed, JxlDecodeSpeed DecodeSpeed) : IJxlEncoderOptions, ILossyEncoderOptions
 {
 	/// <summary>Calculates Butteraugli distance from a JPEG-normalized (0-100) quality value.</summary>
-	/// <remarks>Heuristic is taken from the <a href="https://github.com/libjxl/libjxl/blob/1c67f4eff0464e6241f36548b8119f6a64e7f0cc/tools/cjxl.cc#L600">cjxl encoder</a>.</remarks>
+	/// <remarks>Heuristic is taken from the <a href="https://github.com/libjxl/libjxl/blob/v0.6.1/tools/cjxl.cc#L594">cjxl encoder</a>.</remarks>
 	/// <param name="quality">The target quality value.</param>
 	/// <returns>The calculated Butteraugli distance.</returns>
 	public static float DistanceFromQuality(int quality)

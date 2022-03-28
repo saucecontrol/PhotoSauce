@@ -290,17 +290,17 @@ namespace PhotoSauce.MagicScaler
 			if (tag is not IccTypes.XYZ || !hdr.SequenceEqual(gXYZ[..8]) || !hdr.SequenceEqual(rXYZ[..8]))
 				return false;
 
-			int bx = ReadInt32BigEndian(bXYZ.Slice(8));
-			int gx = ReadInt32BigEndian(gXYZ.Slice(8));
-			int rx = ReadInt32BigEndian(rXYZ.Slice(8));
+			int bx = ReadInt32BigEndian(bXYZ[8..]);
+			int gx = ReadInt32BigEndian(gXYZ[8..]);
+			int rx = ReadInt32BigEndian(rXYZ[8..]);
 
-			int by = ReadInt32BigEndian(bXYZ.Slice(12));
-			int gy = ReadInt32BigEndian(gXYZ.Slice(12));
-			int ry = ReadInt32BigEndian(rXYZ.Slice(12));
+			int by = ReadInt32BigEndian(bXYZ[12..]);
+			int gy = ReadInt32BigEndian(gXYZ[12..]);
+			int ry = ReadInt32BigEndian(rXYZ[12..]);
 
-			int bz = ReadInt32BigEndian(bXYZ.Slice(16));
-			int gz = ReadInt32BigEndian(gXYZ.Slice(16));
-			int rz = ReadInt32BigEndian(rXYZ.Slice(16));
+			int bz = ReadInt32BigEndian(bXYZ[16..]);
+			int gz = ReadInt32BigEndian(gXYZ[16..]);
+			int rz = ReadInt32BigEndian(rXYZ[16..]);
 
 			float div = 1 / 65536f;
 			matrix = new Matrix4x4(
@@ -322,9 +322,9 @@ namespace PhotoSauce.MagicScaler
 			if (trc.Length < 12 || (tag != IccTypes.curv && tag != IccTypes.para))
 				return false;
 
-			if (tag == IccTypes.curv)
+			if (tag is IccTypes.curv)
 			{
-				uint pcnt = ReadUInt32BigEndian(trc.Slice(8));
+				uint pcnt = ReadUInt32BigEndian(trc[8..]);
 				if (trc.Length < (12 + pcnt * sizeof(ushort)))
 					return false;
 
@@ -333,7 +333,7 @@ namespace PhotoSauce.MagicScaler
 
 				if (pcnt == 1)
 				{
-					ushort gi = ReadUInt16BigEndian(trc.Slice(12));
+					ushort gi = ReadUInt16BigEndian(trc[12..]);
 					double gd;
 					switch (gi)
 					{
@@ -356,7 +356,7 @@ namespace PhotoSauce.MagicScaler
 				}
 				else
 				{
-					if (pcnt == 2 && ReadUInt16BigEndian(trc.Slice(12)) == ushort.MinValue && ReadUInt16BigEndian(trc.Slice(14)) == ushort.MaxValue)
+					if (pcnt == 2 && ReadUInt16BigEndian(trc[12..]) == ushort.MinValue && ReadUInt16BigEndian(trc[14..]) == ushort.MaxValue)
 						return true;
 
 					using var buff = BufferPool.RentLocal<ushort>((int)pcnt);
@@ -366,7 +366,7 @@ namespace PhotoSauce.MagicScaler
 					bool inc = true, dec = true;
 					for (int i = 0; i < points.Length; i++)
 					{
-						ushort p = ReadUInt16BigEndian(trc.Slice(12 + i * sizeof(ushort)));
+						ushort p = ReadUInt16BigEndian(trc[(12 + i * sizeof(ushort))..]);
 
 						if (i > 0 && p < pp)
 							inc = false;
@@ -381,44 +381,48 @@ namespace PhotoSauce.MagicScaler
 					curve = curveFromPoints(points, dec);
 				}
 			}
-			else // (tag == IccTypes.para)
+			else // (tag is IccTypes.para)
 			{
-				ushort func = ReadUInt16BigEndian(trc.Slice(8));
-				if (trc.Length < 16 || func > 4)
+				ushort func = ReadUInt16BigEndian(trc[8..]);
+				int minLen = func switch {
+					0 => sizeof(int) * 1,
+					1 => sizeof(int) * 3,
+					2 => sizeof(int) * 4,
+					3 => sizeof(int) * 5,
+					4 => sizeof(int) * 7,
+					_ => int.MaxValue
+				};
+
+				var param = trc[12..];
+				if (param.Length < minLen)
 					return false;
 
-				var param = trc.Slice(12);
-				int g = ReadInt32BigEndian(param);
 
-				if (
-					(g == 0) ||
-					(func == 1 && param.Length < 12) ||
-					(func == 2 && param.Length < 16) ||
-					(func == 3 && param.Length < 20) ||
-					(func == 4 && param.Length < 28)
-				) return false;
-
-				int a = 0, b = 0, c = 0, d = 0, e = 0, f = 0;
+				int a = 0, b = 0, c = 0, d = 0, e = 0, f = 0, g = 0;
 				switch (func)
 				{
-					case 1:
-						a = ReadInt32BigEndian(param.Slice(4));
-						b = ReadInt32BigEndian(param.Slice(8));
+					case 0:
+						g = ReadInt32BigEndian(param);
 						break;
+					case 1:
+						a = ReadInt32BigEndian(param[4..]);
+						b = ReadInt32BigEndian(param[8..]);
+						goto case 0;
 					case 2:
-						c = ReadInt32BigEndian(param.Slice(12));
+						c = ReadInt32BigEndian(param[12..]);
 						goto case 1;
 					case 3:
-						d = ReadInt32BigEndian(param.Slice(16));
+						d = ReadInt32BigEndian(param[16..]);
 						goto case 2;
 					case 4:
-						e = ReadInt32BigEndian(param.Slice(20));
-						f = ReadInt32BigEndian(param.Slice(24));
+						e = ReadInt32BigEndian(param[20..]);
+						f = ReadInt32BigEndian(param[24..]);
 						goto case 3;
 				}
 
 				// prevent divide by 0 and some uninvertible curves.
 				if (
+					(g == 0) ||
 					(a == 0 && func > 0) ||
 					((uint)c > 0x10000u && func >= 2) ||
 					((uint)d > 0x10000u && func >= 3) ||
@@ -464,23 +468,23 @@ namespace PhotoSauce.MagicScaler
 			if (prof.Length < headerPlusTagCountLength)
 				return invalidProfile;
 
-			uint len = ReadUInt32BigEndian(prof.Slice(0, sizeof(uint)));
+			uint len = ReadUInt32BigEndian(prof);
 			if (len != prof.Length)
 				return invalidProfile;
 
-			uint acsp = ReadUInt32BigEndian(prof.Slice(36));
+			uint acsp = ReadUInt32BigEndian(prof[36..]);
 			var ver = prof.Slice(8, 4);
 			if (acsp is not IccStrings.acsp || ver[0] is not (2 or 4))
 				return invalidProfile;
 
-			var dataColorSpace = ReadUInt32BigEndian(prof.Slice(16)) switch {
+			var dataColorSpace = ReadUInt32BigEndian(prof[16..]) switch {
 				IccStrings.RGB  => ProfileColorSpace.Rgb,
 				IccStrings.GRAY => ProfileColorSpace.Grey,
 				IccStrings.CMYK => ProfileColorSpace.Cmyk,
 				_               => ProfileColorSpace.Other
 			};
 
-			var pcsColorSpace = ReadUInt32BigEndian(prof.Slice(20)) switch {
+			var pcsColorSpace = ReadUInt32BigEndian(prof[20..]) switch {
 				IccStrings.XYZ => ProfileColorSpace.Xyz,
 				IccStrings.Lab => ProfileColorSpace.Lab,
 				_              => ProfileColorSpace.Other
@@ -489,7 +493,7 @@ namespace PhotoSauce.MagicScaler
 			if (pcsColorSpace is not ProfileColorSpace.Xyz || (dataColorSpace is not (ProfileColorSpace.Rgb or ProfileColorSpace.Grey)))
 				return new ColorProfile(prof.ToArray(), dataColorSpace, pcsColorSpace, ColorProfileType.Unknown);
 
-			uint tagCount = ReadUInt32BigEndian(prof.Slice(headerLength));
+			uint tagCount = ReadUInt32BigEndian(prof[headerLength..]);
 			if (len < (headerPlusTagCountLength + tagCount * Unsafe.SizeOf<TagEntry>()))
 				return invalidProfile;
 
@@ -498,10 +502,11 @@ namespace PhotoSauce.MagicScaler
 			for (int i = 0; i < tagEntries.Length; i++)
 			{
 				int entryStart = headerPlusTagCountLength + i * Unsafe.SizeOf<TagEntry>();
+				var entry = prof[entryStart..];
 
-				uint tag = ReadUInt32BigEndian(prof.Slice(entryStart));
-				uint pos = ReadUInt32BigEndian(prof.Slice(entryStart + 4));
-				uint cb = ReadUInt32BigEndian(prof.Slice(entryStart + 8));
+				uint tag = ReadUInt32BigEndian(entry);
+				uint pos = ReadUInt32BigEndian(entry[4..]);
+				uint cb = ReadUInt32BigEndian(entry[8..]);
 
 				uint end = pos + cb;
 				if (len < end)

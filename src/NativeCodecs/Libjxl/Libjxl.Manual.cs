@@ -2,10 +2,9 @@
 
 using System.Security;
 
-namespace PhotoSauce.Interop.Libjxl
+namespace PhotoSauce.Interop.Libjxl;
+
+[SuppressUnmanagedCodeSecurity]
+internal static partial class Libjxl
 {
-	[SuppressUnmanagedCodeSecurity]
-	internal static partial class Libjxl
-	{
-	}
 }
