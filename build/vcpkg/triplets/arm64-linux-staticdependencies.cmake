@@ -1,7 +1,9 @@
 set(VCPKG_TARGET_ARCHITECTURE arm64)
 set(VCPKG_CRT_LINKAGE dynamic)
 set(VCPKG_LIBRARY_LINKAGE static)
-if(PORT STREQUAL "libjxl")
+set(VCPKG_BUILD_TYPE release)
+
+if(PORT STREQUAL "libjxl" OR PORT STREQUAL "libheif")
   set(VCPKG_LIBRARY_LINKAGE dynamic)
 endif()
 

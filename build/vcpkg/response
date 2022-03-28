@@ -1,3 +1,5 @@
+--overlay-ports
+build/vcpkg/ports
 --overlay-triplets
 build/vcpkg/triplets
 --downloads-root

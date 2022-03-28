@@ -1,0 +1,18 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 58ade87..e2c4d11 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -160,9 +160,12 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libheif.pc
+         DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+ 
+ option(WITH_EXAMPLES "Build examples" ON)
++option(WITH_GDK_PIXBUF "Integrate gdk-pixbuf" OFF)
+ 
+ if(WITH_EXAMPLES)
+     add_subdirectory (examples)
+ endif()
+ add_subdirectory (libheif)
+-add_subdirectory (gdk-pixbuf)
++if(WITH_GDK_PIXBUFF)
++    add_subdirectory (gdk-pixbuf)
++endif()

@@ -18,17 +18,29 @@ jobs:
 
   strategy:
     matrix:
-      linux:
+      linux-arm64:
         imageName: ubuntu-latest
         setupScript: |
           sudo apt-get update
           sudo apt-get install -y g++-aarch64-linux-gnu
           modules/vcpkg/bootstrap-vcpkg.sh
-        buildScript: modules/vcpkg/vcpkg install libjxl:x64-linux-staticdependencies libjxl:arm64-linux-staticdependencies @build/vcpkg/response
-      windows:
+        buildScript: modules/vcpkg/vcpkg install libheif libjxl --triplet=arm64-linux-staticdependencies @build/vcpkg/response
+      linux-x64:
+        imageName: ubuntu-latest
+        setupScript: modules/vcpkg/bootstrap-vcpkg.sh
+        buildScript: modules/vcpkg/vcpkg install libheif libjxl --triplet=x64-linux-staticdependencies @build/vcpkg/response
+      windows-arm64:
         imageName: windows-latest
         setupScript: modules\vcpkg\bootstrap-vcpkg.bat
-        buildScript: modules\vcpkg\vcpkg install libjxl:x86-windows-staticdependencies libjxl:x64-windows-staticdependencies libjxl:arm64-windows-staticdependencies @build\vcpkg\response
+        buildScript: modules\vcpkg\vcpkg install libheif libjxl --triplet=arm64-windows-staticdependencies @build\vcpkg\response
+      windows-x64:
+        imageName: windows-latest
+        setupScript: modules\vcpkg\bootstrap-vcpkg.bat
+        buildScript: modules\vcpkg\vcpkg install libheif libjxl --triplet=x64-windows-staticdependencies @build\vcpkg\response
+      windows-x86:
+        imageName: windows-latest
+        setupScript: modules\vcpkg\bootstrap-vcpkg.bat
+        buildScript: modules\vcpkg\vcpkg install libheif libjxl --triplet=x86-windows-staticdependencies @build\vcpkg\response
 
   pool:
     vmImage: $(imageName)
@@ -44,6 +56,11 @@ jobs:
 
   - script: $(buildScript)
     displayName: Build Native
+
+  - publish: out/vcpkg/buildtrees
+    displayName: Publish Build Logs
+    artifact: logs.$(System.JobIdentifier)
+    condition: failed()
 
   - publish: out/vcpkg/install
     displayName: Publish Native Binaries
@@ -63,27 +80,45 @@ jobs:
     displayName: Download Native Binaries
 
   - task: CopyFiles@2
-    displayName: Copy Linux Binaries
+    displayName: Copy Linux AArch64 Binaries
     inputs:
-      sourceFolder: $(Pipeline.Workspace)/native.linux
+      sourceFolder: $(Pipeline.Workspace)/native.linux-arm64
       targetFolder: out/vcpkg/install
 
   - task: CopyFiles@2
-    displayName: Copy Windows Binaries
+    displayName: Copy Linux x64 Binaries
     inputs:
-      sourceFolder: $(Pipeline.Workspace)/native.windows
+      sourceFolder: $(Pipeline.Workspace)/native.linux-x64
+      targetFolder: out/vcpkg/install
+
+  - task: CopyFiles@2
+    displayName: Copy Windows AArch64 Binaries
+    inputs:
+      sourceFolder: $(Pipeline.Workspace)/native.windows-arm64
+      targetFolder: out/vcpkg/install
+
+  - task: CopyFiles@2
+    displayName: Copy Windows x64 Binaries
+    inputs:
+      sourceFolder: $(Pipeline.Workspace)/native.windows-x64
+      targetFolder: out/vcpkg/install
+
+  - task: CopyFiles@2
+    displayName: Copy Windows x86 Binaries
+    inputs:
+      sourceFolder: $(Pipeline.Workspace)/native.windows-x86
       targetFolder: out/vcpkg/install
 
   - task: UseDotNet@2
     displayName: Ensure 6.0 SDK
     inputs:
       version: 6.0.x
-      performMultiLevelLookup: true
 
   - script: |
       dotnet build -c Dist --version-suffix ci$(Build.BuildNumber) src/MagicScaler
       dotnet build -c Dist --version-suffix ci$(Build.BuildNumber) --no-dependencies src/WebRSize
       dotnet build -c Dist --version-suffix ci$(Build.BuildNumber) --no-dependencies src/NativeCodecs/Libjxl
+      dotnet build -c Dist --version-suffix ci$(Build.BuildNumber) --no-dependencies src/NativeCodecs/Libheif
     displayName: Build Managed
 
   - publish: out/bin
@@ -93,9 +128,6 @@ jobs:
   - task: NuGetAuthenticate@0
     condition: ne(variables['Build.Reason'], 'PullRequest')
 
-  - script: |
-      dotnet nuget push --source $(azureNuget) --api-key AzureArtifacts out/bin/MagicScaler/Dist/PhotoSauce.MagicScaler.*.nupkg
-      dotnet nuget push --source $(azureNuget) --api-key AzureArtifacts out/bin/WebRSize/Dist/PhotoSauce.WebRSize.*.nupkg
-      dotnet nuget push --source $(azureNuget) --api-key AzureArtifacts out/bin/NativeCodecs.Libjxl/Dist/PhotoSauce.NativeCodecs.*.nupkg
+  - script: dotnet nuget push --source $(azureNuget) --api-key AzureArtifacts out/bin/**/*.nupkg
     displayName: Push Packages
     condition: ne(variables['Build.Reason'], 'PullRequest')

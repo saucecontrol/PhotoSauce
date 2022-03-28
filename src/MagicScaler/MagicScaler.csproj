@@ -69,7 +69,9 @@
 
 	<ItemGroup>
 		<InternalsVisibleTo Include="$(Company).WebRSize" />
+		<InternalsVisibleTo Include="$(Company).NativeCodecs.Libheif" />
 		<InternalsVisibleTo Include="$(Company).NativeCodecs.Libjxl" />
+		<InternalsVisibleTo Include="$(Company).NativeCodecs.Libwebp" />
 	</ItemGroup>
 
 </Project>

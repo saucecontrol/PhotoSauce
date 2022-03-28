@@ -47,3 +47,12 @@ Licensed under a 3-clause BSD License.
 
 Available at
 https://github.com/libjxl/libjxl/blob/main/LICENSE
+
+License notice for libheif
+--------------------------
+
+Copyright (c) 2017 struktur AG, Dirk Farin <farin@struktur.de>
+Licensed under the GNU Lesser General Public License version 3.
+
+Available at
+https://github.com/strukturag/libheif/blob/master/COPYING
