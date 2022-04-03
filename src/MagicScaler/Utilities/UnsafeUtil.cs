@@ -46,6 +46,24 @@ namespace PhotoSauce.MagicScaler
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* GetAddressOf(this ReadOnlySpan<byte> val) => (byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(val));
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool IsIntegerPrimitive<T>() where T : unmanaged =>
+			typeof(T) == typeof(sbyte)  ||
+			typeof(T) == typeof(byte)   ||
+			typeof(T) == typeof(short)  ||
+			typeof(T) == typeof(ushort) ||
+			typeof(T) == typeof(int)    ||
+			typeof(T) == typeof(uint)   ||
+			typeof(T) == typeof(long)   ||
+			typeof(T) == typeof(uint)   ||
+			typeof(T) == typeof(nint)   ||
+			typeof(T) == typeof(nuint);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool IsFloatingPrimitive<T>() where T : unmanaged =>
+			typeof(T) == typeof(float)  ||
+			typeof(T) == typeof(double);
+
 #if !NET5_0_OR_GREATER
 		public static T CreateMethodDelegate<T>(this Type t, string method) where T : Delegate =>
 			(T)t.GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance)!.CreateDelegate(typeof(T), null);

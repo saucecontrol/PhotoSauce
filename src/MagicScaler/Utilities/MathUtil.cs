@@ -274,6 +274,8 @@ namespace PhotoSauce.MagicScaler
 
 		public static Rational ToRational(this double d) => d.toFraction<uint>();
 
+		public static SRational ToSRational(this double d) => d.toFraction<int>();
+
 		public static bool IsRoughlyEqualTo(this double x, double y) => Abs(x - y) < 1e-4;
 
 		public static unsafe bool IsRouglyEqualTo(this in Matrix4x4 m1, in Matrix4x4 m2)

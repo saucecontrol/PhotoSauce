@@ -3,6 +3,7 @@
 using System;
 using System.IO;
 using System.Diagnostics;
+using System.Buffers.Binary;
 #if NET5_0_OR_GREATER
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
@@ -88,16 +89,19 @@ internal sealed unsafe class HeifContainer : IImageContainer
 
 	~HeifContainer() => dispose(false);
 
-	private sealed class HeifFrame : IImageFrame, IMetadataSource, IIccProfileSource
+	private sealed class HeifFrame : IImageFrame, IMetadataSource, IIccProfileSource, IExifSource
 	{
-		private HeifContainer container;
+		private readonly HeifContainer container;
 		private HeifPixelSource pixsrc;
+		private RentedBuffer<byte> exifbuff;
 
 		public HeifFrame(HeifContainer cont) => container = cont;
 
 		public IPixelSource PixelSource => pixsrc ??= new HeifPixelSource(container);
 
 		int IIccProfileSource.ProfileLength => (int)heif_image_handle_get_raw_color_profile_size(container.handle);
+
+		int IExifSource.ExifLength => exifbuff.Length < ExifConstants.MinExifLength ? 0 : exifbuff.Length - sizeof(int) - BinaryPrimitives.ReadInt32BigEndian(exifbuff.Span);
 
 		public bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata
 		{
@@ -121,6 +125,23 @@ internal sealed unsafe class HeifContainer : IImageContainer
 				}
 			}
 
+			if (typeof(T) == typeof(IExifSource))
+			{
+				var exif = (ReadOnlySpan<byte>)(new byte[] { (byte)'E', (byte)'x', (byte)'i', (byte)'f', 0 });
+
+				uint blockid;
+				if (heif_image_handle_get_list_of_metadata_block_IDs(container.handle, (sbyte*)exif.GetAddressOf(), &blockid, 1) != 0)
+				{
+					int blocklen = (int)heif_image_handle_get_metadata_size(container.handle, blockid);
+					exifbuff = BufferPool.Rent<byte>(blocklen);
+					fixed (byte* pbuff = exifbuff)
+						HeifResult.Check(heif_image_handle_get_metadata(container.handle, blockid, pbuff));
+
+					metadata = (T)(object)this;
+					return true;
+				}
+			}
+
 			metadata = default;
 			return false;
 		}
@@ -135,7 +156,19 @@ internal sealed unsafe class HeifContainer : IImageContainer
 				HeifResult.Check(heif_image_handle_get_raw_color_profile(container.handle, pcpd));
 		}
 
-		public void Dispose() { }
+		void IExifSource.CopyExif(Span<byte> dest)
+		{
+			container.ensureHandle();
+			int exiflen = ((IExifSource)this).ExifLength;
+
+			exifbuff.Span[^exiflen..].CopyTo(dest);
+		}
+
+		public void Dispose()
+		{
+			exifbuff.Dispose();
+			exifbuff = default;
+		}
 	}
 
 	private sealed class HeifPixelSource : PixelSource

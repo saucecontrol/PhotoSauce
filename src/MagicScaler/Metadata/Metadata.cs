@@ -38,6 +38,12 @@ namespace PhotoSauce.MagicScaler
 		void CopyProfile(Span<byte> dest);
 	}
 
+	internal interface IExifSource : IMetadata
+	{
+		int ExifLength { get; }
+		void CopyExif(Span<byte> dest);
+	}
+
 	internal readonly record struct ColorProfileMetadata(ColorProfile Profile) : IMetadata { }
 
 	internal readonly record struct OrientationMetadata(Orientation Orientation) : IMetadata { }
@@ -45,6 +51,7 @@ namespace PhotoSauce.MagicScaler
 	internal readonly record struct ResolutionMetadata(Rational ResolutionX, Rational ResolutionY, ResolutionUnit Units) : IMetadata
 	{
 		public static readonly ResolutionMetadata Default = new(new(96, 1), new(96, 1), ResolutionUnit.Inch);
+		public static readonly ResolutionMetadata ExifDefault = new(new(72, 1), new(72, 1), ResolutionUnit.Inch);
 
 		public bool IsValid => ResolutionX.Denominator != 0 && ResolutionY.Denominator != 0;
 
@@ -77,7 +84,26 @@ namespace PhotoSauce.MagicScaler
 				var res = new ResolutionMetadata(settings.DpiX.ToRational(), settings.DpiY.ToRational(), ResolutionUnit.Inch);
 				if (settings.DpiX == default || settings.DpiY == default)
 				{
-					res = source.TryGetMetadata<ResolutionMetadata>(out var r) && r.IsValid ? r : ResolutionMetadata.Default;
+					if (!source.TryGetMetadata<ResolutionMetadata>(out var sourceRes) && source.TryGetMetadata<IExifSource>(out var exifsrc))
+					{
+						sourceRes = ResolutionMetadata.ExifDefault;
+
+						using var buff = BufferPool.RentLocal<byte>(exifsrc.ExifLength);
+						exifsrc.CopyExif(buff.Span);
+
+						var rdr = ExifReader.Create(buff.Span);
+						foreach (var tag in rdr)
+						{
+							if (tag.ID == ExifTags.Tiff.ResolutionX && tag.Type == ExifType.Rational)
+								sourceRes = sourceRes with { ResolutionX = rdr.GetValue<Rational>(tag) };
+							else if (tag.ID == ExifTags.Tiff.ResolutionY && tag.Type == ExifType.Rational)
+								sourceRes = sourceRes with { ResolutionY = rdr.GetValue<Rational>(tag) };
+							else if (tag.ID == ExifTags.Tiff.ResolutionUnit)
+								sourceRes = sourceRes with { Units = rdr.CoerceValue<int>(tag) switch { 3 => ResolutionUnit.Centimeter, _ => ResolutionUnit.Inch } };
+						}
+					}
+
+					res = sourceRes.IsValid ? sourceRes : ResolutionMetadata.Default;
 					if (settings.DpiX != default)
 						res = res.ToDpi() with { ResolutionX = settings.DpiX.ToRational() };
 					if (settings.DpiY != default)
@@ -137,6 +163,17 @@ namespace PhotoSauce.MagicScaler
 
 		public static implicit operator Rational((uint n, uint d) f) => new(f.n, f.d);
 		public static explicit operator double(Rational r) => r.Denominator is 0 ? double.NaN : (double)r.Numerator / r.Denominator;
+	}
+
+	/// <summary>A signed <a href="https://en.wikipedia.org/wiki/Rational_number">rational number</a>, as defined by an integer <paramref name="Numerator" /> and <paramref name="Denominator" />.</summary>
+	/// <param name="Numerator">The numerator of the rational number.</param>
+	/// <param name="Denominator">The denominator of the rational number.</param>
+	internal readonly record struct SRational(int Numerator, int Denominator)
+	{
+		public override string ToString() => $"{Numerator}/{Denominator}";
+
+		public static implicit operator SRational((int n, int d) f) => new(f.n, f.d);
+		public static explicit operator double(SRational r) => r.Denominator is 0 ? double.NaN : (double)r.Numerator / r.Denominator;
 	}
 
 	/// <summary>Defines global/container metadata for a sequence of animated frames.</summary>
