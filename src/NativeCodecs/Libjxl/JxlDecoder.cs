@@ -21,7 +21,7 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 	private readonly long stmpos;
 	private IntPtr decoder;
 
-	private RentedBuffer<byte> profile;
+	private RentedBuffer<byte> profilebuff;
 	private JxlBasicInfo basinfo;
 	private bool pixready;
 
@@ -45,7 +45,7 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 
 	int IImageContainer.FrameCount => 1;
 
-	int IIccProfileSource.ProfileLength => profile.Length;
+	int IIccProfileSource.ProfileLength => profilebuff.Length;
 
 	private void moveToFrameData(bool readMetadata = false)
 	{
@@ -89,9 +89,9 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 					var pixfmt = pixelfmt;
 					JxlError.Check(JxlDecoderGetICCProfileSize(decoder, &pixfmt, JxlColorProfileTarget.JXL_COLOR_PROFILE_TARGET_DATA, &icclen));
 
-					profile = BufferPool.Rent<byte>((int)icclen);
-					fixed (byte* picc = profile)
-						JxlError.Check(JxlDecoderGetColorAsICCProfile(decoder, &pixfmt, JxlColorProfileTarget.JXL_COLOR_PROFILE_TARGET_DATA, picc, (nuint)profile.Length));
+					profilebuff = BufferPool.Rent<byte>((int)icclen);
+					fixed (byte* picc = profilebuff)
+						JxlError.Check(JxlDecoderGetColorAsICCProfile(decoder, &pixfmt, JxlColorProfileTarget.JXL_COLOR_PROFILE_TARGET_DATA, picc, (nuint)profilebuff.Length));
 				}
 				else if (status == JxlDecoderStatus.JXL_DEC_NEED_IMAGE_OUT_BUFFER)
 				{
@@ -121,7 +121,7 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 		return new JxlFrame(this);
 	}
 
-	void IIccProfileSource.CopyProfile(Span<byte> dest) => profile.Span.CopyTo(dest);
+	void IIccProfileSource.CopyProfile(Span<byte> dest) => profilebuff.Span.CopyTo(dest);
 
 	public static JxlContainer? TryLoad(Stream imgStream, IDecoderOptions? jxlOptions)
 	{
@@ -168,7 +168,8 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 		if (decoder == default)
 			return;
 
-		profile.Dispose();
+		profilebuff.Dispose();
+		profilebuff = default;
 
 		JxlDecoderDestroy(decoder);
 		decoder = default;

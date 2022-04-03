@@ -35,7 +35,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 			nuint tstride = (uint)smapy * channels;
 			nuint vcnt = kstride / vector4Count;
 
-			float* buff = stackalloc float[VectorF.Count];
+			VectorF vbuff;
+			float* buff = (float*)&vbuff;
 
 			while (tp < tpe)
 			{
@@ -119,7 +120,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 			nuint tstride = (uint)smapy * channels;
 			nuint vcnt = tstride / vector4Count;
 
-			float* buff = stackalloc float[VectorF.Count];
+			VectorF vbuff;
+			float* buff = (float*)&vbuff;
 
 			for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
 			{
@@ -219,7 +221,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 			nuint tstride = (uint)smapy * 4;
 			nuint vcnt = kstride / vector4Count;
 
-			float* buff = stackalloc float[VectorF.Count];
+			VectorF vbuff;
+			float* buff = (float*)&vbuff;
 
 			while (tp < tpe)
 			{

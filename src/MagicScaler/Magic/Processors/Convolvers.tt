@@ -465,18 +465,18 @@ WriteLine(null);
 #>
 			for (int xc = ox + ow; ox < xc; ox++, ip += channels, op += channels)
 			{
-				<#= t.interType #> dif = *yp++ - *bp++;
+				<#= t.interType #> dif = (<#= t.interType #>)(uint)*yp++ - (<#= t.interType #>)(uint)*bp++;
 <#
 WriteLine(null);
 #>
-				<#= t.pixelType #><# for (int j = 0; j < t.channels; j++) { #><#= j > 0 ? "," : "" #> c<#= j #> = ip[<#= j #>]<# } #>;
+				uint<# for (int j = 0; j < t.channels; j++) { #><#= j > 0 ? "," : "" #> c<#= j #> = ip[<#= j #>]<# } #>;
 				if (threshold == 0 || FastAbs(dif) > threshold)
 				{
 <#
 if (t.pixelType == "ushort") {
 	for (int j = 0; j < t.channels - (t.alpha || t.channels == 4 ? 1 : 0); j++) {
 #>
-					c<#= j #> = gt[(nuint)ClampToUQ15One((uint)c<#= j #>)];
+					c<#= j #> = gt[(nuint)ClampToUQ15One(c<#= j #>)];
 <#
 	}
 	WriteLine(null);
@@ -486,12 +486,12 @@ if (t.pixelType == "ushort") {
 <#
 for (int j = 0; j < t.channels - (t.alpha || t.channels == 4 ? 1 : 0); j++) {
 #>
-					op[<#= j #>] = <#= t.pixelType == "ushort" ? "igt[(nuint)" : "" #>ClampToByte(c<#= j #> + dif)<#= t.pixelType == "ushort" ? "]" : "" #>;
+					op[<#= j #>] = <#= t.pixelType == "ushort" ? "igt[(nuint)" : "" #>ClampToByte((<#= t.interType #>)c<#= j #> + dif)<#= t.pixelType == "ushort" ? "]" : "" #>;
 <#
 }
 if (t.alpha || t.channels == 4) {
 #>
-					op[<#= t.channels - 1 #>] = c<#= t.channels - 1 #>;
+					op[<#= t.channels - 1 #>] = (<#= t.pixelType #>)c<#= t.channels - 1 #>;
 <#
 }
 #>
@@ -501,7 +501,7 @@ if (t.alpha || t.channels == 4) {
 <#
 for (int j = 0; j < t.channels; j++) {
 #>
-					op[<#= j #>] = c<#= j #>;
+					op[<#= j #>] = (<#= t.pixelType #>)c<#= j #>;
 <#
 }
 #>

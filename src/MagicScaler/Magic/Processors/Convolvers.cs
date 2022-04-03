@@ -268,23 +268,23 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			for (int xc = ox + ow; ox < xc; ox++, ip += channels, op += channels)
 			{
-				int dif = *yp++ - *bp++;
+				int dif = (int)(uint)*yp++ - (int)(uint)*bp++;
 
-				byte c0 = ip[0], c1 = ip[1], c2 = ip[2], c3 = ip[3];
+				uint c0 = ip[0], c1 = ip[1], c2 = ip[2], c3 = ip[3];
 				if (threshold == 0 || FastAbs(dif) > threshold)
 				{
 					dif = UnFix15(dif * iamt);
-					op[0] = ClampToByte(c0 + dif);
-					op[1] = ClampToByte(c1 + dif);
-					op[2] = ClampToByte(c2 + dif);
-					op[3] = c3;
+					op[0] = ClampToByte((int)c0 + dif);
+					op[1] = ClampToByte((int)c1 + dif);
+					op[2] = ClampToByte((int)c2 + dif);
+					op[3] = (byte)c3;
 				}
 				else
 				{
-					op[0] = c0;
-					op[1] = c1;
-					op[2] = c2;
-					op[3] = c3;
+					op[0] = (byte)c0;
+					op[1] = (byte)c1;
+					op[2] = (byte)c2;
+					op[3] = (byte)c3;
 				}
 			}
 		}
@@ -431,23 +431,23 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			for (int xc = ox + ow; ox < xc; ox++, ip += channels, op += channels)
 			{
-				int dif = *yp++ - *bp++;
+				int dif = (int)(uint)*yp++ - (int)(uint)*bp++;
 
-				byte c0 = ip[0], c1 = ip[1], c2 = ip[2], c3 = ip[3];
+				uint c0 = ip[0], c1 = ip[1], c2 = ip[2], c3 = ip[3];
 				if (threshold == 0 || FastAbs(dif) > threshold)
 				{
 					dif = UnFix15(dif * iamt);
-					op[0] = ClampToByte(c0 + dif);
-					op[1] = ClampToByte(c1 + dif);
-					op[2] = ClampToByte(c2 + dif);
-					op[3] = c3;
+					op[0] = ClampToByte((int)c0 + dif);
+					op[1] = ClampToByte((int)c1 + dif);
+					op[2] = ClampToByte((int)c2 + dif);
+					op[3] = (byte)c3;
 				}
 				else
 				{
-					op[0] = c0;
-					op[1] = c1;
-					op[2] = c2;
-					op[3] = c3;
+					op[0] = (byte)c0;
+					op[1] = (byte)c1;
+					op[2] = (byte)c2;
+					op[3] = (byte)c3;
 				}
 			}
 		}
@@ -598,27 +598,27 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 				for (int xc = ox + ow; ox < xc; ox++, ip += channels, op += channels)
 				{
-					int dif = *yp++ - *bp++;
+					int dif = (int)(uint)*yp++ - (int)(uint)*bp++;
 
-					ushort c0 = ip[0], c1 = ip[1], c2 = ip[2], c3 = ip[3];
+					uint c0 = ip[0], c1 = ip[1], c2 = ip[2], c3 = ip[3];
 					if (threshold == 0 || FastAbs(dif) > threshold)
 					{
-						c0 = gt[(nuint)ClampToUQ15One((uint)c0)];
-						c1 = gt[(nuint)ClampToUQ15One((uint)c1)];
-						c2 = gt[(nuint)ClampToUQ15One((uint)c2)];
+						c0 = gt[(nuint)ClampToUQ15One(c0)];
+						c1 = gt[(nuint)ClampToUQ15One(c1)];
+						c2 = gt[(nuint)ClampToUQ15One(c2)];
 
 						dif = UnFix15(dif * iamt);
-						op[0] = igt[(nuint)ClampToByte(c0 + dif)];
-						op[1] = igt[(nuint)ClampToByte(c1 + dif)];
-						op[2] = igt[(nuint)ClampToByte(c2 + dif)];
-						op[3] = c3;
+						op[0] = igt[(nuint)ClampToByte((int)c0 + dif)];
+						op[1] = igt[(nuint)ClampToByte((int)c1 + dif)];
+						op[2] = igt[(nuint)ClampToByte((int)c2 + dif)];
+						op[3] = (ushort)c3;
 					}
 					else
 					{
-						op[0] = c0;
-						op[1] = c1;
-						op[2] = c2;
-						op[3] = c3;
+						op[0] = (ushort)c0;
+						op[1] = (ushort)c1;
+						op[2] = (ushort)c2;
+						op[3] = (ushort)c3;
 					}
 				}
 			}
@@ -761,21 +761,21 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			for (int xc = ox + ow; ox < xc; ox++, ip += channels, op += channels)
 			{
-				int dif = *yp++ - *bp++;
+				int dif = (int)(uint)*yp++ - (int)(uint)*bp++;
 
-				byte c0 = ip[0], c1 = ip[1], c2 = ip[2];
+				uint c0 = ip[0], c1 = ip[1], c2 = ip[2];
 				if (threshold == 0 || FastAbs(dif) > threshold)
 				{
 					dif = UnFix15(dif * iamt);
-					op[0] = ClampToByte(c0 + dif);
-					op[1] = ClampToByte(c1 + dif);
-					op[2] = ClampToByte(c2 + dif);
+					op[0] = ClampToByte((int)c0 + dif);
+					op[1] = ClampToByte((int)c1 + dif);
+					op[2] = ClampToByte((int)c2 + dif);
 				}
 				else
 				{
-					op[0] = c0;
-					op[1] = c1;
-					op[2] = c2;
+					op[0] = (byte)c0;
+					op[1] = (byte)c1;
+					op[2] = (byte)c2;
 				}
 			}
 		}
@@ -921,25 +921,25 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 				for (int xc = ox + ow; ox < xc; ox++, ip += channels, op += channels)
 				{
-					int dif = *yp++ - *bp++;
+					int dif = (int)(uint)*yp++ - (int)(uint)*bp++;
 
-					ushort c0 = ip[0], c1 = ip[1], c2 = ip[2];
+					uint c0 = ip[0], c1 = ip[1], c2 = ip[2];
 					if (threshold == 0 || FastAbs(dif) > threshold)
 					{
-						c0 = gt[(nuint)ClampToUQ15One((uint)c0)];
-						c1 = gt[(nuint)ClampToUQ15One((uint)c1)];
-						c2 = gt[(nuint)ClampToUQ15One((uint)c2)];
+						c0 = gt[(nuint)ClampToUQ15One(c0)];
+						c1 = gt[(nuint)ClampToUQ15One(c1)];
+						c2 = gt[(nuint)ClampToUQ15One(c2)];
 
 						dif = UnFix15(dif * iamt);
-						op[0] = igt[(nuint)ClampToByte(c0 + dif)];
-						op[1] = igt[(nuint)ClampToByte(c1 + dif)];
-						op[2] = igt[(nuint)ClampToByte(c2 + dif)];
+						op[0] = igt[(nuint)ClampToByte((int)c0 + dif)];
+						op[1] = igt[(nuint)ClampToByte((int)c1 + dif)];
+						op[2] = igt[(nuint)ClampToByte((int)c2 + dif)];
 					}
 					else
 					{
-						op[0] = c0;
-						op[1] = c1;
-						op[2] = c2;
+						op[0] = (ushort)c0;
+						op[1] = (ushort)c1;
+						op[2] = (ushort)c2;
 					}
 				}
 			}
@@ -1049,17 +1049,17 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			for (int xc = ox + ow; ox < xc; ox++, ip += channels, op += channels)
 			{
-				int dif = *yp++ - *bp++;
+				int dif = (int)(uint)*yp++ - (int)(uint)*bp++;
 
-				byte c0 = ip[0];
+				uint c0 = ip[0];
 				if (threshold == 0 || FastAbs(dif) > threshold)
 				{
 					dif = UnFix15(dif * iamt);
-					op[0] = ClampToByte(c0 + dif);
+					op[0] = ClampToByte((int)c0 + dif);
 				}
 				else
 				{
-					op[0] = c0;
+					op[0] = (byte)c0;
 				}
 			}
 		}
@@ -1172,19 +1172,19 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 				for (int xc = ox + ow; ox < xc; ox++, ip += channels, op += channels)
 				{
-					int dif = *yp++ - *bp++;
+					int dif = (int)(uint)*yp++ - (int)(uint)*bp++;
 
-					ushort c0 = ip[0];
+					uint c0 = ip[0];
 					if (threshold == 0 || FastAbs(dif) > threshold)
 					{
-						c0 = gt[(nuint)ClampToUQ15One((uint)c0)];
+						c0 = gt[(nuint)ClampToUQ15One(c0)];
 
 						dif = UnFix15(dif * iamt);
-						op[0] = igt[(nuint)ClampToByte(c0 + dif)];
+						op[0] = igt[(nuint)ClampToByte((int)c0 + dif)];
 					}
 					else
 					{
-						op[0] = c0;
+						op[0] = (ushort)c0;
 					}
 				}
 			}

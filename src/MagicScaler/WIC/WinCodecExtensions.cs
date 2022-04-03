@@ -106,9 +106,9 @@ namespace PhotoSauce.Interop.Wic
 			return opt;
 		}
 
-		public static bool IsSubsampledX(this WICJpegYCrCbSubsamplingOption o) => MiscExtensions.IsSubsampledX((ChromaSubsampleMode)o);
+		public static bool IsSubsampledX(this WICJpegYCrCbSubsamplingOption o) => ((ChromaSubsampleMode)o).IsSubsampledX();
 
-		public static bool IsSubsampledY(this WICJpegYCrCbSubsamplingOption o) => MiscExtensions.IsSubsampledY((ChromaSubsampleMode)o);
+		public static bool IsSubsampledY(this WICJpegYCrCbSubsamplingOption o) => ((ChromaSubsampleMode)o).IsSubsampledY();
 
 		public static T GetValueOrDefault<T>(this ref IWICMetadataQueryReader meta, string name) where T : unmanaged
 		{

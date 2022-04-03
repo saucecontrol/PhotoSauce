@@ -77,7 +77,8 @@ if (t.channels == 1) {
 <#
 } else {
 #>
-			float* buff = stackalloc float[VectorF.Count];
+			VectorF vbuff;
+			float* buff = (float*)&vbuff;
 <#
 }
 #>
@@ -345,7 +346,8 @@ if (t.channels == 1) {
 <#
 } else {
 #>
-			float* buff = stackalloc float[VectorF.Count];
+			VectorF vbuff;
+			float* buff = (float*)&vbuff;
 <#
 }
 #>

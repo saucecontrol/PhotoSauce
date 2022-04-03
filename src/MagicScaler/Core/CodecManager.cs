@@ -34,16 +34,6 @@ namespace PhotoSauce.MagicScaler
 		public const string Webp = "image/webp";
 #pragma warning restore CS1591
 
-		internal static string? ToMimeType(this FileFormat fmt) => fmt switch {
-			FileFormat.Bmp  => Bmp,
-			FileFormat.Gif  => Gif,
-			FileFormat.Png  => Png,
-			FileFormat.Png8 => Png,
-			FileFormat.Jpeg => Jpeg,
-			FileFormat.Tiff => Tiff,
-			_               => default
-		};
-
 		internal static FileFormat ToFileFormat(string? mime, bool indexed = false) => mime switch {
 			Bmp  => FileFormat.Bmp,
 			Gif  => FileFormat.Gif,

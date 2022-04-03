@@ -196,4 +196,35 @@ namespace PhotoSauce.MagicScaler
 		/// <remarks>Using third party codecs in server environments can be dangerous. Include them only if necessary and if properly tested.</remarks>
 		All
 	}
+
+	internal static partial class EnumExtensions
+	{
+		public static FrameDisposalMethod Clamp(this FrameDisposalMethod m) => m < FrameDisposalMethod.Preserve || m > FrameDisposalMethod.RestorePrevious ? FrameDisposalMethod.Preserve : m;
+
+		public static Orientation Clamp(this Orientation o) => o < Orientation.Normal ? Orientation.Normal : o > Orientation.Rotate270 ? Orientation.Rotate270 : o;
+
+		public static bool SwapsDimensions(this Orientation o) => o > Orientation.FlipVertical;
+
+		public static bool RequiresCache(this Orientation o) => o > Orientation.FlipHorizontal;
+
+		public static bool FlipsX(this Orientation o) => o is Orientation.FlipHorizontal or Orientation.Rotate180 or Orientation.Rotate270 or Orientation.Transverse;
+
+		public static bool FlipsY(this Orientation o) => o is Orientation.FlipVertical or Orientation.Rotate180 or Orientation.Rotate90 or Orientation.Transverse;
+
+		public static Orientation Invert(this Orientation o) => o is Orientation.Rotate270 ? Orientation.Rotate90 : o is Orientation.Rotate90 ? Orientation.Rotate270 : o;
+
+		public static bool IsSubsampledX(this ChromaSubsampleMode m) => m is ChromaSubsampleMode.Subsample420 or ChromaSubsampleMode.Subsample422;
+
+		public static bool IsSubsampledY(this ChromaSubsampleMode m) => m is ChromaSubsampleMode.Subsample420 or ChromaSubsampleMode.Subsample440;
+
+		public static string? ToMimeType(this FileFormat fmt) => fmt switch {
+			FileFormat.Bmp  => ImageMimeTypes.Bmp,
+			FileFormat.Gif  => ImageMimeTypes.Gif,
+			FileFormat.Png  => ImageMimeTypes.Png,
+			FileFormat.Png8 => ImageMimeTypes.Png,
+			FileFormat.Jpeg => ImageMimeTypes.Jpeg,
+			FileFormat.Tiff => ImageMimeTypes.Tiff,
+			_               => default
+		};
+	}
 }

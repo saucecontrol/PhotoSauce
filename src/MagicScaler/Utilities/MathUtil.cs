@@ -213,8 +213,8 @@ namespace PhotoSauce.MagicScaler
 
 		private static (T, T) toFraction<T>(this double v) where T : unmanaged
 		{
-			const double epsilon = 1e-10;
-			const int maxIterations = 21;
+			const double epsilon = 1e-8;
+			const int maxIteration = 20;
 
 			ulong maxVal;
 			if (typeof(T) == typeof(uint))
@@ -240,19 +240,30 @@ namespace PhotoSauce.MagicScaler
 			long np = 0, n = 1;
 			long dp = 1, d = 0;
 
-			ulong maxDenominator = va > 1 ? 1u << 16 : 1u << 14;
-			for (int i = 0; i < maxIterations; i++)
+			for (int i = 0; i < maxIteration; i++)
 			{
-				long w = (long)f;
-				long nn = w * n + np;
-				long dn = w * d + dp;
+				long wr = (long)(f + 0.5);
+				long nn = wr * n + np;
+				long dn = wr * d + dp;
 
-				if (((ulong)nn > maxVal || (ulong)dn > maxDenominator) && i > 1)
+				if (((ulong)nn > maxVal || (ulong)dn > maxVal) && i > 1)
 					break;
-				else if (Abs(((double)nn / dn - va) / va) <= epsilon)
-					i = maxIterations;
+
+				if (Abs(((double)nn / dn - va) / va) > epsilon)
+				{
+					long wf = (long)f;
+					if (wf != wr)
+					{
+						nn = wf * n + np;
+						dn = wf * d + dp;
+					}
+
+					f = 1 / (f - wf);
+				}
 				else
-					f = 1 / (f - w);
+				{
+					i = maxIteration;
+				}
 
 				(n, np) = (nn, n);
 				(d, dp) = (dn, d);

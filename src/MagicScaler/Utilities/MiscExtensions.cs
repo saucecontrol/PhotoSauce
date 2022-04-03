@@ -19,24 +19,6 @@ namespace PhotoSauce.MagicScaler
 {
 	internal static class MiscExtensions
 	{
-		public static Orientation Clamp(this Orientation o) => o < Orientation.Normal? Orientation.Normal : o > Orientation.Rotate270 ? Orientation.Rotate270 : o;
-
-		public static FrameDisposalMethod Clamp(this FrameDisposalMethod m) => m < FrameDisposalMethod.Preserve || m > FrameDisposalMethod.RestorePrevious ? FrameDisposalMethod.Preserve : m;
-
-		public static bool SwapsDimensions(this Orientation o) => o > Orientation.FlipVertical;
-
-		public static bool RequiresCache(this Orientation o) => o > Orientation.FlipHorizontal;
-
-		public static bool FlipsX(this Orientation o) => o == Orientation.FlipHorizontal || o == Orientation.Rotate180 || o == Orientation.Rotate270 || o == Orientation.Transverse;
-
-		public static bool FlipsY(this Orientation o) => o == Orientation.FlipVertical || o == Orientation.Rotate180 || o == Orientation.Rotate90 || o == Orientation.Transverse;
-
-		public static Orientation Invert(this Orientation o) => o == Orientation.Rotate270 ? Orientation.Rotate90 : o == Orientation.Rotate90 ? Orientation.Rotate270 : o;
-
-		public static bool IsSubsampledX(this ChromaSubsampleMode o) => o == ChromaSubsampleMode.Subsample420 || o == ChromaSubsampleMode.Subsample422;
-
-		public static bool IsSubsampledY(this ChromaSubsampleMode o) => o == ChromaSubsampleMode.Subsample420 || o == ChromaSubsampleMode.Subsample440;
-
 		public static bool EqualsInsensitive(this string s1, string s2) => string.Equals(s1, s2, StringComparison.OrdinalIgnoreCase);
 
 		public static bool ContainsInsensitive(this IEnumerable<string> c, string s) => c.Contains(s, StringComparer.OrdinalIgnoreCase);
