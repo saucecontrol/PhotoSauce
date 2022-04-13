@@ -15,6 +15,7 @@ file_header_template = Copyright © Clinton Ingram and Contributors.  Licensed u
 csharp_style_deconstructed_variable_declaration = true:silent
 
 dotnet_diagnostic.CA1031.severity = silent
+dotnet_diagnostic.CA1816.severity = silent
 dotnet_diagnostic.CS3016.severity = silent
 
 dotnet_naming_rule.private_non_field_members_should_be_camel_case.severity = suggestion

@@ -23,3 +23,7 @@ The projects can then be built as normal with Visual Studio or dotnet CLI.  The 
 ```
 dotnet build src\MagicScaler -c Dist
 ```
+
+Native codec binaries are built with [vcpkg](https://github.com/microsoft/vcpkg).  See `azure-pipelines.yml` in the repo root for a working setup.
+Alternatively, pre-built native binaries can be retrieved from a [recent CI run](https://dev.azure.com/saucecontrol/PhotoSauce/_build?definitionId=1) and extracted to `[reporoot]\out\vcpkg\install`
+Once native binaries are built or downloaded, the native codec plugin packages can be built as normal with `dotnet build`

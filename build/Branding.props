@@ -1,0 +1,34 @@
+<Project>
+
+	<PropertyGroup>
+		<Title>High-Quality, High-Performance Image Processing for .NET</Title>
+	</PropertyGroup>
+
+	<Choose>
+		<When Condition="'$(MSBuildProjectName)'=='MagicScaler'">
+			<PropertyGroup>
+				<Description>High-Performance image processing pipeline for .NET.  Implements best-of-breed algorithms, linear light processing, and sharpening for the best image resizing quality available.  Speed, efficiency, and image quality are unmatched by anything else on the .NET platform.</Description>
+				<PackageTags>Image Resize Resample Process Crop Sharpen Rotate Flip WIC JPEG JPG PNG GIF TIFF</PackageTags>
+			</PropertyGroup>
+		</When>
+		<When Condition="'$(MSBuildProjectName)'=='WebRSize'">
+			<PropertyGroup>
+				<Description>Web extensions for the MagicScaler library, inlcluding an HTTP request intercept module for automatic image processing.</Description>
+				<PackageTags>ASP.NET Web Handler Module VirtualPathProvider Image Resize Resample Process</PackageTags>
+			</PropertyGroup>
+		</When>
+		<When Condition="'$(MSBuildProjectName)'=='NativeCodecs.Libheif'">
+			<PropertyGroup>
+				<Description>HEIC codec plugin for the PhotoSauce.MagicScaler pipeline.</Description>
+				<PackageTags>Image Decode HEIC HEIF</PackageTags>
+			</PropertyGroup>
+		</When>
+		<When Condition="'$(MSBuildProjectName)'=='NativeCodecs.Libjxl'">
+			<PropertyGroup>
+				<Description>JPEG XL codec plugin for the PhotoSauce.MagicScaler pipeline.</Description>
+				<PackageTags>Image Decode Encode JPEG-XL JXL</PackageTags>
+			</PropertyGroup>
+		</When>
+	</Choose>
+
+</Project>

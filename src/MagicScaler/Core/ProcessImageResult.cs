@@ -117,7 +117,7 @@ namespace PhotoSauce.MagicScaler
 			Context = ctx;
 			source = new Lazy<IPixelSource>(() => {
 				MagicTransforms.AddExternalFormatConverter(Context, true);
-				WicTransforms.AddPixelFormatConverter(Context, false);
+				MagicTransforms.AddNormalizingFormatConverter(Context, true);
 
 				return Context.Source;
 			});

@@ -22,14 +22,15 @@
 		<PackageReference Include="System.Memory" Version="4.5.4" />
 		<PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
 		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.3" />
+		<PackageReference Include="IndexRange" Version="1.0.2" />
 	</ItemGroup>
 
 	<ItemGroup Condition="$(DefineConstants.Contains('GDIPROCESSOR')) And !$(DefineConstants.Contains('NETFRAMEWORK'))">
-		<PackageReference Include="System.Drawing.Common" Version="5.0.2" />
+		<PackageReference Include="System.Drawing.Common" Version="5.0.3" />
 	</ItemGroup>
 
 	<ItemGroup Condition="$(DefineConstants.Contains('BUILTIN_SPAN')) And $(DefineConstants.Contains('NETSTANDARD'))">
-		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="5.0.0" />
+		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
 	</ItemGroup>
 
 	<ItemGroup Condition="$(DefineConstants.Contains('NETFRAMEWORK')) And $([MSBuild]::VersionLessThan($(NetFrameworkVersion), '4.7'))">

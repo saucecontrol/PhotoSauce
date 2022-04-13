@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<VersionPrefix>0.0.1</VersionPrefix>
+		<VersionPrefix>1.12.0</VersionPrefix>
 		<TargetFrameworks>net461;net6.0</TargetFrameworks>
 		<TargetFrameworks Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">$(TargetFrameworks);net472;netstandard2.0</TargetFrameworks>
 	</PropertyGroup>
@@ -20,6 +20,8 @@
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)'!='Dist'">
-		<Content Include="$(RepositoryRoot)out\vcpkg\install\x64-windows-staticdependencies\bin\heif.dll" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+		<Content Condition="$([MSBuild]::IsOSPlatform('Linux'))" Include="$(RepositoryRoot)out\vcpkg\install\x64-linux-staticdependencies\lib\libheif.so" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+		<Content Condition="$([MSBuild]::IsOSPlatform('Windows'))" Include="$(RepositoryRoot)out\vcpkg\install\x64-windows-staticdependencies\bin\heif.dll" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
 	</ItemGroup>
+
 </Project>

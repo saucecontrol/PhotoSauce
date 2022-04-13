@@ -138,6 +138,44 @@ namespace PhotoSauce.MagicScaler.Transforms
 				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, PixelFormat.Bgr24));
 		}
 
+		public static void AddNormalizingFormatConverter(PipelineContext ctx, bool lastChance = false)
+		{
+			var curFormat = ctx.Source.Format;
+			if (curFormat.ColorRepresentation == PixelColorRepresentation.Cmyk)
+			{
+				if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+					throw new PlatformNotSupportedException("CMYK conversion is not yet supported on this platform.");
+
+				WicTransforms.AddPixelFormatConverter(ctx);
+				curFormat = ctx.Source.Format;
+			}
+
+			if (curFormat == PixelFormat.Y8 || curFormat == PixelFormat.Cb8 || curFormat == PixelFormat.Cr8)
+				return;
+
+			var newFormat = PixelFormat.Bgr24;
+			if (!lastChance && curFormat.AlphaRepresentation == PixelAlphaRepresentation.Associated && ctx.Settings.BlendingMode != GammaMode.Linear && ctx.Settings.MatteColor.IsEmpty)
+				newFormat = PixelFormat.Pbgra32;
+			else if (curFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
+				newFormat = PixelFormat.Bgra32;
+			else if (curFormat.ColorRepresentation == PixelColorRepresentation.Grey)
+				newFormat = PixelFormat.Grey8;
+
+			if (curFormat == newFormat)
+				return;
+
+			if ((curFormat == PixelFormat.Rgb24 && newFormat == PixelFormat.Bgr24) || (curFormat == PixelFormat.Rgba32 && curFormat == PixelFormat.Bgra32))
+			{
+				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, newFormat));
+				return;
+			}
+
+			if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+				throw new PlatformNotSupportedException($"[{curFormat.Name}]->[{newFormat.Name}] conversion is not yet implemented on this platform.");
+
+			WicTransforms.AddPixelFormatConverter(ctx, !lastChance);
+		}
+
 		public static void AddHighQualityScaler(PipelineContext ctx, ChromaSubsampleMode subsample = ChromaSubsampleMode.Subsample444)
 		{
 			bool swap = ctx.Orientation.SwapsDimensions();
@@ -368,15 +406,17 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			if (ctx.SourceColorProfile.ProfileType > ColorProfileType.Matrix || ctx.DestColorProfile.ProfileType > ColorProfileType.Matrix)
 			{
-				AddExternalFormatConverter(ctx);
+				if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+				{
+					if (ctx.WicContext.SourceColorContext is null)
+						ctx.WicContext.SourceColorContext = WicColorProfile.CreateContextFromProfile(ctx.SourceColorProfile.ProfileBytes);
 
-				if (ctx.WicContext.SourceColorContext is null)
-					ctx.WicContext.SourceColorContext = WicColorProfile.CreateContextFromProfile(ctx.SourceColorProfile.ProfileBytes);
+					if (ctx.WicContext.DestColorContext is null)
+						ctx.WicContext.DestColorContext = WicColorProfile.CreateContextFromProfile(ctx.DestColorProfile.ProfileBytes);
 
-				if (ctx.WicContext.DestColorContext is null)
-					ctx.WicContext.DestColorContext = WicColorProfile.CreateContextFromProfile(ctx.DestColorProfile.ProfileBytes);
-
-				WicTransforms.AddColorspaceConverter(ctx);
+					AddExternalFormatConverter(ctx);
+					WicTransforms.AddColorspaceConverter(ctx);
+				}
 
 				return;
 			}

@@ -1,6 +1,6 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
-	<!-- Work around https://github.com/Microsoft/msbuild/issues/3412 by writing the non-string assembly attributes manually -->
+	<!-- WriteCodeFragment task can write assembly attributes but not module attributes, so they are all handled here -->
 	<Target Name="_AddNonStringAssemblyInfoAttributes" AfterTargets="CoreGenerateAssemblyInfo" Outputs="$(AssemblyInfoFile)">
 		<ItemGroup>
 			<AssemblyInfoLines Include="[assembly:System.CLSCompliant(true)]" />
@@ -13,6 +13,20 @@
 		<ItemGroup>
 			<Compile Include="$(AssemblyInfoFile)" />
 			<FileWrites Include="$(AssemblyInfoFile)" />
+		</ItemGroup>
+	</Target>
+
+	<!-- https://github.com/NuGet/Home/issues/5556 -->
+	<Target Name="_ExactProjectReferencesVersion" AfterTargets="_GetProjectReferenceVersions" Condition="'@(_ProjectReferencesWithVersions)'!=''">
+		<ItemGroup>
+			<_ProjectReferencesWithExactVersions Include="@(_ProjectReferencesWithVersions)">
+				<ProjectVersion>[%(_ProjectReferencesWithVersions.ProjectVersion),$([MSBuild]::Add($([System.Text.RegularExpressions.Regex]::Match('%(_ProjectReferencesWithVersions.ProjectVersion)', '^\d+\.\d+').Value), '0.01')))</ProjectVersion>
+			</_ProjectReferencesWithExactVersions>
+		</ItemGroup>
+
+		<ItemGroup>
+			<_ProjectReferencesWithVersions Remove="@(_ProjectReferencesWithVersions)" />
+			<_ProjectReferencesWithVersions Include="@(_ProjectReferencesWithExactVersions)" />
 		</ItemGroup>
 	</Target>
 

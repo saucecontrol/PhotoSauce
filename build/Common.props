@@ -5,18 +5,16 @@
 		<Authors>Clinton Ingram</Authors>
 		<RepositoryUrl>https://github.com/saucecontrol/PhotoSauce</RepositoryUrl>
 		<Copyright>Copyright © 2015-$([System.DateTime]::Today.Year) $(Authors)</Copyright>
-		<Title>High-Quality, High-Performance Image Processing for .NET</Title>
-		<Description>High-Quality, High-Performance Image Processing for .NET</Description>
 
 		<RootNamespace>$(Company).$(MSBuildProjectName)</RootNamespace>
 		<AssemblyName>$(Company).$(MSBuildProjectName)</AssemblyName>
 		<AssemblyTitle>$(MSBuildProjectName)</AssemblyTitle>
 		<Product>$(MSBuildProjectName)</Product>
 
-		<PackageIcon>package/$(Company).png</PackageIcon>
+		<PackageIcon>$(Company).png</PackageIcon>
+		<PackageReadmeFile>readme.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageProjectUrl>https://photosauce.net</PackageProjectUrl>
-		<PackageTags>Image Resize Resample Process Crop Sharpen Rotate Flip WIC JPEG JPG PNG GIF TIFF</PackageTags>
 		<PackageReleaseNotes>See $(RepositoryUrl)/releases for release-specific notes.</PackageReleaseNotes>
 
 		<LangVersion>preview</LangVersion>
@@ -27,6 +25,7 @@
 		<Configurations>Debug;Release;Dist</Configurations>
 		<Configuration Condition="'$(Configuration)'==''">Release</Configuration>
 
+		<ProjectRoot>$(MSBuildProjectDirectory)\</ProjectRoot>
 		<RepositoryRoot>$(MSBuildThisFileDirectory)..\</RepositoryRoot>
 		<BaseModulesPath>$(RepositoryRoot)modules\</BaseModulesPath>
 		<BaseIntermediateOutputPath>$(RepositoryRoot)out\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
@@ -50,7 +49,7 @@
 	<PropertyGroup Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">
 		<Deterministic>true</Deterministic>
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>
-		<!--<IsTrimmable>true</IsTrimmable> https://github.com/dotnet/linker/issues/2622 --> 
+		<IsTrimmable>true</IsTrimmable>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -58,8 +57,10 @@
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">
-		<None Include="$(MSBuildThisFileDirectory)$(Company).png" Pack="true" PackagePath="package" />
-		<None Include="$(RepositoryRoot)license" Pack="true" PackagePath="package" />
+		<None Include="$(MSBuildThisFileDirectory)$(Company).png" Pack="true" PackagePath="/" />
+		<None Include="$(ProjectRoot)readme.md" Pack="true" PackagePath="/" />
+		<None Include="$(RepositoryRoot)license" Pack="true" PackagePath="/" />
+		<None Include="$(RepositoryRoot)third-party-notices" Pack="true" PackagePath="/" />
 		<SourceRoot Include="$(RepositoryRoot)" />
 	</ItemGroup>
 
