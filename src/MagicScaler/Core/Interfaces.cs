@@ -113,12 +113,6 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>A list of file extensions supported by the codec.</summary>
 		/// <remarks>Extensions should include a leading dot ('.').</remarks>
 		IEnumerable<string> FileExtensions { get; }
-		/// <summary>True if the codec supports transparency, otherwise false.</summary>
-		bool SupportsTransparency { get; }
-		/// <summary>True if the codec supports multiple image frames per container, otherwise false.</summary>
-		bool SupportsMultiFrame { get; }
-		/// <summary>True if the codec supports animation sequences, otherwise false.</summary>
-		bool SupportsAnimation { get; }
 	}
 
 	/// <summary>Describes an image decoder.</summary>
@@ -147,6 +141,10 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>A delegate capable of creating an instance of this encoder to write to a given <see cref="Stream" /> data source.</summary>
 		Func<Stream, IEncoderOptions?, IImageEncoder> Factory { get; }
 
+		/// <summary>True if the codec supports transparency, otherwise false.</summary>
+		bool SupportsMultiFrame { get; }
+		/// <summary>True if the codec supports animation sequences, otherwise false.</summary>
+		bool SupportsAnimation { get; }
 		/// <summary>True if the codec supports ICC color profiles, otherwise false.</summary>
 		bool SupportsColorProfile { get; }
 	}

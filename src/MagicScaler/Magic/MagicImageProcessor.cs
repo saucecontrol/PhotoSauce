@@ -15,28 +15,39 @@ namespace PhotoSauce.MagicScaler
 	/// <summary>Provides a set of methods for constructing a MagicScaler processing pipeline or for all-at-once processing of an image.</summary>
 	public static class MagicImageProcessor
 	{
-		/// <summary>"Use the <c>PhotoSauce.MagicScaler.MaxPooledBufferSize</c> <see cref="AppContext"/> value instead."</summary>
+		/// <summary>This property is no longer functional.  Use the <c>PhotoSauce.MagicScaler.MaxPooledBufferSize</c> <see cref="AppContext"/> value instead.</summary>
 		[Obsolete($"Use {nameof(AppContext)} value {BufferPool.MaxPooledBufferSizeName} instead."), EditorBrowsable(EditorBrowsableState.Never)]
 		public static bool EnableLargeBufferPool { get; set; }
 
-		/// <summary>True to allow <a href="https://en.wikipedia.org/wiki/YCbCr">Y'CbCr</a> images to be processed in their native planar format, false to force RGB conversion before processing.</summary>
-		/// <include file='Docs/Remarks.xml' path='doc/member[@name="EnablePlanarPipeline"]/*'/>
-		/// <value>Default value: <see langword="true" /></value>
+		/// <summary>The property is obsolete.  Use DecoderOptions instead.</summary>
+		[Obsolete($"Use {nameof(ProcessImageSettings.DecoderOptions)} with a type implementing {nameof(IPlanarDecoderOptions)} instead."), EditorBrowsable(EditorBrowsableState.Never)]
 		public static bool EnablePlanarPipeline { get; set; } = true;
 
-		/// <summary>True to check for <c>Orientation</c> tag in XMP metadata in addition to the default Exif metadata location, false to check Exif only.</summary>
-		/// <value>Default value: <see langword="false" /></value>
+		/// <summary>This feature will be removed in a future version.</summary>
+		[Obsolete($"This feature will be removed in a future version."), EditorBrowsable(EditorBrowsableState.Never)]
 		public static bool EnableXmpOrientation { get; set; }
 
-		/// <summary>"Use the <c>PhotoSauce.MagicScaler.EnablePixelSourceStats</c> <see cref="AppContext"/> switch instead."</summary>
+		/// <summary>This property is no longer functional.  Use the <c>PhotoSauce.MagicScaler.EnablePixelSourceStats</c> <see cref="AppContext"/> switch instead.</summary>
 		[Obsolete($"Use {nameof(AppContext)} switch {StatsManager.SwitchName} instead."), EditorBrowsable(EditorBrowsableState.Never)]
 		public static bool EnablePixelSourceStats { get; set; }
 
 		/// <summary>Overrides the default <a href="https://en.wikipedia.org/wiki/SIMD">SIMD</a> support detection to force floating point processing on or off.</summary>
 		/// <include file='Docs/Remarks.xml' path='doc/member[@name="EnableSimd"]/*'/>
 		/// <value>Default value: <see langword="true" /> if the runtime/JIT and hardware support hardware-accelerated <see cref="Vector{T}" />, otherwise <see langword="false" /></value>
-		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete($"This feature will be removed in a future version."), EditorBrowsable(EditorBrowsableState.Never)]
 		public static bool EnableSimd { get; set; } = Vector.IsHardwareAccelerated && (Vector<float>.Count is 4 or 8);
+
+		private static void setEncoderFromPath(ProcessImageSettings settings, string path)
+		{
+			if (settings.EncoderInfo is not null)
+				return;
+
+			string extension = Path.GetExtension(path);
+			if (CodecManager.TryGetEncoderForFileExtension(extension, out var info))
+				settings.EncoderInfo = info;
+			else
+				throw new NotSupportedException($"An encoder for file extension '{extension}' could not be found.");
+		}
 
 		/// <summary>All-in-one processing of an image according to the specified <paramref name="settings" />.</summary>
 		/// <param name="imgPath">The path to a file containing the input image.</param>
@@ -62,22 +73,10 @@ namespace PhotoSauce.MagicScaler
 		/// <remarks>If <paramref name="outPath"/> already exists, it will be overwritten.</remarks>
 		public static ProcessImageResult ProcessImage(string imgPath!!, string outPath!!, ProcessImageSettings settings!!)
 		{
-			if (settings.EncoderInfo is null)
-			{
-				string extension = Path.GetExtension(outPath);
-				if (CodecManager.TryGetEncoderForFileExtension(extension, out var info))
-					settings.EncoderInfo = info;
-				else
-					throw new NotSupportedException($"An encoder for file extension '{extension}' could not be found.");
-			}
-
-			using var fsi = new FileStream(imgPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+			setEncoderFromPath(settings, outPath);
 			using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
-			using var bfi = new PoolBufferedStream(fsi);
-			using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(bfi, settings.DecoderOptions));
-			buildPipeline(ctx);
 
-			return WriteOutput(ctx, fso);
+			return ProcessImage(imgPath, fso, settings);
 		}
 
 		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
@@ -98,6 +97,18 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
+		/// <param name="imgBuffer">A buffer containing a supported input image container.</param>
+		/// <param name="outPath">The path to which the output image will be written.</param>
+		/// <remarks>If <paramref name="outPath"/> already exists, it will be overwritten.</remarks>
+		public static unsafe ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, string outPath!!, ProcessImageSettings settings!!)
+		{
+			setEncoderFromPath(settings, outPath);
+			using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
+
+			return ProcessImage(imgBuffer, fso, settings);
+		}
+
+		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
 		/// <param name="imgStream">A stream containing a supported input image container. The stream must allow Seek and Read.</param>
 		public static ProcessImageResult ProcessImage(Stream imgStream!!, Stream outStream!!, ProcessImageSettings settings!!)
 		{
@@ -109,6 +120,16 @@ namespace PhotoSauce.MagicScaler
 			buildPipeline(ctx);
 
 			return WriteOutput(ctx, outStream);
+		}
+
+		/// <inheritdoc cref="ProcessImage(string, string, ProcessImageSettings)" />
+		/// <param name="imgStream">A stream containing a supported input image container. The stream must allow Seek and Read.</param>
+		public static unsafe ProcessImageResult ProcessImage(Stream imgStream!!, string outPath!!, ProcessImageSettings settings!!)
+		{
+			setEncoderFromPath(settings, outPath);
+			using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
+
+			return ProcessImage(imgStream, fso, settings);
 		}
 
 		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
@@ -123,6 +144,16 @@ namespace PhotoSauce.MagicScaler
 			return WriteOutput(ctx, outStream);
 		}
 
+		/// <inheritdoc cref="ProcessImage(string, string, ProcessImageSettings)" />
+		/// <param name="imgSource">A custom pixel source to use as input.</param>
+		public static unsafe ProcessImageResult ProcessImage(IPixelSource imgSource!!, string outPath!!, ProcessImageSettings settings!!)
+		{
+			setEncoderFromPath(settings, outPath);
+			using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
+
+			return ProcessImage(imgSource, fso, settings);
+		}
+
 		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
 		/// <param name="imgContainer">A custom <see cref="IImageContainer"/> to use as input.</param>
 		public static ProcessImageResult ProcessImage(IImageContainer imgContainer!!, Stream outStream!!, ProcessImageSettings settings!!)
@@ -133,6 +164,16 @@ namespace PhotoSauce.MagicScaler
 			buildPipeline(ctx);
 
 			return WriteOutput(ctx, outStream);
+		}
+
+		/// <inheritdoc cref="ProcessImage(string, string, ProcessImageSettings)" />
+		/// <param name="imgContainer">A custom <see cref="IImageContainer"/> to use as input.</param>
+		public static unsafe ProcessImageResult ProcessImage(IImageContainer imgContainer!!, string outPath!!, ProcessImageSettings settings!!)
+		{
+			setEncoderFromPath(settings, outPath);
+			using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
+
+			return ProcessImage(imgContainer, fso, settings);
 		}
 
 		/// <summary>Constructs a new processing pipeline from which pixels can be retrieved.</summary>
@@ -311,7 +352,7 @@ namespace PhotoSauce.MagicScaler
 				WicTransforms.AddNativeScaler(ctx);
 				MagicTransforms.AddCropper(ctx);
 				MagicTransforms.AddHybridScaler(ctx);
-				WicTransforms.AddPixelFormatConverter(ctx);
+				MagicTransforms.AddNormalizingFormatConverter(ctx);
 				MagicTransforms.AddHybridScaler(ctx);
 				MagicTransforms.AddHighQualityScaler(ctx);
 				MagicTransforms.AddColorspaceConverter(ctx);

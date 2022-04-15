@@ -58,7 +58,8 @@ namespace PhotoSauce.MagicScaler
 		Companded
 	}
 
-	/// <summary>Defines known image container formats for auto-detection and output configuration.</summary>
+	/// <summary>Use ImageMimeTypes instead.</summary>
+	[Obsolete($"Use {nameof(ImageMimeTypes)} instead.")]
 	public enum FileFormat : byte
 	{
 		/// <summary>Set output container format automatically based on input format and image contents.  The container format will be a web-friendly format (JPEG, PNG, or GIF).</summary>

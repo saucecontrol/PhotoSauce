@@ -106,6 +106,17 @@ namespace PhotoSauce.Interop.Wic
 			return opt;
 		}
 
+		public static WICTiffCompressionOption ToWicTiffCompressionOptions(this TiffCompression m) => m switch {
+			TiffCompression.Uncompressed => WICTiffCompressionOption.WICTiffCompressionNone,
+			TiffCompression.Group3Fax => WICTiffCompressionOption.WICTiffCompressionCCITT3,
+			TiffCompression.Group4Fax => WICTiffCompressionOption.WICTiffCompressionCCITT4,
+			TiffCompression.Lzw => WICTiffCompressionOption.WICTiffCompressionLZW,
+			TiffCompression.PackBits => WICTiffCompressionOption.WICTiffCompressionRLE,
+			TiffCompression.Deflate => WICTiffCompressionOption.WICTiffCompressionZIP,
+			TiffCompression.LzwHorizontalDifferencing => WICTiffCompressionOption.WICTiffCompressionLZWHDifferencing,
+			_ => WICTiffCompressionOption.WICTiffCompressionDontCare
+		};
+
 		public static bool IsSubsampledX(this WICJpegYCrCbSubsamplingOption o) => ((ChromaSubsampleMode)o).IsSubsampledX();
 
 		public static bool IsSubsampledY(this WICJpegYCrCbSubsamplingOption o) => ((ChromaSubsampleMode)o).IsSubsampledY();

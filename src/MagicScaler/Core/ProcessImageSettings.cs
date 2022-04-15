@@ -3,6 +3,7 @@
 using System;
 using System.Linq;
 using System.Drawing;
+using System.ComponentModel;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Diagnostics.CodeAnalysis;
@@ -100,6 +101,9 @@ namespace PhotoSauce.MagicScaler
 		private static readonly Lazy<Regex> anchorExpression = new(() => new Regex(@"^(top|middle|bottom)?\-?(left|center|right)?$", RegexOptions.Compiled | RegexOptions.IgnoreCase));
 		private static readonly Lazy<Regex> subsampleExpression = new(() => new Regex(@"^4(20|22|44)$", RegexOptions.Compiled));
 		private static readonly ProcessImageSettings empty = new();
+
+		/// <summary>An empty settings object, useful for transcode-only operations.</summary>
+		public static ProcessImageSettings Default => empty;
 
 		private InterpolationSettings interpolation;
 		private UnsharpMaskSettings unsharpMask;
@@ -237,9 +241,8 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		/// <summary>The quality setting to use for JPEG output.</summary>
-		/// <remarks>If this value is set to <c>0</c>, the quality level will be set automatically according to the output image dimensions. Typically, this value should be <c>80</c> or greater if set explicitly.</remarks>
-		/// <value>Default value: calculated based on output image size</value>
+		/// <summary>Use EncoderOptions instead.</summary>
+		[Obsolete($"Use {nameof(EncoderOptions)} with {nameof(JpegEncoderOptions)} instead."), EditorBrowsable(EditorBrowsableState.Never)]
 		public int JpegQuality
 		{
 			get => LossyQuality;
@@ -252,17 +255,16 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		/// <summary>The 0-based index of the image frame to process from within the container.</summary>
-		/// <value>Default value: taken from <see cref="DecoderOptions" />, or <c>0</c></value>
+		/// <summary>Use DecoderOptions instead.</summary>
+		[Obsolete($"Use a {nameof(DecoderOptions)} type that supports {nameof(IMultiFrameDecoderOptions)}.{nameof(IMultiFrameDecoderOptions.FrameRange)} instead."), EditorBrowsable(EditorBrowsableState.Never)]
 		public int FrameIndex
 		{
 			get => DecoderOptions is IMultiFrameDecoderOptions opt ? opt.FrameRange.GetOffsetAndLength(imageInfo?.Frames.Count ?? int.MaxValue).Offset : 0;
 			set => DecoderOptions = new MultiFrameDecoderOptions(value..(value+1));
 		}
 
-		/// <summary>Determines what type of chroma subsampling is used for the output image.</summary>
-		/// <remarks>If this value is set to <see cref="ChromaSubsampleMode.Default"/>, the chroma subsampling will be set automatically based on the <see cref="JpegQuality"/> setting.</remarks>
-		/// <value>Default value: calculated based on <see cref="JpegQuality"/></value>
+		/// <summary>Use EncoderOptions instead.</summary>
+		[Obsolete($"Use {nameof(EncoderOptions)} with {nameof(JpegEncoderOptions)} instead."), EditorBrowsable(EditorBrowsableState.Never)]
 		public ChromaSubsampleMode JpegSubsampleMode
 		{
 			get => Subsample;
@@ -287,8 +289,8 @@ namespace PhotoSauce.MagicScaler
 			set => unsharpMask = value;
 		}
 
-		/// <summary>Determines the container format of the output image. A value of <see cref="FileFormat.Auto" /> will choose the output codec based on the input image type.</summary>
-		/// <value>Default value: <see cref="FileFormat.Auto" /></value>
+		/// <summary>Use TrySetEncoderFormat instead.</summary>
+		[Obsolete($"Use {nameof(TrySetEncoderFormat)} instead."), EditorBrowsable(EditorBrowsableState.Never)]
 		public FileFormat SaveFormat
 		{
 			get => ImageMimeTypes.ToFileFormat(EncoderInfo?.MimeTypes.FirstOrDefault(), EncoderOptions is IIndexedEncoderOptions);

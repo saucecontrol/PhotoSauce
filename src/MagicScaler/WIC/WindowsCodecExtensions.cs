@@ -82,8 +82,7 @@ namespace PhotoSauce.MagicScaler
 					if (!name.StartsWith(fname))
 						name = string.Concat(author, " ", name);
 
-					BOOL chrm, anim, mult;
-					pCod.Get()->DoesSupportChromakey(&chrm);
+					BOOL anim, mult;
 					pCod.Get()->DoesSupportAnimation(&anim);
 					pCod.Get()->DoesSupportMultiframe(&mult);
 
@@ -97,10 +96,6 @@ namespace PhotoSauce.MagicScaler
 					var pix = new Guid[cch];
 					fixed (Guid* pg = pix)
 						HRESULT.Check(pCod.Get()->GetPixelFormats(cch, pg, &cch));
-
-					bool trans = chrm;
-					if (!trans)
-						trans = pix.Any(f => PixelFormat.FromGuid(f).AlphaRepresentation != PixelAlphaRepresentation.None);
 
 					if (extensions.Length != 0 && !ImageFileExtensions.All.ContainsInsensitive(extensions[0]))
 						extensions = extensions.OrderBy(e => ImageFileExtensions.All.ContainsInsensitive(e) ? 0 : 1).ToArray();
@@ -136,7 +131,7 @@ namespace PhotoSauce.MagicScaler
 							_                   => raw ? CameraRawDecoderOptions.Default : default(IDecoderOptions)
 						};
 
-						codecs.Add((ctid, new DecoderInfo(name, mimes, extensions, patterns, options, (stm, opt) => WicImageDecoder.TryLoad(clsid, mime, stm, opt), trans, mult, anim)));
+						codecs.Add((ctid, new DecoderInfo(name, mimes, extensions, patterns, options, (stm, opt) => WicImageDecoder.TryLoad(clsid, mime, stm, opt))));
 					}
 					else
 					{
@@ -154,7 +149,7 @@ namespace PhotoSauce.MagicScaler
 
 						pix = mime is ImageMimeTypes.Jpeg ? pix.Concat(new[] { PixelFormat.Y8.FormatGuid }).ToArray() : pix;
 
-						codecs.Add((ctid, new EncoderInfo(name, mimes, extensions, pix, options, (stm, opt) => new WicImageEncoder(clsid, mime, stm, opt), trans, mult, anim, prof)));
+						codecs.Add((ctid, new EncoderInfo(name, mimes, extensions, pix, options, (stm, opt) => new WicImageEncoder(clsid, mime, stm, opt), mult, anim, prof)));
 					}
 				}
 			}

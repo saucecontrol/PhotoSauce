@@ -21,6 +21,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		private const uint alphaThreshold = 85;
 
 		private bool dither;
+		private bool hasAlpha;
 		private int paletteLength;
 		private uint leafLevel;
 		private uint mapNextFree;
@@ -35,7 +36,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		public override PixelFormat Format => PixelFormat.Indexed8;
 
 		private bool isFixedGrey => PrevSource.Format == PixelFormat.Grey8;
-		private int paletteColors => paletteLength - 1;
+		private int paletteColors => paletteLength - (hasAlpha ? 1 : 0);
 
 		public IndexedColorTransform(PixelSource source) : base(source)
 		{
@@ -68,12 +69,13 @@ namespace PhotoSauce.MagicScaler.Transforms
 			if (pal.Length < 1 || pal.Length > maxPaletteSize) throw new ArgumentException($"Palette must have between 1 and {maxPaletteSize} entries.", nameof(pal));
 
 			pal.CopyTo(palBuff.Span);
-			pal.CopyTo(palBuff.Span.Slice(maxPaletteSize));
+			pal.CopyTo(palBuff.Span[maxPaletteSize..]);
 
-			palBuff.Span.Slice(pal.Length - 1, maxPaletteSize - pal.Length).Fill(MemoryMarshal.GetReference(pal));
-
-			paletteLength = pal.Length;
 			dither = !isExact;
+			hasAlpha = pal[^1] < 0x00ffffffu;
+			paletteLength = pal.Length;
+
+			palBuff.Span[paletteLength..maxPaletteSize].Fill(MemoryMarshal.GetReference(pal));
 
 			mapNextFree = seedPaletteMap(mapBuff.Span);
 		}
@@ -152,10 +154,12 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			if (disposing)
 			{
+				lineBuff.Dispose();
 				palBuff.Dispose();
 				errBuff.Dispose();
 				mapBuff.Dispose();
 
+				lineBuff = default;
 				palBuff = default;
 				errBuff = default;
 				mapBuff = default;
@@ -305,10 +309,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 				var vpix = Sse41.ConvertToVector128Int16(Sse2.LoadScalarVector128((int*)ip).AsByte());
 				var verr = Sse2.Add(Sse2.Add(vprnd, Sse2.LoadScalarVector128((long*)ep).AsInt16()), Sse2.Subtract(Sse2.ShiftLeftLogical(vnerr, 3), vnerr));
 				vpix = Sse2.Add(vpix, Sse2.ShiftRightArithmetic(verr, 4));
-				vpix = Sse2.Min(vpix, vpmax);
-				vpix = Sse2.Max(vpix, vzero);
+				vpix = Sse2.Min(Sse2.Max(vpix, vzero), vpmax);
 
-				if (Sse2.MoveMask(Sse2.CompareEqual(vppix, vpix).AsByte()) == ushort.MaxValue)
+				var vpeq = Sse2.Xor(vppix, vpix);
+				if (Sse41.TestZ(vpeq, vpeq))
 					goto FoundExact;
 
 				vppix = vpix;

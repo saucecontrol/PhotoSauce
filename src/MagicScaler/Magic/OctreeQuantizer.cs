@@ -20,6 +20,7 @@ namespace PhotoSauce.MagicScaler
 		private const uint alphaThreshold = 85;
 		private const uint transparentValue = 0x00ff00ffu;
 
+		private bool needAlpha = false;
 		private uint leafLevel = 7;
 		private int paletteLength;
 
@@ -38,7 +39,7 @@ namespace PhotoSauce.MagicScaler
 
 		public bool CreatePalette(int targetColors, Span<byte> image, nint width, nint height, nint stride)
 		{
-			if (targetColors < 1 || targetColors > maxPaletteSize) throw new ArgumentOutOfRangeException(nameof(targetColors), $"Target palette size must be between 1 and {maxPaletteSize}");
+			if (targetColors < 2 || targetColors > maxPaletteSize) throw new ArgumentOutOfRangeException(nameof(targetColors), $"Target palette size must be between 2 and {maxPaletteSize}");
 
 			Profiler.ResumeTiming(new PixelArea(0, 0, (int)width, (int)height));
 			using var nodeBuffer = BufferPool.RentLocalAligned<HistogramNode>(maxHistogramSize, true);
@@ -54,7 +55,7 @@ namespace PhotoSauce.MagicScaler
 				createHistogram(image, listBuffer.Span, nodeBuffer.Span, width, height, stride, subsampleRatio);
 			}
 
-			bool isExact = buildPalette(nodeBuffer.Span, targetColors - 1, subsampleRatio > 1f);
+			bool isExact = buildPalette(nodeBuffer.Span, targetColors - (needAlpha ? 1 : 0), subsampleRatio > 1f);
 			Profiler.PauseTiming();
 
 			return isExact;
@@ -96,6 +97,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				if (((byte*)ip)[3] < alphaThreshold)
 				{
+					needAlpha = true;
 					ip++;
 					continue;
 				}
@@ -406,8 +408,10 @@ namespace PhotoSauce.MagicScaler
 				for (nuint i = palidx + 1; palidx > 0 && i < maxPaletteSize; i++)
 					ppal[i] = ppal[palidx - 1];
 
-				ppal[palidx] = transparentValue;
-				paletteLength = (int)palidx + 1;
+				if (needAlpha)
+					ppal[palidx++] = transparentValue;
+
+				paletteLength = (int)palidx;
 			}
 		}
 
@@ -426,8 +430,10 @@ namespace PhotoSauce.MagicScaler
 				for (nuint i = palidx + 1; palidx > 0 && i < maxPaletteSize; i++)
 					ppal[i] = ppal[palidx - 1];
 
-				ppal[palidx] = transparentValue;
-				paletteLength = (int)palidx + 1;
+				if (needAlpha)
+					ppal[palidx++] = transparentValue;
+
+				paletteLength = (int)palidx;
 			}
 		}
 

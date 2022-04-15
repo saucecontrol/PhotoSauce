@@ -64,7 +64,8 @@ namespace PhotoSauce.WebRSize
 				dpr = dpr.Clamp(1d, 5d);
 				if (dpr > 1d)
 				{
-					var frame = ifi.Frames[s.FrameIndex];
+					int index = s.DecoderOptions is IMultiFrameDecoderOptions opt ? opt.FrameRange.GetOffsetAndLength(ifi.Frames.Count).Offset : 0;
+					var frame = ifi.Frames[index];
 					int nw = (int)Math.Floor(s.Width * dpr), nh = (int)Math.Floor(s.Height * dpr);
 
 					if (folderConfig.AllowEnlarge || (nw <= frame.Width && nh <= frame.Height))
@@ -80,7 +81,8 @@ namespace PhotoSauce.WebRSize
 
 			if (!folderConfig.AllowEnlarge && s.ResizeMode != CropScaleMode.Pad)
 			{
-				var frame = ifi.Frames[s.FrameIndex];
+				int index = s.DecoderOptions is IMultiFrameDecoderOptions opt ? opt.FrameRange.GetOffsetAndLength(ifi.Frames.Count).Offset : 0;
+				var frame = ifi.Frames[index];
 				if (s.Width > frame.Width)
 				{
 					s.Width = frame.Width;
@@ -104,10 +106,10 @@ namespace PhotoSauce.WebRSize
 				return;
 			}
 
-			if (dpr > 0d && !dic.ContainsKey("quality") && !dic.ContainsKey("q"))
+			if (dpr > 0d && s.EncoderOptions is JpegEncoderOptions jopt && !dic.ContainsKey("quality") && !dic.ContainsKey("q"))
 			{
 				dpr = Math.Max(Math.Max((double)s.Width / (rw > 0 ? rw : s.Width), (double)s.Height / (rh > 0 ? rh : s.Height)), 1d);
-				s.JpegQuality -= (int)Math.Round((dpr - 1d) * 10);
+				s.EncoderOptions = jopt with { Quality = jopt.Quality - (int)Math.Round((dpr - 1d) * 10) };
 			}
 
 			string cacheVPath = namingStrategy.Value.GetCacheFilePath(path, s);
@@ -133,7 +135,7 @@ namespace PhotoSauce.WebRSize
 			// Init() may be called multiple times by IIS and needs to bind the same handlers on each call.
 			// However, we may also load the module multiple times and need to make sure only one loaded
 			// instance is processing requests. This check catches the second case while allowing the first.
-			if (app.Context.Items[nameof(WebRSizeModule)] != null)
+			if (app.Context.Items[nameof(WebRSizeModule)] is not null)
 				return;
 
 			app.Context.Items[nameof(WebRSizeModule)] = this;

@@ -58,10 +58,7 @@ public static class CodecCollectionExtensions
 				new(0, new byte[] { 0, 0, 0, 0, (byte)'f', (byte)'t', (byte)'y', (byte)'p', (byte)'h', (byte)'e', (byte)'i', (byte)'c' }, new byte[] { 0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff })
 			},
 			null,
-			HeifContainer.TryLoad,
-			false,
-			false,
-			false
+			HeifContainer.TryLoad
 		));
 	}
 }

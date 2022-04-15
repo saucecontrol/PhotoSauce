@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -78,7 +79,7 @@ namespace PhotoSauce.ManagedCodecs.ImageSharp
 			var rect = new GdiRect(srcArea.X, srcArea.Y, srcArea.Width, 1);
 			for (int i = 0; i < srcArea.Height; i++)
 			{
-				var span = MemoryMarshal.AsBytes(img.GetPixelRowSpan(i));
+				var span = MemoryMarshal.AsBytes(img.DangerousGetPixelRowMemory(i).Span);
 				rect.Y = i;
 				src.CopyPixels(rect, span.Length, span);
 			}
@@ -197,7 +198,8 @@ namespace PhotoSauce.ManagedCodecs.ImageSharp
 		{
 			for (int y = 0; y < area.Height; y++)
 			{
-				ref byte src = ref Unsafe.As<TPixel, byte>(ref frame.GetPixelRowSpan(area.Y + y)[area.X]);
+				var span = frame.DangerousGetPixelRowMemory(area.Y + y).Span;
+				ref byte src = ref Unsafe.As<TPixel, byte>(ref span[area.X]);
 				Unsafe.CopyBlockUnaligned(ref dest[y * stride], ref src, (uint)cb);
 			}
 		}
@@ -219,10 +221,7 @@ namespace PhotoSauce.ManagedCodecs.ImageSharp
 				fileExtensions,
 				new[] { new ContainerPattern(0, new byte[] { 0, 0, 0 }, new byte[] { 0, 0b_1111_1110, 0b_1111_0100 }) },
 				null,
-				TargaContainer.TryLoad,
-				true,
-				false,
-				false
+				TargaContainer.TryLoad
 			));
 			codecs.Add(new EncoderInfo(
 				$"{nameof(SixLabors.ImageSharp)} {targa.Name}",
@@ -231,7 +230,6 @@ namespace PhotoSauce.ManagedCodecs.ImageSharp
 				new[] { PixelFormats.Grey8bpp, PixelFormats.Bgr24bpp, PixelFormats.Bgra32bpp },
 				TargaEncoderOptions.Default,
 				TargaEncoder.Create,
-				true,
 				false,
 				false,
 				false

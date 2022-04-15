@@ -46,7 +46,9 @@ namespace PhotoSauce.MagicScaler
 		public long FileSize { get; }
 		/// <summary>The last modified date of the image container, if applicable.</summary>
 		public DateTime FileDate { get; }
-		/// <summary>The format of the image container (e.g. JPEG, PNG).</summary>
+
+		/// <summary>Use MimeType instead.</summary>
+		[Obsolete($"Use {nameof(MimeType)} instead.")]
 		public FileFormat ContainerType => ImageMimeTypes.ToFileFormat(MimeType);
 		/// <summary>The MIME type of the image container.</summary>
 		public string? MimeType { get; }
@@ -58,11 +60,12 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="height">The height of the image frame in pixels.</param>
 		public ImageFileInfo(int width, int height) => Frames = new[] { new FrameInfo(width, height, false, Orientation.Normal) };
 
-		/// <summary>Constructs a new <see cref="ImageFileInfo" /> instance the specified values.</summary>
+		/// <summary>Use the overload accepting MimeType instead.</summary>
 		/// <param name="containerType">The <see cref="FileFormat" /> of the image container.</param>
 		/// <param name="frames">A list containing one <see cref="FrameInfo" /> per image frame in the container.</param>
 		/// <param name="fileSize">The size in bytes of the image file.</param>
 		/// <param name="fileDate">The last modified date of the image file.</param>
+		[Obsolete($"Use the overload accepting {nameof(MimeType)} instead.")]
 		public ImageFileInfo(FileFormat containerType, IReadOnlyList<FrameInfo> frames, long fileSize, DateTime fileDate)
 		{
 			MimeType = containerType.ToMimeType();

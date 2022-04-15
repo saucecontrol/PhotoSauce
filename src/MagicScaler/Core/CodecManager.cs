@@ -76,16 +76,10 @@ namespace PhotoSauce.MagicScaler
 	/// <param name="Name"><inheritdoc cref="IImageCodecInfo.Name" path="/summary/node()" /></param>
 	/// <param name="MimeTypes"><inheritdoc cref="IImageCodecInfo.MimeTypes" path="/summary/node()" /></param>
 	/// <param name="FileExtensions"><inheritdoc cref="IImageCodecInfo.FileExtensions" path="/summary/node()" /></param>
-	/// <param name="SupportsTransparency"><inheritdoc cref="IImageCodecInfo.SupportsTransparency" path="/summary/node()" /></param>
-	/// <param name="SupportsMultiFrame"><inheritdoc cref="IImageCodecInfo.SupportsMultiFrame" path="/summary/node()" /></param>
-	/// <param name="SupportsAnimation"><inheritdoc cref="IImageCodecInfo.SupportsAnimation" path="/summary/node()" /></param>
 	public abstract record class CodecInfo(
 		string Name,
 		IEnumerable<string> MimeTypes,
-		IEnumerable<string> FileExtensions,
-		bool SupportsTransparency,
-		bool SupportsMultiFrame,
-		bool SupportsAnimation
+		IEnumerable<string> FileExtensions
 	) : IImageCodecInfo;
 
 	/// <inheritdoc />
@@ -95,20 +89,14 @@ namespace PhotoSauce.MagicScaler
 	/// <param name="Patterns"><inheritdoc cref="IImageDecoderInfo.Patterns" path="/summary/node()" /></param>
 	/// <param name="DefaultOptions"><inheritdoc cref="IImageDecoderInfo.DefaultOptions" path="/summary/node()" /></param>
 	/// <param name="Factory"><inheritdoc cref="IImageDecoderInfo.Factory" path="/summary/node()" /></param>
-	/// <param name="SupportsTransparency"><inheritdoc cref="IImageCodecInfo.SupportsTransparency" path="/summary/node()" /></param>
-	/// <param name="SupportsMultiFrame"><inheritdoc cref="IImageCodecInfo.SupportsMultiFrame" path="/summary/node()" /></param>
-	/// <param name="SupportsAnimation"><inheritdoc cref="IImageCodecInfo.SupportsAnimation" path="/summary/node()" /></param>
 	public sealed record class DecoderInfo(
 		string Name!!,
 		IEnumerable<string> MimeTypes!!,
 		IEnumerable<string> FileExtensions!!,
 		IEnumerable<ContainerPattern> Patterns!!,
 		IDecoderOptions? DefaultOptions,
-		Func<Stream, IDecoderOptions?, IImageContainer?> Factory!!,
-		bool SupportsTransparency,
-		bool SupportsMultiFrame,
-		bool SupportsAnimation
-	) : CodecInfo(Name, MimeTypes, FileExtensions, SupportsTransparency, SupportsMultiFrame, SupportsAnimation), IImageDecoderInfo;
+		Func<Stream, IDecoderOptions?, IImageContainer?> Factory!!
+	) : CodecInfo(Name, MimeTypes, FileExtensions), IImageDecoderInfo;
 
 	/// <inheritdoc />
 	/// <param name="Name"><inheritdoc cref="IImageCodecInfo.Name" path="/summary/node()" /></param>
@@ -117,9 +105,8 @@ namespace PhotoSauce.MagicScaler
 	/// <param name="PixelFormats"><inheritdoc cref="IImageEncoderInfo.PixelFormats" path="/summary/node()" /></param>
 	/// <param name="DefaultOptions"><inheritdoc cref="IImageEncoderInfo.DefaultOptions" path="/summary/node()" /></param>
 	/// <param name="Factory"><inheritdoc cref="IImageEncoderInfo.Factory" path="/summary/node()" /></param>
-	/// <param name="SupportsTransparency"><inheritdoc cref="IImageCodecInfo.SupportsTransparency" path="/summary/node()" /></param>
-	/// <param name="SupportsMultiFrame"><inheritdoc cref="IImageCodecInfo.SupportsMultiFrame" path="/summary/node()" /></param>
-	/// <param name="SupportsAnimation"><inheritdoc cref="IImageCodecInfo.SupportsAnimation" path="/summary/node()" /></param>
+	/// <param name="SupportsMultiFrame"><inheritdoc cref="IImageEncoderInfo.SupportsMultiFrame" path="/summary/node()" /></param>
+	/// <param name="SupportsAnimation"><inheritdoc cref="IImageEncoderInfo.SupportsAnimation" path="/summary/node()" /></param>
 	/// <param name="SupportsColorProfile"><inheritdoc cref="IImageEncoderInfo.SupportsColorProfile" path="/summary/node()" /></param>
 	public sealed record class EncoderInfo(
 		string Name!!,
@@ -128,11 +115,10 @@ namespace PhotoSauce.MagicScaler
 		IEnumerable<Guid> PixelFormats!!,
 		IEncoderOptions? DefaultOptions,
 		Func<Stream, IEncoderOptions?, IImageEncoder> Factory!!,
-		bool SupportsTransparency,
 		bool SupportsMultiFrame,
 		bool SupportsAnimation,
 		bool SupportsColorProfile
-	) : CodecInfo(Name, MimeTypes, FileExtensions, SupportsTransparency, SupportsMultiFrame, SupportsAnimation), IImageEncoderInfo;
+	) : CodecInfo(Name, MimeTypes, FileExtensions), IImageEncoderInfo;
 
 	/// <summary>Represents the set of configured codecs for the processing pipeline.</summary>
 	/// <remarks>Instances should not be retained or used outside of <see cref="CodecManager.Configure(Action{CodecCollection}?)"/>.</remarks>
@@ -277,7 +263,7 @@ namespace PhotoSauce.MagicScaler
 			Enumerable.Empty<Guid>(),
 			null,
 			(s, o) => throw new NotSupportedException("No encoders are registered."),
-			false, false, false, false
+			false, false, false
 		);
 
 		private static CodecCollection getCodecs()

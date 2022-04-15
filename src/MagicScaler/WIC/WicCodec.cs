@@ -152,15 +152,16 @@ namespace PhotoSauce.MagicScaler
 				}
 				else if (fmt == GUID_ContainerFormatPng && Options is IPngEncoderOptions pconf)
 				{
-					if (pconf.Filter != PngFilterMode.Unspecified)
+					if (pconf.Filter != PngFilter.Unspecified)
 						pbag.Write("FilterOption", (byte)pconf.Filter);
 					if (pconf.Interlace)
 						pbag.Write("InterlaceOption", pconf.Interlace);
 				}
 				else if (fmt == GUID_ContainerFormatTiff && Options is TiffEncoderOptions tconf)
 				{
-					if (tconf.Compression != TiffCompressionMode.Unspecified)
-						pbag.Write("TiffCompressionMethod", (byte)tconf.Compression);
+					var comp = tconf.Compression.ToWicTiffCompressionOptions();
+					if (comp != WICTiffCompressionOption.WICTiffCompressionDontCare)
+						pbag.Write("TiffCompressionMethod", (byte)comp);
 				}
 				else if (fmt == GUID_ContainerFormatBmp)
 				{

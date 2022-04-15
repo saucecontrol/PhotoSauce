@@ -47,11 +47,11 @@ namespace PhotoSauce.MagicScaler
 		public override bool CanWrite => backingStream.CanWrite;
 		public override bool CanSeek => true;
 
-		public override long Length => Math.Max(stmlen, stmpos + writepos);
+		public override long Length => Math.Max(stmlen, stmpos + (uint)writepos);
 
 		public override long Position
 		{
-			get => stmpos - readlen + readpos + writepos;
+			get => stmpos - (uint)(readlen - readpos) + (uint)writepos;
 			set => Seek(value, SeekOrigin.Begin);
 		}
 
@@ -77,7 +77,7 @@ namespace PhotoSauce.MagicScaler
 
 			backingStream.SetLength(length);
 			stmlen = length;
-			stmpos = Math.Min(stmpos, stmlen);
+			stmpos = Math.Min(stmpos, length);
 		}
 
 		public override long Seek(long offset, SeekOrigin origin)
@@ -91,18 +91,18 @@ namespace PhotoSauce.MagicScaler
 			}
 
 			long newpos = origin switch {
-				SeekOrigin.Begin => offset,
 				SeekOrigin.Current => Position + offset,
-				/*SeekOrigin.End*/_ => Length + offset
+				SeekOrigin.End     => Length + offset,
+				_                  => offset
 			};
 
-			if (newpos < stmpos || newpos >= stmpos + readlen)
+			readpos = (int)(newpos - (stmpos - (uint)readlen));
+			if ((uint)readpos > (uint)readlen)
 			{
 				readpos = readlen = 0;
 				return stmpos = backingStream.Seek(newpos, SeekOrigin.Begin);
 			}
 
-			readpos = (int)(newpos - stmpos);
 			return newpos;
 		}
 
@@ -140,7 +140,7 @@ namespace PhotoSauce.MagicScaler
 						: backingStream.Read(dest);
 
 					readpos = readlen = 0;
-					stmpos += read;
+					stmpos += (uint)read;
 					return read;
 				}
 
@@ -150,7 +150,7 @@ namespace PhotoSauce.MagicScaler
 
 				readpos = 0;
 				readlen = buffrem.Length;
-				stmpos += buffrem.Length;
+				stmpos += (uint)buffrem.Length;
 			}
 
 			if (buffrem.Length > dest.Length)
@@ -184,7 +184,7 @@ namespace PhotoSauce.MagicScaler
 					return -1;
 				}
 
-				stmpos += readlen;
+				stmpos += (uint)readlen;
 				readpos = 1;
 				return lbuf.GetDataRef();
 			}
@@ -240,7 +240,7 @@ namespace PhotoSauce.MagicScaler
 				else
 					backingStream.Write(source);
 
-				stmpos += source.Length;
+				stmpos += (uint)source.Length;
 				if (stmlen < stmpos)
 					stmlen = stmpos;
 

@@ -64,10 +64,7 @@ public static class CodecCollectionExtensions
 				new(0, new byte[] { 0x00, 0x00, 0x00, 0x0c, 0x4a, 0x58, 0x4c, 0x20, 0x0d, 0x0a, 0x87, 0x0a }, new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff })
 			},
 			null,
-			JxlContainer.TryLoad,
-			true,
-			false,
-			false
+			JxlContainer.TryLoad
 		));
 		codecs.Add(new EncoderInfo(
 			JxlFactory.DisplayName,
@@ -76,10 +73,9 @@ public static class CodecCollectionExtensions
 			new[] { PixelFormat.Grey8.FormatGuid, PixelFormat.Rgb24.FormatGuid, PixelFormat.Rgba32.FormatGuid },
 			JxlLossyEncoderOptions.Default,
 			JxlEncoder.Create,
-			true,
 			false,
 			false,
-			true
+			false
 		));
 	}
 }

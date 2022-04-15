@@ -90,16 +90,16 @@ internal static class BufferUtil
 	{
 		if (typeof(T) == typeof(Rational) || typeof(T) == typeof(SRational))
 		{
-			var (n, d) = Unsafe.As<T, (uint, uint)>(ref Unsafe.AsRef(val));
+			var (n, d) = Unsafe.As<T, (uint, uint)>(ref val);
 			return Unsafe.As<(uint, uint), T>(ref Unsafe.AsRef((BinaryPrimitives.ReverseEndianness(n), BinaryPrimitives.ReverseEndianness(d))));
 		}
 
 		if (sizeof(T) == sizeof(ushort))
-			return Unsafe.As<ushort, T>(ref Unsafe.AsRef(BinaryPrimitives.ReverseEndianness(Unsafe.As<T, ushort>(ref Unsafe.AsRef(val)))));
+			return Unsafe.As<ushort, T>(ref Unsafe.AsRef(BinaryPrimitives.ReverseEndianness(Unsafe.As<T, ushort>(ref val))));
 		if (sizeof(T) == sizeof(uint))
-			return Unsafe.As<uint, T>(ref Unsafe.AsRef(BinaryPrimitives.ReverseEndianness(Unsafe.As<T, uint>(ref Unsafe.AsRef(val)))));
+			return Unsafe.As<uint, T>(ref Unsafe.AsRef(BinaryPrimitives.ReverseEndianness(Unsafe.As<T, uint>(ref val))));
 		if (sizeof(T) == sizeof(ulong))
-			return Unsafe.As<ulong, T>(ref Unsafe.AsRef(BinaryPrimitives.ReverseEndianness(Unsafe.As<T, ulong>(ref Unsafe.AsRef(val)))));
+			return Unsafe.As<ulong, T>(ref Unsafe.AsRef(BinaryPrimitives.ReverseEndianness(Unsafe.As<T, ulong>(ref val))));
 
 		throw new ArgumentException($"Reverse not implemented for {typeof(T).Name}", nameof(T));
 	}

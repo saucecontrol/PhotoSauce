@@ -31,7 +31,20 @@ namespace PhotoSauce.MagicScaler
 
 				var key = hasher.FinalizeToGuid();
 				if (lruCache.TryGet(key, out var map))
+				{
+					int chan = typeof(T) == typeof(float) ? ichannels : 1;
+					int offs = (map.Pixels - 1) * (typeof(T) == typeof(float) ? 2 : map.Samples + 1);
+					int last = MemoryMarshal.Read<int>(map.Map[(offs * sizeof(int))..]);
+
+					if (map.Channels != chan || map.Pixels != osize || (uint)last > (uint)(isize - map.Samples))
+					{
+						map.Dispose();
+
+						return KernelMap<T>.create(isize, osize, interpolator, ichannels, offset);
+					}
+
 					return map;
+				}
 
 				return lruCache.GetOrAdd(key, KernelMap<T>.create(isize, osize, interpolator, ichannels, offset));
 			}

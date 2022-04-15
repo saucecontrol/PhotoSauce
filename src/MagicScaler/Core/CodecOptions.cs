@@ -1,13 +1,14 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
+using System.ComponentModel;
 
 namespace PhotoSauce.MagicScaler;
 
 /// <summary>Describes a lossy codec in terms of JPEG-normalized (0-100) quality.</summary>
 public interface ILossyEncoderOptions : IEncoderOptions
 {
-	/// <summary>The desired image quality in the range of 0-100, where 0 is minimum quality and 100 is maximum quality.</summary>
+	/// <summary>The desired image quality in the range of 0-100, where 1 is minimum quality and 100 is maximum quality. A value of 0 indicates quality should be set automatically.</summary>
 	int Quality { get; }
 }
 
@@ -24,16 +25,17 @@ public interface IIndexedEncoderOptions : IEncoderOptions
 	/// <summary>The maximum number of entries in the target palette. Actual palette may have fewer entries if the image contains fewer colors.</summary>
 	int MaxPaletteSize { get; }
 	/// <summary>The palette to use when quantizing the image.  If <see langword="null" />, a custom palette will be created from the image.</summary>
+	/// <remarks>If the palette contains a transparent color, it must be the last entry in the palette.</remarks>
 	int[]? PredefinedPalette { get; }
-	/// <summary>True to apply error diffusion dithering to the image.</summary>
+	/// <summary>Controls dithering when palette has fewer colors than the image.</summary>
 	DitherMode Dither { get; }
 }
 
 /// <summary>Common encoder options for PNG.</summary>
 public interface IPngEncoderOptions : IEncoderOptions
 {
-	/// <summary>The <see cref="PngFilterMode" /> to apply to the image before compression.</summary>
-	PngFilterMode Filter { get; }
+	/// <summary>The <see cref="PngFilter" /> to apply to the image before compression.</summary>
+	PngFilter Filter { get; }
 	/// <summary>True to enable interlaced PNG output, otherwise false.</summary>
 	/// <remarks>Interlaced PNGs are larger and slower to decode than non-interlaced and have more limited decoder support.</remarks>
 	bool Interlace { get; }
@@ -60,7 +62,7 @@ public readonly record struct JpegEncoderOptions(int Quality, ChromaSubsampleMod
 /// <summary>True-color/greyscale PNG encoder options.</summary>
 /// <param name="Filter"><inheritdoc cref="IPngEncoderOptions.Filter" path="/summary/node()" /></param>
 /// <param name="Interlace"><inheritdoc cref="IPngEncoderOptions.Interlace" path="/summary/node()" /></param>
-public readonly record struct PngEncoderOptions(PngFilterMode Filter, bool Interlace) : IPngEncoderOptions
+public readonly record struct PngEncoderOptions(PngFilter Filter, bool Interlace) : IPngEncoderOptions
 {
 	/// <summary>Default PNG encoder options.</summary>
 	public static PngEncoderOptions Default => default;
@@ -72,10 +74,10 @@ public readonly record struct PngEncoderOptions(PngFilterMode Filter, bool Inter
 /// <param name="Dither"><inheritdoc cref="IIndexedEncoderOptions.Dither" path="/summary/node()" /></param>
 /// <param name="Filter"><inheritdoc cref="IPngEncoderOptions.Filter" path="/summary/node()" /></param>
 /// <param name="Interlace"><inheritdoc cref="IPngEncoderOptions.Interlace" path="/summary/node()" /></param>
-public readonly record struct PngIndexedEncoderOptions(int MaxPaletteSize, int[]? PredefinedPalette, DitherMode Dither, PngFilterMode Filter, bool Interlace) : IPngEncoderOptions, IIndexedEncoderOptions
+public readonly record struct PngIndexedEncoderOptions(int MaxPaletteSize, int[]? PredefinedPalette, DitherMode Dither, PngFilter Filter, bool Interlace) : IPngEncoderOptions, IIndexedEncoderOptions
 {
 	/// <summary>Default indexed color PNG encoder options.</summary>
-	public static PngIndexedEncoderOptions Default => new(256, default, default, PngFilterMode.None, default);
+	public static PngIndexedEncoderOptions Default => new(256, default, default, PngFilter.None, default);
 }
 
 /// <summary>GIF encoder options.</summary>
@@ -90,10 +92,10 @@ public readonly record struct GifEncoderOptions(int MaxPaletteSize, int[]? Prede
 
 /// <summary>TIFF encoder options.</summary>
 /// <param name="Compression">The compression method to be used by the lossless TIFF encoder.</param>
-public readonly record struct TiffEncoderOptions(TiffCompressionMode Compression) : IEncoderOptions
+public readonly record struct TiffEncoderOptions(TiffCompression Compression) : IEncoderOptions
 {
 	/// <summary>Default TIFF encoder options.</summary>
-	public static TiffEncoderOptions Default => new(TiffCompressionMode.None);
+	public static TiffEncoderOptions Default => new(TiffCompression.Uncompressed);
 }
 
 /// <summary>Decoder options for codecs that store images natively in Y'CbCr planar formats.</summary>
@@ -146,7 +148,7 @@ public readonly record struct CameraRawDecoderOptions(RawPreviewMode UsePreview)
 internal readonly record struct MultiFrameDecoderOptions(Range FrameRange) : IMultiFrameDecoderOptions { }
 
 /// <summary>Represents the PNG <a href="https://www.w3.org/TR/PNG-Filters.html">prediction filter</a> applied to image lines before compression.</summary>
-public enum PngFilterMode
+public enum PngFilter
 {
 	/// <summary>The encoder will choose the filter.</summary>
 	/// <remarks>The Windows encoder uses <see cref="Adaptive" /> filtering by default.</remarks>
@@ -166,27 +168,30 @@ public enum PngFilterMode
 }
 
 /// <summary>Represents the <a href="https://en.wikipedia.org/wiki/TIFF#TIFF_Compression_Tag">TIFF compression</a> method used when encoding an image.</summary>
-public enum TiffCompressionMode
+public enum TiffCompression
 {
 	/// <summary>The encoder will choose the compression algorithm based on the image and pixel format.</summary>
 	Unspecified = 0,
 	/// <summary>No compression.</summary>
-	None = 1,
-	/// <summary>CCITT Group 3 fax compression.</summary>
-	/// <remarks>This algorithm is only valid for 1bpp pixel formats.</remarks>
-	CCITT3 = 2,
-	/// <summary>CCITT Group 4 fax compression.</summary>
-	/// <remarks>This algorithm is only valid for 1bpp pixel formats.</remarks>
-	CCITT4 = 3,
+	Uncompressed = 1,
+	/// <summary>CCITT Group 3 (T4) fax compression.</summary>
+	/// <remarks>This algorithm is only valid for 1bpp pixel formats, which are not yet supported for pipeline output.</remarks>
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	Group3Fax = 3,
+	/// <summary>CCITT Group 4 (T6) fax compression.</summary>
+	/// <remarks>This algorithm is only valid for 1bpp pixel formats, which are not yet supported for pipeline output.</remarks>
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	Group4Fax = 4,
 	/// <summary>LZW compression.</summary>
-	LZW = 4,
-	/// <summary>RLE compression.</summary>
-	/// <remarks>This algorithm is only valid for 1bpp pixel formats.</remarks>
-	RLE = 5,
+	Lzw = 5,
+	/// <summary>PackBits RLE compression.</summary>
+	/// <remarks>This algorithm is only valid for 1bpp pixel formats, which are not yet supported for pipeline output.</remarks>
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	PackBits = 0x8005,
 	/// <summary>Deflate (zlib) compression.</summary>
-	ZIP = 6,
-	/// <summary>LZWH differencing algorithm.</summary>
-	LZWHDifferencing = 7
+	Deflate = 8,
+	/// <summary>LZW compression combined with a horizontal differencing predictor.</summary>
+	LzwHorizontalDifferencing = 0x20005
 }
 
 /// <summary>Represents dithering options for indexed color images.</summary>
