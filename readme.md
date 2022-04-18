@@ -1,50 +1,52 @@
 [![NuGet](https://buildstats.info/nuget/PhotoSauce.MagicScaler)](https://www.nuget.org/packages/PhotoSauce.MagicScaler/) [![Build Status](https://dev.azure.com/saucecontrol/PhotoSauce/_apis/build/status/saucecontrol.PhotoSauce?branchName=master)](https://dev.azure.com/saucecontrol/PhotoSauce/_build/latest?definitionId=1&branchName=master) [![CI NuGet](https://img.shields.io/badge/nuget-CI%20builds-4da2db?logo=azure-devops)](https://dev.azure.com/saucecontrol/PhotoSauce/_packaging?_a=feed&feed=photosauce_ci)
 
-MagicScaler
-===========
+PhotoSauce.MagicScaler
+======================
 
-High-performance image processing pipeline for .NET.  Implements best-of-breed algorithms, linear light processing, and sharpening for the best image resizing quality available.  Speed and efficiency are unmatched by anything else on the .NET platform.
+MagicScaler is a high-performance image processing pipeline for .NET, focused on making complex imaging tasks simple.
+
+It implements best-of-breed algorithms, linear light processing, and sharpening for the best image resizing quality available.
+
+Speed and efficiency are unmatched by anything else on the .NET platform.
 
 Requirements
 ------------
 
-MagicScaler currently runs only on Windows.  Although MagicScaler is compatible with -- and optimized for -- .NET Core and .NET 5+, it requires the [Windows Imaging Component](https://docs.microsoft.com/en-us/windows/desktop/wic/-wic-about-windows-imaging-codec) for its image codec support.  Work is in progress to allow MagicScaler to use other native or managed codecs, which will allow running on Linux.
+MagicScaler currently has full functionality only on Windows.  Although MagicScaler is compatible with -- and optimized for -- .NET Core and .NET 5+, it requires the [Windows Imaging Component](https://docs.microsoft.com/en-us/windows/desktop/wic/-wic-about-windows-imaging-codec) for its image codec support.
+
+Work is in progress to reach full feature parity on Linux.
 
 Usage
 -----
 
-Basic usage looks something like this:
+### Image Resizing
 
 ```C#
-string inPath = @"c:\img\bigimage.jpg";
-string outPath = @"c:\img\smallimage.jpg";
-var settings = new ProcessImageSettings { Width = 400 };
+MagicImageProcessor.ProcessImage(@"\img\big.jpg", @"\img\small.jpg", new ProcessImageSettings { Width = 400 });
+```
 
-using var outStream = new FileStream(outPath, FileMode.Create);
-MagicImageProcessor.ProcessImage(inPath, outStream, settings);
-``` 
-
-The above example will resize `bigimage.jpg` to a width of 400 pixels and save the output to	 `smallimage.jpg`.  The height will be set automatically to preserve the correct aspect ratio.  Default settings are optimized for a balance of speed and image quality.
+The above example will resize `big.jpg` to a width of 400 pixels and save the output to	`small.jpg`.  The height will be set automatically to preserve the correct aspect ratio.  Default settings are optimized for a balance of speed and image quality.
 
 The MagicScaler pipleline is also customizable if you wish to use an alternate pixel source, capture the output pixels for additional processing, or add custom filtering.
 
-See the [full documentation](https://docs.photosauce.net) for more details.
+See the [full documentation](https://docs.photosauce.net/api/PhotoSauce.MagicScaler.MagicImageProcessor.html) for more details.
+
 
 MagicScaler Performance
 -----------------------
 
-Benchmark results in this section come from the tests used in https://blogs.msdn.microsoft.com/dotnet/2017/01/19/net-core-image-processing/ -- updated to use current (Apr 2021) versions of the libraries and runtime.  The original benchmark project [is also on GitHub](https://github.com/bleroy/core-imaging-playground).
+Benchmark results in this section come from the tests used in https://blogs.msdn.microsoft.com/dotnet/2017/01/19/net-core-image-processing/ -- updated to use current (Apr 2022) versions of the libraries and runtime.  The original benchmark project [is also on GitHub](https://github.com/bleroy/core-imaging-playground).
 
 *For these results, the benchmarks were modified to use a constant `UnrollFactor` so these runs more accurately report managed memory allocations and GC counts.  By default, BenchmarkDotNet targets a run time in the range of 500ms-1s for each iteration.  This means it executes slower benchmark methods using a smaller number of operations per iteration, and it can wildly under-report allocation and GCs, as those numbers are extrapolated from the limited iterations it runs.  The constant `UnrollFactor` ensures all benchmarks' reported memory stats are based on the same run counts. The `UnrollFactor` used for each run is listed at the top of each set of results.*
 
 Benchmark environment:
 
 ``` ini
-BenchmarkDotNet=v0.12.1.1514-nightly, OS=Windows 10.0.19042.867 (20H2/October2020Update)
-Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
-.NET SDK=5.0.104
-  [Host]       : .NET 5.0.4 (5.0.421.11614), X64 RyuJIT
-  .Net 5.0 CLI : .NET 5.0.4 (5.0.421.11614), X64 RyuJIT
+BenchmarkDotNet=v0.13.1.1695-nightly, OS=Windows 10 (10.0.19043.1586/21H1/May2021Update)
+Intel Xeon W-11855M CPU 3.20GHz, 1 CPU, 12 logical and 6 physical cores
+.NET SDK=6.0.300-preview.22204.3
+  [Host]   : .NET 6.0.3 (6.0.322.12309), X64 RyuJIT
+  ShortRun : .NET 6.0.3 (6.0.322.12309), X64 RyuJIT
 ```
 
 ### End-to-End Image Resizing
@@ -52,27 +54,27 @@ Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
 First up is a semi-real-world image resizing benchmark, in which 12 JPEGs of approximately 1-megapixel each are resized to 150px wide thumbnails and saved back as JPEG.
 
 ``` ini
-Job=.Net 5.0 CLI  Toolchain=.NET 5.0  IterationCount=5  LaunchCount=1  UnrollFactor=32  WarmupCount=5
+Job=ShortRun  IterationCount=5  LaunchCount=1  UnrollFactor=32  WarmupCount=5
 
-|                                 Method |      Mean |     Error |   StdDev | Ratio | RatioSD |     Gen 0 |     Gen 1 |     Gen 2 | Allocated |
-|--------------------------------------- |----------:|----------:|---------:|------:|--------:|----------:|----------:|----------:|----------:|
-|     *MagicScaler Load, Resize, Save(1) |  65.94 ms |  0.628 ms | 0.163 ms |  0.17 |    0.00 |         - |         - |         - |     47 KB |
-|   System.Drawing Load, Resize, Save(2) | 377.65 ms |  1.514 ms | 0.234 ms |  1.00 |    0.00 |         - |         - |         - |      8 KB |
-|       ImageSharp Load, Resize, Save(3) | 151.90 ms |  1.351 ms | 0.209 ms |  0.40 |    0.00 |  468.7500 |   31.2500 |         - |  1,985 KB |
-|      ImageMagick Load, Resize, Save(4) | 410.55 ms |  2.867 ms | 0.444 ms |  1.09 |    0.00 |         - |         - |         - |     50 KB |
-|        ImageFree Load, Resize, Save(5) | 251.34 ms |  1.129 ms | 0.175 ms |  0.67 |    0.00 | 6000.0000 | 6000.0000 | 6000.0000 |     90 KB |
-| SkiaSharp Canvas Load, Resize, Save(6) | 247.03 ms | 32.118 ms | 8.341 ms |  0.66 |    0.02 |         - |         - |         - |     95 KB |
-| SkiaSharp Bitmap Load, Resize, Save(7) | 241.35 ms |  2.641 ms | 0.686 ms |  0.64 |    0.00 |         - |         - |         - |     81 KB |
-|          NetVips Load, Resize, Save(8) | 133.71 ms |  2.132 ms | 0.330 ms |  0.35 |    0.00 |         - |         - |         - |     44 KB |
+|                                 Method |      Mean |     Error |   StdDev | Ratio | RatioSD |     Gen 0 |     Gen 1 |     Gen 2 |  Allocated | Alloc Ratio |
+|--------------------------------------- |----------:|----------:|---------:|------:|--------:|----------:|----------:|----------:|-----------:|------------:|
+|     *MagicScaler Load, Resize, Save(1) |  55.71 ms |  3.683 ms | 0.957 ms |  0.16 |    0.00 |         - |         - |         - |   45.51 KB |        4.45 |
+|   System.Drawing Load, Resize, Save(2) | 357.62 ms | 12.352 ms | 3.208 ms |  1.00 |    0.00 |         - |         - |         - |   10.23 KB |        1.00 |
+|       ImageSharp Load, Resize, Save(3) | 108.06 ms |  7.481 ms | 1.943 ms |  0.30 |    0.01 |  156.2500 |   62.5000 |         - | 1492.73 KB |      145.98 |
+|      ImageMagick Load, Resize, Save(4) | 349.53 ms | 13.851 ms | 3.597 ms |  0.98 |    0.02 |         - |         - |         - |   51.75 KB |        5.06 |
+|        ImageFree Load, Resize, Save(5) | 209.06 ms |  8.241 ms | 2.140 ms |  0.58 |    0.01 | 6000.0000 | 6000.0000 | 6000.0000 |   92.69 KB |        9.06 |
+| SkiaSharp Canvas Load, Resize, Save(6) | 167.62 ms |  7.604 ms | 1.975 ms |  0.47 |    0.01 |         - |         - |         - |  101.44 KB |        9.92 |
+| SkiaSharp Bitmap Load, Resize, Save(6) | 169.28 ms |  2.591 ms | 0.401 ms |  0.47 |    0.00 |         - |         - |         - |    85.5 KB |        8.36 |
+|          NetVips Load, Resize, Save(7) | 102.40 ms |  1.180 ms | 0.307 ms |  0.29 |    0.00 |         - |         - |         - |   46.04 KB |        4.50 |
 ```
 
-* (1) `PhotoSauce.MagicScaler` version 0.12.0.
-* (2) `System.Drawing.Common` version 5.0.2.
-* (3) `SixLabors.ImageSharp` version 1.0.3.
-* (4) `Magick.NET-Q8-AnyCPU` version 7.23.3.
+* (1) `PhotoSauce.MagicScaler` version 0.13.0.
+* (2) `System.Drawing.Common` version 5.0.3.
+* (3) `SixLabors.ImageSharp` version 2.1.0.
+* (4) `Magick.NET-Q8-AnyCPU` version 11.1.0.
 * (5) `FreeImage.Standard` version 4.3.8.
-* (6) `SkiaSharp` version 2.80.2.
-* (7) `NetVips` version 2.0.0 with `NetVips.Native` (libvips) version 8.10.6.
+* (6) `SkiaSharp` version 2.80.3.
+* (7) `NetVips` version 2.1.0 with `NetVips.Native` (libvips) version 8.12.2.
 
 Note that unmanaged memory usage is not measured by BenchmarkDotNet's `MemoryDiagnoser`, nor is managed memory allocated but never released to GC (e.g. pooled objects/buffers).  See the [MagicScaler Efficiency](#magicscaler-efficiency) section for an analysis of total process memory usage for each library.
 
@@ -83,18 +85,18 @@ The performance numbers mostly speak for themselves, but some notes on image qua
 This benchmark is the same as the previous but uses `Parallel.ForEach` to run the 12 test images in parallel.  It is meant to highlight cases where the libraries' performance doesn't scale up linearly with extra processors.
 
 ``` ini
-Job=.Net 5.0 CLI  Toolchain=.NET 5.0  IterationCount=5  LaunchCount=1  UnrollFactor=32  WarmupCount=5
+Job=ShortRun  IterationCount=5  LaunchCount=1  UnrollFactor=64  WarmupCount=5
 
-|                                         Method |      Mean |    Error |   StdDev | Ratio |     Gen 0 |     Gen 1 |     Gen 2 | Allocated |
-|----------------------------------------------- |----------:|---------:|---------:|------:|----------:|----------:|----------:|----------:|
-|     *MagicScaler Load, Resize, Save - Parallel |  17.83 ms | 0.857 ms | 0.133 ms |  0.11 |         - |         - |         - |     77 KB |
-|   System.Drawing Load, Resize, Save - Parallel | 159.25 ms | 8.514 ms | 1.318 ms |  1.00 |         - |         - |         - |     34 KB |
-|       ImageSharp Load, Resize, Save - Parallel |  41.14 ms | 1.790 ms | 0.465 ms |  0.26 |  500.0000 |  125.0000 |         - |  4,573 KB |
-|      ImageMagick Load, Resize, Save - Parallel | 116.01 ms | 7.927 ms | 1.227 ms |  0.73 |         - |         - |         - |     75 KB |
-|        ImageFree Load, Resize, Save - Parallel |  68.52 ms | 1.919 ms | 0.498 ms |  0.43 | 3875.0000 | 3875.0000 | 3875.0000 |    112 KB |
-| SkiaSharp Canvas Load, Resize, Save - Parallel |  62.34 ms | 4.861 ms | 0.752 ms |  0.39 |         - |         - |         - |    118 KB |
-| SkiaSharp Bitmap Load, Resize, Save - Parallel |  62.05 ms | 4.008 ms | 1.041 ms |  0.39 |         - |         - |         - |    104 KB |
-|          NetVips Load, Resize, Save - Parallel |  54.00 ms | 4.324 ms | 1.123 ms |  0.34 |         - |         - |         - |     69 KB |
+|                                         Method |      Mean |    Error |   StdDev | Ratio |     Gen 0 |     Gen 1 |     Gen 2 |  Allocated | Alloc Ratio |
+|----------------------------------------------- |----------:|---------:|---------:|------:|----------:|----------:|----------:|-----------:|------------:|
+|     *MagicScaler Load, Resize, Save - Parallel |  11.49 ms | 0.643 ms | 0.100 ms |  0.09 |         - |         - |         - |   73.98 KB |        1.88 |
+|   System.Drawing Load, Resize, Save - Parallel | 133.11 ms | 0.709 ms | 0.184 ms |  1.00 |         - |         - |         - |   39.41 KB |        1.00 |
+|       ImageSharp Load, Resize, Save - Parallel |  22.91 ms | 0.281 ms | 0.073 ms |  0.17 |  156.2500 |   78.1250 |         - | 1524.18 KB |       38.68 |
+|      ImageMagick Load, Resize, Save - Parallel | 100.92 ms | 5.891 ms | 1.530 ms |  0.76 |         - |         - |         - |   85.45 KB |        2.17 |
+|        ImageFree Load, Resize, Save - Parallel |  46.08 ms | 2.399 ms | 0.371 ms |  0.35 | 3062.5000 | 3062.5000 | 3062.5000 |  118.96 KB |        3.02 |
+| SkiaSharp Canvas Load, Resize, Save - Parallel |  34.09 ms | 0.527 ms | 0.082 ms |  0.26 |   15.6250 |         - |         - |  134.99 KB |        3.43 |
+| SkiaSharp Bitmap Load, Resize, Save - Parallel |  34.36 ms | 1.025 ms | 0.159 ms |  0.26 |   15.6250 |         - |         - |   116.9 KB |        2.97 |
+|          NetVips Load, Resize, Save - Parallel |  38.69 ms | 0.252 ms | 0.065 ms |  0.29 |         - |         - |         - |   77.99 KB |        1.98 |
 ```
 
 Note the relative performance drop-off for NetVips.  It uses multiple threads for a single operation by default, making it scale up poorly and leaving it vulnerable to [CPU oversubscription](https://web.archive.org/web/20200221153045/https://docs.microsoft.com/en-us/archive/blogs/visualizeparallel/oversubscription-a-classic-parallel-performance-problem) problems under heavy server load.
@@ -109,18 +111,18 @@ Similarly, System.Drawing fails to scale up as well as the other libraries, but 
 This benchmark creates a blank image of 1280x853 and resizes it to 150x99, throwing away the result.  MagicScaler does very well on this one, and it's the only one MagicScaler can do on Linux (for now), but it isn't a real-world scenario, so take the results with a grain of salt.
 
 ``` ini
-Job=.Net 5.0 CLI  Toolchain=.NET 5.0  IterationCount=5  LaunchCount=1  UnrollFactor=256  WarmupCount=5
+Job=ShortRun  IterationCount=15  LaunchCount=1  UnrollFactor=256  WarmupCount=5
 
-|                  Method |        Mean |     Error |   StdDev | Ratio | RatioSD |    Gen 0 |    Gen 1 |    Gen 2 | Allocated |
-|------------------------ |------------:|----------:|---------:|------:|--------:|---------:|---------:|---------:|----------:|
-|     *MagicScaler Resize |    718.4 μs |   2.76 μs |  0.43 μs |  0.07 |    0.00 |        - |        - |        - |   1,904 B |
-|   System.Drawing Resize | 10,665.7 μs | 244.82 μs | 63.58 μs |  1.00 |    0.00 |        - |        - |        - |     136 B |
-|       ImageSharp Resize |  2,682.1 μs | 113.49 μs | 29.47 μs |  0.25 |    0.00 |        - |        - |        - |   9,152 B |
-|      ImageMagick Resize | 50,694.0 μs |  57.54 μs | 14.94 μs |  4.75 |    0.03 |        - |        - |        - |   5,336 B |
-|        FreeImage Resize |  7,658.7 μs |  61.17 μs | 15.89 μs |  0.72 |    0.00 | 500.0000 | 500.0000 | 500.0000 |     136 B |
-| SkiaSharp Canvas Resize |  2,500.1 μs | 259.54 μs | 67.40 μs |  0.23 |    0.01 |        - |        - |        - |   1,584 B |
-| SkiaSharp Bitmap Resize |  2,437.9 μs | 217.19 μs | 56.40 μs |  0.23 |    0.00 |        - |        - |        - |     488 B |
-|          NetVips Resize |  5,703.9 μs | 278.41 μs | 72.30 μs |  0.53 |    0.01 |        - |        - |        - |   4,152 B |
+|                  Method |        Mean |     Error |    StdDev | Ratio | RatioSD |    Gen 0 |    Gen 1 |    Gen 2 | Allocated | Alloc Ratio |
+|------------------------ |------------:|----------:|----------:|------:|--------:|---------:|---------:|---------:|----------:|------------:|
+|     *MagicScaler Resize |    577.9 μs |   1.01 μs |   0.94 μs |  0.06 |    0.00 |        - |        - |        - |    1425 B |       10.33 |
+|   System.Drawing Resize |  9,093.6 μs |  84.16 μs |  74.61 μs |  1.00 |    0.00 |        - |        - |        - |     138 B |        1.00 |
+|       ImageSharp Resize |  2,247.4 μs |  94.39 μs |  88.29 μs |  0.25 |    0.01 |        - |        - |        - |   10364 B |       75.10 |
+|      ImageMagick Resize | 37,032.8 μs | 906.42 μs | 847.87 μs |  4.08 |    0.11 |        - |        - |        - |    5338 B |       38.68 |
+|        FreeImage Resize |  5,940.9 μs | 119.98 μs | 112.23 μs |  0.65 |    0.01 | 500.0000 | 500.0000 | 500.0000 |     306 B |        2.22 |
+| SkiaSharp Canvas Resize |  1,577.6 μs |  19.76 μs |  18.49 μs |  0.17 |    0.00 |        - |        - |        - |    1745 B |       12.64 |
+| SkiaSharp Bitmap Resize |  1,558.8 μs |  10.30 μs |   9.13 μs |  0.17 |    0.00 |        - |        - |        - |     489 B |        3.54 |
+|          NetVips Resize |  3,540.6 μs |  23.28 μs |  21.78 μs |  0.39 |    0.00 |        - |        - |        - |    3859 B |       27.96 |
 ```
 
 </details>
@@ -292,43 +294,15 @@ The linear light blending combined with the sharpening work to preserve more det
 
 Also of note is that ImageSharp's thumbnail for this image is roughly twice the size of the others because it has embedded the 3KiB sRGB color profile from the original image unnecessarily.
 
-
-WebRSize
-========
-
-Secure, Scalable Image Resizing for ASP.NET and IIS.
-
-Requirements
-------------
-
-IIS 7+ with ASP.NET 4.6+.  The host App Pool must be run in Integrated Pipeline Mode.
-
-Installation
-------------
-
-WebRSize is available on [nuget](http://www.nuget.org/packages/PhotoSauce.WebRSize/)
-
-```
-PM> Install-Package PhotoSauce.WebRSize
-```
-
-Usage
------
-
-WebRSize must be configured in your application's web.config file.  It will not activate without a valid configuration.
-
-See the [documentation page](https://docs.photosauce.net/web.html) for more details.
-
-
 Versioning
 ----------
 
-This project is using [semantic versioning](http://semver.org/).  Releases without an alpha/beta/RC tag are considered release quality and are safe for production use. The major version number will remain at 0, however, until the APIs are complete and stabilized.
+This project is using [semantic versioning](http://semver.org/).  Releases without a Preview/RC tag are considered release quality and are safe for production use. The major version number will remain at 0, however, until the APIs are complete and stabilized.
 
 Contributing
 ------------
 
-Contributions are welcome, but please open a new issue or discussion before submitting any pull requests that alter API or functionality.  This will hopefully save any wasted or duplicate efforts.
+Contributions are welcome, but please open a new issue or discussion before submitting any pull requests that alter API or functionality.  This will hopefully save any wasted or duplicate effort.
 
 License
 -------

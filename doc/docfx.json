@@ -35,7 +35,7 @@
     "markdownEngineName": "markdig",
     "postProcessors": "ExtractSearchIndex",
     "globalMetadata": {
-      "_appFooter": "<span>Copyright © 2021 Clinton Ingram<br>Generated with <strong>DocFX</strong></span>",
+      "_appFooter": "<span>Copyright © 2022 Clinton Ingram<br>Generated with <strong>DocFX</strong></span>",
       "_appTitle": "PhotoSauce Documentation",
       "_enableSearch": true,
       "_enableNewTab": false,

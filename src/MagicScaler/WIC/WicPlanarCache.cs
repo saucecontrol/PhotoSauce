@@ -33,8 +33,8 @@ namespace PhotoSauce.MagicScaler
 			var descCr = desc[2];
 
 			// IWICPlanarBitmapSourceTransform only supports 4:2:0, 4:4:0, 4:2:2, and 4:4:4 subsampling, so ratios will always be 1 or 2
-			subsampleRatioX = (int)((descY.Width + 1u) / descCb.Width);
-			subsampleRatioY = (int)((descY.Height + 1u) / descCb.Height);
+			subsampleRatioX = (int)((descY.Width + 1u & ~1u) / descCb.Width);
+			subsampleRatioY = (int)((descY.Height + 1u & ~1u) / descCb.Height);
 
 			var scrop = new WICRect {
 				X = MathUtil.PowerOfTwoFloor(crop.X, subsampleRatioX),

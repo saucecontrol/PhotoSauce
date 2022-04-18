@@ -27,4 +27,4 @@ The above example will resize `big.jpg` to a width of 400 pixels and save the ou
 
 The MagicScaler pipleline is also customizable if you wish to use an alternate pixel source, capture the output pixels for additional processing, or add custom filtering.
 
-See the [full documentation](https://docs.photosauce.net) for more details.
+See the [full documentation](https://docs.photosauce.net/api/PhotoSauce.MagicScaler.MagicImageProcessor.html) for more details.
