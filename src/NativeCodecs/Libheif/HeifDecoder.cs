@@ -79,10 +79,7 @@ internal sealed unsafe class HeifContainer : IImageContainer
 		reader = default;
 
 		if (disposing)
-		{
-			stream.Dispose();
 			GC.SuppressFinalize(this);
-		}
 	}
 
 	public void Dispose() => dispose(true);
