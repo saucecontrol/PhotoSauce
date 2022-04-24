@@ -4,10 +4,6 @@ using System;
 using System.IO;
 using System.Diagnostics;
 using System.Buffers.Binary;
-#if NET5_0_OR_GREATER
-using System.Runtime.InteropServices;
-using System.Runtime.CompilerServices;
-#endif
 
 using PhotoSauce.MagicScaler;
 using PhotoSauce.Interop.Libheif;

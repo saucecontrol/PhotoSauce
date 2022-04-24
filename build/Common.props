@@ -32,6 +32,7 @@
 		<BaseOutputPath>$(RepositoryRoot)out\bin\$(MSBuildProjectName)\</BaseOutputPath>
 		<IntermediateOutputPath>$(BaseIntermediateOutputPath)$(Configuration)\</IntermediateOutputPath>
 		<OutputPath>$(BaseOutputPath)$(Configuration)\</OutputPath>
+		<PackageOutputPath>$(RepositoryRoot)out\nuget\</PackageOutputPath>
 		<IntDir>$(IntermediateOutputPath)$(TargetFramework)\</IntDir>
 		<OutDir>$(OutputPath)$(TargetFramework)\</OutDir>
 
@@ -53,7 +54,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Net.Compilers.Toolset" Version="4.2.0-2.final" PrivateAssets="all" />		
+		<PackageReference Include="Microsoft.Net.Compilers.Toolset" Version="4.2.0-2.final" PrivateAssets="all" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">

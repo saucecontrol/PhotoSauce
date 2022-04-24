@@ -163,7 +163,7 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 		}
 	}
 
-	public void Dispose()
+	private void dispose(bool disposing)
 	{
 		if (decoder == default)
 			return;
@@ -174,10 +174,13 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 		JxlDecoderDestroy(decoder);
 		decoder = default;
 
-		GC.SuppressFinalize(this);
+		if (disposing)
+			GC.SuppressFinalize(this);
 	}
 
-	~JxlContainer() => Dispose();
+	public void Dispose() => dispose(true);
+
+	~JxlContainer() => dispose(false);
 
 	private sealed class JxlFrame : IImageFrame, IMetadataSource
 	{

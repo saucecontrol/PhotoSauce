@@ -56,3 +56,12 @@ Licensed under the GNU Lesser General Public License version 3.
 
 Available at
 https://github.com/strukturag/libheif/blob/master/COPYING
+
+License notice for libwebp
+--------------------------
+
+Copyright (c) 2010, Google Inc. All rights reserved.
+Licensed under a 3-clause BSD License.
+
+Available at
+https://chromium.googlesource.com/webm/libwebp/+/refs/heads/main/COPYING

@@ -138,7 +138,7 @@ internal sealed unsafe class JxlEncoder : IImageEncoder
 			throw new InvalidOperationException("An image frame has not been written.");
 	}
 
-	public void Dispose()
+	private void dispose(bool disposing)
 	{
 		if (encoder == default)
 			return;
@@ -146,8 +146,11 @@ internal sealed unsafe class JxlEncoder : IImageEncoder
 		JxlEncoderDestroy(encoder);
 		encoder = encopt = default;
 
-		GC.SuppressFinalize(this);
+		if (disposing)
+			GC.SuppressFinalize(this);
 	}
 
-	~JxlEncoder() => Dispose();
+	public void Dispose() => dispose(true);
+
+	~JxlEncoder() => dispose(false);
 }

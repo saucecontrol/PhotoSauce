@@ -24,23 +24,23 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y g++-aarch64-linux-gnu
           modules/vcpkg/bootstrap-vcpkg.sh
-        buildScript: modules/vcpkg/vcpkg install libheif libjxl --triplet=arm64-linux-staticdependencies @build/vcpkg/response
+        buildScript: modules/vcpkg/vcpkg install libheif libjxl libwebp --triplet=arm64-linux-staticdependencies @build/vcpkg/response
       linux-x64:
         imageName: ubuntu-latest
         setupScript: modules/vcpkg/bootstrap-vcpkg.sh
-        buildScript: modules/vcpkg/vcpkg install libheif libjxl --triplet=x64-linux-staticdependencies @build/vcpkg/response
+        buildScript: modules/vcpkg/vcpkg install libheif libjxl libwebp --triplet=x64-linux-staticdependencies @build/vcpkg/response
       windows-arm64:
         imageName: windows-latest
         setupScript: modules\vcpkg\bootstrap-vcpkg.bat
-        buildScript: modules\vcpkg\vcpkg install libheif libjxl --triplet=arm64-windows-staticdependencies @build\vcpkg\response
+        buildScript: modules\vcpkg\vcpkg install libheif libjxl libwebp --triplet=arm64-windows-staticdependencies @build\vcpkg\response
       windows-x64:
         imageName: windows-latest
         setupScript: modules\vcpkg\bootstrap-vcpkg.bat
-        buildScript: modules\vcpkg\vcpkg install libheif libjxl --triplet=x64-windows-staticdependencies @build\vcpkg\response
+        buildScript: modules\vcpkg\vcpkg install libheif libjxl libwebp --triplet=x64-windows-staticdependencies @build\vcpkg\response
       windows-x86:
         imageName: windows-latest
         setupScript: modules\vcpkg\bootstrap-vcpkg.bat
-        buildScript: modules\vcpkg\vcpkg install libheif libjxl --triplet=x86-windows-staticdependencies @build\vcpkg\response
+        buildScript: modules\vcpkg\vcpkg install libheif libjxl libwebp --triplet=x86-windows-staticdependencies @build\vcpkg\response
 
   pool:
     vmImage: $(imageName)
@@ -119,6 +119,7 @@ jobs:
       dotnet build -c Dist --version-suffix ci$(Build.BuildNumber) --no-dependencies src/WebRSize
       dotnet build -c Dist --version-suffix ci$(Build.BuildNumber) --no-dependencies src/NativeCodecs/Libjxl
       dotnet build -c Dist --version-suffix ci$(Build.BuildNumber) --no-dependencies src/NativeCodecs/Libheif
+      dotnet build -c Dist --version-suffix ci$(Build.BuildNumber) --no-dependencies src/NativeCodecs/Libwebp
     displayName: Build Managed
 
   - publish: out/bin
@@ -128,6 +129,6 @@ jobs:
   - task: NuGetAuthenticate@0
     condition: ne(variables['Build.Reason'], 'PullRequest')
 
-  - script: dotnet nuget push --source $(azureNuget) --api-key AzureArtifacts out/bin/**/*.nupkg
+  - script: dotnet nuget push --source $(azureNuget) --api-key AzureArtifacts out/nuget/*.nupkg
     displayName: Push Packages
     condition: ne(variables['Build.Reason'], 'PullRequest')

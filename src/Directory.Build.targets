@@ -20,7 +20,7 @@
 	<Target Name="_ExactProjectReferencesVersion" AfterTargets="_GetProjectReferenceVersions" Condition="'@(_ProjectReferencesWithVersions)'!=''">
 		<ItemGroup>
 			<_ProjectReferencesWithExactVersions Include="@(_ProjectReferencesWithVersions)">
-				<ProjectVersion>[%(_ProjectReferencesWithVersions.ProjectVersion),$([MSBuild]::Add($([System.Text.RegularExpressions.Regex]::Match('%(_ProjectReferencesWithVersions.ProjectVersion)', '^\d+\.\d+').Value), '0.01')))</ProjectVersion>
+				<ProjectVersion>[$([System.Text.RegularExpressions.Regex]::Match('%(_ProjectReferencesWithVersions.ProjectVersion)', '^\d+\.\d+\.\d+').Value),$([MSBuild]::Add($([System.Text.RegularExpressions.Regex]::Match('%(_ProjectReferencesWithVersions.ProjectVersion)', '^\d+\.\d+').Value), '0.01')))</ProjectVersion>
 			</_ProjectReferencesWithExactVersions>
 		</ItemGroup>
 

@@ -36,7 +36,7 @@ internal static unsafe class HeifFactory
 
 		uint ver = heif_get_version_number();
 		if (ver != libver)
-			throw new NotSupportedException($"Incorrect {libheif} version was loaded.  Expected {libver}, found {ver}.");
+			throw new NotSupportedException($"Incorrect {libheif} version was loaded.  Expected 0x{libver:x8}, found 0x{ver:x8}.");
 
 		return true;
 	});
