@@ -13,7 +13,7 @@ using static PhotoSauce.Interop.Libwebp.Libwebp;
 namespace PhotoSauce.NativeCodecs.Libwebp;
 
 /// <inheritdoc cref="WindowsCodecExtensions" />
-public static unsafe class WebPCodec
+public static unsafe class WebpCodec
 {
 	internal const string libwebp = nameof(libwebp);
 	private const string displayName = $"{libwebp} 1.2.2";
@@ -49,6 +49,8 @@ public static unsafe class WebPCodec
 	/// <inheritdoc cref="WindowsCodecExtensions.UseWicCodecs(CodecCollection, WicCodecPolicy)" />
 	public static void UseLibwebp(this CodecCollection codecs)
 	{
+		Guard.NotNull(codecs);
+
 		if (!dependencyValid.Value)
 			return;
 
@@ -59,13 +61,13 @@ public static unsafe class WebPCodec
 			new ContainerPattern[] {
 				new(0, new byte[] { (byte)'R', (byte)'I', (byte)'F', (byte)'F', 0, 0, 0, 0, (byte)'W', (byte)'E', (byte)'B', (byte)'P' }, new byte[] { 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff })
 			},
-			null,
-			WebPContainer.TryLoad
+			WebpDecoderOptions.Default,
+			WebpContainer.TryLoad
 		));
 	}
 }
 
-internal static class WebPResult
+internal static class WebpResult
 {
 	public static void Check(VP8StatusCode status)
 	{
@@ -76,7 +78,7 @@ internal static class WebPResult
 	public static void Check(int res)
 	{
 		if (res == 0)
-			throw new InvalidOperationException($"{WebPCodec.libwebp} returned an unexpected failure.");
+			throw new InvalidOperationException($"{WebpCodec.libwebp} returned an unexpected failure.");
 	}
 
 	public static bool Succeeded(int res) => res != 0;

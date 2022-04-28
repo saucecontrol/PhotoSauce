@@ -54,9 +54,11 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="outStream">The stream to which the output image will be written. The stream must allow Seek and Write.</param>
 		/// <param name="settings">The settings for this processing operation.</param>
 		/// <returns>A <see cref="ProcessImageResult" /> containing the settings used and basic instrumentation for the pipeline.</returns>
-		public static ProcessImageResult ProcessImage(string imgPath!!, Stream outStream!!, ProcessImageSettings settings!!)
+		public static ProcessImageResult ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
 		{
-			outStream.EnsureValidForOutput();
+			Guard.ValidForOutput(outStream);
+			Guard.NotNullOrEmpty(imgPath);
+			Guard.NotNull(settings);
 
 			using var fs = new FileStream(imgPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
 			using var bfs = new PoolBufferedStream(fs);
@@ -71,8 +73,12 @@ namespace PhotoSauce.MagicScaler
 		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
 		/// <param name="outPath">The path to which the output image will be written.</param>
 		/// <remarks>If <paramref name="outPath"/> already exists, it will be overwritten.</remarks>
-		public static ProcessImageResult ProcessImage(string imgPath!!, string outPath!!, ProcessImageSettings settings!!)
+		public static ProcessImageResult ProcessImage(string imgPath, string outPath, ProcessImageSettings settings)
 		{
+			Guard.NotNullOrEmpty(outPath);
+			Guard.NotNullOrEmpty(imgPath);
+			Guard.NotNull(settings);
+
 			setEncoderFromPath(settings, outPath);
 			using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
 
@@ -81,10 +87,11 @@ namespace PhotoSauce.MagicScaler
 
 		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
 		/// <param name="imgBuffer">A buffer containing a supported input image container.</param>
-		public static unsafe ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream!!, ProcessImageSettings settings!!)
+		public static unsafe ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
-			if (imgBuffer.IsEmpty) throw new ArgumentNullException(nameof(imgBuffer));
-			outStream.EnsureValidForOutput();
+			Guard.ValidForOutput(outStream);
+			Guard.NotEmpty(imgBuffer);
+			Guard.NotNull(settings);
 
 			fixed (byte* pbBuffer = imgBuffer)
 			{
@@ -100,8 +107,12 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="imgBuffer">A buffer containing a supported input image container.</param>
 		/// <param name="outPath">The path to which the output image will be written.</param>
 		/// <remarks>If <paramref name="outPath"/> already exists, it will be overwritten.</remarks>
-		public static unsafe ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, string outPath!!, ProcessImageSettings settings!!)
+		public static unsafe ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, string outPath, ProcessImageSettings settings)
 		{
+			Guard.NotNullOrEmpty(outPath);
+			Guard.NotEmpty(imgBuffer);
+			Guard.NotNull(settings);
+
 			setEncoderFromPath(settings, outPath);
 			using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
 
@@ -110,10 +121,11 @@ namespace PhotoSauce.MagicScaler
 
 		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
 		/// <param name="imgStream">A stream containing a supported input image container. The stream must allow Seek and Read.</param>
-		public static ProcessImageResult ProcessImage(Stream imgStream!!, Stream outStream!!, ProcessImageSettings settings!!)
+		public static ProcessImageResult ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings)
 		{
-			imgStream.EnsureValidForInput();
-			outStream.EnsureValidForOutput();
+			Guard.ValidForOutput(outStream);
+			Guard.ValidForInput(imgStream);
+			Guard.NotNull(settings);
 
 			using var bfs = PoolBufferedStream.WrapIfFile(imgStream);
 			using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(bfs ?? imgStream, settings.DecoderOptions));
@@ -124,8 +136,12 @@ namespace PhotoSauce.MagicScaler
 
 		/// <inheritdoc cref="ProcessImage(string, string, ProcessImageSettings)" />
 		/// <param name="imgStream">A stream containing a supported input image container. The stream must allow Seek and Read.</param>
-		public static unsafe ProcessImageResult ProcessImage(Stream imgStream!!, string outPath!!, ProcessImageSettings settings!!)
+		public static unsafe ProcessImageResult ProcessImage(Stream imgStream, string outPath, ProcessImageSettings settings)
 		{
+			Guard.NotNullOrEmpty(outPath);
+			Guard.ValidForInput(imgStream);
+			Guard.NotNull(settings);
+
 			setEncoderFromPath(settings, outPath);
 			using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
 
@@ -134,9 +150,11 @@ namespace PhotoSauce.MagicScaler
 
 		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
 		/// <param name="imgSource">A custom pixel source to use as input.</param>
-		public static ProcessImageResult ProcessImage(IPixelSource imgSource!!, Stream outStream!!, ProcessImageSettings settings!!)
+		public static ProcessImageResult ProcessImage(IPixelSource imgSource, Stream outStream, ProcessImageSettings settings)
 		{
-			outStream.EnsureValidForOutput();
+			Guard.ValidForOutput(outStream);
+			Guard.NotNull(imgSource);
+			Guard.NotNull(settings);
 
 			using var ctx = new PipelineContext(settings, new PixelSourceContainer(imgSource));
 			buildPipeline(ctx);
@@ -146,8 +164,12 @@ namespace PhotoSauce.MagicScaler
 
 		/// <inheritdoc cref="ProcessImage(string, string, ProcessImageSettings)" />
 		/// <param name="imgSource">A custom pixel source to use as input.</param>
-		public static unsafe ProcessImageResult ProcessImage(IPixelSource imgSource!!, string outPath!!, ProcessImageSettings settings!!)
+		public static unsafe ProcessImageResult ProcessImage(IPixelSource imgSource, string outPath, ProcessImageSettings settings)
 		{
+			Guard.NotNullOrEmpty(outPath);
+			Guard.NotNull(imgSource);
+			Guard.NotNull(settings);
+
 			setEncoderFromPath(settings, outPath);
 			using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
 
@@ -156,9 +178,11 @@ namespace PhotoSauce.MagicScaler
 
 		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
 		/// <param name="imgContainer">A custom <see cref="IImageContainer"/> to use as input.</param>
-		public static ProcessImageResult ProcessImage(IImageContainer imgContainer!!, Stream outStream!!, ProcessImageSettings settings!!)
+		public static ProcessImageResult ProcessImage(IImageContainer imgContainer, Stream outStream, ProcessImageSettings settings)
 		{
-			outStream.EnsureValidForOutput();
+			Guard.ValidForOutput(outStream);
+			Guard.NotNull(imgContainer);
+			Guard.NotNull(settings);
 
 			using var ctx = new PipelineContext(settings, imgContainer, false);
 			buildPipeline(ctx);
@@ -168,8 +192,12 @@ namespace PhotoSauce.MagicScaler
 
 		/// <inheritdoc cref="ProcessImage(string, string, ProcessImageSettings)" />
 		/// <param name="imgContainer">A custom <see cref="IImageContainer"/> to use as input.</param>
-		public static unsafe ProcessImageResult ProcessImage(IImageContainer imgContainer!!, string outPath!!, ProcessImageSettings settings!!)
+		public static unsafe ProcessImageResult ProcessImage(IImageContainer imgContainer, string outPath, ProcessImageSettings settings)
 		{
+			Guard.NotNullOrEmpty(outPath);
+			Guard.NotNull(imgContainer);
+			Guard.NotNull(settings);
+
 			setEncoderFromPath(settings, outPath);
 			using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
 
@@ -180,8 +208,11 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="imgPath">The path to a file containing the input image.</param>
 		/// <param name="settings">The settings for this processing operation.</param>
 		/// <returns>A <see cref="ProcessingPipeline" /> containing the <see cref="IPixelSource" />, settings used, and basic instrumentation for the pipeline.</returns>
-		public static ProcessingPipeline BuildPipeline(string imgPath!!, ProcessImageSettings settings!!)
+		public static ProcessingPipeline BuildPipeline(string imgPath, ProcessImageSettings settings)
 		{
+			Guard.NotNullOrEmpty(imgPath);
+			Guard.NotNull(settings);
+
 			var fs = new FileStream(imgPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
 			var bfs = new PoolBufferedStream(fs, true);
 			var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(bfs, settings.DecoderOptions));
@@ -193,9 +224,10 @@ namespace PhotoSauce.MagicScaler
 
 		/// <inheritdoc cref="BuildPipeline(string, ProcessImageSettings)" />
 		/// <param name="imgStream">A stream containing a supported input image container. The stream must allow Seek and Read.</param>
-		public static ProcessingPipeline BuildPipeline(Stream imgStream!!, ProcessImageSettings settings!!)
+		public static ProcessingPipeline BuildPipeline(Stream imgStream, ProcessImageSettings settings)
 		{
-			imgStream.EnsureValidForInput();
+			Guard.ValidForInput(imgStream);
+			Guard.NotNull(settings);
 
 			var bfs = PoolBufferedStream.WrapIfFile(imgStream);
 			var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(bfs ?? imgStream, settings.DecoderOptions));
@@ -209,8 +241,11 @@ namespace PhotoSauce.MagicScaler
 
 		/// <inheritdoc cref="BuildPipeline(string, ProcessImageSettings)" />
 		/// <param name="imgSource">A custom pixel source to use as input.</param>
-		public static ProcessingPipeline BuildPipeline(IPixelSource imgSource!!, ProcessImageSettings settings!!)
+		public static ProcessingPipeline BuildPipeline(IPixelSource imgSource, ProcessImageSettings settings)
 		{
+			Guard.NotNull(imgSource);
+			Guard.NotNull(settings);
+
 			var ctx = new PipelineContext(settings, new PixelSourceContainer(imgSource));
 			buildPipeline(ctx, false);
 
@@ -219,8 +254,11 @@ namespace PhotoSauce.MagicScaler
 
 		/// <inheritdoc cref="BuildPipeline(string, ProcessImageSettings)" />
 		/// <param name="imgContainer">A custom <see cref="IImageContainer"/> to use as input.</param>
-		public static ProcessingPipeline BuildPipeline(IImageContainer imgContainer!!, ProcessImageSettings settings!!)
+		public static ProcessingPipeline BuildPipeline(IImageContainer imgContainer, ProcessImageSettings settings)
 		{
+			Guard.NotNull(imgContainer);
+			Guard.NotNull(settings);
+
 			var ctx = new PipelineContext(settings, imgContainer, false);
 			buildPipeline(ctx, false);
 
@@ -266,7 +304,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				processPlanar = wicFrame.SupportsPlanarProcessing && ctx.Settings.Interpolation.WeightingFunction.Support >= 0.5;
 				bool profilingPassThrough = processPlanar || (wicFrame.SupportsNativeScale && ctx.Settings.HybridScaleRatio > 1);
-				ctx.Source = ctx.AddProfiler(new ComPtr<IWICBitmapSource>(wicFrame.WicSource).AsPixelSource(nameof(IWICBitmapFrameDecode), !profilingPassThrough));
+				ctx.Source = ctx.AddProfiler(new ComPtr<IWICBitmapSource>(wicFrame.WicSource).Detach()->AsPixelSource(nameof(IWICBitmapFrameDecode), !profilingPassThrough));
 			}
 			else if (ctx.ImageFrame is IYccImageFrame yccFrame)
 			{

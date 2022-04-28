@@ -164,53 +164,50 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		private unsafe void loadBuffer(int first, int lines)
 		{
-			fixed (byte* mapxstart = XMap.Map)
+			int fli = first, cli = lines;
+			var ispan = IntBuff.PrepareLoad(ref fli, ref cli);
+
+			Span<byte> bspan, wspan;
+			if (typeof(TConv) == typeof(ConvolutionType.Buffered))
 			{
-				int fli = first, cli = lines;
-				var ispan = IntBuff.PrepareLoad(ref fli, ref cli);
-
-				Span<byte> bspan, wspan;
-				if (typeof(TConv) == typeof(ConvolutionType.Buffered))
-				{
-					var cbuf = (ConvolutionType.Buffered)(object)ConvBuff;
-					bspan = cbuf.SrcBuff!.PrepareLoad(first, lines);
-					if (cbuf.WorkBuff is not null)
-						wspan = cbuf.WorkBuff.PrepareLoad(first, lines);
-					else
-						wspan = bspan;
-				}
+				var cbuf = (ConvolutionType.Buffered)(object)ConvBuff;
+				bspan = cbuf.SrcBuff!.PrepareLoad(first, lines);
+				if (cbuf.WorkBuff is not null)
+					wspan = cbuf.WorkBuff.PrepareLoad(first, lines);
 				else
-				{
-					var cbuf = (ConvolutionType.Direct)(object)ConvBuff;
-					bspan = cbuf.LineBuff.Span;
 					wspan = bspan;
-				}
+			}
+			else
+			{
+				var cbuf = (ConvolutionType.Direct)(object)ConvBuff;
+				bspan = cbuf.LineBuff.Span;
+				wspan = bspan;
+			}
 
-				fixed (byte* bline = bspan, wline = wspan, tline = ispan)
+			fixed (byte* bline = bspan, wline = wspan, tline = ispan, mapxstart = XMap.Map)
+			{
+				byte* bp = bline, wp = wline, tp = tline;
+				for (int ly = 0; ly < cli; ly++)
 				{
-					byte* bp = bline, wp = wline, tp = tline;
-					for (int ly = 0; ly < cli; ly++)
+					Profiler.PauseTiming();
+					PrevSource.CopyPixels(new PixelArea(0, fli + ly, PrevSource.Width, 1), bspan.Length, bspan.Length, bp);
+					Profiler.ResumeTiming();
+
+					if (typeof(TConv) == typeof(ConvolutionType.Buffered) && bp != wp)
 					{
-						Profiler.PauseTiming();
-						PrevSource.CopyPixels(new PixelArea(0, fli + ly, PrevSource.Width, 1), bspan.Length, bspan.Length, bp);
-						Profiler.ResumeTiming();
+						var cbuf = (ConvolutionType.Buffered)(object)ConvBuff;
+						cbuf.Converter!.ConvertLine(bp, wp, cbuf.SrcBuff.Stride);
+					}
 
-						if (typeof(TConv) == typeof(ConvolutionType.Buffered) && bp != wp)
-						{
-							var cbuf = (ConvolutionType.Buffered)(object)ConvBuff;
-							cbuf.Converter!.ConvertLine(bp, wp, cbuf.SrcBuff.Stride);
-						}
+					XProcessor.ConvolveSourceLine(wp, tp, ispan.Length - ly * IntBuff.Stride, mapxstart, XMap.Samples, lines);
 
-						XProcessor.ConvolveSourceLine(wp, tp, ispan.Length - ly * IntBuff.Stride, mapxstart, XMap.Samples, lines);
+					tp += IntBuff.Stride;
 
-						tp += IntBuff.Stride;
-
-						if (typeof(TConv) == typeof(ConvolutionType.Buffered))
-						{
-							var cbuf = (ConvolutionType.Buffered)(object)ConvBuff;
-							wp += (cbuf.WorkBuff ?? cbuf.SrcBuff).Stride;
-							bp += cbuf.SrcBuff.Stride;
-						}
+					if (typeof(TConv) == typeof(ConvolutionType.Buffered))
+					{
+						var cbuf = (ConvolutionType.Buffered)(object)ConvBuff;
+						wp += (cbuf.WorkBuff ?? cbuf.SrcBuff).Stride;
+						bp += cbuf.SrcBuff.Stride;
 					}
 				}
 			}

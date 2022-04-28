@@ -23,5 +23,5 @@ internal unsafe partial struct WebPMuxFrameInfo
     public WebPMuxAnimBlend blend_method;
 
     [NativeTypeName("uint32_t[1]")]
-    public fixed uint pad[1];
+    private fixed uint pad[1];
 }

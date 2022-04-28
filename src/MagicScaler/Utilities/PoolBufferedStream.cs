@@ -30,7 +30,7 @@ namespace PhotoSauce.MagicScaler
 
 		public static Stream? WrapIfFile(Stream stm) => stm is FileStream fs ? new PoolBufferedStream(fs) : null;
 
-		public PoolBufferedStream(Stream stm!!, bool own = false)
+		public PoolBufferedStream(Stream stm, bool own = false)
 		{
 			if (!stm.CanSeek) throw new NotSupportedException("Stream must support Seek.");
 
@@ -127,8 +127,8 @@ namespace PhotoSauce.MagicScaler
 		{
 			byte[] lbuf = buffer ?? throwObjectDisposed();
 
-			var buffrem = lbuf.AsSpan(readpos, readlen - readpos);
-			if (buffrem.IsEmpty)
+			int buffrem = readlen - readpos;
+			if (buffrem == 0)
 			{
 				if (writepos != 0)
 					flushWrite();
@@ -144,22 +144,23 @@ namespace PhotoSauce.MagicScaler
 					return read;
 				}
 
-				buffrem = buffer.AsSpan(0, backingStream.Read(buffer, 0, bufflen));
-				if (buffrem.IsEmpty)
-					return 0;
+				buffrem = backingStream.Read(lbuf, 0, bufflen);
 
 				readpos = 0;
-				readlen = buffrem.Length;
-				stmpos += (uint)buffrem.Length;
+				readlen = buffrem;
+				stmpos += (uint)buffrem;
 			}
 
-			if (buffrem.Length > dest.Length)
-				buffrem = buffrem[..dest.Length];
+			if (buffrem > dest.Length)
+				buffrem = dest.Length;
 
-			buffrem.CopyTo(dest);
+			if (buffrem != 0)
+			{
+				lbuf.AsSpan(readpos, buffrem).CopyTo(dest);
+				readpos += buffrem;
+			}
 
-			readpos += buffrem.Length;
-			return buffrem.Length;
+			return buffrem;
 		}
 
 		public override int ReadByte()
@@ -207,33 +208,24 @@ namespace PhotoSauce.MagicScaler
 			}
 			else
 			{
-				if (writepos < bufflen)
+				int buffrem = bufflen - writepos;
+				if (buffrem != 0)
 				{
-					var buffrem = lbuf.AsSpan(writepos);
-					if (buffrem.Length >= source.Length)
-					{
-						source.CopyTo(buffrem);
-						writepos += source.Length;
-						return;
-					}
-					else
-					{
-						source[..(bufflen - writepos)].CopyTo(buffrem);
-						writepos += buffrem.Length;
-						source = source[buffrem.Length..];
-						if (array.Array is not null)
-							array = array.Slice(buffrem.Length);
-					}
+					if (source.Length <= buffrem)
+						goto WriteToBuffer;
+
+					source[..buffrem].CopyTo(lbuf.AsSpan(writepos));
+					writepos += buffrem;
+
+					source = source[buffrem..];
+					if (array.Array is not null)
+						array = array.Slice(buffrem);
 				}
 
 				flushWrite();
 			}
 
-			if (source.IsEmpty)
-			{
-				return;
-			}
-			else if (source.Length >= bufflen)
+			if (source.Length >= bufflen)
 			{
 				if (array.Array is not null)
 					backingStream.Write(array.Array, array.Offset, array.Count);
@@ -247,8 +239,12 @@ namespace PhotoSauce.MagicScaler
 				return;
 			}
 
-			source.CopyTo(buffer.AsSpan(writepos));
-			writepos = source.Length;
+		WriteToBuffer:
+			if (!source.IsEmpty)
+			{
+				source.CopyTo(lbuf.AsSpan(writepos));
+				writepos += source.Length;
+			}
 		}
 
 		public override void WriteByte(byte value)
@@ -290,6 +286,8 @@ namespace PhotoSauce.MagicScaler
 
 			if (ownStream)
 				backingStream.Dispose();
+
+			base.Dispose(disposing);
 		}
 	}
 }

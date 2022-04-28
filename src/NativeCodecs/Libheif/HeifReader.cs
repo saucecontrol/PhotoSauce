@@ -5,9 +5,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
-#if !NET5_0_OR_GREATER
 using PhotoSauce.MagicScaler;
-#endif
 
 namespace PhotoSauce.Interop.Libheif;
 
@@ -89,17 +87,8 @@ internal unsafe ref struct HeifReader
 			}
 			else
 			{
-				var buff = new Span<byte>(pv, (int)cb);
-
-				int rb;
-				do
-				{
-					rb = stm.Read(buff);
-					buff = buff[rb..];
-				}
-				while (rb != 0 && buff.Length != 0);
-
-				read = cb - (uint)buff.Length;
+				var buff = new Span<byte>(pv, checked((int)cb));
+				read = (uint)stm.TryFillBuffer(buff);
 			}
 
 			return read == cb ? 0 : 1;

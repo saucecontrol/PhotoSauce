@@ -34,7 +34,7 @@ namespace PhotoSauce.MagicScaler
 			if (value.Length != 6 && value.Length != 8)
 				return false;
 
-			if (!uint.TryParse(value, NumberStyles.HexNumber, NumberFormatInfo.CurrentInfo, out uint ival))
+			if (!uint.TryParse(value, NumberStyles.HexNumber, NumberFormatInfo.InvariantInfo, out uint ival))
 				return false;
 
 			color = Color.FromArgb((int)(value.Length == 6 ? 0xff000000 | ival : ival));

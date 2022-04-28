@@ -1,6 +1,7 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
+using System.Runtime.CompilerServices;
 
 using TerraFX.Interop.Windows;
 
@@ -77,11 +78,11 @@ namespace PhotoSauce.MagicScaler
 
 	internal static unsafe class WicPixelSourceExtensions
 	{
-		public static WicPixelSource AsPixelSource(this ComPtr<IWICBitmapSource> source, string name, bool profile = true) =>
-			new(null, source, name, profile);
+		public static WicPixelSource AsPixelSource(this ref IWICBitmapSource source, string name, bool profile = true) =>
+			new(null, (IWICBitmapSource*)Unsafe.AsPointer(ref source), name, profile);
 
-		public static WicPixelSource AsPixelSource(this ComPtr<IWICBitmapSource> source, PixelSource? managed, string name, bool profile = true) =>
-			new(managed, source, name, profile);
+		public static WicPixelSource AsPixelSource(this ref IWICBitmapSource source, PixelSource? managed, string name, bool profile = true) =>
+			new(managed, (IWICBitmapSource*)Unsafe.AsPointer(ref source), name, profile);
 
 		public static IWICBitmapSource* AsIWICBitmapSource(this PixelSource source, bool forceWrap = false)
 		{

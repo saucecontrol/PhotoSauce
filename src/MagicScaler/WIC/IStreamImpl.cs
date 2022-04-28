@@ -8,9 +8,7 @@ using System.Threading;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
-#if !NET5_0_OR_GREATER
 using PhotoSauce.MagicScaler;
-#endif
 
 using TerraFX.Interop.Windows;
 using static TerraFX.Interop.Windows.E;
@@ -115,17 +113,8 @@ namespace PhotoSauce.Interop.Wic
 			}
 			else
 			{
-				var buff = new Span<byte>(pv, (int)cb);
-
-				int rb;
-				do
-				{
-					rb = stm.Read(buff);
-					buff = buff[rb..];
-				}
-				while (rb != 0 && buff.Length != 0);
-
-				read = cb - (uint)buff.Length;
+				var buff = new Span<byte>(pv, checked((int)cb));
+				read = (uint)stm.TryFillBuffer(buff);
 			}
 
 			if (pcbRead is not null)
@@ -145,7 +134,7 @@ namespace PhotoSauce.Interop.Wic
 			if (cb == 1)
 				stm.WriteByte(*(byte*)pv);
 			else
-				stm.Write(new ReadOnlySpan<byte>(pv, (int)cb));
+				stm.Write(new ReadOnlySpan<byte>(pv, checked((int)cb)));
 
 			if (pcbWritten is not null)
 				*pcbWritten = cb;

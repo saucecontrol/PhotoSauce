@@ -185,6 +185,9 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>The height of the animation's logical screen.  Values less than 1 imply the height is equal to the height of the first frame.</summary>
 		public readonly int ScreenHeight;
 
+		/// <summary>The total number of frames in the animation, disregarding any <see cref="IMultiFrameDecoderOptions.FrameRange" /> decoder option.</summary>
+		public readonly int FrameCount;
+
 		/// <summary>The number of times to loop the animation.  Values less than 1 imply inifinte looping.</summary>
 		public readonly int LoopCount;
 
@@ -194,8 +197,8 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>True if this animation requires a persistent screen buffer onto which frames are rendered, otherwise false.</summary>
 		public readonly bool RequiresScreenBuffer;
 
-		public AnimationContainer(int screenWidth, int screenHeight, int loopCount = 0, int bgColor = 0, bool screenBuffer = false) =>
-			(ScreenWidth, ScreenHeight, LoopCount, BackgroundColor, RequiresScreenBuffer) = (screenWidth, screenHeight, loopCount, bgColor, screenBuffer);
+		public AnimationContainer(int screenWidth, int screenHeight, int frameCount, int loopCount = 0, int bgColor = 0, bool screenBuffer = false) =>
+			(ScreenWidth, ScreenHeight, FrameCount, LoopCount, BackgroundColor, RequiresScreenBuffer) = (screenWidth, screenHeight, frameCount, loopCount, bgColor, screenBuffer);
 	}
 
 	/// <summary>Defines metadata for a single frame within an animated image sequence.</summary>

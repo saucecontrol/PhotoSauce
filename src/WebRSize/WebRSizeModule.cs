@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Web;
 using System.Web.Hosting;
+using System.Globalization;
 using System.Threading.Tasks;
 
 using PhotoSauce.MagicScaler;
@@ -59,7 +60,7 @@ namespace PhotoSauce.WebRSize
 			ifi ??= vpp is CachingAsyncVirtualPathProvider vppAF ? await vppAF.GetImageInfoAsync(path).ConfigureAwait(false) : await CacheHelper.GetImageInfoAsync(vpp, path).ConfigureAwait(false);
 
 			int rw = s.Width, rh = s.Height;
-			if (double.TryParse(dic.GetValueOrDefault("devicepixelratio") ?? dic.GetValueOrDefault("dpr"), out double dpr))
+			if (double.TryParse(dic.GetValueOrDefault("devicepixelratio") ?? dic.GetValueOrDefault("dpr"), NumberStyles.Float, NumberFormatInfo.InvariantInfo, out double dpr))
 			{
 				dpr = dpr.Clamp(1d, 5d);
 				if (dpr > 1d)

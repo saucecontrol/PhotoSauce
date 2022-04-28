@@ -89,8 +89,10 @@ namespace PhotoSauce.MagicScaler
 
 		/// <summary>Constructs a new <see cref="ImageFileInfo" /> instance by reading the metadata from an image file header.</summary>
 		/// <param name="imgPath">The path to the image file.</param>
-		public static ImageFileInfo Load(string imgPath!!)
+		public static ImageFileInfo Load(string imgPath)
 		{
+			Guard.NotNullOrEmpty(imgPath);
+
 			var fi = new FileInfo(imgPath);
 			using var fs = new FileStream(imgPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
 			using var bfs = new PoolBufferedStream(fs);
@@ -124,9 +126,9 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>Constructs a new <see cref="ImageFileInfo" /> instance by reading the metadata from an image file exposed by a <see cref="Stream" />.</summary>
 		/// <param name="imgStream">The stream containing the image data.</param>
 		/// <param name="lastModified">The last modified date of the image container.</param>
-		public static ImageFileInfo Load(Stream imgStream!!, DateTime lastModified)
+		public static ImageFileInfo Load(Stream imgStream, DateTime lastModified)
 		{
-			imgStream.EnsureValidForInput();
+			Guard.ValidForInput(imgStream);
 
 			using var bfs = PoolBufferedStream.WrapIfFile(imgStream);
 			using var cnt = CodecManager.GetDecoderForStream(bfs ?? imgStream);

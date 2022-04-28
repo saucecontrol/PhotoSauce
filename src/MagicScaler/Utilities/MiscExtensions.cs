@@ -23,29 +23,43 @@ namespace PhotoSauce.MagicScaler
 
 		public static bool ContainsInsensitive(this IEnumerable<string> c, string s) => c.Contains(s, StringComparer.OrdinalIgnoreCase);
 
+		public static int IndexOfOrdinal(this string s1, string s2) => s1.IndexOf(s2, StringComparison.Ordinal);
+
+		public static bool ContainsOrdinal(this string s1, string s2) => s1.IndexOfOrdinal(s2) >= 0;
+
+		public static bool StartsWithOrdinal(this string s1, string s2) => s1.StartsWith(s2, StringComparison.Ordinal);
+
+		public static bool EndsWithOrdinal(this string s1, string s2) => s1.EndsWith(s2, StringComparison.Ordinal);
+
 		public static bool IsTransparent(this Color c) => c.A < byte.MaxValue;
 
 		public static bool IsGrey(this Color c) => c.R == c.G && c.G == c.B;
-
-		public static void EnsureValidForInput(this Stream stm)
-		{
-			if (!stm.CanSeek || !stm.CanRead)
-				throw new InvalidOperationException("Input Stream must allow Seek and Read.");
-
-			if ((ulong)stm.Position >= (ulong)stm.Length)
-				throw new InvalidOperationException("Input Stream is empty or positioned at its end.");
-		}
-
-		public static void EnsureValidForOutput(this Stream stm)
-		{
-			if (!stm.CanSeek || !stm.CanWrite)
-				throw new InvalidOperationException("Output Stream must allow Seek and Write.");
-		}
 
 		public static void TryReturn<T>(this ArrayPool<T> pool, T[]? buff)
 		{
 			if (buff is not null)
 				pool.Return(buff);
+		}
+
+		public static void FillBuffer(this Stream stm, Span<byte> buff)
+		{
+			int rem = buff.Length;
+			while (rem > 0)
+				rem -= stm.Read(buff[^rem..]);
+		}
+
+		public static int TryFillBuffer(this Stream stm, Span<byte> buff)
+		{
+			int cb = buff.Length;
+			int rb;
+			do
+			{
+				rb = stm.Read(buff);
+				buff = buff[rb..];
+			}
+			while (rb != 0 && buff.Length != 0);
+
+			return cb - buff.Length;
 		}
 
 		public static Guid FinalizeToGuid<T>(this T hasher) where T : IBlake2Incremental

@@ -24,5 +24,5 @@ internal unsafe partial struct WebPAnimInfo
     public uint frame_count;
 
     [NativeTypeName("uint32_t[4]")]
-    public fixed uint pad[4];
+    private fixed uint pad[4];
 }

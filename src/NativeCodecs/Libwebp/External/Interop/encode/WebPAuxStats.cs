@@ -53,5 +53,5 @@ internal unsafe partial struct WebPAuxStats
     public int lossless_data_size;
 
     [NativeTypeName("uint32_t[2]")]
-    public fixed uint pad[2];
+    private fixed uint pad[2];
 }

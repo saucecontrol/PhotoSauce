@@ -37,7 +37,7 @@ internal unsafe partial struct WebPPicture
     public int a_stride;
 
     [NativeTypeName("uint32_t[2]")]
-    public fixed uint pad1[2];
+    private fixed uint pad1[2];
 
     [NativeTypeName("uint32_t *")]
     public uint* argb;
@@ -45,7 +45,7 @@ internal unsafe partial struct WebPPicture
     public int argb_stride;
 
     [NativeTypeName("uint32_t[3]")]
-    public fixed uint pad2[3];
+    private fixed uint pad2[3];
 
     [NativeTypeName("WebPWriterFunction")]
     public delegate* unmanaged[Cdecl]<byte*, nuint, WebPPicture*, int> writer;
@@ -67,28 +67,28 @@ internal unsafe partial struct WebPPicture
     public void* user_data;
 
     [NativeTypeName("uint32_t[3]")]
-    public fixed uint pad3[3];
+    private fixed uint pad3[3];
 
     [NativeTypeName("uint8_t *")]
-    public byte* pad4;
+    private byte* pad4;
 
     [NativeTypeName("uint8_t *")]
-    public byte* pad5;
+    private byte* pad5;
 
     [NativeTypeName("uint32_t[8]")]
-    public fixed uint pad6[8];
+    private fixed uint pad6[8];
 
-    public void* memory_;
+    private void* memory_;
 
-    public void* memory_argb_;
+    private void* memory_argb_;
 
     [NativeTypeName("void *[2]")]
-    public _pad7_e__FixedBuffer pad7;
+    private _pad7_e__FixedBuffer pad7;
 
-    public unsafe partial struct _pad7_e__FixedBuffer
+    private unsafe partial struct _pad7_e__FixedBuffer
     {
-        public void* e0;
-        public void* e1;
+        private void* e0;
+        private void* e1;
 
         public ref void* this[int index]
         {

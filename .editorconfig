@@ -12,9 +12,11 @@ indent_size = 2
 
 [*.cs]
 file_header_template = Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
+
 csharp_style_deconstructed_variable_declaration = true:silent
 
 dotnet_diagnostic.CA1031.severity = silent
+dotnet_diagnostic.CA1308.severity = silent
 dotnet_diagnostic.CA1816.severity = silent
 dotnet_diagnostic.CS3016.severity = silent
 

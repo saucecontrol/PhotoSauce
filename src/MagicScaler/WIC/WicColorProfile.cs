@@ -101,14 +101,14 @@ namespace PhotoSauce.MagicScaler
 
 		private void dispose(bool disposing)
 		{
+			if (disposing)
+				GC.SuppressFinalize(this);
+
 			if (!ownContext || WicColorContext is null)
 				return;
 
 			WicColorContext->Release();
 			WicColorContext = null;
-
-			if (disposing)
-				GC.SuppressFinalize(this);
 		}
 
 		public void Dispose() => dispose(true);

@@ -18,5 +18,5 @@ internal unsafe partial struct WebPMemoryWriter
     public nuint max_size;
 
     [NativeTypeName("uint32_t[1]")]
-    public fixed uint pad[1];
+    private fixed uint pad[1];
 }

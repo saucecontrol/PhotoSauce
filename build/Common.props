@@ -29,7 +29,8 @@
 		<RepositoryRoot>$(MSBuildThisFileDirectory)..\</RepositoryRoot>
 		<BaseModulesPath>$(RepositoryRoot)modules\</BaseModulesPath>
 		<BaseIntermediateOutputPath>$(RepositoryRoot)out\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
-		<BaseOutputPath>$(RepositoryRoot)out\bin\$(MSBuildProjectName)\</BaseOutputPath>
+		<BaseOutputBinPath>$(RepositoryRoot)out\bin\</BaseOutputBinPath>
+		<BaseOutputPath>$(BaseOutputBinPath)$(MSBuildProjectName)\</BaseOutputPath>
 		<IntermediateOutputPath>$(BaseIntermediateOutputPath)$(Configuration)\</IntermediateOutputPath>
 		<OutputPath>$(BaseOutputPath)$(Configuration)\</OutputPath>
 		<PackageOutputPath>$(RepositoryRoot)out\nuget\</PackageOutputPath>
@@ -52,10 +53,6 @@
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>
 		<IsTrimmable>true</IsTrimmable>
 	</PropertyGroup>
-
-	<ItemGroup>
-		<PackageReference Include="Microsoft.Net.Compilers.Toolset" Version="4.2.0-2.final" PrivateAssets="all" />
-	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">
 		<None Include="$(MSBuildThisFileDirectory)$(Company).png" Pack="true" PackagePath="/" />

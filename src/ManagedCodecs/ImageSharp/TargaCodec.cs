@@ -32,10 +32,13 @@ namespace PhotoSauce.ManagedCodecs.ImageSharp
 		/// <summary>Creates a new <see cref="TargaEncoder" /> instance.</summary>
 		/// <param name="outStream">The <see cref="Stream" /> to which the image will be written.</param>
 		/// <param name="tgaOptions">Options for the image format.</param>
-		public static TargaEncoder Create(Stream outStream!!, IEncoderOptions? tgaOptions) => new(outStream, tgaOptions);
+		public static TargaEncoder Create(Stream outStream, IEncoderOptions? tgaOptions) => new(outStream, tgaOptions);
 
 		private TargaEncoder(Stream outStream, IEncoderOptions? tgaOptions)
 		{
+			if (outStream is null)
+				throw new ArgumentNullException(nameof(outStream));
+
 			stream = outStream;
 			options = tgaOptions is TargaEncoderOptions opt ? opt : TargaEncoderOptions.Default;
 		}
@@ -43,6 +46,9 @@ namespace PhotoSauce.ManagedCodecs.ImageSharp
 		/// <inheritdoc />
 		public void WriteFrame(IPixelSource source, IMetadataSource metadata, GdiRect sourceArea)
 		{
+			if (source is null)
+				throw new ArgumentNullException(nameof(source));
+
 			if (written)
 				throw new InvalidOperationException("An image frame has already been written, and this codec does not support multiple frames.");
 
@@ -105,7 +111,7 @@ namespace PhotoSauce.ManagedCodecs.ImageSharp
 
 		int IImageContainer.FrameCount => 1;
 
-		IImageFrame IImageContainer.GetFrame(int index) => index == 0 ? new TargaFrame(decodedImage.Frames.RootFrame) : throw new IndexOutOfRangeException("Invalid frame index");
+		IImageFrame IImageContainer.GetFrame(int index) => index == 0 ? new TargaFrame(decodedImage.Frames.RootFrame) : throw new ArgumentOutOfRangeException(nameof(index), "Invalid frame index.");
 
 		internal static TargaContainer? TryLoad(Stream imgStream, IDecoderOptions? _)
 		{
@@ -119,8 +125,11 @@ namespace PhotoSauce.ManagedCodecs.ImageSharp
 		/// <summary>Loads a TARGA image from an input <see cref="Stream"/>.</summary>
 		/// <param name="imgStream">A <see cref="Stream" /> containing the image file.</param>
 		/// <returns>A <see cref="TargaContainer"/> encapsulating the image.</returns>
-		public static TargaContainer Load(Stream imgStream!!)
+		public static TargaContainer Load(Stream imgStream)
 		{
+			if (imgStream is null)
+				throw new ArgumentNullException(nameof(imgStream));
+
 			long pos = imgStream.Position;
 			var info = Image.Identify(imgStream, out var fmt);
 			imgStream.Seek(pos, SeekOrigin.Begin);
@@ -211,9 +220,12 @@ namespace PhotoSauce.ManagedCodecs.ImageSharp
 		/// <inheritdoc cref="WindowsCodecExtensions.UseWicCodecs(CodecCollection, WicCodecPolicy)" />
 		public static void UseImageSharpTga(this CodecCollection codecs)
 		{
+			if (codecs is null)
+				throw new ArgumentNullException(nameof(codecs));
+
 			var targa = TgaFormat.Instance;
 			var mimeTypes = new[] { targa.DefaultMimeType }.Concat(targa.MimeTypes).Distinct().ToArray();
-			var fileExtensions = targa.FileExtensions.Select(e => e.StartsWith(".") ? e : string.Concat(".", e)).ToArray();
+			var fileExtensions = targa.FileExtensions.Select(e => e[0] == '.' ? e : string.Concat(".", e)).ToArray();
 
 			codecs.Add(new DecoderInfo(
 				$"{nameof(SixLabors.ImageSharp)} {targa.Name}",

@@ -15,7 +15,7 @@ internal unsafe partial struct WebPChunkIterator
     public WebPData chunk;
 
     [NativeTypeName("uint32_t[6]")]
-    public fixed uint pad[6];
+    private fixed uint pad[6];
 
-    public void* private_;
+    private void* private_;
 }

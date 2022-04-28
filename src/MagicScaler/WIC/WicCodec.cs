@@ -460,7 +460,7 @@ namespace PhotoSauce.MagicScaler
 			else if (context.ImageContainer.FrameCount > 1)
 			{
 				if (context.ImageContainer is not IMetadataSource cmsrc || !cmsrc.TryGetMetadata<AnimationContainer>(out var anicnt))
-					anicnt = new AnimationContainer(context.Source.Width, context.Source.Height);
+					anicnt = new AnimationContainer(context.Source.Width, context.Source.Height, context.ImageContainer.FrameCount);
 
 				var pvae = new PROPVARIANT { vt = (ushort)(VARENUM.VT_UI1 | VARENUM.VT_VECTOR) };
 				pvae.Anonymous.blob.cbSize = 11;

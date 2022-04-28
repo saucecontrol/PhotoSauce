@@ -9,7 +9,7 @@ internal static partial class Libwebp
 {
 }
 
-internal enum WebPPlane
+internal enum WebpPlane
 {
 	Bgra,
 	Bgr,
@@ -18,7 +18,7 @@ internal enum WebPPlane
 	V
 }
 
-internal static unsafe class WebPExtensions
+internal static unsafe class WebpExtensions
 {
 	public static bool IsAllocated(this WebPDecBuffer b) => b.u.RGBA.rgba is not null;
 }

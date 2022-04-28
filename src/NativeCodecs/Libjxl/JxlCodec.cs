@@ -52,6 +52,8 @@ public static class CodecCollectionExtensions
 	/// <inheritdoc cref="WindowsCodecExtensions.UseWicCodecs(CodecCollection, WicCodecPolicy)" />
 	public static void UseLibjxl(this CodecCollection codecs)
 	{
+		Guard.NotNull(codecs);
+
 		var jxlMime = new[] { ImageMimeTypes.Jxl };
 		var jxlExtension = new[] { ImageFileExtensions.Jxl };
 

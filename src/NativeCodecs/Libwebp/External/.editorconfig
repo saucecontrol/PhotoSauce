@@ -5,4 +5,5 @@ indent_size = 4
 
 [*.cs]
 generated_code = true
+dotnet_diagnostic.CS0169.severity = silent
 dotnet_diagnostic.CS0649.severity = silent

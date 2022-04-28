@@ -2,11 +2,8 @@
 
 using System;
 using System.IO;
-using System.Drawing;
 using System.Numerics;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
-using System.Runtime.CompilerServices;
 
 using PhotoSauce.MagicScaler;
 using PhotoSauce.Interop.Libwebp;
@@ -15,41 +12,44 @@ using static PhotoSauce.Interop.Libwebp.Libwebpdemux;
 
 namespace PhotoSauce.NativeCodecs.Libwebp;
 
-internal sealed unsafe class WebPContainer : IImageContainer, IMetadataSource, IIccProfileSource, IExifSource
+internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, IIccProfileSource, IExifSource
 {
 	private const uint iccpTag = 'I' | 'C' << 8 | 'C' << 16 | 'P' << 24;
 	private const uint exifTag = 'E' | 'X' << 8 | 'I' << 16 | 'F' << 24;
 	private const uint xmpTag  = 'X' | 'M' << 8 | 'P' << 16 | ' ' << 24;
 
 	private readonly WebPFeatureFlags features;
-	private readonly uint frames;
+	private readonly IDecoderOptions options;
+	private readonly int frameCount, frameOffset;
 	private byte* filebuff;
 	private IntPtr handle;
 
-	private WebPContainer(Stream stm, WebPFeatureFlags flags)
+	private WebpContainer(Stream stm, IDecoderOptions? opt, WebPFeatureFlags flags)
 	{
-		long len = stm.Length - stm.Position;
-		filebuff = (byte*)WebPMalloc((nuint)len);
+		int len = checked((int)(stm.Length - stm.Position));
+		filebuff = (byte*)WebPMalloc((uint)len);
 		if (filebuff is null)
 			throw new OutOfMemoryException();
 
-		int rem = (int)len;
-		var buff = new Span<byte>(filebuff, rem);
-		while (rem > 0)
-			rem -= stm.Read(buff[^rem..]);
+		var buff = new Span<byte>(filebuff, len);
+		stm.FillBuffer(buff);
 
-		var data = new WebPData { bytes = filebuff, size = (nuint)len };
+		var data = new WebPData { bytes = filebuff, size = (uint)len };
 		handle = WebPDemux(&data);
 		if (handle == default)
 			throw new InvalidDataException();
 
 		features = flags;
-		frames = WebPDemuxGetI(handle, WebPFormatFeature.WEBP_FF_FRAME_COUNT);
+		options = opt;
+
+		uint fcount = WebPDemuxGetI(handle, WebPFormatFeature.WEBP_FF_FRAME_COUNT);
+		var range = opt is IMultiFrameDecoderOptions mul ? mul.FrameRange : Range.All;
+		(frameOffset, frameCount) = range.GetOffsetAndLength((int)fcount);
 	}
 
 	public string MimeType => ImageMimeTypes.Webp;
 
-	public int FrameCount => (int)frames;
+	public int FrameCount => frameCount;
 
 	int IIccProfileSource.ProfileLength => (int)getChunk(iccpTag).size;
 
@@ -59,21 +59,22 @@ internal sealed unsafe class WebPContainer : IImageContainer, IMetadataSource, I
 	{
 		ensureHandle();
 
-		if ((uint)index >= frames)
-			throw new IndexOutOfRangeException(nameof(index));
+		index += frameOffset;
+		if ((uint)index >= (uint)(frameOffset + frameCount))
+			throw new ArgumentOutOfRangeException(nameof(index), "Invalid frame index.");
 
 		WebPIterator iter;
-		if (!WebPResult.Succeeded(WebPDemuxGetFrame(handle, index + 1, &iter)))
-			throw new IndexOutOfRangeException(nameof(index));
+		if (!WebpResult.Succeeded(WebPDemuxGetFrame(handle, index + 1, &iter)))
+			throw new ArgumentOutOfRangeException(nameof(index));
 
 		WebPBitstreamFeatures ffeat;
-		WebPResult.Check(WebPGetFeatures(iter.fragment.bytes, iter.fragment.size, &ffeat));
+		WebpResult.Check(WebPGetFeatures(iter.fragment.bytes, iter.fragment.size, &ffeat));
 		bool isAnimation = features.HasFlag(WebPFeatureFlags.ANIMATION_FLAG);
 		bool isLossless = ffeat.format == 2;
 		bool hasAlpha = ffeat.has_alpha != 0;
-		bool decodePlanar = !hasAlpha && !isAnimation && !isLossless;
+		bool decodePlanar = !hasAlpha && !isAnimation && !isLossless && (options is not IPlanarDecoderOptions opt || opt.AllowPlanar);
 
-		return decodePlanar ? new WebPYuvFrame(this, ffeat, index) : new WebPRgbFrame(this, ffeat, index, isAnimation || hasAlpha);
+		return decodePlanar ? new WebpYuvFrame(this, ffeat, index) : new WebpRgbFrame(this, ffeat, index, isAnimation || hasAlpha);
 	}
 
 	private WebPData getChunk(uint fourcc)
@@ -81,7 +82,7 @@ internal sealed unsafe class WebPContainer : IImageContainer, IMetadataSource, I
 		var data = default(WebPData);
 
 		WebPChunkIterator iter;
-		if (WebPResult.Succeeded(WebPDemuxGetChunk(handle, (sbyte*)&fourcc, 1, &iter)))
+		if (WebpResult.Succeeded(WebPDemuxGetChunk(handle, (sbyte*)&fourcc, 1, &iter)))
 		{
 			data = iter.chunk;
 			WebPDemuxReleaseChunkIterator(&iter);
@@ -110,11 +111,12 @@ internal sealed unsafe class WebPContainer : IImageContainer, IMetadataSource, I
 
 		if (typeof(T) == typeof(AnimationContainer) && features.HasFlag(WebPFeatureFlags.ANIMATION_FLAG))
 		{
-			int w = (int)WebPDemuxGetI(handle, WebPFormatFeature.WEBP_FF_CANVAS_WIDTH);
-			int h = (int)WebPDemuxGetI(handle, WebPFormatFeature.WEBP_FF_CANVAS_HEIGHT);
+			int cw = (int)WebPDemuxGetI(handle, WebPFormatFeature.WEBP_FF_CANVAS_WIDTH);
+			int ch = (int)WebPDemuxGetI(handle, WebPFormatFeature.WEBP_FF_CANVAS_HEIGHT);
+			int fc = (int)WebPDemuxGetI(handle, WebPFormatFeature.WEBP_FF_FRAME_COUNT);
 			int lc = (int)WebPDemuxGetI(handle, WebPFormatFeature.WEBP_FF_LOOP_COUNT);
 			int bg = (int)WebPDemuxGetI(handle, WebPFormatFeature.WEBP_FF_BACKGROUND_COLOR);
-			var anicnt = new AnimationContainer(w, h, lc, bg, true);
+			var anicnt = new AnimationContainer(cw, ch, fc, lc, bg, true);
 
 			metadata = (T)(object)anicnt;
 			return true;
@@ -157,7 +159,7 @@ internal sealed unsafe class WebPContainer : IImageContainer, IMetadataSource, I
 		return false;
 	}
 
-	public static WebPContainer? TryLoad(Stream imgStream, IDecoderOptions? _)
+	public static WebpContainer? TryLoad(Stream imgStream, IDecoderOptions? options)
 	{
 		// 30 bytes are needed to get basic info for webp
 		const int bufflen = 32;
@@ -165,17 +167,8 @@ internal sealed unsafe class WebPContainer : IImageContainer, IMetadataSource, I
 		if ((imgStream.Length - imgStream.Position) < bufflen)
 			return null;
 
-		int rem = bufflen;
-#if NET5_0_OR_GREATER
 		var buff = (Span<byte>)stackalloc byte[bufflen];
-		while (rem > 0)
-			rem -= imgStream.Read(buff[^rem..]);
-#else
-		using var buff = BufferPool.RentLocalArray<byte>(bufflen);
-		while (rem > 0)
-			rem -= imgStream.Read(buff.Array, buff.Length - rem, rem);
-#endif
-
+		imgStream.FillBuffer(buff);
 		imgStream.Seek(-bufflen, SeekOrigin.Current);
 
 		var state = default(WebPDemuxState);
@@ -192,7 +185,7 @@ internal sealed unsafe class WebPContainer : IImageContainer, IMetadataSource, I
 		}
 
 		if (state >= WebPDemuxState.WEBP_DEMUX_PARSED_HEADER)
-			return new WebPContainer(imgStream, flags);
+			return new WebpContainer(imgStream, options, flags);
 
 		return null;
 	}
@@ -200,7 +193,7 @@ internal sealed unsafe class WebPContainer : IImageContainer, IMetadataSource, I
 	private void ensureHandle()
 	{
 		if (handle == default)
-			throw new ObjectDisposedException(nameof(WebPContainer));
+			throw new ObjectDisposedException(nameof(WebpContainer));
 	}
 
 	private void dispose(bool disposing)
@@ -220,11 +213,11 @@ internal sealed unsafe class WebPContainer : IImageContainer, IMetadataSource, I
 
 	public void Dispose() => dispose(true);
 
-	~WebPContainer() => dispose(false);
+	~WebpContainer() => dispose(false);
 
-	private abstract class WebPFrame : IImageFrame, IMetadataSource
+	private abstract class WebpFrame : IImageFrame, IMetadataSource
 	{
-		private readonly WebPContainer container;
+		private readonly WebpContainer container;
 		private readonly WebPBitstreamFeatures features;
 		private readonly AnimationFrame frmmeta;
 		private readonly int frmnum;
@@ -232,7 +225,7 @@ internal sealed unsafe class WebPContainer : IImageContainer, IMetadataSource, I
 
 		public abstract IPixelSource PixelSource { get; }
 
-		public WebPFrame(WebPContainer cont, WebPBitstreamFeatures feat, int index)
+		public WebpFrame(WebpContainer cont, WebPBitstreamFeatures feat, int index)
 		{
 			container = cont;
 			features = feat;
@@ -241,7 +234,7 @@ internal sealed unsafe class WebPContainer : IImageContainer, IMetadataSource, I
 			if (container.features.HasFlag(WebPFeatureFlags.ANIMATION_FLAG))
 			{
 				WebPIterator iter;
-				WebPResult.Check(WebPDemuxGetFrame(cont.handle, frmnum, &iter));
+				WebpResult.Check(WebPDemuxGetFrame(cont.handle, frmnum, &iter));
 
 				frmmeta = new AnimationFrame(
 					iter.x_offset,
@@ -256,7 +249,7 @@ internal sealed unsafe class WebPContainer : IImageContainer, IMetadataSource, I
 			}
 		}
 
-		private void ensureDecoded(WebPPlane plane)
+		private void ensureDecoded(WebpPlane plane)
 		{
 			if (buffer.IsAllocated())
 				return;
@@ -264,14 +257,14 @@ internal sealed unsafe class WebPContainer : IImageContainer, IMetadataSource, I
 			container.ensureHandle();
 
 			WebPIterator iter;
-			WebPResult.Check(WebPDemuxGetFrame(container.handle, frmnum, &iter));
+			WebpResult.Check(WebPDemuxGetFrame(container.handle, frmnum, &iter));
 
 			WebPDecoderConfig cfg;
-			WebPResult.Check(WebPInitDecoderConfig(&cfg));
-			cfg.output.colorspace = plane == WebPPlane.Bgra ? WEBP_CSP_MODE.MODE_BGRA : plane == WebPPlane.Bgr ? WEBP_CSP_MODE.MODE_BGR : WEBP_CSP_MODE.MODE_YUV;
+			WebpResult.Check(WebPInitDecoderConfig(&cfg));
+			cfg.output.colorspace = plane == WebpPlane.Bgra ? WEBP_CSP_MODE.MODE_BGRA : plane == WebpPlane.Bgr ? WEBP_CSP_MODE.MODE_BGR : WEBP_CSP_MODE.MODE_YUV;
 			cfg.input = features;
 
-			WebPResult.Check(WebPDecode(iter.fragment.bytes, iter.fragment.size, &cfg));
+			WebpResult.Check(WebPDecode(iter.fragment.bytes, iter.fragment.size, &cfg));
 			WebPDemuxReleaseIterator(&iter);
 
 			buffer = cfg.output;
@@ -302,97 +295,87 @@ internal sealed unsafe class WebPContainer : IImageContainer, IMetadataSource, I
 
 		public void Dispose() => Dispose(true);
 
-		~WebPFrame() => Dispose(false);
+		~WebpFrame() => Dispose(false);
 
-		protected sealed class WebPDecBufferPixelSource : IPixelSource
+		protected sealed class WebpDecBufferPixelSource : PixelSource
 		{
-			private readonly WebPFrame frame;
-			private readonly WebPPlane plane;
+			private readonly WebpFrame frame;
+			private readonly WebpPlane plane;
 
-			public Guid Format { get; }
-			public int Width { get; }
-			public int Height { get; }
+			public override PixelFormat Format { get; }
+			public override int Width { get; }
+			public override int Height { get; }
 
-			public WebPDecBufferPixelSource(WebPFrame frm, WebPPlane pln)
+			public WebpDecBufferPixelSource(WebpFrame frm, WebpPlane pln)
 			{
 				frame = frm;
 				plane = pln;
 
 				Format = plane switch {
-					WebPPlane.Y   => PixelFormats.Planar.Y8bpp,
-					WebPPlane.U   => PixelFormats.Planar.Cb8bpp,
-					WebPPlane.V   => PixelFormats.Planar.Cr8bpp,
-					WebPPlane.Bgr => PixelFormats.Bgr24bpp,
-					_             => PixelFormats.Bgra32bpp
+					WebpPlane.Y   => PixelFormat.Y8,
+					WebpPlane.U   => PixelFormat.Cb8,
+					WebpPlane.V   => PixelFormat.Cr8,
+					WebpPlane.Bgr => PixelFormat.Bgr24,
+					_             => PixelFormat.Bgra32
 				};
-				Width = plane is WebPPlane.U or WebPPlane.V ? (frame.features.width + 1) >> 1 : frame.features.width;
-				Height = plane is WebPPlane.U or WebPPlane.V ? (frame.features.height + 1) >> 1 : frame.features.height;
+				Width = plane is WebpPlane.U or WebpPlane.V ? (frame.features.width + 1) >> 1 : frame.features.width;
+				Height = plane is WebpPlane.U or WebpPlane.V ? (frame.features.height + 1) >> 1 : frame.features.height;
 			}
 
-			public void CopyPixels(Rectangle sourceArea, int cbStride, Span<byte> buffer)
+			protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 			{
-				var (rx, ry, rw, rh) = (sourceArea.X, sourceArea.Y, sourceArea.Width, sourceArea.Height);
-				int bpp = PixelFormat.FromGuid(Format).BytesPerPixel;
-				int cb = rw * bpp;
-
-				if (rx < 0 || ry < 0 || rw < 0 || rh < 0 || rx + rw > Width || ry + rh > Height)
-					throw new ArgumentOutOfRangeException(nameof(sourceArea), "Requested area does not fall within the image bounds");
-
-				if (cb > cbStride)
-					throw new ArgumentOutOfRangeException(nameof(cbStride), "Stride is too small for the requested area");
-
-				if ((rh - 1) * cbStride + cb > buffer.Length)
-					throw new ArgumentOutOfRangeException(nameof(buffer), "Buffer is too small for the requested area");
-
 				frame.ensureDecoded(plane);
 				ref var decoded = ref frame.buffer;
 
-				ReadOnlySpan<byte> span;
+				byte* pixels;
 				int stride;
-				if (plane is WebPPlane.Bgra)
+				if (plane is WebpPlane.Bgr or WebpPlane.Bgra)
 				{
 					var data = decoded.u.RGBA;
-					span = new ReadOnlySpan<byte>(data.rgba, checked((int)data.size));
+					pixels = data.rgba;
 					stride = data.stride;
 				}
 				else
 				{
 					var data = decoded.u.YUVA;
-					if (plane is WebPPlane.U)
+					if (plane is WebpPlane.U)
 					{
-						span = new ReadOnlySpan<byte>(data.u, checked((int)data.u_size));
+						pixels = data.u;
 						stride = data.u_stride;
 					}
-					else if (plane is WebPPlane.V)
+					else if (plane is WebpPlane.V)
 					{
-						span = new ReadOnlySpan<byte>(data.v, checked((int)data.v_size));
+						pixels = data.v;
 						stride = data.v_stride;
 					}
 					else
 					{
-						span = new ReadOnlySpan<byte>(data.y, checked((int)data.y_size));
+						pixels = data.y;
 						stride = data.y_stride;
 					}
 				}
 
-				ref byte pixRef = ref Unsafe.Add(ref MemoryMarshal.GetReference(span), ry * stride + rx * bpp);
-				for (int y = 0; y < rh; y++)
-					Unsafe.CopyBlockUnaligned(ref buffer[y * cbStride], ref Unsafe.Add(ref pixRef, y * stride), (uint)cb);
+				int bpp = Format.BytesPerPixel;
+
+				for (int i = 0; i < prc.Height; i++)
+					Buffer.MemoryCopy(pixels + (prc.Y + i) * stride + prc.X * bpp, pbBuffer + i * cbStride, cbStride, prc.Width * bpp);
 			}
+
+			public override string ToString() => nameof(WebpFrame);
 		}
 	}
 
-	private sealed class WebPRgbFrame : WebPFrame
+	private sealed class WebpRgbFrame : WebpFrame
 	{
-		private readonly WebPPlane plane;
-		private IPixelSource pixsrc;
+		private readonly WebpPlane plane;
+		private PixelSource pixsrc;
 
-		public override IPixelSource PixelSource => pixsrc ??= new WebPDecBufferPixelSource(this, plane);
+		public override IPixelSource PixelSource => pixsrc ??= new WebpDecBufferPixelSource(this, plane);
 
-		public WebPRgbFrame(WebPContainer cont, WebPBitstreamFeatures feat, int index, bool alpha) : base(cont, feat, index) => plane = alpha ? WebPPlane.Bgra : WebPPlane.Bgr;
+		public WebpRgbFrame(WebpContainer cont, WebPBitstreamFeatures feat, int index, bool alpha) : base(cont, feat, index) => plane = alpha ? WebpPlane.Bgra : WebpPlane.Bgr;
 	}
 
-	private sealed class WebPYuvFrame : WebPFrame, IYccImageFrame
+	private sealed class WebpYuvFrame : WebpFrame, IYccImageFrame
 	{
 		// WebP uses a non-standard matrix close to Rec.601 but rounded strangely
 		// https://chromium.googlesource.com/webm/libwebp/+/refs/tags/v1.2.2/src/dsp/yuv.h
@@ -409,16 +392,16 @@ internal sealed unsafe class WebPContainer : IImageContainer, IMetadataSource, I
 			M44 = 1
 		};
 
-		private IPixelSource ysrc, usrc, vsrc;
+		private PixelSource ysrc, usrc, vsrc;
 
 		public ChromaPosition ChromaPosition => ChromaPosition.InterstitialHorizontal | ChromaPosition.CositedVertical;
 		public Matrix4x4 RgbYccMatrix => yccMatrix;
 		public bool IsFullRange => false;
 
-		public override IPixelSource PixelSource => ysrc ??= new WebPDecBufferPixelSource(this, WebPPlane.Y);
-		public IPixelSource PixelSourceCb => usrc ??= new WebPDecBufferPixelSource(this, WebPPlane.U);
-		public IPixelSource PixelSourceCr => vsrc ??= new WebPDecBufferPixelSource(this, WebPPlane.V);
+		public override IPixelSource PixelSource => ysrc ??= new WebpDecBufferPixelSource(this, WebpPlane.Y);
+		public IPixelSource PixelSourceCb => usrc ??= new WebpDecBufferPixelSource(this, WebpPlane.U);
+		public IPixelSource PixelSourceCr => vsrc ??= new WebpDecBufferPixelSource(this, WebpPlane.V);
 
-		public WebPYuvFrame(WebPContainer cont, WebPBitstreamFeatures feat, int index) : base(cont, feat, index) { }
+		public WebpYuvFrame(WebpContainer cont, WebPBitstreamFeatures feat, int index) : base(cont, feat, index) { }
 	}
 }

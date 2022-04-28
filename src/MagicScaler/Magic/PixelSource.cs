@@ -70,13 +70,13 @@ namespace PhotoSauce.MagicScaler
 				CopyPixels(prc, cbStride, cbBuffer, pbBuffer);
 		}
 
-		protected virtual void Dispose(bool disposing)
-		{
-			if (disposing)
-				GC.SuppressFinalize(this);
-		}
+		protected virtual void Dispose(bool disposing) { }
 
-		public void Dispose() => Dispose(true);
+		public void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
 	}
 
 	internal sealed class PixelSourceFrame : IImageFrame
@@ -97,7 +97,7 @@ namespace PhotoSauce.MagicScaler
 
 		public PixelSourceContainer(IPixelSource source) => pixelSource = source;
 
-		public IImageFrame GetFrame(int index) => index == 0 ? new PixelSourceFrame(pixelSource) : throw new IndexOutOfRangeException();
+		public IImageFrame GetFrame(int index) => index == 0 ? new PixelSourceFrame(pixelSource) : throw new ArgumentOutOfRangeException(nameof(index));
 
 		void IDisposable.Dispose() { }
 	}

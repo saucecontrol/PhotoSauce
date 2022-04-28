@@ -17,11 +17,11 @@ namespace PhotoSauce.MagicScaler
 		public string? MimeType { get; }
 		public IDecoderOptions? Options { get; }
 		public int FrameCount { get; }
-		public int FrameOffset { get; }
+		protected int FrameOffset { get; }
 
 		public virtual IImageFrame GetFrame(int index)
 		{
-			if ((uint)(FrameOffset + index) >= (uint)(FrameOffset + FrameCount)) throw new IndexOutOfRangeException("Invalid frame index.");
+			if ((uint)(FrameOffset + index) >= (uint)(FrameOffset + FrameCount)) throw new ArgumentOutOfRangeException(nameof(index), "Invalid frame index.");
 
 			return new WicImageFrame(this, (uint)(FrameOffset + index));
 		}
@@ -108,6 +108,9 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
+			uint fcount;
+			WicDecoder->GetFrameCount(&fcount);
+
 			int loopCount = 0;
 			var sbuff = (Span<byte>)stackalloc byte[16];
 			var appext = meta.Get()->GetValueOrDefault(Wic.Metadata.Gif.AppExtension, sbuff);
@@ -118,12 +121,12 @@ namespace PhotoSauce.MagicScaler
 					loopCount = BinaryPrimitives.ReadUInt16LittleEndian(appdata[2..]);
 			}
 
-			AnimationMetadata = new(screenWidth, screenHeight, loopCount, bgColor, true);
+			AnimationMetadata = new(screenWidth, screenHeight, (int)fcount, loopCount, bgColor, true);
 		}
 
 		public override IImageFrame GetFrame(int index)
 		{
-			if ((uint)(FrameOffset + index) >= (uint)(FrameOffset + FrameCount)) throw new IndexOutOfRangeException("Invalid frame index.");
+			if ((uint)(FrameOffset + index) >= (uint)(FrameOffset + FrameCount)) throw new ArgumentOutOfRangeException(nameof(index), "Invalid frame index.");
 
 			return new WicGifFrame(this, (uint)(FrameOffset + index));
 		}
@@ -138,19 +141,6 @@ namespace PhotoSauce.MagicScaler
 
 			metadata = default;
 			return false;
-		}
-
-		public void ReplayAnimation(PipelineContext ctx, int offset)
-		{
-			var anictx = ctx.AnimationContext ??= new();
-			for (int i = -offset; i <= 0; i++)
-			{
-				var gifFrame = (WicGifFrame)GetFrame(i);
-				if (gifFrame.AnimationMetadata.Disposal == FrameDisposalMethod.Preserve)
-					anictx.UpdateFrameBuffer(gifFrame, AnimationMetadata, gifFrame.AnimationMetadata);
-
-				anictx.LastDisposal = gifFrame.AnimationMetadata.Disposal;
-			}
 		}
 	}
 }

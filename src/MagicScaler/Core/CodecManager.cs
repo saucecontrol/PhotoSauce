@@ -70,7 +70,7 @@ namespace PhotoSauce.MagicScaler
 	/// <param name="Pattern">A byte pattern to match at the given <paramref name="Offset" />.</param>
 	/// <param name="Mask">A mask to apply to image bytes (using binary <see langword="&amp;" />) before matching against the <paramref name="Pattern"/>.</param>
 	/// <remarks>The total length described by (<paramref name="Offset" /> + <paramref name="Pattern" />.Length) should not be more than 16 bytes.</remarks>
-	public readonly record struct ContainerPattern(int Offset, byte[] Pattern!!, byte[] Mask!!);
+	public readonly record struct ContainerPattern(int Offset, byte[] Pattern, byte[] Mask);
 
 	/// <inheritdoc />
 	/// <param name="Name"><inheritdoc cref="IImageCodecInfo.Name" path="/summary/node()" /></param>
@@ -90,12 +90,12 @@ namespace PhotoSauce.MagicScaler
 	/// <param name="DefaultOptions"><inheritdoc cref="IImageDecoderInfo.DefaultOptions" path="/summary/node()" /></param>
 	/// <param name="Factory"><inheritdoc cref="IImageDecoderInfo.Factory" path="/summary/node()" /></param>
 	public sealed record class DecoderInfo(
-		string Name!!,
-		IEnumerable<string> MimeTypes!!,
-		IEnumerable<string> FileExtensions!!,
-		IEnumerable<ContainerPattern> Patterns!!,
+		string Name,
+		IEnumerable<string> MimeTypes,
+		IEnumerable<string> FileExtensions,
+		IEnumerable<ContainerPattern> Patterns,
 		IDecoderOptions? DefaultOptions,
-		Func<Stream, IDecoderOptions?, IImageContainer?> Factory!!
+		Func<Stream, IDecoderOptions?, IImageContainer?> Factory
 	) : CodecInfo(Name, MimeTypes, FileExtensions), IImageDecoderInfo;
 
 	/// <inheritdoc />
@@ -109,12 +109,12 @@ namespace PhotoSauce.MagicScaler
 	/// <param name="SupportsAnimation"><inheritdoc cref="IImageEncoderInfo.SupportsAnimation" path="/summary/node()" /></param>
 	/// <param name="SupportsColorProfile"><inheritdoc cref="IImageEncoderInfo.SupportsColorProfile" path="/summary/node()" /></param>
 	public sealed record class EncoderInfo(
-		string Name!!,
-		IEnumerable<string> MimeTypes!!,
-		IEnumerable<string> FileExtensions!!,
-		IEnumerable<Guid> PixelFormats!!,
+		string Name,
+		IEnumerable<string> MimeTypes,
+		IEnumerable<string> FileExtensions,
+		IEnumerable<Guid> PixelFormats,
 		IEncoderOptions? DefaultOptions,
-		Func<Stream, IEncoderOptions?, IImageEncoder> Factory!!,
+		Func<Stream, IEncoderOptions?, IImageEncoder> Factory,
 		bool SupportsMultiFrame,
 		bool SupportsAnimation,
 		bool SupportsColorProfile
@@ -133,13 +133,13 @@ namespace PhotoSauce.MagicScaler
 		public int Count => codecs.Count;
 
 		/// <inheritdoc />
-		public bool Contains(IImageCodecInfo item!!) => codecs.Contains(item);
+		public bool Contains(IImageCodecInfo item) => codecs.Contains(item);
 
 		/// <inheritdoc />
-		public void Add(IImageCodecInfo item!!) => codecs.Add(item);
+		public void Add(IImageCodecInfo item) => codecs.Add(item);
 
 		/// <inheritdoc />
-		public bool Remove(IImageCodecInfo item!!) => codecs.Remove(item);
+		public bool Remove(IImageCodecInfo item) => codecs.Remove(item);
 
 		/// <inheritdoc />
 		public void Clear() => codecs.Clear();
@@ -157,23 +157,16 @@ namespace PhotoSauce.MagicScaler
 
 		internal IImageContainer GetDecoderForStream(Stream stm, IDecoderOptions? options = null)
 		{
-			if ((stm.Length - stm.Position) < sizeof(ulong) * 2)
+			const int siglen = sizeof(ulong) * 2;
+
+			if ((stm.Length - stm.Position) < siglen)
 				throw new InvalidDataException("The input is too small to be a valid image.");
 
-			int rem = sizeof(ulong) * 2;
-#if BUILTIN_SPAN
-			using var patBuffer = BufferPool.RentLocal<byte>(rem);
-			while (rem > 0)
-				rem -= stm.Read(patBuffer.Span.Slice(patBuffer.Length - rem));
-#else
-			using var patBuffer = BufferPool.RentLocalArray<byte>(rem);
-			while (rem > 0)
-				rem -= stm.Read(patBuffer.Array, patBuffer.Length - rem, rem);
-#endif
+			var patBuffer = (Span<byte>)stackalloc byte[siglen];
+			stm.FillBuffer(patBuffer);
+			stm.Seek(-siglen, SeekOrigin.Current);
 
-			stm.Seek(-patBuffer.Length, SeekOrigin.Current);
-			ref byte testval = ref MemoryMarshal.GetReference(patBuffer.Span);
-
+			ref byte testval = ref MemoryMarshal.GetReference(patBuffer);
 #if HWINTRINSICS
 			if (Sse2.IsSupported)
 			{

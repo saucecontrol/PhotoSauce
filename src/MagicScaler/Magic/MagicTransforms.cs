@@ -516,14 +516,16 @@ namespace PhotoSauce.MagicScaler.Transforms
 				return;
 
 			if (nocntmeta || anicnt.ScreenWidth is 0 || anicnt.ScreenHeight is 0)
-				anicnt = new(ctx.Source.Width, ctx.Source.Height);
+				anicnt = new(ctx.Source.Width, ctx.Source.Height, ctx.ImageContainer.FrameCount);
 			if (nofrmmeta)
 				anifrm = AnimationFrame.Default;
 
-			if (replay && ctx.ImageContainer is WicGifContainer gif && gif.IsAnimation)
+			if (replay && anicnt.RequiresScreenBuffer)
 			{
-				if (gif.FrameOffset != 0)
-					gif.ReplayAnimation(ctx, gif.FrameOffset);
+				var range = ctx.Settings.DecoderOptions is IMultiFrameDecoderOptions mul ? mul.FrameRange : Range.All;
+				int offset = range.GetOffsetAndLength(anicnt.FrameCount).Offset;
+				if (offset != 0)
+					ReplayAnimation(ctx, anicnt, offset);
 
 				replay = false;
 			}
@@ -574,6 +576,21 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			if (ctx.Source.Width > anicnt.ScreenWidth || ctx.Source.Height > anicnt.ScreenHeight)
 				ctx.Source = new CropTransform(ctx.Source, new PixelArea(0, 0, anicnt.ScreenWidth, anicnt.ScreenHeight), true);
+		}
+
+		public static void ReplayAnimation(PipelineContext ctx, AnimationContainer anicnt, int offset)
+		{
+			var anictx = ctx.AnimationContext ??= new();
+			for (int i = -offset; i <= 0; i++)
+			{
+				using var frame = ctx.ImageContainer.GetFrame(i);
+				var anifrm = frame is IMetadataSource fmeta && fmeta.TryGetMetadata<AnimationFrame>(out var anif) ? anif : AnimationFrame.Default;
+
+				if (anifrm.Disposal == FrameDisposalMethod.Preserve)
+					anictx.UpdateFrameBuffer(frame, anicnt, anifrm);
+
+				anictx.LastDisposal = anifrm.Disposal;
+			}
 		}
 	}
 }

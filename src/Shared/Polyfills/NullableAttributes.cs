@@ -1,37 +1,13 @@
 // Borrowed from
-//   https://github.com/dotnet/runtime/blob/release/6.0/src/libraries/System.Private.CoreLib/src/System/Diagnostics/StackTraceHiddenAttribute.cs
-//   https://github.com/dotnet/runtime/blob/release/6.0/src/libraries/System.Private.CoreLib/src/System/Diagnostics/CodeAnalysis/NullableAttributes.cs
-//   https://github.com/dotnet/runtime/blob/release/6.0/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/SkipLocalsInitAttribute.cs
-//   https://github.com/dotnet/runtime/blob/release/6.0/src/libraries/Common/src/System/Runtime/CompilerServices/IsExternalInit.cs
-// These shims enable support for some C# 8-10 features on downlevel platforms.
-// Some of these attributes are not functional on platforms that don't include them, but their presence allows use without conditional compilation.
+//  https://github.com/dotnet/runtime/blob/release/6.0/src/libraries/System.Private.CoreLib/src/System/Diagnostics/CodeAnalysis/NullableAttributes.cs
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See third-party-notices in the repository root for more information.
 
-using System.ComponentModel;
-
-#if !NET6_0_OR_GREATER
-namespace System.Diagnostics
-{
-    /// <summary>
-    /// Types and Methods attributed with StackTraceHidden will be omitted from the stack trace text shown in StackTrace.ToString()
-    /// and Exception.StackTrace
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Struct, Inherited = false)]
-    internal sealed class StackTraceHiddenAttribute : Attribute
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="StackTraceHiddenAttribute"/> class.
-        /// </summary>
-        public StackTraceHiddenAttribute() { }
-    }
-}
-#endif
-
 namespace System.Diagnostics.CodeAnalysis
 {
+// These attributes already shipped with .NET Core 3.1 in System.Runtime
 #if !BUILTIN_NULLABLE
     /// <summary>Specifies that null is allowed as an input even if the corresponding type disallows it.</summary>
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Parameter | AttributeTargets.Property, Inherited = false)]
@@ -224,15 +200,4 @@ namespace System.Diagnostics.CodeAnalysis
         public string[] Members { get; }
     }
 #endif
-}
-
-namespace System.Runtime.CompilerServices
-{
-#if !NET5_0_OR_GREATER
-    [AttributeUsage(AttributeTargets.Module | AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Constructor | AttributeTargets.Method | AttributeTargets.Property | AttributeTargets.Event, Inherited = false)]
-    internal sealed class SkipLocalsInitAttribute : Attribute { }
-#endif
-
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    internal static class IsExternalInit { }
 }

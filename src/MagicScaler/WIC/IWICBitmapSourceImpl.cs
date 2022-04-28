@@ -140,7 +140,7 @@ namespace PhotoSauce.Interop.Wic
 		{
 			var ps = Unsafe.As<PixelSource>(((IWICBitmapSourceImpl*)pinst)->source.Target!);
 			var area = prc is not null ? new PixelArea(prc->X, prc->Y, prc->Width, prc->Height) : ps.Area;
-			ps.CopyPixels(area, (int)cbStride, (int)cbBufferSize, pbBuffer);
+			ps.CopyPixels(area, checked((int)cbStride), checked((int)cbBufferSize), pbBuffer);
 
 			return S_OK;
 		}

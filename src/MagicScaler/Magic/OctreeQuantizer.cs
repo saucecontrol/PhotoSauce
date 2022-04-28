@@ -20,7 +20,7 @@ namespace PhotoSauce.MagicScaler
 		private const uint alphaThreshold = 85;
 		private const uint transparentValue = 0x00ff00ffu;
 
-		private bool needAlpha = false;
+		private bool needAlpha;
 		private uint leafLevel = 7;
 		private int paletteLength;
 

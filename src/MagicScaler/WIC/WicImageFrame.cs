@@ -27,7 +27,7 @@ namespace PhotoSauce.MagicScaler
 		public IWICBitmapSource* WicSource { get; private set; }
 		public IWICMetadataQueryReader* WicMetadataReader { get; private set; }
 
-		public PixelSource Source => psource ??= new ComPtr<IWICBitmapSource>(WicSource).AsPixelSource(nameof(IWICBitmapFrameDecode), false);
+		public PixelSource Source => psource ??= new ComPtr<IWICBitmapSource>(WicSource).Detach()->AsPixelSource(nameof(IWICBitmapFrameDecode), false);
 
 		public IPixelSource PixelSource => Source;
 
@@ -171,12 +171,6 @@ namespace PhotoSauce.MagicScaler
 			return false;
 		}
 
-		public void Dispose()
-		{
-			dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
 		private void dispose(bool disposing)
 		{
 			if (WicFrame is null)
@@ -186,6 +180,7 @@ namespace PhotoSauce.MagicScaler
 			{
 				colorProfile?.Dispose();
 				psource?.Dispose();
+				GC.SuppressFinalize(this);
 			}
 
 			if (WicMetadataReader is not null)
@@ -200,6 +195,8 @@ namespace PhotoSauce.MagicScaler
 			WicFrame->Release();
 			WicFrame = null;
 		}
+
+		public void Dispose() => dispose(true);
 
 		~WicImageFrame() => dispose(false);
 

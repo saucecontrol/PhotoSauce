@@ -33,7 +33,7 @@ internal unsafe partial struct WebPIterator
     public WebPMuxAnimBlend blend_method;
 
     [NativeTypeName("uint32_t[2]")]
-    public fixed uint pad[2];
+    private fixed uint pad[2];
 
-    public void* private_;
+    private void* private_;
 }

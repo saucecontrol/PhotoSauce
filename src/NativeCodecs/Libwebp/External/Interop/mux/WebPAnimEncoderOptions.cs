@@ -21,5 +21,5 @@ internal unsafe partial struct WebPAnimEncoderOptions
     public int verbose;
 
     [NativeTypeName("uint32_t[4]")]
-    public fixed uint padding[4];
+    private fixed uint padding[4];
 }

@@ -3,6 +3,7 @@
 using System;
 using System.Linq;
 using System.Drawing;
+using System.Globalization;
 using System.ComponentModel;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
@@ -84,8 +85,10 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>Constructs a new <see cref="InterpolationSettings" /> instance with the specified values.</summary>
 		/// <param name="weighting">The weighting function implementation.</param>
 		/// <param name="blur">The blur factor for the weighting function.</param>
-		public InterpolationSettings(IInterpolator weighting!!, double blur)
+		public InterpolationSettings(IInterpolator weighting, double blur)
 		{
+			Guard.NotNull(weighting);
+
 			if (blur < 0.5 || blur > 1.5) throw new ArgumentOutOfRangeException(nameof(blur), "Value must be between 0.5 and 1.5");
 
 			WeightingFunction = weighting;
@@ -306,8 +309,10 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>Sets the preferred format of the output image.  If no encoder is set, the pipeline will choose the output codec based on the input image type or <see cref="EncoderOptions" />.</summary>
 		/// <param name="mimeType">The MIME type of the preferred encoder. Common formats can be found in <see cref="ImageMimeTypes" />.</param>
 		/// <remarks>If a matching encoder is not registered, the pipeline may choose an alternate encoder.</remarks>
-		public bool TrySetEncoderFormat(string mimeType!!)
+		public bool TrySetEncoderFormat(string mimeType)
 		{
+			Guard.NotNullOrEmpty(mimeType);
+
 			bool found = CodecManager.TryGetEncoderForMimeType(mimeType, out var enc);
 			if (found)
 				EncoderInfo = enc;
@@ -318,13 +323,16 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>Create a new <see cref="ProcessImageSettings" /> instance based on name/value pairs in a dictionary.</summary>
 		/// <param name="dic">The dictionary containing the name/value pairs.</param>
 		/// <returns>A new settings instance.</returns>
-		public static ProcessImageSettings FromDictionary(IDictionary<string, string?> dic!!)
+		public static ProcessImageSettings FromDictionary(IDictionary<string, string?> dic)
 		{
-			if (dic.Count == 0) return new ProcessImageSettings();
+			Guard.NotNull(dic);
+			if (dic.Count == 0) return Default;
 
+
+			var ni = NumberFormatInfo.InvariantInfo;
 			var s = new ProcessImageSettings {
-				Width = Math.Max(int.TryParse(dic.GetValueOrDefault("width") ?? dic.GetValueOrDefault("w"), out int w) ? w : 0, 0),
-				Height = Math.Max(int.TryParse(dic.GetValueOrDefault("height") ?? dic.GetValueOrDefault("h"), out int h) ? h : 0, 0),
+				Width = Math.Max(int.TryParse(dic.GetValueOrDefault("width") ?? dic.GetValueOrDefault("w"), NumberStyles.Integer, ni, out int w) ? w : 0, 0),
+				Height = Math.Max(int.TryParse(dic.GetValueOrDefault("height") ?? dic.GetValueOrDefault("h"), NumberStyles.Integer, ni, out int h) ? h : 0, 0),
 			};
 
 			s.Sharpen = bool.TryParse(dic.GetValueOrDefault("sharpen"), out bool bs) ? bs : s.Sharpen;
@@ -347,13 +355,13 @@ namespace PhotoSauce.MagicScaler
 			if (cropExpression.Value.IsMatch(dic.GetValueOrDefault("crop") ?? string.Empty))
 			{
 				var ps = dic["crop"]!.Split(',');
-				s.Crop = new Rectangle(int.Parse(ps[0]), int.Parse(ps[1]), int.Parse(ps[2]), int.Parse(ps[3]));
+				s.Crop = new Rectangle(int.Parse(ps[0], ni), int.Parse(ps[1], ni), int.Parse(ps[2], ni), int.Parse(ps[3], ni));
 			}
 
 			if (cropBasisExpression.Value.IsMatch(dic.GetValueOrDefault("cropbasis") ?? string.Empty))
 			{
 				var ps = dic["cropbasis"]!.Split(',');
-				s.CropBasis = new Size(int.Parse(ps[0]), int.Parse(ps[1]));
+				s.CropBasis = new Size(int.Parse(ps[0], ni), int.Parse(ps[1], ni));
 			}
 
 			foreach (var group in anchorExpression.Value.Match(dic.GetValueOrDefault("anchor") ?? string.Empty).Groups.Cast<Group>())
@@ -365,11 +373,11 @@ namespace PhotoSauce.MagicScaler
 			foreach (var cap in subsampleExpression.Value.Match(dic.GetValueOrDefault("subsample") ?? string.Empty).Captures.Cast<Capture>())
 				s.JpegSubsampleMode = Enum.TryParse(string.Concat("Subsample", cap!.Value), true, out ChromaSubsampleMode csub) ? csub : s.JpegSubsampleMode;
 
-			int jq = Math.Max(int.TryParse(dic.GetValueOrDefault("quality") ?? dic.GetValueOrDefault("q"), out int q) ? q : 0, 0);
+			int jq = Math.Max(int.TryParse(dic.GetValueOrDefault("quality") ?? dic.GetValueOrDefault("q"), NumberStyles.Integer, ni, out int q) ? q : 0, 0);
 			if (jq != 0)
 				s.JpegQuality = jq;
 
-			int fi = Math.Max(int.TryParse(dic.GetValueOrDefault("frame") ?? dic.GetValueOrDefault("page"), out int f) ? f : 0, 0);
+			int fi = Math.Max(int.TryParse(dic.GetValueOrDefault("frame") ?? dic.GetValueOrDefault("page"), NumberStyles.Integer, ni, out int f) ? f : 0, 0);
 			if (fi != 0)
 				s.FrameIndex = fi;
 
@@ -421,6 +429,9 @@ namespace PhotoSauce.MagicScaler
 		/// <returns>The calculated settings for the input image.</returns>
 		public static ProcessImageSettings Calculate(ProcessImageSettings settings, ImageFileInfo imageInfo)
 		{
+			Guard.NotNull(settings);
+			Guard.NotNull(imageInfo);
+
 			var clone = settings.Clone();
 			clone.NormalizeFrom(imageInfo);
 			clone.imageInfo = default;

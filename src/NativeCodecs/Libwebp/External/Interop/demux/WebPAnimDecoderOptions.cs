@@ -13,5 +13,5 @@ internal unsafe partial struct WebPAnimDecoderOptions
     public int use_threads;
 
     [NativeTypeName("uint32_t[7]")]
-    public fixed uint padding[7];
+    private fixed uint padding[7];
 }

@@ -50,6 +50,8 @@ public static class CodecCollectionExtensions
 	/// <inheritdoc cref="WindowsCodecExtensions.UseWicCodecs(CodecCollection, WicCodecPolicy)" />
 	public static void UseLibheif(this CodecCollection codecs)
 	{
+		Guard.NotNull(codecs);
+
 		codecs.Add(new DecoderInfo(
 			HeifFactory.DisplayName,
 			new[] { ImageMimeTypes.Heic },

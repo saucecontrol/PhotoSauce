@@ -17,12 +17,10 @@ namespace PhotoSauce.MagicScaler
 
 		public PixelArea(int x, int y, int width, int height)
 		{
-			static void throwArgException(string name) => throw new ArgumentOutOfRangeException(name, "Value cannot be negative");
-
-			if (x < 0) throwArgException(nameof(x));
-			if (y < 0) throwArgException(nameof(y));
-			if (width < 0) throwArgException(nameof(width));
-			if (height < 0) throwArgException(nameof(height));
+			Guard.NonNegative(x);
+			Guard.NonNegative(y);
+			Guard.NonNegative(width);
+			Guard.NonNegative(height);
 
 			(X, Y, Width, Height) = (x, y, width, height);
 		}

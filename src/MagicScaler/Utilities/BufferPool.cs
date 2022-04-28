@@ -3,6 +3,7 @@
 using System;
 using System.Buffers;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
@@ -43,7 +44,7 @@ namespace PhotoSauce.MagicScaler
 			var data = AppContext.GetData(name);
 #endif
 
-			if (data is int val || ((data is string s) && int.TryParse(s, out val)))
+			if (data is int val || ((data is string s) && int.TryParse(s, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out val)))
 				return val;
 
 			return defaultValue;

@@ -20,6 +20,8 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="policy">Policy that determines which registered WIC codecs are allowed.</param>
 		public static void UseWicCodecs(this CodecCollection codecs, WicCodecPolicy policy)
 		{
+			Guard.NotNull(codecs);
+
 			// If there is more than one Camera RAW codec installed, generally the newer one is more capable, so we deprioritize the original one.
 			codecs.AddRange(getWicCodecs(WICComponentType.WICDecoder, policy).OrderBy(c => c.Format == GUID_ContainerFormatRaw ? 1 : 0).Select(c => c.Codec));
 			codecs.AddRange(getWicCodecs(WICComponentType.WICEncoder, policy).Select(c => c.Codec));
@@ -75,11 +77,11 @@ namespace PhotoSauce.MagicScaler
 					string author = new(pbuff);
 
 					string fname = author;
-					int pos = author.IndexOf(' ');
+					int pos = author.IndexOfOrdinal(" ");
 					if (pos >= 0)
-						fname = author.Substring(0, pos);
+						fname = author[..pos];
 
-					if (!name.StartsWith(fname))
+					if (!name.StartsWithOrdinal(fname))
 						name = string.Concat(author, " ", name);
 
 					BOOL anim, mult;

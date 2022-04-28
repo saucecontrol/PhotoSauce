@@ -448,10 +448,10 @@ namespace PhotoSauce.MagicScaler
 						HRESULT.Check(pPix.Get()->SupportsTransparency((BOOL*)&trans));
 
 						var colorRep =
-							name.Contains("BGR") ? PixelColorRepresentation.Bgr :
-							name.Contains("RGB") ? PixelColorRepresentation.Rgb :
-							name.Contains("CMYK") ? PixelColorRepresentation.Cmyk :
-							name.Contains("Gray") || name.EndsWith(" Y") ? PixelColorRepresentation.Grey :
+							name.ContainsOrdinal("BGR") ? PixelColorRepresentation.Bgr :
+							name.ContainsOrdinal("RGB") ? PixelColorRepresentation.Rgb :
+							name.ContainsOrdinal("CMYK") ? PixelColorRepresentation.Cmyk :
+							name.ContainsOrdinal("Gray") || name.EndsWithOrdinal(" Y") ? PixelColorRepresentation.Grey :
 							PixelColorRepresentation.Unspecified;
 						var valEncoding = colorRep == PixelColorRepresentation.Grey || colorRep == PixelColorRepresentation.Bgr || colorRep == PixelColorRepresentation.Rgb ?
 							numericRep == PixelNumericRepresentation.Fixed || numericRep == PixelNumericRepresentation.Float ? PixelValueEncoding.scRgb :
@@ -465,7 +465,7 @@ namespace PhotoSauce.MagicScaler
 							channels: (int)channels,
 							numericRepresentation: numericRep,
 							colorRepresentation: colorRep,
-							alphaRepresentation: name.Contains("pBGRA") || name.Contains("pRGBA") ? PixelAlphaRepresentation.Associated :
+							alphaRepresentation: name.ContainsOrdinal("pBGRA") || name.ContainsOrdinal("pRGBA") ? PixelAlphaRepresentation.Associated :
 								trans != 0 ? PixelAlphaRepresentation.Unassociated :
 								PixelAlphaRepresentation.None,
 							encoding: valEncoding,

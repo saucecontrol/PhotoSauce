@@ -19,5 +19,5 @@ internal unsafe partial struct WebPBitstreamFeatures
     public int format;
 
     [NativeTypeName("uint32_t[5]")]
-    public fixed uint pad[5];
+    private fixed uint pad[5];
 }

@@ -65,20 +65,20 @@ namespace PhotoSauce.MagicScaler
 			return bmp;
 		}
 
-		public static ProcessImageResult ProcessImage(string imgPath!!, Stream outStream!!, ProcessImageSettings settings!!)
+		public static ProcessImageResult ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
 		{
 			using var fs = File.OpenRead(imgPath);
 			return ProcessImage(fs, outStream, settings);
 		}
 
-		public static unsafe ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream!!, ProcessImageSettings settings!!)
+		public static unsafe ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
 			fixed (byte* pbBuffer = imgBuffer)
 			using (var ms = new UnmanagedMemoryStream(pbBuffer, imgBuffer.Length, imgBuffer.Length, FileAccess.Read))
 				return ProcessImage(ms, outStream, settings);
 		}
 
-		public static ProcessImageResult ProcessImage(Stream imgStream!!, Stream outStream!!, ProcessImageSettings settings!!) => processImage(imgStream, outStream, settings);
+		public static ProcessImageResult ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings) => processImage(imgStream, outStream, settings);
 
 		private static ProcessImageResult processImage(Stream istm, Stream ostm, ProcessImageSettings s)
 		{

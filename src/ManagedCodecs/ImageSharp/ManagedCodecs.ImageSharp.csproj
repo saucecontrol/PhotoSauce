@@ -9,7 +9,8 @@
 	<ItemGroup>
 		<ProjectReference Include="..\..\MagicScaler\MagicScaler.csproj" />
 		<PackageReference Include="SixLabors.ImageSharp" Version="2.1.0" />
-		<Compile Include="..\..\Shared\Polyfills\CompilerAttributes.cs" Link="External\Polyfills\%(FileName)%(Extension)" />
+		<Compile Include="..\..\Shared\Polyfills\IsExternalInit.cs" Link="External\Polyfills\%(FileName)%(Extension)" />
+		<Compile Include="..\..\Shared\Polyfills\SkipLocalsInitAttribute.cs" Link="External\Polyfills\%(FileName)%(Extension)" />
 	</ItemGroup>
 
 </Project>
