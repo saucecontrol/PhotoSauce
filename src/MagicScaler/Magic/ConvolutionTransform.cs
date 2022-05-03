@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
+using PhotoSauce.MagicScaler.Converters;
+
 namespace PhotoSauce.MagicScaler.Transforms
 {
 	internal interface IConvolver

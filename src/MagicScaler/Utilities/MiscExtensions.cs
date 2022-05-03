@@ -101,7 +101,8 @@ namespace PhotoSauce.MagicScaler
 			using var buff = BufferPool.RentLocalArray<byte>(buffer.Length);
 
 			int cb = stream.Read(buff.Array, 0, buff.Length);
-			buff.Array.AsSpan(0, cb).CopyTo(buffer);
+			if (cb > 0)
+				buff.Array.AsSpan(0, cb).CopyTo(buffer);
 
 			return cb;
 		}

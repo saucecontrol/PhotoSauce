@@ -12,7 +12,7 @@ using static PhotoSauce.MagicScaler.MathUtil;
 
 using VectorF = System.Numerics.Vector<float>;
 
-namespace PhotoSauce.MagicScaler
+namespace PhotoSauce.MagicScaler.Converters
 {
 	internal sealed class ConverterToLinear<TFrom, TTo> : IConverter<TFrom, TTo> where TFrom : unmanaged where TTo : unmanaged
 	{
@@ -46,10 +46,10 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			private static void convertUQ15(byte* ipstart, byte* opstart, ushort* igtstart, nint cb)
+			private static void convertUQ15(byte* istart, byte* ostart, ushort* igtstart, nint cb)
 			{
-				byte* ip = ipstart, ipe = ipstart + cb;
-				ushort* op = (ushort*)opstart, igt = igtstart;
+				byte* ip = istart, ipe = istart + cb;
+				ushort* op = (ushort*)ostart, igt = igtstart;
 
 				ipe -= 8;
 				while (ip <= ipe)
@@ -85,10 +85,10 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			private static void convertFloat(byte* ipstart, byte* opstart, float* igtstart, nint cb)
+			private static void convertFloat(byte* istart, byte* ostart, float* igtstart, nint cb)
 			{
-				byte* ip = ipstart, ipe = ipstart + cb;
-				float* op = (float*)opstart, igt = igtstart;
+				byte* ip = istart, ipe = istart + cb;
+				float* op = (float*)ostart, igt = igtstart;
 
 #if HWINTRINSICS
 				if (Avx2.IsSupported && HWIntrinsics.HasFastGather && cb >= Vector256<byte>.Count)
@@ -103,6 +103,8 @@ namespace PhotoSauce.MagicScaler
 			private static void convertFloatAvx2(byte*ip, byte* ipe, float* op, float* igt)
 			{
 				ipe -= Vector256<byte>.Count;
+
+				var vlast = Avx.LoadVector256(ipe);
 
 				LoopTop:
 				do
@@ -131,6 +133,7 @@ namespace PhotoSauce.MagicScaler
 					nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
 					ip = UnsafeUtil.SubtractOffset(ip, offs);
 					op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<byte, float>(offs));
+					Avx.Store(ip, vlast);
 					goto LoopTop;
 				}
 			}
@@ -191,10 +194,10 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			private static void convertUQ15(byte* ipstart, byte* opstart, ushort* igtstart, nint cb)
+			private static void convertUQ15(byte* istart, byte* ostart, ushort* igtstart, nint cb)
 			{
-				byte* ip = ipstart, ipe = ipstart + cb;
-				ushort* op = (ushort*)opstart, igt = igtstart;
+				byte* ip = istart, ipe = istart + cb;
+				ushort* op = (ushort*)ostart, igt = igtstart;
 
 				while (ip < ipe)
 				{
@@ -216,10 +219,10 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			private static void convertFloat(byte* ipstart, byte* opstart, float* igtstart, nint cb)
+			private static void convertFloat(byte* istart, byte* ostart, float* igtstart, nint cb)
 			{
-				byte* ip = ipstart, ipe = ipstart + cb;
-				float* op = (float*)opstart, igt = igtstart;
+				byte* ip = istart, ipe = istart + cb;
+				float* op = (float*)ostart, igt = igtstart;
 
 #if HWINTRINSICS
 				if (Avx2.IsSupported && cb >= Vector256<byte>.Count)
@@ -235,6 +238,8 @@ namespace PhotoSauce.MagicScaler
 			{
 				var vscale = Vector256.Create(1f / byte.MaxValue);
 				ipe -= Vector256<byte>.Count;
+
+				var vlast = Avx.LoadVector256(ipe);
 
 				LoopTop:
 				do
@@ -288,6 +293,7 @@ namespace PhotoSauce.MagicScaler
 					nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
 					ip = UnsafeUtil.SubtractOffset(ip, offs);
 					op = UnsafeUtil.SubtractOffset(op, UnsafeUtil.ConvertOffset<byte, float>(offs));
+					Avx.Store(ip, vlast);
 					goto LoopTop;
 				}
 			}
@@ -335,11 +341,12 @@ namespace PhotoSauce.MagicScaler
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-			private static void convertFloat(byte* ipstart, byte* opstart, float* igtstart, nint cb)
+			private static void convertFloat(byte* istart, byte* ostart, float* igtstart, nint cb)
 			{
-				byte* ip = ipstart, ipe = ipstart + cb;
-				float* op = (float*)opstart, igt = igtstart;
+				byte* ip = istart, ipe = istart + cb;
+				float* op = (float*)ostart, igt = igtstart;
 
+				float z = Vector4.Zero.X;
 				while (ip < ipe)
 				{
 					float o0 = igt[(nuint)ip[0]];
@@ -350,6 +357,7 @@ namespace PhotoSauce.MagicScaler
 					op[0] = o0;
 					op[1] = o1;
 					op[2] = o2;
+					op[3] = z;
 					op += 4;
 				}
 			}
@@ -388,10 +396,10 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			private static void convertUQ15(byte* ipstart, byte* opstart, byte* gtstart, nint cb)
+			private static void convertUQ15(byte* istart, byte* ostart, byte* gtstart, nint cb)
 			{
-				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb);
-				byte* op = opstart, gt = gtstart;
+				ushort* ip = (ushort*)istart, ipe = (ushort*)(istart + cb);
+				byte* op = ostart, gt = gtstart;
 
 				ipe -= 4;
 				while (ip <= ipe)
@@ -418,10 +426,10 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			private static void convertFloat(byte* ipstart, byte* opstart, byte* gtstart, nint cb)
+			private static void convertFloat(byte* istart, byte* ostart, byte* gtstart, nint cb)
 			{
-				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb);
-				byte* op = opstart, gt = gtstart;
+				float* ip = (float*)istart, ipe = (float*)(istart + cb);
+				byte* op = ostart, gt = gtstart;
 
 #if HWINTRINSICS
 				if (Avx2.IsSupported && cb >= Vector256<byte>.Count * 4)
@@ -579,10 +587,10 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			private static void convertUQ15(byte* ipstart, byte* opstart, byte* gtstart, nint cb)
+			private static void convertUQ15(byte* istart, byte* ostart, byte* gtstart, nint cb)
 			{
-				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb);
-				byte* op = opstart, gt = gtstart;
+				ushort* ip = (ushort*)istart, ipe = (ushort*)(istart + cb);
+				byte* op = ostart, gt = gtstart;
 
 				while (ip < ipe)
 				{
@@ -614,10 +622,10 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			private static void convertFloat(byte* ipstart, byte* opstart, byte* gtstart, nint cb)
+			private static void convertFloat(byte* istart, byte* ostart, byte* gtstart, nint cb)
 			{
-				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb);
-				byte* op = opstart, gt = gtstart;
+				float* ip = (float*)istart, ipe = (float*)(istart + cb);
+				byte* op = ostart, gt = gtstart;
 
 #if HWINTRINSICS
 				if (Avx2.IsSupported && cb >= Vector256<byte>.Count * 4)
@@ -770,10 +778,10 @@ namespace PhotoSauce.MagicScaler
 				}
 			}
 
-			private static void convertFloat(byte* ipstart, byte* opstart, byte* gtstart, nint cb)
+			private static void convertFloat(byte* istart, byte* ostart, byte* gtstart, nint cb)
 			{
-				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb);
-				byte* op = opstart, gt = gtstart;
+				float* ip = (float*)istart, ipe = (float*)(istart + cb);
+				byte* op = ostart, gt = gtstart;
 
 #if HWINTRINSICS
 				if (Avx2.IsSupported && cb >= Vector256<byte>.Count * 4)

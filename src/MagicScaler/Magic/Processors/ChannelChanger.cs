@@ -1,6 +1,7 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
+using System.Diagnostics;
 
 #if HWINTRINSICS
 using System.Runtime.Intrinsics;
@@ -9,7 +10,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 #endif
 
-namespace PhotoSauce.MagicScaler.Transforms
+namespace PhotoSauce.MagicScaler.Converters
 {
 	internal static class ChannelChanger<T> where T : unmanaged
 	{
@@ -46,9 +47,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			private Change1to3Chan() { }
 
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
-				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
+				T* ip = (T*)istart, ipe = (T*)(istart + cb), op = (T*)ostart;
 
 #if HWINTRINSICS
 				if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count)
@@ -99,9 +100,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			private Change1to4Chan() { }
 
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
-				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
+				T* ip = (T*)istart, ipe = (T*)(istart + cb), op = (T*)ostart;
 				var alpha = maxalpha;
 
 #if HWINTRINSICS
@@ -151,9 +152,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			private Change3to1Chan() { }
 
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
-				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
+				T* ip = (T*)istart, ipe = (T*)(istart + cb), op = (T*)ostart;
 
 #if HWINTRINSICS
 				if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count * 3)
@@ -205,9 +206,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			private Change3to4Chan() { }
 
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
-				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
+				T* ip = (T*)istart, ipe = (T*)(istart + cb), op = (T*)ostart;
 				var alpha = maxalpha;
 
 #if HWINTRINSICS
@@ -264,9 +265,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			private Change4to1Chan() { }
 
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
-				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
+				T* ip = (T*)istart, ipe = (T*)(istart + cb), op = (T*)ostart;
 
 #if HWINTRINSICS
 				if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count * 4)
@@ -317,9 +318,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			private Change4to3Chan() { }
 
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
-				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
+				T* ip = (T*)istart, ipe = (T*)(istart + cb), op = (T*)ostart;
 
 #if HWINTRINSICS
 				if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count * 4)
@@ -374,9 +375,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			private Swap3Chan() { }
 
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
-				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
+				Debug.Assert(istart == ostart);
+
+				T* ip = (T*)istart, ipe = (T*)(istart + cb);
 
 #if HWINTRINSICS
 				if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count)
@@ -388,12 +391,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 					do
 					{
 						var v0 = Sse2.LoadVector128((byte*)ip);
-						ip += Vector128<byte>.Count - 1;
-
 						v0 = Ssse3.Shuffle(v0, vmask);
 
-						Sse2.Store((byte*)op, v0);
-						op += Vector128<byte>.Count - 1;
+						Sse2.Store((byte*)ip, v0);
+						ip += Vector128<byte>.Count - 1;
 					}
 					while (ip <= ipe);
 					ipe += Vector128<byte>.Count;
@@ -404,11 +405,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 				while (ip <= ipe)
 				{
 					var t = ip[0];
-					op[0] = ip[2];
-					op[2] = t;
+					ip[0] = ip[2];
+					ip[2] = t;
 
 					ip += 3;
-					op += 3;
 				}
 			}
 		}
@@ -419,9 +419,11 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			private Swap4Chan() { }
 
-			unsafe void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
-				T* ip = (T*)ipstart, ipe = (T*)(ipstart + cb), op = (T*)opstart;
+				Debug.Assert(istart == ostart);
+
+				T* ip = (T*)istart, ipe = (T*)(istart + cb);
 
 #if HWINTRINSICS
 				if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count)
@@ -433,12 +435,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 					do
 					{
 						var v0 = Sse2.LoadVector128((byte*)ip);
-						ip += Vector128<byte>.Count;
-
 						v0 = Ssse3.Shuffle(v0, vmask);
 
-						Sse2.Store((byte*)op, v0);
-						op += Vector128<byte>.Count;
+						Sse2.Store((byte*)ip, v0);
+						ip += Vector128<byte>.Count;
 					}
 					while (ip <= ipe);
 					ipe += Vector128<byte>.Count;
@@ -449,11 +449,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 				while (ip <= ipe)
 				{
 					var t = ip[0];
-					op[0] = ip[2];
-					op[2] = t;
+					ip[0] = ip[2];
+					ip[2] = t;
 
 					ip += 4;
-					op += 4;
 				}
 			}
 		}

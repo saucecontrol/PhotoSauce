@@ -2,6 +2,7 @@
 
 using System.Numerics;
 
+using PhotoSauce.MagicScaler.Converters;
 using PhotoSauce.MagicScaler.Transforms;
 
 namespace PhotoSauce.MagicScaler

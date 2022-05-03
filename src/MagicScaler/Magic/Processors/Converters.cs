@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 
 using static PhotoSauce.MagicScaler.MathUtil;
 
-namespace PhotoSauce.MagicScaler
+namespace PhotoSauce.MagicScaler.Converters
 {
 	internal interface EncodingType
 	{
@@ -138,78 +138,6 @@ namespace PhotoSauce.MagicScaler
 		}
 	}
 
-	internal sealed unsafe class VideoLumaConverter : IConversionProcessor<byte, byte>
-	{
-		public static readonly VideoLumaConverter Instance = new();
-
-		private VideoLumaConverter() { }
-
-		void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
-		{
-			byte* ip = istart, ipe = istart + cb - 4;
-			byte* op = ostart;
-
-			while (ip <= ipe)
-			{
-				byte o0 = ScaleFromVideoLuma(ip[0]);
-				byte o1 = ScaleFromVideoLuma(ip[1]);
-				byte o2 = ScaleFromVideoLuma(ip[2]);
-				byte o3 = ScaleFromVideoLuma(ip[3]);
-				ip += 4;
-
-				op[0] = o0;
-				op[1] = o1;
-				op[2] = o2;
-				op[3] = o3;
-				op += 4;
-			}
-			ipe += 4;
-
-			while (ip < ipe)
-			{
-				op[0] = ScaleFromVideoLuma(ip[0]);
-				ip++;
-				op++;
-			}
-		}
-	}
-
-	internal sealed unsafe class VideoChromaConverter : IConversionProcessor<byte, byte>
-	{
-		public static readonly VideoChromaConverter Instance = new();
-
-		private VideoChromaConverter() { }
-
-		void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
-		{
-			byte* ip = istart, ipe = istart + cb - 4;
-			byte* op = ostart;
-
-			while (ip <= ipe)
-			{
-				byte o0 = ScaleFromVideoChroma(ip[0]);
-				byte o1 = ScaleFromVideoChroma(ip[1]);
-				byte o2 = ScaleFromVideoChroma(ip[2]);
-				byte o3 = ScaleFromVideoChroma(ip[3]);
-				ip += 4;
-
-				op[0] = o0;
-				op[1] = o1;
-				op[2] = o2;
-				op[3] = o3;
-				op += 4;
-			}
-			ipe += 4;
-
-			while (ip < ipe)
-			{
-				op[0] = ScaleFromVideoChroma(ip[0]);
-				ip++;
-				op++;
-			}
-		}
-	}
-
 	internal sealed class NoopConverter : IConverter<float, float>
 	{
 		public static readonly NoopConverter Instance = new();
@@ -247,10 +175,10 @@ namespace PhotoSauce.MagicScaler
 
 		private sealed class UQ15Processor : IConversionProcessor<ushort, byte>
 		{
-			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
-				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb) - 4;
-				byte* op = opstart;
+				ushort* ip = (ushort*)istart, ipe = (ushort*)(istart + cb) - 4;
+				byte* op = ostart;
 
 				while (ip <= ipe)
 				{
@@ -279,10 +207,10 @@ namespace PhotoSauce.MagicScaler
 
 		private sealed class UQ15Processor3A : IConversionProcessor<ushort, byte>
 		{
-			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
-				ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb);
-				byte* op = opstart;
+				ushort* ip = (ushort*)istart, ipe = (ushort*)(istart + cb);
+				byte* op = ostart;
 
 				while (ip < ipe)
 				{

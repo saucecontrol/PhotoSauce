@@ -138,12 +138,6 @@ namespace PhotoSauce.MagicScaler
 		public static byte UnFix22ToByte(uint x) => ClampToByte(UnFix22(x));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte ScaleFromVideoLuma(byte x) => UnFix15ToByte((uint)Max(x - VideoLumaMin, 0) * (UQ15One * byte.MaxValue / VideoLumaScale));
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte ScaleFromVideoChroma(byte x) => UnFix15ToByte((uint)Max(x - VideoChromaMin, 0) * (UQ15One * byte.MaxValue / VideoChromaScale));
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int DivCeiling(int x, int y) => (x + (y - 1)) / y;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

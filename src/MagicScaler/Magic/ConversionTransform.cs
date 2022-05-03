@@ -2,25 +2,20 @@
 
 using System;
 
+using PhotoSauce.MagicScaler.Converters;
+
 namespace PhotoSauce.MagicScaler.Transforms
 {
 	internal sealed class ConversionTransform : ChainedPixelSource
 	{
 		private readonly IConversionProcessor processor;
 
-		private RentedBuffer<byte> lineBuff;
-
 		public override PixelFormat Format { get; }
 
 		public ConversionTransform(PixelSource source, PixelFormat destFormat, ColorProfile? sourceProfile = null, ColorProfile? destProfile = null, bool videoLevels = false) : base(source)
 		{
 			var srcFormat = source.Format;
-
-			processor = null!;
-
 			Format = destFormat;
-			if (srcFormat.BitsPerPixel != Format.BitsPerPixel)
-				lineBuff = BufferPool.RentAligned<byte>(BufferStride, true);
 
 			if (srcFormat.ColorRepresentation == PixelColorRepresentation.Cmyk && srcFormat.BitsPerPixel == 64 && Format.BitsPerPixel == 32)
 			{
@@ -28,7 +23,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 			else if (videoLevels && srcFormat.BitsPerPixel == 8 && Format.BitsPerPixel == 8)
 			{
-				processor = srcFormat.ColorRepresentation == PixelColorRepresentation.Grey ? VideoLumaConverter.Instance : VideoChromaConverter.Instance;
+				processor = srcFormat.ColorRepresentation == PixelColorRepresentation.Grey ? VideoLumaConverter.VideoToFullRangeProcessor.Instance : VideoChromaConverter.VideoToFullRangeProcessor.Instance;
 			}
 			else if (srcFormat.Encoding == PixelValueEncoding.Companded && Format.Encoding == PixelValueEncoding.Linear)
 			{
@@ -117,7 +112,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
-			if (PrevSource.Format.BitsPerPixel != Format.BitsPerPixel)
+			if (PrevSource.Format.BitsPerPixel > Format.BitsPerPixel)
 				copyPixelsBuffered(prc, cbStride, pbBuffer);
 			else
 				copyPixelsDirect(prc, cbStride, pbBuffer);
@@ -125,17 +120,17 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		private unsafe void copyPixelsBuffered(in PixelArea prc, int cbStride, byte* pbBuffer)
 		{
-			var buffspan = lineBuff.Span;
-			if (buffspan.IsEmpty) throw new ObjectDisposedException(nameof(ConversionTransform));
+			int buffStride = BufferStride;
+			using var buff = BufferPool.RentLocalAligned<byte>(buffStride);
 
-			fixed (byte* bstart = buffspan)
+			fixed (byte* bstart = buff.Span)
 			{
 				int cb = MathUtil.DivCeiling(prc.Width * PrevSource.Format.BitsPerPixel, 8);
 
 				for (int y = 0; y < prc.Height; y++)
 				{
 					Profiler.PauseTiming();
-					PrevSource.CopyPixels(new PixelArea(prc.X, prc.Y + y, prc.Width, 1), buffspan.Length, buffspan.Length, bstart);
+					PrevSource.CopyPixels(new PixelArea(prc.X, prc.Y + y, prc.Width, 1), buffStride, buffStride, bstart);
 					Profiler.ResumeTiming();
 
 					byte* op = pbBuffer + y * cbStride;
@@ -146,29 +141,20 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		private unsafe void copyPixelsDirect(in PixelArea prc, int cbStride, byte* pbBuffer)
 		{
-			int cb = MathUtil.DivCeiling(prc.Width * PrevSource.Format.BitsPerPixel, 8);
+			int cbi = MathUtil.DivCeiling(prc.Width * PrevSource.Format.BitsPerPixel, 8);
+			int cbo = MathUtil.DivCeiling(prc.Width * Format.BitsPerPixel, 8);
 
 			for (int y = 0; y < prc.Height; y++)
 			{
 				byte* op = pbBuffer + y * cbStride;
+				byte* ip = op + cbo - cbi;
 
 				Profiler.PauseTiming();
-				PrevSource.CopyPixels(new PixelArea(prc.X, prc.Y + y, prc.Width, 1), cbStride, cb, op);
+				PrevSource.CopyPixels(new PixelArea(prc.X, prc.Y + y, prc.Width, 1), cbStride, cbi, ip);
 				Profiler.ResumeTiming();
 
-				processor.ConvertLine(op, op, cb);
+				processor.ConvertLine(ip, op, cbi);
 			}
-		}
-
-		protected override void Dispose(bool disposing)
-		{
-			if (disposing)
-			{
-				lineBuff.Dispose();
-				lineBuff = default;
-			}
-
-			base.Dispose(disposing);
 		}
 
 		public override string ToString() => $"{nameof(ConversionTransform)}: {PrevSource.Format.Name}->{Format.Name}";

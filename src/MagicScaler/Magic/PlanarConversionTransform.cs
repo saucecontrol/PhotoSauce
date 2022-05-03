@@ -15,8 +15,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 {
 	internal sealed class PlanarConversionTransform : ChainedPixelSource
 	{
-		private const int ichromaOffset = 128;
-		private const float videoChromaScale = VideoChromaScale;
+		private const int ichromaOffset = -128;
 		private const float fchromaOffset = (float)ichromaOffset / byte.MaxValue;
 
 		private readonly float coeffCb0, coeffCb1, coeffCr0, coeffCr1;
@@ -40,7 +39,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			sourceCr = srcCr;
 
 			if (videoLevels)
-				matrix *= byte.MaxValue / videoChromaScale;
+				matrix *= byte.MaxValue / (float)VideoChromaScale;
 
 			coeffCb0 = matrix.M23;
 			coeffCb1 = matrix.M22;
@@ -129,8 +128,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 			while (ip0 < ipe)
 			{
 				int i0 = *ip0++ * UQ15One;
-				int i1 = *ip1++ - ichromaOffset;
-				int i2 = *ip2++ - ichromaOffset;
+				int i1 = *ip1++ + ichromaOffset;
+				int i2 = *ip2++ + ichromaOffset;
 
 				byte o0 = UnFix15ToByte(i0 + i1 * c0);
 				byte o1 = UnFix15ToByte(i0 + i1 * c1 + i2 * c2);
@@ -159,8 +158,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 			while (ip0 < ipe)
 			{
 				float f0 = *ip0++;
-				float f1 = *ip1++ - foff;
-				float f2 = *ip2++ - foff;
+				float f1 = *ip1++ + foff;
+				float f2 = *ip2++ + foff;
 
 				op[0] = f0 + f1 * c0;
 				op[1] = f0 + f1 * c1 + f2 * c2;
@@ -184,7 +183,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				var vc1 = Vector256.Create(coeffCb1);
 				var vc2 = Vector256.Create(coeffCr0);
 				var vc3 = Vector256.Create(coeffCr1);
-				var voff = Vector256.Create(-fchromaOffset);
+				var voff = Vector256.Create(fchromaOffset);
 				var vmaskp = Avx.LoadVector256((int*)HWIntrinsics.PermuteMaskEvenOdd8x32.GetAddressOf());
 
 				ipe -= Vector256<float>.Count;
@@ -235,7 +234,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				var vc1 = Vector128.Create(coeffCb1);
 				var vc2 = Vector128.Create(coeffCr0);
 				var vc3 = Vector128.Create(coeffCr1);
-				var voff = Vector128.Create(-fchromaOffset);
+				var voff = Vector128.Create(fchromaOffset);
 
 				ipe -= Vector128<float>.Count;
 

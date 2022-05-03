@@ -2,8 +2,8 @@
 
 	<PropertyGroup>
 		<VersionPrefix>0.6.6</VersionPrefix>
-		<TargetFrameworks>net461</TargetFrameworks>
-		<TargetFrameworks Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">$(TargetFrameworks);net472</TargetFrameworks>
+		<TargetFrameworks>net472</TargetFrameworks>
+		<TargetFrameworks Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">$(TargetFrameworks);net461</TargetFrameworks>
 	</PropertyGroup>
 
 	<ItemGroup>

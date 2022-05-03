@@ -14,7 +14,7 @@ using static PhotoSauce.MagicScaler.MathUtil;
 
 using VectorF = System.Numerics.Vector<float>;
 
-namespace PhotoSauce.MagicScaler
+namespace PhotoSauce.MagicScaler.Converters
 {
 	internal static class Rec601Luma
 	{
@@ -87,9 +87,9 @@ namespace PhotoSauce.MagicScaler
 
 			public static readonly Processor3 Instance = new();
 
-			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
-				byte* ip = ipstart, ipe = ipstart + cb - channels, op = opstart;
+				byte* ip = istart, ipe = istart + cb - channels, op = ostart;
 
 				while (ip <= ipe)
 				{
@@ -108,11 +108,11 @@ namespace PhotoSauce.MagicScaler
 
 			public static readonly UQ15Processor3 Instance = new();
 
-			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
 				fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15.GetDataRef())
 				{
-					ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb) - channels, op = (ushort*)opstart;
+					ushort* ip = (ushort*)istart, ipe = (ushort*)(istart + cb) - channels, op = (ushort*)ostart;
 					byte* gt = gtstart;
 
 					while (ip <= ipe)
@@ -133,11 +133,11 @@ namespace PhotoSauce.MagicScaler
 
 			public static readonly FloatProcessor3<TEnc> Instance = new();
 
-			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
 				bool linear = typeof(TEnc) == typeof(EncodingType.Linear);
 
-				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb) - channels, op = (float*)opstart;
+				float* ip = (float*)istart, ipe = (float*)(istart + cb) - channels, op = (float*)ostart;
 				var clum = linear ? Rec709Luma.Coefficients : Rec601Luma.Coefficients;
 				var vzero = Vector4.Zero;
 				float cbl = clum.X, cgl = clum.Y, crl = clum.Z;
@@ -167,9 +167,9 @@ namespace PhotoSauce.MagicScaler
 
 			public static readonly Processor3X Instance = new();
 
-			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
-				byte* ip = ipstart, ipe = ipstart + cb - channels, op = opstart;
+				byte* ip = istart, ipe = istart + cb - channels, op = ostart;
 
 				while (ip <= ipe)
 				{
@@ -188,11 +188,11 @@ namespace PhotoSauce.MagicScaler
 
 			public static readonly UQ15Processor3X Instance = new();
 
-			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
 				fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15.GetDataRef())
 				{
-					ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb) - channels, op = (ushort*)opstart;
+					ushort* ip = (ushort*)istart, ipe = (ushort*)(istart + cb) - channels, op = (ushort*)ostart;
 					byte* gt = gtstart;
 
 					while (ip <= ipe)
@@ -213,11 +213,11 @@ namespace PhotoSauce.MagicScaler
 
 			public static readonly FloatProcessor3X<TEnc> Instance = new();
 
-			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
 				bool linear = typeof(TEnc) == typeof(EncodingType.Linear);
 
-				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb), op = (float*)opstart;
+				float* ip = (float*)istart, ipe = (float*)(istart + cb), op = (float*)ostart;
 				var clum = linear ? Rec709Luma.Coefficients : Rec601Luma.Coefficients;
 
 #if HWINTRINSICS
@@ -297,11 +297,11 @@ namespace PhotoSauce.MagicScaler
 		{
 			public static readonly UQ15Processor Instance = new();
 
-			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
 				fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15.GetDataRef())
 				{
-					ushort* ip = (ushort*)ipstart, ipe = (ushort*)(ipstart + cb), op = (ushort*)opstart;
+					ushort* ip = (ushort*)istart, ipe = (ushort*)(istart + cb), op = (ushort*)ostart;
 					byte* gt = gtstart;
 
 					while (ip < ipe)
@@ -317,9 +317,9 @@ namespace PhotoSauce.MagicScaler
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-			void IConversionProcessor.ConvertLine(byte* ipstart, byte* opstart, nint cb)
+			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
-				float* ip = (float*)ipstart, ipe = (float*)(ipstart + cb), op = (float*)opstart;
+				float* ip = (float*)istart, ipe = (float*)(istart + cb), op = (float*)ostart;
 
 #if HWINTRINSICS
 				if (Avx.IsSupported)

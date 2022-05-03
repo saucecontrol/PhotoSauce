@@ -120,13 +120,13 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-		private static unsafe void process4A(byte* ipstart, byte* opstart, nuint stride)
+		private static unsafe void process4A(byte* istart, byte* ostart, nuint stride)
 		{
 			const ushort scalec = ((UQ15One << 8) + byte.MaxValue / 2) / byte.MaxValue;
 			const uint scalea = (byte.MaxValue << 16) + byte.MaxValue << 2;
 
-			byte* ip = ipstart, ipe = ipstart + stride;
-			byte* op = opstart;
+			byte* ip = istart, ipe = istart + stride;
+			byte* op = ostart;
 
 #if HWINTRINSICS
 			if (Avx2.IsSupported && stride >= (nuint)Vector256<byte>.Count * 2)
@@ -372,10 +372,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-		private static unsafe void process4(byte* ipstart, byte* opstart, nuint stride)
+		private static unsafe void process4(byte* istart, byte* ostart, nuint stride)
 		{
-			byte* ip = ipstart, ipe = ipstart + stride;
-			byte* op = opstart;
+			byte* ip = istart, ipe = istart + stride;
+			byte* op = ostart;
 
 #if HWINTRINSICS
 			if (Avx2.IsSupported && stride >= (nuint)Vector256<byte>.Count * 2)
@@ -490,10 +490,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-		private static unsafe void process3(byte* ipstart, byte* opstart, nuint stride)
+		private static unsafe void process3(byte* istart, byte* ostart, nuint stride)
 		{
-			byte* ip = ipstart, ipe = ipstart + stride;
-			byte* op = opstart;
+			byte* ip = istart, ipe = istart + stride;
+			byte* op = ostart;
 
 #if HWINTRINSICS
 			if (Ssse3.IsSupported && stride > (nuint)Vector128<byte>.Count * 2)
@@ -595,10 +595,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 #if HWINTRINSICS
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-		private static unsafe void process(byte* ipstart, byte* opstart, nuint stride)
+		private static unsafe void process(byte* istart, byte* ostart, nuint stride)
 		{
-			byte* ip = ipstart, ipe = ipstart + stride;
-			byte* op = opstart;
+			byte* ip = istart, ipe = istart + stride;
+			byte* op = ostart;
 
 #if HWINTRINSICS
 			if (Avx2.IsSupported && stride >= (nuint)Vector256<byte>.Count * 2)
