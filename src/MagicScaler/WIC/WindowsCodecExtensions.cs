@@ -3,6 +3,8 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.Runtime.Versioning;
+using System.Runtime.InteropServices;
 
 using TerraFX.Interop.Windows;
 using static TerraFX.Interop.Windows.GUID;
@@ -13,6 +15,7 @@ using PhotoSauce.Interop.Wic;
 namespace PhotoSauce.MagicScaler
 {
 	/// <summary>Extension methods for managing registered codecs.</summary>
+	[SupportedOSPlatform(nameof(OSPlatform.Windows))]
 	public static class WindowsCodecExtensions
 	{
 		/// <summary>Registers codecs with the pipeline.  Call from <see cref="CodecManager.Configure(Action{CodecCollection}?)" />.</summary>

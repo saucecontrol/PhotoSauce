@@ -30,7 +30,8 @@ namespace PhotoSauce.MagicScaler
 			[GUID_ContainerFormatGif] = ImageMimeTypes.Gif,
 			[GUID_ContainerFormatPng] = ImageMimeTypes.Png,
 			[GUID_ContainerFormatJpeg] = ImageMimeTypes.Jpeg,
-			[GUID_ContainerFormatTiff] = ImageMimeTypes.Tiff
+			[GUID_ContainerFormatTiff] = ImageMimeTypes.Tiff,
+			[GUID_ContainerFormatHeif] = ImageMimeTypes.Heic
 		};
 
 		private static IWICBitmapDecoder* createDecoder(IStream* pStream)

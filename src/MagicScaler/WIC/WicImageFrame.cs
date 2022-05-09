@@ -155,6 +155,7 @@ namespace PhotoSauce.MagicScaler
 					string orientationPath =
 						MagicImageProcessor.EnableXmpOrientation ? Wic.Metadata.OrientationWindowsPolicy :
 						Container.MimeType == ImageMimeTypes.Jpeg ? Wic.Metadata.OrientationJpeg :
+						Container.MimeType == ImageMimeTypes.Heic ? Wic.Metadata.OrientationHeif :
 						Wic.Metadata.OrientationExif;
 
 					orient = ((Orientation)WicMetadataReader->GetValueOrDefault<ushort>(orientationPath)).Clamp();

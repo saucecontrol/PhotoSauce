@@ -57,6 +57,7 @@ namespace PhotoSauce.Interop.Wic
 			public const string OrientationWindowsPolicy = "System.Photo.Orientation";
 			public const string OrientationExif = "/ifd/{ushort=274}";
 			public const string OrientationJpeg = "/app1" + OrientationExif;
+			public const string OrientationHeif = "/heifProps/Orientation";
 
 			public static class Gif
 			{
