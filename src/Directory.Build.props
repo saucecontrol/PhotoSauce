@@ -5,7 +5,12 @@
 	<Import Project="$(MSBuildThisFileDirectory)..\build\FrameworkVersions.props" />
 
 	<PropertyGroup>
+		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetStandardVersion), '2.1'))">$(DefineConstants);BUILTIN_NULLABLE</DefineConstants>
+	</PropertyGroup>
+
+	<PropertyGroup>
 		<Nullable>annotations</Nullable>
+		<Nullable Condition="$(DefineConstants.Contains('BUILTIN_NULLABLE'))">enable</Nullable>
 		<SignAssembly>true</SignAssembly>
 	</PropertyGroup>
 
@@ -28,7 +33,7 @@
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)'=='Dist'">
-		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="all" />
 		<PackageReference Include="SauceControl.InheritDoc" Version="1.3.0" PrivateAssets="all" />
 	</ItemGroup>
 

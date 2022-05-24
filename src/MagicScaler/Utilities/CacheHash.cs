@@ -14,12 +14,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		public const int DigestLength = 5;
 
-		private static ReadOnlySpan<byte> base32Table => new[] {
-			(byte)'A', (byte)'B', (byte)'C', (byte)'D', (byte)'E', (byte)'F', (byte)'G', (byte)'H',
-			(byte)'I', (byte)'J', (byte)'K', (byte)'L', (byte)'M', (byte)'N', (byte)'O', (byte)'P',
-			(byte)'Q', (byte)'R', (byte)'S', (byte)'T', (byte)'U', (byte)'V', (byte)'W', (byte)'X',
-			(byte)'Y', (byte)'Z', (byte)'2', (byte)'3', (byte)'4', (byte)'5', (byte)'6', (byte)'7'
-		};
+		private static ReadOnlySpan<byte> base32Table => "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"u8;
 
 		// first 40 bits from the crypto hash, base32 encoded
 		// https://tools.ietf.org/html/rfc4648#section-6

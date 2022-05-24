@@ -67,12 +67,8 @@ namespace PhotoSauce.MagicScaler
 
 	internal sealed unsafe class WicGifContainer : WicImageContainer, IMetadataSource
 	{
-		public static ReadOnlySpan<byte> Animexts1_0 => new[] {
-			(byte)'A', (byte)'N', (byte)'I', (byte)'M', (byte)'E', (byte)'X', (byte)'T', (byte)'S', (byte)'1', (byte)'.', (byte)'0'
-		};
-		public static ReadOnlySpan<byte> Netscape2_0 => new[] {
-			(byte)'N', (byte)'E', (byte)'T', (byte)'S', (byte)'C', (byte)'A', (byte)'P', (byte)'E', (byte)'2', (byte)'.', (byte)'0'
-		};
+		public static ReadOnlySpan<byte> Animexts1_0 => "ANIMEXTS1.0"u8;
+		public static ReadOnlySpan<byte> Netscape2_0 => "NETSCAPE2.0"u8;
 
 		public readonly AnimationContainer AnimationMetadata;
 

@@ -18,6 +18,7 @@
 		<PackageReleaseNotes>See $(RepositoryUrl)/releases for release-specific notes.</PackageReleaseNotes>
 
 		<LangVersion>preview</LangVersion>
+		<WarningLevel>7</WarningLevel>
 		<Features>strict</Features>
 		<Nullable>annotations</Nullable>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -53,6 +54,10 @@
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>
 		<IsTrimmable>true</IsTrimmable>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Net.Compilers.Toolset" Version="4.3.0-2.22270.4" PrivateAssets="all" />
+	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">
 		<None Include="$(MSBuildThisFileDirectory)$(Company).png" Pack="true" PackagePath="/" />

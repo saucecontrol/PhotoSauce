@@ -26,7 +26,6 @@ namespace PhotoSauce.Interop.Wic
 		{
 			lpVtbl = vtblStatic;
 			source = GCHandle.Alloc(managedSource, GCHandleType.Weak);
-			refCount = 0;
 		}
 
 		public static IWICBitmapSource* Wrap(PixelSource managedSource)

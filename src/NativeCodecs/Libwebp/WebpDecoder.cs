@@ -40,7 +40,7 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 			throw new InvalidDataException();
 
 		features = flags;
-		options = opt;
+		options = opt ?? WebpDecoderOptions.Default;
 
 		uint fcount = WebPDemuxGetI(handle, WebPFormatFeature.WEBP_FF_FRAME_COUNT);
 		var range = opt is IMultiFrameDecoderOptions mul ? mul.FrameRange : Range.All;
@@ -368,7 +368,7 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 	private sealed class WebpRgbFrame : WebpFrame
 	{
 		private readonly WebpPlane plane;
-		private PixelSource pixsrc;
+		private PixelSource? pixsrc;
 
 		public override IPixelSource PixelSource => pixsrc ??= new WebpDecBufferPixelSource(this, plane);
 
@@ -392,7 +392,7 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 			M44 = 1
 		};
 
-		private PixelSource ysrc, usrc, vsrc;
+		private PixelSource? ysrc, usrc, vsrc;
 
 		public ChromaPosition ChromaPosition => ChromaPosition.InterstitialHorizontal | ChromaPosition.CositedVertical;
 		public Matrix4x4 RgbYccMatrix => yccMatrix;

@@ -19,7 +19,6 @@ internal unsafe ref struct ExifReader
 
 	private ExifReader(ReadOnlySpan<byte> src, int offset, bool bswap)
 	{
-		this = default;
 		ushort cnt = MemoryMarshal.Read<ushort>(src[offset..]);
 		if (bswap)
 			cnt = BufferUtil.ReverseEndianness(cnt);
@@ -74,11 +73,11 @@ internal unsafe ref struct ExifReader
 
 	public readonly T CoerceValue<T>(in ExifItem item) where T : unmanaged
 	{
-		if (!UnsafeUtil.IsIntegerPrimitive<T>() && !UnsafeUtil.IsFloatingPrimitive<T>())
+		if (!UnsafeUtil.IsIntegerPrimitive<T>() && !UnsafeUtil.IsFloatPrimitive<T>())
 			throw new ArgumentException($"Coercion not implemented for type {typeof(T).Name}.", nameof(T));
 
 		int dlen = item.Type.GetElementSize();
-		if (dlen == sizeof(T) && item.Type.IsFloating() == UnsafeUtil.IsFloatingPrimitive<T>())
+		if (dlen == sizeof(T) && item.Type.IsFloating() == UnsafeUtil.IsFloatPrimitive<T>())
 			return GetValue<T>(item);
 
 		if (typeof(T) == typeof(float))
@@ -174,7 +173,7 @@ internal unsafe ref struct ExifReader
 		return true;
 	}
 
-	public unsafe readonly ref readonly ExifItem Current
+	public readonly ref readonly ExifItem Current
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if BUILTIN_SPAN

@@ -43,13 +43,20 @@ namespace PhotoSauce.MagicScaler
 
 		public static void FillBuffer(this Stream stm, Span<byte> buff)
 		{
+#if NET7_0_OR_GREATER
+			stm.ReadExactly(buff);
+#else
 			int rem = buff.Length;
 			while (rem > 0)
 				rem -= stm.Read(buff[^rem..]);
+#endif
 		}
 
 		public static int TryFillBuffer(this Stream stm, Span<byte> buff)
 		{
+#if NET7_0_OR_GREATER
+			return stm.ReadAtLeast(buff, buff.Length, false);
+#else
 			int cb = buff.Length;
 			int rb;
 			do
@@ -60,6 +67,7 @@ namespace PhotoSauce.MagicScaler
 			while (rb != 0 && buff.Length != 0);
 
 			return cb - buff.Length;
+#endif
 		}
 
 		public static Guid FinalizeToGuid<T>(this T hasher) where T : IBlake2Incremental

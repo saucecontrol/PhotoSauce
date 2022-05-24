@@ -60,7 +60,7 @@ internal sealed unsafe class JxlEncoder : IImageEncoder
 			throw new NotSupportedException("Image format not supported.");
 
 		int stride = sourceArea.Width * dstfmt.BytesPerPixel;
-		using var pixbuff = BufferPool.RentLocal<byte>(stride * sourceArea.Height);
+		using var pixbuff = BufferPool.RentLocal<byte>(checked(stride * sourceArea.Height));
 
 		if (srcfmt != dstfmt)
 		{
@@ -72,7 +72,7 @@ internal sealed unsafe class JxlEncoder : IImageEncoder
 			source.CopyPixels(sourceArea, stride, pixbuff.Span);
 		}
 
-		if (options is JxlLossyEncoderOptions lopt && lopt.Distance == default)
+		if (options is JxlLossyEncoderOptions { Distance: 0 })
 			JxlError.Check(JxlEncoderOptionsSetDistance(encopt, JxlLossyEncoderOptions.DistanceFromQuality(SettingsUtil.GetDefaultQuality(Math.Max(sourceArea.Width, sourceArea.Height)))));
 
 		var basinf = default(JxlBasicInfo);

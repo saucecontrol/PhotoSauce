@@ -45,7 +45,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 							new Span<byte>(pbBuffer, prc.Width).Fill((byte)fill);
 							break;
 						case 3:
-							new Span<triple>(pbBuffer, prc.Width).Fill((triple)fill);
+							new Span<Triple>(pbBuffer, prc.Width).Fill((Triple)fill);
 							break;
 						case 4:
 							new Span<uint>(pbBuffer, prc.Width).Fill(fill);

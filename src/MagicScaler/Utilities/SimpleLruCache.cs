@@ -117,7 +117,7 @@ namespace PhotoSauce.MagicScaler
 					count++;
 				}
 
-				for (; count > maxItems; --count)
+				for (; count > maxItems; count--)
 				{
 					var last = tail!.Prev!;
 					last.Next = null;

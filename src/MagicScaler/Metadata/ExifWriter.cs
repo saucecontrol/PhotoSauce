@@ -32,7 +32,6 @@ internal unsafe ref struct ExifWriter
 		dataOffset = writer.Position + tagCount * ExifConstants.MinTagLength + nextIfdLength;
 		tagWriter = buffer.Span.AsWriter(writer.Position..dataOffset);
 		dataWriter = buffer.Span.AsWriter(dataOffset..);
-		length = 0;
 	}
 
 	public static ExifWriter Create(int tagCount, int dataLength) => new(tagCount, dataLength);

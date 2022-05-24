@@ -111,7 +111,7 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 	IImageFrame IImageContainer.GetFrame(int index)
 	{
 		if (index != 0)
-			throw new IndexOutOfRangeException("Frame index does not exist.");
+			throw new ArgumentOutOfRangeException(nameof(index), "Invalid frame index.");
 
 		moveToFrameData(true);
 
@@ -185,7 +185,7 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 	private sealed class JxlFrame : IImageFrame, IMetadataSource
 	{
 		private readonly JxlContainer container;
-		private JxlPixelSource pixsrc;
+		private JxlPixelSource? pixsrc;
 
 		public JxlFrame(JxlContainer cont) => container = cont;
 

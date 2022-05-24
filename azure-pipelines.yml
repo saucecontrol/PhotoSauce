@@ -5,6 +5,7 @@ trigger:
     - master
   paths:
     exclude:
+    - doc
     - readme.md
 
 variables:
@@ -110,9 +111,10 @@ jobs:
       targetFolder: out/vcpkg/install
 
   - task: UseDotNet@2
-    displayName: Ensure 6.0 SDK
+    displayName: Ensure 7.0 SDK
     inputs:
-      version: 6.0.x
+      version: 7.0.x
+      includePreviewVersions: true
 
   - script: |
       dotnet build -c Dist --version-suffix ci$(Build.BuildNumber) src/MagicScaler

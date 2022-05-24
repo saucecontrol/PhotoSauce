@@ -32,7 +32,7 @@ internal sealed unsafe class HeifContainer : IImageContainer
 	IImageFrame IImageContainer.GetFrame(int index)
 	{
 		if (index != 0)
-			throw new IndexOutOfRangeException("Frame index does not exist.");
+			throw new ArgumentOutOfRangeException(nameof(index), "Invalid frame index.");
 
 		return new HeifFrame(this);
 	}
@@ -85,7 +85,7 @@ internal sealed unsafe class HeifContainer : IImageContainer
 	private sealed class HeifFrame : IImageFrame, IMetadataSource, IIccProfileSource, IExifSource
 	{
 		private readonly HeifContainer container;
-		private HeifPixelSource pixsrc;
+		private HeifPixelSource? pixsrc;
 		private RentedBuffer<byte> exifbuff;
 
 		public HeifFrame(HeifContainer cont) => container = cont;
@@ -120,7 +120,7 @@ internal sealed unsafe class HeifContainer : IImageContainer
 
 			if (typeof(T) == typeof(IExifSource))
 			{
-				var exif = (ReadOnlySpan<byte>)(new byte[] { (byte)'E', (byte)'x', (byte)'i', (byte)'f', 0 });
+				var exif = "Exif"u8;
 
 				uint blockid;
 				if (heif_image_handle_get_list_of_metadata_block_IDs(container.handle, (sbyte*)exif.GetAddressOf(), &blockid, 1) != 0)

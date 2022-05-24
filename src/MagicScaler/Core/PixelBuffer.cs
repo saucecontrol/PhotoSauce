@@ -17,6 +17,8 @@ namespace PhotoSauce.MagicScaler
 		private byte[]? buffArray;
 		private byte buffOffset;
 
+		public readonly int Stride;
+
 		private int buffLength
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -50,13 +52,6 @@ namespace PhotoSauce.MagicScaler
 			}
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private (int, int) getValidRange() => typeof(T) == typeof(BufferType.Windowed) && loaded > read
-				? (start + loaded - read, read)
-				: (start, loaded);
-
-		public readonly int Stride;
-
 		public PixelBuffer(int minLines, int stride, T param = default)
 		{
 			capacity = minLines;
@@ -65,6 +60,11 @@ namespace PhotoSauce.MagicScaler
 			read = typeof(T) == typeof(BufferType.Windowed) ? minLines : 0;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private (int, int) getValidRange() => typeof(T) == typeof(BufferType.Windowed) && loaded > read
+				? (start + loaded - read, read)
+				: (start, loaded);
+
 		private Span<byte> init(int first, int lines)
 		{
 			if (buffArray is null)
@@ -72,7 +72,7 @@ namespace PhotoSauce.MagicScaler
 				if (capacity == 0)
 					throw new ObjectDisposedException(nameof(PixelBuffer<T>));
 
-				var buff = BufferPool.RentRawAligned(window + Math.Max(capacity, lines) * Stride);
+				var buff = BufferPool.RentRawAligned(checked(window + Math.Max(capacity, lines) * Stride));
 
 				buffArray = buff.Array!;
 				buffOffset = (byte)buff.Offset;
@@ -95,7 +95,7 @@ namespace PhotoSauce.MagicScaler
 
 		private void grow(int cbKeep, int cbKill)
 		{
-			var tbuff = BufferPool.RentRawAligned(window + capacity * Stride * 2);
+			var tbuff = BufferPool.RentRawAligned(checked(window + capacity * Stride * 2));
 
 			if (cbKeep > 0)
 				Unsafe.CopyBlockUnaligned(ref tbuff.Array![tbuff.Offset], ref buffArray![buffOffset + cbKill], (uint)cbKeep);

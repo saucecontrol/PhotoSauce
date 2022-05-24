@@ -257,8 +257,7 @@ namespace PhotoSauce.MagicScaler
 
 					if (ecs == (uint)ExifColorSpace.Uncalibrated)
 					{
-						var r03 = (ReadOnlySpan<byte>)(new[] { (byte)'R', (byte)'0', (byte)'3' });
-						if (WicMetadataReader->GetValueOrDefault(Container.MimeType == ImageMimeTypes.Jpeg ? Wic.Metadata.InteropIndexJpeg : Wic.Metadata.InteropIndexExif, buff).SequenceEqual(r03))
+						if (WicMetadataReader->GetValueOrDefault(Container.MimeType == ImageMimeTypes.Jpeg ? Wic.Metadata.InteropIndexJpeg : Wic.Metadata.InteropIndexExif, buff).SequenceEqual("R03"u8))
 							return WicColorProfile.AdobeRgb.Value;
 					}
 				}

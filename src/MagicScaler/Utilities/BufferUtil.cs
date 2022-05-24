@@ -15,11 +15,7 @@ internal unsafe ref struct SpanBufferReader
 
 	public readonly int Position => (int)pos;
 
-	public SpanBufferReader(ReadOnlySpan<byte> buff)
-	{
-		span = buff;
-		pos = default;
-	}
+	public SpanBufferReader(ReadOnlySpan<byte> buff) => span = buff;
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public T Read<T>() where T : unmanaged
@@ -50,11 +46,7 @@ internal unsafe ref struct SpanBufferWriter
 
 	public readonly int Position => (int)pos;
 
-	public SpanBufferWriter(Span<byte> buff)
-	{
-		span = buff;
-		pos = default;
-	}
+	public SpanBufferWriter(Span<byte> buff) => span = buff;
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public void Write<T>(T val) where T : unmanaged

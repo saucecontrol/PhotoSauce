@@ -15,18 +15,18 @@ using static System.Math;
 namespace PhotoSauce.MagicScaler
 {
 	[StructLayout(LayoutKind.Sequential, Pack = 1)]
-	internal readonly struct triple
+	internal readonly struct Triple
 	{
 		public readonly ushort v1;
 		public readonly byte v2;
 
-		public triple(uint v)
+		public Triple(uint v)
 		{
 			v1 = (ushort)v;
 			v2 = (byte)(v >> 16);
 		}
 
-		public static explicit operator triple(uint v) => new(v);
+		public static explicit operator Triple(uint v) => new(v);
 	}
 
 	internal static class MathUtil
@@ -138,7 +138,7 @@ namespace PhotoSauce.MagicScaler
 		public static byte UnFix22ToByte(uint x) => ClampToByte(UnFix22(x));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int DivCeiling(int x, int y) => (x + (y - 1)) / y;
+		public static int DivCeiling(int x, int y) => (int)(((uint)x + ((uint)y - 1)) / (uint)y);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int PowerOfTwoFloor(int x, int powerOfTwo) => x & ~(powerOfTwo - 1);

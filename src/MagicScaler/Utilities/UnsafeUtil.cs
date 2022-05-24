@@ -60,7 +60,7 @@ namespace PhotoSauce.MagicScaler
 			typeof(T) == typeof(nuint);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool IsFloatingPrimitive<T>() where T : unmanaged =>
+		public static bool IsFloatPrimitive<T>() where T : unmanaged =>
 			typeof(T) == typeof(float)  ||
 			typeof(T) == typeof(double);
 

@@ -82,7 +82,7 @@ namespace PhotoSauce.MagicScaler
 							new Span<byte>(bp, barWidth).Fill((byte)barVal);
 							break;
 						case 3:
-							new Span<triple>(bp, barWidth).Fill((triple)barVal);
+							new Span<Triple>(bp, barWidth).Fill((Triple)barVal);
 							break;
 						case 4:
 							new Span<uint>(bp, barWidth).Fill((uint)byte.MaxValue << 24 | barVal);

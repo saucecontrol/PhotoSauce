@@ -30,7 +30,6 @@ namespace PhotoSauce.Interop.Wic
 			lpVtbl = vtblStatic;
 			source = GCHandle.Alloc(managedSource, GCHandleType.Weak);
 			offset = offs;
-			refCount = 0;
 		}
 
 		public static IStream* Wrap(Stream managedSource, uint offs = 0)

@@ -181,7 +181,7 @@ namespace PhotoSauce.MagicScaler
 
 			Stride = MathUtil.PowerOfTwoCeiling(width * Format.BytesPerPixel, HWIntrinsics.VectorCount<byte>());
 
-			frameBuff = BufferPool.RentAligned<byte>(Stride * height);
+			frameBuff = BufferPool.RentAligned<byte>(checked(Stride * height));
 		}
 
 		protected override void Dispose(bool disposing)

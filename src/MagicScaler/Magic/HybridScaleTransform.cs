@@ -69,7 +69,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 								new Span<byte>(bp, iw - iiw).Fill(bp[-1]);
 								break;
 							case 3:
-								new Span<triple>(bp, iw - iiw).Fill(((triple*)bp)[-1]);
+								new Span<Triple>(bp, iw - iiw).Fill(((Triple*)bp)[-1]);
 								break;
 							case 4:
 								new Span<uint>(bp, iw - iiw).Fill(((uint*)bp)[-1]);
