@@ -160,14 +160,14 @@ namespace PhotoSauce.MagicScaler.Transforms
 			var vm2 = Unsafe.ReadUnaligned<Vector128<float>>(ref Unsafe.As<float, byte>(ref Unsafe.AsRef(vec2.X)));
 			var vm3 = Unsafe.ReadUnaligned<Vector128<float>>(ref Unsafe.As<float, byte>(ref Unsafe.AsRef(vec3.X)));
 
-			var vml0 = Sse.UnpackLow(vm0, vm1).AsDouble();
+			var vml0 = Sse.UnpackLow (vm0, vm1).AsDouble();
 			var vmh0 = Sse.UnpackHigh(vm0, vm1).AsDouble();
-			var vml1 = Sse.UnpackLow(vm2, vm3).AsDouble();
+			var vml1 = Sse.UnpackLow (vm2, vm3).AsDouble();
 			var vmh1 = Sse.UnpackHigh(vm2, vm3).AsDouble();
 
-			vm0 = Sse2.UnpackLow(vml0, vml1).AsSingle();
+			vm0 = Sse2.UnpackLow (vml0, vml1).AsSingle();
 			vm1 = Sse2.UnpackHigh(vml0, vml1).AsSingle();
-			vm2 = Sse2.UnpackLow(vmh0, vmh1).AsSingle();
+			vm2 = Sse2.UnpackLow (vmh0, vmh1).AsSingle();
 			vm3 = Sse2.UnpackHigh(vmh0, vmh1).AsSingle();
 			var vone = Vector128.Create(1f);
 

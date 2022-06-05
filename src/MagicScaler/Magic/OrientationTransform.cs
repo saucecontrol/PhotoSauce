@@ -216,6 +216,13 @@ namespace PhotoSauce.MagicScaler.Transforms
 			byte* op = opb;
 
 #if HWINTRINSICS
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			static void store1x8Pair(byte* op, nint colStride, Vector128<ulong> vec)
+			{
+				Sse2.StoreScalar((ulong*)(op), vec);
+				Sse2.StoreScalar((ulong*)(op + colStride), Sse2.UnpackHigh(vec, vec));
+			}
+
 			if (Sse2.IsSupported && cb >= Vector128<byte>.Count)
 			{
 				ipe -= Vector128<byte>.Count;
@@ -294,15 +301,6 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 				op += colStride;
 			}
-
-#if HWINTRINSICS
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			static void store1x8Pair(byte* op, nint colStride, Vector128<ulong> vec)
-			{
-				Sse2.StoreScalar((ulong*)(op), vec);
-				Sse2.StoreScalar((ulong*)(op + colStride), Sse2.UnpackHigh(vec, vec));
-			}
-#endif
 		}
 
 		private static unsafe void transposeStrip3(byte* ipb, byte* opb, nint bufStride, nint colStride, nint cb)
@@ -311,6 +309,15 @@ namespace PhotoSauce.MagicScaler.Transforms
 			byte* op = opb;
 
 #if HWINTRINSICS
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			static void store3x4(byte* op, in Vector128<byte> vi)
+			{
+				if (Avx2.IsSupported)
+					Sse2.Store(op, Avx2.Blend(vi.AsUInt32(), Sse2.LoadVector128(op).AsUInt32(), 0b_0000_1000).AsByte());
+				else
+					Sse2.Store(op, Sse41.Blend(vi.AsUInt16(), Sse2.LoadVector128(op).AsUInt16(), 0b_1100_0000).AsByte());
+			}
+
 			if (Sse41.IsSupported && cb >= Vector128<byte>.Count)
 			{
 				var shuf3to3x = Sse2.LoadVector128(HWIntrinsics.ShuffleMask3To3xChan.GetAddressOf());
@@ -325,25 +332,25 @@ namespace PhotoSauce.MagicScaler.Transforms
 					var vi3 = Sse2.LoadVector128(ip + bufStride * 3);
 					ip += Vector128<byte>.Count * 3 / 4;
 
-					vi0 = Ssse3.Shuffle(vi0, shuf3to3x);
-					vi1 = Ssse3.Shuffle(vi1, shuf3to3x);
-					vi2 = Ssse3.Shuffle(vi2, shuf3to3x);
-					vi3 = Ssse3.Shuffle(vi3, shuf3to3x);
+					var vs0 = Ssse3.Shuffle(vi0, shuf3to3x).AsUInt32();
+					var vs1 = Ssse3.Shuffle(vi1, shuf3to3x).AsUInt32();
+					var vs2 = Ssse3.Shuffle(vi2, shuf3to3x).AsUInt32();
+					var vs3 = Ssse3.Shuffle(vi3, shuf3to3x).AsUInt32();
 
-					var vi0l = Sse.Shuffle(vi0.AsSingle(), vi1.AsSingle(), HWIntrinsics.ShuffleMaskLoPairs);
-					var vi0h = Sse.Shuffle(vi0.AsSingle(), vi1.AsSingle(), HWIntrinsics.ShuffleMaskHiPairs);
-					var vi1l = Sse.Shuffle(vi2.AsSingle(), vi3.AsSingle(), HWIntrinsics.ShuffleMaskLoPairs);
-					var vi1h = Sse.Shuffle(vi2.AsSingle(), vi3.AsSingle(), HWIntrinsics.ShuffleMaskHiPairs);
+					var vl0 = Sse2.UnpackLow (vs0, vs1).AsUInt64();
+					var vh0 = Sse2.UnpackHigh(vs0, vs1).AsUInt64();
+					var vl1 = Sse2.UnpackLow (vs2, vs3).AsUInt64();
+					var vh1 = Sse2.UnpackHigh(vs2, vs3).AsUInt64();
 
-					var vi0e = Sse.Shuffle(vi0l, vi1l, HWIntrinsics.ShuffleMaskEvPairs).AsByte();
-					var vi0o = Sse.Shuffle(vi0l, vi1l, HWIntrinsics.ShuffleMaskOdPairs).AsByte();
-					var vi1e = Sse.Shuffle(vi0h, vi1h, HWIntrinsics.ShuffleMaskEvPairs).AsByte();
-					var vi1o = Sse.Shuffle(vi0h, vi1h, HWIntrinsics.ShuffleMaskOdPairs).AsByte();
+					vi0 = Sse2.UnpackLow (vl0, vl1).AsByte();
+					vi1 = Sse2.UnpackHigh(vl0, vl1).AsByte();
+					vi2 = Sse2.UnpackLow (vh0, vh1).AsByte();
+					vi3 = Sse2.UnpackHigh(vh0, vh1).AsByte();
 
-					vi0 = Ssse3.Shuffle(vi0e, shuf3xto3);
-					vi1 = Ssse3.Shuffle(vi0o, shuf3xto3);
-					vi2 = Ssse3.Shuffle(vi1e, shuf3xto3);
-					vi3 = Ssse3.Shuffle(vi1o, shuf3xto3);
+					vi0 = Ssse3.Shuffle(vi0, shuf3xto3);
+					vi1 = Ssse3.Shuffle(vi1, shuf3xto3);
+					vi2 = Ssse3.Shuffle(vi2, shuf3xto3);
+					vi3 = Ssse3.Shuffle(vi3, shuf3xto3);
 
 					store3x4(op, vi0);
 					op += colStride;
@@ -372,17 +379,6 @@ namespace PhotoSauce.MagicScaler.Transforms
 				ip += 3;
 				op += colStride;
 			}
-
-#if HWINTRINSICS
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			static void store3x4(byte* op, in Vector128<byte> vi)
-			{
-				if (Avx2.IsSupported)
-					Sse2.Store(op, Avx2.Blend(vi.AsUInt32(), Sse2.LoadVector128(op).AsUInt32(), 0b_0000_1000).AsByte());
-				else
-					Sse2.Store(op, Sse41.Blend(vi.AsUInt16(), Sse2.LoadVector128(op).AsUInt16(), 0b_1100_0000).AsByte());
-			}
-#endif
 		}
 
 		private static unsafe void transposeStrip4(byte* ipb, byte* opb, nint bufStride, nint colStride, nint cb)
@@ -391,32 +387,32 @@ namespace PhotoSauce.MagicScaler.Transforms
 			byte* op = opb;
 
 #if HWINTRINSICS
-			if (Sse.IsSupported && cb >= Vector128<byte>.Count)
+			if (Sse2.IsSupported && cb >= Vector128<byte>.Count)
 			{
 				ipe -= Vector128<byte>.Count;
 				do
 				{
-					var vi0 = Sse.LoadVector128((float*)(ip));
-					var vi1 = Sse.LoadVector128((float*)(ip + bufStride));
-					var vi2 = Sse.LoadVector128((float*)(ip + bufStride * 2));
-					var vi3 = Sse.LoadVector128((float*)(ip + bufStride * 3));
+					var vi0 = Sse2.LoadVector128((uint*)(ip));
+					var vi1 = Sse2.LoadVector128((uint*)(ip + bufStride));
+					var vi2 = Sse2.LoadVector128((uint*)(ip + bufStride * 2));
+					var vi3 = Sse2.LoadVector128((uint*)(ip + bufStride * 3));
 					ip += Vector128<byte>.Count;
 
-					var vi0l = Sse.Shuffle(vi0, vi1, HWIntrinsics.ShuffleMaskLoPairs);
-					var vi0h = Sse.Shuffle(vi0, vi1, HWIntrinsics.ShuffleMaskHiPairs);
-					var vi1l = Sse.Shuffle(vi2, vi3, HWIntrinsics.ShuffleMaskLoPairs);
-					var vi1h = Sse.Shuffle(vi2, vi3, HWIntrinsics.ShuffleMaskHiPairs);
+					var vl0 = Sse2.UnpackLow (vi0, vi1).AsUInt64();
+					var vh0 = Sse2.UnpackHigh(vi0, vi1).AsUInt64();
+					var vl1 = Sse2.UnpackLow (vi2, vi3).AsUInt64();
+					var vh1 = Sse2.UnpackHigh(vi2, vi3).AsUInt64();
 
-					var vi0e = Sse.Shuffle(vi0l, vi1l, HWIntrinsics.ShuffleMaskEvPairs);
-					var vi0o = Sse.Shuffle(vi0l, vi1l, HWIntrinsics.ShuffleMaskOdPairs);
-					var vi1e = Sse.Shuffle(vi0h, vi1h, HWIntrinsics.ShuffleMaskEvPairs);
-					var vi1o = Sse.Shuffle(vi0h, vi1h, HWIntrinsics.ShuffleMaskOdPairs);
+					vi0 = Sse2.UnpackLow (vl0, vl1).AsUInt32();
+					vi1 = Sse2.UnpackHigh(vl0, vl1).AsUInt32();
+					vi2 = Sse2.UnpackLow (vh0, vh1).AsUInt32();
+					vi3 = Sse2.UnpackHigh(vh0, vh1).AsUInt32();
 
-					Sse.Store((float*)(op), vi0e);
-					Sse.Store((float*)(op + colStride), vi0o);
+					Sse2.Store((uint*)(op), vi0);
+					Sse2.Store((uint*)(op + colStride), vi1);
 					op += colStride * 2;
-					Sse.Store((float*)(op), vi1e);
-					Sse.Store((float*)(op + colStride), vi1o);
+					Sse2.Store((uint*)(op), vi2);
+					Sse2.Store((uint*)(op + colStride), vi3);
 					op += colStride * 2;
 				}
 				while (ip <= ipe);

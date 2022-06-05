@@ -311,8 +311,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				vpix = Sse2.Add(vpix, Sse2.ShiftRightArithmetic(verr, 4));
 				vpix = Sse2.Min(Sse2.Max(vpix, vzero), vpmax);
 
-				var vpeq = Sse2.Xor(vppix, vpix);
-				if (Sse41.TestZ(vpeq, vpeq))
+				if (HWIntrinsics.IsZero(Sse2.Xor(vppix, vpix).AsByte()))
 					goto FoundExact;
 
 				vppix = vpix;
@@ -721,24 +720,13 @@ namespace PhotoSauce.MagicScaler.Transforms
 			public static bool HasChildren(PaletteMapNode* node)
 			{
 #if HWINTRINSICS
-				if (Sse41.IsSupported)
-				{
-					var vc = Sse2.LoadVector128((ushort*)node);
-
-#pragma warning disable IDE0075 // https://github.com/dotnet/runtime/issues/4207
-					return Sse41.TestZ(vc, vc) ? false : true;
-#pragma warning restore IDE0075
-				}
+				if (Sse2.IsSupported)
+					return !HWIntrinsics.IsZero(Sse2.LoadVector128((byte*)node));
 #endif
 
 				nuint* children = (nuint*)node;
-				if (children[0] != 0) return true;
-				if (children[1] != 0) return true;
-				if (sizeof(nuint) == sizeof(uint))
-				{
-					if (children[2] != 0) return true;
-					if (children[3] != 0) return true;
-				}
+				if ((children[0] | children[1]) != 0) return true;
+				if (sizeof(nuint) == sizeof(uint) && (children[2] | children[3]) != 0) return true;
 
 				return false;
 			}
@@ -771,7 +759,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			public static bool HasPaletteEntry(PaletteMapNode* node, nuint idx)
 			{
 #pragma warning disable IDE0075 // https://github.com/dotnet/runtime/issues/4207
-				return ((1u << (int)(nint)idx) & *((byte*)node + 8)) != 0 ? true : false;
+				return ((1u << (int)idx) & *((byte*)node + 8)) != 0 ? true : false;
 #pragma warning restore IDE0075
 			}
 

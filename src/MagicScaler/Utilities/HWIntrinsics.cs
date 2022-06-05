@@ -59,10 +59,6 @@ namespace PhotoSauce.MagicScaler
 		public const byte ShuffleMaskChan1 = 0b_01_01_01_01;
 		public const byte ShuffleMaskChan2 = 0b_10_10_10_10;
 		public const byte ShuffleMaskAlpha = 0b_11_11_11_11;
-		public const byte ShuffleMaskLoPairs = 0b_01_00_01_00;
-		public const byte ShuffleMaskHiPairs = 0b_11_10_11_10;
-		public const byte ShuffleMaskEvPairs = 0b_10_00_10_00;
-		public const byte ShuffleMaskOdPairs = 0b_11_01_11_01;
 		public const byte ShuffleMaskOddToEven = 0b_11_11_01_01;
 		public const byte PermuteMaskDeinterleave4x64 = 0b_11_01_10_00;
 
@@ -170,6 +166,35 @@ namespace PhotoSauce.MagicScaler
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Vector128<uint> BlendVariable(in Vector128<uint> vl, in Vector128<uint> vr, in Vector128<uint> vm) =>
 			BlendVariable(vl.AsByte(), vr.AsByte(), vm.AsByte()).AsUInt32();
+
+#pragma warning disable IDE0075 // https://github.com/dotnet/runtime/issues/4207
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool IsZero(in Vector128<float> v)
+		{
+			if (Sse41.IsSupported)
+				return Sse41.TestZ(v.AsByte(), v.AsByte()) ? true : false;
+			else
+				return Sse.MoveMask(v) == 0;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool IsZero(in Vector128<byte> v)
+		{
+			if (Sse41.IsSupported)
+				return Sse41.TestZ(v, v) ? true : false;
+			else
+				return Sse2.MoveMask(v) == 0;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool IsMaskedZero(in Vector128<byte> v, in Vector128<byte> m)
+		{
+			if (Sse41.IsSupported)
+				return Sse41.TestZ(v, m) ? true : false;
+			else
+				return Sse2.MoveMask(Sse2.And(v, m)) == 0;
+		}
+#pragma warning restore IDE0075
 #endif
 	}
 }

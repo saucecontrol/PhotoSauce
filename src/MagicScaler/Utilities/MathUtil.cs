@@ -287,7 +287,7 @@ namespace PhotoSauce.MagicScaler
 				var v2 = Sse.CompareNotLessThan(Sse.And(Sse.Subtract(m1.getRowVector(2), m2.getRowVector(2)), vmsk), veps);
 				var v3 = Sse.CompareNotLessThan(Sse.And(Sse.Subtract(m1.getRowVector(3), m2.getRowVector(3)), vmsk), veps);
 
-				return Sse.MoveMask(Sse.Or(Sse.Or(v0, v1), Sse.Or(v2, v3))) == 0;
+				return HWIntrinsics.IsZero(Sse.Or(Sse.Or(v0, v1), Sse.Or(v2, v3)));
 			}
 #endif
 
@@ -402,7 +402,7 @@ namespace PhotoSauce.MagicScaler
 				var v0 = Sse.CompareUnordered(m.getRowVector(0), m.getRowVector(1));
 				var v1 = Sse.CompareUnordered(m.getRowVector(2), m.getRowVector(3));
 
-				return Sse.MoveMask(Sse.Or(v0, v1)) != 0;
+				return !HWIntrinsics.IsZero(Sse.Or(v0, v1));
 			}
 #endif
 

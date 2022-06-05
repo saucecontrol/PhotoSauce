@@ -602,13 +602,10 @@ namespace PhotoSauce.MagicScaler
 				ushort* children = (ushort*)node;
 
 #if HWINTRINSICS
-				if (Sse41.IsSupported)
+				if (Sse2.IsSupported)
 				{
-					var vmsk = Unsafe.As<byte, Vector128<ushort>>(ref MemoryMarshal.GetReference(SumsMask));
-
-#pragma warning disable IDE0075 // https://github.com/dotnet/runtime/issues/4207
-					return Sse41.TestZ(vmsk, Sse2.LoadVector128(children)) ? false : true;
-#pragma warning restore IDE0075
+					var vmsk = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(SumsMask));
+					return !HWIntrinsics.IsMaskedZero(vmsk, Sse2.LoadVector128((byte*)children));
 				}
 #endif
 

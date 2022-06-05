@@ -239,14 +239,14 @@ namespace PhotoSauce.MagicScaler.Converters
 						var v3 = Avx.LoadVector256(ip + Vector256<float>.Count * 3);
 						ip += Vector256<float>.Count * 4;
 
-						var vl0 = Avx.UnpackLow(v0, v1).AsDouble();
+						var vl0 = Avx.UnpackLow (v0, v1).AsDouble();
 						var vh0 = Avx.UnpackHigh(v0, v1).AsDouble();
-						var vl1 = Avx.UnpackLow(v2, v3).AsDouble();
+						var vl1 = Avx.UnpackLow (v2, v3).AsDouble();
 						var vh1 = Avx.UnpackHigh(v2, v3).AsDouble();
 
-						var vb = Avx.UnpackLow(vl0, vl1).AsSingle();
+						var vb = Avx.UnpackLow (vl0, vl1).AsSingle();
 						var vg = Avx.UnpackHigh(vl0, vl1).AsSingle();
-						var vr = Avx.UnpackLow(vh0, vh1).AsSingle();
+						var vr = Avx.UnpackLow (vh0, vh1).AsSingle();
 
 						vb = Avx.Multiply(vb, vcbl);
 						vg = Avx.Multiply(vg, vcgl);

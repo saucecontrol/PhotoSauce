@@ -125,9 +125,9 @@ namespace PhotoSauce.MagicScaler
 	public sealed class CodecCollection : ICollection<IImageCodecInfo>, IReadOnlyCollection<IImageCodecInfo>
 	{
 		private readonly List<IImageCodecInfo> codecs = new();
-		private readonly List<DecoderPattern> decoderPatternMap = new();
 		private readonly Dictionary<string, IImageEncoderInfo> encoderMimeMap = new(StringComparer.OrdinalIgnoreCase);
 		private readonly Dictionary<string, IImageEncoderInfo> encoderExtensionMap = new(StringComparer.OrdinalIgnoreCase);
+		private DecoderPattern[] decoderPatterns = Array.Empty<DecoderPattern>();
 
 		/// <inheritdoc />
 		public int Count => codecs.Count;
@@ -171,11 +171,12 @@ namespace PhotoSauce.MagicScaler
 			if (Sse2.IsSupported)
 			{
 				var vtv = Unsafe.ReadUnaligned<Vector128<byte>>(ref testval);
-				foreach (var pat in decoderPatternMap)
+				for (int i = 0; i < decoderPatterns.Length; i++)
 				{
+					ref var pat = ref decoderPatterns[i];
 					var vcv = Unsafe.ReadUnaligned<Vector128<byte>>(ref Unsafe.As<ulong, byte>(ref Unsafe.AsRef(in pat.p1)));
 					var vcm = Unsafe.ReadUnaligned<Vector128<byte>>(ref Unsafe.As<ulong, byte>(ref Unsafe.AsRef(in pat.m1)));
-					if (Sse2.MoveMask(Sse2.CompareEqual(Sse2.And(vtv, vcm), vcv)) == ushort.MaxValue)
+					if (HWIntrinsics.IsMaskedZero(Sse2.Xor(vtv, vcv), vcm))
 					{
 						var dec = pat.dec.Factory(stm, options ?? pat.dec.DefaultOptions);
 						if (dec is not null)
@@ -188,9 +189,10 @@ namespace PhotoSauce.MagicScaler
 			{
 				ulong tv0 = Unsafe.ReadUnaligned<ulong>(ref testval);
 				ulong tv1 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref testval, sizeof(ulong)));
-				foreach (var pat in decoderPatternMap)
+				for (int i = 0; i < decoderPatterns.Length; i++)
 				{
-					if ((((tv0 & pat.m1) ^ pat.p1) | ((tv1 & pat.m2) ^ pat.p2)) == 0)
+					ref var pat = ref decoderPatterns[i];
+					if ((((tv0 ^ pat.p1) & pat.m1) | ((tv1 ^ pat.p2) & pat.m2)) == 0)
 					{
 						var dec = pat.dec.Factory(stm, options ?? pat.dec.DefaultOptions);
 						if (dec is not null)
@@ -208,15 +210,13 @@ namespace PhotoSauce.MagicScaler
 
 		internal void ResetCaches()
 		{
-			decoderPatternMap.Clear();
-			foreach (var dec in codecs.OfType<IImageDecoderInfo>().SelectMany(i => i.Patterns.Select(s => (Info: i, Pattern: s))))
-			{
+			decoderPatterns = codecs.OfType<IImageDecoderInfo>().SelectMany(i => i.Patterns.Select(s => (Info: i, Pattern: s))).Select(dec => {
 				var pat = new DecoderPattern { dec = dec.Info };
 				int offset = dec.Pattern.Offset.Clamp(0, sizeof(ulong) * 2);
 				Unsafe.CopyBlockUnaligned(ref Unsafe.Add(ref Unsafe.As<ulong, byte>(ref pat.m1), offset), ref MemoryMarshal.GetReference(dec.Pattern.Mask.AsSpan()), (uint)(dec.Pattern.Mask?.Length ?? 0).Clamp(0, sizeof(ulong) * 2 - offset));
 				Unsafe.CopyBlockUnaligned(ref Unsafe.Add(ref Unsafe.As<ulong, byte>(ref pat.p1), offset), ref MemoryMarshal.GetReference(dec.Pattern.Pattern.AsSpan()), (uint)(dec.Pattern.Pattern?.Length ?? 0).Clamp(0, sizeof(ulong) * 2 - offset));
-				decoderPatternMap.Add(pat);
-			}
+				return pat;
+			}).ToArray();
 
 			encoderMimeMap.Clear();
 			foreach (var enc in codecs.OfType<IImageEncoderInfo>().SelectMany(i => i.MimeTypes.Select(s => (Info: i, MimeType: s))))
