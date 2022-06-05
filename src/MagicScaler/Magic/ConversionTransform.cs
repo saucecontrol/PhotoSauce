@@ -12,7 +12,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public override PixelFormat Format { get; }
 
-		public ConversionTransform(PixelSource source, PixelFormat destFormat, ColorProfile? sourceProfile = null, ColorProfile? destProfile = null, bool videoLevels = false) : base(source)
+		public ConversionTransform(PixelSource source, PixelFormat destFormat, ColorProfile? sourceProfile = null, ColorProfile? destProfile = null) : base(source)
 		{
 			var srcFormat = source.Format;
 			Format = destFormat;
@@ -21,9 +21,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 			{
 				processor = NarrowingConverter.Instance;
 			}
-			else if (videoLevels && srcFormat.BitsPerPixel == 8 && Format.BitsPerPixel == 8)
+			else if (srcFormat.Range == PixelValueRange.Video && Format.Range == PixelValueRange.Full && srcFormat.BitsPerPixel == 8 && Format.BitsPerPixel == 8)
 			{
-				processor = srcFormat.ColorRepresentation == PixelColorRepresentation.Grey ? VideoLumaConverter.VideoToFullRangeProcessor.Instance : VideoChromaConverter.VideoToFullRangeProcessor.Instance;
+				processor = srcFormat.Encoding == PixelValueEncoding.Chroma ? VideoChromaConverter.VideoToFullRangeProcessor.Instance : VideoLumaConverter.VideoToFullRangeProcessor.Instance;
 			}
 			else if (srcFormat.Encoding == PixelValueEncoding.Companded && Format.Encoding == PixelValueEncoding.Linear)
 			{
@@ -31,15 +31,19 @@ namespace PhotoSauce.MagicScaler.Transforms
 				if (Format.NumericRepresentation == PixelNumericRepresentation.Fixed)
 					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
 						processor = srcProfile.GetConverter<byte, ushort, EncodingType.Companded>().Processor3A;
+					else if (srcFormat.Range == PixelValueRange.Video)
+						processor = srcProfile.GetConverter<byte, ushort, EncodingType.Companded, EncodingRange.Video>().Processor;
 					else
-						processor = srcProfile.GetConverter<byte, ushort, EncodingType.Companded>(videoLevels).Processor;
+						processor = srcProfile.GetConverter<byte, ushort, EncodingType.Companded>().Processor;
 				else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger && Format.NumericRepresentation == PixelNumericRepresentation.Float)
 					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
 						processor = srcProfile.GetConverter<byte, float, EncodingType.Companded>().Processor3A;
 					else if (srcFormat.ChannelCount == 3 && Format.ChannelCount == 4)
 						processor = srcProfile.GetConverter<byte, float, EncodingType.Companded>().Processor3X;
+					else if (srcFormat.Range == PixelValueRange.Video)
+						processor = srcProfile.GetConverter<byte, float, EncodingType.Companded, EncodingRange.Video>().Processor;
 					else
-						processor = srcProfile.GetConverter<byte, float, EncodingType.Companded>(videoLevels).Processor;
+						processor = srcProfile.GetConverter<byte, float, EncodingType.Companded>().Processor;
 				else if (Format.NumericRepresentation == PixelNumericRepresentation.Float)
 					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
 						processor = srcProfile.GetConverter<float, float, EncodingType.Companded>().Processor3A;
@@ -73,19 +77,21 @@ namespace PhotoSauce.MagicScaler.Transforms
 					processor = FloatConverter.Widening.InstanceFullRange.Processor3A;
 				else if (srcFormat.AlphaRepresentation == PixelAlphaRepresentation.None && srcFormat.ChannelCount == 3 && Format.ChannelCount == 4)
 					processor = FloatConverter.Widening.InstanceFullRange.Processor3X;
+				else if (srcFormat.Encoding == PixelValueEncoding.Chroma)
+					processor = srcFormat.Range == PixelValueRange.Full ? FloatConverter.Widening.InstanceFullChroma.Processor : FloatConverter.Widening.InstanceVideoChroma.Processor;
 				else
-					processor = !videoLevels ? FloatConverter.Widening.InstanceFullRange.Processor :
-						srcFormat.ColorRepresentation == PixelColorRepresentation.Grey ? FloatConverter.Widening.InstanceVideoLuma.Processor :
-						FloatConverter.Widening.InstanceVideoChroma.Processor;
+					processor = srcFormat.Range == PixelValueRange.Full ? FloatConverter.Widening.InstanceFullRange.Processor : FloatConverter.Widening.InstanceVideoRange.Processor;
 			}
 			else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Float && Format.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger)
 			{
 				if (Format.AlphaRepresentation != PixelAlphaRepresentation.None)
-					processor = FloatConverter.Narrowing.Instance.Processor3A;
+					processor = FloatConverter.Narrowing.InstanceFullRange.Processor3A;
 				else if (srcFormat.AlphaRepresentation == PixelAlphaRepresentation.None && srcFormat.ChannelCount == 4 && Format.ChannelCount == 3)
-					processor = FloatConverter.Narrowing.Instance.Processor3X;
+					processor = FloatConverter.Narrowing.InstanceFullRange.Processor3X;
+				else if (Format.Encoding == PixelValueEncoding.Chroma)
+					processor = Format.Range == PixelValueRange.Full ? FloatConverter.Narrowing.InstanceFullChroma.Processor : FloatConverter.Narrowing.InstanceVideoChroma.Processor;
 				else
-					processor = FloatConverter.Narrowing.Instance.Processor;
+					processor = Format.Range == PixelValueRange.Full ? FloatConverter.Narrowing.InstanceFullRange.Processor : FloatConverter.Narrowing.InstanceVideoRange.Processor;
 			}
 			else if (srcFormat.NumericRepresentation == Format.NumericRepresentation && srcFormat.ChannelCount != Format.ChannelCount)
 			{

@@ -312,9 +312,9 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 				plane = pln;
 
 				Format = plane switch {
-					WebpPlane.Y   => PixelFormat.Y8,
-					WebpPlane.U   => PixelFormat.Cb8,
-					WebpPlane.V   => PixelFormat.Cr8,
+					WebpPlane.Y   => PixelFormat.Y8Video,
+					WebpPlane.U   => PixelFormat.Cb8Video,
+					WebpPlane.V   => PixelFormat.Cr8Video,
 					WebpPlane.Bgr => PixelFormat.Bgr24,
 					_             => PixelFormat.Bgra32
 				};

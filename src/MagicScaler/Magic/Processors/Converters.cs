@@ -18,6 +18,12 @@ namespace PhotoSauce.MagicScaler.Converters
 		public readonly struct Linear : EncodingType { }
 	}
 
+	internal interface EncodingRange
+	{
+		public readonly struct Video : EncodingRange { }
+		public readonly struct Full : EncodingRange { }
+	}
+
 	internal interface IConversionProcessor
 	{
 		unsafe void ConvertLine(byte* istart, byte* ostart, nint cb);

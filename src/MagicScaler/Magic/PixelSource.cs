@@ -219,14 +219,13 @@ namespace PhotoSauce.MagicScaler
 	{
 		public PixelSource SourceY, SourceCb, SourceCr;
 		public ChromaSubsampleMode ChromaSubsampling;
-		public bool VideoLumaLevels, VideoChromaLevels;
 
 		public override PixelFormat Format => SourceY.Format;
 		public override int Width => SourceY.Width;
 		public override int Height => SourceY.Height;
 
 
-		public PlanarPixelSource(PixelSource sourceY, PixelSource sourceCb, PixelSource sourceCr, bool videoLevels = false)
+		public PlanarPixelSource(PixelSource sourceY, PixelSource sourceCb, PixelSource sourceCr)
 		{
 			if (sourceY.Format != PixelFormat.Y8) throw new ArgumentException("Invalid pixel format", nameof(sourceY));
 			if (sourceCb.Format != PixelFormat.Cb8) throw new ArgumentException("Invalid pixel format", nameof(sourceCb));
@@ -235,13 +234,44 @@ namespace PhotoSauce.MagicScaler
 			SourceY = sourceY;
 			SourceCb = sourceCb;
 			SourceCr = sourceCr;
-			VideoLumaLevels = VideoChromaLevels = videoLevels;
 
-			ChromaSubsampling =
-				sourceCb.Width < sourceY.Width && sourceCb.Height < sourceY.Height ? ChromaSubsampleMode.Subsample420 :
-				sourceCb.Width < sourceY.Width ? ChromaSubsampleMode.Subsample422 :
-				sourceCb.Height < sourceY.Height ? ChromaSubsampleMode.Subsample440 :
-				ChromaSubsampleMode.Subsample444;
+			ChromaSubsampling = GetSubsampling();
+		}
+
+		public PlanarPixelSource(IYccImageFrame frame)
+		{
+			if (frame.PixelSource is PixelSource srcY && frame.PixelSourceCb is PixelSource srcCb && frame.PixelSourceCr is PixelSource srcCr)
+			{
+				SourceY = srcY;
+				SourceCb = srcCb;
+				SourceCr = srcCr;
+			}
+			else
+			{
+				if (frame.PixelSource.Format != PixelFormat.Y8.FormatGuid) throw new NotSupportedException($"Invalid pixel format {nameof(IYccImageFrame.PixelSource)}");
+				if (frame.PixelSourceCb.Format != PixelFormat.Cb8.FormatGuid) throw new NotSupportedException($"Invalid pixel format {nameof(IYccImageFrame.PixelSourceCb)}");
+				if (frame.PixelSourceCr.Format != PixelFormat.Cr8.FormatGuid) throw new NotSupportedException($"Invalid pixel format {nameof(IYccImageFrame.PixelSourceCr)}");
+
+				SourceY = frame.PixelSource.AsPixelSource(frame.IsFullRange ? PixelFormat.Y8 : PixelFormat.Y8Video);
+				SourceCb = frame.PixelSourceCb.AsPixelSource(frame.IsFullRange ? PixelFormat.Cb8 : PixelFormat.Cb8Video);
+				SourceCr = frame.PixelSourceCr.AsPixelSource(frame.IsFullRange ? PixelFormat.Cr8 : PixelFormat.Cr8Video);
+			}
+
+			ChromaSubsampling = GetSubsampling();
+		}
+
+		public ChromaSubsampleMode GetSubsampling()
+		{
+			if (SourceCb.Width != SourceCr.Width || SourceCb.Height != SourceCr.Height) throw new ArgumentException("Chroma planes must be same size.");
+			bool subsampleX = SourceY.Width != SourceCb.Width && ((SourceY.Width + 1 & ~1) == (SourceCb.Width << 1) ? true : throw new NotSupportedException("Horizontal subsampling ratio must be 1:1 or 2:1."));
+			bool subsampleY = SourceY.Height != SourceCb.Height && ((SourceY.Height + 1 & ~1) == (SourceCb.Height << 1) ? true : throw new NotSupportedException("Vertical subsampling ratio must be 1:1 or 2:1."));
+
+			return (subsampleX, subsampleY) switch {
+				(true, true)  => ChromaSubsampleMode.Subsample420,
+				(true, false) => ChromaSubsampleMode.Subsample422,
+				(false, true) => ChromaSubsampleMode.Subsample440,
+				_             => ChromaSubsampleMode.Subsample444
+			};
 		}
 
 		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer) => throw new NotImplementedException();
@@ -271,6 +301,8 @@ namespace PhotoSauce.MagicScaler
 
 			public PixelSourceFromIPixelSource(IPixelSource source) => (upstreamSource, Format) = (source, PixelFormat.FromGuid(source.Format));
 
+			public PixelSourceFromIPixelSource(IPixelSource source, PixelFormat format) => (upstreamSource, Format) = (source, format);
+
 			protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer) =>
 				upstreamSource.CopyPixels(prc, cbStride, new Span<byte>(pbBuffer, cbBufferSize));
 
@@ -278,5 +310,7 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		public static PixelSource AsPixelSource(this IPixelSource source) => source as PixelSource ?? new PixelSourceFromIPixelSource(source);
+
+		public static PixelSource AsPixelSource(this IPixelSource source, PixelFormat fmt) => new PixelSourceFromIPixelSource(source, fmt);
 	}
 }

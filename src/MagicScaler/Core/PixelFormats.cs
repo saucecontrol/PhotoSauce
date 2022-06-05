@@ -44,7 +44,14 @@ namespace PhotoSauce.MagicScaler
 		Unspecified,
 		Companded,
 		Linear,
-		scRgb
+		scRgb,
+		Chroma
+	}
+
+	internal enum PixelValueRange
+	{
+		Full,
+		Video
 	}
 
 	internal sealed class PixelFormat : IEquatable<PixelFormat>
@@ -58,6 +65,7 @@ namespace PhotoSauce.MagicScaler
 		public readonly PixelColorRepresentation ColorRepresentation;
 		public readonly PixelAlphaRepresentation AlphaRepresentation;
 		public readonly PixelValueEncoding Encoding;
+		public readonly PixelValueRange Range;
 
 		public bool Equals(PixelFormat? other) => this == other!;
 
@@ -79,7 +87,7 @@ namespace PhotoSauce.MagicScaler
 
 		private PixelFormat(Guid guid, string name, int bpp, int channels, PixelNumericRepresentation numericRepresentation,
 			PixelColorRepresentation colorRepresentation = PixelColorRepresentation.Unspecified, PixelAlphaRepresentation alphaRepresentation = PixelAlphaRepresentation.None,
-			PixelValueEncoding encoding = PixelValueEncoding.Unspecified, bool wicNative = false
+			PixelValueEncoding encoding = PixelValueEncoding.Unspecified, PixelValueRange range = PixelValueRange.Full, bool wicNative = false
 		)
 		{
 			FormatGuid = guid;
@@ -91,6 +99,7 @@ namespace PhotoSauce.MagicScaler
 			ColorRepresentation = colorRepresentation;
 			AlphaRepresentation = alphaRepresentation;
 			Encoding = encoding;
+			Range = range;
 		}
 
 		private static readonly Lazy<Dictionary<Guid, PixelFormat>> cache = new(getFormatCache);
@@ -112,6 +121,7 @@ namespace PhotoSauce.MagicScaler
 			bpp: 8,
 			channels: 1,
 			numericRepresentation: PixelNumericRepresentation.UnsignedInteger,
+			encoding: PixelValueEncoding.Chroma,
 			wicNative: true
 		);
 
@@ -121,6 +131,7 @@ namespace PhotoSauce.MagicScaler
 			bpp: 8,
 			channels: 1,
 			numericRepresentation: PixelNumericRepresentation.UnsignedInteger,
+			encoding: PixelValueEncoding.Chroma,
 			wicNative: true
 		);
 
@@ -221,6 +232,37 @@ namespace PhotoSauce.MagicScaler
 			numericRepresentation: PixelNumericRepresentation.UnsignedInteger,
 			colorRepresentation: PixelColorRepresentation.Cmyk,
 			wicNative: true
+		);
+
+		public static readonly PixelFormat Y8Video = new(
+			guid: new(0xc175220d, 0x375b, 0x48c9, 0x8d, 0xd9, 0x1d, 0x28, 0x24, 0xfe, 0x88, 0x9b),
+			name: "8bpp Y Video",
+			bpp: 8,
+			channels: 1,
+			numericRepresentation: PixelNumericRepresentation.UnsignedInteger,
+			colorRepresentation: PixelColorRepresentation.Grey,
+			encoding: PixelValueEncoding.Companded,
+			range: PixelValueRange.Video
+		);
+
+		public static readonly PixelFormat Cb8Video = new(
+			guid: new(0xc175220d, 0x375b, 0x48c9, 0x8d, 0xd9, 0x1d, 0x28, 0x24, 0xfe, 0x88, 0x9c),
+			name: "8bpp Cb Video",
+			bpp: 8,
+			channels: 1,
+			numericRepresentation: PixelNumericRepresentation.UnsignedInteger,
+			encoding: PixelValueEncoding.Chroma,
+			range: PixelValueRange.Video
+		);
+
+		public static readonly PixelFormat Cr8Video = new(
+			guid: new(0xc175220d, 0x375b, 0x48c9, 0x8d, 0xd9, 0x1d, 0x28, 0x24, 0xfe, 0x88, 0x9d),
+			name: "8bpp Cr Video",
+			bpp: 8,
+			channels: 1,
+			numericRepresentation: PixelNumericRepresentation.UnsignedInteger,
+			encoding: PixelValueEncoding.Chroma,
+			range: PixelValueRange.Video
 		);
 
 		public static readonly PixelFormat Grey16UQ15 = new(
@@ -361,7 +403,8 @@ namespace PhotoSauce.MagicScaler
 			name: "32bpp Cb Float",
 			bpp: 32,
 			channels: 1,
-			numericRepresentation: PixelNumericRepresentation.Float
+			numericRepresentation: PixelNumericRepresentation.Float,
+			encoding: PixelValueEncoding.Chroma
 		);
 
 		public static readonly PixelFormat Cr32Float = new(
@@ -369,7 +412,8 @@ namespace PhotoSauce.MagicScaler
 			name: "32bpp Cr Float",
 			bpp: 32,
 			channels: 1,
-			numericRepresentation: PixelNumericRepresentation.Float
+			numericRepresentation: PixelNumericRepresentation.Float,
+			encoding: PixelValueEncoding.Chroma
 		);
 
 		public static readonly PixelFormat Bgrx128Float = new(

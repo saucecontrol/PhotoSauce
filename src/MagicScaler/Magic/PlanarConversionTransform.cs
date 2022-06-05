@@ -15,8 +15,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 {
 	internal sealed class PlanarConversionTransform : ChainedPixelSource
 	{
-		private const int ichromaOffset = -128;
-		private const float fchromaOffset = (float)ichromaOffset / byte.MaxValue;
+		private const int chromaOffset = -128;
 
 		private readonly float coeffCb0, coeffCb1, coeffCr0, coeffCr1;
 
@@ -25,7 +24,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public override PixelFormat Format { get; }
 
-		public PlanarConversionTransform(PixelSource srcY, PixelSource srcCb, PixelSource srcCr, Matrix4x4 matrix, bool videoLevels) : base(srcY)
+		public PlanarConversionTransform(PixelSource srcY, PixelSource srcCb, PixelSource srcCr, Matrix4x4 matrix) : base(srcY)
 		{
 			if (srcCb.Width != srcY.Width || srcCb.Height != srcY.Height) throw new ArgumentException("Chroma plane incorrect size", nameof(srcCb));
 			if (srcCr.Width != srcY.Width || srcCr.Height != srcY.Height) throw new ArgumentException("Chroma plane incorrect size", nameof(srcCr));
@@ -35,10 +34,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			matrix = matrix.InvertPrecise();
 			if (matrix.IsNaN()) throw new ArgumentException("Invalid YCC matrix", nameof(matrix));
 
-			sourceCb = srcCb;
-			sourceCr = srcCr;
-
-			if (videoLevels)
+			if (srcCb.Format.Range == PixelValueRange.Video)
 				matrix *= byte.MaxValue / (float)VideoChromaScale;
 
 			coeffCb0 = matrix.M23;
@@ -46,7 +42,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 			coeffCr0 = matrix.M32;
 			coeffCr1 = matrix.M31;
 
-			Format = srcY.Format == PixelFormat.Y8 ? PixelFormat.Bgr24 : PixelFormat.Bgrx128Float;
+			sourceCb = srcCb;
+			sourceCr = srcCr;
+
+			Format = srcY.Format.BitsPerPixel == 8 ? PixelFormat.Bgr24 : PixelFormat.Bgrx128Float;
 
 			int bufferStride = BufferStride;
 			if (HWIntrinsics.IsAvxSupported)
@@ -128,8 +127,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 			while (ip0 < ipe)
 			{
 				int i0 = *ip0++ * UQ15One;
-				int i1 = *ip1++ + ichromaOffset;
-				int i2 = *ip2++ + ichromaOffset;
+				int i1 = *ip1++ + chromaOffset;
+				int i2 = *ip2++ + chromaOffset;
 
 				byte o0 = UnFix15ToByte(i0 + i1 * c0);
 				byte o1 = UnFix15ToByte(i0 + i1 * c1 + i2 * c2);
@@ -152,14 +151,13 @@ namespace PhotoSauce.MagicScaler.Transforms
 			float c2 = coeffCr0;
 			float c3 = coeffCr1;
 
-			var voff = new Vector4(0f, fchromaOffset, fchromaOffset, 0f);
-			float fzero = voff.X, foff = voff.Y;
+			float fzero = Vector4.Zero.X;
 
 			while (ip0 < ipe)
 			{
 				float f0 = *ip0++;
-				float f1 = *ip1++ + foff;
-				float f2 = *ip2++ + foff;
+				float f1 = *ip1++;
+				float f2 = *ip2++;
 
 				op[0] = f0 + f1 * c0;
 				op[1] = f0 + f1 * c1 + f2 * c2;
@@ -183,7 +181,6 @@ namespace PhotoSauce.MagicScaler.Transforms
 				var vc1 = Vector256.Create(coeffCb1);
 				var vc2 = Vector256.Create(coeffCr0);
 				var vc3 = Vector256.Create(coeffCr1);
-				var voff = Vector256.Create(fchromaOffset);
 				var vmaskp = Avx.LoadVector256((int*)HWIntrinsics.PermuteMaskEvenOdd8x32.GetAddressOf());
 
 				ipe -= Vector256<float>.Count;
@@ -192,8 +189,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 				do
 				{
 					var viy = Avx.LoadVector256(ip);
-					var vib = Avx.Add(voff, Avx.LoadVector256(ip + stride));
-					var vir = Avx.Add(voff, Avx.LoadVector256(ip + stride * 2));
+					var vib = Avx.LoadVector256(ip + stride);
+					var vir = Avx.LoadVector256(ip + stride * 2);
 					ip += Vector256<float>.Count;
 
 					viy = Avx2.PermuteVar8x32(viy, vmaskp);
@@ -234,7 +231,6 @@ namespace PhotoSauce.MagicScaler.Transforms
 				var vc1 = Vector128.Create(coeffCb1);
 				var vc2 = Vector128.Create(coeffCr0);
 				var vc3 = Vector128.Create(coeffCr1);
-				var voff = Vector128.Create(fchromaOffset);
 
 				ipe -= Vector128<float>.Count;
 
@@ -242,8 +238,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 				do
 				{
 					var viy = Sse.LoadVector128(ip);
-					var vib = Sse.Add(voff, Sse.LoadVector128(ip + stride));
-					var vir = Sse.Add(voff, Sse.LoadVector128(ip + stride * 2));
+					var vib = Sse.LoadVector128(ip + stride);
+					var vir = Sse.LoadVector128(ip + stride * 2);
 					ip += Vector128<float>.Count;
 
 					var vt0 = HWIntrinsics.MultiplyAdd(viy, vib, vc0);

@@ -531,7 +531,7 @@ namespace PhotoSauce.MagicScaler
 			if (context.ImageFrame is WicImageFrame wicFrame)
 				context.Source = context.AddProfiler(wicFrame.Source);
 			else if (context.ImageFrame is IYccImageFrame yccFrame)
-				context.Source = new PlanarPixelSource(yccFrame.PixelSource.AsPixelSource(), yccFrame.PixelSourceCb.AsPixelSource(), yccFrame.PixelSourceCr.AsPixelSource(), !yccFrame.IsFullRange);
+				context.Source = new PlanarPixelSource(yccFrame.PixelSource.AsPixelSource(), yccFrame.PixelSourceCb.AsPixelSource(), yccFrame.PixelSourceCr.AsPixelSource());
 			else
 				context.Source = context.ImageFrame.PixelSource.AsPixelSource();
 

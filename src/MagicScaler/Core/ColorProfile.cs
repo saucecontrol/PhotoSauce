@@ -644,7 +644,7 @@ namespace PhotoSauce.MagicScaler
 
 	internal class CurveProfile : ColorProfile
 	{
-		private readonly ConcurrentDictionary<(Type tfrom, Type tto, Type tenc, CurveProfile profile, bool videoLevels), IConverter> converterCache = new();
+		private readonly ConcurrentDictionary<(Type tfrom, Type tto, Type tenc, Type trng, CurveProfile profile), IConverter> converterCache = new();
 
 		public bool IsLinear { get; }
 		public ProfileCurve Curve { get; }
@@ -655,15 +655,15 @@ namespace PhotoSauce.MagicScaler
 			Curve = curve ?? new ProfileCurve(null!, LookupTables.Alpha);
 		}
 
-		private IConverter addConverter(in (Type, Type, Type, CurveProfile, bool) cacheKey) => converterCache.GetOrAdd(cacheKey, static key => {
+		private IConverter addConverter(in (Type, Type, Type, Type, CurveProfile) cacheKey) => converterCache.GetOrAdd(cacheKey, static key => {
 			if (key.profile.IsLinear)
 			{
 				if (key.tfrom == typeof(float) && key.tto == typeof(float))
 					return NoopConverter.Instance;
 				if (key.tfrom == typeof(byte) && key.tto == typeof(float))
-					return key.videoLevels ? FloatConverter.Widening.InstanceVideoLuma : FloatConverter.Widening.InstanceFullRange;
+					return key.trng == typeof(EncodingRange.Video) ? FloatConverter.Widening.InstanceVideoRange : FloatConverter.Widening.InstanceFullRange;
 				if (key.tfrom == typeof(float) && key.tto == typeof(byte))
-					return FloatConverter.Narrowing.Instance;
+					return FloatConverter.Narrowing.InstanceFullRange;
 				if (key.tfrom == typeof(ushort) && key.tto == typeof(byte))
 					return UQ15Converter.Instance;
 			}
@@ -687,17 +687,24 @@ namespace PhotoSauce.MagicScaler
 				if (key.tfrom == typeof(float) && key.tto == typeof(float))
 					return new ConverterToLinear<float, float>(igt);
 				if (key.tfrom == typeof(byte) && key.tto == typeof(float))
-					return new ConverterToLinear<byte, float>(key.videoLevels ? LookupTables.MakeScaledInverseGamma(igt, VideoLumaMin, VideoLumaMax) : igt);
+					return new ConverterToLinear<byte, float>(key.trng == typeof(EncodingRange.Video) ? LookupTables.MakeScaledInverseGamma(igt, VideoLumaMin, VideoLumaMax) : igt);
 				if (key.tfrom == typeof(byte) && key.tto == typeof(ushort))
-					return new ConverterToLinear<byte, ushort>(LookupTables.MakeUQ15InverseGamma(key.videoLevels ? LookupTables.MakeScaledInverseGamma(igt, VideoLumaMin, VideoLumaMax) : igt));
+					return new ConverterToLinear<byte, ushort>(LookupTables.MakeUQ15InverseGamma(key.trng == typeof(EncodingRange.Video) ? LookupTables.MakeScaledInverseGamma(igt, VideoLumaMin, VideoLumaMax) : igt));
 			}
 
 			throw new ArgumentException("Invalid Type combination", nameof(cacheKey));
 		});
 
-		public IConverter<TFrom, TTo> GetConverter<TFrom, TTo, TEnc>(bool videoRange = false) where TFrom : unmanaged where TTo : unmanaged
+		public IConverter<TFrom, TTo> GetConverter<TFrom, TTo, TEnc>() where TFrom : unmanaged where TTo : unmanaged where TEnc : EncodingType
 		{
-			var cacheKey = (typeof(TFrom), typeof(TTo), typeof(TEnc), this, videoRange);
+			var cacheKey = (typeof(TFrom), typeof(TTo), typeof(TEnc), typeof(EncodingRange.Full), this);
+
+			return (IConverter<TFrom, TTo>)(converterCache.TryGetValue(cacheKey, out var converter) ? converter : addConverter(cacheKey));
+		}
+
+		public IConverter<TFrom, TTo> GetConverter<TFrom, TTo, TEnc, TRng>() where TFrom : unmanaged where TTo : unmanaged where TEnc : EncodingType where TRng : EncodingRange
+		{
+			var cacheKey = (typeof(TFrom), typeof(TTo), typeof(TEnc), typeof(TRng), this);
 
 			return (IConverter<TFrom, TTo>)(converterCache.TryGetValue(cacheKey, out var converter) ? converter : addConverter(cacheKey));
 		}

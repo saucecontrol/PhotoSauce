@@ -32,6 +32,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		private static readonly Dictionary<PixelFormat, PixelFormat> internalFormatMapSimd = new() {
 			[PixelFormat.Grey8] = PixelFormat.Grey32Float,
 			[PixelFormat.Y8] = PixelFormat.Y32Float,
+			[PixelFormat.Y8Video] = PixelFormat.Y32Float,
 			[PixelFormat.Bgr24] = PixelFormat.Bgrx128Float,
 			[PixelFormat.Bgra32] = PixelFormat.Pbgra128Float,
 			[PixelFormat.Pbgra32] = PixelFormat.Pbgra128Float,
@@ -40,12 +41,15 @@ namespace PhotoSauce.MagicScaler.Transforms
 			[PixelFormat.Bgrx128FloatLinear] = PixelFormat.Bgrx128Float,
 			[PixelFormat.Pbgra128FloatLinear] = PixelFormat.Pbgra128Float,
 			[PixelFormat.Cb8] = PixelFormat.Cb32Float,
-			[PixelFormat.Cr8] = PixelFormat.Cr32Float
+			[PixelFormat.Cb8Video] = PixelFormat.Cb32Float,
+			[PixelFormat.Cr8] = PixelFormat.Cr32Float,
+			[PixelFormat.Cr8Video] = PixelFormat.Cr32Float
 		};
 
 		private static readonly Dictionary<PixelFormat, PixelFormat> internalFormatMapLinear = new() {
 			[PixelFormat.Grey8] = PixelFormat.Grey16UQ15Linear,
 			[PixelFormat.Y8] = PixelFormat.Y16UQ15Linear,
+			[PixelFormat.Y8Video] = PixelFormat.Y16UQ15Linear,
 			[PixelFormat.Bgr24] = PixelFormat.Bgr48UQ15Linear,
 			[PixelFormat.Bgra32] = PixelFormat.Pbgra64UQ15Linear
 		};
@@ -53,6 +57,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		private static readonly Dictionary<PixelFormat, PixelFormat> internalFormatMapLinearSimd = new() {
 			[PixelFormat.Grey8] = PixelFormat.Grey32FloatLinear,
 			[PixelFormat.Y8] = PixelFormat.Y32FloatLinear,
+			[PixelFormat.Y8Video] = PixelFormat.Y32FloatLinear,
 			[PixelFormat.Bgr24] = PixelFormat.Bgrx128FloatLinear,
 			[PixelFormat.Bgra32] = PixelFormat.Pbgra128FloatLinear,
 			[PixelFormat.Grey32Float] = PixelFormat.Grey32FloatLinear,
@@ -80,18 +85,16 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			if (ctx.Source is PlanarPixelSource plsrc)
 			{
-				if (ofmt != ifmt || plsrc.VideoLumaLevels)
+				if (ofmt != ifmt)
 				{
 					bool forceSrgb = (ofmt == PixelFormat.Y32FloatLinear || ofmt == PixelFormat.Y16UQ15Linear) && ctx.SourceColorProfile != ColorProfile.sRGB;
-					plsrc.SourceY = ctx.AddProfiler(new ConversionTransform(plsrc.SourceY, ofmt, forceSrgb ? ColorProfile.sRGB : ctx.SourceColorProfile, ctx.DestColorProfile, plsrc.VideoLumaLevels));
-					plsrc.VideoLumaLevels = false;
+					plsrc.SourceY = ctx.AddProfiler(new ConversionTransform(plsrc.SourceY, ofmt, forceSrgb ? ColorProfile.sRGB : ctx.SourceColorProfile, ctx.DestColorProfile));
 				}
 
 				if (MagicImageProcessor.EnableSimd && internalFormatMapSimd.TryGetValue(plsrc.SourceCb.Format, out var ofmtb) && internalFormatMapSimd.TryGetValue(plsrc.SourceCr.Format, out var ofmtc))
 				{
-					plsrc.SourceCb = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCb, ofmtb, videoLevels: plsrc.VideoChromaLevels));
-					plsrc.SourceCr = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCr, ofmtc, videoLevels: plsrc.VideoChromaLevels));
-					plsrc.VideoChromaLevels = false;
+					plsrc.SourceCb = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCb, ofmtb));
+					plsrc.SourceCr = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCr, ofmtc));
 				}
 
 				return;
@@ -110,11 +113,13 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			if (ctx.Source is PlanarPixelSource plsrc)
 			{
-				if (ofmt != ifmt || plsrc.VideoLumaLevels)
+				if (lastChance && plsrc.SourceY.Format.Range == PixelValueRange.Video)
+					ofmt = PixelFormat.Y8;
+
+				if (ofmt != ifmt)
 				{
 					bool forceSrgb = (ifmt == PixelFormat.Y32FloatLinear || ifmt == PixelFormat.Y16UQ15Linear) && ctx.SourceColorProfile != ColorProfile.sRGB;
-					plsrc.SourceY = ctx.AddProfiler(new ConversionTransform(plsrc.SourceY, ofmt, ctx.SourceColorProfile, forceSrgb ? ColorProfile.sRGB : ctx.DestColorProfile, plsrc.VideoLumaLevels));
-					plsrc.VideoLumaLevels = false;
+					plsrc.SourceY = ctx.AddProfiler(new ConversionTransform(plsrc.SourceY, ofmt, ctx.SourceColorProfile, forceSrgb ? ColorProfile.sRGB : ctx.DestColorProfile));
 				}
 
 				if (externalFormatMap.TryGetValue(plsrc.SourceCb.Format, out var ofmtb) && externalFormatMap.TryGetValue(plsrc.SourceCr.Format, out var ofmtc))
@@ -122,11 +127,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 					plsrc.SourceCb = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCb, ofmtb));
 					plsrc.SourceCr = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCr, ofmtc));
 				}
-				else if (lastChance && plsrc.VideoChromaLevels)
+				else if (lastChance && plsrc.SourceCb.Format.Range == PixelValueRange.Video)
 				{
-					plsrc.SourceCb = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCb, plsrc.SourceCb.Format, videoLevels: plsrc.VideoChromaLevels));
-					plsrc.SourceCr = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCr, plsrc.SourceCr.Format, videoLevels: plsrc.VideoChromaLevels));
-					plsrc.VideoChromaLevels = false;
+					plsrc.SourceCb = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCb, PixelFormat.Cb8));
+					plsrc.SourceCr = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCr, PixelFormat.Cr8));
 				}
 
 				return;
@@ -149,9 +153,6 @@ namespace PhotoSauce.MagicScaler.Transforms
 				WicTransforms.AddPixelFormatConverter(ctx);
 				curFormat = ctx.Source.Format;
 			}
-
-			if (curFormat == PixelFormat.Y8 || curFormat == PixelFormat.Cb8 || curFormat == PixelFormat.Cr8)
-				return;
 
 			var newFormat = PixelFormat.Bgr24;
 			if (!lastChance && curFormat.AlphaRepresentation == PixelAlphaRepresentation.Associated && ctx.Settings.BlendingMode != GammaMode.Linear && ctx.Settings.MatteColor.IsEmpty)
@@ -441,8 +442,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 			{
 				matrix = yccFrame.RgbYccMatrix;
 
-				if (plsrc.VideoLumaLevels)
-					AddInternalFormatConverter(ctx, PixelValueEncoding.Companded);
+				if (plsrc.SourceY.Format.Range == PixelValueRange.Video)
+					plsrc.SourceY = ctx.AddProfiler(new ConversionTransform(plsrc.SourceY, PixelFormat.Y8));
 			}
 
 			if (plsrc.SourceY.Format.Encoding == PixelValueEncoding.Linear || plsrc.SourceCb.Format.NumericRepresentation != plsrc.SourceY.Format.NumericRepresentation)
@@ -453,7 +454,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 					AddExternalFormatConverter(ctx);
 			}
 
-			ctx.Source = ctx.AddProfiler(new PlanarConversionTransform(plsrc.SourceY, plsrc.SourceCb, plsrc.SourceCr, matrix, plsrc.VideoChromaLevels));
+			ctx.Source = ctx.AddProfiler(new PlanarConversionTransform(plsrc.SourceY, plsrc.SourceCb, plsrc.SourceCr, matrix));
 		}
 
 		public static unsafe void AddIndexedColorConverter(PipelineContext ctx)

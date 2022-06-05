@@ -20,15 +20,16 @@ namespace PhotoSauce.MagicScaler.Converters
 		public sealed class Widening : IConverter<byte, float>
 		{
 			public static readonly Widening InstanceFullRange = new();
-			public static readonly Widening InstanceVideoLuma = new(VideoLumaMin, VideoLumaMax);
-			public static readonly Widening InstanceVideoChroma = new(VideoChromaMin, VideoChromaMax);
+			public static readonly Widening InstanceFullChroma = new(128, 255);
+			public static readonly Widening InstanceVideoRange = new(16, 219);
+			public static readonly Widening InstanceVideoChroma = new(128, 224);
 
 			private static readonly WideningImpl3A processor3A = new();
 			private static readonly WideningImpl3X processor3X = new();
 
 			private readonly WideningImpl processor;
 
-			private Widening(int minVal = 0, int maxVal = byte.MaxValue) => processor = new WideningImpl(minVal, maxVal);
+			private Widening(int offset = 0, int scale = byte.MaxValue) => processor = new WideningImpl(offset, scale);
 
 			public IConversionProcessor<byte, float> Processor => processor;
 			public IConversionProcessor<byte, float> Processor3A => processor3A;
@@ -37,13 +38,17 @@ namespace PhotoSauce.MagicScaler.Converters
 
 		public sealed class Narrowing : IConverter<float, byte>
 		{
-			public static readonly Narrowing Instance = new();
+			public static readonly Narrowing InstanceFullRange = new();
+			public static readonly Narrowing InstanceFullChroma = new(128, 255);
+			public static readonly Narrowing InstanceVideoRange = new(16, 219);
+			public static readonly Narrowing InstanceVideoChroma = new(128, 224);
 
-			private static readonly NarrowingImpl processor = new();
 			private static readonly NarrowingImpl3A processor3A = new();
 			private static readonly NarrowingImpl3X processor3X = new();
 
-			private Narrowing() { }
+			private readonly NarrowingImpl processor;
+
+			private Narrowing(int offset = 0, int scale = byte.MaxValue) => processor = new NarrowingImpl(offset, scale);
 
 			public IConversionProcessor<float, byte> Processor => processor;
 			public IConversionProcessor<float, byte> Processor3A => processor3A;
@@ -56,12 +61,20 @@ namespace PhotoSauce.MagicScaler.Converters
 			private readonly float offset;
 			private readonly float[] valueTable;
 
-			public WideningImpl(int minVal, int maxVal)
+			private static float[] makeTable(int offset, int scale)
 			{
-				int range = maxVal - minVal;
-				scale = ((range & 1) == 0 ? 256f : 255f) / (range * 255f);
-				offset = -minVal * scale;
-				valueTable = minVal != 0 || maxVal != byte.MaxValue ? LookupTables.MakeScaledInverseGamma(LookupTables.Alpha, minVal, maxVal) : LookupTables.Alpha;
+				var tbl = new float[256];
+				for (int i = 0; i < tbl.Length; i++)
+					tbl[i] = (float)((double)(i - offset) / scale);
+
+				return tbl;
+			}
+
+			public WideningImpl(int offs, int scal)
+			{
+				scale = 1f / scal;
+				offset = (float)-offs / scal;
+				valueTable = offs != 0 || scal != byte.MaxValue ? makeTable(offs, scal) : LookupTables.Alpha;
 			}
 
 			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
@@ -545,6 +558,15 @@ namespace PhotoSauce.MagicScaler.Converters
 
 		private sealed unsafe class NarrowingImpl : IConversionProcessor<float, byte>
 		{
+			private readonly float scale;
+			private readonly short offset;
+
+			public NarrowingImpl(int offs, int scal)
+			{
+				scale = scal;
+				offset = (short)offs;
+			}
+
 			void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 			{
 				float* ip = (float*)istart, ipe = (float*)(istart + cb);
@@ -555,7 +577,7 @@ namespace PhotoSauce.MagicScaler.Converters
 					convertIntrinsic(ip, ipe, op);
 				else
 #endif
-				if (cb >= Vector<byte>.Count * 4)
+				if (!HWIntrinsics.IsSupported && cb >= Vector<byte>.Count * 4)
 					convertVector(ip, ipe, op);
 				else
 					convertScalar(ip, ipe, op);
@@ -563,11 +585,12 @@ namespace PhotoSauce.MagicScaler.Converters
 
 #if HWINTRINSICS
 			[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-			private static void convertIntrinsic(float* ip, float* ipe, byte* op)
+			private void convertIntrinsic(float* ip, float* ipe, byte* op)
 			{
 				if (Avx2.IsSupported)
 				{
-					var vscale = Vector256.Create((float)byte.MaxValue);
+					var vscale = Vector256.Create(scale);
+					var voffs = Vector256.Create(offset);
 					var vmaskp = Avx.LoadVector256((int*)HWIntrinsics.PermuteMaskDeinterleave8x32.GetAddressOf());
 					ipe -= Vector256<float>.Count * 4;
 
@@ -588,6 +611,9 @@ namespace PhotoSauce.MagicScaler.Converters
 						var vs0 = Avx2.PackSignedSaturate(vi0, vi1);
 						var vs1 = Avx2.PackSignedSaturate(vi2, vi3);
 
+						vs0 = Avx2.Add(vs0, voffs);
+						vs1 = Avx2.Add(vs1, voffs);
+
 						var vb0 = Avx2.PackUnsignedSaturate(vs0, vs1);
 						vb0 = Avx2.PermuteVar8x32(vb0.AsInt32(), vmaskp).AsByte();
 
@@ -606,7 +632,8 @@ namespace PhotoSauce.MagicScaler.Converters
 				}
 				else // Sse2
 				{
-					var vscale = Vector128.Create((float)byte.MaxValue);
+					var vscale = Vector128.Create(scale);
+					var voffs = Vector128.Create(offset);
 					ipe -= Vector128<float>.Count * 4;
 
 					LoopTop:
@@ -626,6 +653,9 @@ namespace PhotoSauce.MagicScaler.Converters
 						var vs0 = Sse2.PackSignedSaturate(vi0, vi1);
 						var vs1 = Sse2.PackSignedSaturate(vi2, vi3);
 
+						vs0 = Sse2.Add(vs0, voffs);
+						vs1 = Sse2.Add(vs1, voffs);
+
 						var vb0 = Sse2.PackUnsignedSaturate(vs0, vs1);
 
 						Sse2.Store(op, vb0);
@@ -644,7 +674,7 @@ namespace PhotoSauce.MagicScaler.Converters
 			}
 #endif
 
-			private static void convertVector(float* ip, float* ipe, byte* op)
+			private void convertVector(float* ip, float* ipe, byte* op)
 			{
 #if VECTOR_CONVERT
 				int unrollCount = Vector<byte>.Count;
@@ -656,7 +686,7 @@ namespace PhotoSauce.MagicScaler.Converters
 				var vmin = new VectorF(byte.MinValue);
 				var vmax = new VectorF(byte.MaxValue);
 #endif
-				var vround = new VectorF(0.5f);
+				var vround = new VectorF(offset + 0.5f);
 				ipe -= unrollCount;
 
 				LoopTop:
@@ -717,11 +747,14 @@ namespace PhotoSauce.MagicScaler.Converters
 				}
 			}
 
-			private static void convertScalar(float* ip, float* ipe, byte* op)
+			private void convertScalar(float* ip, float* ipe, byte* op)
 			{
+				float scal = scale;
+				float offs = offset + 0.5f;
+
 				while (ip < ipe)
 				{
-					op[0] = FixToByte(ip[0]);
+					op[0] = ClampToByte((int)(ip[0] * scale + offs));
 					ip++;
 					op++;
 				}
