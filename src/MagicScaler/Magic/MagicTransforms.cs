@@ -524,17 +524,15 @@ namespace PhotoSauce.MagicScaler.Transforms
 			if (replay && anicnt.RequiresScreenBuffer)
 			{
 				var range = ctx.Settings.DecoderOptions is IMultiFrameDecoderOptions mul ? mul.FrameRange : Range.All;
-				int offset = range.GetOffsetAndLength(anicnt.FrameCount).Offset;
+				var (offset, count) = range.GetOffsetAndLength(anicnt.FrameCount);
+				replay = count == 1 && offset == 0;
+
 				if (offset != 0)
 					ReplayAnimation(ctx, anicnt, offset);
-
-				replay = false;
 			}
 
 			var disposal = anifrm.Disposal;
 			var ldisp = ctx.AnimationContext?.LastDisposal ?? FrameDisposalMethod.RestoreBackground;
-			var innerArea = new PixelArea(anifrm.OffsetLeft, anifrm.OffsetTop, ctx.Source.Width, ctx.Source.Height);
-			bool useBuffer = !replay && disposal == FrameDisposalMethod.Preserve;
 
 			if (!replay)
 			{
@@ -552,6 +550,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 			var frmsrc = ctx.Source;
 			if (ctx.AnimationContext?.FrameBufferSource is not null && ldisp != FrameDisposalMethod.RestoreBackground)
 				ctx.Source = ctx.AnimationContext.FrameBufferSource;
+
+			var innerArea = new PixelArea(anifrm.OffsetLeft, anifrm.OffsetTop, ctx.Source.Width, ctx.Source.Height);
+			bool useBuffer = !replay && disposal == FrameDisposalMethod.Preserve;
 
 			bool fullScreen = innerArea.Width >= anicnt.ScreenWidth && innerArea.Height >= anicnt.ScreenHeight;
 			if (!fullScreen && ldisp == FrameDisposalMethod.RestoreBackground && !useBuffer)

@@ -1,5 +1,7 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
+#pragma warning disable CS1573 // https://github.com/dotnet/roslyn/issues/40325
+
 using System;
 using System.IO;
 using System.Numerics;
@@ -67,8 +69,6 @@ namespace PhotoSauce.MagicScaler
 
 			return WriteOutput(ctx, outStream);
 		}
-
-#pragma warning disable CS1573 // not all params have docs
 
 		/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
 		/// <param name="outPath">The path to which the output image will be written.</param>
@@ -264,8 +264,6 @@ namespace PhotoSauce.MagicScaler
 
 			return new ProcessingPipeline(ctx);
 		}
-
-#pragma warning restore 1573
 
 		internal static unsafe ProcessImageResult WriteOutput(PipelineContext ctx, Stream ostm)
 		{

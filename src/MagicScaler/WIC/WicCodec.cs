@@ -528,14 +528,15 @@ namespace PhotoSauce.MagicScaler
 			context.ImageFrame.Dispose();
 			context.ImageFrame = context.ImageContainer.GetFrame(index);
 
-			if (context.ImageFrame is WicImageFrame wicFrame)
-				context.Source = context.AddProfiler(wicFrame.Source);
-			else if (context.ImageFrame is IYccImageFrame yccFrame)
-				context.Source = new PlanarPixelSource(yccFrame.PixelSource.AsPixelSource(), yccFrame.PixelSourceCb.AsPixelSource(), yccFrame.PixelSourceCr.AsPixelSource());
+			if (context.ImageFrame is IYccImageFrame yccFrame)
+				context.Source = new PlanarPixelSource(yccFrame);
 			else
 				context.Source = context.ImageFrame.PixelSource.AsPixelSource();
 
 			MagicTransforms.AddAnimationFrameBuffer(context, false);
+
+			if ((context.Source is PlanarPixelSource plan ? plan.SourceY : context.Source) is IProfileSource prof)
+				context.AddProfiler(prof);
 
 			if (lastSource is ChainedPixelSource chain && chain.Passthrough)
 			{

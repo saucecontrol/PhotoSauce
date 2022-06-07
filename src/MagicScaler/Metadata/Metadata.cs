@@ -186,6 +186,7 @@ namespace PhotoSauce.MagicScaler
 		public readonly int ScreenHeight;
 
 		/// <summary>The total number of frames in the animation, disregarding any <see cref="IMultiFrameDecoderOptions.FrameRange" /> decoder option.</summary>
+		/// <remarks>Coalescing the animation may require frames that precede the <see cref="IMultiFrameDecoderOptions.FrameRange" />.  The decoder must allow this.</remarks>
 		public readonly int FrameCount;
 
 		/// <summary>The number of times to loop the animation.  Values less than 1 imply inifinte looping.</summary>

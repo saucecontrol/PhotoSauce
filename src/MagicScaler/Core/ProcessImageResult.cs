@@ -149,7 +149,11 @@ namespace PhotoSauce.MagicScaler
 
 			MagicTransforms.AddExternalFormatConverter(Context);
 
-			transform.Init(Context.Source);
+			var src = Context.Source;
+			if (src is IDisposable disp)
+				Context.AddDispose(disp);
+
+			transform.Init(src);
 			Context.Source = transform.AsPixelSource();
 			return this;
 		}

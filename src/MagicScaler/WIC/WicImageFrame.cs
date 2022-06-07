@@ -270,7 +270,6 @@ namespace PhotoSauce.MagicScaler
 	internal sealed unsafe class WicGifFrame : WicImageFrame
 	{
 		public readonly AnimationFrame AnimationMetadata;
-		public readonly Size Size;
 
 		public WicGifFrame(WicGifContainer cont, uint index) : base(cont, index)
 		{
@@ -280,16 +279,11 @@ namespace PhotoSauce.MagicScaler
 			HRESULT.Check(WicFrame->GetSize(&width, &height));
 
 			int left = 0, top = 0;
-			bool full = width >= cont.AnimationMetadata.ScreenWidth && height >= cont.AnimationMetadata.ScreenHeight;
-			if (!full)
+			if (width < cont.AnimationMetadata.ScreenWidth || height < cont.AnimationMetadata.ScreenHeight)
 			{
 				left = meta.Get()->GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameLeft);
 				top = meta.Get()->GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameTop);
 			}
-
-			width = (uint)Math.Min(width, cont.AnimationMetadata.ScreenWidth - left);
-			height = (uint)Math.Min(height, cont.AnimationMetadata.ScreenHeight - top);
-			Size = new((int)width, (int)height);
 
 			var duration = new Rational(meta.Get()->GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameDelay), 100);
 			var disposal = ((FrameDisposalMethod)meta.Get()->GetValueOrDefault<byte>(Wic.Metadata.Gif.FrameDisposal)).Clamp();
