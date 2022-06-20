@@ -135,17 +135,29 @@ namespace PhotoSauce.MagicScaler
 	public enum ChromaPosition
 	{
 		/// <summary>Chroma components are aligned with luma columns.</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		CositedHorizontal = 1,
 		/// <summary>Chroma components are aligned with luma rows.</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		CositedVertical = 2,
 		/// <summary>Chroma components are offset between luma columns.</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		InterstitialHorizontal = 0,
 		/// <summary>Chroma components are offset between luma rows.</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		InterstitalVertical = 0,
 		/// <summary>Chroma components are offset between luma rows and columns, as in JPEG images.</summary>
-		Jpeg = InterstitialHorizontal | InterstitalVertical,
+		Jpeg = Center,
 		/// <summary>Chroma components are aligned with luma columns and offset between luma rows, as in most modern video formats.</summary>
-		Video = CositedHorizontal | InterstitalVertical
+		Video = Left,
+		/// <summary>Chroma components are offset between luma rows/columns.</summary>
+		Center = 0,
+		/// <summary>Chroma components are aligned with even luma columns.</summary>
+		Left = 1,
+		/// <summary>Chroma components are aligned with even luma rows.</summary>
+		Top = 2,
+		/// <summary>Chroma components are aligned with odd luma rows.</summary>
+		Bottom = 4
 	}
 
 	/// <summary>Defines the modes that control <a href="https://en.wikipedia.org/wiki/Chroma_subsampling">chroma subsampling</a> for output image formats that support it.</summary>
@@ -217,6 +229,14 @@ namespace PhotoSauce.MagicScaler
 		public static bool IsSubsampledX(this ChromaSubsampleMode m) => m is ChromaSubsampleMode.Subsample420 or ChromaSubsampleMode.Subsample422;
 
 		public static bool IsSubsampledY(this ChromaSubsampleMode m) => m is ChromaSubsampleMode.Subsample420 or ChromaSubsampleMode.Subsample440;
+
+		public static int SubsampleRatioX(this ChromaSubsampleMode m) => m is ChromaSubsampleMode.Subsample420 or ChromaSubsampleMode.Subsample422 ? 2 : 1;
+
+		public static int SubsampleRatioY(this ChromaSubsampleMode m) => m is ChromaSubsampleMode.Subsample420 or ChromaSubsampleMode.Subsample440 ? 2 : 1;
+
+		public static float OffsetX(this ChromaPosition p) => p.HasFlag(ChromaPosition.Left) ? -0.5f : default;
+
+		public static float OffsetY(this ChromaPosition p) => p.HasFlag(ChromaPosition.Top) ? -0.5f : p.HasFlag(ChromaPosition.Bottom) ? 0.5f : default;
 
 		public static string? ToMimeType(this FileFormat fmt) => fmt switch {
 			FileFormat.Bmp  => ImageMimeTypes.Bmp,

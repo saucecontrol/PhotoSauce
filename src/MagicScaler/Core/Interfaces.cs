@@ -148,4 +148,12 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>True if the codec supports ICC color profiles, otherwise false.</summary>
 		bool SupportsColorProfile { get; }
 	}
+
+	internal interface IPlanarImageEncoderInfo : IImageEncoderInfo
+	{
+		ChromaSubsampleMode[] SubsampleModes { get; }
+		ChromaPosition ChromaPosition { get; }
+		Matrix4x4 DefaultMatrix { get; }
+		bool SupportsCustomMatrix { get; }
+	}
 }

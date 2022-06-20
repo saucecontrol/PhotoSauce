@@ -162,6 +162,9 @@ namespace PhotoSauce.MagicScaler
 		public static int FastAbs(int x) => (x ^ (x >> 31)) - (x >> 31);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool IsOdd(this int x) => (x & 1) != 0;
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static float FastMax(float x, float o)
 		{
 #if HWINTRINSICS

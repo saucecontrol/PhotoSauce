@@ -218,12 +218,12 @@ namespace PhotoSauce.MagicScaler
 	internal sealed class PlanarPixelSource : PixelSource
 	{
 		public PixelSource SourceY, SourceCb, SourceCr;
-		public ChromaSubsampleMode ChromaSubsampling;
+		public float ChromaOffsetX, ChromaOffsetY;
+		public float CropOffsetX, CropOffsetY;
 
 		public override PixelFormat Format => SourceY.Format;
 		public override int Width => SourceY.Width;
 		public override int Height => SourceY.Height;
-
 
 		public PlanarPixelSource(PixelSource sourceY, PixelSource sourceCb, PixelSource sourceCr)
 		{
@@ -234,8 +234,6 @@ namespace PhotoSauce.MagicScaler
 			SourceY = sourceY;
 			SourceCb = sourceCb;
 			SourceCr = sourceCr;
-
-			ChromaSubsampling = GetSubsampling();
 		}
 
 		public PlanarPixelSource(IYccImageFrame frame)
@@ -257,7 +255,9 @@ namespace PhotoSauce.MagicScaler
 				SourceCr = frame.PixelSourceCr.AsPixelSource(frame.IsFullRange ? PixelFormat.Cr8 : PixelFormat.Cr8Video);
 			}
 
-			ChromaSubsampling = GetSubsampling();
+			var subsample = GetSubsampling();
+			ChromaOffsetX = subsample.IsSubsampledX() ? -frame.ChromaPosition.OffsetX() : default;
+			ChromaOffsetY = subsample.IsSubsampledY() ? -frame.ChromaPosition.OffsetY() : default;
 		}
 
 		public ChromaSubsampleMode GetSubsampling()
@@ -272,6 +272,13 @@ namespace PhotoSauce.MagicScaler
 				(false, true) => ChromaSubsampleMode.Subsample440,
 				_             => ChromaSubsampleMode.Subsample444
 			};
+		}
+
+		public void UpdateCropOffset(Orientation orient, PixelArea crop)
+		{
+			var subsample = GetSubsampling();
+			CropOffsetX = subsample.IsSubsampledX() && (orient.FlipsX() ? crop.Width  : crop.X).IsOdd() ? 0.5f : 0;
+			CropOffsetY = subsample.IsSubsampledY() && (orient.FlipsY() ? crop.Height : crop.Y).IsOdd() ? 0.5f : 0;
 		}
 
 		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer) => throw new NotImplementedException();

@@ -72,6 +72,8 @@ namespace PhotoSauce.MagicScaler
 
 		private readonly double blur;
 
+		internal bool IsPointSampler => WeightingFunction.Support < 0.1;
+
 		/// <summary>A blur value stretches or compresses the input window of an interpolation function.  This value represents a fraction of the normal window size, with <c>1.0</c> being normal.</summary>
 		/// <value>Supported values: <c>0.5</c> to <c>1.5</c>.  Values less than <c>1.0</c> can cause unpleasant artifacts.</value>
 		public double Blur => WeightingFunction is null ? default : WeightingFunction.Support * blur < 0.5 ? 1d : blur;

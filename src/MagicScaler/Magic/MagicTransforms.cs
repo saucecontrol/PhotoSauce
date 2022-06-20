@@ -177,7 +177,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			WicTransforms.AddPixelFormatConverter(ctx, !lastChance);
 		}
 
-		public static void AddHighQualityScaler(PipelineContext ctx, ChromaSubsampleMode subsample = ChromaSubsampleMode.Subsample444)
+		public static void AddHighQualityScaler(PipelineContext ctx, bool useSubsample = false)
 		{
 			bool swap = ctx.Orientation.SwapsDimensions();
 			var tsize = ctx.Settings.InnerSize;
@@ -188,35 +188,46 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			var interpolatorx = width == ctx.Source.Width ? InterpolationSettings.NearestNeighbor : ctx.Settings.Interpolation;
 			var interpolatory = height == ctx.Source.Height ? InterpolationSettings.NearestNeighbor : ctx.Settings.Interpolation;
-			if (interpolatorx.WeightingFunction.Support >= 0.1 || interpolatory.WeightingFunction.Support >= 0.1)
+			if (!interpolatorx.IsPointSampler || !interpolatory.IsPointSampler)
 				AddInternalFormatConverter(ctx, allow96bppFloat: true);
 
 			if (ctx.Source is PlanarPixelSource plsrc)
 			{
+				var encinfo = ctx.Settings.EncoderInfo as IPlanarImageEncoderInfo;
+				var subsin = plsrc.GetSubsampling();
+				var subsout = useSubsample && encinfo is not null ? encinfo.GetClosestSubsampling(ctx.Settings.Subsample) : ChromaSubsampleMode.Subsample444;
+
+				int subsinx = subsin.SubsampleRatioX();
+				int subsiny = subsin.SubsampleRatioY();
+				int subsoutx = subsout.SubsampleRatioX();
+				int subsouty = subsout.SubsampleRatioY();
+
+				if (swap)
+					(subsoutx, subsouty) = (subsouty, subsoutx);
+
 				if (plsrc.SourceY.Width != width || plsrc.SourceY.Height != height)
 					plsrc.SourceY = ctx.AddProfiler(ConvolutionTransform.CreateResample(plsrc.SourceY, width, height, interpolatorx, interpolatory));
 
-				if (swap ? subsample.IsSubsampledY() : subsample.IsSubsampledX())
-					width = MathUtil.DivCeiling(width, 2);
-				if (swap ? subsample.IsSubsampledX() : subsample.IsSubsampledY())
-					height = MathUtil.DivCeiling(height, 2);
+				width = MathUtil.DivCeiling(width, subsoutx);
+				height = MathUtil.DivCeiling(height, subsouty);
 
-				if (plsrc.SourceCb.Width == width && plsrc.SourceCb.Height == height)
+				float offsinx = (plsrc.ChromaOffsetX + plsrc.CropOffsetX) * ((float)subsoutx / subsinx);
+				float offsiny = (plsrc.ChromaOffsetY + plsrc.CropOffsetY) * ((float)subsouty / subsiny);
+
+				float offsoutx = encinfo?.ChromaPosition.OffsetX() * ((float)subsinx / subsoutx) ?? default;
+				float offsouty = encinfo?.ChromaPosition.OffsetY() * ((float)subsiny / subsouty) ?? default;
+
+				float offsetX = offsinx + offsoutx;
+				float offsetY = offsiny + offsouty;
+
+				if (plsrc.SourceCb.Width == width && plsrc.SourceCb.Height == height && offsetX == 0 && offsetY == 0)
 					return;
 
-				interpolatorx = width == plsrc.SourceCb.Width ? InterpolationSettings.NearestNeighbor : ctx.Settings.Interpolation;
-				interpolatory = height == plsrc.SourceCb.Height ? InterpolationSettings.NearestNeighbor : ctx.Settings.Interpolation;
-
-				bool offsetX = false, offsetY = false;
-				if (ctx.ImageFrame is IYccImageFrame frame)
-				{
-					offsetX = frame.ChromaPosition.HasFlag(ChromaPosition.CositedHorizontal) && plsrc.ChromaSubsampling.IsSubsampledX();
-					offsetY = frame.ChromaPosition.HasFlag(ChromaPosition.CositedVertical) && plsrc.ChromaSubsampling.IsSubsampledY();
-				}
+				interpolatorx = width == plsrc.SourceCb.Width && offsetX == 0 ? InterpolationSettings.NearestNeighbor : ctx.Settings.Interpolation;
+				interpolatory = height == plsrc.SourceCb.Height && offsetY == 0 ? InterpolationSettings.NearestNeighbor : ctx.Settings.Interpolation;
 
 				plsrc.SourceCb = ctx.AddProfiler(ConvolutionTransform.CreateResample(plsrc.SourceCb, width, height, interpolatorx, interpolatory, offsetX, offsetY));
 				plsrc.SourceCr = ctx.AddProfiler(ConvolutionTransform.CreateResample(plsrc.SourceCr, width, height, interpolatorx, interpolatory, offsetX, offsetY));
-				plsrc.ChromaSubsampling = subsample;
 
 				return;
 			}
@@ -227,7 +238,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		public static void AddHybridScaler(PipelineContext ctx)
 		{
 			var ratio = ctx.Settings.HybridScaleRatio;
-			if (ratio == 1 || ctx.Settings.Interpolation.WeightingFunction.Support < 0.1 || ctx.Source.Format.BitsPerPixel / ctx.Source.Format.ChannelCount != 8)
+			if (ratio == 1 || ctx.Settings.Interpolation.IsPointSampler || ctx.Source.Format.BitsPerPixel / ctx.Source.Format.ChannelCount != 8)
 				return;
 
 			if (ctx.Source is PlanarPixelSource plsrc)
@@ -311,26 +322,14 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			if (ctx.Source is PlanarPixelSource plsrc)
 			{
-				int yw = plsrc.SourceY.Width;
-				int yh = plsrc.SourceY.Height;
-				int cw = plsrc.SourceCb.Width;
-				int ch = plsrc.SourceCb.Height;
+				var subsample = plsrc.GetSubsampling();
+				int ratioX = subsample.SubsampleRatioX();
+				int ratioY = subsample.SubsampleRatioY();
 
-				int ratioX = (yw + 1) / cw;
-				int ratioY = (yh + 1) / ch;
-
-				int scropX = MathUtil.PowerOfTwoFloor(crop.X, ratioX);
-				int scropY = MathUtil.PowerOfTwoFloor(crop.Y, ratioY);
-				int scropW = Math.Min(MathUtil.PowerOfTwoCeiling(crop.Width, ratioX), yw - scropX);
-				int scropH = Math.Min(MathUtil.PowerOfTwoCeiling(crop.Height, ratioY), yh - scropY);
-				var scrop = new PixelArea(scropX, scropY, scropW, scropH);
-
+				var scrop = crop.SnapTo(ratioX, ratioY, plsrc.SourceY.Width, plsrc.SourceY.Height);
 				plsrc.SourceY = ctx.AddProfiler(new CropTransform(plsrc.SourceY, scrop));
 
-				cw = Math.Min(MathUtil.DivCeiling(scrop.Width, ratioX), cw);
-				ch = Math.Min(MathUtil.DivCeiling(scrop.Height, ratioY), ch);
-				scrop = new PixelArea(scrop.X / ratioX, scrop.Y / ratioY, cw, ch);
-
+				scrop = scrop.ScaleTo(ratioX, ratioY, plsrc.SourceCb.Width, plsrc.SourceCb.Height);
 				plsrc.SourceCb = ctx.AddProfiler(new CropTransform(plsrc.SourceCb, scrop));
 				plsrc.SourceCr = ctx.AddProfiler(new CropTransform(plsrc.SourceCr, scrop));
 

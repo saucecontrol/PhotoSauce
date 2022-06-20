@@ -325,40 +325,12 @@ namespace PhotoSauce.MagicScaler
 			ctx.Settings.UnsharpMask = ctx.UsedSettings.UnsharpMask;
 			ctx.Settings.EncoderOptions = ctx.UsedSettings.EncoderOptions;
 
-			var subsample = ctx.Settings.Subsample;
-			if (processPlanar)
-			{
-				if (wicFrame is not null)
-				{
-					if (ctx.Settings.ScaleRatio == 1d)
-						processPlanar = false;
-
-					if (!ctx.Settings.AutoCrop && ctx.Settings.HybridScaleRatio == 1)
-					{
-						var orCrop = ((PixelArea)ctx.Settings.Crop).DeOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height);
-
-						if (wicFrame.ChromaSubsampling.IsSubsampledX() && ((orCrop.X & 1) != 0 || (orCrop.Width & 1) != 0))
-							processPlanar = false;
-						if (wicFrame.ChromaSubsampling.IsSubsampledY() && ((orCrop.Y & 1) != 0 || (orCrop.Height & 1) != 0))
-							processPlanar = false;
-					}
-				}
-
-				if (outputPlanar && ctx.Orientation.SwapsDimensions())
-				{
-					if (subsample.IsSubsampledX() && (ctx.Settings.OuterSize.Width & 1) != 0)
-						outputPlanar = false;
-					if (subsample.IsSubsampledY() && (ctx.Settings.OuterSize.Height & 1) != 0)
-						outputPlanar = false;
-				}
-			}
-
 			MagicTransforms.AddColorProfileReader(ctx);
 
-			if (processPlanar)
+			if (ctx.Source is PlanarPixelSource)
 			{
 				bool savePlanar = outputPlanar
-					&& ctx.Settings.EncoderInfo!.SupportsPlanar()
+					&& ctx.Settings.EncoderInfo is IPlanarImageEncoderInfo
 					&& ctx.Settings.OuterSize == ctx.Settings.InnerSize
 					&& ctx.DestColorProfile == ctx.SourceColorProfile;
 
@@ -367,7 +339,7 @@ namespace PhotoSauce.MagicScaler
 
 				MagicTransforms.AddCropper(ctx);
 				MagicTransforms.AddHybridScaler(ctx);
-				MagicTransforms.AddHighQualityScaler(ctx, savePlanar ? subsample : ChromaSubsampleMode.Subsample444);
+				MagicTransforms.AddHighQualityScaler(ctx, savePlanar);
 				MagicTransforms.AddUnsharpMask(ctx);
 
 				if (savePlanar)

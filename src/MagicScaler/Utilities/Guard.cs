@@ -57,7 +57,7 @@ internal static class Guard
 			throw new ArgumentException("Output Stream must allow Seek and Write.", name);
 	}
 
-	public static void NonNegative(int val, [CallerArgumentExpression("val")] string? name = null)
+	public static void NotNegative(int val, [CallerArgumentExpression("val")] string? name = null)
 	{
 		if (val < 0)
 			@throw(name);

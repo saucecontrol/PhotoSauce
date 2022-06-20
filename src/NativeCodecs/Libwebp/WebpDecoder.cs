@@ -394,7 +394,7 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 
 		private PixelSource? ysrc, usrc, vsrc;
 
-		public ChromaPosition ChromaPosition => ChromaPosition.InterstitialHorizontal | ChromaPosition.CositedVertical;
+		public ChromaPosition ChromaPosition => ChromaPosition.Bottom;
 		public Matrix4x4 RgbYccMatrix => yccMatrix;
 		public bool IsFullRange => false;
 

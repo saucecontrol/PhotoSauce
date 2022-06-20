@@ -17,10 +17,10 @@ namespace PhotoSauce.MagicScaler
 
 		public PixelArea(int x, int y, int width, int height)
 		{
-			Guard.NonNegative(x);
-			Guard.NonNegative(y);
-			Guard.NonNegative(width);
-			Guard.NonNegative(height);
+			Guard.NotNegative(x);
+			Guard.NotNegative(y);
+			Guard.NotNegative(width);
+			Guard.NotNegative(height);
 
 			(X, Y, Width, Height) = (x, y, width, height);
 		}
@@ -64,6 +64,47 @@ namespace PhotoSauce.MagicScaler
 			int height = (int)Math.Min(Math.Ceiling(Height / yRatio), targetHeight - y);
 
 			return new PixelArea(x, y, width, height);
+		}
+
+		public PixelArea SnapTo(int incX, int incY, int maxWidth, int maxHeight)
+		{
+			int x = MathUtil.PowerOfTwoFloor(X, incX);
+			int y = MathUtil.PowerOfTwoFloor(Y, incY);
+			int width = Math.Min(MathUtil.PowerOfTwoCeiling(Width + X - x, incX), maxWidth - x);
+			int height = Math.Min(MathUtil.PowerOfTwoCeiling(Height + Y - y, incY), maxHeight - y);
+
+			return new PixelArea(x, y, width, height);
+		}
+
+		public PixelArea ScaleTo(int ratioX, int ratioY, int maxWidth, int maxHeight)
+		{
+			int x = X / ratioX;
+			int y = Y / ratioY;
+			int width = Math.Min(MathUtil.DivCeiling(Width, ratioX), maxWidth);
+			int height = Math.Min(MathUtil.DivCeiling(Height, ratioY), maxHeight);
+
+			return new PixelArea(x, y, width, height);
+		}
+
+		public PixelArea Intersect(PixelArea other)
+		{
+			int x1 = Math.Max(X, other.X);
+			int x2 = Math.Min(X + Width, other.X + other.Width);
+			int y1 = Math.Max(Y, other.Y);
+			int y2 = Math.Min(Y + Height, other.Y + other.Height);
+
+			if (x2 >= x1 && y2 >= y1)
+				return new PixelArea(x1, y1, x2 - x1, y2 - y1);
+
+			return default;
+		}
+
+		public PixelArea RelativeTo(PixelArea other)
+		{
+			int x = X - other.X;
+			int y = Y - other.Y;
+
+			return new PixelArea(x, y, Width, Height);
 		}
 
 		public static implicit operator PixelArea(in Rectangle r) => new(r.X, r.Y, r.Width, r.Height);

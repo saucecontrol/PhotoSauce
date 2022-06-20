@@ -311,7 +311,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 	internal static class ConvolutionTransform
 	{
-		private static PixelSource createResample<TPixel, TWeight>(PixelSource src, int width, int height, InterpolationSettings interpolatorx, InterpolationSettings interpolatory, bool offsetX, bool offsetY) where TPixel : unmanaged where TWeight : unmanaged
+		private static PixelSource createResample<TPixel, TWeight>(PixelSource src, int width, int height, InterpolationSettings interpolatorx, InterpolationSettings interpolatory, double offsetX, double offsetY) where TPixel : unmanaged where TWeight : unmanaged
 		{
 			var fmt = src.Format;
 			var mx = KernelMap<TWeight>.CreateResample(src.Width, width, interpolatorx, fmt.ChannelCount, offsetX);
@@ -337,7 +337,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			return new UnsharpMaskTransform<TPixel, TWeight>(src, mx, my, sharp);
 		}
 
-		public static PixelSource CreateResample(PixelSource src, int width, int height, InterpolationSettings interpolatorx, InterpolationSettings interpolatory, bool offsetX = false, bool offsetY = false) =>
+		public static PixelSource CreateResample(PixelSource src, int width, int height, InterpolationSettings interpolatorx, InterpolationSettings interpolatory, double offsetX = 0, double offsetY = 0) =>
 			src.Format.NumericRepresentation switch {
 				PixelNumericRepresentation.Float =>	createResample<float, float>(src, width, height, interpolatorx, interpolatory, offsetX, offsetY),
 				PixelNumericRepresentation.Fixed =>	createResample<ushort, int>(src, width, height, interpolatorx, interpolatory, offsetX, offsetY),

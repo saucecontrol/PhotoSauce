@@ -3,6 +3,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
 using System.Collections;
 using System.Collections.Generic;
@@ -119,6 +120,22 @@ namespace PhotoSauce.MagicScaler
 		bool SupportsAnimation,
 		bool SupportsColorProfile
 	) : CodecInfo(Name, MimeTypes, FileExtensions), IImageEncoderInfo;
+
+	internal sealed record class PlanarEncoderInfo(
+		string Name,
+		IEnumerable<string> MimeTypes,
+		IEnumerable<string> FileExtensions,
+		IEnumerable<Guid> PixelFormats,
+		IEncoderOptions? DefaultOptions,
+		Func<Stream, IEncoderOptions?, IImageEncoder> Factory,
+		bool SupportsMultiFrame,
+		bool SupportsAnimation,
+		bool SupportsColorProfile,
+		ChromaSubsampleMode[] SubsampleModes,
+		ChromaPosition ChromaPosition,
+		Matrix4x4 DefaultMatrix,
+		bool SupportsCustomMatrix
+	) : CodecInfo(Name, MimeTypes, FileExtensions), IPlanarImageEncoderInfo;
 
 	/// <summary>Represents the set of configured codecs for the processing pipeline.</summary>
 	/// <remarks>Instances should not be retained or used outside of <see cref="CodecManager.Configure(Action{CodecCollection}?)"/>.</remarks>
@@ -297,6 +314,11 @@ namespace PhotoSauce.MagicScaler
 
 		internal static bool SupportsPixelFormat(this IImageEncoderInfo enc, Guid fmt) => enc.PixelFormats.Contains(fmt);
 
-		internal static bool SupportsPlanar(this IImageEncoderInfo enc) => SupportsPixelFormat(enc, PixelFormat.Y8.FormatGuid);
+		internal static ChromaSubsampleMode GetClosestSubsampling(this IPlanarImageEncoderInfo enc, ChromaSubsampleMode sub)
+		{
+			var match = enc.SubsampleModes.FirstOrDefault(c => c >= sub);
+
+			return match != default ? match : enc.SubsampleModes.LastOrDefault(c => c < sub);
+		}
 	}
 }

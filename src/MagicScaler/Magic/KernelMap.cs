@@ -235,9 +235,9 @@ namespace PhotoSauce.MagicScaler
 			return map;
 		}
 
-		public static KernelMap<T> CreateResample(int isize, int osize, InterpolationSettings interpolator, int ichannels, bool subsampleOffset)
+		public static KernelMap<T> CreateResample(int isize, int osize, InterpolationSettings interpolator, int ichannels, double addlOffset)
 		{
-			double offset = interpolator.WeightingFunction.Support < 0.1 ? 0.5 : subsampleOffset ? 0.25 : 0.0;
+			double offset = (interpolator.IsPointSampler ? 0.5 : 0.0) + addlOffset;
 
 			return Cache.GetOrAdd(isize, osize, interpolator, ichannels, offset);
 		}
