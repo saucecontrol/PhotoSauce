@@ -86,9 +86,6 @@ namespace PhotoSauce.Interop.Wic
 
 	internal static unsafe class WinCodecExtensions
 	{
-		public static bool RequiresCache(this WICBitmapTransformOptions opt) =>
-			opt != WICBitmapTransformOptions.WICBitmapTransformRotate0 && opt != WICBitmapTransformOptions.WICBitmapTransformFlipHorizontal;
-
 		public static WICBitmapTransformOptions ToWicTransformOptions(this Orientation o)
 		{
 			int orientation = (int)o;

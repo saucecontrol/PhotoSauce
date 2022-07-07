@@ -7,9 +7,6 @@ using System.IO;
 using System.Numerics;
 using System.ComponentModel;
 
-using TerraFX.Interop.Windows;
-
-using PhotoSauce.Interop.Wic;
 using PhotoSauce.MagicScaler.Transforms;
 
 namespace PhotoSauce.MagicScaler
@@ -291,32 +288,10 @@ namespace PhotoSauce.MagicScaler
 
 		private static unsafe void buildPipeline(PipelineContext ctx, bool closedPipeline = true)
 		{
-			ctx.ImageFrame = ctx.ImageContainer.GetFrame(0);
 			ctx.Settings.ColorProfileMode = closedPipeline ? ctx.Settings.ColorProfileMode : ColorProfileMode.ConvertToSrgb;
 
-			bool processPlanar = false;
-			bool outputPlanar = closedPipeline;
-			var wicFrame = ctx.ImageFrame as WicImageFrame;
-
-			if (wicFrame is not null)
-			{
-				processPlanar = wicFrame.SupportsPlanarProcessing && ctx.Settings.Interpolation.WeightingFunction.Support >= 0.5;
-				bool profilingPassThrough = processPlanar || (wicFrame.SupportsNativeScale && ctx.Settings.HybridScaleRatio > 1);
-				ctx.Source = ctx.AddProfiler(new ComPtr<IWICBitmapSource>(wicFrame.WicSource).Detach()->AsPixelSource(nameof(IWICBitmapFrameDecode), !profilingPassThrough));
-			}
-			else if (ctx.ImageFrame is IYccImageFrame yccFrame)
-			{
-				processPlanar = true;
-				outputPlanar = outputPlanar && yccFrame.RgbYccMatrix.IsRouglyEqualTo(YccMatrix.Rec601);
-				ctx.Source = new PlanarPixelSource(yccFrame);
-			}
-			else
-			{
-				ctx.Source = ctx.ImageFrame.PixelSource.AsPixelSource();
-				if (ctx.ImageFrame.PixelSource is IProfileSource prof)
-					ctx.AddProfiler(prof);
-			}
-
+			ctx.ImageFrame = ctx.ImageContainer.GetFrame(0);
+			ctx.Source = ctx.ImageFrame.PixelSource.AsPixelSource();
 			ctx.Metadata = new MagicMetadataFilter(ctx);
 
 			MagicTransforms.AddAnimationFrameBuffer(ctx);
@@ -324,6 +299,27 @@ namespace PhotoSauce.MagicScaler
 			ctx.FinalizeSettings();
 			ctx.Settings.UnsharpMask = ctx.UsedSettings.UnsharpMask;
 			ctx.Settings.EncoderOptions = ctx.UsedSettings.EncoderOptions;
+
+			bool outputPlanar = closedPipeline;
+
+			if (ctx.Settings.ScaleRatio != 1d && !ctx.Settings.Interpolation.IsPointSampler && ctx.Source is IFramePixelSource fsrc && fsrc.Frame is IPlanarDecoder pldec)
+			{
+				if (pldec.TryGetYccFrame(out var plfrm, true))
+					ctx.ImageFrame = plfrm;
+			}
+
+			if (ctx.ImageFrame is IYccImageFrame yccFrame)
+			{
+				outputPlanar = outputPlanar && yccFrame.RgbYccMatrix.IsRouglyEqualTo(YccMatrix.Rec601);
+
+				ctx.Source = new PlanarPixelSource(yccFrame);
+			}
+
+			MagicTransforms.AddNativeCropper(ctx);
+			MagicTransforms.AddNativeScaler(ctx);
+
+			if ((ctx.Source is PlanarPixelSource plan ? plan.SourceY : ctx.Source) is IProfileSource prof)
+				ctx.AddProfiler(prof);
 
 			MagicTransforms.AddColorProfileReader(ctx);
 
@@ -333,9 +329,6 @@ namespace PhotoSauce.MagicScaler
 					&& ctx.Settings.EncoderInfo is IPlanarImageEncoderInfo
 					&& ctx.Settings.OuterSize == ctx.Settings.InnerSize
 					&& ctx.DestColorProfile == ctx.SourceColorProfile;
-
-				if (wicFrame is not null)
-					WicTransforms.AddPlanarCache(ctx);
 
 				MagicTransforms.AddCropper(ctx);
 				MagicTransforms.AddHybridScaler(ctx);
@@ -357,7 +350,6 @@ namespace PhotoSauce.MagicScaler
 			}
 			else
 			{
-				WicTransforms.AddNativeScaler(ctx);
 				MagicTransforms.AddCropper(ctx);
 				MagicTransforms.AddHybridScaler(ctx);
 				MagicTransforms.AddNormalizingFormatConverter(ctx);

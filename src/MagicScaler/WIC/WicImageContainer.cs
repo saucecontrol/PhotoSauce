@@ -21,9 +21,13 @@ namespace PhotoSauce.MagicScaler
 
 		public virtual IImageFrame GetFrame(int index)
 		{
-			if ((uint)(FrameOffset + index) >= (uint)(FrameOffset + FrameCount)) throw new ArgumentOutOfRangeException(nameof(index), "Invalid frame index.");
+			uint fidx = (uint)(FrameOffset + index);
+			if (fidx >= (uint)(FrameOffset + FrameCount)) throw new ArgumentOutOfRangeException(nameof(index), "Invalid frame index.");
 
-			return new WicImageFrame(this, (uint)(FrameOffset + index));
+			if (MimeType == ImageMimeTypes.Jpeg && MagicImageProcessor.EnablePlanarPipeline && (Options is not IPlanarDecoderOptions popt || popt.AllowPlanar))
+				return new WicPlanarFrame(this, fidx);
+
+			return new WicImageFrame(this, fidx);
 		}
 
 		protected WicImageContainer(IWICBitmapDecoder* dec, string? mime, IDecoderOptions? options)

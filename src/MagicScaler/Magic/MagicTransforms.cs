@@ -314,6 +314,45 @@ namespace PhotoSauce.MagicScaler.Transforms
 			ctx.Source = ctx.AddProfiler(new PadTransformInternal(ctx.Source, ctx.Settings.MatteColor, ctx.Settings.InnerRect, ctx.Settings.OuterSize));
 		}
 
+		public static void AddNativeCropper(PipelineContext ctx)
+		{
+			if ((ctx.Source is PlanarPixelSource pps ? pps.SourceY : ctx.Source) is not IFramePixelSource fps || fps.Frame is not ICroppedDecoder cdec)
+				return;
+
+			var crop = ((PixelArea)ctx.Settings.Crop).DeOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height);
+			if (crop == ctx.Source.Area)
+				return;
+
+			if (ctx.Source is PlanarPixelSource plsrc)
+				plsrc.UpdateCropOffset(ctx.Orientation, crop);
+
+			cdec.SetDecodeCrop(crop);
+			ctx.Settings.Crop = ctx.Source.Area.ReOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height);
+		}
+
+		public static void AddNativeScaler(PipelineContext ctx)
+		{
+			if ((ctx.Source is PlanarPixelSource pps ? pps.SourceY : ctx.Source) is not IFramePixelSource fps || fps.Frame is not IScaledDecoder sdec)
+				return;
+
+			var ratio = ctx.Settings.HybridScaleRatio;
+			if (ratio == 1)
+				return;
+
+			var (ow, oh) = (sdec.PixelSource.Width, sdec.PixelSource.Height);
+			var (cw, ch) = sdec.SetDecodeScale(ratio);
+
+			var crop = ((PixelArea)ctx.Settings.Crop)
+				.DeOrient(ctx.Orientation, ow, oh)
+				.ProportionalScale(ow, oh, cw, ch)
+				.ReOrient(ctx.Orientation, cw, ch);
+
+			if (ctx.Source is PlanarPixelSource plsrc)
+				plsrc.UpdateCropOffset(ctx.Orientation, crop);
+
+			ctx.Settings.Crop = crop;
+		}
+
 		public static void AddCropper(PipelineContext ctx)
 		{
 			var crop = ((PixelArea)ctx.Settings.Crop).DeOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height);
@@ -375,7 +414,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			if (mode == ColorProfileMode.Ignore)
 				return;
 
-			if (ctx.ImageFrame is WicImageFrame)
+			if (ctx.ImageFrame is WicImageFrame or WicPlanarCache)
 			{
 				WicTransforms.AddColorProfileReader(ctx);
 			}

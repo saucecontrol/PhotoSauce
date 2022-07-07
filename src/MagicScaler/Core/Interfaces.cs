@@ -149,6 +149,26 @@ namespace PhotoSauce.MagicScaler
 		bool SupportsColorProfile { get; }
 	}
 
+	internal interface IFramePixelSource
+	{
+		IImageFrame Frame { get; }
+	}
+
+	internal interface IPlanarDecoder : IImageFrame
+	{
+		bool TryGetYccFrame([NotNullWhen(true)] out IYccImageFrame? frame, bool allowSubsampledChroma);
+	}
+
+	internal interface ICroppedDecoder
+	{
+		void SetDecodeCrop(PixelArea crop);
+	}
+
+	internal interface IScaledDecoder : IImageFrame
+	{
+		(int width, int height) SetDecodeScale(int ratio);
+	}
+
 	internal interface IPlanarImageEncoderInfo : IImageEncoderInfo
 	{
 		ChromaSubsampleMode[] SubsampleModes { get; }

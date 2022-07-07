@@ -141,9 +141,11 @@ namespace PhotoSauce.MagicScaler
 						? lopt.Quality
 						: SettingsUtil.GetDefaultQuality(Math.Max(source.Width, source.Height));
 
-					var subs = Options is IPlanarEncoderOptions popt && popt.Subsample != default
-						? popt.Subsample
-						: SettingsUtil.GetDefaultSubsampling(qual);
+					var subs = SettingsUtil.GetDefaultSubsampling(qual);
+					if (src is PlanarPixelSource psrc)
+						subs = psrc.GetSubsampling();
+					else if (Options is IPlanarEncoderOptions popt && popt.Subsample != default)
+						subs = popt.Subsample;
 
 					pbag.Write("ImageQuality", qual / 100f);
 					pbag.Write("JpegYCrCbSubsampling", (byte)subs);
@@ -267,9 +269,6 @@ namespace PhotoSauce.MagicScaler
 
 			if (src is PlanarPixelSource plsrc)
 			{
-				var oformat = GUID_WICPixelFormat24bppBGR;
-				HRESULT.Check(frame->SetPixelFormat(&oformat));
-
 				using var srcY = new ComPtr<IWICBitmapSource>(plsrc.SourceY.AsIWICBitmapSource());
 				using var srcCb = new ComPtr<IWICBitmapSource>(plsrc.SourceCb.AsIWICBitmapSource());
 				using var srcCr = new ComPtr<IWICBitmapSource>(plsrc.SourceCr.AsIWICBitmapSource());

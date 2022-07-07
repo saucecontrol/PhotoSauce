@@ -24,6 +24,7 @@
             <remarks>
             If the input image has an <a href="http://sylvana.net/jpegcrop/exif_orientation.html">Exif Orientation</a> value, rotation and/or flipping will be applied to the image before the crop.
             Crop values should be expressed in terms of the image's correct orientation, not the encoded orientation.
+            When hybrid scaling is enabled, crop values may be rounded to the nearest multiple of the scale ratio.
             </remarks>
         </member>
         <member name="Anchor">

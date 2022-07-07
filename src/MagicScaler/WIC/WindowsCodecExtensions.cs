@@ -152,9 +152,15 @@ namespace PhotoSauce.MagicScaler
 							_                   => default(IEncoderOptions)
 						};
 
-						pix = mime is ImageMimeTypes.Jpeg ? pix.Concat(new[] { PixelFormat.Y8.FormatGuid }).ToArray() : pix;
+						var encinfo = (IImageEncoderInfo)(new EncoderInfo(name, mimes, extensions, pix, options, (stm, opt) => new WicImageEncoder(clsid, mime, stm, opt), mult, anim, prof));
+						if (mime is ImageMimeTypes.Jpeg)
+						{
+							var subs = new[] { ChromaSubsampleMode.Subsample420, ChromaSubsampleMode.Subsample422, ChromaSubsampleMode.Subsample444 };
+							pix = pix.Concat(new[] { PixelFormat.Y8.FormatGuid }).ToArray();
+							encinfo = new PlanarEncoderInfo(name, mimes, extensions, pix, options, (stm, opt) => new WicImageEncoder(clsid, mime, stm, opt), mult, anim, prof, subs, ChromaPosition.Center, YccMatrix.Rec601, false);
+						}
 
-						codecs.Add((ctid, new EncoderInfo(name, mimes, extensions, pix, options, (stm, opt) => new WicImageEncoder(clsid, mime, stm, opt), mult, anim, prof)));
+						codecs.Add((ctid, encinfo));
 					}
 				}
 			}

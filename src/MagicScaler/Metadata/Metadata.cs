@@ -140,9 +140,10 @@ namespace PhotoSauce.MagicScaler
 
 			if (typeof(T) == typeof(WicFrameMetadataReader))
 			{
-				if (source is WicImageFrame wicfrm && wicfrm.WicMetadataReader is not null && settings.MetadataNames.Any())
+				var frame = source is WicPlanarCache pframe ? pframe.Frame : source as WicImageFrame;
+				if (frame is not null && frame.WicMetadataReader is not null && settings.MetadataNames.Any())
 				{
-					metadata = (T)(object)(new WicFrameMetadataReader(wicfrm.WicMetadataReader, settings.MetadataNames));
+					metadata = (T)(object)(new WicFrameMetadataReader(frame.WicMetadataReader, settings.MetadataNames));
 					return true;
 				}
 

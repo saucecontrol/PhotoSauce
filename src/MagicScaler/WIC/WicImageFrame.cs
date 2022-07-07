@@ -1,7 +1,6 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
-using System.Drawing;
 using System.Diagnostics.CodeAnalysis;
 
 using TerraFX.Interop.Windows;
@@ -11,25 +10,18 @@ using PhotoSauce.Interop.Wic;
 
 namespace PhotoSauce.MagicScaler
 {
-	internal unsafe class WicImageFrame : IImageFrame, IMetadataSource
+	internal unsafe class WicImageFrame : IScaledDecoder, IMetadataSource
 	{
-		private WicPixelSource? psource;
+		private WicFramePixelSource? pixsrc;
 		private WicColorProfile? colorProfile;
 
 		public readonly WicImageContainer Container;
-
-		public bool SupportsNativeScale { get; }
-		public bool SupportsPlanarProcessing { get; }
-
-		public WICJpegYCrCbSubsamplingOption ChromaSubsampling { get; }
 
 		public IWICBitmapFrameDecode* WicFrame { get; private set; }
 		public IWICBitmapSource* WicSource { get; private set; }
 		public IWICMetadataQueryReader* WicMetadataReader { get; private set; }
 
-		public PixelSource Source => psource ??= new ComPtr<IWICBitmapSource>(WicSource).Detach()->AsPixelSource(nameof(IWICBitmapFrameDecode), false);
-
-		public IPixelSource PixelSource => Source;
+		public IPixelSource PixelSource => pixsrc ??= new WicFramePixelSource(this);
 
 		public WicColorProfile ColorProfileSource => colorProfile ??= getColorProfile();
 
@@ -62,43 +54,6 @@ namespace PhotoSauce.MagicScaler
 						(frameWidth, frameHeight) = (pw, ph);
 						source.Attach(preview.Detach());
 					}
-				}
-			}
-
-			using var transform = default(ComPtr<IWICBitmapSourceTransform>);
-			if (SUCCEEDED(source.As(&transform)))
-			{
-				uint tw = 1, th = 1;
-				HRESULT.Check(transform.Get()->GetClosestSize(&tw, &th));
-
-				SupportsNativeScale = tw < frameWidth || th < frameHeight;
-			}
-
-			if (MagicImageProcessor.EnablePlanarPipeline && (Container.Options is not IPlanarDecoderOptions popt || popt.AllowPlanar))
-			{
-				using var ptransform = default(ComPtr<IWICPlanarBitmapSourceTransform>);
-				if (SUCCEEDED(source.As(&ptransform)))
-				{
-					var fmts = WicTransforms.PlanarPixelFormats;
-					var desc = stackalloc WICBitmapPlaneDescription[fmts.Length];
-					fixed (Guid* pfmt = fmts)
-					{
-						BOOL bval;
-						uint tw = frameWidth, th = frameHeight;
-						HRESULT.Check(ptransform.Get()->DoesSupportTransform(
-							&tw, &th,
-							WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault,
-							pfmt, desc, (uint)fmts.Length, &bval
-						));
-
-						SupportsPlanarProcessing = bval;
-					}
-
-					ChromaSubsampling =
-						desc[1].Width < desc[0].Width && desc[1].Height < desc[0].Height ? WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling420 :
-						desc[1].Width < desc[0].Width ? WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling422 :
-						desc[1].Height < desc[0].Height ? WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling440 :
-						WICJpegYCrCbSubsamplingOption.WICJpegYCrCbSubsampling444;
 				}
 			}
 
@@ -172,7 +127,37 @@ namespace PhotoSauce.MagicScaler
 			return false;
 		}
 
-		private void dispose(bool disposing)
+		public (int width, int height) SetDecodeScale(int ratio)
+		{
+			int ow = PixelSource.Width, oh = PixelSource.Height;
+
+			using var transform = default(ComPtr<IWICBitmapSourceTransform>);
+			if (FAILED(WicSource->QueryInterface(__uuidof<IWICBitmapSourceTransform>(), (void**)transform.GetAddressOf())))
+				return (ow, oh);
+
+			// WIC HEIF decoder will report any size as valid but then fail on CopyPixels if the scale ratio is greater than 8:1
+			if (Container.MimeType == ImageMimeTypes.Heic)
+				ratio = ratio.Clamp(1, 8);
+
+			uint cw = (uint)MathUtil.DivCeiling(ow, ratio), ch = (uint)MathUtil.DivCeiling(oh, ratio);
+			HRESULT.Check(transform.Get()->GetClosestSize(&cw, &ch));
+
+			if (cw != (uint)ow && ch != (uint)oh)
+			{
+				using var scaler = default(ComPtr<IWICBitmapScaler>);
+				HRESULT.Check(Wic.Factory->CreateBitmapScaler(scaler.GetAddressOf()));
+				HRESULT.Check(scaler.Get()->Initialize(WicSource, cw, ch, WICBitmapInterpolationMode.WICBitmapInterpolationModeFant));
+
+				WicSource->Release();
+				WicSource = (IWICBitmapSource*)scaler.Detach();
+
+				pixsrc!.UpdateSize();
+			}
+
+			return ((int)cw, (int)ch);
+		}
+
+		protected virtual void Dispose(bool disposing)
 		{
 			if (WicFrame is null)
 				return;
@@ -180,7 +165,7 @@ namespace PhotoSauce.MagicScaler
 			if (disposing)
 			{
 				colorProfile?.Dispose();
-				psource?.Dispose();
+				pixsrc?.Dispose();
 				GC.SuppressFinalize(this);
 			}
 
@@ -197,9 +182,9 @@ namespace PhotoSauce.MagicScaler
 			WicFrame = null;
 		}
 
-		public void Dispose() => dispose(true);
+		public void Dispose() => Dispose(true);
 
-		~WicImageFrame() => dispose(false);
+		~WicImageFrame() => Dispose(false);
 
 		private WicColorProfile getColorProfile()
 		{
@@ -304,6 +289,57 @@ namespace PhotoSauce.MagicScaler
 			}
 
 			return base.TryGetMetadata(out metadata!);
+		}
+	}
+
+	internal sealed unsafe class WicPlanarFrame : WicImageFrame, IPlanarDecoder
+	{
+		public IWICPlanarBitmapSourceTransform* WicPlanarTransform { get; private set; }
+
+		public WicPlanarFrame(WicImageContainer cont, uint index) : base(cont, index)
+		{
+			void* ptrans;
+			if (SUCCEEDED(WicSource->QueryInterface(__uuidof<IWICPlanarBitmapSourceTransform>(), &ptrans)))
+				WicPlanarTransform = (IWICPlanarBitmapSourceTransform*)ptrans;
+		}
+
+		public bool TryGetYccFrame([NotNullWhen(true)] out IYccImageFrame? frame, bool allowSubsampledChroma)
+		{
+			if (WicPlanarTransform is not null)
+			{
+				var fmts = WicPlanarCache.PlanarPixelFormats;
+				var desc = stackalloc WICBitmapPlaneDescription[fmts.Length];
+				fixed (Guid* pfmt = fmts)
+				{
+					BOOL bval;
+					uint ow, oh;
+					HRESULT.Check(WicSource->GetSize(&ow, &oh));
+					HRESULT.Check(WicPlanarTransform->DoesSupportTransform(
+						&ow, &oh, WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault,
+						pfmt, desc, (uint)fmts.Length, &bval
+					));
+
+					if (bval)
+					{
+						frame = new WicPlanarCache(this, new ReadOnlySpan<WICBitmapPlaneDescription>(desc, fmts.Length));
+						return true;
+					}
+				}
+			}
+
+			frame = null;
+			return false;
+		}
+
+		protected override void Dispose(bool disposing)
+		{
+			if (WicPlanarTransform is not null)
+			{
+				WicPlanarTransform->Release();
+				WicPlanarTransform = null;
+			}
+
+			base.Dispose(disposing);
 		}
 	}
 }

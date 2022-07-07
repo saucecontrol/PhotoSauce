@@ -9,6 +9,43 @@ using PhotoSauce.Interop.Wic;
 
 namespace PhotoSauce.MagicScaler
 {
+	internal sealed unsafe class WicFramePixelSource : PixelSource, IFramePixelSource
+	{
+		private readonly WicImageFrame frame;
+		private int width, height;
+
+		public IImageFrame Frame => frame;
+		public override PixelFormat Format { get; }
+		public override int Width => width;
+		public override int Height => height;
+
+		public WicFramePixelSource(WicImageFrame frm)
+		{
+			var fmt = default(Guid);
+			HRESULT.Check(frm.WicSource->GetPixelFormat(&fmt));
+
+			frame = frm;
+			Format = PixelFormat.FromGuid(fmt);
+			UpdateSize();
+		}
+
+		protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
+		{
+			var rect = (WICRect)prc;
+			HRESULT.Check(frame.WicSource->CopyPixels(&rect, (uint)cbStride, (uint)cbBufferSize, pbBuffer));
+		}
+
+		public void UpdateSize()
+		{
+			uint w, h;
+			HRESULT.Check(frame.WicSource->GetSize(&w, &h));
+
+			(width, height) = ((int)w, (int)h);
+		}
+
+		public override string ToString() => nameof(IWICBitmapFrameDecode);
+	}
+
 	internal sealed unsafe class WicPixelSource : PixelSource
 	{
 		private readonly string sourceName;
@@ -21,14 +58,14 @@ namespace PhotoSauce.MagicScaler
 		public override int Width { get; }
 		public override int Height { get; }
 
-		public WicPixelSource(PixelSource? managed, IWICBitmapSource* source, string name, bool profile = true) : base()
+		public WicPixelSource(PixelSource? managed, IWICBitmapSource* source, string name) : base()
 		{
-			profile = profile && StatsManager.ProfilingEnabled;
+			bool profile = StatsManager.ProfilingEnabled;
 
 			sourceName = name;
 			upstreamManaged = managed;
 			upstreamSource = profile ? source : null;
-			WicSource = profile ? new ComPtr<IWICBitmapSource>(this.AsIWICBitmapSource(true)) : source;
+			WicSource = profile ? new ComPtr<IWICBitmapSource>(this.AsIWICBitmapSource(true)).Detach() : source;
 
 			uint width, height;
 			HRESULT.Check(source->GetSize(&width, &height));
@@ -78,11 +115,8 @@ namespace PhotoSauce.MagicScaler
 
 	internal static unsafe class WicPixelSourceExtensions
 	{
-		public static WicPixelSource AsPixelSource(this ref IWICBitmapSource source, string name, bool profile = true) =>
-			new(null, (IWICBitmapSource*)Unsafe.AsPointer(ref source), name, profile);
-
-		public static WicPixelSource AsPixelSource(this ref IWICBitmapSource source, PixelSource? managed, string name, bool profile = true) =>
-			new(managed, (IWICBitmapSource*)Unsafe.AsPointer(ref source), name, profile);
+		public static WicPixelSource AsPixelSource(this ref IWICBitmapSource source, PixelSource? managed, string name) =>
+			new(managed, (IWICBitmapSource*)Unsafe.AsPointer(ref source), name);
 
 		public static IWICBitmapSource* AsIWICBitmapSource(this PixelSource source, bool forceWrap = false)
 		{

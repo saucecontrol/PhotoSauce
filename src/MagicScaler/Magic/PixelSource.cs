@@ -225,17 +225,6 @@ namespace PhotoSauce.MagicScaler
 		public override int Width => SourceY.Width;
 		public override int Height => SourceY.Height;
 
-		public PlanarPixelSource(PixelSource sourceY, PixelSource sourceCb, PixelSource sourceCr)
-		{
-			if (sourceY.Format != PixelFormat.Y8) throw new ArgumentException("Invalid pixel format", nameof(sourceY));
-			if (sourceCb.Format != PixelFormat.Cb8) throw new ArgumentException("Invalid pixel format", nameof(sourceCb));
-			if (sourceCr.Format != PixelFormat.Cr8) throw new ArgumentException("Invalid pixel format", nameof(sourceCr));
-
-			SourceY = sourceY;
-			SourceCb = sourceCb;
-			SourceCr = sourceCr;
-		}
-
 		public PlanarPixelSource(IYccImageFrame frame)
 		{
 			if (frame.PixelSource is PixelSource srcY && frame.PixelSourceCb is PixelSource srcCb && frame.PixelSourceCr is PixelSource srcCr)

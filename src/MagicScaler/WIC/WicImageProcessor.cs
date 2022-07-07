@@ -37,18 +37,19 @@ namespace PhotoSauce.MagicScaler
 
 		private static ProcessImageResult processImage(PipelineContext ctx, Stream ostm)
 		{
-			var frame = (WicImageFrame)ctx.ImageContainer.GetFrame(0);
-
-			ctx.ImageFrame = frame;
-			ctx.Source = ctx.AddProfiler(frame.Source);
+			ctx.ImageFrame = ctx.ImageContainer.GetFrame(0);
+			ctx.Source = ctx.ImageFrame.PixelSource.AsPixelSource();
 			ctx.Metadata = new MagicMetadataFilter(ctx);
 
 			MagicTransforms.AddAnimationFrameBuffer(ctx);
 
 			ctx.FinalizeSettings();
+			ctx.Settings.EncoderOptions = ctx.UsedSettings.EncoderOptions;
+
+			MagicTransforms.AddNativeScaler(ctx);
+			ctx.AddProfiler(ctx.Source);
 
 			WicTransforms.AddColorProfileReader(ctx);
-			WicTransforms.AddNativeScaler(ctx);
 			WicTransforms.AddExifFlipRotator(ctx);
 			WicTransforms.AddCropper(ctx);
 			WicTransforms.AddPixelFormatConverter(ctx);

@@ -13,15 +13,14 @@ namespace PhotoSauce.MagicScaler
 {
 	internal static unsafe class WicTransforms
 	{
-		public static readonly Guid[] PlanarPixelFormats = new[] { GUID_WICPixelFormat8bppY, GUID_WICPixelFormat8bppCb, GUID_WICPixelFormat8bppCr };
-
 		public static void AddColorProfileReader(PipelineContext ctx)
 		{
 			var mode = ctx.Settings.ColorProfileMode;
-			if (ctx.ImageFrame is not WicImageFrame wicFrame || mode == ColorProfileMode.Ignore)
+			var frame = ctx.ImageFrame is WicPlanarCache pframe ? pframe.Frame : ctx.ImageFrame as WicImageFrame;
+			if (frame is null || mode == ColorProfileMode.Ignore)
 				return;
 
-			var srcProfile = WicColorProfile.GetSourceProfile(wicFrame.ColorProfileSource, mode);
+			var srcProfile = WicColorProfile.GetSourceProfile(frame.ColorProfileSource, mode);
 			var dstProfile = WicColorProfile.GetDestProfile(srcProfile, mode);
 			ctx.WicContext.SourceColorContext = new ComPtr<IWICColorContext>(srcProfile.WicColorContext).Detach();
 			ctx.WicContext.DestColorContext = new ComPtr<IWICColorContext>(dstProfile.WicColorContext).Detach();
@@ -219,10 +218,10 @@ namespace PhotoSauce.MagicScaler
 			ctx.Source = ctx.AddProfiler(((IWICBitmapSource*)scaler.Detach())->AsPixelSource(ctx.Source, nameof(IWICBitmapScaler)));
 		}
 
-		public static void AddHybridScaler(PipelineContext ctx, int ratio = default)
+		public static void AddHybridScaler(PipelineContext ctx)
 		{
-			ratio = ratio == default ? ctx.Settings.HybridScaleRatio : ratio;
-			if (ratio == 1 || ctx.Settings.Interpolation.WeightingFunction.Support < 0.1)
+			int ratio = ctx.Settings.HybridScaleRatio;
+			if (ratio == 1 || ctx.Settings.Interpolation.IsPointSampler)
 				return;
 
 			uint width = (uint)MathUtil.DivCeiling(ctx.Source.Width, ratio);
@@ -240,66 +239,5 @@ namespace PhotoSauce.MagicScaler
 			ctx.Settings.HybridMode = HybridScaleMode.Off;
 		}
 #endif
-
-		public static void AddNativeScaler(PipelineContext ctx)
-		{
-			int ratio = ctx.Settings.HybridScaleRatio;
-			if (ratio == 1 || ctx.ImageFrame is not WicImageFrame wicFrame || !wicFrame.SupportsNativeScale || ctx.Source is not WicPixelSource wsrc)
-				return;
-
-			using var transform = default(ComPtr<IWICBitmapSourceTransform>);
-			if (FAILED(wsrc.WicSource->QueryInterface(__uuidof<IWICBitmapSourceTransform>(), (void**)transform.GetAddressOf())))
-				return;
-
-			// WIC HEIF decoder will report any size as valid but then fail on CopyPixels if the scale ratio is greater than 8:1
-			var contfmt = default(Guid);
-			HRESULT.Check(((WicImageContainer)ctx.ImageContainer).WicDecoder->GetContainerFormat(&contfmt));
-			if (contfmt == GUID_ContainerFormatHeif)
-				ratio = ratio.Clamp(1, 8);
-
-			uint ow = (uint)ctx.Source.Width, oh = (uint)ctx.Source.Height;
-			uint cw = (uint)MathUtil.DivCeiling((int)ow, ratio), ch = (uint)MathUtil.DivCeiling((int)oh, ratio);
-			HRESULT.Check(transform.Get()->GetClosestSize(&cw, &ch));
-
-			if (cw == ow && ch == oh)
-				return;
-
-			var orient = ctx.Orientation;
-
-			using var scaler = default(ComPtr<IWICBitmapScaler>);
-			HRESULT.Check(Wic.Factory->CreateBitmapScaler(scaler.GetAddressOf()));
-			HRESULT.Check(scaler.Get()->Initialize(ctx.Source.AsIWICBitmapSource(), cw, ch, WICBitmapInterpolationMode.WICBitmapInterpolationModeFant));
-
-			ctx.Source = ctx.AddProfiler(((IWICBitmapSource*)scaler.Detach())->AsPixelSource(ctx.Source, nameof(IWICBitmapSourceTransform)));
-			ctx.Settings.Crop = ((PixelArea)ctx.Settings.Crop).DeOrient(orient, (int)ow, (int)oh).ProportionalScale((int)ow, (int)oh, (int)cw, (int)ch).ReOrient(orient, (int)cw, (int)ch);
-			ctx.Settings.HybridMode = HybridScaleMode.Off;
-		}
-
-		public static void AddPlanarCache(PipelineContext ctx)
-		{
-			using var transform = default(ComPtr<IWICPlanarBitmapSourceTransform>);
-			if (ctx.Source is not WicPixelSource wsrc || FAILED(wsrc.WicSource->QueryInterface(__uuidof<IWICPlanarBitmapSourceTransform>(), (void**)transform.GetAddressOf())))
-				throw new NotSupportedException("Transform chain doesn't support planar mode.  Only JPEG Decoder, Rotator, Scaler, and PixelFormatConverter are allowed");
-
-			int ratio = ctx.Settings.HybridScaleRatio.Clamp(1, 8);
-			uint ow = (uint)ctx.Source.Width, oh = (uint)ctx.Source.Height;
-			uint cw = (uint)MathUtil.DivCeiling((int)ow, ratio), ch = (uint)MathUtil.DivCeiling((int)oh, ratio);
-
-			var desc = stackalloc WICBitmapPlaneDescription[PlanarPixelFormats.Length];
-			fixed (Guid* pfmt = PlanarPixelFormats)
-			{
-				BOOL bval;
-				HRESULT.Check(transform.Get()->DoesSupportTransform(&cw, &ch, WICBitmapTransformOptions.WICBitmapTransformRotate0, WICPlanarOptions.WICPlanarOptionsDefault, pfmt, desc, (uint)PlanarPixelFormats.Length, &bval));
-				if (!bval)
-					throw new NotSupportedException("Requested planar transform not supported");
-			}
-
-			var crop = ((PixelArea)ctx.Settings.Crop).DeOrient(ctx.Orientation, (int)ow, (int)oh).ProportionalScale((int)ow, (int)oh, (int)cw, (int)ch);
-			var cache = ctx.AddProfiler(new WicPlanarCache(transform.Detach(), new Span<WICBitmapPlaneDescription>(desc, PlanarPixelFormats.Length), WICBitmapTransformOptions.WICBitmapTransformRotate0, cw, ch, crop));
-
-			ctx.Source = new PlanarPixelSource(cache.SourceY, cache.SourceCb, cache.SourceCr);
-			ctx.Settings.Crop = ctx.Source.Area.ReOrient(ctx.Orientation, ctx.Source.Width, ctx.Source.Height);
-			ctx.Settings.HybridMode = HybridScaleMode.Off;
-		}
 	}
 }

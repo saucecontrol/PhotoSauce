@@ -215,13 +215,15 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 
 	~WebpContainer() => dispose(false);
 
-	private abstract class WebpFrame : IImageFrame, IMetadataSource
+	private abstract class WebpFrame : IImageFrame, IMetadataSource, ICroppedDecoder, IScaledDecoder
 	{
 		private readonly WebpContainer container;
 		private readonly WebPBitstreamFeatures features;
 		private readonly AnimationFrame frmmeta;
 		private readonly int frmnum;
 		private WebPDecBuffer buffer;
+		private PixelArea decodeCrop, outCrop;
+		private int decodeWidth, decodeHeight;
 
 		public abstract IPixelSource PixelSource { get; }
 
@@ -230,6 +232,10 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 			container = cont;
 			features = feat;
 			frmnum = index + 1;
+			decodeWidth = feat.width;
+			decodeHeight = feat.height;
+			decodeCrop = new(0, 0, feat.width, feat.height);
+			outCrop = decodeCrop;
 
 			if (container.features.HasFlag(WebPFeatureFlags.ANIMATION_FLAG))
 			{
@@ -249,6 +255,35 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 			}
 		}
 
+		public void SetDecodeCrop(PixelArea crop)
+		{
+			// WebP only allows even crops
+			const int ratio = 2;
+
+			if (buffer.IsAllocated())
+				throw new InvalidOperationException("Crop cannot be changed after decode has started.");
+
+			if (features.width != decodeWidth || features.height != decodeHeight)
+				throw new InvalidOperationException("Crop cannot be changed after scale has been set.");
+
+			var newcrop = decodeCrop.Intersect(crop);
+			decodeCrop = newcrop.SnapTo(ratio, ratio, decodeCrop.Width, decodeCrop.Height);
+			outCrop = newcrop.RelativeTo(decodeCrop);
+		}
+
+		public (int width, int height) SetDecodeScale(int ratio)
+		{
+			if (buffer.IsAllocated())
+				throw new InvalidOperationException("Scale cannot be changed after decode has started.");
+
+			ratio = ratio.Clamp(1, 8);
+			decodeWidth = MathUtil.DivCeiling(decodeWidth, ratio);
+			decodeHeight = MathUtil.DivCeiling(decodeHeight, ratio);
+			outCrop = new(0, 0, decodeWidth, decodeHeight);
+
+			return (decodeWidth, decodeHeight);
+		}
+
 		private void ensureDecoded(WebpPlane plane)
 		{
 			if (buffer.IsAllocated())
@@ -263,6 +298,22 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 			WebpResult.Check(WebPInitDecoderConfig(&cfg));
 			cfg.output.colorspace = plane == WebpPlane.Bgra ? WEBP_CSP_MODE.MODE_BGRA : plane == WebpPlane.Bgr ? WEBP_CSP_MODE.MODE_BGR : WEBP_CSP_MODE.MODE_YUV;
 			cfg.input = features;
+
+			if (decodeCrop.Width != features.width || decodeCrop.Height != features.height)
+			{
+				cfg.options.use_cropping = 1;
+				cfg.options.crop_left = decodeCrop.X;
+				cfg.options.crop_top = decodeCrop.Y;
+				cfg.options.crop_width = decodeCrop.Width;
+				cfg.options.crop_height = decodeCrop.Height;
+			}
+
+			if (decodeWidth != features.width || decodeHeight != features.height)
+			{
+				cfg.options.use_scaling = 1;
+				cfg.options.scaled_width = decodeWidth;
+				cfg.options.scaled_height = decodeHeight;
+			}
 
 			WebpResult.Check(WebPDecode(iter.fragment.bytes, iter.fragment.size, &cfg));
 			WebPDemuxReleaseIterator(&iter);
@@ -297,14 +348,16 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 
 		~WebpFrame() => Dispose(false);
 
-		protected sealed class WebpDecBufferPixelSource : PixelSource
+		protected sealed class WebpDecBufferPixelSource : PixelSource, IFramePixelSource
 		{
 			private readonly WebpFrame frame;
 			private readonly WebpPlane plane;
 
 			public override PixelFormat Format { get; }
-			public override int Width { get; }
-			public override int Height { get; }
+			public override int Width => plane is WebpPlane.U or WebpPlane.V ? MathUtil.DivCeiling(frame.outCrop.Width, 2) : frame.outCrop.Width;
+			public override int Height => plane is WebpPlane.U or WebpPlane.V ? MathUtil.DivCeiling(frame.outCrop.Height, 2) : frame.outCrop.Height;
+
+			public IImageFrame Frame => frame;
 
 			public WebpDecBufferPixelSource(WebpFrame frm, WebpPlane pln)
 			{
@@ -318,8 +371,6 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 					WebpPlane.Bgr => PixelFormat.Bgr24,
 					_             => PixelFormat.Bgra32
 				};
-				Width = plane is WebpPlane.U or WebpPlane.V ? (frame.features.width + 1) >> 1 : frame.features.width;
-				Height = plane is WebpPlane.U or WebpPlane.V ? (frame.features.height + 1) >> 1 : frame.features.height;
 			}
 
 			protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
@@ -356,12 +407,14 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 				}
 
 				int bpp = Format.BytesPerPixel;
+				int offsX = plane is WebpPlane.U or WebpPlane.V ? 0 : frame.outCrop.X;
+				int offsY = plane is WebpPlane.U or WebpPlane.V ? 0 : frame.outCrop.Y;
 
-				for (int i = 0; i < prc.Height; i++)
-					Buffer.MemoryCopy(pixels + (prc.Y + i) * stride + prc.X * bpp, pbBuffer + i * cbStride, cbStride, prc.Width * bpp);
+				for (int y = 0; y < prc.Height; y++)
+					Buffer.MemoryCopy(pixels + (offsY + prc.Y + y) * stride + (offsX + prc.X) * bpp, pbBuffer + y * cbStride, cbStride, prc.Width * bpp);
 			}
 
-			public override string ToString() => nameof(WebpFrame);
+			public override string ToString() => $"{nameof(WebpDecBufferPixelSource)}: {plane}";
 		}
 	}
 
