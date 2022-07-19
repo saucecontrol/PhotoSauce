@@ -23,7 +23,7 @@ internal sealed unsafe class JxlEncoder : IImageEncoder
 	private JxlEncoder(Stream outStream, IEncoderOptions? jxlOptions)
 	{
 		stream = outStream;
-		options = jxlOptions is IJxlEncoderOptions opt ? opt : JxlLossyEncoderOptions.Default;
+		options = jxlOptions as IJxlEncoderOptions ?? (jxlOptions is ILossyEncoderOptions opt ? JxlLossyEncoderOptions.Default with { Distance = JxlLossyEncoderOptions.DistanceFromQuality(opt.Quality) } : JxlLossyEncoderOptions.Default);
 
 		encoder = JxlFactory.CreateEncoder();
 		encopt = JxlEncoderOptionsCreate(encoder, default);

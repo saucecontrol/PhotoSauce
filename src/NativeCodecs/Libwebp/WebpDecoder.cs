@@ -14,10 +14,6 @@ namespace PhotoSauce.NativeCodecs.Libwebp;
 
 internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, IIccProfileSource, IExifSource
 {
-	private const uint iccpTag = 'I' | 'C' << 8 | 'C' << 16 | 'P' << 24;
-	private const uint exifTag = 'E' | 'X' << 8 | 'I' << 16 | 'F' << 24;
-	private const uint xmpTag  = 'X' | 'M' << 8 | 'P' << 16 | ' ' << 24;
-
 	private readonly WebPFeatureFlags features;
 	private readonly IDecoderOptions options;
 	private readonly int frameCount, frameOffset;
@@ -51,9 +47,9 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 
 	public int FrameCount => frameCount;
 
-	int IIccProfileSource.ProfileLength => (int)getChunk(iccpTag).size;
+	int IIccProfileSource.ProfileLength => (int)getChunk(WebpConstants.IccpTag).size;
 
-	int IExifSource.ExifLength => (int)getChunk(exifTag).size;
+	int IExifSource.ExifLength => (int)getChunk(WebpConstants.ExifTag).size;
 
 	public IImageFrame GetFrame(int index)
 	{
@@ -93,14 +89,14 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 
 	void IIccProfileSource.CopyProfile(Span<byte> dest)
 	{
-		var data = getChunk(iccpTag);
+		var data = getChunk(WebpConstants.IccpTag);
 		if (data.size != 0)
 			new ReadOnlySpan<byte>(data.bytes, (int)data.size).CopyTo(dest);
 	}
 
 	void IExifSource.CopyExif(Span<byte> dest)
 	{
-		var data = getChunk(exifTag);
+		var data = getChunk(WebpConstants.ExifTag);
 		if (data.size != 0)
 			new ReadOnlySpan<byte>(data.bytes, (int)data.size).CopyTo(dest);
 	}
@@ -124,22 +120,11 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 
 		if (typeof(T) == typeof(OrientationMetadata))
 		{
-			var orient = Orientation.Normal;
+			var orient = new OrientationMetadata(Orientation.Normal);
 			if (features.HasFlag(WebPFeatureFlags.EXIF_FLAG))
-			{
-				var exifsrc = (IExifSource)this;
-				using var buff = BufferPool.RentLocal<byte>(exifsrc.ExifLength);
-				exifsrc.CopyExif(buff.Span);
+				orient = OrientationMetadata.FromExif(this);
 
-				var rdr = ExifReader.Create(buff.Span);
-				foreach (var tag in rdr)
-				{
-					if (tag.ID == ExifTags.Tiff.Orientation)
-						orient = ((Orientation)rdr.CoerceValue<int>(tag)).Clamp();
-				}
-			}
-
-			metadata = (T)(object)(new OrientationMetadata(orient));
+			metadata = (T)(object)orient;
 			return true;
 		}
 
@@ -430,25 +415,10 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 
 	private sealed class WebpYuvFrame : WebpFrame, IYccImageFrame
 	{
-		// WebP uses a non-standard matrix close to Rec.601 but rounded strangely
-		// https://chromium.googlesource.com/webm/libwebp/+/refs/tags/v1.2.2/src/dsp/yuv.h
-		private static readonly Matrix4x4 yccMatrix = new() {
-			M11 =  0.2992f,
-			M21 =  0.5874f,
-			M31 =  0.1141f,
-			M12 = -0.1688f,
-			M22 = -0.3315f,
-			M32 =  0.5003f,
-			M13 =  0.5003f,
-			M23 = -0.4189f,
-			M33 = -0.0814f,
-			M44 = 1
-		};
-
 		private PixelSource? ysrc, usrc, vsrc;
 
 		public ChromaPosition ChromaPosition => ChromaPosition.Bottom;
-		public Matrix4x4 RgbYccMatrix => yccMatrix;
+		public Matrix4x4 RgbYccMatrix => WebpConstants.YccMatrix;
 		public bool IsFullRange => false;
 
 		public override IPixelSource PixelSource => ysrc ??= new WebpDecBufferPixelSource(this, WebpPlane.Y);

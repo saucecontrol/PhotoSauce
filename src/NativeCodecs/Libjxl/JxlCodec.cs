@@ -1,7 +1,7 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
-#if !NET5_0_OR_GREATER
+#if NETFRAMEWORK
 using System.IO;
 using System.Runtime.InteropServices;
 #endif

@@ -116,7 +116,7 @@ namespace PhotoSauce.MagicScaler
 				Buffer.MemoryCopy(pb + cbKill, pb, buffLength, cbKeep);
 		}
 
-		public Span<byte> PrepareLoad(ref int first, ref int lines)
+		public Span<byte> PrepareLoad(scoped ref int first, scoped ref int lines)
 		{
 			var (firstValid, linesValid) = getValidRange();
 			if (buffArray is null || first < firstValid || first > (firstValid + linesValid))

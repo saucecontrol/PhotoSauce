@@ -2,7 +2,8 @@
 
 using System;
 using System.IO;
-#if !NET5_0_OR_GREATER
+using System.Numerics;
+#if NETFRAMEWORK
 using System.Runtime.InteropServices;
 #endif
 
@@ -29,10 +30,10 @@ public static unsafe class WebpCodec
 			[DllImport("kernel32", ExactSpelling = true)]
 			static extern IntPtr LoadLibraryW(ushort* lpLibFileName);
 
-			var libs = new[] { "webp", "webpdemux", "webpmux" };
-			foreach (string name in libs)
+			string arch = RuntimeInformation.ProcessArchitecture.ToString();
+			foreach (string name in new[] { "webp", "webpdemux", "webpmux" })
 			{
-				string lib = Path.Combine(RuntimeInformation.ProcessArchitecture.ToString(), name);
+				string lib = Path.Combine(arch, name);
 				fixed (char* plib = lib)
 					LoadLibraryW((ushort*)plib);
 			}
@@ -54,15 +55,29 @@ public static unsafe class WebpCodec
 		if (!dependencyValid.Value)
 			return;
 
+		var webpMime = new[] { ImageMimeTypes.Webp };
+		var webpExtension = new[] { ImageFileExtensions.Webp };
+
 		codecs.Add(new DecoderInfo(
 			displayName,
-			new[] { ImageMimeTypes.Webp },
-			new[] { ImageFileExtensions.Webp },
+			webpMime,
+			webpExtension,
 			new ContainerPattern[] {
 				new(0, new byte[] { (byte)'R', (byte)'I', (byte)'F', (byte)'F', 0, 0, 0, 0, (byte)'W', (byte)'E', (byte)'B', (byte)'P' }, new byte[] { 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff })
 			},
 			WebpDecoderOptions.Default,
 			WebpContainer.TryLoad
+		));
+		codecs.Add(new EncoderInfo(
+			displayName,
+			webpMime,
+			webpExtension,
+			new[] { PixelFormat.Grey8.FormatGuid, PixelFormat.Rgb24.FormatGuid, PixelFormat.Rgba32.FormatGuid },
+			WebpLossyEncoderOptions.Default,
+			WebpEncoder.Create,
+			false,
+			false,
+			true
 		));
 	}
 }
@@ -75,6 +90,18 @@ internal static class WebpResult
 			throw new InvalidDataException(status.ToString());
 	}
 
+	public static void Check(WebPEncodingError error)
+	{
+		if (error != WebPEncodingError.VP8_ENC_OK)
+			throw new InvalidOperationException(error.ToString());
+	}
+
+	public static void Check(WebPMuxError error)
+	{
+		if (error != WebPMuxError.WEBP_MUX_OK)
+			throw new InvalidOperationException(error.ToString());
+	}
+
 	public static void Check(int res)
 	{
 		if (res == 0)
@@ -82,4 +109,27 @@ internal static class WebpResult
 	}
 
 	public static bool Succeeded(int res) => res != 0;
+}
+
+internal static class WebpConstants
+{
+	public const uint IccpTag = 'I' | 'C' << 8 | 'C' << 16 | 'P' << 24;
+	public const uint ExifTag = 'E' | 'X' << 8 | 'I' << 16 | 'F' << 24;
+
+	// WebP uses a non-standard matrix close to Rec.601 but rounded strangely
+	// https://chromium.googlesource.com/webm/libwebp/+/refs/tags/v1.2.2/src/dsp/yuv.h
+	private static readonly Matrix4x4 yccMatrix = new() {
+		M11 =  0.2992f,
+		M21 =  0.5874f,
+		M31 =  0.1141f,
+		M12 = -0.1688f,
+		M22 = -0.3315f,
+		M32 =  0.5003f,
+		M13 =  0.5003f,
+		M23 = -0.4189f,
+		M33 = -0.0814f,
+		M44 = 1
+	};
+
+	public static ref readonly Matrix4x4 YccMatrix => ref yccMatrix;
 }

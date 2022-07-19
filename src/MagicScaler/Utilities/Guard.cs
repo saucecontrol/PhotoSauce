@@ -11,7 +11,7 @@ namespace PhotoSauce.MagicScaler;
 [StackTraceHidden]
 internal static class Guard
 {
-	public static void NotNull([NotNull] object? arg, [CallerArgumentExpression("arg")] string? name = null)
+	public static void NotNull([NotNull] object? arg, [CallerArgumentExpression(nameof(arg))] string? name = null)
 	{
 		if (arg is null)
 			@throw(name);
@@ -20,7 +20,7 @@ internal static class Guard
 		static void @throw(string? name) => throw new ArgumentNullException(name);
 	}
 
-	public static void NotNullOrEmpty([NotNull] string? arg, [CallerArgumentExpression("arg")] string? name = null)
+	public static void NotNullOrEmpty([NotNull] string? arg, [CallerArgumentExpression(nameof(arg))] string? name = null)
 	{
 		if (string.IsNullOrEmpty(arg))
 			@throw(name);
@@ -29,7 +29,7 @@ internal static class Guard
 		static void @throw(string? name) => throw new ArgumentNullException(name, "String must not be empty.");
 	}
 
-	public static void NotEmpty<T>(ReadOnlySpan<T> arg, [CallerArgumentExpression("arg")] string? name = null)
+	public static void NotEmpty<T>(ReadOnlySpan<T> arg, [CallerArgumentExpression(nameof(arg))] string? name = null)
 	{
 		if (arg.IsEmpty)
 			@throw(name);
@@ -38,7 +38,7 @@ internal static class Guard
 		static void @throw(string? name) => throw new ArgumentNullException(name, "Buffer must not be empty or zero-length.");
 	}
 
-	public static void ValidForInput([NotNull] Stream? stm, [CallerArgumentExpression("stm")] string? name = null)
+	public static void ValidForInput([NotNull] Stream? stm, [CallerArgumentExpression(nameof(stm))] string? name = null)
 	{
 		NotNull(stm, name);
 
@@ -49,7 +49,7 @@ internal static class Guard
 			throw new ArgumentException("Input Stream is empty or positioned at its end.", name);
 	}
 
-	public static void ValidForOutput([NotNull] Stream stm, [CallerArgumentExpression("stm")] string? name = null)
+	public static void ValidForOutput([NotNull] Stream stm, [CallerArgumentExpression(nameof(stm))] string? name = null)
 	{
 		NotNull(stm, name);
 
@@ -57,7 +57,7 @@ internal static class Guard
 			throw new ArgumentException("Output Stream must allow Seek and Write.", name);
 	}
 
-	public static void NotNegative(int val, [CallerArgumentExpression("val")] string? name = null)
+	public static void NotNegative(int val, [CallerArgumentExpression(nameof(val))] string? name = null)
 	{
 		if (val < 0)
 			@throw(name);

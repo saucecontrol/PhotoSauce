@@ -6,6 +6,7 @@ namespace PhotoSauce.MagicScaler;
 
 internal readonly record struct ExifItem(ushort ID, ExifType Type, uint Count, Range Range);
 
+[StructLayout(LayoutKind.Auto)]
 internal unsafe ref struct ExifReader
 {
 	private readonly ReadOnlySpan<byte> span;
@@ -142,12 +143,6 @@ internal unsafe ref struct ExifReader
 		return default;
 	}
 
-	public ExifReader GetEnumerator()
-	{
-		read = 0;
-		return this;
-	}
-
 	public bool MoveNext()
 	{
 		int pos = read++;
@@ -176,10 +171,6 @@ internal unsafe ref struct ExifReader
 	public readonly ref readonly ExifItem Current
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if BUILTIN_SPAN
-		get => ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Unsafe.AsRef(curr), 1));
-#else
 		get => ref *(ExifItem*)Unsafe.AsPointer(ref Unsafe.AsRef(curr));
-#endif
 	}
 }

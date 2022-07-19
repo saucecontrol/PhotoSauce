@@ -29,6 +29,12 @@
 				<PackageTags>Image Decode Encode JPEG-XL JXL</PackageTags>
 			</PropertyGroup>
 		</When>
+		<When Condition="'$(MSBuildProjectName)'=='NativeCodecs.Libwebp'">
+			<PropertyGroup>
+				<Description>WebP codec plugin for the PhotoSauce.MagicScaler pipeline.</Description>
+				<PackageTags>Image Decode Encode WebP</PackageTags>
+			</PropertyGroup>
+		</When>
 	</Choose>
 
 </Project>

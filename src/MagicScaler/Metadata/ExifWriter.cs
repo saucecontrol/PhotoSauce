@@ -2,9 +2,11 @@
 
 using System;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace PhotoSauce.MagicScaler;
 
+[StructLayout(LayoutKind.Auto)]
 internal unsafe ref struct ExifWriter
 {
 	const int nextIfdLength = sizeof(uint);
@@ -47,6 +49,10 @@ internal unsafe ref struct ExifWriter
 		if (sizeof(T) <= sizeof(uint))
 		{
 			tagWriter.Write(val);
+			if (sizeof(T) == sizeof(byte))
+				tagWriter.Write(default(Triple));
+			else if (sizeof(T) == sizeof(ushort))
+				tagWriter.Write(default(ushort));
 			return;
 		}
 
@@ -78,7 +84,7 @@ internal unsafe ref struct ExifWriter
 		length = dataPos;
 	}
 
-	public void CopyTo(Span<byte> dest) => buffer.Span[..length].CopyTo(dest);
+	public readonly ReadOnlySpan<byte> Span => buffer.Span[..length];
 
 	public void Dispose()
 	{

@@ -280,7 +280,7 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 			Debug.Assert(JxlDecoderProcessInput(container.decoder) == JxlDecoderStatus.JXL_DEC_NEED_IMAGE_OUT_BUFFER);
 
 			var pixfmt = container.pixelfmt;
-			JxlError.Check(JxlDecoderSetImageOutCallback(container.decoder, &pixfmt, pfnImageOutCallback, (void*)(IntPtr)gchandle));
+			JxlError.Check(JxlDecoderSetImageOutCallback(container.decoder, &pixfmt, pfnImageOutCallback, (void*)GCHandle.ToIntPtr(gchandle)));
 		}
 
 		private void loadBuffer(int line)

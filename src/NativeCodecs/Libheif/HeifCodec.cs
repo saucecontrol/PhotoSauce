@@ -1,7 +1,7 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
-#if !NET5_0_OR_GREATER
+#if NETFRAMEWORK
 using System.IO;
 using System.Runtime.InteropServices;
 #endif
@@ -57,7 +57,8 @@ public static class CodecCollectionExtensions
 			new[] { ImageMimeTypes.Heic },
 			new[] { ImageFileExtensions.Heic },
 			new ContainerPattern[] {
-				new(0, new byte[] { 0, 0, 0, 0, (byte)'f', (byte)'t', (byte)'y', (byte)'p', (byte)'h', (byte)'e', (byte)'i', (byte)'c' }, new byte[] { 0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff })
+				new(0, new byte[] { 0, 0, 0, 0, (byte)'f', (byte)'t', (byte)'y', (byte)'p', (byte)'h', (byte)'e', (byte)'i', (byte)'c' }, new byte[] { 0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }),
+				new(0, new byte[] { 0, 0, 0, 0, (byte)'f', (byte)'t', (byte)'y', (byte)'p', (byte)'m', (byte)'i', (byte)'f', (byte)'1' }, new byte[] { 0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff })
 			},
 			null,
 			HeifContainer.TryLoad

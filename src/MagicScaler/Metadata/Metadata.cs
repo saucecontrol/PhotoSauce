@@ -46,12 +46,51 @@ namespace PhotoSauce.MagicScaler
 
 	internal readonly record struct ColorProfileMetadata(ColorProfile Profile) : IMetadata { }
 
-	internal readonly record struct OrientationMetadata(Orientation Orientation) : IMetadata { }
+	internal readonly record struct OrientationMetadata(Orientation Orientation) : IMetadata
+	{
+		public static OrientationMetadata FromExif(IExifSource exifsrc)
+		{
+			using var buff = BufferPool.RentLocal<byte>(exifsrc.ExifLength);
+			exifsrc.CopyExif(buff.Span);
+
+			var orient = Orientation.Normal;
+			var rdr = ExifReader.Create(buff.Span);
+			while (rdr.MoveNext())
+			{
+				ref readonly var tag = ref rdr.Current;
+				if (tag.ID == ExifTags.Tiff.Orientation)
+					orient = ((Orientation)rdr.CoerceValue<int>(tag)).Clamp();
+			}
+
+			return new OrientationMetadata(orient);
+		}
+	}
 
 	internal readonly record struct ResolutionMetadata(Rational ResolutionX, Rational ResolutionY, ResolutionUnit Units) : IMetadata
 	{
 		public static readonly ResolutionMetadata Default = new(new(96, 1), new(96, 1), ResolutionUnit.Inch);
 		public static readonly ResolutionMetadata ExifDefault = new(new(72, 1), new(72, 1), ResolutionUnit.Inch);
+
+		public static ResolutionMetadata FromExif(IExifSource exifsrc)
+		{
+			using var buff = BufferPool.RentLocal<byte>(exifsrc.ExifLength);
+			exifsrc.CopyExif(buff.Span);
+
+			var res = ExifDefault;
+			var rdr = ExifReader.Create(buff.Span);
+			while (rdr.MoveNext())
+			{
+				ref readonly var tag = ref rdr.Current;
+				if (tag.ID == ExifTags.Tiff.ResolutionX && tag.Type == ExifType.Rational)
+					res = res with { ResolutionX = rdr.GetValue<Rational>(tag) };
+				else if (tag.ID == ExifTags.Tiff.ResolutionY && tag.Type == ExifType.Rational)
+					res = res with { ResolutionY = rdr.GetValue<Rational>(tag) };
+				else if (tag.ID == ExifTags.Tiff.ResolutionUnit)
+					res = res with { Units = rdr.CoerceValue<int>(tag) switch { 3 => ResolutionUnit.Centimeter, _ => ResolutionUnit.Inch } };
+			}
+
+			return res;
+		}
 
 		public bool IsValid => ResolutionX.Denominator != 0 && ResolutionY.Denominator != 0;
 
@@ -85,23 +124,7 @@ namespace PhotoSauce.MagicScaler
 				if (settings.DpiX == default || settings.DpiY == default)
 				{
 					if (!source.TryGetMetadata<ResolutionMetadata>(out var sourceRes) && source.TryGetMetadata<IExifSource>(out var exifsrc))
-					{
-						sourceRes = ResolutionMetadata.ExifDefault;
-
-						using var buff = BufferPool.RentLocal<byte>(exifsrc.ExifLength);
-						exifsrc.CopyExif(buff.Span);
-
-						var rdr = ExifReader.Create(buff.Span);
-						foreach (var tag in rdr)
-						{
-							if (tag.ID == ExifTags.Tiff.ResolutionX && tag.Type == ExifType.Rational)
-								sourceRes = sourceRes with { ResolutionX = rdr.GetValue<Rational>(tag) };
-							else if (tag.ID == ExifTags.Tiff.ResolutionY && tag.Type == ExifType.Rational)
-								sourceRes = sourceRes with { ResolutionY = rdr.GetValue<Rational>(tag) };
-							else if (tag.ID == ExifTags.Tiff.ResolutionUnit)
-								sourceRes = sourceRes with { Units = rdr.CoerceValue<int>(tag) switch { 3 => ResolutionUnit.Centimeter, _ => ResolutionUnit.Inch } };
-						}
-					}
+						sourceRes = ResolutionMetadata.FromExif(exifsrc);
 
 					res = sourceRes.IsValid ? sourceRes : ResolutionMetadata.Default;
 					if (settings.DpiX != default)

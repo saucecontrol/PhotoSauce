@@ -69,13 +69,13 @@ internal unsafe ref struct SpanBufferWriter
 
 internal static class BufferUtil
 {
-	public static SpanBufferReader AsReader(this in ReadOnlySpan<byte> span, Range range) => new(span[range]);
+	public static SpanBufferReader AsReader(this scoped in ReadOnlySpan<byte> span, Range range) => new(span[range]);
 
-	public static SpanBufferReader AsReader(this in ReadOnlySpan<byte> span, int offset, int length) => new(span.Slice(offset, length));
+	public static SpanBufferReader AsReader(this scoped in ReadOnlySpan<byte> span, int offset, int length) => new(span.Slice(offset, length));
 
-	public static SpanBufferWriter AsWriter(this in Span<byte> span, Range range) => new(span[range]);
+	public static SpanBufferWriter AsWriter(this scoped in Span<byte> span, Range range) => new(span[range]);
 
-	public static SpanBufferWriter AsWriter(this in Span<byte> span, int offset, int length) => new(span.Slice(offset, length));
+	public static SpanBufferWriter AsWriter(this scoped in Span<byte> span, int offset, int length) => new(span.Slice(offset, length));
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static unsafe T ReverseEndianness<T>(T val) where T : unmanaged
