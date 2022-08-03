@@ -22,12 +22,12 @@ namespace PhotoSauce.Interop.Wic
 			using var wicfactory = default(ComPtr<IWICImagingFactory>);
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 			{
-				// Before netcoreapp3.0, CoInitializeEx wasn't called on the main thread if a COM apartment model attribute was not present on Main().
-				// Checking the current state is enough to trigger the CoInitializeEx call.  https://github.com/dotnet/runtime/issues/10261
-				_ = Thread.CurrentThread.GetApartmentState();
+				// Some runtimes (e.g. NativeAOT) may not CoInitialize all threads.  We can attempt to take advantage of COM's implicit MTA behavior
+				// for unitialized threads by forcing initialization on this thread.  https://devblogs.microsoft.com/oldnewthing/20130419-00/?p=4613
+				if (Thread.CurrentThread.GetApartmentState() == ApartmentState.Unknown)
+					Thread.CurrentThread.SetApartmentState(ApartmentState.MTA);
 
-				hr = CoCreateInstance(CLSID_WICImagingFactory2.GetAddressOf(), null, (uint)CLSCTX.CLSCTX_INPROC_SERVER, __uuidof<IWICImagingFactory>(), (void**)wicfactory.GetAddressOf());
-				if (FAILED(hr))
+				if (FAILED(hr = CoCreateInstance(CLSID_WICImagingFactory2.GetAddressOf(), null, (uint)CLSCTX.CLSCTX_INPROC_SERVER, __uuidof<IWICImagingFactory>(), (void**)wicfactory.GetAddressOf())))
 				{
 					if (SUCCEEDED(CoCreateInstance(CLSID_WICImagingFactory1.GetAddressOf(), null, (uint)CLSCTX.CLSCTX_INPROC_SERVER, __uuidof<IWICImagingFactory>(), (void**)wicfactory.GetAddressOf())))
 						throw new PlatformNotSupportedException("The current WIC version is not supported. Please install the Windows platform update. See: https://support.microsoft.com/kb/2670838");

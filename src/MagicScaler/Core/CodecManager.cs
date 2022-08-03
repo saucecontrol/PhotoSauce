@@ -45,8 +45,10 @@ namespace PhotoSauce.MagicScaler
 		};
 	}
 
-	internal static class ImageFileExtensions
+	/// <summary>Well-known file extensions for image formats.</summary>
+	public static class ImageFileExtensions
 	{
+#pragma warning disable CS1591 // Missing XML comments
 		public const string Avif = ".avif";
 		public const string Bmp  = ".bmp";
 		public const string Dds  = ".dds";
@@ -58,11 +60,12 @@ namespace PhotoSauce.MagicScaler
 		public const string Png  = ".png";
 		public const string Tiff = ".tiff";
 		public const string Webp = ".webp";
+#pragma warning restore CS1591
 
 		internal static string[] All = typeof(ImageFileExtensions)
 			.GetFields(BindingFlags.Public | BindingFlags.Static)
-			.Where(f => f.FieldType == typeof(string))
-			.Select(f => (string)f.GetValue(null)!)
+			.Where(static f => f.FieldType == typeof(string))
+			.Select(static f => (string)f.GetValue(null)!)
 			.ToArray();
 	}
 
@@ -188,9 +191,8 @@ namespace PhotoSauce.MagicScaler
 			if (Sse2.IsSupported)
 			{
 				var vtv = Unsafe.ReadUnaligned<Vector128<byte>>(ref testval);
-				for (int i = 0; i < decoderPatterns.Length; i++)
+				foreach (ref readonly var pat in decoderPatterns.AsSpan())
 				{
-					ref var pat = ref decoderPatterns[i];
 					var vcv = Unsafe.ReadUnaligned<Vector128<byte>>(ref Unsafe.As<ulong, byte>(ref Unsafe.AsRef(in pat.p1)));
 					var vcm = Unsafe.ReadUnaligned<Vector128<byte>>(ref Unsafe.As<ulong, byte>(ref Unsafe.AsRef(in pat.m1)));
 					if (HWIntrinsics.IsMaskedZero(Sse2.Xor(vtv, vcv), vcm))
@@ -206,9 +208,8 @@ namespace PhotoSauce.MagicScaler
 			{
 				ulong tv0 = Unsafe.ReadUnaligned<ulong>(ref testval);
 				ulong tv1 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref testval, sizeof(ulong)));
-				for (int i = 0; i < decoderPatterns.Length; i++)
+				foreach (ref readonly var pat in decoderPatterns.AsSpan())
 				{
-					ref var pat = ref decoderPatterns[i];
 					if ((((tv0 ^ pat.p1) & pat.m1) | ((tv1 ^ pat.p2) & pat.m2)) == 0)
 					{
 						var dec = pat.dec.Factory(stm, options ?? pat.dec.DefaultOptions);
@@ -227,7 +228,7 @@ namespace PhotoSauce.MagicScaler
 
 		internal void ResetCaches()
 		{
-			decoderPatterns = codecs.OfType<IImageDecoderInfo>().SelectMany(i => i.Patterns.Select(s => (Info: i, Pattern: s))).Select(dec => {
+			decoderPatterns = codecs.OfType<IImageDecoderInfo>().SelectMany(static i => i.Patterns.Select(s => (Info: i, Pattern: s))).Select(static dec => {
 				var pat = new DecoderPattern { dec = dec.Info };
 				int offset = dec.Pattern.Offset.Clamp(0, sizeof(ulong) * 2);
 				Unsafe.CopyBlockUnaligned(ref Unsafe.Add(ref Unsafe.As<ulong, byte>(ref pat.m1), offset), ref MemoryMarshal.GetReference(dec.Pattern.Mask.AsSpan()), (uint)(dec.Pattern.Mask?.Length ?? 0).Clamp(0, sizeof(ulong) * 2 - offset));
@@ -236,14 +237,14 @@ namespace PhotoSauce.MagicScaler
 			}).ToArray();
 
 			encoderMimeMap.Clear();
-			foreach (var enc in codecs.OfType<IImageEncoderInfo>().SelectMany(i => i.MimeTypes.Select(s => (Info: i, MimeType: s))))
+			foreach (var enc in codecs.OfType<IImageEncoderInfo>().SelectMany(static i => i.MimeTypes.Select(s => (Info: i, MimeType: s))))
 			{
 				if (!encoderMimeMap.ContainsKey(enc.MimeType))
 					encoderMimeMap.Add(enc.MimeType, enc.Info);
 			}
 
 			encoderExtensionMap.Clear();
-			foreach (var enc in codecs.OfType<IImageEncoderInfo>().SelectMany(i => i.FileExtensions.Select(s => (Info: i, Extension: s))))
+			foreach (var enc in codecs.OfType<IImageEncoderInfo>().SelectMany(static i => i.FileExtensions.Select(s => (Info: i, Extension: s))))
 			{
 				string ext = enc.Extension;
 				if (string.IsNullOrEmpty(ext))
@@ -272,7 +273,7 @@ namespace PhotoSauce.MagicScaler
 			Enumerable.Empty<string>(),
 			Enumerable.Empty<Guid>(),
 			null,
-			(s, o) => throw new NotSupportedException("No encoders are registered."),
+			(s, o) => throw new InvalidOperationException("No encoders are registered."),
 			false, false, false
 		);
 
@@ -316,9 +317,16 @@ namespace PhotoSauce.MagicScaler
 
 		internal static ChromaSubsampleMode GetClosestSubsampling(this IPlanarImageEncoderInfo enc, ChromaSubsampleMode sub)
 		{
-			var match = enc.SubsampleModes.FirstOrDefault(c => c >= sub);
+			var modes = enc.SubsampleModes;
+			for (int i = 0; i < modes.Length; i++)
+				if (modes[i] >= sub)
+					return modes[i];
 
-			return match != default ? match : enc.SubsampleModes.LastOrDefault(c => c < sub);
+			for (int i = modes.Length - 1; i >= 0; i--)
+				if (modes[i] < sub)
+					return modes[i];
+
+			return default;
 		}
 	}
 }

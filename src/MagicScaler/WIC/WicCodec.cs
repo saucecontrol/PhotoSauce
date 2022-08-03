@@ -108,6 +108,8 @@ namespace PhotoSauce.MagicScaler
 
 		public WicImageEncoder(Guid clsid, string mime, Stream stm, IEncoderOptions? options)
 		{
+			Wic.EnsureFreeThreaded();
+
 			using var encoder = default(ComPtr<IWICBitmapEncoder>);
 			if (FAILED(CoCreateInstance(&clsid, null, (uint)CLSCTX.CLSCTX_INPROC_SERVER, __uuidof<IWICBitmapEncoder>(), (void**)encoder.GetAddressOf())))
 				throw new NotSupportedException($"The WIC encoder with CLSID '{clsid}' for MIME type '{mime}' could not be instantiated.  This codec should be unregistered.");
@@ -348,7 +350,7 @@ namespace PhotoSauce.MagicScaler
 			public PixelArea Area;
 			public FrameDisposalMethod Disposal;
 			public uint Delay;
-			public bool Trans;
+			public bool HasTransparency;
 
 			public AnimationBufferFrame(int width, int height, PixelFormat format) =>
 				Source = new FrameBufferSource(width, height, format);
@@ -462,9 +464,10 @@ namespace PhotoSauce.MagicScaler
 				if (context.ImageContainer is not IMetadataSource cmsrc || !cmsrc.TryGetMetadata<AnimationContainer>(out var anicnt))
 					anicnt = new AnimationContainer(context.Source.Width, context.Source.Height, context.ImageContainer.FrameCount);
 
+				var appext = WicGifContainer.Netscape2_0;
 				var pvae = new PROPVARIANT { vt = (ushort)(VARENUM.VT_UI1 | VARENUM.VT_VECTOR) };
-				pvae.Anonymous.blob.cbSize = 11;
-				pvae.Anonymous.blob.pBlobData = WicGifContainer.Netscape2_0.GetAddressOf();
+				pvae.Anonymous.blob.cbSize = (uint)appext.Length;
+				pvae.Anonymous.blob.pBlobData = appext.GetAddressOf();
 				HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.AppExtension, &pvae));
 
 				byte* pvdd = stackalloc byte[] { 3, 1, 0, 0 };
@@ -551,7 +554,7 @@ namespace PhotoSauce.MagicScaler
 
 			frame.Disposal = anifrm.Disposal == FrameDisposalMethod.RestoreBackground ? FrameDisposalMethod.RestoreBackground : FrameDisposalMethod.Preserve;
 			frame.Delay = ((uint)Math.Round(anifrm.Duration.Numerator / (double)anifrm.Duration.Denominator.Clamp(1, int.MaxValue) * 100d)).Clamp(ushort.MinValue, ushort.MaxValue);
-			frame.Trans = anifrm.HasAlpha;
+			frame.HasTransparency = anifrm.HasAlpha;
 			frame.Area = context.Source.Area;
 
 			var buff = frame.Source;

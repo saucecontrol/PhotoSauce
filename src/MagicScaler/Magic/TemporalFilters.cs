@@ -34,7 +34,7 @@ namespace PhotoSauce.MagicScaler
 				if (prev == buffer.Current || prev.Disposal == FrameDisposalMethod.RestoreBackground)
 				{
 					pp = null;
-					if (buffer.Current.Trans)
+					if (buffer.Current.HasTransparency)
 						bgcolor = 0u;
 				}
 

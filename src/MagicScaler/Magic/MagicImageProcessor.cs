@@ -304,7 +304,7 @@ namespace PhotoSauce.MagicScaler
 
 			if (ctx.Settings.ScaleRatio != 1d && !ctx.Settings.Interpolation.IsPointSampler && ctx.Source is IFramePixelSource fsrc && fsrc.Frame is IPlanarDecoder pldec)
 			{
-				if (pldec.TryGetYccFrame(out var plfrm, true))
+				if (pldec.TryGetYccFrame(out var plfrm))
 					ctx.ImageFrame = plfrm;
 			}
 

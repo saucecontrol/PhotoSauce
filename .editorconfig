@@ -4,7 +4,7 @@ root = true
 charset = utf-8
 end_of_line = crlf
 indent_style = tab
-indent_size = 4
+#indent_size = 4
 
 [*.yml]
 indent_style = space
@@ -13,6 +13,8 @@ indent_size = 2
 [*.cs]
 file_header_template = Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
+csharp_style_prefer_range_operator = true:silent
+csharp_style_prefer_utf8_string_literals = true:silent
 csharp_style_deconstructed_variable_declaration = true:silent
 
 dotnet_diagnostic.CA1031.severity = silent

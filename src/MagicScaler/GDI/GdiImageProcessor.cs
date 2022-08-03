@@ -17,8 +17,8 @@ namespace PhotoSauce.MagicScaler
 	{
 		private const int exifOrientationID = 274;
 		private static readonly ImageCodecInfo[] codecs = ImageCodecInfo.GetImageEncoders();
-		private static readonly ImageCodecInfo jpegCodec = codecs.First(c => c.FormatID == ImageFormat.Jpeg.Guid);
-		private static readonly ImageCodecInfo tiffCodec = codecs.First(c => c.FormatID == ImageFormat.Tiff.Guid);
+		private static readonly ImageCodecInfo jpegCodec = codecs.First(static c => c.FormatID == ImageFormat.Jpeg.Guid);
+		private static readonly ImageCodecInfo tiffCodec = codecs.First(static c => c.FormatID == ImageFormat.Tiff.Guid);
 
 		internal static void ExifRotate(this Image img)
 		{

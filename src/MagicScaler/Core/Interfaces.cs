@@ -156,7 +156,7 @@ namespace PhotoSauce.MagicScaler
 
 	internal interface IPlanarDecoder : IImageFrame
 	{
-		bool TryGetYccFrame([NotNullWhen(true)] out IYccImageFrame? frame, bool allowSubsampledChroma);
+		bool TryGetYccFrame([NotNullWhen(true)] out IYccImageFrame? frame);
 	}
 
 	internal interface ICroppedDecoder

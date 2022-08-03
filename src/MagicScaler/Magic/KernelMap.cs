@@ -291,7 +291,7 @@ namespace PhotoSauce.MagicScaler
 
 		public void Dispose()
 		{
-			if (Interlocked.Decrement(ref refCount) == 0 && Interlocked.CompareExchange(ref refCount, int.MinValue, 0) == 0)
+			if (Interlocked.Decrement(ref refCount) == 0 && Interlocked.CompareExchange(ref refCount, int.MinValue / 2, 0) == 0)
 			{
 				map.Dispose();
 				map = default;

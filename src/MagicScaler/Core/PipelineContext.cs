@@ -28,7 +28,7 @@ namespace PhotoSauce.MagicScaler
 		public ColorProfile? SourceColorProfile { get; set; }
 		public ColorProfile? DestColorProfile { get; set; }
 
-		public IEnumerable<PixelSourceStats> Stats => profilers?.OfType<ProcessingProfiler>().Select(p => p.Stats!) ?? Enumerable.Empty<PixelSourceStats>();
+		public IEnumerable<PixelSourceStats> Stats => profilers?.OfType<ProcessingProfiler>().Select(static p => p.Stats!) ?? Enumerable.Empty<PixelSourceStats>();
 
 		public WicPipelineContext WicContext => wicContext ??= new();
 

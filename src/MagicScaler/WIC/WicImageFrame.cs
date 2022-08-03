@@ -303,7 +303,7 @@ namespace PhotoSauce.MagicScaler
 				WicPlanarTransform = (IWICPlanarBitmapSourceTransform*)ptrans;
 		}
 
-		public bool TryGetYccFrame([NotNullWhen(true)] out IYccImageFrame? frame, bool allowSubsampledChroma)
+		public bool TryGetYccFrame([NotNullWhen(true)] out IYccImageFrame? frame)
 		{
 			if (WicPlanarTransform is not null)
 			{

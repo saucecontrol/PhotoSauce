@@ -225,7 +225,7 @@ namespace PhotoSauce.ManagedCodecs.ImageSharp
 
 			var targa = TgaFormat.Instance;
 			var mimeTypes = new[] { targa.DefaultMimeType }.Concat(targa.MimeTypes).Distinct().ToArray();
-			var fileExtensions = targa.FileExtensions.Select(e => e[0] == '.' ? e : string.Concat(".", e)).ToArray();
+			var fileExtensions = targa.FileExtensions.Select(static e => e[0] == '.' ? e : string.Concat(".", e)).ToArray();
 
 			codecs.Add(new DecoderInfo(
 				$"{nameof(SixLabors.ImageSharp)} {targa.Name}",

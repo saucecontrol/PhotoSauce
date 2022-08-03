@@ -26,8 +26,8 @@ namespace PhotoSauce.MagicScaler
 			Guard.NotNull(codecs);
 
 			// If there is more than one Camera RAW codec installed, generally the newer one is more capable, so we deprioritize the original one.
-			codecs.AddRange(getWicCodecs(WICComponentType.WICDecoder, policy).OrderBy(c => c.Format == GUID_ContainerFormatRaw ? 1 : 0).Select(c => c.Codec));
-			codecs.AddRange(getWicCodecs(WICComponentType.WICEncoder, policy).Select(c => c.Codec));
+			codecs.AddRange(getWicCodecs(WICComponentType.WICDecoder, policy).OrderBy(static c => c.Format == GUID_ContainerFormatRaw ? 1 : 0).Select(static c => c.Codec));
+			codecs.AddRange(getWicCodecs(WICComponentType.WICEncoder, policy).Select(static c => c.Codec));
 		}
 
 		private static unsafe List<(Guid Format, IImageCodecInfo Codec)> getWicCodecs(WICComponentType type, WicCodecPolicy policy)
@@ -103,7 +103,7 @@ namespace PhotoSauce.MagicScaler
 						HRESULT.Check(pCod.Get()->GetPixelFormats(cch, pg, &cch));
 
 					if (extensions.Length != 0 && !ImageFileExtensions.All.ContainsInsensitive(extensions[0]))
-						extensions = extensions.OrderBy(e => ImageFileExtensions.All.ContainsInsensitive(e) ? 0 : 1).ToArray();
+						extensions = extensions.OrderBy(static e => ImageFileExtensions.All.ContainsInsensitive(e) ? 0 : 1).ToArray();
 
 					if (type is WICComponentType.WICDecoder)
 					{

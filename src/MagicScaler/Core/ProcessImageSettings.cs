@@ -309,13 +309,16 @@ namespace PhotoSauce.MagicScaler
 		}
 
 		/// <summary>Sets the preferred format of the output image.  If no encoder is set, the pipeline will choose the output codec based on the input image type or <see cref="EncoderOptions" />.</summary>
-		/// <param name="mimeType">The MIME type of the preferred encoder. Common formats can be found in <see cref="ImageMimeTypes" />.</param>
-		/// <remarks>If a matching encoder is not registered, the pipeline may choose an alternate encoder.</remarks>
-		public bool TrySetEncoderFormat(string mimeType)
+		/// <param name="mimeTypeOrFileExtension">The MIME type or file extension of the preferred encoder. A value starting with '<c>.</c>' will be interpreted as a file extension; anything else will be matched as a MIME type.</param>
+		/// <remarks>Common formats can be found in <see cref="ImageMimeTypes" /> or <see cref="ImageFileExtensions" />.  If a matching encoder is not registered, the pipeline may choose an alternate encoder.</remarks>
+		public bool TrySetEncoderFormat(string mimeTypeOrFileExtension)
 		{
-			Guard.NotNullOrEmpty(mimeType);
+			Guard.NotNullOrEmpty(mimeTypeOrFileExtension);
 
-			bool found = CodecManager.TryGetEncoderForMimeType(mimeType, out var enc);
+			bool found = mimeTypeOrFileExtension[0] == '.'
+				? CodecManager.TryGetEncoderForFileExtension(mimeTypeOrFileExtension, out var enc)
+				: CodecManager.TryGetEncoderForMimeType(mimeTypeOrFileExtension, out enc);
+
 			if (found)
 				EncoderInfo = enc;
 
