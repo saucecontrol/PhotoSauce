@@ -106,6 +106,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public static void AddExternalFormatConverter(PipelineContext ctx, bool lastChance = false)
 		{
+			var enc = ctx.Settings.EncoderInfo;
 			var ifmt = ctx.Source.Format;
 			var ofmt = ifmt;
 			if (externalFormatMap.TryGetValue(ifmt, out var ofmtm))
@@ -113,8 +114,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 			if (ctx.Source is PlanarPixelSource plsrc)
 			{
-				if (lastChance && plsrc.SourceY.Format.Range == PixelValueRange.Video)
-					ofmt = PixelFormat.Y8;
+				if (lastChance && enc is not null)
+					ofmt = enc.GetClosestPixelFormat(ofmt);
 
 				if (ofmt != ifmt)
 				{
@@ -122,24 +123,39 @@ namespace PhotoSauce.MagicScaler.Transforms
 					plsrc.SourceY = ctx.AddProfiler(new ConversionTransform(plsrc.SourceY, ofmt, ctx.SourceColorProfile, forceSrgb ? ColorProfile.sRGB : ctx.DestColorProfile));
 				}
 
-				if (externalFormatMap.TryGetValue(plsrc.SourceCb.Format, out var ofmtb) && externalFormatMap.TryGetValue(plsrc.SourceCr.Format, out var ofmtc))
-				{
+				var ofmtb = getChromaFormat(plsrc.SourceCb, enc, lastChance);
+				if (ofmtb != plsrc.SourceCb.Format)
 					plsrc.SourceCb = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCb, ofmtb));
-					plsrc.SourceCr = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCr, ofmtc));
-				}
-				else if (lastChance && plsrc.SourceCb.Format.Range == PixelValueRange.Video)
-				{
-					plsrc.SourceCb = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCb, PixelFormat.Cb8));
-					plsrc.SourceCr = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCr, PixelFormat.Cr8));
-				}
+
+				var ofmtr = getChromaFormat(plsrc.SourceCr, enc, lastChance);
+				if (ofmtr != plsrc.SourceCr.Format)
+					plsrc.SourceCr = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCr, ofmtr));
 
 				return;
 			}
 
 			if (ofmt != ifmt)
 				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, ofmt, ctx.SourceColorProfile, ctx.DestColorProfile));
-			else if (lastChance && ifmt == PixelFormat.Bgrx32 && ctx.Settings.EncoderInfo!.SupportsPixelFormat(PixelFormat.Bgr24.FormatGuid))
-				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, PixelFormat.Bgr24));
+
+			ifmt = ofmt;
+			if (lastChance && enc is not null)
+				ofmt = enc.GetClosestPixelFormat(ofmt);
+
+			if (ofmt != ifmt)
+				ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, ofmt));
+
+			static PixelFormat getChromaFormat(PixelSource src, IImageEncoderInfo? enc, bool lastChance)
+			{
+				var ifmt = src.Format;
+				var ofmt = ifmt;
+				if (externalFormatMap.TryGetValue(ifmt, out var ofmtm))
+					ofmt = ofmtm;
+
+				if (lastChance && enc is not null)
+					ofmt = enc.GetClosestPixelFormat(ofmt);
+
+				return ofmt;
+			}
 		}
 
 		public static void AddNormalizingFormatConverter(PipelineContext ctx, bool lastChance = false)

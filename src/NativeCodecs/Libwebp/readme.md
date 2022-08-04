@@ -27,3 +27,16 @@ CodecManager.Configure(codecs => {
 ### Using the Codec
 
 Once registered, the codec will automatically detect and decode compatible images.
+
+To encode WebP images, the encoder MIME type can be set on `ProcessImageSettings`:
+
+```C#
+var settings = new ProcessImageSettings();
+settings.TrySetEncoderFormat(ImageMimeTypes.Webp)
+```
+
+Or the encoder can be selected by file extension on overloads accepting file paths:
+
+```C#
+MagicImageProcessor.ProcessImage(@"\img\input.jpg", @"\img\output.webp", settings);
+```

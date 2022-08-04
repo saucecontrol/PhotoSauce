@@ -328,5 +328,53 @@ namespace PhotoSauce.MagicScaler
 
 			return default;
 		}
+
+		internal static PixelFormat GetClosestPixelFormat(this IImageEncoderInfo enc, PixelFormat fmt)
+		{
+			if (enc.SupportsPixelFormat(fmt.FormatGuid))
+				return fmt;
+
+			if (fmt.AlphaRepresentation != PixelAlphaRepresentation.None)
+			{
+				if (enc.SupportsPixelFormat(PixelFormat.Bgra32.FormatGuid))
+					return PixelFormat.Bgra32;
+				else if (enc.SupportsPixelFormat(PixelFormat.Rgba32.FormatGuid))
+					return PixelFormat.Rgba32;
+			}
+			if (fmt.ColorRepresentation == PixelColorRepresentation.Bgr || fmt == PixelFormat.Grey8)
+			{
+				if (enc.SupportsPixelFormat(PixelFormat.Bgr24.FormatGuid))
+					return PixelFormat.Bgr24;
+				else if (enc.SupportsPixelFormat(PixelFormat.Rgb24.FormatGuid))
+					return PixelFormat.Rgb24;
+				else if (enc.SupportsPixelFormat(PixelFormat.Bgra32.FormatGuid))
+					return PixelFormat.Bgra32;
+				else if (enc.SupportsPixelFormat(PixelFormat.Rgba32.FormatGuid))
+					return PixelFormat.Rgba32;
+			}
+			else if (fmt == PixelFormat.Y8 || fmt == PixelFormat.Y8Video)
+			{
+				if (enc.SupportsPixelFormat(PixelFormat.Y8.FormatGuid))
+					return PixelFormat.Y8;
+				else if (enc.SupportsPixelFormat(PixelFormat.Y8Video.FormatGuid))
+					return PixelFormat.Y8Video;
+			}
+			else if (fmt == PixelFormat.Cb8 || fmt == PixelFormat.Cb8Video)
+			{
+				if (enc.SupportsPixelFormat(PixelFormat.Cb8.FormatGuid))
+					return PixelFormat.Cb8;
+				else if (enc.SupportsPixelFormat(PixelFormat.Cb8Video.FormatGuid))
+					return PixelFormat.Cb8Video;
+			}
+			else if (fmt == PixelFormat.Cr8 || fmt == PixelFormat.Cr8Video)
+			{
+				if (enc.SupportsPixelFormat(PixelFormat.Cr8.FormatGuid))
+					return PixelFormat.Cr8;
+				else if (enc.SupportsPixelFormat(PixelFormat.Cr8Video.FormatGuid))
+					return PixelFormat.Cr8Video;
+			}
+
+			return fmt;
+		}
 	}
 }

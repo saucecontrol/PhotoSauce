@@ -53,24 +53,12 @@ internal sealed unsafe class JxlEncoder : IImageEncoder
 			sourceArea = new(0, 0, source.Width, source.Height);
 
 		var srcfmt = PixelFormat.FromGuid(source.Format);
-		var dstfmt =
-			srcfmt == PixelFormat.Bgra32 ? PixelFormat.Rgba32 :
-			srcfmt == PixelFormat.Bgr24 ? PixelFormat.Rgb24 :
-			srcfmt == PixelFormat.Grey8 ? srcfmt :
+		if (srcfmt != PixelFormat.Rgba32 && srcfmt != PixelFormat.Rgb24 && srcfmt != PixelFormat.Grey8)
 			throw new NotSupportedException("Image format not supported.");
 
-		int stride = sourceArea.Width * dstfmt.BytesPerPixel;
+		int stride = sourceArea.Width * srcfmt.BytesPerPixel;
 		using var pixbuff = BufferPool.RentLocal<byte>(checked(stride * sourceArea.Height));
-
-		if (srcfmt != dstfmt)
-		{
-			using var tran = new MagicScaler.Transforms.ConversionTransform(source.AsPixelSource(), dstfmt);
-			((IPixelSource)tran).CopyPixels(sourceArea, stride, pixbuff.Span);
-		}
-		else
-		{
-			source.CopyPixels(sourceArea, stride, pixbuff.Span);
-		}
+		source.CopyPixels(sourceArea, stride, pixbuff.Span);
 
 		if (options is JxlLossyEncoderOptions { Distance: 0 })
 			JxlError.Check(JxlEncoderOptionsSetDistance(encopt, JxlLossyEncoderOptions.DistanceFromQuality(SettingsUtil.GetDefaultQuality(Math.Max(sourceArea.Width, sourceArea.Height)))));
@@ -80,9 +68,9 @@ internal sealed unsafe class JxlEncoder : IImageEncoder
 		basinf.xsize = (uint)sourceArea.Width;
 		basinf.ysize = (uint)sourceArea.Height;
 		basinf.bits_per_sample = 8;
-		basinf.num_color_channels = (uint)(dstfmt.ChannelCount - (dstfmt.AlphaRepresentation == PixelAlphaRepresentation.None ? 0 : 1));
-		basinf.alpha_bits = dstfmt.AlphaRepresentation == PixelAlphaRepresentation.None ? 0 : basinf.bits_per_sample;
-		basinf.alpha_premultiplied = dstfmt.AlphaRepresentation == PixelAlphaRepresentation.Associated ? JXL_TRUE : JXL_FALSE;
+		basinf.num_color_channels = (uint)(srcfmt.ChannelCount - (srcfmt.AlphaRepresentation == PixelAlphaRepresentation.None ? 0 : 1));
+		basinf.alpha_bits = srcfmt.AlphaRepresentation == PixelAlphaRepresentation.None ? 0 : basinf.bits_per_sample;
+		basinf.alpha_premultiplied = srcfmt.AlphaRepresentation == PixelAlphaRepresentation.Associated ? JXL_TRUE : JXL_FALSE;
 		basinf.uses_original_profile = JXL_TRUE;
 
 		if (metadata.TryGetMetadata<OrientationMetadata>(out var orient))
@@ -99,12 +87,12 @@ internal sealed unsafe class JxlEncoder : IImageEncoder
 		else
 		{
 			var color = default(JxlColorEncoding);
-			JxlColorEncodingSetToSRGB(&color, dstfmt.ColorRepresentation == PixelColorRepresentation.Grey ? JXL_TRUE : JXL_FALSE);
+			JxlColorEncodingSetToSRGB(&color, srcfmt.ColorRepresentation == PixelColorRepresentation.Grey ? JXL_TRUE : JXL_FALSE);
 			JxlError.Check(JxlEncoderSetColorEncoding(encoder, &color));
 		}
 
 		var pixfmt = new JxlPixelFormat {
-			num_channels = (uint)dstfmt.ChannelCount,
+			num_channels = (uint)srcfmt.ChannelCount,
 			data_type = JxlDataType.JXL_TYPE_UINT8
 		};
 

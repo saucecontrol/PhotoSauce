@@ -300,17 +300,18 @@ namespace PhotoSauce.MagicScaler
 			ctx.Settings.UnsharpMask = ctx.UsedSettings.UnsharpMask;
 			ctx.Settings.EncoderOptions = ctx.UsedSettings.EncoderOptions;
 
-			bool outputPlanar = closedPipeline;
-
 			if (ctx.Settings.ScaleRatio != 1d && !ctx.Settings.Interpolation.IsPointSampler && ctx.Source is IFramePixelSource fsrc && fsrc.Frame is IPlanarDecoder pldec)
 			{
 				if (pldec.TryGetYccFrame(out var plfrm))
 					ctx.ImageFrame = plfrm;
 			}
 
+			bool outputPlanar = closedPipeline;
+			var planarEncoder = ctx.Settings.EncoderInfo as IPlanarImageEncoderInfo;
 			if (ctx.ImageFrame is IYccImageFrame yccFrame)
 			{
-				outputPlanar = outputPlanar && yccFrame.RgbYccMatrix.IsRouglyEqualTo(YccMatrix.Rec601);
+				var matrix = planarEncoder?.DefaultMatrix ?? YccMatrix.Rec601;
+				outputPlanar = outputPlanar && yccFrame.RgbYccMatrix.IsRouglyEqualTo(matrix);
 
 				ctx.Source = new PlanarPixelSource(yccFrame);
 			}
@@ -326,7 +327,7 @@ namespace PhotoSauce.MagicScaler
 			if (ctx.Source is PlanarPixelSource)
 			{
 				bool savePlanar = outputPlanar
-					&& ctx.Settings.EncoderInfo is IPlanarImageEncoderInfo
+					&& planarEncoder is not null
 					&& ctx.Settings.OuterSize == ctx.Settings.InnerSize
 					&& ctx.DestColorProfile == ctx.SourceColorProfile;
 
@@ -337,7 +338,7 @@ namespace PhotoSauce.MagicScaler
 
 				if (savePlanar)
 				{
-					MagicTransforms.AddExternalFormatConverter(ctx);
+					MagicTransforms.AddExternalFormatConverter(ctx, true);
 					MagicTransforms.AddExifFlipRotator(ctx);
 				}
 				else

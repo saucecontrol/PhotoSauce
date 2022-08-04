@@ -68,16 +68,20 @@ public static unsafe class WebpCodec
 			WebpDecoderOptions.Default,
 			WebpContainer.TryLoad
 		));
-		codecs.Add(new EncoderInfo(
+		codecs.Add(new PlanarEncoderInfo(
 			displayName,
 			webpMime,
 			webpExtension,
-			new[] { PixelFormat.Grey8.FormatGuid, PixelFormat.Rgb24.FormatGuid, PixelFormat.Rgba32.FormatGuid },
+			new[] { PixelFormat.Bgra32.FormatGuid, PixelFormat.Y8Video.FormatGuid, PixelFormat.Cb8Video.FormatGuid, PixelFormat.Cr8Video.FormatGuid, PixelFormat.Grey8.FormatGuid },
 			WebpLossyEncoderOptions.Default,
 			WebpEncoder.Create,
 			false,
 			false,
-			true
+			true,
+			new[] { ChromaSubsampleMode.Subsample420 },
+			ChromaPosition.Bottom,
+			WebpConstants.YccMatrix,
+			false
 		));
 	}
 }

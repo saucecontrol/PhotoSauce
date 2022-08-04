@@ -48,7 +48,17 @@ internal unsafe partial struct WebPPicture
     private fixed uint pad2[3];
 
     [NativeTypeName("WebPWriterFunction")]
+#if NET5_0_OR_GREATER
     public delegate* unmanaged[Cdecl]<byte*, nuint, WebPPicture*, int> writer;
+#else
+    public void* _writer;
+
+    public delegate* unmanaged[Cdecl]<byte*, nuint, WebPPicture*, int> writer
+    {
+        get => (delegate* unmanaged[Cdecl]<byte*, nuint, WebPPicture*, int>)_writer;
+        set => _writer = value;
+    }
+#endif
 
     public void* custom_ptr;
 
@@ -62,7 +72,17 @@ internal unsafe partial struct WebPPicture
     public WebPEncodingError error_code;
 
     [NativeTypeName("WebPProgressHook")]
+#if NET5_0_OR_GREATER
     public delegate* unmanaged[Cdecl]<int, WebPPicture*, int> progress_hook;
+#else
+    public void* _progress_hook;
+
+    public delegate* unmanaged[Cdecl]<int, WebPPicture*, int> progress_hook
+    {
+        get => (delegate* unmanaged[Cdecl]<int, WebPPicture*, int>)_progress_hook;
+        set => _progress_hook = value;
+    }
+#endif
 
     public void* user_data;
 

@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
 using PhotoSauce.MagicScaler;
+using PhotoSauce.MagicScaler.Transforms;
 using PhotoSauce.Interop.Libwebp;
 using static PhotoSauce.Interop.Libwebp.Libwebp;
 using static PhotoSauce.Interop.Libwebp.Libwebpmux;
@@ -36,16 +37,14 @@ internal sealed unsafe class WebpEncoder : IImageEncoder
 		if (written)
 			throw new InvalidOperationException("An image frame has already been written, and this encoder does not yet support multiple frames.");
 
-		if (sourceArea == default)
-			sourceArea = new(0, 0, source.Width, source.Height);
-
-		if (sourceArea.Width > WEBP_MAX_DIMENSION || sourceArea.Height > WEBP_MAX_DIMENSION)
+		var area = sourceArea == default ? new PixelArea(0, 0, source.Width, source.Height) : (PixelArea)sourceArea;
+		if (area.Width > WEBP_MAX_DIMENSION || area.Height > WEBP_MAX_DIMENSION)
 			throw new NotSupportedException($"WebP supports a max of {WEBP_MAX_DIMENSION} pixels in either dimension.");
 
 		var srcfmt = PixelFormat.FromGuid(source.Format);
-		var dstfmt =
-			srcfmt == PixelFormat.Grey8 || srcfmt == PixelFormat.Bgr24 || srcfmt == PixelFormat.Bgra32 ? PixelFormat.Bgra32 :
-			throw new NotSupportedException("Unsupported pixel format.");
+		var dstfmt = srcfmt == PixelFormat.Grey8 || srcfmt == PixelFormat.Bgra32 || srcfmt == PixelFormat.Y8Video
+			? srcfmt
+			: throw new NotSupportedException("Image format not supported.");
 
 		WebPConfig config;
 		WebPConfigInit(&config);
@@ -66,7 +65,7 @@ internal sealed unsafe class WebpEncoder : IImageEncoder
 				quality = lopt.Quality.Clamp(0, 100);
 
 			if (quality == default)
-				quality = SettingsUtil.GetDefaultQuality(Math.Max(sourceArea.Width, sourceArea.Height));
+				quality = SettingsUtil.GetDefaultQuality(Math.Max(area.Width, area.Height));
 
 			WebpResult.Check(WebPConfigPreset(&config, WebPPreset.WEBP_PRESET_DEFAULT, quality));
 		}
@@ -83,23 +82,68 @@ internal sealed unsafe class WebpEncoder : IImageEncoder
 
 		try
 		{
-			picture.width = sourceArea.Width;
-			picture.height = sourceArea.Height;
+			picture.width = area.Width;
+			picture.height = area.Height;
 			picture.use_argb = 1;
+
+			if (srcfmt == PixelFormat.Grey8)
+			{
+				bool lossy = config.lossless == 0;
+				dstfmt = lossy ? PixelFormat.Y8Video : PixelFormat.Bgra32;
+				picture.use_argb = lossy ? 0 : 1;
+			}
+			else if (srcfmt == PixelFormat.Y8Video)
+			{
+				if (source is not PlanarPixelSource)
+					throw new NotSupportedException($"Planar pixel source is required for {nameof(PixelFormat.Y8Video)} format.");
+
+				picture.use_argb = 0;
+			}
 
 			if (WebPPictureAlloc(&picture) == 0)
 				throw new OutOfMemoryException();
 
-			int stride = picture.argb_stride * dstfmt.BytesPerPixel;
-			int len = checked(stride * picture.height);
-			if (srcfmt != dstfmt)
+			if (picture.use_argb == 1)
 			{
-				using var tran = new MagicScaler.Transforms.ConversionTransform(source.AsPixelSource(), dstfmt);
-				((IPixelSource)tran).CopyPixels(sourceArea, stride, new Span<byte>(picture.argb, len));
+				int stride = picture.argb_stride * dstfmt.BytesPerPixel;
+				var span = new Span<byte>(picture.argb, checked(stride * area.Height));
+
+				using var tran = srcfmt != dstfmt ? new ConversionTransform(source.AsPixelSource(), dstfmt) : null;
+				source = tran ?? source;
+				source.CopyPixels(area, stride, span);
 			}
 			else
 			{
-				source.CopyPixels(sourceArea, stride, new Span<byte>(picture.argb, len));
+				var plsrc = source as PlanarPixelSource;
+				var subs = plsrc?.GetSubsampling() ?? ChromaSubsampleMode.Subsample420;
+				var srcY = plsrc?.SourceY ?? source;
+				var srcU = plsrc?.SourceCb ?? (IPixelSource)new NullChromaPixelSource();
+				var srcV = plsrc?.SourceCr ?? srcU;
+
+				var areaUV = area.ScaleTo(subs.SubsampleRatioX(), subs.SubsampleRatioY(), area.Width, area.Height);
+				var spanY = new Span<byte>(picture.y, checked(picture.y_stride * area.Height));
+				var spanU = new Span<byte>(picture.u, checked(picture.uv_stride * areaUV.Height));
+				var spanV = new Span<byte>(picture.v, spanU.Length);
+
+				using var tran = srcfmt != dstfmt ? new ConversionTransform(srcY.AsPixelSource(), dstfmt) : null;
+				srcY = tran ?? srcY;
+
+				int incy = 8, incc = incy / subs.SubsampleRatioY();
+				int lasty = 0, lastc = 0;
+				int blocks = area.Height / incy;
+				for (int b = 0; b < blocks; b++, lasty += incy, lastc += incc)
+				{
+					srcY.CopyPixels(area.Slice(lasty, incy), picture.y_stride, spanY.Slice(lasty * picture.y_stride));
+					srcU.CopyPixels(areaUV.Slice(lastc, incc), picture.uv_stride, spanU.Slice(lastc * picture.uv_stride));
+					srcV.CopyPixels(areaUV.Slice(lastc, incc), picture.uv_stride, spanV.Slice(lastc * picture.uv_stride));
+				}
+
+				if (lasty < area.Height - 1)
+				{
+					srcY.CopyPixels(area.Slice(lasty), picture.y_stride, spanY.Slice(lasty * picture.y_stride));
+					srcU.CopyPixels(areaUV.Slice(lastc), picture.uv_stride, spanU.Slice(lastc * picture.uv_stride));
+					srcV.CopyPixels(areaUV.Slice(lastc), picture.uv_stride, spanV.Slice(lastc * picture.uv_stride));
+				}
 			}
 
 			picture.writer = pfnMemoryWrite;
@@ -228,4 +272,18 @@ internal sealed unsafe class WebpEncoder : IImageEncoder
 	}
 
 	private static readonly delegate* unmanaged[Cdecl]<byte*, nuint, WebPPicture*, int> pfnMemoryWrite = getMemoryWriterCallback();
+
+	private class NullChromaPixelSource : IPixelSource
+	{
+		public Guid Format => default;
+		public int Width => default;
+		public int Height => default;
+
+		public void CopyPixels(Rectangle sourceArea, int cbStride, Span<byte> buffer)
+		{
+			ref byte bstart = ref MemoryMarshal.GetReference(buffer);
+			for (int y = 0; y < sourceArea.Height; y++)
+				Unsafe.InitBlock(ref Unsafe.Add(ref bstart, y * cbStride), 0x80, (uint)sourceArea.Width);
+		}
+	}
 }
