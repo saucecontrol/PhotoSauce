@@ -67,7 +67,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				var dstProfile = destProfile as CurveProfile ?? ColorProfile.sRGB;
 				if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Fixed)
 				{
-					var conv = srcFormat.Range == PixelValueRange.Video
+					var conv = Format.Range == PixelValueRange.Video
 						? dstProfile.GetConverter<ushort, byte, EncodingType.Linear, EncodingRange.Video>()
 						: dstProfile.GetConverter<ushort, byte, EncodingType.Linear>();
 					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
@@ -77,7 +77,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				}
 				else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Float && Format.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger)
 				{
-					var conv = srcFormat.Range == PixelValueRange.Video
+					var conv = Format.Range == PixelValueRange.Video
 						? dstProfile.GetConverter<float, byte, EncodingType.Linear, EncodingRange.Video>()
 						: dstProfile.GetConverter<float, byte, EncodingType.Linear>();
 					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)

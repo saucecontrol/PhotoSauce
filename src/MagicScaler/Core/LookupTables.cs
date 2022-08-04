@@ -113,26 +113,6 @@ namespace PhotoSauce.MagicScaler
 		public static ushort[] SrgbInverseGammaUQ15 => inverseGammaTable.Value.Item2;
 		public static uint[] OctreeIndexTable => octreeIndexTable.Value;
 
-		private static float[] makeScaledTable(float[] tbl, int len, int scale, int minVal, int maxVal)
-		{
-			var stbl = new float[len];
-
-			for (int i = 0; i < stbl.Length; i++)
-			{
-				double val = (double)(i.Clamp(minVal, maxVal) - minVal) / (maxVal - minVal);
-				double pos = val * scale;
-
-				int idx = (int)pos;
-				val = Lerp(tbl[idx], tbl[idx + 1], pos - idx);
-
-				stbl[i] = (float)val;
-			}
-
-			Fixup(stbl, scale);
-
-			return stbl;
-		}
-
 		public static void Fixup<T>(T[] t, int maxValid)
 		{
 			for (int i = maxValid + 1; i < t.Length; i++)
@@ -142,7 +122,6 @@ namespace PhotoSauce.MagicScaler
 		public static byte[] MakeUQ15Gamma(float[] gt)
 		{
 			var gtq = new byte[GammaLengthUQ15];
-
 			for (int i = 0; i < gtq.Length; i++)
 			{
 				double val = (double)i / GammaScaleUQ15;
@@ -165,7 +144,6 @@ namespace PhotoSauce.MagicScaler
 				return SrgbInverseGammaUQ15;
 
 			var igtq = new ushort[InverseGammaLength];
-
 			for (int i = 0; i < igtq.Length; i++)
 				igtq[i] = FixToUQ15One(igt[i]);
 
@@ -174,10 +152,40 @@ namespace PhotoSauce.MagicScaler
 			return igtq;
 		}
 
-		public static float[] MakeVideoGamma(float[] gt) =>
-			makeScaledTable(gt, GammaLengthFloat, GammaScaleFloat, VideoLumaMin << 2, VideoLumaMax << 2);
+		public static float[] MakeVideoGamma(float[] gt)
+		{
+			const int minVal = VideoLumaMin << 2;
+			const int maxVal = VideoLumaMax << 2;
 
-		public static float[] MakeVideoInverseGamma(float[] igt) =>
-			makeScaledTable(igt, InverseGammaLength, InverseGammaScale, VideoLumaMin, VideoLumaMax);
+			var stbl = new float[gt.Length];
+			for (int i = 0; i < stbl.Length; i++)
+				stbl[i] = (float)(((double)gt[i] * (maxVal - minVal) + minVal) / GammaScaleFloat);
+
+			Fixup(stbl, GammaScaleFloat);
+
+			return stbl;
+		}
+
+		public static float[] MakeVideoInverseGamma(float[] igt)
+		{
+			const int minVal = VideoLumaMin;
+			const int maxVal = VideoLumaMax;
+
+			var stbl = new float[igt.Length];
+			for (int i = 0; i < stbl.Length; i++)
+			{
+				double val = (double)(i.Clamp(minVal, maxVal) - minVal) / (maxVal - minVal);
+				double pos = val * InverseGammaScale;
+
+				int idx = (int)pos;
+				val = Lerp(igt[idx], igt[idx + 1], pos - idx);
+
+				stbl[i] = (float)val;
+			}
+
+			Fixup(stbl, InverseGammaScale);
+
+			return stbl;
+		}
 	}
 }
