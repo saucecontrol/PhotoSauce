@@ -166,9 +166,9 @@ namespace PhotoSauce.MagicScaler.Converters
 		}
 	}
 
-	internal sealed unsafe class UQ15Converter : IConverter<ushort, byte>
+	internal sealed unsafe class UQ15Converter<TRng> : IConverter<ushort, byte> where TRng : EncodingRange
 	{
-		public static readonly IConverter<ushort, byte> Instance = new UQ15Converter();
+		public static readonly IConverter<ushort, byte> Instance = new UQ15Converter<TRng>();
 
 		private static readonly UQ15Processor processor = new();
 		private static readonly UQ15Processor3A processor3A = new();
@@ -186,12 +186,15 @@ namespace PhotoSauce.MagicScaler.Converters
 				ushort* ip = (ushort*)istart, ipe = (ushort*)(istart + cb) - 4;
 				byte* op = ostart;
 
+				uint scale = typeof(TRng) == typeof(EncodingRange.Video) ? (uint)VideoLumaScale : byte.MaxValue;
+				uint offs = typeof(TRng) == typeof(EncodingRange.Video) ? (uint)VideoLumaMin : byte.MinValue;
+
 				while (ip <= ipe)
 				{
-					byte i0 = UnFix15ToByte((uint)ip[0] * byte.MaxValue);
-					byte i1 = UnFix15ToByte((uint)ip[1] * byte.MaxValue);
-					byte i2 = UnFix15ToByte((uint)ip[2] * byte.MaxValue);
-					byte i3 = UnFix15ToByte((uint)ip[3] * byte.MaxValue);
+					byte i0 = UnFix15ToByte(ip[0] * scale + offs);
+					byte i1 = UnFix15ToByte(ip[1] * scale + offs);
+					byte i2 = UnFix15ToByte(ip[2] * scale + offs);
+					byte i3 = UnFix15ToByte(ip[3] * scale + offs);
 					ip += 4;
 
 					op[0] = i0;
@@ -204,7 +207,7 @@ namespace PhotoSauce.MagicScaler.Converters
 
 				while (ip < ipe)
 				{
-					op[0] = UnFix15ToByte((uint)ip[0] * byte.MaxValue);
+					op[0] = UnFix15ToByte(ip[0] * scale + offs);
 					ip++;
 					op++;
 				}

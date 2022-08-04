@@ -24,18 +24,18 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public override PixelFormat Format { get; }
 
-		public PlanarConversionTransform(PixelSource srcY, PixelSource srcCb, PixelSource srcCr, Matrix4x4 matrix) : base(srcY)
+		public PlanarConversionTransform(PixelSource srcY, PixelSource srcCb, PixelSource srcCr, in Matrix4x4 yccMatrix) : base(srcY)
 		{
 			if (srcCb.Width != srcY.Width || srcCb.Height != srcY.Height) throw new ArgumentException("Chroma plane incorrect size", nameof(srcCb));
 			if (srcCr.Width != srcY.Width || srcCr.Height != srcY.Height) throw new ArgumentException("Chroma plane incorrect size", nameof(srcCr));
 			if (srcCb.Format.BitsPerPixel != srcY.Format.BitsPerPixel) throw new ArgumentException("Chroma plane incorrect format", nameof(srcCb));
 			if (srcCr.Format.BitsPerPixel != srcY.Format.BitsPerPixel) throw new ArgumentException("Chroma plane incorrect format", nameof(srcCr));
 
-			matrix = matrix.InvertPrecise();
-			if (matrix.IsNaN()) throw new ArgumentException("Invalid YCC matrix", nameof(matrix));
+			var matrix = yccMatrix.InvertPrecise();
+			if (matrix.IsNaN()) throw new ArgumentException("Invalid YCC matrix", nameof(yccMatrix));
 
 			if (srcCb.Format.Range == PixelValueRange.Video)
-				matrix *= byte.MaxValue / (float)VideoChromaScale;
+				matrix *= (float)byte.MaxValue / VideoChromaScale;
 
 			coeffCb0 = matrix.M23;
 			coeffCb1 = matrix.M22;
@@ -92,7 +92,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 				for (int y = 0; y < prc.Height; y++)
 				{
-					var lrc = new PixelArea(prc.X, prc.Y + y, prc.Width, 1);
+					var lrc = prc.Slice(y, 1);
 
 					Profiler.PauseTiming();
 					PrevSource.CopyPixels(lrc, (int)bstride, (int)bstride, bstart);

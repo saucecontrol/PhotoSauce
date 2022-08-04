@@ -662,25 +662,20 @@ namespace PhotoSauce.MagicScaler.Converters
 					var vfa2 = Avx.Shuffle(vf2, vf2, HWIntrinsics.ShuffleMaskAlpha);
 					var vfa3 = Avx.Shuffle(vf3, vf3, HWIntrinsics.ShuffleMaskAlpha);
 
-					vfa0 = Avx.Max(vfa0, vmin);
-					vfa1 = Avx.Max(vfa1, vmin);
-					vfa2 = Avx.Max(vfa2, vmin);
-					vfa3 = Avx.Max(vfa3, vmin);
+					var vfr0 = Avx.AndNot(HWIntrinsics.AvxCompareLessThan(vfa0, vmin), Avx.Reciprocal(vfa0));
+					var vfr1 = Avx.AndNot(HWIntrinsics.AvxCompareLessThan(vfa1, vmin), Avx.Reciprocal(vfa1));
+					var vfr2 = Avx.AndNot(HWIntrinsics.AvxCompareLessThan(vfa2, vmin), Avx.Reciprocal(vfa2));
+					var vfr3 = Avx.AndNot(HWIntrinsics.AvxCompareLessThan(vfa3, vmin), Avx.Reciprocal(vfa3));
 
-					vf0 = Avx.Multiply(vf0, Avx.Reciprocal(vfa0));
-					vf1 = Avx.Multiply(vf1, Avx.Reciprocal(vfa1));
-					vf2 = Avx.Multiply(vf2, Avx.Reciprocal(vfa2));
-					vf3 = Avx.Multiply(vf3, Avx.Reciprocal(vfa3));
+					vf0 = Avx.Multiply(vf0, vfr0);
+					vf1 = Avx.Multiply(vf1, vfr1);
+					vf2 = Avx.Multiply(vf2, vfr2);
+					vf3 = Avx.Multiply(vf3, vfr3);
 
 					vf0 = Avx.Blend(vf0, vfa0, HWIntrinsics.BlendMaskAlpha);
 					vf1 = Avx.Blend(vf1, vfa1, HWIntrinsics.BlendMaskAlpha);
 					vf2 = Avx.Blend(vf2, vfa2, HWIntrinsics.BlendMaskAlpha);
 					vf3 = Avx.Blend(vf3, vfa3, HWIntrinsics.BlendMaskAlpha);
-
-					vf0 = Avx.BlendVariable(vf0, vzero, HWIntrinsics.AvxCompareEqual(vfa0, vmin));
-					vf1 = Avx.BlendVariable(vf1, vzero, HWIntrinsics.AvxCompareEqual(vfa1, vmin));
-					vf2 = Avx.BlendVariable(vf2, vzero, HWIntrinsics.AvxCompareEqual(vfa2, vmin));
-					vf3 = Avx.BlendVariable(vf3, vzero, HWIntrinsics.AvxCompareEqual(vfa3, vmin));
 
 					vf0 = Avx.Multiply(vf0, vscalf);
 					vf1 = Avx.Multiply(vf1, vscalf);

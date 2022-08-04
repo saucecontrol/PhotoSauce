@@ -663,33 +663,36 @@ namespace PhotoSauce.MagicScaler
 				if (key.tfrom == typeof(byte) && key.tto == typeof(float))
 					return key.trng == typeof(EncodingRange.Video) ? FloatConverter.Widening.InstanceVideoRange : FloatConverter.Widening.InstanceFullRange;
 				if (key.tfrom == typeof(float) && key.tto == typeof(byte))
-					return FloatConverter.Narrowing.InstanceFullRange;
+					return key.trng == typeof(EncodingRange.Video) ? FloatConverter.Narrowing.InstanceVideoRange : FloatConverter.Narrowing.InstanceFullRange;
 				if (key.tfrom == typeof(ushort) && key.tto == typeof(byte))
-					return UQ15Converter.Instance;
+					return key.trng == typeof(EncodingRange.Video) ? UQ15Converter<EncodingRange.Video>.Instance : UQ15Converter<EncodingRange.Full>.Instance;
 			}
 
 			if (key.tenc == typeof(EncodingType.Linear))
 			{
 				var gt = key.profile.Curve.Gamma;
-
 				if (key.tfrom == typeof(float) && key.tto == typeof(float))
 					return new ConverterFromLinear<float, float>(gt);
+
+				gt = key.trng == typeof(EncodingRange.Video) ? LookupTables.MakeVideoGamma(gt) : gt;
+				var bgt = gt == LookupTables.SrgbGamma ? LookupTables.SrgbGammaUQ15 : LookupTables.MakeUQ15Gamma(gt);
 				if (key.tfrom == typeof(ushort) && key.tto == typeof(byte))
-					return new ConverterFromLinear<ushort, byte>(gt == LookupTables.SrgbGamma ? LookupTables.SrgbGammaUQ15 : LookupTables.MakeUQ15Gamma(gt));
+					return new ConverterFromLinear<ushort, byte>(bgt);
 				if (key.tfrom == typeof(float) && key.tto == typeof(byte))
-					return new ConverterFromLinear<float, byte>(gt == LookupTables.SrgbGamma ? LookupTables.SrgbGammaUQ15 : LookupTables.MakeUQ15Gamma(gt));
+					return new ConverterFromLinear<float, byte>(bgt);
 			}
 
 			if (key.tenc == typeof(EncodingType.Companded))
 			{
 				var igt = key.profile.Curve.InverseGamma;
-
 				if (key.tfrom == typeof(float) && key.tto == typeof(float))
 					return new ConverterToLinear<float, float>(igt);
+
+				igt = key.trng == typeof(EncodingRange.Video) ? LookupTables.MakeVideoInverseGamma(igt) : igt;
 				if (key.tfrom == typeof(byte) && key.tto == typeof(float))
-					return new ConverterToLinear<byte, float>(key.trng == typeof(EncodingRange.Video) ? LookupTables.MakeScaledInverseGamma(igt, VideoLumaMin, VideoLumaMax) : igt);
+					return new ConverterToLinear<byte, float>(igt);
 				if (key.tfrom == typeof(byte) && key.tto == typeof(ushort))
-					return new ConverterToLinear<byte, ushort>(LookupTables.MakeUQ15InverseGamma(key.trng == typeof(EncodingRange.Video) ? LookupTables.MakeScaledInverseGamma(igt, VideoLumaMin, VideoLumaMax) : igt));
+					return new ConverterToLinear<byte, ushort>(LookupTables.MakeUQ15InverseGamma(igt));
 			}
 
 			throw new ArgumentException("Invalid Type combination", nameof(cacheKey));

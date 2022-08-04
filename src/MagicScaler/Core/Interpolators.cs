@@ -99,7 +99,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 			if (sigma <= 0.0) throw new ArgumentOutOfRangeException(nameof(sigma), "Value must be greater than 0");
 
 			support = sigma * 3.0;
-			s0 = 1.0 /     (     2.0 * sigma * sigma);
+			s0 = 1.0 /    -(     2.0 * sigma * sigma);
 			s1 = 1.0 / Sqrt(PI * 2.0 * sigma * sigma);
 
 			displayString = $"{nameof(GaussianInterpolator)}({sigma})";
@@ -114,7 +114,7 @@ namespace PhotoSauce.MagicScaler.Interpolators
 		public double Support => support;
 
 		/// <inheritdoc />
-		public double GetValue(double d) => (d < support) ? Exp(-(d * d * s0)) * s1 : 0.0;
+		public double GetValue(double d) => (d < support) ? Exp(d * d * s0) * s1 : 0.0;
 
 		/// <inheritdoc />
 		public override string ToString() => displayString;

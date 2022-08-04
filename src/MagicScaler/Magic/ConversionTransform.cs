@@ -21,55 +21,80 @@ namespace PhotoSauce.MagicScaler.Transforms
 			{
 				processor = NarrowingConverter.Instance;
 			}
-			else if (srcFormat.Range == PixelValueRange.Video && Format.Range == PixelValueRange.Full && srcFormat.BitsPerPixel == 8 && Format.BitsPerPixel == 8)
+			else if (srcFormat.Range != Format.Range && srcFormat.BitsPerPixel == 8 && Format.BitsPerPixel == 8)
 			{
-				processor = srcFormat.Encoding == PixelValueEncoding.Chroma ? VideoChromaConverter.VideoToFullRangeProcessor.Instance : VideoLumaConverter.VideoToFullRangeProcessor.Instance;
+				if (srcFormat.Range == PixelValueRange.Video)
+					processor = srcFormat.Encoding == PixelValueEncoding.Chroma ? VideoChromaConverter.VideoToFullRangeProcessor.Instance : VideoLumaConverter.VideoToFullRangeProcessor.Instance;
+				else
+					processor = srcFormat.Encoding == PixelValueEncoding.Chroma ? VideoChromaConverter.FullRangeToVideoProcessor.Instance : VideoLumaConverter.FullRangeToVideoProcessor.Instance;
 			}
 			else if (srcFormat.Encoding == PixelValueEncoding.Companded && Format.Encoding == PixelValueEncoding.Linear)
 			{
 				var srcProfile = sourceProfile as CurveProfile ?? ColorProfile.sRGB;
 				if (Format.NumericRepresentation == PixelNumericRepresentation.Fixed)
+				{
+					var conv = srcFormat.Range == PixelValueRange.Video
+						? srcProfile.GetConverter<byte, ushort, EncodingType.Companded, EncodingRange.Video>()
+						: srcProfile.GetConverter<byte, ushort, EncodingType.Companded>();
 					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
-						processor = srcProfile.GetConverter<byte, ushort, EncodingType.Companded>().Processor3A;
-					else if (srcFormat.Range == PixelValueRange.Video)
-						processor = srcProfile.GetConverter<byte, ushort, EncodingType.Companded, EncodingRange.Video>().Processor;
+						processor = conv.Processor3A;
 					else
-						processor = srcProfile.GetConverter<byte, ushort, EncodingType.Companded>().Processor;
+						processor = conv.Processor;
+				}
 				else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger && Format.NumericRepresentation == PixelNumericRepresentation.Float)
+				{
+					var conv = srcFormat.Range == PixelValueRange.Video
+						? srcProfile.GetConverter<byte, float, EncodingType.Companded, EncodingRange.Video>()
+						: srcProfile.GetConverter<byte, float, EncodingType.Companded>();
 					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
-						processor = srcProfile.GetConverter<byte, float, EncodingType.Companded>().Processor3A;
+						processor = conv.Processor3A;
 					else if (srcFormat.ChannelCount == 3 && Format.ChannelCount == 4)
-						processor = srcProfile.GetConverter<byte, float, EncodingType.Companded>().Processor3X;
-					else if (srcFormat.Range == PixelValueRange.Video)
-						processor = srcProfile.GetConverter<byte, float, EncodingType.Companded, EncodingRange.Video>().Processor;
+						processor = conv.Processor3X;
 					else
-						processor = srcProfile.GetConverter<byte, float, EncodingType.Companded>().Processor;
+						processor = conv.Processor;
+				}
 				else if (Format.NumericRepresentation == PixelNumericRepresentation.Float)
+				{
+					var conv = srcProfile.GetConverter<float, float, EncodingType.Companded>();
 					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
-						processor = srcProfile.GetConverter<float, float, EncodingType.Companded>().Processor3A;
+						processor = conv.Processor3A;
 					else
-						processor = srcProfile.GetConverter<float, float, EncodingType.Companded>().Processor;
+						processor = conv.Processor;
+				}
 			}
 			else if (srcFormat.Encoding == PixelValueEncoding.Linear && Format.Encoding == PixelValueEncoding.Companded)
 			{
 				var dstProfile = destProfile as CurveProfile ?? ColorProfile.sRGB;
 				if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Fixed)
+				{
+					var conv = srcFormat.Range == PixelValueRange.Video
+						? dstProfile.GetConverter<ushort, byte, EncodingType.Linear, EncodingRange.Video>()
+						: dstProfile.GetConverter<ushort, byte, EncodingType.Linear>();
 					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
-						processor = dstProfile.GetConverter<ushort, byte, EncodingType.Linear>().Processor3A;
+						processor = conv.Processor3A;
 					else
-						processor = dstProfile.GetConverter<ushort, byte, EncodingType.Linear>().Processor;
+						processor = conv.Processor;
+				}
 				else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Float && Format.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger)
+				{
+					var conv = srcFormat.Range == PixelValueRange.Video
+						? dstProfile.GetConverter<float, byte, EncodingType.Linear, EncodingRange.Video>()
+						: dstProfile.GetConverter<float, byte, EncodingType.Linear>();
 					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
-						processor = dstProfile.GetConverter<float, byte, EncodingType.Linear>().Processor3A;
+						processor = conv.Processor3A;
 					else if (srcFormat.ChannelCount == 4 && Format.ChannelCount == 3)
-						processor = dstProfile.GetConverter<float, byte, EncodingType.Linear>().Processor3X;
+						processor = conv.Processor3X;
 					else
-						processor = dstProfile.GetConverter<float, byte, EncodingType.Linear>().Processor;
+						processor = conv.Processor;
+				}
 				else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Float)
+				{
+					var conv = dstProfile.GetConverter<float, float, EncodingType.Linear>();
 					if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
-						processor = dstProfile.GetConverter<float, float, EncodingType.Linear>().Processor3A;
+						processor = conv.Processor3A;
 					else
-						processor = dstProfile.GetConverter<float, float, EncodingType.Linear>().Processor;
+						processor = conv.Processor;
+				}
 			}
 			else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger && Format.NumericRepresentation == PixelNumericRepresentation.Float)
 			{
@@ -136,7 +161,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				for (int y = 0; y < prc.Height; y++)
 				{
 					Profiler.PauseTiming();
-					PrevSource.CopyPixels(new PixelArea(prc.X, prc.Y + y, prc.Width, 1), buffStride, buffStride, bstart);
+					PrevSource.CopyPixels(prc.Slice(y, 1), buffStride, buffStride, bstart);
 					Profiler.ResumeTiming();
 
 					byte* op = pbBuffer + y * cbStride;
@@ -156,7 +181,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				byte* ip = op + cbo - cbi;
 
 				Profiler.PauseTiming();
-				PrevSource.CopyPixels(new PixelArea(prc.X, prc.Y + y, prc.Width, 1), cbStride, cbi, ip);
+				PrevSource.CopyPixels(prc.Slice(y, 1), cbStride, cbi, ip);
 				Profiler.ResumeTiming();
 
 				processor.ConvertLine(ip, op, cbi);

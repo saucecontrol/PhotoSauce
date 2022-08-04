@@ -2,6 +2,7 @@
 
 using System;
 using System.Drawing;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler
@@ -105,6 +106,20 @@ namespace PhotoSauce.MagicScaler
 			int y = Y - other.Y;
 
 			return new PixelArea(x, y, Width, Height);
+		}
+
+		public PixelArea Slice(int y, int height)
+		{
+			Debug.Assert(y + height <= Height);
+
+			return new(X, Y + y, Width, height);
+		}
+
+		public PixelArea Slice(int y)
+		{
+			Debug.Assert(y < Height);
+
+			return new(X, Y + y, Width, Height - y);
 		}
 
 		public static implicit operator PixelArea(in Rectangle r) => new(r.X, r.Y, r.Width, r.Height);

@@ -103,7 +103,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 				while (ip < ipe)
 				{
 					uint i = *ip++;
-					if (i >> 24 != 0)
+					if ((int)i < 0)
 						*op = i;
 
 					op++;
@@ -117,7 +117,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 		{
 			if (Avx2.IsSupported)
 			{
-				var vzero = Vector256<uint>.Zero;
+				var vzero = Vector256<int>.Zero;
 				ipe -= Vector256<uint>.Count;
 
 				LoopTop:
@@ -126,8 +126,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 					var vi = Avx.LoadVector256(ip);
 					ip += Vector256<uint>.Count;
 
-					var vm = Avx2.CompareEqual(Avx2.ShiftRightLogical(vi, 24), vzero);
-					var vo = Avx2.BlendVariable(vi, Avx.LoadVector256(op), vm);
+					var vm = Avx2.CompareGreaterThan(vzero, vi.AsInt32()).AsUInt32();
+					var vo = Avx2.BlendVariable(Avx.LoadVector256(op), vi, vm);
 
 					Avx.Store(op, vo);
 					op += Vector256<uint>.Count;
@@ -144,7 +144,7 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 			else
 			{
-				var vzero = Vector128<uint>.Zero;
+				var vzero = Vector128<int>.Zero;
 				ipe -= Vector128<uint>.Count;
 
 				LoopTop:
@@ -153,8 +153,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 					var vi = Sse2.LoadVector128(ip);
 					ip += Vector128<uint>.Count;
 
-					var vm = Sse2.CompareEqual(Sse2.ShiftRightLogical(vi, 24), vzero);
-					var vo = HWIntrinsics.BlendVariable(vi, Sse2.LoadVector128(op), vm);
+					var vm = Sse2.CompareGreaterThan(vzero, vi.AsInt32()).AsUInt32();
+					var vo = HWIntrinsics.BlendVariable(Sse2.LoadVector128(op), vi, vm);
 
 					Sse2.Store(op, vo);
 					op += Vector128<uint>.Count;

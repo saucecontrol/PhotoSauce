@@ -1,5 +1,6 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -18,6 +19,9 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 		public ColorMatrixTransformInternal(PixelSource source, Matrix4x4 matrix) : base(source)
 		{
+			if (source.Format.ColorRepresentation != PixelColorRepresentation.Bgr)
+				throw new NotSupportedException("Pixel format not supported.");
+
 			vec0 = new Vector4(matrix.M33, matrix.M23, matrix.M13, matrix.M43);
 			vec1 = new Vector4(matrix.M32, matrix.M22, matrix.M12, matrix.M42);
 			vec2 = new Vector4(matrix.M31, matrix.M21, matrix.M11, matrix.M41);

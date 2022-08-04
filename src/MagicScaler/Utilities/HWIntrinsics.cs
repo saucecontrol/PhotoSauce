@@ -94,7 +94,7 @@ namespace PhotoSauce.MagicScaler
 				: Vector256.Create(val);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Vector256<float> AvxCompareEqual(Vector256<float> v1, Vector256<float> v2) => Avx.Compare(v1, v2, FloatComparisonMode.OrderedEqualNonSignaling);
+		public static Vector256<float> AvxCompareLessThan(Vector256<float> v1, Vector256<float> v2) => Avx.Compare(v1, v2, FloatComparisonMode.OrderedLessThanSignaling);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static float HorizontalAdd(this Vector128<float> v)

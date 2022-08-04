@@ -680,12 +680,12 @@ namespace PhotoSauce.MagicScaler.Converters
 				int unrollCount = Vector<byte>.Count;
 				var vmin = new Vector<short>(byte.MinValue);
 				var vmax = new Vector<short>(byte.MaxValue);
-				var vscale = new VectorF(byte.MaxValue);
 #else
 				int unrollCount = VectorF.Count;
 				var vmin = new VectorF(byte.MinValue);
 				var vmax = new VectorF(byte.MaxValue);
 #endif
+				var vscale = new VectorF(scale);
 				var vround = new VectorF(offset + 0.5f);
 				ipe -= unrollCount;
 
@@ -717,7 +717,7 @@ namespace PhotoSauce.MagicScaler.Converters
 					var vb = Vector.Narrow(Vector.AsVectorUInt16(vs0), Vector.AsVectorUInt16(vs1));
 					Unsafe.WriteUnaligned(op, vb);
 #else
-					var v = Unsafe.ReadUnaligned<VectorF>(ip) * vmax + vround;
+					var v = Unsafe.ReadUnaligned<VectorF>(ip) * vscale + vround;
 					v = v.Clamp(vmin, vmax);
 
 					op[0] = (byte)v[0];
@@ -782,7 +782,6 @@ namespace PhotoSauce.MagicScaler.Converters
 			{
 				if (Avx2.IsSupported)
 				{
-					var vzero = Vector256<float>.Zero;
 					var vmin = Vector256.Create(0.5f / byte.MaxValue);
 					var vscale = Vector256.Create((float)byte.MaxValue);
 
@@ -803,25 +802,20 @@ namespace PhotoSauce.MagicScaler.Converters
 						var vfa2 = Avx.Shuffle(vf2, vf2, HWIntrinsics.ShuffleMaskAlpha);
 						var vfa3 = Avx.Shuffle(vf3, vf3, HWIntrinsics.ShuffleMaskAlpha);
 
-						vfa0 = Avx.Max(vfa0, vmin);
-						vfa1 = Avx.Max(vfa1, vmin);
-						vfa2 = Avx.Max(vfa2, vmin);
-						vfa3 = Avx.Max(vfa3, vmin);
+						var vfr0 = Avx.AndNot(HWIntrinsics.AvxCompareLessThan(vfa0, vmin), Avx.Reciprocal(vfa0));
+						var vfr1 = Avx.AndNot(HWIntrinsics.AvxCompareLessThan(vfa1, vmin), Avx.Reciprocal(vfa1));
+						var vfr2 = Avx.AndNot(HWIntrinsics.AvxCompareLessThan(vfa2, vmin), Avx.Reciprocal(vfa2));
+						var vfr3 = Avx.AndNot(HWIntrinsics.AvxCompareLessThan(vfa3, vmin), Avx.Reciprocal(vfa3));
 
-						vf0 = Avx.Multiply(vf0, Avx.Reciprocal(vfa0));
-						vf1 = Avx.Multiply(vf1, Avx.Reciprocal(vfa1));
-						vf2 = Avx.Multiply(vf2, Avx.Reciprocal(vfa2));
-						vf3 = Avx.Multiply(vf3, Avx.Reciprocal(vfa3));
+						vf0 = Avx.Multiply(vf0, vfr0);
+						vf1 = Avx.Multiply(vf1, vfr1);
+						vf2 = Avx.Multiply(vf2, vfr2);
+						vf3 = Avx.Multiply(vf3, vfr3);
 
 						vf0 = Avx.Blend(vf0, vfa0, HWIntrinsics.BlendMaskAlpha);
 						vf1 = Avx.Blend(vf1, vfa1, HWIntrinsics.BlendMaskAlpha);
 						vf2 = Avx.Blend(vf2, vfa2, HWIntrinsics.BlendMaskAlpha);
 						vf3 = Avx.Blend(vf3, vfa3, HWIntrinsics.BlendMaskAlpha);
-
-						vf0 = Avx.BlendVariable(vf0, vzero, HWIntrinsics.AvxCompareEqual(vfa0, vmin));
-						vf1 = Avx.BlendVariable(vf1, vzero, HWIntrinsics.AvxCompareEqual(vfa1, vmin));
-						vf2 = Avx.BlendVariable(vf2, vzero, HWIntrinsics.AvxCompareEqual(vfa2, vmin));
-						vf3 = Avx.BlendVariable(vf3, vzero, HWIntrinsics.AvxCompareEqual(vfa3, vmin));
 
 						vf0 = Avx.Multiply(vf0, vscale);
 						vf1 = Avx.Multiply(vf1, vscale);
@@ -854,7 +848,6 @@ namespace PhotoSauce.MagicScaler.Converters
 				}
 				else // Sse41
 				{
-					var vzero = Vector128<float>.Zero;
 					var vmin = Vector128.Create(0.5f / byte.MaxValue);
 					var vscale = Vector128.Create((float)byte.MaxValue);
 					ipe -= Vector128<float>.Count * 4;
@@ -873,25 +866,20 @@ namespace PhotoSauce.MagicScaler.Converters
 						var vfa2 = Sse.Shuffle(vf2, vf2, HWIntrinsics.ShuffleMaskAlpha);
 						var vfa3 = Sse.Shuffle(vf3, vf3, HWIntrinsics.ShuffleMaskAlpha);
 
-						vfa0 = Sse.Max(vfa0, vmin);
-						vfa1 = Sse.Max(vfa1, vmin);
-						vfa2 = Sse.Max(vfa2, vmin);
-						vfa3 = Sse.Max(vfa3, vmin);
+						var vfr0 = Sse.AndNot(Sse.CompareLessThan(vfa0, vmin), Sse.Reciprocal(vfa0));
+						var vfr1 = Sse.AndNot(Sse.CompareLessThan(vfa1, vmin), Sse.Reciprocal(vfa1));
+						var vfr2 = Sse.AndNot(Sse.CompareLessThan(vfa2, vmin), Sse.Reciprocal(vfa2));
+						var vfr3 = Sse.AndNot(Sse.CompareLessThan(vfa3, vmin), Sse.Reciprocal(vfa3));
 
-						vf0 = Sse.Multiply(vf0, Sse.Reciprocal(vfa0));
-						vf1 = Sse.Multiply(vf1, Sse.Reciprocal(vfa1));
-						vf2 = Sse.Multiply(vf2, Sse.Reciprocal(vfa2));
-						vf3 = Sse.Multiply(vf3, Sse.Reciprocal(vfa3));
+						vf0 = Sse.Multiply(vf0, vfr0);
+						vf1 = Sse.Multiply(vf1, vfr1);
+						vf2 = Sse.Multiply(vf2, vfr2);
+						vf3 = Sse.Multiply(vf3, vfr3);
 
 						vf0 = Sse41.Blend(vf0, vfa0, HWIntrinsics.BlendMaskAlpha);
 						vf1 = Sse41.Blend(vf1, vfa1, HWIntrinsics.BlendMaskAlpha);
 						vf2 = Sse41.Blend(vf2, vfa2, HWIntrinsics.BlendMaskAlpha);
 						vf3 = Sse41.Blend(vf3, vfa3, HWIntrinsics.BlendMaskAlpha);
-
-						vf0 = Sse41.BlendVariable(vf0, vzero, Sse.CompareEqual(vfa0, vmin));
-						vf1 = Sse41.BlendVariable(vf1, vzero, Sse.CompareEqual(vfa1, vmin));
-						vf2 = Sse41.BlendVariable(vf2, vzero, Sse.CompareEqual(vfa2, vmin));
-						vf3 = Sse41.BlendVariable(vf3, vzero, Sse.CompareEqual(vfa3, vmin));
 
 						vf0 = Sse.Multiply(vf0, vscale);
 						vf1 = Sse.Multiply(vf1, vscale);

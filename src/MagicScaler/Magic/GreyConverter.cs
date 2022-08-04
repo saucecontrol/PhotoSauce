@@ -221,7 +221,7 @@ namespace PhotoSauce.MagicScaler.Converters
 				var clum = linear ? Rec709Luma.Coefficients : Rec601Luma.Coefficients;
 
 #if HWINTRINSICS
-				if (Avx.IsSupported && cb >= Vector256<byte>.Count * 4)
+				if (Avx2.IsSupported && cb >= Vector256<byte>.Count * 4)
 				{
 					var vcbl = Vector256.Create(clum.X);
 					var vcgl = Vector256.Create(clum.Y);
