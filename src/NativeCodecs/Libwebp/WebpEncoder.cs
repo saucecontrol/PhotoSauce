@@ -14,13 +14,14 @@ using static PhotoSauce.Interop.Libwebp.Libwebpmux;
 
 namespace PhotoSauce.NativeCodecs.Libwebp;
 
-internal sealed unsafe class WebpEncoder : IImageEncoder
+internal sealed unsafe class WebpEncoder : IAnimatedImageEncoder
 {
 	private readonly IWebpEncoderOptions options;
 	private readonly Stream stream;
 
 	private IntPtr handle;
 	private bool written;
+	private bool animated;
 
 	public static WebpEncoder Create(Stream outStream, IEncoderOptions? webpOptions) => new(outStream, webpOptions);
 
@@ -32,12 +33,22 @@ internal sealed unsafe class WebpEncoder : IImageEncoder
 		handle = WebPMuxNew();
 	}
 
+	public void WriteAnimationMetadata(IMetadataSource metadata)
+	{
+		if (!metadata.TryGetMetadata<AnimationContainer>(out var anicnt))
+			anicnt = default;
+
+		animated = true;
+		var anip = new WebPMuxAnimParams {
+			bgcolor = (uint)anicnt.BackgroundColor,
+			loop_count = anicnt.LoopCount
+		};
+		WebpResult.Check(WebPMuxSetAnimationParams(handle, &anip));
+	}
+
 	public void WriteFrame(IPixelSource source, IMetadataSource metadata, Rectangle sourceArea)
 	{
-		if (written)
-			throw new InvalidOperationException("An image frame has already been written, and this encoder does not yet support multiple frames.");
-
-		var area = sourceArea == default ? new PixelArea(0, 0, source.Width, source.Height) : (PixelArea)sourceArea;
+		var area = sourceArea == default ? new PixelArea(0, 0, source.Width, source.Height) : ((PixelArea)sourceArea).SnapTo(2, 2, source.Width, source.Height);
 		if (area.Width > WEBP_MAX_DIMENSION || area.Height > WEBP_MAX_DIMENSION)
 			throw new NotSupportedException($"WebP supports a max of {WEBP_MAX_DIMENSION} pixels in either dimension.");
 
@@ -153,7 +164,30 @@ internal sealed unsafe class WebpEncoder : IImageEncoder
 				WebpResult.Check(picture.error_code);
 
 			var img = new WebPData { size = writer.size, bytes = writer.mem };
-			WebpResult.Check(WebPMuxSetImage(handle, &img, 1));
+
+			if (animated)
+			{
+				if (!metadata.TryGetMetadata<AnimationFrame>(out var anifrm))
+					anifrm = AnimationFrame.Default;
+
+				var anif = new WebPMuxFrameInfo {
+					id = WebPChunkId.WEBP_CHUNK_ANMF,
+					x_offset = anifrm.OffsetLeft,
+					y_offset = anifrm.OffsetTop,
+					duration = (int)anifrm.Duration.NormalizeTo(1000).Numerator,
+					dispose_method = anifrm.Disposal == FrameDisposalMethod.RestoreBackground ? WebPMuxAnimDispose.WEBP_MUX_DISPOSE_BACKGROUND : WebPMuxAnimDispose.WEBP_MUX_DISPOSE_NONE,
+					blend_method = WebPMuxAnimBlend.WEBP_MUX_BLEND,
+					bitstream = img
+				};
+				WebpResult.Check(WebPMuxPushFrame(handle, &anif, 1));
+			}
+			else
+			{
+				if (written)
+					throw new InvalidOperationException("An image frame has already been written, and this encoder is not configured for multiple frames.");
+
+				WebpResult.Check(WebPMuxSetImage(handle, &img, 1));
+			}
 		}
 		finally
 		{
