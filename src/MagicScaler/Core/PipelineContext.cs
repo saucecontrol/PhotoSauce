@@ -33,7 +33,7 @@ namespace PhotoSauce.MagicScaler
 		public WicPipelineContext WicContext => wicContext ??= new();
 
 		public bool IsAnimationPipeline =>
-			 Settings.EncoderInfo!.SupportsAnimation && ImageContainer.FrameCount > 1 && ImageContainer is IMetadataSource meta && meta.TryGetMetadata<AnimationContainer>(out _);
+			Settings.EncoderInfo!.SupportsAnimation && ImageContainer.FrameCount > 1 && ImageContainer is IMetadataSource meta && meta.TryGetMetadata<AnimationContainer>(out _);
 
 		public PipelineContext(ProcessImageSettings settings, IImageContainer cont, bool ownCont = true)
 		{

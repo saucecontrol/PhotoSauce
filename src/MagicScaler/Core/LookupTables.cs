@@ -157,13 +157,13 @@ namespace PhotoSauce.MagicScaler
 			const int minVal = VideoLumaMin << 2;
 			const int maxVal = VideoLumaMax << 2;
 
-			var stbl = new float[gt.Length];
-			for (int i = 0; i < stbl.Length; i++)
-				stbl[i] = (float)(((double)gt[i] * (maxVal - minVal) + minVal) / GammaScaleFloat);
+			var gtv = new float[gt.Length];
+			for (int i = 0; i < gtv.Length; i++)
+				gtv[i] = (float)(((double)gt[i] * (maxVal - minVal) + minVal) / GammaScaleFloat);
 
-			Fixup(stbl, GammaScaleFloat);
+			Fixup(gtv, GammaScaleFloat);
 
-			return stbl;
+			return gtv;
 		}
 
 		public static float[] MakeVideoInverseGamma(float[] igt)
@@ -171,8 +171,8 @@ namespace PhotoSauce.MagicScaler
 			const int minVal = VideoLumaMin;
 			const int maxVal = VideoLumaMax;
 
-			var stbl = new float[igt.Length];
-			for (int i = 0; i < stbl.Length; i++)
+			var igtv = new float[igt.Length];
+			for (int i = 0; i < igtv.Length; i++)
 			{
 				double val = (double)(i.Clamp(minVal, maxVal) - minVal) / (maxVal - minVal);
 				double pos = val * InverseGammaScale;
@@ -180,12 +180,12 @@ namespace PhotoSauce.MagicScaler
 				int idx = (int)pos;
 				val = Lerp(igt[idx], igt[idx + 1], pos - idx);
 
-				stbl[i] = (float)val;
+				igtv[i] = (float)val;
 			}
 
-			Fixup(stbl, InverseGammaScale);
+			Fixup(igtv, InverseGammaScale);
 
-			return stbl;
+			return igtv;
 		}
 	}
 }

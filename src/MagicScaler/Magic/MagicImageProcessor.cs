@@ -269,11 +269,11 @@ namespace PhotoSauce.MagicScaler
 			using var bfs = PoolBufferedStream.WrapIfFile(ostm);
 			using var enc = ctx.Settings.EncoderInfo!.Factory(bfs ?? ostm, ctx.Settings.EncoderOptions);
 
-			if (ctx.IsAnimationPipeline && enc is WicImageEncoder wenc)
+			if (ctx.IsAnimationPipeline && enc is IAnimatedImageEncoder aenc)
 			{
-				using var gif = new WicAnimatedGifEncoder(ctx, wenc);
-				gif.WriteGlobalMetadata();
-				gif.WriteFrames();
+				using var anienc = new AnimationEncoder(ctx, aenc);
+				anienc.WriteGlobalMetadata();
+				anienc.WriteFrames();
 			}
 			else
 			{

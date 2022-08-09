@@ -15,7 +15,7 @@ namespace PhotoSauce.MagicScaler
 	{
 		private const byte denoiseThreshold = 15;
 
-		public static void Dedupe(WicAnimatedGifEncoder buffer, uint bgcolor)
+		public static void Dedupe(AnimationEncoder buffer, uint bgcolor)
 		{
 			var src = buffer.Current.Source;
 			if (src.Format != PixelFormat.Bgra32)

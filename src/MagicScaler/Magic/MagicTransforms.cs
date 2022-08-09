@@ -602,8 +602,8 @@ namespace PhotoSauce.MagicScaler.Transforms
 				return;
 
 			var frmsrc = ctx.Source;
-			if (ctx.AnimationContext?.FrameBufferSource is not null && ldisp != FrameDisposalMethod.RestoreBackground)
-				ctx.Source = ctx.AnimationContext.FrameBufferSource;
+			if (ctx.AnimationContext?.ScreenBuffer is not null && ldisp != FrameDisposalMethod.RestoreBackground)
+				ctx.Source = ctx.AnimationContext.ScreenBuffer;
 
 			var innerArea = new PixelArea(anifrm.OffsetLeft, anifrm.OffsetTop, ctx.Source.Width, ctx.Source.Height);
 			bool useBuffer = !replay && disposal == FrameDisposalMethod.Preserve;
@@ -618,10 +618,10 @@ namespace PhotoSauce.MagicScaler.Transforms
 			}
 			else if (ldisp != FrameDisposalMethod.RestoreBackground && !useBuffer)
 			{
-				Debug.Assert(ctx.AnimationContext?.FrameBufferSource is not null);
+				Debug.Assert(ctx.AnimationContext?.ScreenBuffer is not null);
 
 				var anictx = ctx.AnimationContext;
-				var fbuff = anictx.FrameBufferSource;
+				var fbuff = anictx.ScreenBuffer;
 
 				ctx.Source = new OverlayTransform(fbuff, frmsrc, anifrm.OffsetLeft, anifrm.OffsetTop, anifrm.HasAlpha);
 			}

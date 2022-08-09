@@ -112,7 +112,7 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 			int fc = (int)WebPDemuxGetI(handle, WebPFormatFeature.WEBP_FF_FRAME_COUNT);
 			int lc = (int)WebPDemuxGetI(handle, WebPFormatFeature.WEBP_FF_LOOP_COUNT);
 			int bg = (int)WebPDemuxGetI(handle, WebPFormatFeature.WEBP_FF_BACKGROUND_COLOR);
-			var anicnt = new AnimationContainer(cw, ch, fc, lc, bg, true);
+			var anicnt = new AnimationContainer(cw, ch, fc, lc, bg, 1f, true);
 
 			metadata = (T)(object)anicnt;
 			return true;

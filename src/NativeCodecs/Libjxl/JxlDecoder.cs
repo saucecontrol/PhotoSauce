@@ -268,7 +268,7 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 			src.lastseen = line;
 
 			int bpp = src.Format.BytesPerPixel;
-			var span = src.frameBuff.PrepareLoad(line, 1)[((int)x * bpp)..];
+			var span = src.frameBuff.PrepareLoad(line, 1).Slice((int)x * bpp);
 			new ReadOnlySpan<byte>(pb, (int)w * bpp).CopyTo(span);
 		}
 

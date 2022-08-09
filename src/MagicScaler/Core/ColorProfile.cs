@@ -367,7 +367,7 @@ namespace PhotoSauce.MagicScaler
 					bool inc = true, dec = true;
 					for (int i = 0; i < points.Length; i++)
 					{
-						ushort p = ReadUInt16BigEndian(trc[(12 + i * sizeof(ushort))..]);
+						ushort p = ReadUInt16BigEndian(trc.Slice(12 + i * sizeof(ushort)));
 
 						if (i > 0 && p < pp)
 							inc = false;

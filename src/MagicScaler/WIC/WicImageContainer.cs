@@ -121,7 +121,10 @@ namespace PhotoSauce.MagicScaler
 					loopCount = BinaryPrimitives.ReadUInt16LittleEndian(appdata[2..]);
 			}
 
-			AnimationMetadata = new(screenWidth, screenHeight, (int)fcount, loopCount, bgColor, true);
+			int par = meta.Get()->GetValueOrDefault<byte>(Wic.Metadata.Gif.PixelAspectRatio);
+			float pixelAspect = par == default ? 1f : ((par + 15) / 64f);
+
+			AnimationMetadata = new(screenWidth, screenHeight, (int)fcount, loopCount, bgColor, pixelAspect, true);
 		}
 
 		public override IImageFrame GetFrame(int index)

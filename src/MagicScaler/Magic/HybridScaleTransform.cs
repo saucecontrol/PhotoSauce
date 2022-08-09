@@ -197,14 +197,14 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 					var vrnd = Avx2.ShiftRightLogical(vscalc.AsInt32(), 30);
 					var vma = Avx.ConvertToVector256Int32WithTruncation(Avx.Divide(vscala, Avx.ConvertToVector256Single(vai)));
-					vma = Avx2.BlendVariable(vma, Vector256<int>.Zero, Avx2.CompareGreaterThan(vrnd, vai));
+					vma = Avx2.AndNot(Avx2.CompareGreaterThan(vrnd, vai), vma);
 
 					vai = Avx2.ShiftRightLogical(Avx2.Add(vai, vrnd), 2);
 					v0i = Avx2.MultiplyLow(v0i, vma);
 					v1i = Avx2.MultiplyLow(v1i, vma);
 					v2i = Avx2.MultiplyLow(v2i, vma);
 
-					vrnd = Avx2.ShiftLeftLogical(vrnd, 21);
+					vrnd = Avx2.ShiftRightLogical(vscala.AsInt32(), 9);
 					v0i = Avx2.Add(v0i, vrnd);
 					v1i = Avx2.Add(v1i, vrnd);
 					v2i = Avx2.Add(v2i, vrnd);
@@ -293,14 +293,14 @@ namespace PhotoSauce.MagicScaler.Transforms
 
 					var vrnd = Sse2.ShiftRightLogical(vscalc.AsInt32(), 30);
 					var vma = Sse2.ConvertToVector128Int32WithTruncation(Sse.Divide(vscala, Sse2.ConvertToVector128Single(vai)));
-					vma = Sse41.BlendVariable(vma, Vector128<int>.Zero, Sse2.CompareGreaterThan(vrnd, vai));
+					vma = Sse2.AndNot(Sse2.CompareGreaterThan(vrnd, vai), vma);
 
 					vai = Sse2.ShiftRightLogical(Sse2.Add(vai, vrnd), 2);
 					v0i = Sse41.MultiplyLow(v0i, vma);
 					v1i = Sse41.MultiplyLow(v1i, vma);
 					v2i = Sse41.MultiplyLow(v2i, vma);
 
-					vrnd = Sse2.ShiftLeftLogical(vrnd, 21);
+					vrnd = Sse2.ShiftRightLogical(vscala.AsInt32(), 9);
 					v0i = Sse2.Add(v0i, vrnd);
 					v1i = Sse2.Add(v1i, vrnd);
 					v2i = Sse2.Add(v2i, vrnd);

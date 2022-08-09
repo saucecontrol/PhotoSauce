@@ -9,7 +9,7 @@ namespace PhotoSauce.MagicScaler
 {
 	internal sealed class AnimationPipelineContext : IDisposable
 	{
-		public FrameBufferSource? FrameBufferSource;
+		public FrameBufferSource? ScreenBuffer;
 		public FrameDisposalMethod LastDisposal = FrameDisposalMethod.RestoreBackground;
 
 		public unsafe void UpdateFrameBuffer(IImageFrame frame, in AnimationContainer anicnt, in AnimationFrame anifrm)
@@ -18,7 +18,7 @@ namespace PhotoSauce.MagicScaler
 			int width = Math.Min(src.Width, anicnt.ScreenWidth - anifrm.OffsetLeft);
 			int height = Math.Min(src.Height, anicnt.ScreenHeight - anifrm.OffsetTop);
 
-			var fbuff = FrameBufferSource ??= new(anicnt.ScreenWidth, anicnt.ScreenHeight, PixelFormat.Bgra32, true);
+			var fbuff = ScreenBuffer ??= new(anicnt.ScreenWidth, anicnt.ScreenHeight, PixelFormat.Bgra32, true);
 			var bspan = fbuff.Span;
 
 			fbuff.Profiler.ResumeTiming();
@@ -29,7 +29,7 @@ namespace PhotoSauce.MagicScaler
 				MemoryMarshal.Cast<byte, uint>(bspan).Fill(anifrm.HasAlpha ? 0 : (uint)anicnt.BackgroundColor);
 
 			// Similarly, they overwrite a background color with transparent pixels but overlay instead when the previous frame is preserved
-			var fspan = bspan[(anifrm.OffsetTop * fbuff.Stride + anifrm.OffsetLeft * fbuff.Format.BytesPerPixel)..];
+			var fspan = bspan.Slice(anifrm.OffsetTop * fbuff.Stride + anifrm.OffsetLeft * fbuff.Format.BytesPerPixel);
 			fixed (byte* buff = fspan)
 			{
 				if (!anifrm.HasAlpha || LastDisposal == FrameDisposalMethod.RestoreBackground)
@@ -47,9 +47,6 @@ namespace PhotoSauce.MagicScaler
 			fbuff.Profiler.PauseTiming();
 		}
 
-		public void Dispose()
-		{
-			FrameBufferSource?.DisposeBuffer();
-		}
+		public void Dispose() => ScreenBuffer?.DisposeBuffer();
 	}
 }

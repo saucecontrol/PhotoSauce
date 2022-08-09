@@ -110,12 +110,12 @@ namespace PhotoSauce.MagicScaler
 	internal sealed class MagicMetadataFilter : IMetadataSource
 	{
 		private readonly PipelineContext context;
-		private readonly IMetadataSource source;
 
-		public MagicMetadataFilter(PipelineContext ctx) => (context, source) = (ctx, ctx.ImageFrame as IMetadataSource ?? ctx.Metadata);
+		public MagicMetadataFilter(PipelineContext ctx) => context = ctx;
 
 		public unsafe bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata
 		{
+			var source = context.ImageFrame as IMetadataSource ?? NoopMetadataSource.Instance;
 			var settings = context.Settings;
 
 			if (typeof(T) == typeof(ResolutionMetadata))
@@ -174,6 +174,15 @@ namespace PhotoSauce.MagicScaler
 				return false;
 			}
 
+			if (typeof(T) == typeof(AnimationContainer))
+			{
+				if (context.ImageContainer is not IMetadataSource cmsrc || !cmsrc.TryGetMetadata<AnimationContainer>(out var anicnt))
+					anicnt = default;
+
+				metadata = (T)(object)anicnt;
+				return true;
+			}
+
 			return source.TryGetMetadata(out metadata);
 		}
 	}
@@ -183,6 +192,8 @@ namespace PhotoSauce.MagicScaler
 	/// <param name="Denominator">The denominator of the rational number.</param>
 	internal readonly record struct Rational(uint Numerator, uint Denominator)
 	{
+		public Rational NormalizeTo(uint newDenominator) => Denominator == newDenominator ? this : new((uint)((double)this * newDenominator), newDenominator);
+
 		public override string ToString() => $"{Numerator}/{Denominator}";
 
 		public static implicit operator Rational((uint n, uint d) f) => new(f.n, f.d);
@@ -219,11 +230,15 @@ namespace PhotoSauce.MagicScaler
 		/// <summary>The background color to restore when a frame's disposal method is RestoreBackground, in ARGB order.</summary>
 		public readonly int BackgroundColor;
 
+		/// <summary>The pixel aspect ratio of the animation.</summary>
+		/// <remarks>This property is used only for GIF.  Valid range is 0.25 to 4.21875, where 0 or 1 means square pixels.</remarks>
+		public readonly float PixelAspectRatio;
+
 		/// <summary>True if this animation requires a persistent screen buffer onto which frames are rendered, otherwise false.</summary>
 		public readonly bool RequiresScreenBuffer;
 
-		public AnimationContainer(int screenWidth, int screenHeight, int frameCount, int loopCount = 0, int bgColor = 0, bool screenBuffer = false) =>
-			(ScreenWidth, ScreenHeight, FrameCount, LoopCount, BackgroundColor, RequiresScreenBuffer) = (screenWidth, screenHeight, frameCount, loopCount, bgColor, screenBuffer);
+		public AnimationContainer(int screenWidth, int screenHeight, int frameCount, int loopCount = 0, int bgColor = 0, float pixelAspect = 1f, bool screenBuffer = false) =>
+			(ScreenWidth, ScreenHeight, FrameCount, LoopCount, BackgroundColor, PixelAspectRatio, RequiresScreenBuffer) = (screenWidth, screenHeight, frameCount, loopCount, bgColor, pixelAspect, screenBuffer);
 	}
 
 	/// <summary>Defines metadata for a single frame within an animated image sequence.</summary>

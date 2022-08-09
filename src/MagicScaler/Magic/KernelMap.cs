@@ -34,7 +34,7 @@ namespace PhotoSauce.MagicScaler
 				{
 					int chan = typeof(T) == typeof(float) ? ichannels : 1;
 					int offs = (map.Pixels - 1) * (typeof(T) == typeof(float) ? 2 : map.Samples + 1);
-					int last = MemoryMarshal.Read<int>(map.Map[(offs * sizeof(int))..]);
+					int last = MemoryMarshal.Read<int>(map.Map.Slice(offs * sizeof(int)));
 
 					if (map.Channels != chan || map.Pixels != osize || (uint)last > (uint)(isize - map.Samples))
 					{
@@ -168,7 +168,7 @@ namespace PhotoSauce.MagicScaler
 
 			var kcache = kbuff.Span.Slice(buffLen - cacheLen, cacheLen);
 			var kernel = kbuff.Span.Slice(buffLen - klen - cacheLen, klen);
-			var mbuff = MemoryMarshal.Cast<float, T>(kbuff.Span[..(Math.Min(klen, isize) * channels)]);
+			var mbuff = MemoryMarshal.Cast<float, T>(kbuff.Span.Slice(0, Math.Min(klen, isize) * channels));
 			var mbytes = MemoryMarshal.AsBytes(mbuff);
 
 			if (cacheLen > 0)

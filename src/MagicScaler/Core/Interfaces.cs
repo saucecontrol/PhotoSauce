@@ -169,6 +169,11 @@ namespace PhotoSauce.MagicScaler
 		(int width, int height) SetDecodeScale(int ratio);
 	}
 
+	internal interface IAnimatedImageEncoder : IImageEncoder
+	{
+		void WriteAnimationMetadata(IMetadataSource metadata);
+	}
+
 	internal interface IPlanarImageEncoderInfo : IImageEncoderInfo
 	{
 		ChromaSubsampleMode[] SubsampleModes { get; }
