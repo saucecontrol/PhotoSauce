@@ -20,7 +20,8 @@ csharp_style_deconstructed_variable_declaration = true:silent
 dotnet_diagnostic.CA1031.severity = silent
 dotnet_diagnostic.CA1308.severity = silent
 dotnet_diagnostic.CA1816.severity = silent
-dotnet_diagnostic.CS3016.severity = silent
+dotnet_diagnostic.CS3016.severity = silent ; https://github.com/dotnet/runtime/issues/40461
+dotnet_diagnostic.CS1573.severity = silent ; https://github.com/dotnet/roslyn/issues/40325
 
 dotnet_naming_rule.private_non_field_members_should_be_camel_case.severity = suggestion
 dotnet_naming_rule.private_non_field_members_should_be_camel_case.symbols = private_non_field_members

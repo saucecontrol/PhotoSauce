@@ -54,9 +54,7 @@ namespace PhotoSauce.MagicScaler
 
 	internal static class StatsManager
 	{
-		public const string SwitchName = $"{nameof(PhotoSauce)}.{nameof(MagicScaler)}.EnablePixelSourceStats";
-
-		public static readonly bool ProfilingEnabled = AppContext.TryGetSwitch(SwitchName, out bool enabled) && enabled;
+		public static bool ProfilingEnabled => AppConfig.EnablePixelSourceStats;
 
 		public static IProfiler GetProfiler(object src) => ProfilingEnabled ? new ProcessingProfiler(src) : NoopProfiler.Instance;
 	}
@@ -136,7 +134,7 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="transform">The <see cref="IPixelTransform" /> that implements the filter.</param>
 		public ProcessingPipeline AddTransform(IPixelTransform transform)
 		{
-			Guard.NotNull(transform);
+			ThrowHelper.ThrowIfNull(transform);
 
 			if (source.IsValueCreated)
 				throw new NotSupportedException("A Transform cannot be added once the Pipeline Source is materialized");
@@ -163,7 +161,7 @@ namespace PhotoSauce.MagicScaler
 		/// <returns>A <see cref="ProcessImageResult" /> containing the settings used and basic instrumentation for the pipeline.</returns>
 		public ProcessImageResult WriteOutput(Stream outStream)
 		{
-			Guard.ValidForOutput(outStream);
+			ThrowHelper.ThrowIfNotValidForOutput(outStream);
 
 			return MagicImageProcessor.WriteOutput(Context, outStream);
 		}

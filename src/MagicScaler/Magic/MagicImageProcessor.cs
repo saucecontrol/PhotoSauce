@@ -1,7 +1,5 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
-#pragma warning disable CS1573 // https://github.com/dotnet/roslyn/issues/40325
-
 using System;
 using System.IO;
 using System.Numerics;
@@ -15,7 +13,7 @@ namespace PhotoSauce.MagicScaler
 	public static class MagicImageProcessor
 	{
 		/// <summary>This property is no longer functional.  Use the <c>PhotoSauce.MagicScaler.MaxPooledBufferSize</c> <see cref="AppContext"/> value instead.</summary>
-		[Obsolete($"Use {nameof(AppContext)} value {BufferPool.MaxPooledBufferSizeName} instead."), EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete($"Use {nameof(AppContext)} value {AppConfig.MaxPooledBufferSizeName} instead."), EditorBrowsable(EditorBrowsableState.Never)]
 		public static bool EnableLargeBufferPool { get; set; }
 
 		/// <summary>The property is obsolete.  Use DecoderOptions instead.</summary>
@@ -27,7 +25,7 @@ namespace PhotoSauce.MagicScaler
 		public static bool EnableXmpOrientation { get; set; }
 
 		/// <summary>This property is no longer functional.  Use the <c>PhotoSauce.MagicScaler.EnablePixelSourceStats</c> <see cref="AppContext"/> switch instead.</summary>
-		[Obsolete($"Use {nameof(AppContext)} switch {StatsManager.SwitchName} instead."), EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete($"Use {nameof(AppContext)} switch {AppConfig.EnablePixelSourceStatsName} instead."), EditorBrowsable(EditorBrowsableState.Never)]
 		public static bool EnablePixelSourceStats { get; set; }
 
 		/// <summary>Overrides the default <a href="https://en.wikipedia.org/wiki/SIMD">SIMD</a> support detection to force floating point processing on or off.</summary>
@@ -55,9 +53,9 @@ namespace PhotoSauce.MagicScaler
 		/// <returns>A <see cref="ProcessImageResult" /> containing the settings used and basic instrumentation for the pipeline.</returns>
 		public static ProcessImageResult ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
 		{
-			Guard.ValidForOutput(outStream);
-			Guard.NotNullOrEmpty(imgPath);
-			Guard.NotNull(settings);
+			ThrowHelper.ThrowIfNotValidForOutput(outStream);
+			ThrowHelper.ThrowIfNullOrEmpty(imgPath);
+			ThrowHelper.ThrowIfNull(settings);
 
 			using var fs = new FileStream(imgPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
 			using var bfs = new PoolBufferedStream(fs);
@@ -72,9 +70,9 @@ namespace PhotoSauce.MagicScaler
 		/// <remarks>If <paramref name="outPath"/> already exists, it will be overwritten.</remarks>
 		public static ProcessImageResult ProcessImage(string imgPath, string outPath, ProcessImageSettings settings)
 		{
-			Guard.NotNullOrEmpty(outPath);
-			Guard.NotNullOrEmpty(imgPath);
-			Guard.NotNull(settings);
+			ThrowHelper.ThrowIfNullOrEmpty(outPath);
+			ThrowHelper.ThrowIfNullOrEmpty(imgPath);
+			ThrowHelper.ThrowIfNull(settings);
 
 			setEncoderFromPath(settings, outPath);
 			using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
@@ -86,9 +84,9 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="imgBuffer">A buffer containing a supported input image container.</param>
 		public static unsafe ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, Stream outStream, ProcessImageSettings settings)
 		{
-			Guard.ValidForOutput(outStream);
-			Guard.NotEmpty(imgBuffer);
-			Guard.NotNull(settings);
+			ThrowHelper.ThrowIfNotValidForOutput(outStream);
+			ThrowHelper.ThrowIfEmpty(imgBuffer);
+			ThrowHelper.ThrowIfNull(settings);
 
 			fixed (byte* pbBuffer = imgBuffer)
 			{
@@ -106,9 +104,9 @@ namespace PhotoSauce.MagicScaler
 		/// <remarks>If <paramref name="outPath"/> already exists, it will be overwritten.</remarks>
 		public static unsafe ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, string outPath, ProcessImageSettings settings)
 		{
-			Guard.NotNullOrEmpty(outPath);
-			Guard.NotEmpty(imgBuffer);
-			Guard.NotNull(settings);
+			ThrowHelper.ThrowIfNullOrEmpty(outPath);
+			ThrowHelper.ThrowIfEmpty(imgBuffer);
+			ThrowHelper.ThrowIfNull(settings);
 
 			setEncoderFromPath(settings, outPath);
 			using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
@@ -120,9 +118,9 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="imgStream">A stream containing a supported input image container. The stream must allow Seek and Read.</param>
 		public static ProcessImageResult ProcessImage(Stream imgStream, Stream outStream, ProcessImageSettings settings)
 		{
-			Guard.ValidForOutput(outStream);
-			Guard.ValidForInput(imgStream);
-			Guard.NotNull(settings);
+			ThrowHelper.ThrowIfNotValidForOutput(outStream);
+			ThrowHelper.ThrowIfNotValidForInput(imgStream);
+			ThrowHelper.ThrowIfNull(settings);
 
 			using var bfs = PoolBufferedStream.WrapIfFile(imgStream);
 			using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(bfs ?? imgStream, settings.DecoderOptions));
@@ -135,9 +133,9 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="imgStream">A stream containing a supported input image container. The stream must allow Seek and Read.</param>
 		public static unsafe ProcessImageResult ProcessImage(Stream imgStream, string outPath, ProcessImageSettings settings)
 		{
-			Guard.NotNullOrEmpty(outPath);
-			Guard.ValidForInput(imgStream);
-			Guard.NotNull(settings);
+			ThrowHelper.ThrowIfNullOrEmpty(outPath);
+			ThrowHelper.ThrowIfNotValidForInput(imgStream);
+			ThrowHelper.ThrowIfNull(settings);
 
 			setEncoderFromPath(settings, outPath);
 			using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
@@ -149,9 +147,9 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="imgSource">A custom pixel source to use as input.</param>
 		public static ProcessImageResult ProcessImage(IPixelSource imgSource, Stream outStream, ProcessImageSettings settings)
 		{
-			Guard.ValidForOutput(outStream);
-			Guard.NotNull(imgSource);
-			Guard.NotNull(settings);
+			ThrowHelper.ThrowIfNotValidForOutput(outStream);
+			ThrowHelper.ThrowIfNull(imgSource);
+			ThrowHelper.ThrowIfNull(settings);
 
 			using var ctx = new PipelineContext(settings, new PixelSourceContainer(imgSource));
 			buildPipeline(ctx);
@@ -163,9 +161,9 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="imgSource">A custom pixel source to use as input.</param>
 		public static unsafe ProcessImageResult ProcessImage(IPixelSource imgSource, string outPath, ProcessImageSettings settings)
 		{
-			Guard.NotNullOrEmpty(outPath);
-			Guard.NotNull(imgSource);
-			Guard.NotNull(settings);
+			ThrowHelper.ThrowIfNullOrEmpty(outPath);
+			ThrowHelper.ThrowIfNull(imgSource);
+			ThrowHelper.ThrowIfNull(settings);
 
 			setEncoderFromPath(settings, outPath);
 			using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
@@ -177,9 +175,9 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="imgContainer">A custom <see cref="IImageContainer"/> to use as input.</param>
 		public static ProcessImageResult ProcessImage(IImageContainer imgContainer, Stream outStream, ProcessImageSettings settings)
 		{
-			Guard.ValidForOutput(outStream);
-			Guard.NotNull(imgContainer);
-			Guard.NotNull(settings);
+			ThrowHelper.ThrowIfNotValidForOutput(outStream);
+			ThrowHelper.ThrowIfNull(imgContainer);
+			ThrowHelper.ThrowIfNull(settings);
 
 			using var ctx = new PipelineContext(settings, imgContainer, false);
 			buildPipeline(ctx);
@@ -191,9 +189,9 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="imgContainer">A custom <see cref="IImageContainer"/> to use as input.</param>
 		public static unsafe ProcessImageResult ProcessImage(IImageContainer imgContainer, string outPath, ProcessImageSettings settings)
 		{
-			Guard.NotNullOrEmpty(outPath);
-			Guard.NotNull(imgContainer);
-			Guard.NotNull(settings);
+			ThrowHelper.ThrowIfNullOrEmpty(outPath);
+			ThrowHelper.ThrowIfNull(imgContainer);
+			ThrowHelper.ThrowIfNull(settings);
 
 			setEncoderFromPath(settings, outPath);
 			using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
@@ -207,8 +205,8 @@ namespace PhotoSauce.MagicScaler
 		/// <returns>A <see cref="ProcessingPipeline" /> containing the <see cref="IPixelSource" />, settings used, and basic instrumentation for the pipeline.</returns>
 		public static ProcessingPipeline BuildPipeline(string imgPath, ProcessImageSettings settings)
 		{
-			Guard.NotNullOrEmpty(imgPath);
-			Guard.NotNull(settings);
+			ThrowHelper.ThrowIfNullOrEmpty(imgPath);
+			ThrowHelper.ThrowIfNull(settings);
 
 			var fs = new FileStream(imgPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
 			var bfs = new PoolBufferedStream(fs, true);
@@ -223,8 +221,8 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="imgStream">A stream containing a supported input image container. The stream must allow Seek and Read.</param>
 		public static ProcessingPipeline BuildPipeline(Stream imgStream, ProcessImageSettings settings)
 		{
-			Guard.ValidForInput(imgStream);
-			Guard.NotNull(settings);
+			ThrowHelper.ThrowIfNotValidForInput(imgStream);
+			ThrowHelper.ThrowIfNull(settings);
 
 			var bfs = PoolBufferedStream.WrapIfFile(imgStream);
 			var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(bfs ?? imgStream, settings.DecoderOptions));
@@ -240,8 +238,8 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="imgSource">A custom pixel source to use as input.</param>
 		public static ProcessingPipeline BuildPipeline(IPixelSource imgSource, ProcessImageSettings settings)
 		{
-			Guard.NotNull(imgSource);
-			Guard.NotNull(settings);
+			ThrowHelper.ThrowIfNull(imgSource);
+			ThrowHelper.ThrowIfNull(settings);
 
 			var ctx = new PipelineContext(settings, new PixelSourceContainer(imgSource));
 			buildPipeline(ctx, false);
@@ -253,8 +251,8 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="imgContainer">A custom <see cref="IImageContainer"/> to use as input.</param>
 		public static ProcessingPipeline BuildPipeline(IImageContainer imgContainer, ProcessImageSettings settings)
 		{
-			Guard.NotNull(imgContainer);
-			Guard.NotNull(settings);
+			ThrowHelper.ThrowIfNull(imgContainer);
+			ThrowHelper.ThrowIfNull(settings);
 
 			var ctx = new PipelineContext(settings, imgContainer, false);
 			buildPipeline(ctx, false);

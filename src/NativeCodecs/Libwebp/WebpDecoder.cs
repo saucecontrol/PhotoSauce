@@ -23,7 +23,7 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 	private WebpContainer(Stream stm, IDecoderOptions? opt, WebPFeatureFlags flags)
 	{
 		int len = checked((int)(stm.Length - stm.Position));
-		filebuff = (byte*)WebPMalloc((uint)len);
+		filebuff = (byte*)WebpFactory.NativeAlloc((uint)len);
 		if (filebuff is null)
 			throw new OutOfMemoryException();
 
@@ -31,7 +31,7 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 		stm.FillBuffer(buff);
 
 		var data = new WebPData { bytes = filebuff, size = (uint)len };
-		handle = WebPDemux(&data);
+		handle = WebpFactory.CreateDemuxer(&data);
 		if (handle == default)
 			throw new InvalidDataException();
 
@@ -198,7 +198,12 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 
 	public void Dispose() => dispose(true);
 
-	~WebpContainer() => dispose(false);
+	~WebpContainer()
+	{
+		ThrowHelper.ThrowIfFinalizerExceptionsEnabled(nameof(WebpContainer));
+
+		dispose(false);
+	}
 
 	private abstract class WebpFrame : IImageFrame, IMetadataSource, ICroppedDecoder, IScaledDecoder
 	{
@@ -331,7 +336,12 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 
 		public void Dispose() => Dispose(true);
 
-		~WebpFrame() => Dispose(false);
+		~WebpFrame()
+		{
+			ThrowHelper.ThrowIfFinalizerExceptionsEnabled(nameof(WebpFrame));
+
+			Dispose(false);
+		}
 
 		protected sealed class WebpDecBufferPixelSource : PixelSource, IFramePixelSource
 		{

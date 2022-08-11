@@ -13,10 +13,8 @@ namespace PhotoSauce.MagicScaler
 	{
 		private const byte marker = 0b_01010101;
 
-		public const string MaxPooledBufferSizeName = $"{nameof(PhotoSauce)}.{nameof(MagicScaler)}.MaxPooledBufferSize";
-
 		private static readonly int sharedPoolMax = hasLargeSharedPool() ? 1 << 30 : 1 << 20;
-		private static readonly int largePoolMax = getAppContextValue(MaxPooledBufferSizeName, hasLargeSharedPool() ? 1 << 30 : 1 << 24);
+		private static readonly int largePoolMax = AppConfig.MaxPooledBufferSize > 0 ? AppConfig.MaxPooledBufferSize : hasLargeSharedPool() ? 1 << 30 : 1 << 24;
 		private static readonly ArrayPool<byte> largeBytePool = largePoolMax > sharedPoolMax ? ArrayPool<byte>.Create(largePoolMax, 4) : ArrayPool<byte>.Shared;
 
 		private static ArrayPool<byte> getBytePool(int length) => length <= sharedPoolMax ? ArrayPool<byte>.Shared : length <= largePoolMax ? largeBytePool : NoopArrayPool<byte>.Instance;
@@ -34,20 +32,6 @@ namespace PhotoSauce.MagicScaler
 			string ver = RuntimeInformation.FrameworkDescription;
 			return ver.Length > 6 && ver.StartsWith(".NET ", StringComparison.Ordinal) && char.IsNumber(ver[5]) && ver[5] != '5';
 #endif
-		}
-
-		private static int getAppContextValue(string name, int defaultValue)
-		{
-#if NETFRAMEWORK
-			var data = AppDomain.CurrentDomain.GetData(name);
-#else
-			var data = AppContext.GetData(name);
-#endif
-
-			if (data is int val || ((data is string s) && int.TryParse(s, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out val)))
-				return val;
-
-			return defaultValue;
 		}
 
 		[Conditional("GUARDRAILS")]

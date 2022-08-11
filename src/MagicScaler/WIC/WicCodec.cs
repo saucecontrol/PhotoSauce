@@ -389,6 +389,11 @@ namespace PhotoSauce.MagicScaler
 
 		public void Dispose() => dispose(true);
 
-		~WicImageEncoder() => dispose(false);
+		~WicImageEncoder()
+		{
+			ThrowHelper.ThrowIfFinalizerExceptionsEnabled(nameof(WicImageEncoder));
+
+			dispose(false);
+		}
 	}
 }

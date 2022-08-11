@@ -91,7 +91,7 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="imgPath">The path to the image file.</param>
 		public static ImageFileInfo Load(string imgPath)
 		{
-			Guard.NotNullOrEmpty(imgPath);
+			ThrowHelper.ThrowIfNullOrEmpty(imgPath);
 
 			var fi = new FileInfo(imgPath);
 			using var fs = new FileStream(imgPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
@@ -128,7 +128,7 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="lastModified">The last modified date of the image container.</param>
 		public static ImageFileInfo Load(Stream imgStream, DateTime lastModified)
 		{
-			Guard.ValidForInput(imgStream);
+			ThrowHelper.ThrowIfNotValidForInput(imgStream);
 
 			using var bfs = PoolBufferedStream.WrapIfFile(imgStream);
 			using var cnt = CodecManager.GetDecoderForStream(bfs ?? imgStream);

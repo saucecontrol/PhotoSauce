@@ -2,6 +2,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 #if NETFRAMEWORK
 using System.Runtime.InteropServices;
@@ -10,15 +11,16 @@ using System.Runtime.InteropServices;
 using PhotoSauce.MagicScaler;
 using PhotoSauce.Interop.Libwebp;
 using static PhotoSauce.Interop.Libwebp.Libwebp;
+using static PhotoSauce.Interop.Libwebp.Libwebpmux;
+using static PhotoSauce.Interop.Libwebp.Libwebpdemux;
 
 namespace PhotoSauce.NativeCodecs.Libwebp;
 
-/// <inheritdoc cref="WindowsCodecExtensions" />
-public static unsafe class WebpCodec
+internal static unsafe class WebpFactory
 {
-	internal const string libwebp = nameof(libwebp);
-	private const string displayName = $"{libwebp} 1.2.2";
-	private const uint libver = 0x00010202;
+	public const string DisplayName = $"{libwebp} 1.2.2";
+	public const string libwebp = nameof(libwebp);
+	public const uint libver = 0x00010202;
 
 	private static readonly Lazy<bool> dependencyValid = new(() => {
 #if NETFRAMEWORK
@@ -41,25 +43,47 @@ public static unsafe class WebpCodec
 #endif
 
 		uint ver = (uint)WebPGetDecoderVersion();
-		if (ver != libver)
-			throw new NotSupportedException($"Incorrect {libwebp} version was loaded.  Expected 0x{libver:x8}, found 0x{ver:x8}.");
+		if (ver < libver)
+			throw new NotSupportedException($"Incorrect {libwebp} version was loaded.  Expected at least 0x{libver:x6}, found 0x{ver:x6}.");
+
+		ver = (uint)WebPGetMuxVersion();
+		if (ver < libver)
+			throw new NotSupportedException($"Incorrect {libwebp}mux version was loaded.  Expected at least 0x{libver:x6}, found 0x{ver:x6}.");
+
+		ver = (uint)WebPGetDemuxVersion();
+		if (ver < libver)
+			throw new NotSupportedException($"Incorrect {libwebp}demux version was loaded.  Expected at least 0x{libver:x6}, found 0x{ver:x6}.");
 
 		return true;
 	});
 
-	/// <inheritdoc cref="WindowsCodecExtensions.UseWicCodecs(CodecCollection, WicCodecPolicy)" />
-	public static void UseLibwebp(this CodecCollection codecs)
-	{
-		Guard.NotNull(codecs);
+	public static void* NativeAlloc(nuint size) => dependencyValid.Value ? WebPMalloc(size) : default;
 
-		if (!dependencyValid.Value)
-			return;
+	public static IntPtr CreateDemuxer(WebPData* data) => dependencyValid.Value ? WebPDemux(data) : default;
+
+	public static IntPtr CreateMuxer() => dependencyValid.Value ? WebPMuxNew() : default;
+}
+
+/// <inheritdoc cref="WindowsCodecExtensions" />
+public static class WebpCodec
+{
+	/// <inheritdoc cref="WindowsCodecExtensions.UseWicCodecs(CodecCollection, WicCodecPolicy)" />
+	/// <param name="removeExisting">Remove any codecs already registered that match <see cref="ImageMimeTypes.Webp" />.</param>
+	public static void UseLibwebp(this CodecCollection codecs, bool removeExisting = true)
+	{
+		ThrowHelper.ThrowIfNull(codecs);
 
 		var webpMime = new[] { ImageMimeTypes.Webp };
 		var webpExtension = new[] { ImageFileExtensions.Webp };
 
+		if (removeExisting)
+		{
+			foreach (var codec in codecs.Where(c => c.MimeTypes.Any(m => m == ImageMimeTypes.Webp)).ToList())
+				codecs.Remove(codec);
+		}
+
 		codecs.Add(new DecoderInfo(
-			displayName,
+			WebpFactory.DisplayName,
 			webpMime,
 			webpExtension,
 			new ContainerPattern[] {
@@ -69,7 +93,7 @@ public static unsafe class WebpCodec
 			WebpContainer.TryLoad
 		));
 		codecs.Add(new PlanarEncoderInfo(
-			displayName,
+			WebpFactory.DisplayName,
 			webpMime,
 			webpExtension,
 			new[] { PixelFormat.Bgra32.FormatGuid, PixelFormat.Y8Video.FormatGuid, PixelFormat.Cb8Video.FormatGuid, PixelFormat.Cr8Video.FormatGuid, PixelFormat.Grey8.FormatGuid },
@@ -109,7 +133,7 @@ internal static class WebpResult
 	public static void Check(int res)
 	{
 		if (res == 0)
-			throw new InvalidOperationException($"{WebpCodec.libwebp} returned an unexpected failure.");
+			throw new InvalidOperationException($"{WebpFactory.libwebp} returned an unexpected failure.");
 	}
 
 	public static bool Succeeded(int res) => res != 0;

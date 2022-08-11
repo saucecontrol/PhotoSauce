@@ -110,7 +110,12 @@ namespace PhotoSauce.MagicScaler
 			base.Dispose(disposing);
 		}
 
-		~WicPixelSource() => Dispose(false);
+		~WicPixelSource()
+		{
+			ThrowHelper.ThrowIfFinalizerExceptionsEnabled(nameof(WicPixelSource));
+
+			Dispose(false);
+		}
 	}
 
 	internal static unsafe class WicPixelSourceExtensions

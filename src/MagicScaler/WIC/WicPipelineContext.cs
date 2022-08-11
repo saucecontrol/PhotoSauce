@@ -31,6 +31,11 @@ namespace PhotoSauce.MagicScaler
 
 		public void Dispose() => dispose(true);
 
-		~WicPipelineContext() => dispose(false);
+		~WicPipelineContext()
+		{
+			ThrowHelper.ThrowIfFinalizerExceptionsEnabled(nameof(WicPipelineContext));
+
+			dispose(false);
+		}
 	}
 }

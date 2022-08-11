@@ -18,10 +18,10 @@ namespace PhotoSauce.MagicScaler
 
 		public PixelArea(int x, int y, int width, int height)
 		{
-			Guard.NotNegative(x);
-			Guard.NotNegative(y);
-			Guard.NotNegative(width);
-			Guard.NotNegative(height);
+			ThrowHelper.ThrowIfNegative(x);
+			ThrowHelper.ThrowIfNegative(y);
+			ThrowHelper.ThrowIfNegative(width);
+			ThrowHelper.ThrowIfNegative(height);
 
 			(X, Y, Width, Height) = (x, y, width, height);
 		}

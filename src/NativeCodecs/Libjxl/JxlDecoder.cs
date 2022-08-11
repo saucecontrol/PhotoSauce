@@ -180,7 +180,12 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 
 	public void Dispose() => dispose(true);
 
-	~JxlContainer() => dispose(false);
+	~JxlContainer()
+	{
+		ThrowHelper.ThrowIfFinalizerExceptionsEnabled(nameof(JxlContainer));
+
+		dispose(false);
+	}
 
 	private sealed class JxlFrame : IImageFrame, IMetadataSource
 	{

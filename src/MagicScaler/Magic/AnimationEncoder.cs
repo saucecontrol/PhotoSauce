@@ -68,7 +68,7 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 		lastFrame = ctx.ImageContainer.FrameCount - 1;
 
 		EncodeFrame = new AnimationBufferFrame(context);
-		for (int i = 0; i < Math.Min(frames.Length, lastFrame); i++)
+		for (int i = 0; i < Math.Min(frames.Length, lastFrame + 1); i++)
 			frames[i] = new AnimationBufferFrame(context);
 
 		if (ctx.Settings.EncoderInfo is IImageEncoderInfo encinfo && !encinfo.SupportsPixelFormat(lastSource.Format.FormatGuid) && encinfo.SupportsPixelFormat(PixelFormat.Indexed8.FormatGuid))
@@ -85,9 +85,7 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 
 	public void WriteFrames()
 	{
-		uint bgColor = 0;
-		if (context.ImageContainer is IMetadataSource cmsrc && cmsrc.TryGetMetadata<AnimationContainer>(out var anicnt))  // can get from magicmetafilter?
-			bgColor = (uint)anicnt.BackgroundColor;
+		uint bgColor = context.Metadata.TryGetMetadata<AnimationContainer>(out var anicnt) ? (uint)anicnt.BackgroundColor : default;
 
 		var ppt = context.AddProfiler(nameof(TemporalFilters));
 		var ppq = context.AddProfiler($"{nameof(OctreeQuantizer)}: {nameof(OctreeQuantizer.CreatePalette)}");
@@ -111,7 +109,7 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 		EncodeFrame.Dispose();
 		indexedSource?.Dispose();
 		for (int i = 0; i < frames.Length; i++)
-			frames[i].Dispose();
+			frames[i]?.Dispose();
 	}
 
 	private bool moveNext()

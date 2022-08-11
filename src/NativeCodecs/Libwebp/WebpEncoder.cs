@@ -30,7 +30,7 @@ internal sealed unsafe class WebpEncoder : IAnimatedImageEncoder
 		stream = outStream;
 		options = webpOptions as IWebpEncoderOptions ?? (webpOptions is ILossyEncoderOptions opt ? new WebpLossyEncoderOptions(opt.Quality) : WebpLossyEncoderOptions.Default);
 
-		handle = WebPMuxNew();
+		handle = WebpFactory.CreateMuxer();
 	}
 
 	public void WriteAnimationMetadata(IMetadataSource metadata)
@@ -282,7 +282,12 @@ internal sealed unsafe class WebpEncoder : IAnimatedImageEncoder
 
 	public void Dispose() => dispose(true);
 
-	~WebpEncoder() => dispose(false);
+	~WebpEncoder()
+	{
+		ThrowHelper.ThrowIfFinalizerExceptionsEnabled(nameof(WebpEncoder));
+
+		dispose(false);
+	}
 
 #if !NET5_0_OR_GREATER
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int MemoryWriter(byte* data, nuint data_size, WebPPicture* picture);

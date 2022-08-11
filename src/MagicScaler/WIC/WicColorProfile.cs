@@ -113,6 +113,11 @@ namespace PhotoSauce.MagicScaler
 
 		public void Dispose() => dispose(true);
 
-		~WicColorProfile() => dispose(false);
+		~WicColorProfile()
+		{
+			ThrowHelper.ThrowIfFinalizerExceptionsEnabled(nameof(WicColorProfile));
+
+			dispose(false);
+		}
 	}
 }

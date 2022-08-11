@@ -1,6 +1,7 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
+using System.Linq;
 #if NETFRAMEWORK
 using System.IO;
 using System.Runtime.InteropServices;
@@ -48,9 +49,16 @@ internal static unsafe class HeifFactory
 public static class CodecCollectionExtensions
 {
 	/// <inheritdoc cref="WindowsCodecExtensions.UseWicCodecs(CodecCollection, WicCodecPolicy)" />
-	public static void UseLibheif(this CodecCollection codecs)
+	/// <param name="removeExisting">Remove any codecs already registered that match <see cref="ImageMimeTypes.Heic" />.</param>
+	public static void UseLibheif(this CodecCollection codecs, bool removeExisting = true)
 	{
-		Guard.NotNull(codecs);
+		ThrowHelper.ThrowIfNull(codecs);
+
+		if (removeExisting)
+		{
+			foreach (var codec in codecs.Where(c => c.MimeTypes.Any(m => m == ImageMimeTypes.Heic)).ToList())
+				codecs.Remove(codec);
+		}
 
 		codecs.Add(new DecoderInfo(
 			HeifFactory.DisplayName,

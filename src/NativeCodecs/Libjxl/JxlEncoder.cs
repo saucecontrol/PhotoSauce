@@ -140,5 +140,10 @@ internal sealed unsafe class JxlEncoder : IImageEncoder
 
 	public void Dispose() => dispose(true);
 
-	~JxlEncoder() => dispose(false);
+	~JxlEncoder()
+	{
+		ThrowHelper.ThrowIfFinalizerExceptionsEnabled(nameof(JxlEncoder));
+
+		dispose(false);
+	}
 }

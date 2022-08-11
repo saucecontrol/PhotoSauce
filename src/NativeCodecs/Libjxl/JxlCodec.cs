@@ -1,6 +1,7 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
+using System.Linq;
 #if NETFRAMEWORK
 using System.IO;
 using System.Runtime.InteropServices;
@@ -50,12 +51,19 @@ internal static unsafe class JxlFactory
 public static class CodecCollectionExtensions
 {
 	/// <inheritdoc cref="WindowsCodecExtensions.UseWicCodecs(CodecCollection, WicCodecPolicy)" />
-	public static void UseLibjxl(this CodecCollection codecs)
+	/// <param name="removeExisting">Remove any codecs already registered that match <see cref="ImageMimeTypes.Jxl" />.</param>
+	public static void UseLibjxl(this CodecCollection codecs, bool removeExisting = true)
 	{
-		Guard.NotNull(codecs);
+		ThrowHelper.ThrowIfNull(codecs);
 
 		var jxlMime = new[] { ImageMimeTypes.Jxl };
 		var jxlExtension = new[] { ImageFileExtensions.Jxl };
+
+		if (removeExisting)
+		{
+			foreach (var codec in codecs.Where(c => c.MimeTypes.Any(m => m == ImageMimeTypes.Jxl)).ToList())
+				codecs.Remove(codec);
+		}
 
 		codecs.Add(new DecoderInfo(
 			JxlFactory.DisplayName,

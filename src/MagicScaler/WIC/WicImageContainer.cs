@@ -66,7 +66,12 @@ namespace PhotoSauce.MagicScaler
 
 		public void Dispose() => Dispose(true);
 
-		~WicImageContainer() => Dispose(false);
+		~WicImageContainer()
+		{
+			ThrowHelper.ThrowIfFinalizerExceptionsEnabled(nameof(WicImageContainer));
+
+			Dispose(false);
+		}
 	}
 
 	internal sealed unsafe class WicGifContainer : WicImageContainer, IMetadataSource

@@ -80,7 +80,12 @@ internal sealed unsafe class HeifContainer : IImageContainer
 
 	public void Dispose() => dispose(true);
 
-	~HeifContainer() => dispose(false);
+	~HeifContainer()
+	{
+		ThrowHelper.ThrowIfFinalizerExceptionsEnabled(nameof(HeifContainer));
+
+		dispose(false);
+	}
 
 	private sealed class HeifFrame : IImageFrame, IMetadataSource, IIccProfileSource, IExifSource
 	{

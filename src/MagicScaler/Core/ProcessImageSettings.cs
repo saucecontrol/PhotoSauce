@@ -89,7 +89,7 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="blur">The blur factor for the weighting function.</param>
 		public InterpolationSettings(IInterpolator weighting, double blur)
 		{
-			Guard.NotNull(weighting);
+			ThrowHelper.ThrowIfNull(weighting);
 
 			if (blur < 0.5 || blur > 1.5) throw new ArgumentOutOfRangeException(nameof(blur), "Value must be between 0.5 and 1.5");
 
@@ -313,7 +313,7 @@ namespace PhotoSauce.MagicScaler
 		/// <remarks>Common formats can be found in <see cref="ImageMimeTypes" /> or <see cref="ImageFileExtensions" />.  If a matching encoder is not registered, the pipeline may choose an alternate encoder.</remarks>
 		public bool TrySetEncoderFormat(string mimeTypeOrFileExtension)
 		{
-			Guard.NotNullOrEmpty(mimeTypeOrFileExtension);
+			ThrowHelper.ThrowIfNullOrEmpty(mimeTypeOrFileExtension);
 
 			bool found = mimeTypeOrFileExtension[0] == '.'
 				? CodecManager.TryGetEncoderForFileExtension(mimeTypeOrFileExtension, out var enc)
@@ -330,7 +330,7 @@ namespace PhotoSauce.MagicScaler
 		/// <returns>A new settings instance.</returns>
 		public static ProcessImageSettings FromDictionary(IDictionary<string, string?> dic)
 		{
-			Guard.NotNull(dic);
+			ThrowHelper.ThrowIfNull(dic);
 			if (dic.Count == 0) return Default;
 
 
@@ -434,8 +434,8 @@ namespace PhotoSauce.MagicScaler
 		/// <returns>The calculated settings for the input image.</returns>
 		public static ProcessImageSettings Calculate(ProcessImageSettings settings, ImageFileInfo imageInfo)
 		{
-			Guard.NotNull(settings);
-			Guard.NotNull(imageInfo);
+			ThrowHelper.ThrowIfNull(settings);
+			ThrowHelper.ThrowIfNull(imageInfo);
 
 			var clone = settings.Clone();
 			clone.NormalizeFrom(imageInfo);

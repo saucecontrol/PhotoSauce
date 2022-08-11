@@ -9,9 +9,9 @@ using System.Runtime.CompilerServices;
 namespace PhotoSauce.MagicScaler;
 
 [StackTraceHidden]
-internal static class Guard
+internal static class ThrowHelper
 {
-	public static void NotNull([NotNull] object? arg, [CallerArgumentExpression(nameof(arg))] string? name = null)
+	public static void ThrowIfNull([NotNull] object? arg, [CallerArgumentExpression(nameof(arg))] string? name = null)
 	{
 		if (arg is null)
 			@throw(name);
@@ -20,7 +20,7 @@ internal static class Guard
 		static void @throw(string? name) => throw new ArgumentNullException(name);
 	}
 
-	public static void NotNullOrEmpty([NotNull] string? arg, [CallerArgumentExpression(nameof(arg))] string? name = null)
+	public static void ThrowIfNullOrEmpty([NotNull] string? arg, [CallerArgumentExpression(nameof(arg))] string? name = null)
 	{
 		if (string.IsNullOrEmpty(arg))
 			@throw(name);
@@ -29,7 +29,7 @@ internal static class Guard
 		static void @throw(string? name) => throw new ArgumentNullException(name, "String must not be empty.");
 	}
 
-	public static void NotEmpty<T>(ReadOnlySpan<T> arg, [CallerArgumentExpression(nameof(arg))] string? name = null)
+	public static void ThrowIfEmpty<T>(ReadOnlySpan<T> arg, [CallerArgumentExpression(nameof(arg))] string? name = null)
 	{
 		if (arg.IsEmpty)
 			@throw(name);
@@ -38,9 +38,9 @@ internal static class Guard
 		static void @throw(string? name) => throw new ArgumentNullException(name, "Buffer must not be empty or zero-length.");
 	}
 
-	public static void ValidForInput([NotNull] Stream? stm, [CallerArgumentExpression(nameof(stm))] string? name = null)
+	public static void ThrowIfNotValidForInput([NotNull] Stream? stm, [CallerArgumentExpression(nameof(stm))] string? name = null)
 	{
-		NotNull(stm, name);
+		ThrowIfNull(stm, name);
 
 		if (!stm.CanSeek || !stm.CanRead)
 			throw new ArgumentException("Input Stream must allow Seek and Read.", name);
@@ -49,20 +49,31 @@ internal static class Guard
 			throw new ArgumentException("Input Stream is empty or positioned at its end.", name);
 	}
 
-	public static void ValidForOutput([NotNull] Stream stm, [CallerArgumentExpression(nameof(stm))] string? name = null)
+	public static void ThrowIfNotValidForOutput([NotNull] Stream stm, [CallerArgumentExpression(nameof(stm))] string? name = null)
 	{
-		NotNull(stm, name);
+		ThrowIfNull(stm, name);
 
 		if (!stm.CanSeek || !stm.CanWrite)
 			throw new ArgumentException("Output Stream must allow Seek and Write.", name);
 	}
 
-	public static void NotNegative(int val, [CallerArgumentExpression(nameof(val))] string? name = null)
+	public static void ThrowIfNegative(int val, [CallerArgumentExpression(nameof(val))] string? name = null)
 	{
 		if (val < 0)
 			@throw(name);
 
 		[DoesNotReturn]
 		static void @throw(string? name) => throw new ArgumentOutOfRangeException(name, "Value must not be negative.");
+	}
+
+	public static void ThrowIfFinalizerExceptionsEnabled([CallerMemberName] string? name = null)
+	{
+		Debug.WriteLine($"Object not disposed: {name}");
+
+		if (AppConfig.ThrowOnFinalizer)
+			@throw(name);
+
+		[DoesNotReturn]
+		static void @throw(string? name) => throw new InvalidOperationException($"Object not disposed: {name}");
 	}
 }

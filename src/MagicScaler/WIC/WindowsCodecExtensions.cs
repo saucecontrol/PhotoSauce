@@ -23,7 +23,7 @@ namespace PhotoSauce.MagicScaler
 		/// <param name="policy">Policy that determines which registered WIC codecs are allowed.</param>
 		public static void UseWicCodecs(this CodecCollection codecs, WicCodecPolicy policy)
 		{
-			Guard.NotNull(codecs);
+			ThrowHelper.ThrowIfNull(codecs);
 
 			// If there is more than one Camera RAW codec installed, generally the newer one is more capable, so we deprioritize the original one.
 			codecs.AddRange(getWicCodecs(WICComponentType.WICDecoder, policy).OrderBy(static c => c.Format == GUID_ContainerFormatRaw ? 1 : 0).Select(static c => c.Codec));
