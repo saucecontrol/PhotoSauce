@@ -13,7 +13,7 @@ Usage
 
 ### Codec Registration
 
-To register the codec, call the `UseLibwebp` extension method from your `CodecManager.Configure` action at app startup.
+To register the codec, call the `UseLibwebp` extension method from your `CodecManager.Configure` action at app startup.  By default, the plugin will remove/replace the Windows WebP codec if it is present.
 
 ```C#
 using PhotoSauce.MagicScaler;

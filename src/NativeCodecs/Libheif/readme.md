@@ -19,17 +19,13 @@ Usage
 
 ### Codec Registration
 
-To register the codec, call the `UseLibheif` extension method from your `CodecManager.Configure` action at app startup.  This example removes the default Windows HEIF codec before installing the plugin.
+To register the codec, call the `UseLibheif` extension method from your `CodecManager.Configure` action at app startup.  By default, the plugin will remove/replace the Windows HEIF codec if it is present.
 
 ```C#
 using PhotoSauce.MagicScaler;
 using PhotoSauce.NativeCodecs.Libheif;
 
 CodecManager.Configure(codecs => {
-    var wicheif = codecs.OfType<IImageDecoderInfo>().FirstOrDefault(c => c.MimeTypes.Any(m => m == ImageMimeTypes.Heic));
-    if (wicheif != null)
-        codecs.Remove(wicheif);
-
     codecs.UseLibheif();
 });
 ```
