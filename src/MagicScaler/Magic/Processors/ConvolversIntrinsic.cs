@@ -16,472 +16,471 @@ using System.Runtime.CompilerServices;
 using VectorAvx = System.Runtime.Intrinsics.Vector256<float>;
 using VectorSse = System.Runtime.Intrinsics.Vector128<float>;
 
-namespace PhotoSauce.MagicScaler.Transforms
+namespace PhotoSauce.MagicScaler.Transforms;
+
+internal sealed partial class Convolver4ChanIntrinsic : IConvolver
 {
-	internal sealed partial class Convolver4ChanIntrinsic : IConvolver
+	private const int channels = 4;
+
+	public static readonly Convolver4ChanIntrinsic Instance = new();
+
+	private Convolver4ChanIntrinsic() { }
+
+	int IConvolver.Channels => channels;
+	int IConvolver.MapChannels => channels;
+
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+	unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
 	{
-		private const int channels = 4;
+		float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
+		uint* pmapx = (uint*)mapxstart;
+		nuint kstride = (uint)smapx * channels;
+		nuint tstride = (uint)smapy * channels;
+		nuint vcnt = kstride / (nuint)VectorSse.Count;
 
-		public static readonly Convolver4ChanIntrinsic Instance = new();
-
-		private Convolver4ChanIntrinsic() { }
-
-		int IConvolver.Channels => channels;
-		int IConvolver.MapChannels => channels;
-
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
+		while (tp < tpe)
 		{
-			float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
-			uint* pmapx = (uint*)mapxstart;
-			nuint kstride = (uint)smapx * channels;
-			nuint tstride = (uint)smapy * channels;
-			nuint vcnt = kstride / (nuint)VectorSse.Count;
+			nuint lcnt = vcnt;
+			nuint ix = *pmapx++;
 
-			while (tp < tpe)
+			float* ip = (float*)istart + ix * channels;
+			float* mp = (float*)(mapxstart + *pmapx++);
+
+			VectorSse av0, av1;
+			if (Avx.IsSupported && lcnt >= 4)
 			{
-				nuint lcnt = vcnt;
-				nuint ix = *pmapx++;
+				var ax0 = VectorAvx.Zero;
+				var ax1 = VectorAvx.Zero;
 
-				float* ip = (float*)istart + ix * channels;
-				float* mp = (float*)(mapxstart + *pmapx++);
-
-				VectorSse av0, av1;
-				if (Avx.IsSupported && lcnt >= 4)
+				do
 				{
-					var ax0 = VectorAvx.Zero;
-					var ax1 = VectorAvx.Zero;
+					lcnt -= 4;
 
-					do
-					{
-						lcnt -= 4;
+					var iv0 = Avx.LoadVector256(ip);
+					var iv1 = Avx.LoadVector256(ip + VectorAvx.Count);
+					ip += VectorAvx.Count * 2;
 
-						var iv0 = Avx.LoadVector256(ip);
-						var iv1 = Avx.LoadVector256(ip + VectorAvx.Count);
-						ip += VectorAvx.Count * 2;
-
-						ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
-						ax1 = HWIntrinsics.MultiplyAdd(ax1, iv1, mp + VectorAvx.Count);
-						mp += VectorAvx.Count * 2;
-					}
-					while (lcnt >= 4);
-
-					ax0 = Avx.Add(ax0, ax1);
-
-					if (lcnt >= 2)
-					{
-						lcnt -= 2;
-
-						var iv0 = Avx.LoadVector256(ip);
-						ip += VectorAvx.Count;
-
-						ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
-						mp += VectorAvx.Count;
-					}
-
-					av0 = Sse.Add(ax0.GetLower(), ax0.GetUpper());
+					ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
+					ax1 = HWIntrinsics.MultiplyAdd(ax1, iv1, mp + VectorAvx.Count);
+					mp += VectorAvx.Count * 2;
 				}
-				else
+				while (lcnt >= 4);
+
+				ax0 = Avx.Add(ax0, ax1);
+
+				if (lcnt >= 2)
 				{
-					av0 = av1 = VectorSse.Zero;
+					lcnt -= 2;
 
-					while (lcnt >= 2)
-					{
-						lcnt -= 2;
+					var iv0 = Avx.LoadVector256(ip);
+					ip += VectorAvx.Count;
 
-						var iv0 = Sse.LoadVector128(ip);
-						var iv1 = Sse.LoadVector128(ip + VectorSse.Count);
-						ip += VectorSse.Count * 2;
-
-						av0 = HWIntrinsics.MultiplyAdd(av0, iv0, mp);
-						av1 = HWIntrinsics.MultiplyAdd(av1, iv1, mp + VectorSse.Count);
-						mp += VectorSse.Count * 2;
-					}
-
-					av0 = Sse.Add(av0, av1);
+					ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
+					mp += VectorAvx.Count;
 				}
 
-				if (lcnt != 0)
-				{
-					var iv0 = Sse.LoadVector128(ip);
-
-					av0 = HWIntrinsics.MultiplyAdd(av0, iv0, mp);
-				}
-
-				Sse.Store(tp, av0);
-				tp += tstride;
+				av0 = Sse.Add(ax0.GetLower(), ax0.GetUpper());
 			}
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
-		{
-			float* op = (float*)ostart;
-			nuint tstride = (uint)smapy * channels;
-			nuint vcnt = tstride / (nuint)VectorSse.Count;
-
-			for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
+			else
 			{
-				nuint lcnt = vcnt;
+				av0 = av1 = VectorSse.Zero;
 
-				float* tp = (float*)tstart + nox * tstride;
-				float* mp = (float*)pmapy;
-
-				VectorSse av0, av1;
-				if (Avx.IsSupported && lcnt >= 4)
+				while (lcnt >= 2)
 				{
-					var ax0 = VectorAvx.Zero;
-					var ax1 = VectorAvx.Zero;
-
-					do
-					{
-						lcnt -= 4;
-
-						var iv0 = Avx.LoadVector256(tp);
-						var iv1 = Avx.LoadVector256(tp + VectorAvx.Count);
-						tp += VectorAvx.Count * 2;
-
-						ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
-						ax1 = HWIntrinsics.MultiplyAdd(ax1, iv1, mp + VectorAvx.Count);
-						mp += VectorAvx.Count * 2;
-					}
-					while (lcnt >= 4);
-
-					ax0 = Avx.Add(ax0, ax1);
-
-					if (lcnt >= 2)
-					{
-						lcnt -= 2;
-
-						var iv0 = Avx.LoadVector256(tp);
-						tp += VectorAvx.Count;
-
-						ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
-						mp += VectorAvx.Count;
-					}
-
-					av0 = Sse.Add(ax0.GetLower(), ax0.GetUpper());
-				}
-				else
-				{
-					av0 = av1 = VectorSse.Zero;
-
-					while (lcnt >= 2)
-					{
-						lcnt -= 2;
-
-						var iv0 = Sse.LoadVector128(tp);
-						var iv1 = Sse.LoadVector128(tp + VectorSse.Count);
-						tp += VectorSse.Count * 2;
-
-						av0 = HWIntrinsics.MultiplyAdd(av0, iv0, mp);
-						av1 = HWIntrinsics.MultiplyAdd(av1, iv1, mp + VectorSse.Count);
-						mp += VectorSse.Count * 2;
-					}
-
-					av0 = Sse.Add(av0, av1);
-				}
-
-				if (lcnt != 0)
-				{
-					var iv0 = Sse.LoadVector128(tp);
-
-					av0 = HWIntrinsics.MultiplyAdd(av0, iv0, mp);
-				}
-
-				Sse.Store(op, av0);
-				op += channels;
-			}
-		}
-
-		public override string ToString() => nameof(Convolver4ChanIntrinsic);
-	}
-
-	internal sealed partial class Convolver4ChanVector : IVectorConvolver
-	{
-		IConvolver IVectorConvolver.IntrinsicImpl => Sse.IsSupported ? Convolver4ChanIntrinsic.Instance : (IConvolver)this;
-	}
-
-	internal sealed partial class Convolver3ChanIntrinsic : IConvolver
-	{
-		private const int channels = 3;
-
-		public static readonly Convolver3ChanIntrinsic Instance = new();
-
-		private Convolver3ChanIntrinsic() { }
-
-		int IConvolver.Channels => channels;
-		int IConvolver.MapChannels => channels;
-
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
-		{
-			float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
-			uint* pmapx = (uint*)mapxstart;
-			nuint kstride = (uint)smapx * channels;
-			nuint tstride = (uint)smapy * 4;
-			nuint vcnt = kstride / (nuint)VectorSse.Count;
-
-			while (tp < tpe)
-			{
-				nuint lcnt = vcnt;
-				nuint ix = *pmapx++;
-
-				float* ip = (float*)istart + ix * channels;
-				float* mp = (float*)(mapxstart + *pmapx++);
-
-				VectorSse av0, av1, av2;
-				if (Avx.IsSupported && lcnt >= 6)
-				{
-					var ax0 = VectorAvx.Zero;
-					var ax1 = VectorAvx.Zero;
-					var ax2 = VectorAvx.Zero;
-
-					do
-					{
-						lcnt -= 6;
-
-						var iv0 = Avx.LoadVector256(ip);
-						var iv1 = Avx.LoadVector256(ip + VectorAvx.Count);
-						var iv2 = Avx.LoadVector256(ip + VectorAvx.Count * 2);
-						ip += VectorAvx.Count * 3;
-
-						ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
-						ax1 = HWIntrinsics.MultiplyAdd(ax1, iv1, mp + VectorAvx.Count);
-						ax2 = HWIntrinsics.MultiplyAdd(ax2, iv2, mp + VectorAvx.Count * 2);
-						mp += VectorAvx.Count * 3;
-					}
-					while (lcnt >= 6);
-
-					av0 = Sse.Add(ax0.GetLower(), ax1.GetUpper());
-					av1 = Sse.Add(ax0.GetUpper(), ax2.GetLower());
-					av2 = Sse.Add(ax1.GetLower(), ax2.GetUpper());
-				}
-				else
-				{
-					av0 = av1 = av2 = VectorSse.Zero;
-				}
-
-				while (lcnt != 0)
-				{
-					lcnt -= 3;
+					lcnt -= 2;
 
 					var iv0 = Sse.LoadVector128(ip);
 					var iv1 = Sse.LoadVector128(ip + VectorSse.Count);
-					var iv2 = Sse.LoadVector128(ip + VectorSse.Count * 2);
-					ip += VectorSse.Count * 3;
+					ip += VectorSse.Count * 2;
 
 					av0 = HWIntrinsics.MultiplyAdd(av0, iv0, mp);
 					av1 = HWIntrinsics.MultiplyAdd(av1, iv1, mp + VectorSse.Count);
-					av2 = HWIntrinsics.MultiplyAdd(av2, iv2, mp + VectorSse.Count * 2);
-					mp += VectorSse.Count * 3;
+					mp += VectorSse.Count * 2;
 				}
 
-				var avs = Sse.Add(Sse.Add(
-					Sse.Shuffle(av0, av0, 0b_00_10_01_11),
-					Sse.Shuffle(av1, av1, 0b_00_01_11_10)),
-					Sse.Shuffle(av2, av2, 0b_00_11_10_01)
-				);
-
-				av0 = Sse.MoveLowToHigh(Sse.UnpackLow(av0, av1), av2);
-				av0 = Sse.Add(av0, avs);
-
-				Sse.Store(tp, av0);
-				tp += tstride;
+				av0 = Sse.Add(av0, av1);
 			}
+
+			if (lcnt != 0)
+			{
+				var iv0 = Sse.LoadVector128(ip);
+
+				av0 = HWIntrinsics.MultiplyAdd(av0, iv0, mp);
+			}
+
+			Sse.Store(tp, av0);
+			tp += tstride;
 		}
-
-		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy) => throw new NotImplementedException();
-
-		public override string ToString() => nameof(Convolver3ChanIntrinsic);
 	}
 
-	internal sealed partial class Convolver3ChanVector : IVectorConvolver
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+	unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 	{
-		IConvolver IVectorConvolver.IntrinsicImpl => Sse.IsSupported ? Convolver3ChanIntrinsic.Instance : (IConvolver)this;
-	}
+		float* op = (float*)ostart;
+		nuint tstride = (uint)smapy * channels;
+		nuint vcnt = tstride / (nuint)VectorSse.Count;
 
-	internal sealed partial class Convolver1ChanIntrinsic : IConvolver
-	{
-		private const int channels = 1;
-
-		public static readonly Convolver1ChanIntrinsic Instance = new();
-
-		private Convolver1ChanIntrinsic() { }
-
-		int IConvolver.Channels => channels;
-		int IConvolver.MapChannels => channels;
-
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
+		for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
 		{
-			float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
-			uint* pmapx = (uint*)mapxstart;
-			nuint kstride = (uint)smapx * channels;
-			nuint tstride = (uint)smapy * channels;
-			nuint vcnt = kstride / (nuint)VectorSse.Count;
+			nuint lcnt = vcnt;
 
-			while (tp < tpe)
+			float* tp = (float*)tstart + nox * tstride;
+			float* mp = (float*)pmapy;
+
+			VectorSse av0, av1;
+			if (Avx.IsSupported && lcnt >= 4)
 			{
-				nuint lcnt = vcnt;
-				nuint ix = *pmapx++;
+				var ax0 = VectorAvx.Zero;
+				var ax1 = VectorAvx.Zero;
 
-				float* ip = (float*)istart + ix * channels;
-				float* mp = (float*)(mapxstart + *pmapx++);
-
-				VectorSse av0, av1;
-				if (Avx.IsSupported && lcnt >= 4)
+				do
 				{
-					var ax0 = VectorAvx.Zero;
-					var ax1 = VectorAvx.Zero;
+					lcnt -= 4;
 
-					do
-					{
-						lcnt -= 4;
+					var iv0 = Avx.LoadVector256(tp);
+					var iv1 = Avx.LoadVector256(tp + VectorAvx.Count);
+					tp += VectorAvx.Count * 2;
 
-						var iv0 = Avx.LoadVector256(ip);
-						var iv1 = Avx.LoadVector256(ip + VectorAvx.Count);
-						ip += VectorAvx.Count * 2;
-
-						ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
-						ax1 = HWIntrinsics.MultiplyAdd(ax1, iv1, mp + VectorAvx.Count);
-						mp += VectorAvx.Count * 2;
-					}
-					while (lcnt >= 4);
-
-					ax0 = Avx.Add(ax0, ax1);
-
-					if (lcnt >= 2)
-					{
-						lcnt -= 2;
-
-						var iv0 = Avx.LoadVector256(ip);
-						ip += VectorAvx.Count;
-
-						ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
-						mp += VectorAvx.Count;
-					}
-
-					av0 = Sse.Add(ax0.GetLower(), ax0.GetUpper());
+					ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
+					ax1 = HWIntrinsics.MultiplyAdd(ax1, iv1, mp + VectorAvx.Count);
+					mp += VectorAvx.Count * 2;
 				}
-				else
+				while (lcnt >= 4);
+
+				ax0 = Avx.Add(ax0, ax1);
+
+				if (lcnt >= 2)
 				{
-					av0 = av1 = VectorSse.Zero;
+					lcnt -= 2;
 
-					while (lcnt >= 2)
-					{
-						lcnt -= 2;
+					var iv0 = Avx.LoadVector256(tp);
+					tp += VectorAvx.Count;
 
-						var iv0 = Sse.LoadVector128(ip);
-						var iv1 = Sse.LoadVector128(ip + VectorSse.Count);
-						ip += VectorSse.Count * 2;
-
-						av0 = HWIntrinsics.MultiplyAdd(av0, iv0, mp);
-						av1 = HWIntrinsics.MultiplyAdd(av1, iv1, mp + VectorSse.Count);
-						mp += VectorSse.Count * 2;
-					}
-
-					av0 = Sse.Add(av0, av1);
+					ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
+					mp += VectorAvx.Count;
 				}
 
-				if (lcnt != 0)
-				{
-					var iv0 = Sse.LoadVector128(ip);
-
-					av0 = HWIntrinsics.MultiplyAdd(av0, iv0, mp);
-				}
-
-				*tp = av0.HorizontalAdd();
-				tp += tstride;
+				av0 = Sse.Add(ax0.GetLower(), ax0.GetUpper());
 			}
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
-		{
-			float* op = (float*)ostart;
-			nuint tstride = (uint)smapy * channels;
-			nuint vcnt = tstride / (nuint)VectorSse.Count;
-
-			for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
+			else
 			{
-				nuint lcnt = vcnt;
+				av0 = av1 = VectorSse.Zero;
 
-				float* tp = (float*)tstart + nox * tstride;
-				float* mp = (float*)pmapy;
-
-				VectorSse av0, av1;
-				if (Avx.IsSupported && lcnt >= 4)
+				while (lcnt >= 2)
 				{
-					var ax0 = VectorAvx.Zero;
-					var ax1 = VectorAvx.Zero;
+					lcnt -= 2;
 
-					do
-					{
-						lcnt -= 4;
-
-						var iv0 = Avx.LoadVector256(tp);
-						var iv1 = Avx.LoadVector256(tp + VectorAvx.Count);
-						tp += VectorAvx.Count * 2;
-
-						ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
-						ax1 = HWIntrinsics.MultiplyAdd(ax1, iv1, mp + VectorAvx.Count);
-						mp += VectorAvx.Count * 2;
-					}
-					while (lcnt >= 4);
-
-					ax0 = Avx.Add(ax0, ax1);
-
-					if (lcnt >= 2)
-					{
-						lcnt -= 2;
-
-						var iv0 = Avx.LoadVector256(tp);
-						tp += VectorAvx.Count;
-
-						ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
-						mp += VectorAvx.Count;
-					}
-
-					av0 = Sse.Add(ax0.GetLower(), ax0.GetUpper());
-				}
-				else
-				{
-					av0 = av1 = VectorSse.Zero;
-
-					while (lcnt >= 2)
-					{
-						lcnt -= 2;
-
-						var iv0 = Sse.LoadVector128(tp);
-						var iv1 = Sse.LoadVector128(tp + VectorSse.Count);
-						tp += VectorSse.Count * 2;
-
-						av0 = HWIntrinsics.MultiplyAdd(av0, iv0, mp);
-						av1 = HWIntrinsics.MultiplyAdd(av1, iv1, mp + VectorSse.Count);
-						mp += VectorSse.Count * 2;
-					}
-
-					av0 = Sse.Add(av0, av1);
-				}
-
-				if (lcnt != 0)
-				{
 					var iv0 = Sse.LoadVector128(tp);
+					var iv1 = Sse.LoadVector128(tp + VectorSse.Count);
+					tp += VectorSse.Count * 2;
 
 					av0 = HWIntrinsics.MultiplyAdd(av0, iv0, mp);
+					av1 = HWIntrinsics.MultiplyAdd(av1, iv1, mp + VectorSse.Count);
+					mp += VectorSse.Count * 2;
 				}
 
-				*op++ = av0.HorizontalAdd();
+				av0 = Sse.Add(av0, av1);
 			}
+
+			if (lcnt != 0)
+			{
+				var iv0 = Sse.LoadVector128(tp);
+
+				av0 = HWIntrinsics.MultiplyAdd(av0, iv0, mp);
+			}
+
+			Sse.Store(op, av0);
+			op += channels;
 		}
-
-		public override string ToString() => nameof(Convolver1ChanIntrinsic);
 	}
 
-	internal sealed partial class Convolver1ChanVector : IVectorConvolver
+	public override string ToString() => nameof(Convolver4ChanIntrinsic);
+}
+
+internal sealed partial class Convolver4ChanVector : IVectorConvolver
+{
+	IConvolver IVectorConvolver.IntrinsicImpl => Sse.IsSupported ? Convolver4ChanIntrinsic.Instance : (IConvolver)this;
+}
+
+internal sealed partial class Convolver3ChanIntrinsic : IConvolver
+{
+	private const int channels = 3;
+
+	public static readonly Convolver3ChanIntrinsic Instance = new();
+
+	private Convolver3ChanIntrinsic() { }
+
+	int IConvolver.Channels => channels;
+	int IConvolver.MapChannels => channels;
+
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+	unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
 	{
-		IConvolver IVectorConvolver.IntrinsicImpl => Sse.IsSupported ? Convolver1ChanIntrinsic.Instance : (IConvolver)this;
+		float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
+		uint* pmapx = (uint*)mapxstart;
+		nuint kstride = (uint)smapx * channels;
+		nuint tstride = (uint)smapy * 4;
+		nuint vcnt = kstride / (nuint)VectorSse.Count;
+
+		while (tp < tpe)
+		{
+			nuint lcnt = vcnt;
+			nuint ix = *pmapx++;
+
+			float* ip = (float*)istart + ix * channels;
+			float* mp = (float*)(mapxstart + *pmapx++);
+
+			VectorSse av0, av1, av2;
+			if (Avx.IsSupported && lcnt >= 6)
+			{
+				var ax0 = VectorAvx.Zero;
+				var ax1 = VectorAvx.Zero;
+				var ax2 = VectorAvx.Zero;
+
+				do
+				{
+					lcnt -= 6;
+
+					var iv0 = Avx.LoadVector256(ip);
+					var iv1 = Avx.LoadVector256(ip + VectorAvx.Count);
+					var iv2 = Avx.LoadVector256(ip + VectorAvx.Count * 2);
+					ip += VectorAvx.Count * 3;
+
+					ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
+					ax1 = HWIntrinsics.MultiplyAdd(ax1, iv1, mp + VectorAvx.Count);
+					ax2 = HWIntrinsics.MultiplyAdd(ax2, iv2, mp + VectorAvx.Count * 2);
+					mp += VectorAvx.Count * 3;
+				}
+				while (lcnt >= 6);
+
+				av0 = Sse.Add(ax0.GetLower(), ax1.GetUpper());
+				av1 = Sse.Add(ax0.GetUpper(), ax2.GetLower());
+				av2 = Sse.Add(ax1.GetLower(), ax2.GetUpper());
+			}
+			else
+			{
+				av0 = av1 = av2 = VectorSse.Zero;
+			}
+
+			while (lcnt != 0)
+			{
+				lcnt -= 3;
+
+				var iv0 = Sse.LoadVector128(ip);
+				var iv1 = Sse.LoadVector128(ip + VectorSse.Count);
+				var iv2 = Sse.LoadVector128(ip + VectorSse.Count * 2);
+				ip += VectorSse.Count * 3;
+
+				av0 = HWIntrinsics.MultiplyAdd(av0, iv0, mp);
+				av1 = HWIntrinsics.MultiplyAdd(av1, iv1, mp + VectorSse.Count);
+				av2 = HWIntrinsics.MultiplyAdd(av2, iv2, mp + VectorSse.Count * 2);
+				mp += VectorSse.Count * 3;
+			}
+
+			var avs = Sse.Add(Sse.Add(
+				Sse.Shuffle(av0, av0, 0b_00_10_01_11),
+				Sse.Shuffle(av1, av1, 0b_00_01_11_10)),
+				Sse.Shuffle(av2, av2, 0b_00_11_10_01)
+			);
+
+			av0 = Sse.MoveLowToHigh(Sse.UnpackLow(av0, av1), av2);
+			av0 = Sse.Add(av0, avs);
+
+			Sse.Store(tp, av0);
+			tp += tstride;
+		}
 	}
+
+	unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy) => throw new NotImplementedException();
+
+	public override string ToString() => nameof(Convolver3ChanIntrinsic);
+}
+
+internal sealed partial class Convolver3ChanVector : IVectorConvolver
+{
+	IConvolver IVectorConvolver.IntrinsicImpl => Sse.IsSupported ? Convolver3ChanIntrinsic.Instance : (IConvolver)this;
+}
+
+internal sealed partial class Convolver1ChanIntrinsic : IConvolver
+{
+	private const int channels = 1;
+
+	public static readonly Convolver1ChanIntrinsic Instance = new();
+
+	private Convolver1ChanIntrinsic() { }
+
+	int IConvolver.Channels => channels;
+	int IConvolver.MapChannels => channels;
+
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+	unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
+	{
+		float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
+		uint* pmapx = (uint*)mapxstart;
+		nuint kstride = (uint)smapx * channels;
+		nuint tstride = (uint)smapy * channels;
+		nuint vcnt = kstride / (nuint)VectorSse.Count;
+
+		while (tp < tpe)
+		{
+			nuint lcnt = vcnt;
+			nuint ix = *pmapx++;
+
+			float* ip = (float*)istart + ix * channels;
+			float* mp = (float*)(mapxstart + *pmapx++);
+
+			VectorSse av0, av1;
+			if (Avx.IsSupported && lcnt >= 4)
+			{
+				var ax0 = VectorAvx.Zero;
+				var ax1 = VectorAvx.Zero;
+
+				do
+				{
+					lcnt -= 4;
+
+					var iv0 = Avx.LoadVector256(ip);
+					var iv1 = Avx.LoadVector256(ip + VectorAvx.Count);
+					ip += VectorAvx.Count * 2;
+
+					ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
+					ax1 = HWIntrinsics.MultiplyAdd(ax1, iv1, mp + VectorAvx.Count);
+					mp += VectorAvx.Count * 2;
+				}
+				while (lcnt >= 4);
+
+				ax0 = Avx.Add(ax0, ax1);
+
+				if (lcnt >= 2)
+				{
+					lcnt -= 2;
+
+					var iv0 = Avx.LoadVector256(ip);
+					ip += VectorAvx.Count;
+
+					ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
+					mp += VectorAvx.Count;
+				}
+
+				av0 = Sse.Add(ax0.GetLower(), ax0.GetUpper());
+			}
+			else
+			{
+				av0 = av1 = VectorSse.Zero;
+
+				while (lcnt >= 2)
+				{
+					lcnt -= 2;
+
+					var iv0 = Sse.LoadVector128(ip);
+					var iv1 = Sse.LoadVector128(ip + VectorSse.Count);
+					ip += VectorSse.Count * 2;
+
+					av0 = HWIntrinsics.MultiplyAdd(av0, iv0, mp);
+					av1 = HWIntrinsics.MultiplyAdd(av1, iv1, mp + VectorSse.Count);
+					mp += VectorSse.Count * 2;
+				}
+
+				av0 = Sse.Add(av0, av1);
+			}
+
+			if (lcnt != 0)
+			{
+				var iv0 = Sse.LoadVector128(ip);
+
+				av0 = HWIntrinsics.MultiplyAdd(av0, iv0, mp);
+			}
+
+			*tp = av0.HorizontalAdd();
+			tp += tstride;
+		}
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+	unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
+	{
+		float* op = (float*)ostart;
+		nuint tstride = (uint)smapy * channels;
+		nuint vcnt = tstride / (nuint)VectorSse.Count;
+
+		for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
+		{
+			nuint lcnt = vcnt;
+
+			float* tp = (float*)tstart + nox * tstride;
+			float* mp = (float*)pmapy;
+
+			VectorSse av0, av1;
+			if (Avx.IsSupported && lcnt >= 4)
+			{
+				var ax0 = VectorAvx.Zero;
+				var ax1 = VectorAvx.Zero;
+
+				do
+				{
+					lcnt -= 4;
+
+					var iv0 = Avx.LoadVector256(tp);
+					var iv1 = Avx.LoadVector256(tp + VectorAvx.Count);
+					tp += VectorAvx.Count * 2;
+
+					ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
+					ax1 = HWIntrinsics.MultiplyAdd(ax1, iv1, mp + VectorAvx.Count);
+					mp += VectorAvx.Count * 2;
+				}
+				while (lcnt >= 4);
+
+				ax0 = Avx.Add(ax0, ax1);
+
+				if (lcnt >= 2)
+				{
+					lcnt -= 2;
+
+					var iv0 = Avx.LoadVector256(tp);
+					tp += VectorAvx.Count;
+
+					ax0 = HWIntrinsics.MultiplyAdd(ax0, iv0, mp);
+					mp += VectorAvx.Count;
+				}
+
+				av0 = Sse.Add(ax0.GetLower(), ax0.GetUpper());
+			}
+			else
+			{
+				av0 = av1 = VectorSse.Zero;
+
+				while (lcnt >= 2)
+				{
+					lcnt -= 2;
+
+					var iv0 = Sse.LoadVector128(tp);
+					var iv1 = Sse.LoadVector128(tp + VectorSse.Count);
+					tp += VectorSse.Count * 2;
+
+					av0 = HWIntrinsics.MultiplyAdd(av0, iv0, mp);
+					av1 = HWIntrinsics.MultiplyAdd(av1, iv1, mp + VectorSse.Count);
+					mp += VectorSse.Count * 2;
+				}
+
+				av0 = Sse.Add(av0, av1);
+			}
+
+			if (lcnt != 0)
+			{
+				var iv0 = Sse.LoadVector128(tp);
+
+				av0 = HWIntrinsics.MultiplyAdd(av0, iv0, mp);
+			}
+
+			*op++ = av0.HorizontalAdd();
+		}
+	}
+
+	public override string ToString() => nameof(Convolver1ChanIntrinsic);
+}
+
+internal sealed partial class Convolver1ChanVector : IVectorConvolver
+{
+	IConvolver IVectorConvolver.IntrinsicImpl => Sse.IsSupported ? Convolver1ChanIntrinsic.Instance : (IConvolver)this;
 }
 #endif

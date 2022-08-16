@@ -6,118 +6,117 @@ using TerraFX.Interop.Windows;
 
 using PhotoSauce.Interop.Wic;
 
-namespace PhotoSauce.MagicScaler
+namespace PhotoSauce.MagicScaler;
+
+internal sealed unsafe class WicColorProfile : IDisposable
 {
-	internal sealed unsafe class WicColorProfile : IDisposable
+	public static readonly Lazy<WicColorProfile> Cmyk = new(() => new WicColorProfile(getDefaultColorContext(PixelFormat.Cmyk32.FormatGuid), null));
+	public static readonly Lazy<WicColorProfile> Srgb = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sRgbV4.Value), ColorProfile.sRGB));
+	public static readonly Lazy<WicColorProfile> Grey = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sGreyV4.Value), ColorProfile.sGrey));
+	public static readonly Lazy<WicColorProfile> AdobeRgb = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.AdobeRgbV4.Value), ColorProfile.AdobeRgb));
+	public static readonly Lazy<WicColorProfile> DisplayP3 = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.DisplayP3V4.Value), ColorProfile.DisplayP3));
+	public static readonly Lazy<WicColorProfile> SrgbCompact = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sRgbCompact.Value), ColorProfile.sRGB));
+	public static readonly Lazy<WicColorProfile> GreyCompact = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sGreyCompact.Value), ColorProfile.sGrey));
+	public static readonly Lazy<WicColorProfile> AdobeRgbCompact = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.AdobeRgbCompact.Value), ColorProfile.AdobeRgb));
+	public static readonly Lazy<WicColorProfile> DisplayP3Compact = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.DisplayP3Compact.Value), ColorProfile.DisplayP3));
+
+	public static WicColorProfile GetDefaultFor(PixelFormat fmt) => fmt.ColorRepresentation switch {
+		PixelColorRepresentation.Cmyk => Cmyk.Value,
+		PixelColorRepresentation.Grey => Grey.Value,
+		_                             => Srgb.Value
+	};
+
+	public static WicColorProfile GetSourceProfile(WicColorProfile wicprof, ColorProfileMode mode)
 	{
-		public static readonly Lazy<WicColorProfile> Cmyk = new(() => new WicColorProfile(getDefaultColorContext(PixelFormat.Cmyk32.FormatGuid), null));
-		public static readonly Lazy<WicColorProfile> Srgb = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sRgbV4.Value), ColorProfile.sRGB));
-		public static readonly Lazy<WicColorProfile> Grey = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sGreyV4.Value), ColorProfile.sGrey));
-		public static readonly Lazy<WicColorProfile> AdobeRgb = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.AdobeRgbV4.Value), ColorProfile.AdobeRgb));
-		public static readonly Lazy<WicColorProfile> DisplayP3 = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.DisplayP3V4.Value), ColorProfile.DisplayP3));
-		public static readonly Lazy<WicColorProfile> SrgbCompact = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sRgbCompact.Value), ColorProfile.sRGB));
-		public static readonly Lazy<WicColorProfile> GreyCompact = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sGreyCompact.Value), ColorProfile.sGrey));
-		public static readonly Lazy<WicColorProfile> AdobeRgbCompact = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.AdobeRgbCompact.Value), ColorProfile.AdobeRgb));
-		public static readonly Lazy<WicColorProfile> DisplayP3Compact = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.DisplayP3Compact.Value), ColorProfile.DisplayP3));
+		var prof = ColorProfile.GetSourceProfile(wicprof.ParsedProfile, mode);
+		return MapKnownProfile(prof) ?? wicprof;
+	}
 
-		public static WicColorProfile GetDefaultFor(PixelFormat fmt) => fmt.ColorRepresentation switch {
-			PixelColorRepresentation.Cmyk => Cmyk.Value,
-			PixelColorRepresentation.Grey => Grey.Value,
-			_                             => Srgb.Value
-		};
+	public static WicColorProfile GetDestProfile(WicColorProfile wicprof, ColorProfileMode mode)
+	{
+		var prof = ColorProfile.GetDestProfile(wicprof.ParsedProfile, mode);
+		return MapKnownProfile(prof) ?? wicprof;
+	}
 
-		public static WicColorProfile GetSourceProfile(WicColorProfile wicprof, ColorProfileMode mode)
+	public static WicColorProfile? MapKnownProfile(ColorProfile prof)
+	{
+		if (prof == ColorProfile.sGrey)
+			return Grey.Value;
+		if (prof == ColorProfile.sRGB)
+			return Srgb.Value;
+		if (prof == ColorProfile.AdobeRgb)
+			return AdobeRgb.Value;
+		if (prof == ColorProfile.DisplayP3)
+			return DisplayP3.Value;
+
+		return null;
+	}
+
+	public static IWICColorContext* CreateContextFromProfile(Span<byte> profile)
+	{
+		fixed (byte* pprop = profile)
 		{
-			var prof = ColorProfile.GetSourceProfile(wicprof.ParsedProfile, mode);
-			return MapKnownProfile(prof) ?? wicprof;
+			using var cc = default(ComPtr<IWICColorContext>);
+			HRESULT.Check(Wic.Factory->CreateColorContext(cc.GetAddressOf()));
+			HRESULT.Check(cc.Get()->InitializeFromMemory(pprop, (uint)profile.Length));
+			return cc.Detach();
 		}
+	}
 
-		public static WicColorProfile GetDestProfile(WicColorProfile wicprof, ColorProfileMode mode)
-		{
-			var prof = ColorProfile.GetDestProfile(wicprof.ParsedProfile, mode);
-			return MapKnownProfile(prof) ?? wicprof;
-		}
+	public static ColorProfile GetProfileFromContext(IWICColorContext* cc, uint cb)
+	{
+		if (cb == 0u)
+			HRESULT.Check(cc->GetProfileBytes(0, null, &cb));
 
-		public static WicColorProfile? MapKnownProfile(ColorProfile prof)
-		{
-			if (prof == ColorProfile.sGrey)
-				return Grey.Value;
-			if (prof == ColorProfile.sRGB)
-				return Srgb.Value;
-			if (prof == ColorProfile.AdobeRgb)
-				return AdobeRgb.Value;
-			if (prof == ColorProfile.DisplayP3)
-				return DisplayP3.Value;
+		using var buff = BufferPool.RentLocal<byte>((int)cb);
+		fixed (byte* pbuff = buff)
+			HRESULT.Check(cc->GetProfileBytes(cb, pbuff, &cb));
 
-			return null;
-		}
+		return ColorProfile.Cache.GetOrAdd(buff.Span);
+	}
 
-		public static IWICColorContext* CreateContextFromProfile(Span<byte> profile)
-		{
-			fixed (byte* pprop = profile)
-			{
-				using var cc = default(ComPtr<IWICColorContext>);
-				HRESULT.Check(Wic.Factory->CreateColorContext(cc.GetAddressOf()));
-				HRESULT.Check(cc.Get()->InitializeFromMemory(pprop, (uint)profile.Length));
-				return cc.Detach();
-			}
-		}
+	private static IWICColorContext* getDefaultColorContext(Guid pixelFormat)
+	{
+		using var wci = default(ComPtr<IWICComponentInfo>);
+		using var pfi = default(ComPtr<IWICPixelFormatInfo>);
+		HRESULT.Check(Wic.Factory->CreateComponentInfo(&pixelFormat, wci.GetAddressOf()));
+		HRESULT.Check(wci.As(&pfi));
 
-		public static ColorProfile GetProfileFromContext(IWICColorContext* cc, uint cb)
-		{
-			if (cb == 0u)
-				HRESULT.Check(cc->GetProfileBytes(0, null, &cb));
+		using var wcc = default(ComPtr<IWICColorContext>);
+		HRESULT.Check(pfi.Get()->GetColorContext(wcc.GetAddressOf()));
+		return wcc.Detach();
+	}
 
-			using var buff = BufferPool.RentLocal<byte>((int)cb);
-			fixed (byte* pbuff = buff)
-				HRESULT.Check(cc->GetProfileBytes(cb, pbuff, &cb));
+	public IWICColorContext* WicColorContext { get; private set; }
+	public ColorProfile ParsedProfile { get; }
 
-			return ColorProfile.Cache.GetOrAdd(buff.Span);
-		}
+	private readonly bool ownContext;
 
-		private static IWICColorContext* getDefaultColorContext(Guid pixelFormat)
-		{
-			using var wci = default(ComPtr<IWICComponentInfo>);
-			using var pfi = default(ComPtr<IWICPixelFormatInfo>);
-			HRESULT.Check(Wic.Factory->CreateComponentInfo(&pixelFormat, wci.GetAddressOf()));
-			HRESULT.Check(wci.As(&pfi));
+	public WicColorProfile(IWICColorContext* cc, ColorProfile? prof, bool ownctx = false)
+	{
+		ownContext = ownctx;
+		WicColorContext = cc;
+		ParsedProfile = prof ?? GetProfileFromContext(cc, 0);
+	}
 
-			using var wcc = default(ComPtr<IWICColorContext>);
-			HRESULT.Check(pfi.Get()->GetColorContext(wcc.GetAddressOf()));
-			return wcc.Detach();
-		}
+	private void dispose(bool disposing)
+	{
+		if (disposing)
+			GC.SuppressFinalize(this);
 
-		public IWICColorContext* WicColorContext { get; private set; }
-		public ColorProfile ParsedProfile { get; }
+		if (!ownContext || WicColorContext is null)
+			return;
 
-		private readonly bool ownContext;
+		WicColorContext->Release();
+		WicColorContext = null;
+	}
 
-		public WicColorProfile(IWICColorContext* cc, ColorProfile? prof, bool ownctx = false)
-		{
-			ownContext = ownctx;
-			WicColorContext = cc;
-			ParsedProfile = prof ?? GetProfileFromContext(cc, 0);
-		}
+	public void Dispose() => dispose(true);
 
-		private void dispose(bool disposing)
-		{
-			if (disposing)
-				GC.SuppressFinalize(this);
+	~WicColorProfile()
+	{
+		ThrowHelper.ThrowIfFinalizerExceptionsEnabled(nameof(WicColorProfile));
 
-			if (!ownContext || WicColorContext is null)
-				return;
-
-			WicColorContext->Release();
-			WicColorContext = null;
-		}
-
-		public void Dispose() => dispose(true);
-
-		~WicColorProfile()
-		{
-			ThrowHelper.ThrowIfFinalizerExceptionsEnabled(nameof(WicColorProfile));
-
-			dispose(false);
-		}
+		dispose(false);
 	}
 }

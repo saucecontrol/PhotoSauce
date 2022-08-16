@@ -14,183 +14,182 @@ using static TerraFX.Interop.Windows.Windows;
 
 using PhotoSauce.MagicScaler;
 
-namespace PhotoSauce.Interop.Wic
+namespace PhotoSauce.Interop.Wic;
+
+internal unsafe ref struct IWICBitmapSourceImpl
 {
-	internal unsafe ref struct IWICBitmapSourceImpl
+	private readonly void** lpVtbl;
+	private readonly GCHandle source;
+	private int refCount;
+
+	private IWICBitmapSourceImpl(PixelSource managedSource)
 	{
-		private readonly void** lpVtbl;
-		private readonly GCHandle source;
-		private int refCount;
+		lpVtbl = vtblStatic;
+		source = GCHandle.Alloc(managedSource, GCHandleType.Weak);
+	}
 
-		private IWICBitmapSourceImpl(PixelSource managedSource)
-		{
-			lpVtbl = vtblStatic;
-			source = GCHandle.Alloc(managedSource, GCHandleType.Weak);
-		}
-
-		public static IWICBitmapSource* Wrap(PixelSource managedSource)
-		{
+	public static IWICBitmapSource* Wrap(PixelSource managedSource)
+	{
 #if NET6_0_OR_GREATER
-			var ptr = (IWICBitmapSourceImpl*)NativeMemory.Alloc((nuint)sizeof(IWICBitmapSourceImpl));
+		var ptr = (IWICBitmapSourceImpl*)NativeMemory.Alloc((nuint)sizeof(IWICBitmapSourceImpl));
 #else
-			var ptr = (IWICBitmapSourceImpl*)Marshal.AllocHGlobal(sizeof(IWICBitmapSourceImpl));
+		var ptr = (IWICBitmapSourceImpl*)Marshal.AllocHGlobal(sizeof(IWICBitmapSourceImpl));
 #endif
-			*ptr = new IWICBitmapSourceImpl(managedSource);
+		*ptr = new IWICBitmapSourceImpl(managedSource);
 
-			return (IWICBitmapSource*)ptr;
+		return (IWICBitmapSource*)ptr;
+	}
+
+#if NET5_0_OR_GREATER
+	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	static
+#endif
+	private int queryInterface(IWICBitmapSource* pinst, Guid* riid, void** ppvObject)
+	{
+		var pthis = (IWICBitmapSourceImpl*)pinst;
+
+		var iid = *riid;
+		if (iid == __uuidof<IWICBitmapSource>() || iid == __uuidof<IUnknown>())
+		{
+			Interlocked.Increment(ref pthis->refCount);
+			*ppvObject = pthis;
+			return S_OK;
 		}
 
+		return E_NOINTERFACE;
+	}
+
 #if NET5_0_OR_GREATER
-		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
-		static
+	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	static
 #endif
-		private int queryInterface(IWICBitmapSource* pinst, Guid* riid, void** ppvObject)
+	private uint addRef(IWICBitmapSource* pinst) => (uint)Interlocked.Increment(ref ((IWICBitmapSourceImpl*)pinst)->refCount);
+
+#if NET5_0_OR_GREATER
+	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	static
+#endif
+	private uint release(IWICBitmapSource* pinst)
+	{
+		var pthis = (IWICBitmapSourceImpl*)pinst;
+
+		uint cnt = (uint)Interlocked.Decrement(ref pthis->refCount);
+		if (cnt == 0)
 		{
-			var pthis = (IWICBitmapSourceImpl*)pinst;
-
-			var iid = *riid;
-			if (iid == __uuidof<IWICBitmapSource>() || iid == __uuidof<IUnknown>())
-			{
-				Interlocked.Increment(ref pthis->refCount);
-				*ppvObject = pthis;
-				return S_OK;
-			}
-
-			return E_NOINTERFACE;
-		}
-
-#if NET5_0_OR_GREATER
-		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
-		static
-#endif
-		private uint addRef(IWICBitmapSource* pinst) => (uint)Interlocked.Increment(ref ((IWICBitmapSourceImpl*)pinst)->refCount);
-
-#if NET5_0_OR_GREATER
-		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
-		static
-#endif
-		private uint release(IWICBitmapSource* pinst)
-		{
-			var pthis = (IWICBitmapSourceImpl*)pinst;
-
-			uint cnt = (uint)Interlocked.Decrement(ref pthis->refCount);
-			if (cnt == 0)
-			{
-				pthis->source.Free();
-				*pthis = default;
+			pthis->source.Free();
+			*pthis = default;
 #if NET6_0_OR_GREATER
-				NativeMemory.Free(pthis);
+			NativeMemory.Free(pthis);
 #else
-				Marshal.FreeHGlobal((IntPtr)pthis);
+			Marshal.FreeHGlobal((IntPtr)pthis);
 #endif
-			}
-
-			return cnt;
 		}
 
-#if NET5_0_OR_GREATER
-		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
-		static
-#endif
-		private int getSize(IWICBitmapSource* pinst, uint* puiWidth, uint* puiHeight)
-		{
-			var ps = Unsafe.As<PixelSource>(((IWICBitmapSourceImpl*)pinst)->source.Target!);
-			*puiWidth = (uint)ps.Width;
-			*puiHeight = (uint)ps.Height;
-
-			return S_OK;
-		}
+		return cnt;
+	}
 
 #if NET5_0_OR_GREATER
-		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
-		static
+	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	static
 #endif
-		private int getPixelFormat(IWICBitmapSource* pinst, Guid* pPixelFormat)
-		{
-			var ps = Unsafe.As<PixelSource>(((IWICBitmapSourceImpl*)pinst)->source.Target!);
-			*pPixelFormat = ps.Format.FormatGuid;
+	private int getSize(IWICBitmapSource* pinst, uint* puiWidth, uint* puiHeight)
+	{
+		var ps = Unsafe.As<PixelSource>(((IWICBitmapSourceImpl*)pinst)->source.Target!);
+		*puiWidth = (uint)ps.Width;
+		*puiHeight = (uint)ps.Height;
 
-			return S_OK;
-		}
+		return S_OK;
+	}
 
 #if NET5_0_OR_GREATER
-		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
-		static
+	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	static
 #endif
-		private int getResolution(IWICBitmapSource* pinst, double* pDpiX, double* pDpiY)
-		{
-			*pDpiX = 96d;
-			*pDpiY = 96d;
+	private int getPixelFormat(IWICBitmapSource* pinst, Guid* pPixelFormat)
+	{
+		var ps = Unsafe.As<PixelSource>(((IWICBitmapSourceImpl*)pinst)->source.Target!);
+		*pPixelFormat = ps.Format.FormatGuid;
 
-			return S_OK;
-		}
+		return S_OK;
+	}
 
 #if NET5_0_OR_GREATER
-		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
-		static
+	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	static
 #endif
-		private int copyPalette(IWICBitmapSource* pinst, IWICPalette* pIPalette) => E_NOTIMPL;
+	private int getResolution(IWICBitmapSource* pinst, double* pDpiX, double* pDpiY)
+	{
+		*pDpiX = 96d;
+		*pDpiY = 96d;
+
+		return S_OK;
+	}
 
 #if NET5_0_OR_GREATER
-		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
-		static
+	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	static
 #endif
-		private int copyPixels(IWICBitmapSource* pinst, WICRect* prc, uint cbStride, uint cbBufferSize, byte* pbBuffer)
-		{
-			var ps = Unsafe.As<PixelSource>(((IWICBitmapSourceImpl*)pinst)->source.Target!);
-			var area = prc is not null ? new PixelArea(prc->X, prc->Y, prc->Width, prc->Height) : ps.Area;
-			ps.CopyPixels(area, checked((int)cbStride), checked((int)cbBufferSize), pbBuffer);
+	private int copyPalette(IWICBitmapSource* pinst, IWICPalette* pIPalette) => E_NOTIMPL;
 
-			return S_OK;
-		}
+#if NET5_0_OR_GREATER
+	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	static
+#endif
+	private int copyPixels(IWICBitmapSource* pinst, WICRect* prc, uint cbStride, uint cbBufferSize, byte* pbBuffer)
+	{
+		var ps = Unsafe.As<PixelSource>(((IWICBitmapSourceImpl*)pinst)->source.Target!);
+		var area = prc is not null ? new PixelArea(prc->X, prc->Y, prc->Width, prc->Height) : ps.Area;
+		ps.CopyPixels(area, checked((int)cbStride), checked((int)cbBufferSize), pbBuffer);
+
+		return S_OK;
+	}
 
 #if !NET5_0_OR_GREATER
-		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int QueryInterface(IWICBitmapSource* pinst, Guid* riid, void** ppvObject);
-		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate uint AddRef(IWICBitmapSource* pinst);
-		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate uint Release(IWICBitmapSource* pinst);
-		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int GetSize(IWICBitmapSource* pinst, uint* puiWidth, uint* puiHeight);
-		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int GetPixelFormat(IWICBitmapSource* pinst, Guid* pPixelFormat);
-		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int GetResolution(IWICBitmapSource* pinst, double* pDpiX, double* pDpiY);
-		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int CopyPalette(IWICBitmapSource* pinst, IWICPalette* pIPalette);
-		[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int CopyPixels(IWICBitmapSource* pinst, WICRect* prc, uint cbStride, uint cbBufferSize, byte* pbBuffer);
+	[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int QueryInterface(IWICBitmapSource* pinst, Guid* riid, void** ppvObject);
+	[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate uint AddRef(IWICBitmapSource* pinst);
+	[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate uint Release(IWICBitmapSource* pinst);
+	[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int GetSize(IWICBitmapSource* pinst, uint* puiWidth, uint* puiHeight);
+	[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int GetPixelFormat(IWICBitmapSource* pinst, Guid* pPixelFormat);
+	[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int GetResolution(IWICBitmapSource* pinst, double* pDpiX, double* pDpiY);
+	[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int CopyPalette(IWICBitmapSource* pinst, IWICPalette* pIPalette);
+	[UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int CopyPixels(IWICBitmapSource* pinst, WICRect* prc, uint cbStride, uint cbBufferSize, byte* pbBuffer);
 
-		private static readonly QueryInterface delQueryInterface = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<QueryInterface>(nameof(queryInterface));
-		private static readonly AddRef delAddRef = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<AddRef>(nameof(addRef));
-		private static readonly Release delRelease = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<Release>(nameof(release));
-		private static readonly GetSize delGetSize = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<GetSize>(nameof(getSize));
-		private static readonly GetPixelFormat delGetPixelFormat = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<GetPixelFormat>(nameof(getPixelFormat));
-		private static readonly GetResolution delGetResolution = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<GetResolution>(nameof(getResolution));
-		private static readonly CopyPalette delCopyPalette = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<CopyPalette>(nameof(copyPalette));
-		private static readonly CopyPixels delCopyPixels = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<CopyPixels>(nameof(copyPixels));
+	private static readonly QueryInterface delQueryInterface = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<QueryInterface>(nameof(queryInterface));
+	private static readonly AddRef delAddRef = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<AddRef>(nameof(addRef));
+	private static readonly Release delRelease = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<Release>(nameof(release));
+	private static readonly GetSize delGetSize = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<GetSize>(nameof(getSize));
+	private static readonly GetPixelFormat delGetPixelFormat = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<GetPixelFormat>(nameof(getPixelFormat));
+	private static readonly GetResolution delGetResolution = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<GetResolution>(nameof(getResolution));
+	private static readonly CopyPalette delCopyPalette = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<CopyPalette>(nameof(copyPalette));
+	private static readonly CopyPixels delCopyPixels = typeof(IWICBitmapSourceImpl).CreateMethodDelegate<CopyPixels>(nameof(copyPixels));
 #endif
 
-		private static readonly void** vtblStatic = createVtbl();
+	private static readonly void** vtblStatic = createVtbl();
 
-		private static void** createVtbl()
-		{
+	private static void** createVtbl()
+	{
 #if NET5_0_OR_GREATER
-			var vtbl = (IWICBitmapSource.Vtbl<IWICBitmapSource>*)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(IWICBitmapSourceImpl), sizeof(IWICBitmapSource.Vtbl<IWICBitmapSource>));
-			vtbl->QueryInterface = &queryInterface;
-			vtbl->AddRef = &addRef;
-			vtbl->Release = &release;
-			vtbl->GetSize = &getSize;
-			vtbl->GetPixelFormat = &getPixelFormat;
-			vtbl->GetResolution = &getResolution;
-			vtbl->CopyPalette = &copyPalette;
-			vtbl->CopyPixels = &copyPixels;
+		var vtbl = (IWICBitmapSource.Vtbl<IWICBitmapSource>*)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(IWICBitmapSourceImpl), sizeof(IWICBitmapSource.Vtbl<IWICBitmapSource>));
+		vtbl->QueryInterface = &queryInterface;
+		vtbl->AddRef = &addRef;
+		vtbl->Release = &release;
+		vtbl->GetSize = &getSize;
+		vtbl->GetPixelFormat = &getPixelFormat;
+		vtbl->GetResolution = &getResolution;
+		vtbl->CopyPalette = &copyPalette;
+		vtbl->CopyPixels = &copyPixels;
 #else
-			var vtbl = (IWICBitmapSource.Vtbl<IWICBitmapSource>*)Marshal.AllocHGlobal(sizeof(IWICBitmapSource.Vtbl<IWICBitmapSource>));
-			vtbl->QueryInterface = (delegate* unmanaged[Stdcall]<IWICBitmapSource*, Guid*, void**, int>)Marshal.GetFunctionPointerForDelegate(delQueryInterface);
-			vtbl->AddRef = (delegate* unmanaged[Stdcall]<IWICBitmapSource*, uint>)Marshal.GetFunctionPointerForDelegate(delAddRef);
-			vtbl->Release = (delegate* unmanaged[Stdcall]<IWICBitmapSource*, uint>)Marshal.GetFunctionPointerForDelegate(delRelease);
-			vtbl->GetSize = (delegate* unmanaged[Stdcall]<IWICBitmapSource*, uint*, uint*, int>)Marshal.GetFunctionPointerForDelegate(delGetSize);
-			vtbl->GetPixelFormat = (delegate* unmanaged[Stdcall]<IWICBitmapSource*, Guid*, int>)Marshal.GetFunctionPointerForDelegate(delGetPixelFormat);
-			vtbl->GetResolution = (delegate* unmanaged[Stdcall]<IWICBitmapSource*, double*, double*, int>)Marshal.GetFunctionPointerForDelegate(delGetResolution);
-			vtbl->CopyPalette = (delegate* unmanaged[Stdcall]<IWICBitmapSource*, IWICPalette*, int>)Marshal.GetFunctionPointerForDelegate(delCopyPalette);
-			vtbl->CopyPixels = (delegate* unmanaged[Stdcall]<IWICBitmapSource*, WICRect*, uint, uint, byte*, int>)Marshal.GetFunctionPointerForDelegate(delCopyPixels);
+		var vtbl = (IWICBitmapSource.Vtbl<IWICBitmapSource>*)Marshal.AllocHGlobal(sizeof(IWICBitmapSource.Vtbl<IWICBitmapSource>));
+		vtbl->QueryInterface = (delegate* unmanaged[Stdcall]<IWICBitmapSource*, Guid*, void**, int>)Marshal.GetFunctionPointerForDelegate(delQueryInterface);
+		vtbl->AddRef = (delegate* unmanaged[Stdcall]<IWICBitmapSource*, uint>)Marshal.GetFunctionPointerForDelegate(delAddRef);
+		vtbl->Release = (delegate* unmanaged[Stdcall]<IWICBitmapSource*, uint>)Marshal.GetFunctionPointerForDelegate(delRelease);
+		vtbl->GetSize = (delegate* unmanaged[Stdcall]<IWICBitmapSource*, uint*, uint*, int>)Marshal.GetFunctionPointerForDelegate(delGetSize);
+		vtbl->GetPixelFormat = (delegate* unmanaged[Stdcall]<IWICBitmapSource*, Guid*, int>)Marshal.GetFunctionPointerForDelegate(delGetPixelFormat);
+		vtbl->GetResolution = (delegate* unmanaged[Stdcall]<IWICBitmapSource*, double*, double*, int>)Marshal.GetFunctionPointerForDelegate(delGetResolution);
+		vtbl->CopyPalette = (delegate* unmanaged[Stdcall]<IWICBitmapSource*, IWICPalette*, int>)Marshal.GetFunctionPointerForDelegate(delCopyPalette);
+		vtbl->CopyPixels = (delegate* unmanaged[Stdcall]<IWICBitmapSource*, WICRect*, uint, uint, byte*, int>)Marshal.GetFunctionPointerForDelegate(delCopyPixels);
 #endif
 
-			return (void**)vtbl;
-		}
+		return (void**)vtbl;
 	}
 }

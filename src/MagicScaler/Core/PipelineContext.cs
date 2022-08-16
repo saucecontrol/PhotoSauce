@@ -4,110 +4,109 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 
-namespace PhotoSauce.MagicScaler
+namespace PhotoSauce.MagicScaler;
+
+internal sealed class PipelineContext : IDisposable
 {
-	internal sealed class PipelineContext : IDisposable
+	private readonly bool ownContainer;
+
+	private List<IProfiler>? profilers;
+	private Stack<IDisposable>? disposables;
+	private WicPipelineContext? wicContext;
+
+	public ProcessImageSettings Settings { get; }
+	public ProcessImageSettings UsedSettings { get; private set; }
+	public Orientation Orientation { get; set; }
+
+	public IImageContainer ImageContainer { get; set; }
+	public IImageFrame ImageFrame { get; set; }
+	public PixelSource Source { get; set; } = NoopPixelSource.Instance;
+	public IMetadataSource Metadata { get; set; } = NoopMetadataSource.Instance;
+
+	public AnimationPipelineContext? AnimationContext { get; set; }
+
+	public ColorProfile? SourceColorProfile { get; set; }
+	public ColorProfile? DestColorProfile { get; set; }
+
+	public IEnumerable<PixelSourceStats> Stats => profilers?.OfType<ProcessingProfiler>().Select(static p => p.Stats!) ?? Enumerable.Empty<PixelSourceStats>();
+
+	public WicPipelineContext WicContext => wicContext ??= new();
+
+	public bool IsAnimationPipeline =>
+		Settings.EncoderInfo!.SupportsAnimation && ImageContainer.FrameCount > 1 && ImageContainer is IMetadataSource meta && meta.TryGetMetadata<AnimationContainer>(out _);
+
+	public PipelineContext(ProcessImageSettings settings, IImageContainer cont, bool ownCont = true)
 	{
-		private readonly bool ownContainer;
+		Settings = settings.Clone();
+		ImageContainer = cont;
+		ownContainer = ownCont;
 
-		private List<IProfiler>? profilers;
-		private Stack<IDisposable>? disposables;
-		private WicPipelineContext? wicContext;
+		ImageFrame = null!;
+		UsedSettings = null!;
+	}
 
-		public ProcessImageSettings Settings { get; }
-		public ProcessImageSettings UsedSettings { get; private set; }
-		public Orientation Orientation { get; set; }
+	public T AddDispose<T>(T disposeHandle) where T : IDisposable
+	{
+		(disposables ??= new()).Push(disposeHandle);
 
-		public IImageContainer ImageContainer { get; set; }
-		public IImageFrame ImageFrame { get; set; }
-		public PixelSource Source { get; set; } = NoopPixelSource.Instance;
-		public IMetadataSource Metadata { get; set; } = NoopMetadataSource.Instance;
+		return disposeHandle;
+	}
 
-		public AnimationPipelineContext? AnimationContext { get; set; }
+	public IProfiler AddProfiler(string name)
+	{
+		if (!StatsManager.ProfilingEnabled)
+			return NoopProfiler.Instance;
 
-		public ColorProfile? SourceColorProfile { get; set; }
-		public ColorProfile? DestColorProfile { get; set; }
+		var prof = new ProcessingProfiler(name);
+		(profilers ??= new(capacity: 8)).Add(prof);
 
-		public IEnumerable<PixelSourceStats> Stats => profilers?.OfType<ProcessingProfiler>().Select(static p => p.Stats!) ?? Enumerable.Empty<PixelSourceStats>();
+		return prof;
+	}
 
-		public WicPipelineContext WicContext => wicContext ??= new();
-
-		public bool IsAnimationPipeline =>
-			Settings.EncoderInfo!.SupportsAnimation && ImageContainer.FrameCount > 1 && ImageContainer is IMetadataSource meta && meta.TryGetMetadata<AnimationContainer>(out _);
-
-		public PipelineContext(ProcessImageSettings settings, IImageContainer cont, bool ownCont = true)
+	public T AddProfiler<T>(T source) where T : IProfileSource
+	{
+		if (StatsManager.ProfilingEnabled)
 		{
-			Settings = settings.Clone();
-			ImageContainer = cont;
-			ownContainer = ownCont;
-
-			ImageFrame = null!;
-			UsedSettings = null!;
+			profilers ??= new(capacity: 8);
+			if (!profilers.Contains(source.Profiler))
+				profilers.Add(source.Profiler);
 		}
 
-		public T AddDispose<T>(T disposeHandle) where T : IDisposable
-		{
-			(disposables ??= new()).Push(disposeHandle);
+		return source;
+	}
 
-			return disposeHandle;
+	public void FinalizeSettings()
+	{
+		Orientation = Settings.OrientationMode == OrientationMode.Normalize && ImageFrame is IMetadataSource meta && meta.TryGetMetadata<OrientationMetadata>(out var o) ? o.Orientation : Orientation.Normal;
+
+		if (!Settings.IsNormalized)
+		{
+			Settings.Fixup(Source.Width, Source.Height, Orientation.SwapsDimensions());
+
+			if (Settings.EncoderInfo is null)
+				Settings.SetEncoder(ImageContainer.MimeType, Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
+
+			if (Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed && !Settings.EncoderInfo.SupportsColorProfile)
+				Settings.ColorProfileMode = ColorProfileMode.ConvertToSrgb;
 		}
 
-		public IProfiler AddProfiler(string name)
-		{
-			if (!StatsManager.ProfilingEnabled)
-				return NoopProfiler.Instance;
+		if (Settings.EncoderOptions is null)
+			Settings.EncoderOptions = Settings.EncoderInfo!.DefaultOptions;
 
-			var prof = new ProcessingProfiler(name);
-			(profilers ??= new(capacity: 8)).Add(prof);
+		UsedSettings = Settings.Clone();
+	}
 
-			return prof;
-		}
+	public void Dispose()
+	{
+		wicContext?.Dispose();
+		Source.Dispose();
+		AnimationContext?.Dispose();
+		ImageFrame?.Dispose();
 
-		public T AddProfiler<T>(T source) where T : IProfileSource
-		{
-			if (StatsManager.ProfilingEnabled)
-			{
-				profilers ??= new(capacity: 8);
-				if (!profilers.Contains(source.Profiler))
-					profilers.Add(source.Profiler);
-			}
+		if (ownContainer)
+			ImageContainer?.Dispose();
 
-			return source;
-		}
-
-		public void FinalizeSettings()
-		{
-			Orientation = Settings.OrientationMode == OrientationMode.Normalize && ImageFrame is IMetadataSource meta && meta.TryGetMetadata<OrientationMetadata>(out var o) ? o.Orientation : Orientation.Normal;
-
-			if (!Settings.IsNormalized)
-			{
-				Settings.Fixup(Source.Width, Source.Height, Orientation.SwapsDimensions());
-
-				if (Settings.EncoderInfo is null)
-					Settings.SetEncoder(ImageContainer.MimeType, Source.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
-
-				if (Settings.ColorProfileMode <= ColorProfileMode.NormalizeAndEmbed && !Settings.EncoderInfo.SupportsColorProfile)
-					Settings.ColorProfileMode = ColorProfileMode.ConvertToSrgb;
-			}
-
-			if (Settings.EncoderOptions is null)
-				Settings.EncoderOptions = Settings.EncoderInfo!.DefaultOptions;
-
-			UsedSettings = Settings.Clone();
-		}
-
-		public void Dispose()
-		{
-			wicContext?.Dispose();
-			Source.Dispose();
-			AnimationContext?.Dispose();
-			ImageFrame?.Dispose();
-
-			if (ownContainer)
-				ImageContainer?.Dispose();
-
-			while (disposables?.Count > 0)
-				disposables.Pop().Dispose();
-		}
+		while (disposables?.Count > 0)
+			disposables.Pop().Dispose();
 	}
 }

@@ -7,264 +7,592 @@
 //	</auto-generated>
 //------------------------------------------------------------------------------
 
-using System;
-
 using static PhotoSauce.MagicScaler.MathUtil;
 
-namespace PhotoSauce.MagicScaler.Transforms
+namespace PhotoSauce.MagicScaler.Transforms;
+
+internal sealed class ConvolverBgraByte : IConvolver
 {
-	internal sealed class ConvolverBgraByte : IConvolver
+	private const int channels = 4;
+
+	public static readonly ConvolverBgraByte Instance = new();
+
+	private ConvolverBgraByte() { }
+
+	int IConvolver.Channels => channels;
+	int IConvolver.MapChannels => 1;
+
+	unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
 	{
-		private const int channels = 4;
+		int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
+		uint* pmapx = (uint*)mapxstart;
+		nuint tstride = (uint)smapy * channels;
 
-		public static readonly ConvolverBgraByte Instance = new();
-
-		private ConvolverBgraByte() { }
-
-		int IConvolver.Channels => channels;
-		int IConvolver.MapChannels => 1;
-
-		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
+		while (tp < tpe)
 		{
-			int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
-			uint* pmapx = (uint*)mapxstart;
-			nuint tstride = (uint)smapy * channels;
+			int a0 = 0, a1 = 0, a2 = 0, aa = 0, aw = 0;
 
+			nuint ix = *pmapx++;
+			byte* ip = istart + ix * channels;
+			byte* ipe = ip + smapx * channels - 4 * channels;
+			int* mp = (int*)pmapx;
+			pmapx += smapx;
+
+			while (ip <= ipe)
+			{
+				int alpha = ip[3];
+				int w = mp[0];
+
+				aa += alpha * w;
+				if (alpha < byte.MaxValue)
+				{
+					int pw = UnFix8(w * alpha);
+					aw += w - pw;
+					w = pw;
+				}
+
+				if (w != 0)
+				{
+					a0 += ip[0] * w;
+					a1 += ip[1] * w;
+					a2 += ip[2] * w;
+				}
+
+				alpha = ip[7];
+				w = mp[1];
+
+				aa += alpha * w;
+				if (alpha < byte.MaxValue)
+				{
+					int pw = UnFix8(w * alpha);
+					aw += w - pw;
+					w = pw;
+				}
+
+				if (w != 0)
+				{
+					a0 += ip[4] * w;
+					a1 += ip[5] * w;
+					a2 += ip[6] * w;
+				}
+
+				alpha = ip[11];
+				w = mp[2];
+
+				aa += alpha * w;
+				if (alpha < byte.MaxValue)
+				{
+					int pw = UnFix8(w * alpha);
+					aw += w - pw;
+					w = pw;
+				}
+
+				if (w != 0)
+				{
+					a0 += ip[8] * w;
+					a1 += ip[9] * w;
+					a2 += ip[10] * w;
+				}
+
+				alpha = ip[15];
+				w = mp[3];
+
+				aa += alpha * w;
+				if (alpha < byte.MaxValue)
+				{
+					int pw = UnFix8(w * alpha);
+					aw += w - pw;
+					w = pw;
+				}
+
+				if (w != 0)
+				{
+					a0 += ip[12] * w;
+					a1 += ip[13] * w;
+					a2 += ip[14] * w;
+				}
+
+				ip += 4 * channels;
+				mp += 4;
+			}
+
+			ipe += 4 * channels;
+			while (ip < ipe)
+			{
+				int alpha = ip[3];
+				int w = mp[0];
+
+				aa += alpha * w;
+				if (alpha < byte.MaxValue)
+				{
+					int pw = UnFix8(w * alpha);
+					aw += w - pw;
+					w = pw;
+				}
+
+				if (w != 0)
+				{
+					a0 += ip[0] * w;
+					a1 += ip[1] * w;
+					a2 += ip[2] * w;
+				}
+
+				ip += channels;
+				mp++;
+			}
+
+			if (aw != 0)
+			{
+				int wf = aw == UQ15One ? UQ15One : ((UQ15One * UQ15One) / (UQ15One - aw));
+				a0 = UnFix15(a0) * wf;
+				a1 = UnFix15(a1) * wf;
+				a2 = UnFix15(a2) * wf;
+			}
+
+			tp[0] = UnFix8(a0);
+			tp[1] = UnFix8(a1);
+			tp[2] = UnFix8(a2);
+			tp[3] = UnFix15(aa);
+			tp += tstride;
+		}
+	}
+
+	unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
+	{
+		byte* op = ostart;
+		nuint tstride = (uint)smapy * channels;
+
+		for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
+		{
+			int a0 = 0, a1 = 0, a2 = 0, aa = 0, aw = 0;
+
+			int* tp = (int*)tstart + nox * tstride;
+			int* tpe = tp + tstride - 2 * channels;
+			int* mp = (int*)pmapy;
+
+			while (tp <= tpe)
+			{
+				int alpha = tp[3];
+				int w = mp[0];
+
+				aa += alpha * w;
+				if (alpha < byte.MaxValue)
+				{
+					int pw = UnFix8(w * alpha);
+					aw += w - pw;
+					w = pw;
+				}
+
+				if (w != 0)
+				{
+					a0 += tp[0] * w;
+					a1 += tp[1] * w;
+					a2 += tp[2] * w;
+				}
+
+				alpha = tp[7];
+				w = mp[1];
+
+				aa += alpha * w;
+				if (alpha < byte.MaxValue)
+				{
+					int pw = UnFix8(w * alpha);
+					aw += w - pw;
+					w = pw;
+				}
+
+				if (w != 0)
+				{
+					a0 += tp[4] * w;
+					a1 += tp[5] * w;
+					a2 += tp[6] * w;
+				}
+
+				tp += 2 * channels;
+				mp += 2;
+			}
+
+			tpe += 2 * channels;
 			while (tp < tpe)
 			{
-				int a0 = 0, a1 = 0, a2 = 0, aa = 0, aw = 0;
+				int alpha = tp[3];
+				int w = mp[0];
 
-				nuint ix = *pmapx++;
-				byte* ip = istart + ix * channels;
-				byte* ipe = ip + smapx * channels - 4 * channels;
-				int* mp = (int*)pmapx;
-				pmapx += smapx;
-
-				while (ip <= ipe)
+				aa += alpha * w;
+				if (alpha < byte.MaxValue)
 				{
-					int alpha = ip[3];
-					int w = mp[0];
-
-					aa += alpha * w;
-					if (alpha < byte.MaxValue)
-					{
-						int pw = UnFix8(w * alpha);
-						aw += w - pw;
-						w = pw;
-					}
-
-					if (w != 0)
-					{
-						a0 += ip[0] * w;
-						a1 += ip[1] * w;
-						a2 += ip[2] * w;
-					}
-
-					alpha = ip[7];
-					w = mp[1];
-
-					aa += alpha * w;
-					if (alpha < byte.MaxValue)
-					{
-						int pw = UnFix8(w * alpha);
-						aw += w - pw;
-						w = pw;
-					}
-
-					if (w != 0)
-					{
-						a0 += ip[4] * w;
-						a1 += ip[5] * w;
-						a2 += ip[6] * w;
-					}
-
-					alpha = ip[11];
-					w = mp[2];
-
-					aa += alpha * w;
-					if (alpha < byte.MaxValue)
-					{
-						int pw = UnFix8(w * alpha);
-						aw += w - pw;
-						w = pw;
-					}
-
-					if (w != 0)
-					{
-						a0 += ip[8] * w;
-						a1 += ip[9] * w;
-						a2 += ip[10] * w;
-					}
-
-					alpha = ip[15];
-					w = mp[3];
-
-					aa += alpha * w;
-					if (alpha < byte.MaxValue)
-					{
-						int pw = UnFix8(w * alpha);
-						aw += w - pw;
-						w = pw;
-					}
-
-					if (w != 0)
-					{
-						a0 += ip[12] * w;
-						a1 += ip[13] * w;
-						a2 += ip[14] * w;
-					}
-
-					ip += 4 * channels;
-					mp += 4;
+					int pw = UnFix8(w * alpha);
+					aw += w - pw;
+					w = pw;
 				}
 
-				ipe += 4 * channels;
-				while (ip < ipe)
+				if (w != 0)
 				{
-					int alpha = ip[3];
-					int w = mp[0];
-
-					aa += alpha * w;
-					if (alpha < byte.MaxValue)
-					{
-						int pw = UnFix8(w * alpha);
-						aw += w - pw;
-						w = pw;
-					}
-
-					if (w != 0)
-					{
-						a0 += ip[0] * w;
-						a1 += ip[1] * w;
-						a2 += ip[2] * w;
-					}
-
-					ip += channels;
-					mp++;
+					a0 += tp[0] * w;
+					a1 += tp[1] * w;
+					a2 += tp[2] * w;
 				}
 
-				if (aw != 0)
-				{
-					int wf = aw == UQ15One ? UQ15One : ((UQ15One * UQ15One) / (UQ15One - aw));
-					a0 = UnFix15(a0) * wf;
-					a1 = UnFix15(a1) * wf;
-					a2 = UnFix15(a2) * wf;
-				}
-
-				tp[0] = UnFix8(a0);
-				tp[1] = UnFix8(a1);
-				tp[2] = UnFix8(a2);
-				tp[3] = UnFix15(aa);
-				tp += tstride;
+				tp += channels;
+				mp++;
 			}
-		}
 
-		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
-		{
-			byte* op = ostart;
-			nuint tstride = (uint)smapy * channels;
-
-			for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
+			if (aa <= UQ15Round)
 			{
-				int a0 = 0, a1 = 0, a2 = 0, aa = 0, aw = 0;
+				a0 = a1 = a2 = aa = 0;
+			}
+			else if (aw != 0)
+			{
+				int wf = aw == UQ15One ? UQ15One : ((UQ15One * UQ15One) / (UQ15One - aw));
+				a0 = UnFix15(a0) * wf;
+				a1 = UnFix15(a1) * wf;
+				a2 = UnFix15(a2) * wf;
+			}
 
-				int* tp = (int*)tstart + nox * tstride;
-				int* tpe = tp + tstride - 2 * channels;
-				int* mp = (int*)pmapy;
+			op[0] = UnFix22ToByte(a0);
+			op[1] = UnFix22ToByte(a1);
+			op[2] = UnFix22ToByte(a2);
+			op[3] = UnFix15ToByte(aa);
+			op += channels;
+		}
+	}
 
-				while (tp <= tpe)
-				{
-					int alpha = tp[3];
-					int w = mp[0];
+	unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
+	{
+		int iamt = Fix15(amt);
+		int threshold = (thresh * byte.MaxValue).Round();
 
-					aa += alpha * w;
-					if (alpha < byte.MaxValue)
-					{
-						int pw = UnFix8(w * alpha);
-						aw += w - pw;
-						w = pw;
-					}
+		byte* ip = cstart + ox * channels, yp = ystart + ox, bp = bstart, op = ostart;
 
-					if (w != 0)
-					{
-						a0 += tp[0] * w;
-						a1 += tp[1] * w;
-						a2 += tp[2] * w;
-					}
+		for (int xc = ox + ow; ox < xc; ox++, ip += channels, op += channels)
+		{
+			int dif = (int)(uint)*yp++ - (int)(uint)*bp++;
 
-					alpha = tp[7];
-					w = mp[1];
-
-					aa += alpha * w;
-					if (alpha < byte.MaxValue)
-					{
-						int pw = UnFix8(w * alpha);
-						aw += w - pw;
-						w = pw;
-					}
-
-					if (w != 0)
-					{
-						a0 += tp[4] * w;
-						a1 += tp[5] * w;
-						a2 += tp[6] * w;
-					}
-
-					tp += 2 * channels;
-					mp += 2;
-				}
-
-				tpe += 2 * channels;
-				while (tp < tpe)
-				{
-					int alpha = tp[3];
-					int w = mp[0];
-
-					aa += alpha * w;
-					if (alpha < byte.MaxValue)
-					{
-						int pw = UnFix8(w * alpha);
-						aw += w - pw;
-						w = pw;
-					}
-
-					if (w != 0)
-					{
-						a0 += tp[0] * w;
-						a1 += tp[1] * w;
-						a2 += tp[2] * w;
-					}
-
-					tp += channels;
-					mp++;
-				}
-
-				if (aa <= UQ15Round)
-				{
-					a0 = a1 = a2 = aa = 0;
-				}
-				else if (aw != 0)
-				{
-					int wf = aw == UQ15One ? UQ15One : ((UQ15One * UQ15One) / (UQ15One - aw));
-					a0 = UnFix15(a0) * wf;
-					a1 = UnFix15(a1) * wf;
-					a2 = UnFix15(a2) * wf;
-				}
-
-				op[0] = UnFix22ToByte(a0);
-				op[1] = UnFix22ToByte(a1);
-				op[2] = UnFix22ToByte(a2);
-				op[3] = UnFix15ToByte(aa);
-				op += channels;
+			uint c0 = ip[0], c1 = ip[1], c2 = ip[2], c3 = ip[3];
+			if (threshold == 0 || FastAbs(dif) > threshold)
+			{
+				dif = UnFix15(dif * iamt);
+				op[0] = ClampToByte((int)c0 + dif);
+				op[1] = ClampToByte((int)c1 + dif);
+				op[2] = ClampToByte((int)c2 + dif);
+				op[3] = (byte)c3;
+			}
+			else
+			{
+				op[0] = (byte)c0;
+				op[1] = (byte)c1;
+				op[2] = (byte)c2;
+				op[3] = (byte)c3;
 			}
 		}
+	}
 
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
+	public override string ToString() => nameof(ConvolverBgraByte);
+}
+
+internal sealed class Convolver4ChanByte : IConvolver
+{
+	private const int channels = 4;
+
+	public static readonly Convolver4ChanByte Instance = new();
+
+	private Convolver4ChanByte() { }
+
+	int IConvolver.Channels => channels;
+	int IConvolver.MapChannels => 1;
+
+	unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
+	{
+		int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
+		uint* pmapx = (uint*)mapxstart;
+		nuint tstride = (uint)smapy * channels;
+
+		while (tp < tpe)
+		{
+			int a0 = 0, a1 = 0, a2 = 0, a3 = 0;
+
+			nuint ix = *pmapx++;
+			byte* ip = istart + ix * channels;
+			byte* ipe = ip + smapx * channels - 4 * channels;
+			int* mp = (int*)pmapx;
+			pmapx += smapx;
+
+			while (ip <= ipe)
+			{
+				int w = mp[0];
+				a0 += ip[0] * w;
+				a1 += ip[1] * w;
+				a2 += ip[2] * w;
+				a3 += ip[3] * w;
+
+				w = mp[1];
+				a0 += ip[4] * w;
+				a1 += ip[5] * w;
+				a2 += ip[6] * w;
+				a3 += ip[7] * w;
+
+				w = mp[2];
+				a0 += ip[8] * w;
+				a1 += ip[9] * w;
+				a2 += ip[10] * w;
+				a3 += ip[11] * w;
+
+				w = mp[3];
+				a0 += ip[12] * w;
+				a1 += ip[13] * w;
+				a2 += ip[14] * w;
+				a3 += ip[15] * w;
+
+				ip += 4 * channels;
+				mp += 4;
+			}
+
+			ipe += 4 * channels;
+			while (ip < ipe)
+			{
+				int w = mp[0];
+				a0 += ip[0] * w;
+				a1 += ip[1] * w;
+				a2 += ip[2] * w;
+				a3 += ip[3] * w;
+
+				ip += channels;
+				mp++;
+			}
+
+			tp[0] = UnFix8(a0);
+			tp[1] = UnFix8(a1);
+			tp[2] = UnFix8(a2);
+			tp[3] = UnFix8(a3);
+			tp += tstride;
+		}
+	}
+
+	unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
+	{
+		byte* op = ostart;
+		nuint tstride = (uint)smapy * channels;
+
+		for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
+		{
+			int a0 = 0, a1 = 0, a2 = 0, a3 = 0;
+
+			int* tp = (int*)tstart + nox * tstride;
+			int* tpe = tp + tstride - 2 * channels;
+			int* mp = (int*)pmapy;
+
+			while (tp <= tpe)
+			{
+				int w = mp[0];
+				a0 += tp[0] * w;
+				a1 += tp[1] * w;
+				a2 += tp[2] * w;
+				a3 += tp[3] * w;
+
+				w = mp[1];
+				a0 += tp[4] * w;
+				a1 += tp[5] * w;
+				a2 += tp[6] * w;
+				a3 += tp[7] * w;
+
+				tp += 2 * channels;
+				mp += 2;
+			}
+
+			tpe += 2 * channels;
+			while (tp < tpe)
+			{
+				int w = mp[0];
+				a0 += tp[0] * w;
+				a1 += tp[1] * w;
+				a2 += tp[2] * w;
+				a3 += tp[3] * w;
+
+				tp += channels;
+				mp++;
+			}
+
+			op[0] = UnFix22ToByte(a0);
+			op[1] = UnFix22ToByte(a1);
+			op[2] = UnFix22ToByte(a2);
+			op[3] = UnFix22ToByte(a3);
+			op += channels;
+		}
+	}
+
+	unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
+	{
+		int iamt = Fix15(amt);
+		int threshold = (thresh * byte.MaxValue).Round();
+
+		byte* ip = cstart + ox * channels, yp = ystart + ox, bp = bstart, op = ostart;
+
+		for (int xc = ox + ow; ox < xc; ox++, ip += channels, op += channels)
+		{
+			int dif = (int)(uint)*yp++ - (int)(uint)*bp++;
+
+			uint c0 = ip[0], c1 = ip[1], c2 = ip[2], c3 = ip[3];
+			if (threshold == 0 || FastAbs(dif) > threshold)
+			{
+				dif = UnFix15(dif * iamt);
+				op[0] = ClampToByte((int)c0 + dif);
+				op[1] = ClampToByte((int)c1 + dif);
+				op[2] = ClampToByte((int)c2 + dif);
+				op[3] = (byte)c3;
+			}
+			else
+			{
+				op[0] = (byte)c0;
+				op[1] = (byte)c1;
+				op[2] = (byte)c2;
+				op[3] = (byte)c3;
+			}
+		}
+	}
+
+	public override string ToString() => nameof(Convolver4ChanByte);
+}
+
+internal sealed class Convolver4ChanUQ15 : IConvolver
+{
+	private const int channels = 4;
+
+	public static readonly Convolver4ChanUQ15 Instance = new();
+
+	private Convolver4ChanUQ15() { }
+
+	int IConvolver.Channels => channels;
+	int IConvolver.MapChannels => 1;
+
+	unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
+	{
+		int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
+		uint* pmapx = (uint*)mapxstart;
+		nuint tstride = (uint)smapy * channels;
+
+		while (tp < tpe)
+		{
+			int a0 = 0, a1 = 0, a2 = 0, a3 = 0;
+
+			nuint ix = *pmapx++;
+			ushort* ip = (ushort*)istart + ix * channels;
+			ushort* ipe = ip + smapx * channels - 4 * channels;
+			int* mp = (int*)pmapx;
+			pmapx += smapx;
+
+			while (ip <= ipe)
+			{
+				int w = mp[0];
+				a0 += ip[0] * w;
+				a1 += ip[1] * w;
+				a2 += ip[2] * w;
+				a3 += ip[3] * w;
+
+				w = mp[1];
+				a0 += ip[4] * w;
+				a1 += ip[5] * w;
+				a2 += ip[6] * w;
+				a3 += ip[7] * w;
+
+				w = mp[2];
+				a0 += ip[8] * w;
+				a1 += ip[9] * w;
+				a2 += ip[10] * w;
+				a3 += ip[11] * w;
+
+				w = mp[3];
+				a0 += ip[12] * w;
+				a1 += ip[13] * w;
+				a2 += ip[14] * w;
+				a3 += ip[15] * w;
+
+				ip += 4 * channels;
+				mp += 4;
+			}
+
+			ipe += 4 * channels;
+			while (ip < ipe)
+			{
+				int w = mp[0];
+				a0 += ip[0] * w;
+				a1 += ip[1] * w;
+				a2 += ip[2] * w;
+				a3 += ip[3] * w;
+
+				ip += channels;
+				mp++;
+			}
+
+			tp[0] = UnFix15(a0);
+			tp[1] = UnFix15(a1);
+			tp[2] = UnFix15(a2);
+			tp[3] = UnFix15(a3);
+			tp += tstride;
+		}
+	}
+
+	unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
+	{
+		ushort* op = (ushort*)ostart;
+		nuint tstride = (uint)smapy * channels;
+
+		for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
+		{
+			int a0 = 0, a1 = 0, a2 = 0, a3 = 0;
+
+			int* tp = (int*)tstart + nox * tstride;
+			int* tpe = tp + tstride - 2 * channels;
+			int* mp = (int*)pmapy;
+
+			while (tp <= tpe)
+			{
+				int w = mp[0];
+				a0 += tp[0] * w;
+				a1 += tp[1] * w;
+				a2 += tp[2] * w;
+				a3 += tp[3] * w;
+
+				w = mp[1];
+				a0 += tp[4] * w;
+				a1 += tp[5] * w;
+				a2 += tp[6] * w;
+				a3 += tp[7] * w;
+
+				tp += 2 * channels;
+				mp += 2;
+			}
+
+			tpe += 2 * channels;
+			while (tp < tpe)
+			{
+				int w = mp[0];
+				a0 += tp[0] * w;
+				a1 += tp[1] * w;
+				a2 += tp[2] * w;
+				a3 += tp[3] * w;
+
+				tp += channels;
+				mp++;
+			}
+
+			op[0] = UnFixToUQ15(a0);
+			op[1] = UnFixToUQ15(a1);
+			op[2] = UnFixToUQ15(a2);
+			op[3] = UnFixToUQ15(a3);
+			op += channels;
+		}
+	}
+
+	unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
+	{
+		fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15.GetDataRef())
+		fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15.GetDataRef())
 		{
 			int iamt = Fix15(amt);
 			int threshold = (thresh * byte.MaxValue).Round();
 
-			byte* ip = cstart + ox * channels, yp = ystart + ox, bp = bstart, op = ostart;
+			byte* gt = gtstart;
+			ushort* ip = (ushort*)cstart + ox * channels, yp = (ushort*)ystart + ox, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;
 
 			for (int xc = ox + ow; ox < xc; ox++, ip += channels, op += channels)
 			{
@@ -273,491 +601,321 @@ namespace PhotoSauce.MagicScaler.Transforms
 				uint c0 = ip[0], c1 = ip[1], c2 = ip[2], c3 = ip[3];
 				if (threshold == 0 || FastAbs(dif) > threshold)
 				{
+					c0 = gt[(nuint)ClampToUQ15One(c0)];
+					c1 = gt[(nuint)ClampToUQ15One(c1)];
+					c2 = gt[(nuint)ClampToUQ15One(c2)];
+
 					dif = UnFix15(dif * iamt);
-					op[0] = ClampToByte((int)c0 + dif);
-					op[1] = ClampToByte((int)c1 + dif);
-					op[2] = ClampToByte((int)c2 + dif);
-					op[3] = (byte)c3;
+					op[0] = igt[(nuint)ClampToByte((int)c0 + dif)];
+					op[1] = igt[(nuint)ClampToByte((int)c1 + dif)];
+					op[2] = igt[(nuint)ClampToByte((int)c2 + dif)];
+					op[3] = (ushort)c3;
 				}
 				else
 				{
-					op[0] = (byte)c0;
-					op[1] = (byte)c1;
-					op[2] = (byte)c2;
-					op[3] = (byte)c3;
+					op[0] = (ushort)c0;
+					op[1] = (ushort)c1;
+					op[2] = (ushort)c2;
+					op[3] = (ushort)c3;
 				}
 			}
 		}
-
-		public override string ToString() => nameof(ConvolverBgraByte);
 	}
 
-	internal sealed class Convolver4ChanByte : IConvolver
+	public override string ToString() => nameof(Convolver4ChanUQ15);
+}
+
+internal sealed class ConvolverBgrByte : IConvolver
+{
+	private const int channels = 3;
+
+	public static readonly ConvolverBgrByte Instance = new();
+
+	private ConvolverBgrByte() { }
+
+	int IConvolver.Channels => channels;
+	int IConvolver.MapChannels => 1;
+
+	unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
 	{
-		private const int channels = 4;
+		int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
+		uint* pmapx = (uint*)mapxstart;
+		nuint tstride = (uint)smapy * channels;
 
-		public static readonly Convolver4ChanByte Instance = new();
-
-		private Convolver4ChanByte() { }
-
-		int IConvolver.Channels => channels;
-		int IConvolver.MapChannels => 1;
-
-		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
+		while (tp < tpe)
 		{
-			int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
-			uint* pmapx = (uint*)mapxstart;
-			nuint tstride = (uint)smapy * channels;
+			int a0 = 0, a1 = 0, a2 = 0;
 
+			nuint ix = *pmapx++;
+			byte* ip = istart + ix * channels;
+			byte* ipe = ip + smapx * channels - 5 * channels;
+			int* mp = (int*)pmapx;
+			pmapx += smapx;
+
+			while (ip <= ipe)
+			{
+				int w = mp[0];
+				a0 += ip[0] * w;
+				a1 += ip[1] * w;
+				a2 += ip[2] * w;
+
+				w = mp[1];
+				a0 += ip[3] * w;
+				a1 += ip[4] * w;
+				a2 += ip[5] * w;
+
+				w = mp[2];
+				a0 += ip[6] * w;
+				a1 += ip[7] * w;
+				a2 += ip[8] * w;
+
+				w = mp[3];
+				a0 += ip[9] * w;
+				a1 += ip[10] * w;
+				a2 += ip[11] * w;
+
+				w = mp[4];
+				a0 += ip[12] * w;
+				a1 += ip[13] * w;
+				a2 += ip[14] * w;
+
+				ip += 5 * channels;
+				mp += 5;
+			}
+
+			ipe += 5 * channels;
+			while (ip < ipe)
+			{
+				int w = mp[0];
+				a0 += ip[0] * w;
+				a1 += ip[1] * w;
+				a2 += ip[2] * w;
+
+				ip += channels;
+				mp++;
+			}
+
+			tp[0] = UnFix8(a0);
+			tp[1] = UnFix8(a1);
+			tp[2] = UnFix8(a2);
+			tp += tstride;
+		}
+	}
+
+	unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
+	{
+		byte* op = ostart;
+		nuint tstride = (uint)smapy * channels;
+
+		for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
+		{
+			int a0 = 0, a1 = 0, a2 = 0;
+
+			int* tp = (int*)tstart + nox * tstride;
+			int* tpe = tp + tstride - 2 * channels;
+			int* mp = (int*)pmapy;
+
+			while (tp <= tpe)
+			{
+				int w = mp[0];
+				a0 += tp[0] * w;
+				a1 += tp[1] * w;
+				a2 += tp[2] * w;
+
+				w = mp[1];
+				a0 += tp[3] * w;
+				a1 += tp[4] * w;
+				a2 += tp[5] * w;
+
+				tp += 2 * channels;
+				mp += 2;
+			}
+
+			tpe += 2 * channels;
 			while (tp < tpe)
 			{
-				int a0 = 0, a1 = 0, a2 = 0, a3 = 0;
+				int w = mp[0];
+				a0 += tp[0] * w;
+				a1 += tp[1] * w;
+				a2 += tp[2] * w;
 
-				nuint ix = *pmapx++;
-				byte* ip = istart + ix * channels;
-				byte* ipe = ip + smapx * channels - 4 * channels;
-				int* mp = (int*)pmapx;
-				pmapx += smapx;
-
-				while (ip <= ipe)
-				{
-					int w = mp[0];
-					a0 += ip[0] * w;
-					a1 += ip[1] * w;
-					a2 += ip[2] * w;
-					a3 += ip[3] * w;
-
-					w = mp[1];
-					a0 += ip[4] * w;
-					a1 += ip[5] * w;
-					a2 += ip[6] * w;
-					a3 += ip[7] * w;
-
-					w = mp[2];
-					a0 += ip[8] * w;
-					a1 += ip[9] * w;
-					a2 += ip[10] * w;
-					a3 += ip[11] * w;
-
-					w = mp[3];
-					a0 += ip[12] * w;
-					a1 += ip[13] * w;
-					a2 += ip[14] * w;
-					a3 += ip[15] * w;
-
-					ip += 4 * channels;
-					mp += 4;
-				}
-
-				ipe += 4 * channels;
-				while (ip < ipe)
-				{
-					int w = mp[0];
-					a0 += ip[0] * w;
-					a1 += ip[1] * w;
-					a2 += ip[2] * w;
-					a3 += ip[3] * w;
-
-					ip += channels;
-					mp++;
-				}
-
-				tp[0] = UnFix8(a0);
-				tp[1] = UnFix8(a1);
-				tp[2] = UnFix8(a2);
-				tp[3] = UnFix8(a3);
-				tp += tstride;
+				tp += channels;
+				mp++;
 			}
-		}
 
-		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
+			op[0] = UnFix22ToByte(a0);
+			op[1] = UnFix22ToByte(a1);
+			op[2] = UnFix22ToByte(a2);
+			op += channels;
+		}
+	}
+
+	unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
+	{
+		int iamt = Fix15(amt);
+		int threshold = (thresh * byte.MaxValue).Round();
+
+		byte* ip = cstart + ox * channels, yp = ystart + ox, bp = bstart, op = ostart;
+
+		for (int xc = ox + ow; ox < xc; ox++, ip += channels, op += channels)
 		{
-			byte* op = ostart;
-			nuint tstride = (uint)smapy * channels;
+			int dif = (int)(uint)*yp++ - (int)(uint)*bp++;
 
-			for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
+			uint c0 = ip[0], c1 = ip[1], c2 = ip[2];
+			if (threshold == 0 || FastAbs(dif) > threshold)
 			{
-				int a0 = 0, a1 = 0, a2 = 0, a3 = 0;
-
-				int* tp = (int*)tstart + nox * tstride;
-				int* tpe = tp + tstride - 2 * channels;
-				int* mp = (int*)pmapy;
-
-				while (tp <= tpe)
-				{
-					int w = mp[0];
-					a0 += tp[0] * w;
-					a1 += tp[1] * w;
-					a2 += tp[2] * w;
-					a3 += tp[3] * w;
-
-					w = mp[1];
-					a0 += tp[4] * w;
-					a1 += tp[5] * w;
-					a2 += tp[6] * w;
-					a3 += tp[7] * w;
-
-					tp += 2 * channels;
-					mp += 2;
-				}
-
-				tpe += 2 * channels;
-				while (tp < tpe)
-				{
-					int w = mp[0];
-					a0 += tp[0] * w;
-					a1 += tp[1] * w;
-					a2 += tp[2] * w;
-					a3 += tp[3] * w;
-
-					tp += channels;
-					mp++;
-				}
-
-				op[0] = UnFix22ToByte(a0);
-				op[1] = UnFix22ToByte(a1);
-				op[2] = UnFix22ToByte(a2);
-				op[3] = UnFix22ToByte(a3);
-				op += channels;
+				dif = UnFix15(dif * iamt);
+				op[0] = ClampToByte((int)c0 + dif);
+				op[1] = ClampToByte((int)c1 + dif);
+				op[2] = ClampToByte((int)c2 + dif);
+			}
+			else
+			{
+				op[0] = (byte)c0;
+				op[1] = (byte)c1;
+				op[2] = (byte)c2;
 			}
 		}
+	}
 
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
+	public override string ToString() => nameof(ConvolverBgrByte);
+}
+
+internal sealed class ConvolverBgrUQ15 : IConvolver
+{
+	private const int channels = 3;
+
+	public static readonly ConvolverBgrUQ15 Instance = new();
+
+	private ConvolverBgrUQ15() { }
+
+	int IConvolver.Channels => channels;
+	int IConvolver.MapChannels => 1;
+
+	unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
+	{
+		int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
+		uint* pmapx = (uint*)mapxstart;
+		nuint tstride = (uint)smapy * channels;
+
+		while (tp < tpe)
+		{
+			int a0 = 0, a1 = 0, a2 = 0;
+
+			nuint ix = *pmapx++;
+			ushort* ip = (ushort*)istart + ix * channels;
+			ushort* ipe = ip + smapx * channels - 5 * channels;
+			int* mp = (int*)pmapx;
+			pmapx += smapx;
+
+			while (ip <= ipe)
+			{
+				int w = mp[0];
+				a0 += ip[0] * w;
+				a1 += ip[1] * w;
+				a2 += ip[2] * w;
+
+				w = mp[1];
+				a0 += ip[3] * w;
+				a1 += ip[4] * w;
+				a2 += ip[5] * w;
+
+				w = mp[2];
+				a0 += ip[6] * w;
+				a1 += ip[7] * w;
+				a2 += ip[8] * w;
+
+				w = mp[3];
+				a0 += ip[9] * w;
+				a1 += ip[10] * w;
+				a2 += ip[11] * w;
+
+				w = mp[4];
+				a0 += ip[12] * w;
+				a1 += ip[13] * w;
+				a2 += ip[14] * w;
+
+				ip += 5 * channels;
+				mp += 5;
+			}
+
+			ipe += 5 * channels;
+			while (ip < ipe)
+			{
+				int w = mp[0];
+				a0 += ip[0] * w;
+				a1 += ip[1] * w;
+				a2 += ip[2] * w;
+
+				ip += channels;
+				mp++;
+			}
+
+			tp[0] = UnFix15(a0);
+			tp[1] = UnFix15(a1);
+			tp[2] = UnFix15(a2);
+			tp += tstride;
+		}
+	}
+
+	unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
+	{
+		ushort* op = (ushort*)ostart;
+		nuint tstride = (uint)smapy * channels;
+
+		for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
+		{
+			int a0 = 0, a1 = 0, a2 = 0;
+
+			int* tp = (int*)tstart + nox * tstride;
+			int* tpe = tp + tstride - 2 * channels;
+			int* mp = (int*)pmapy;
+
+			while (tp <= tpe)
+			{
+				int w = mp[0];
+				a0 += tp[0] * w;
+				a1 += tp[1] * w;
+				a2 += tp[2] * w;
+
+				w = mp[1];
+				a0 += tp[3] * w;
+				a1 += tp[4] * w;
+				a2 += tp[5] * w;
+
+				tp += 2 * channels;
+				mp += 2;
+			}
+
+			tpe += 2 * channels;
+			while (tp < tpe)
+			{
+				int w = mp[0];
+				a0 += tp[0] * w;
+				a1 += tp[1] * w;
+				a2 += tp[2] * w;
+
+				tp += channels;
+				mp++;
+			}
+
+			op[0] = UnFixToUQ15(a0);
+			op[1] = UnFixToUQ15(a1);
+			op[2] = UnFixToUQ15(a2);
+			op += channels;
+		}
+	}
+
+	unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
+	{
+		fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15.GetDataRef())
+		fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15.GetDataRef())
 		{
 			int iamt = Fix15(amt);
 			int threshold = (thresh * byte.MaxValue).Round();
 
-			byte* ip = cstart + ox * channels, yp = ystart + ox, bp = bstart, op = ostart;
-
-			for (int xc = ox + ow; ox < xc; ox++, ip += channels, op += channels)
-			{
-				int dif = (int)(uint)*yp++ - (int)(uint)*bp++;
-
-				uint c0 = ip[0], c1 = ip[1], c2 = ip[2], c3 = ip[3];
-				if (threshold == 0 || FastAbs(dif) > threshold)
-				{
-					dif = UnFix15(dif * iamt);
-					op[0] = ClampToByte((int)c0 + dif);
-					op[1] = ClampToByte((int)c1 + dif);
-					op[2] = ClampToByte((int)c2 + dif);
-					op[3] = (byte)c3;
-				}
-				else
-				{
-					op[0] = (byte)c0;
-					op[1] = (byte)c1;
-					op[2] = (byte)c2;
-					op[3] = (byte)c3;
-				}
-			}
-		}
-
-		public override string ToString() => nameof(Convolver4ChanByte);
-	}
-
-	internal sealed class Convolver4ChanUQ15 : IConvolver
-	{
-		private const int channels = 4;
-
-		public static readonly Convolver4ChanUQ15 Instance = new();
-
-		private Convolver4ChanUQ15() { }
-
-		int IConvolver.Channels => channels;
-		int IConvolver.MapChannels => 1;
-
-		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
-		{
-			int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
-			uint* pmapx = (uint*)mapxstart;
-			nuint tstride = (uint)smapy * channels;
-
-			while (tp < tpe)
-			{
-				int a0 = 0, a1 = 0, a2 = 0, a3 = 0;
-
-				nuint ix = *pmapx++;
-				ushort* ip = (ushort*)istart + ix * channels;
-				ushort* ipe = ip + smapx * channels - 4 * channels;
-				int* mp = (int*)pmapx;
-				pmapx += smapx;
-
-				while (ip <= ipe)
-				{
-					int w = mp[0];
-					a0 += ip[0] * w;
-					a1 += ip[1] * w;
-					a2 += ip[2] * w;
-					a3 += ip[3] * w;
-
-					w = mp[1];
-					a0 += ip[4] * w;
-					a1 += ip[5] * w;
-					a2 += ip[6] * w;
-					a3 += ip[7] * w;
-
-					w = mp[2];
-					a0 += ip[8] * w;
-					a1 += ip[9] * w;
-					a2 += ip[10] * w;
-					a3 += ip[11] * w;
-
-					w = mp[3];
-					a0 += ip[12] * w;
-					a1 += ip[13] * w;
-					a2 += ip[14] * w;
-					a3 += ip[15] * w;
-
-					ip += 4 * channels;
-					mp += 4;
-				}
-
-				ipe += 4 * channels;
-				while (ip < ipe)
-				{
-					int w = mp[0];
-					a0 += ip[0] * w;
-					a1 += ip[1] * w;
-					a2 += ip[2] * w;
-					a3 += ip[3] * w;
-
-					ip += channels;
-					mp++;
-				}
-
-				tp[0] = UnFix15(a0);
-				tp[1] = UnFix15(a1);
-				tp[2] = UnFix15(a2);
-				tp[3] = UnFix15(a3);
-				tp += tstride;
-			}
-		}
-
-		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
-		{
-			ushort* op = (ushort*)ostart;
-			nuint tstride = (uint)smapy * channels;
-
-			for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
-			{
-				int a0 = 0, a1 = 0, a2 = 0, a3 = 0;
-
-				int* tp = (int*)tstart + nox * tstride;
-				int* tpe = tp + tstride - 2 * channels;
-				int* mp = (int*)pmapy;
-
-				while (tp <= tpe)
-				{
-					int w = mp[0];
-					a0 += tp[0] * w;
-					a1 += tp[1] * w;
-					a2 += tp[2] * w;
-					a3 += tp[3] * w;
-
-					w = mp[1];
-					a0 += tp[4] * w;
-					a1 += tp[5] * w;
-					a2 += tp[6] * w;
-					a3 += tp[7] * w;
-
-					tp += 2 * channels;
-					mp += 2;
-				}
-
-				tpe += 2 * channels;
-				while (tp < tpe)
-				{
-					int w = mp[0];
-					a0 += tp[0] * w;
-					a1 += tp[1] * w;
-					a2 += tp[2] * w;
-					a3 += tp[3] * w;
-
-					tp += channels;
-					mp++;
-				}
-
-				op[0] = UnFixToUQ15(a0);
-				op[1] = UnFixToUQ15(a1);
-				op[2] = UnFixToUQ15(a2);
-				op[3] = UnFixToUQ15(a3);
-				op += channels;
-			}
-		}
-
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
-		{
-			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15.GetDataRef())
-			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15.GetDataRef())
-			{
-				int iamt = Fix15(amt);
-				int threshold = (thresh * byte.MaxValue).Round();
-
-				byte* gt = gtstart;
-				ushort* ip = (ushort*)cstart + ox * channels, yp = (ushort*)ystart + ox, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;
-
-				for (int xc = ox + ow; ox < xc; ox++, ip += channels, op += channels)
-				{
-					int dif = (int)(uint)*yp++ - (int)(uint)*bp++;
-
-					uint c0 = ip[0], c1 = ip[1], c2 = ip[2], c3 = ip[3];
-					if (threshold == 0 || FastAbs(dif) > threshold)
-					{
-						c0 = gt[(nuint)ClampToUQ15One(c0)];
-						c1 = gt[(nuint)ClampToUQ15One(c1)];
-						c2 = gt[(nuint)ClampToUQ15One(c2)];
-
-						dif = UnFix15(dif * iamt);
-						op[0] = igt[(nuint)ClampToByte((int)c0 + dif)];
-						op[1] = igt[(nuint)ClampToByte((int)c1 + dif)];
-						op[2] = igt[(nuint)ClampToByte((int)c2 + dif)];
-						op[3] = (ushort)c3;
-					}
-					else
-					{
-						op[0] = (ushort)c0;
-						op[1] = (ushort)c1;
-						op[2] = (ushort)c2;
-						op[3] = (ushort)c3;
-					}
-				}
-			}
-		}
-
-		public override string ToString() => nameof(Convolver4ChanUQ15);
-	}
-
-	internal sealed class ConvolverBgrByte : IConvolver
-	{
-		private const int channels = 3;
-
-		public static readonly ConvolverBgrByte Instance = new();
-
-		private ConvolverBgrByte() { }
-
-		int IConvolver.Channels => channels;
-		int IConvolver.MapChannels => 1;
-
-		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
-		{
-			int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
-			uint* pmapx = (uint*)mapxstart;
-			nuint tstride = (uint)smapy * channels;
-
-			while (tp < tpe)
-			{
-				int a0 = 0, a1 = 0, a2 = 0;
-
-				nuint ix = *pmapx++;
-				byte* ip = istart + ix * channels;
-				byte* ipe = ip + smapx * channels - 5 * channels;
-				int* mp = (int*)pmapx;
-				pmapx += smapx;
-
-				while (ip <= ipe)
-				{
-					int w = mp[0];
-					a0 += ip[0] * w;
-					a1 += ip[1] * w;
-					a2 += ip[2] * w;
-
-					w = mp[1];
-					a0 += ip[3] * w;
-					a1 += ip[4] * w;
-					a2 += ip[5] * w;
-
-					w = mp[2];
-					a0 += ip[6] * w;
-					a1 += ip[7] * w;
-					a2 += ip[8] * w;
-
-					w = mp[3];
-					a0 += ip[9] * w;
-					a1 += ip[10] * w;
-					a2 += ip[11] * w;
-
-					w = mp[4];
-					a0 += ip[12] * w;
-					a1 += ip[13] * w;
-					a2 += ip[14] * w;
-
-					ip += 5 * channels;
-					mp += 5;
-				}
-
-				ipe += 5 * channels;
-				while (ip < ipe)
-				{
-					int w = mp[0];
-					a0 += ip[0] * w;
-					a1 += ip[1] * w;
-					a2 += ip[2] * w;
-
-					ip += channels;
-					mp++;
-				}
-
-				tp[0] = UnFix8(a0);
-				tp[1] = UnFix8(a1);
-				tp[2] = UnFix8(a2);
-				tp += tstride;
-			}
-		}
-
-		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
-		{
-			byte* op = ostart;
-			nuint tstride = (uint)smapy * channels;
-
-			for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
-			{
-				int a0 = 0, a1 = 0, a2 = 0;
-
-				int* tp = (int*)tstart + nox * tstride;
-				int* tpe = tp + tstride - 2 * channels;
-				int* mp = (int*)pmapy;
-
-				while (tp <= tpe)
-				{
-					int w = mp[0];
-					a0 += tp[0] * w;
-					a1 += tp[1] * w;
-					a2 += tp[2] * w;
-
-					w = mp[1];
-					a0 += tp[3] * w;
-					a1 += tp[4] * w;
-					a2 += tp[5] * w;
-
-					tp += 2 * channels;
-					mp += 2;
-				}
-
-				tpe += 2 * channels;
-				while (tp < tpe)
-				{
-					int w = mp[0];
-					a0 += tp[0] * w;
-					a1 += tp[1] * w;
-					a2 += tp[2] * w;
-
-					tp += channels;
-					mp++;
-				}
-
-				op[0] = UnFix22ToByte(a0);
-				op[1] = UnFix22ToByte(a1);
-				op[2] = UnFix22ToByte(a2);
-				op += channels;
-			}
-		}
-
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
-		{
-			int iamt = Fix15(amt);
-			int threshold = (thresh * byte.MaxValue).Round();
-
-			byte* ip = cstart + ox * channels, yp = ystart + ox, bp = bstart, op = ostart;
+			byte* gt = gtstart;
+			ushort* ip = (ushort*)cstart + ox * channels, yp = (ushort*)ystart + ox, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;
 
 			for (int xc = ox + ow; ox < xc; ox++, ip += channels, op += channels)
 			{
@@ -766,286 +924,249 @@ namespace PhotoSauce.MagicScaler.Transforms
 				uint c0 = ip[0], c1 = ip[1], c2 = ip[2];
 				if (threshold == 0 || FastAbs(dif) > threshold)
 				{
+					c0 = gt[(nuint)ClampToUQ15One(c0)];
+					c1 = gt[(nuint)ClampToUQ15One(c1)];
+					c2 = gt[(nuint)ClampToUQ15One(c2)];
+
 					dif = UnFix15(dif * iamt);
-					op[0] = ClampToByte((int)c0 + dif);
-					op[1] = ClampToByte((int)c1 + dif);
-					op[2] = ClampToByte((int)c2 + dif);
+					op[0] = igt[(nuint)ClampToByte((int)c0 + dif)];
+					op[1] = igt[(nuint)ClampToByte((int)c1 + dif)];
+					op[2] = igt[(nuint)ClampToByte((int)c2 + dif)];
 				}
 				else
 				{
-					op[0] = (byte)c0;
-					op[1] = (byte)c1;
-					op[2] = (byte)c2;
+					op[0] = (ushort)c0;
+					op[1] = (ushort)c1;
+					op[2] = (ushort)c2;
 				}
 			}
 		}
-
-		public override string ToString() => nameof(ConvolverBgrByte);
 	}
 
-	internal sealed class ConvolverBgrUQ15 : IConvolver
+	public override string ToString() => nameof(ConvolverBgrUQ15);
+}
+
+internal sealed class Convolver1ChanByte : IConvolver
+{
+	private const int channels = 1;
+
+	public static readonly Convolver1ChanByte Instance = new();
+
+	private Convolver1ChanByte() { }
+
+	int IConvolver.Channels => channels;
+	int IConvolver.MapChannels => 1;
+
+	unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
 	{
-		private const int channels = 3;
+		int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
+		uint* pmapx = (uint*)mapxstart;
+		nuint tstride = (uint)smapy * channels;
 
-		public static readonly ConvolverBgrUQ15 Instance = new();
-
-		private ConvolverBgrUQ15() { }
-
-		int IConvolver.Channels => channels;
-		int IConvolver.MapChannels => 1;
-
-		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
+		while (tp < tpe)
 		{
-			int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
-			uint* pmapx = (uint*)mapxstart;
-			nuint tstride = (uint)smapy * channels;
+			int a0 = 0;
 
-			while (tp < tpe)
+			nuint ix = *pmapx++;
+			byte* ip = istart + ix * channels;
+			byte* ipe = ip + smapx * channels - 8 * channels;
+			int* mp = (int*)pmapx;
+			pmapx += smapx;
+
+			while (ip <= ipe)
 			{
-				int a0 = 0, a1 = 0, a2 = 0;
-
-				nuint ix = *pmapx++;
-				ushort* ip = (ushort*)istart + ix * channels;
-				ushort* ipe = ip + smapx * channels - 5 * channels;
-				int* mp = (int*)pmapx;
-				pmapx += smapx;
-
-				while (ip <= ipe)
-				{
-					int w = mp[0];
-					a0 += ip[0] * w;
-					a1 += ip[1] * w;
-					a2 += ip[2] * w;
-
-					w = mp[1];
-					a0 += ip[3] * w;
-					a1 += ip[4] * w;
-					a2 += ip[5] * w;
-
-					w = mp[2];
-					a0 += ip[6] * w;
-					a1 += ip[7] * w;
-					a2 += ip[8] * w;
-
-					w = mp[3];
-					a0 += ip[9] * w;
-					a1 += ip[10] * w;
-					a2 += ip[11] * w;
-
-					w = mp[4];
-					a0 += ip[12] * w;
-					a1 += ip[13] * w;
-					a2 += ip[14] * w;
-
-					ip += 5 * channels;
-					mp += 5;
-				}
-
-				ipe += 5 * channels;
-				while (ip < ipe)
-				{
-					int w = mp[0];
-					a0 += ip[0] * w;
-					a1 += ip[1] * w;
-					a2 += ip[2] * w;
-
-					ip += channels;
-					mp++;
-				}
-
-				tp[0] = UnFix15(a0);
-				tp[1] = UnFix15(a1);
-				tp[2] = UnFix15(a2);
-				tp += tstride;
+				a0 += ip[0] * mp[0];
+				a0 += ip[1] * mp[1];
+				a0 += ip[2] * mp[2];
+				a0 += ip[3] * mp[3];
+				a0 += ip[4] * mp[4];
+				a0 += ip[5] * mp[5];
+				a0 += ip[6] * mp[6];
+				a0 += ip[7] * mp[7];
+				ip += 8 * channels;
+				mp += 8;
 			}
-		}
 
-		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
-		{
-			ushort* op = (ushort*)ostart;
-			nuint tstride = (uint)smapy * channels;
-
-			for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
+			ipe += 8 * channels;
+			while (ip < ipe)
 			{
-				int a0 = 0, a1 = 0, a2 = 0;
+				a0 += ip[0] * mp[0];
 
-				int* tp = (int*)tstart + nox * tstride;
-				int* tpe = tp + tstride - 2 * channels;
-				int* mp = (int*)pmapy;
-
-				while (tp <= tpe)
-				{
-					int w = mp[0];
-					a0 += tp[0] * w;
-					a1 += tp[1] * w;
-					a2 += tp[2] * w;
-
-					w = mp[1];
-					a0 += tp[3] * w;
-					a1 += tp[4] * w;
-					a2 += tp[5] * w;
-
-					tp += 2 * channels;
-					mp += 2;
-				}
-
-				tpe += 2 * channels;
-				while (tp < tpe)
-				{
-					int w = mp[0];
-					a0 += tp[0] * w;
-					a1 += tp[1] * w;
-					a2 += tp[2] * w;
-
-					tp += channels;
-					mp++;
-				}
-
-				op[0] = UnFixToUQ15(a0);
-				op[1] = UnFixToUQ15(a1);
-				op[2] = UnFixToUQ15(a2);
-				op += channels;
+				ip += channels;
+				mp++;
 			}
+
+			tp[0] = UnFix8(a0);
+			tp += tstride;
 		}
-
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
-		{
-			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15.GetDataRef())
-			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15.GetDataRef())
-			{
-				int iamt = Fix15(amt);
-				int threshold = (thresh * byte.MaxValue).Round();
-
-				byte* gt = gtstart;
-				ushort* ip = (ushort*)cstart + ox * channels, yp = (ushort*)ystart + ox, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;
-
-				for (int xc = ox + ow; ox < xc; ox++, ip += channels, op += channels)
-				{
-					int dif = (int)(uint)*yp++ - (int)(uint)*bp++;
-
-					uint c0 = ip[0], c1 = ip[1], c2 = ip[2];
-					if (threshold == 0 || FastAbs(dif) > threshold)
-					{
-						c0 = gt[(nuint)ClampToUQ15One(c0)];
-						c1 = gt[(nuint)ClampToUQ15One(c1)];
-						c2 = gt[(nuint)ClampToUQ15One(c2)];
-
-						dif = UnFix15(dif * iamt);
-						op[0] = igt[(nuint)ClampToByte((int)c0 + dif)];
-						op[1] = igt[(nuint)ClampToByte((int)c1 + dif)];
-						op[2] = igt[(nuint)ClampToByte((int)c2 + dif)];
-					}
-					else
-					{
-						op[0] = (ushort)c0;
-						op[1] = (ushort)c1;
-						op[2] = (ushort)c2;
-					}
-				}
-			}
-		}
-
-		public override string ToString() => nameof(ConvolverBgrUQ15);
 	}
 
-	internal sealed class Convolver1ChanByte : IConvolver
+	unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 	{
-		private const int channels = 1;
+		byte* op = ostart;
+		nuint tstride = (uint)smapy * channels;
 
-		public static readonly Convolver1ChanByte Instance = new();
-
-		private Convolver1ChanByte() { }
-
-		int IConvolver.Channels => channels;
-		int IConvolver.MapChannels => 1;
-
-		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
+		for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
 		{
-			int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
-			uint* pmapx = (uint*)mapxstart;
-			nuint tstride = (uint)smapy * channels;
+			int a0 = 0;
 
+			int* tp = (int*)tstart + nox * tstride;
+			int* tpe = tp + tstride - 4 * channels;
+			int* mp = (int*)pmapy;
+
+			while (tp <= tpe)
+			{
+				a0 += tp[0] * mp[0];
+				a0 += tp[1] * mp[1];
+				a0 += tp[2] * mp[2];
+				a0 += tp[3] * mp[3];
+				tp += 4 * channels;
+				mp += 4;
+			}
+
+			tpe += 4 * channels;
 			while (tp < tpe)
 			{
-				int a0 = 0;
+				a0 += tp[0] * mp[0];
 
-				nuint ix = *pmapx++;
-				byte* ip = istart + ix * channels;
-				byte* ipe = ip + smapx * channels - 8 * channels;
-				int* mp = (int*)pmapx;
-				pmapx += smapx;
-
-				while (ip <= ipe)
-				{
-					a0 += ip[0] * mp[0];
-					a0 += ip[1] * mp[1];
-					a0 += ip[2] * mp[2];
-					a0 += ip[3] * mp[3];
-					a0 += ip[4] * mp[4];
-					a0 += ip[5] * mp[5];
-					a0 += ip[6] * mp[6];
-					a0 += ip[7] * mp[7];
-					ip += 8 * channels;
-					mp += 8;
-				}
-
-				ipe += 8 * channels;
-				while (ip < ipe)
-				{
-					a0 += ip[0] * mp[0];
-
-					ip += channels;
-					mp++;
-				}
-
-				tp[0] = UnFix8(a0);
-				tp += tstride;
+				tp += channels;
+				mp++;
 			}
-		}
 
-		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
+			op[0] = UnFix22ToByte(a0);
+			op += channels;
+		}
+	}
+
+	unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
+	{
+		int iamt = Fix15(amt);
+		int threshold = (thresh * byte.MaxValue).Round();
+
+		byte* ip = cstart + ox * channels, yp = ystart + ox, bp = bstart, op = ostart;
+
+		for (int xc = ox + ow; ox < xc; ox++, ip += channels, op += channels)
 		{
-			byte* op = ostart;
-			nuint tstride = (uint)smapy * channels;
+			int dif = (int)(uint)*yp++ - (int)(uint)*bp++;
 
-			for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
+			uint c0 = ip[0];
+			if (threshold == 0 || FastAbs(dif) > threshold)
 			{
-				int a0 = 0;
-
-				int* tp = (int*)tstart + nox * tstride;
-				int* tpe = tp + tstride - 4 * channels;
-				int* mp = (int*)pmapy;
-
-				while (tp <= tpe)
-				{
-					a0 += tp[0] * mp[0];
-					a0 += tp[1] * mp[1];
-					a0 += tp[2] * mp[2];
-					a0 += tp[3] * mp[3];
-					tp += 4 * channels;
-					mp += 4;
-				}
-
-				tpe += 4 * channels;
-				while (tp < tpe)
-				{
-					a0 += tp[0] * mp[0];
-
-					tp += channels;
-					mp++;
-				}
-
-				op[0] = UnFix22ToByte(a0);
-				op += channels;
+				dif = UnFix15(dif * iamt);
+				op[0] = ClampToByte((int)c0 + dif);
+			}
+			else
+			{
+				op[0] = (byte)c0;
 			}
 		}
+	}
 
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
+	public override string ToString() => nameof(Convolver1ChanByte);
+}
+
+internal sealed class Convolver1ChanUQ15 : IConvolver
+{
+	private const int channels = 1;
+
+	public static readonly Convolver1ChanUQ15 Instance = new();
+
+	private Convolver1ChanUQ15() { }
+
+	int IConvolver.Channels => channels;
+	int IConvolver.MapChannels => 1;
+
+	unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
+	{
+		int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
+		uint* pmapx = (uint*)mapxstart;
+		nuint tstride = (uint)smapy * channels;
+
+		while (tp < tpe)
+		{
+			int a0 = 0;
+
+			nuint ix = *pmapx++;
+			ushort* ip = (ushort*)istart + ix * channels;
+			ushort* ipe = ip + smapx * channels - 8 * channels;
+			int* mp = (int*)pmapx;
+			pmapx += smapx;
+
+			while (ip <= ipe)
+			{
+				a0 += ip[0] * mp[0];
+				a0 += ip[1] * mp[1];
+				a0 += ip[2] * mp[2];
+				a0 += ip[3] * mp[3];
+				a0 += ip[4] * mp[4];
+				a0 += ip[5] * mp[5];
+				a0 += ip[6] * mp[6];
+				a0 += ip[7] * mp[7];
+				ip += 8 * channels;
+				mp += 8;
+			}
+
+			ipe += 8 * channels;
+			while (ip < ipe)
+			{
+				a0 += ip[0] * mp[0];
+
+				ip += channels;
+				mp++;
+			}
+
+			tp[0] = UnFix15(a0);
+			tp += tstride;
+		}
+	}
+
+	unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
+	{
+		ushort* op = (ushort*)ostart;
+		nuint tstride = (uint)smapy * channels;
+
+		for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
+		{
+			int a0 = 0;
+
+			int* tp = (int*)tstart + nox * tstride;
+			int* tpe = tp + tstride - 4 * channels;
+			int* mp = (int*)pmapy;
+
+			while (tp <= tpe)
+			{
+				a0 += tp[0] * mp[0];
+				a0 += tp[1] * mp[1];
+				a0 += tp[2] * mp[2];
+				a0 += tp[3] * mp[3];
+				tp += 4 * channels;
+				mp += 4;
+			}
+
+			tpe += 4 * channels;
+			while (tp < tpe)
+			{
+				a0 += tp[0] * mp[0];
+
+				tp += channels;
+				mp++;
+			}
+
+			op[0] = UnFixToUQ15(a0);
+			op += channels;
+		}
+	}
+
+	unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
+	{
+		fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15.GetDataRef())
+		fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15.GetDataRef())
 		{
 			int iamt = Fix15(amt);
 			int threshold = (thresh * byte.MaxValue).Round();
 
-			byte* ip = cstart + ox * channels, yp = ystart + ox, bp = bstart, op = ostart;
+			byte* gt = gtstart;
+			ushort* ip = (ushort*)cstart + ox * channels, yp = (ushort*)ystart + ox, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;
 
 			for (int xc = ox + ow; ox < xc; ox++, ip += channels, op += channels)
 			{
@@ -1054,142 +1175,18 @@ namespace PhotoSauce.MagicScaler.Transforms
 				uint c0 = ip[0];
 				if (threshold == 0 || FastAbs(dif) > threshold)
 				{
+					c0 = gt[(nuint)ClampToUQ15One(c0)];
+
 					dif = UnFix15(dif * iamt);
-					op[0] = ClampToByte((int)c0 + dif);
+					op[0] = igt[(nuint)ClampToByte((int)c0 + dif)];
 				}
 				else
 				{
-					op[0] = (byte)c0;
+					op[0] = (ushort)c0;
 				}
 			}
 		}
-
-		public override string ToString() => nameof(Convolver1ChanByte);
 	}
 
-	internal sealed class Convolver1ChanUQ15 : IConvolver
-	{
-		private const int channels = 1;
-
-		public static readonly Convolver1ChanUQ15 Instance = new();
-
-		private Convolver1ChanUQ15() { }
-
-		int IConvolver.Channels => channels;
-		int IConvolver.MapChannels => 1;
-
-		unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
-		{
-			int* tp = (int*)tstart, tpe = (int*)(tstart + cb);
-			uint* pmapx = (uint*)mapxstart;
-			nuint tstride = (uint)smapy * channels;
-
-			while (tp < tpe)
-			{
-				int a0 = 0;
-
-				nuint ix = *pmapx++;
-				ushort* ip = (ushort*)istart + ix * channels;
-				ushort* ipe = ip + smapx * channels - 8 * channels;
-				int* mp = (int*)pmapx;
-				pmapx += smapx;
-
-				while (ip <= ipe)
-				{
-					a0 += ip[0] * mp[0];
-					a0 += ip[1] * mp[1];
-					a0 += ip[2] * mp[2];
-					a0 += ip[3] * mp[3];
-					a0 += ip[4] * mp[4];
-					a0 += ip[5] * mp[5];
-					a0 += ip[6] * mp[6];
-					a0 += ip[7] * mp[7];
-					ip += 8 * channels;
-					mp += 8;
-				}
-
-				ipe += 8 * channels;
-				while (ip < ipe)
-				{
-					a0 += ip[0] * mp[0];
-
-					ip += channels;
-					mp++;
-				}
-
-				tp[0] = UnFix15(a0);
-				tp += tstride;
-			}
-		}
-
-		unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
-		{
-			ushort* op = (ushort*)ostart;
-			nuint tstride = (uint)smapy * channels;
-
-			for (nuint nox = (uint)ox, xc = nox + (uint)ow; nox < xc; nox++)
-			{
-				int a0 = 0;
-
-				int* tp = (int*)tstart + nox * tstride;
-				int* tpe = tp + tstride - 4 * channels;
-				int* mp = (int*)pmapy;
-
-				while (tp <= tpe)
-				{
-					a0 += tp[0] * mp[0];
-					a0 += tp[1] * mp[1];
-					a0 += tp[2] * mp[2];
-					a0 += tp[3] * mp[3];
-					tp += 4 * channels;
-					mp += 4;
-				}
-
-				tpe += 4 * channels;
-				while (tp < tpe)
-				{
-					a0 += tp[0] * mp[0];
-
-					tp += channels;
-					mp++;
-				}
-
-				op[0] = UnFixToUQ15(a0);
-				op += channels;
-			}
-		}
-
-		unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
-		{
-			fixed (byte* gtstart = &LookupTables.SrgbGammaUQ15.GetDataRef())
-			fixed (ushort* igtstart = &LookupTables.SrgbInverseGammaUQ15.GetDataRef())
-			{
-				int iamt = Fix15(amt);
-				int threshold = (thresh * byte.MaxValue).Round();
-
-				byte* gt = gtstart;
-				ushort* ip = (ushort*)cstart + ox * channels, yp = (ushort*)ystart + ox, bp = (ushort*)bstart, op = (ushort*)ostart, igt = igtstart;
-
-				for (int xc = ox + ow; ox < xc; ox++, ip += channels, op += channels)
-				{
-					int dif = (int)(uint)*yp++ - (int)(uint)*bp++;
-
-					uint c0 = ip[0];
-					if (threshold == 0 || FastAbs(dif) > threshold)
-					{
-						c0 = gt[(nuint)ClampToUQ15One(c0)];
-
-						dif = UnFix15(dif * iamt);
-						op[0] = igt[(nuint)ClampToByte((int)c0 + dif)];
-					}
-					else
-					{
-						op[0] = (ushort)c0;
-					}
-				}
-			}
-		}
-
-		public override string ToString() => nameof(Convolver1ChanUQ15);
-	}
+	public override string ToString() => nameof(Convolver1ChanUQ15);
 }
