@@ -22,26 +22,29 @@ jobs:
       linux-arm64:
         imageName: ubuntu-latest
         setupScript: |
-          sudo apt-get update
-          sudo apt-get install -y g++-aarch64-linux-gnu
+          sudo apt update
+          sudo apt install -y g++-aarch64-linux-gnu
           modules/vcpkg/bootstrap-vcpkg.sh
-        buildScript: modules/vcpkg/vcpkg install libheif libjxl libwebp --triplet=arm64-linux-staticdependencies @build/vcpkg/response
+        buildScript: modules/vcpkg/vcpkg install libheif libjxl libwebp psjpeg --triplet=arm64-linux-staticdependencies @build/vcpkg/response
       linux-x64:
         imageName: ubuntu-latest
-        setupScript: modules/vcpkg/bootstrap-vcpkg.sh
-        buildScript: modules/vcpkg/vcpkg install libheif libjxl libwebp --triplet=x64-linux-staticdependencies @build/vcpkg/response
+        setupScript: |
+          sudo apt update
+          sudo apt install -y nasm
+          modules/vcpkg/bootstrap-vcpkg.sh
+        buildScript: modules/vcpkg/vcpkg install libheif libjxl libwebp psjpeg --triplet=x64-linux-staticdependencies @build/vcpkg/response
       windows-arm64:
         imageName: windows-latest
         setupScript: modules\vcpkg\bootstrap-vcpkg.bat
-        buildScript: modules\vcpkg\vcpkg install libheif libjxl libwebp --triplet=arm64-windows-staticdependencies @build\vcpkg\response
+        buildScript: modules\vcpkg\vcpkg install libheif libjxl libwebp psjpeg --triplet=arm64-windows-staticdependencies @build\vcpkg\response
       windows-x64:
         imageName: windows-latest
         setupScript: modules\vcpkg\bootstrap-vcpkg.bat
-        buildScript: modules\vcpkg\vcpkg install libheif libjxl libwebp --triplet=x64-windows-staticdependencies @build\vcpkg\response
+        buildScript: modules\vcpkg\vcpkg install libheif libjxl libwebp psjpeg --triplet=x64-windows-staticdependencies @build\vcpkg\response
       windows-x86:
         imageName: windows-latest
         setupScript: modules\vcpkg\bootstrap-vcpkg.bat
-        buildScript: modules\vcpkg\vcpkg install libheif libjxl libwebp --triplet=x86-windows-staticdependencies @build\vcpkg\response
+        buildScript: modules\vcpkg\vcpkg install libheif libjxl libwebp psjpeg --triplet=x86-windows-staticdependencies @build\vcpkg\response
 
   pool:
     vmImage: $(imageName)

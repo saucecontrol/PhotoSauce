@@ -1,0 +1,43 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index cf2fa1e..c298606 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -588,7 +588,7 @@ if(WITH_JAVA)
+   add_subdirectory(java)
+ endif()
+ 
+-if(ENABLE_SHARED)
++if(ENABLE_SHARED AND WITH_TURBOJPEG)
+   add_subdirectory(sharedlib)
+ endif()
+ 
+@@ -679,6 +679,11 @@ if(WITH_TURBOJPEG)
+   endif()
+ endif()
+ 
++set(PSJPEG_SOURCES ${JPEG_SOURCES} $<TARGET_OBJECTS:simd> ${SIMD_OBJS} psjpeg.c)
++set(CMAKE_C_VISIBILITY_PRESET hidden)
++add_library(psjpeg SHARED ${PSJPEG_SOURCES})
++set_target_properties(psjpeg PROPERTIES DEFINE_SYMBOL DLLDEFINE)
++
+ if(WIN32)
+   set(USE_SETMODE "-DUSE_SETMODE")
+ endif()
+@@ -1475,6 +1480,17 @@ if(WITH_TURBOJPEG)
+   endif()
+ endif()
+ 
++install(TARGETS psjpeg EXPORT ${CMAKE_PROJECT_NAME}Targets
++  INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
++  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
++  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
++  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
++if(MSVC AND CMAKE_C_LINKER_SUPPORTS_PDB)
++  install(FILES "$<TARGET_PDB_FILE:psjpeg>"
++    DESTINATION ${CMAKE_INSTALL_BINDIR} OPTIONAL)
++endif()
++install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/psjpeg.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
++
+ if(ENABLE_STATIC)
+   install(TARGETS jpeg-static EXPORT ${CMAKE_PROJECT_NAME}Targets
+     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}

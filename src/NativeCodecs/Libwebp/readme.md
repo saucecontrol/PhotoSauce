@@ -3,6 +3,8 @@ PhotoSauce.NativeCodecs.Libwebp
 
 This MagicScaler plugin wraps the [libwebp](https://chromium.googlesource.com/webm/libwebp) reference [WebP](https://developers.google.com/speed/webp) codec.
 
+Windows 10 and 11 include a WebP decoder by default, but it may not function for all users or apps.  This plugin is more capable than the Windows codec and will work anywhere `libwebp` is available.
+
 Requirements
 ------------
 

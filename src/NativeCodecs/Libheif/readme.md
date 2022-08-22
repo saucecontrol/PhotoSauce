@@ -7,7 +7,7 @@ Be aware that the HEVC video coding standard used in HEIC images is burdened by 
 
 *By using this plugin, you acknowledge that your use of the codec is permitted royalty free or that you have purchased an appropriate license.*
 
-Windows 10 and 11 include a HEIF codec by default, but it may not function for HEIC images without purchase of an HEVC extension from the Microsoft Store, and it may not function for all users or apps.  You may need to unregister the Windows HEIF codec in order to use this plugin for decode.
+Windows 10 and 11 include a HEIF codec by default, but it may not function for HEIC images without purchase of an HEVC extension from the Microsoft Store, and it may not function for all users or apps.  This plugin is meant to be used when the Windows codec is not available or does not work.
 
 Requirements
 ------------

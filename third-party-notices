@@ -65,3 +65,13 @@ Licensed under a 3-clause BSD License.
 
 Available at
 https://chromium.googlesource.com/webm/libwebp/+/refs/heads/main/COPYING
+
+License notice for libjpeg-turbo
+--------------------------------
+
+Copyright (C)2009-2022 D. R. Commander.  All Rights Reserved.
+This software is based in part on the work of the Independent JPEG Group.
+Licensed under a 3-clause BSD License.
+
+Available at
+https://github.com/libjpeg-turbo/libjpeg-turbo/blob/main/LICENSE.md

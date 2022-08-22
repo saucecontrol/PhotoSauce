@@ -107,7 +107,7 @@ internal static unsafe partial class Libwebp
     public static extern int WebPPictureIsView([NativeTypeName("const WebPPicture *")] WebPPicture* picture);
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern int WebPPictureRescale(WebPPicture* pic, int width, int height);
+    public static extern int WebPPictureRescale(WebPPicture* picture, int width, int height);
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern int WebPPictureImportRGB(WebPPicture* picture, [NativeTypeName("const uint8_t *")] byte* rgb, int rgb_stride);
@@ -149,7 +149,7 @@ internal static unsafe partial class Libwebp
     public static extern int WebPPictureHasTransparency([NativeTypeName("const WebPPicture *")] WebPPicture* picture);
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern void WebPBlendAlpha(WebPPicture* pic, [NativeTypeName("uint32_t")] uint background_rgb);
+    public static extern void WebPBlendAlpha(WebPPicture* picture, [NativeTypeName("uint32_t")] uint background_rgb);
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern int WebPEncode([NativeTypeName("const WebPConfig *")] WebPConfig* config, WebPPicture* picture);
