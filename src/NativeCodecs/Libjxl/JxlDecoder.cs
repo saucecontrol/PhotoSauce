@@ -199,7 +199,7 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 			get
 			{
 				if (container.decoder == default)
-					throw new ObjectDisposedException(nameof(JxlContainer));
+					ThrowHelper.ThrowObjectDisposed(nameof(JxlContainer));
 
 				return pixsrc ??= new JxlPixelSource(container);
 			}
@@ -335,7 +335,7 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
 			if (gchandle == default)
-				throw new ObjectDisposedException(nameof(JxlPixelSource));
+				ThrowHelper.ThrowObjectDisposed(nameof(JxlPixelSource));
 
 			int bpp = Format.BytesPerPixel;
 			for (int y = 0; y < prc.Height; y++)

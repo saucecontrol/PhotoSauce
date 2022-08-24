@@ -76,4 +76,7 @@ internal static class ThrowHelper
 		[DoesNotReturn]
 		static void @throw(string? name) => throw new InvalidOperationException($"Object not disposed: {name}");
 	}
+
+	[DoesNotReturn]
+	public static void ThrowObjectDisposed(string name) => throw new ObjectDisposedException(name);
 }

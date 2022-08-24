@@ -83,7 +83,7 @@ internal sealed class PlanarConversionTransform : ChainedPixelSource
 	protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 	{
 		var buffspan = lineBuff.Span;
-		if (buffspan.IsEmpty) throw new ObjectDisposedException(nameof(PlanarConversionTransform));
+		if (buffspan.IsEmpty) ThrowHelper.ThrowObjectDisposed(nameof(PlanarConversionTransform));
 
 		fixed (byte* bstart = buffspan)
 		{

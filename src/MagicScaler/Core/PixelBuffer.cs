@@ -70,7 +70,7 @@ internal sealed class PixelBuffer<T> : IDisposable where T : struct, BufferType
 		if (buffArray is null)
 		{
 			if (capacity == 0)
-				throw new ObjectDisposedException(nameof(PixelBuffer<T>));
+				ThrowHelper.ThrowObjectDisposed(nameof(PixelBuffer<T>));
 
 			var buff = BufferPool.RentRawAligned(checked(window + Math.Max(capacity, lines) * Stride));
 

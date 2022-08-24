@@ -49,14 +49,14 @@ internal static unsafe class HeifFactory
 public static class CodecCollectionExtensions
 {
 	/// <inheritdoc cref="WindowsCodecExtensions.UseWicCodecs(CodecCollection, WicCodecPolicy)" />
-	/// <param name="removeExisting">Remove any codecs already registered that match <see cref="ImageMimeTypes.Heic" />.</param>
+	/// <param name="removeExisting">Remove any decoders already registered that match <see cref="ImageMimeTypes.Heic" />.</param>
 	public static void UseLibheif(this CodecCollection codecs, bool removeExisting = true)
 	{
 		ThrowHelper.ThrowIfNull(codecs);
 
 		if (removeExisting)
 		{
-			foreach (var codec in codecs.Where(c => c.MimeTypes.Any(m => m == ImageMimeTypes.Heic)).ToList())
+			foreach (var codec in codecs.OfType<IImageDecoderInfo>().Where(c => c.MimeTypes.Any(m => m == ImageMimeTypes.Heic)).ToList())
 				codecs.Remove(codec);
 		}
 

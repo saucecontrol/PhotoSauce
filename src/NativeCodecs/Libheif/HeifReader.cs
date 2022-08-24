@@ -9,7 +9,7 @@ using PhotoSauce.MagicScaler;
 
 namespace PhotoSauce.Interop.Libheif;
 
-internal unsafe ref struct HeifReader
+internal unsafe struct HeifReader
 {
 	private static readonly bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
@@ -24,25 +24,17 @@ internal unsafe ref struct HeifReader
 
 	public static HeifReader* Wrap(Stream managedSource, uint offs = 0)
 	{
-#if NET6_0_OR_GREATER
-		var ptr = (HeifReader*)NativeMemory.Alloc((nuint)sizeof(HeifReader));
-#else
-		var ptr = (HeifReader*)Marshal.AllocHGlobal(sizeof(HeifReader));
-#endif
-		*ptr = new(managedSource, offs);
+		var pinst = UnsafeUtil.NativeAlloc<HeifReader>();
+		*pinst = new(managedSource, offs);
 
-		return ptr;
+		return pinst;
 	}
 
 	public static void Free(HeifReader* pinst)
 	{
 		pinst->source.Free();
 		*pinst = default;
-#if NET6_0_OR_GREATER
-		NativeMemory.Free(pinst);
-#else
-		Marshal.FreeHGlobal((IntPtr)pinst);
-#endif
+		UnsafeUtil.NativeFree(pinst);
 	}
 
 #if NET5_0_OR_GREATER

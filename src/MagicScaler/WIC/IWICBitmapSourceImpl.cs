@@ -16,7 +16,7 @@ using PhotoSauce.MagicScaler;
 
 namespace PhotoSauce.Interop.Wic;
 
-internal unsafe ref struct IWICBitmapSourceImpl
+internal unsafe struct IWICBitmapSourceImpl
 {
 	private readonly void** lpVtbl;
 	private readonly GCHandle source;
@@ -30,14 +30,10 @@ internal unsafe ref struct IWICBitmapSourceImpl
 
 	public static IWICBitmapSource* Wrap(PixelSource managedSource)
 	{
-#if NET6_0_OR_GREATER
-		var ptr = (IWICBitmapSourceImpl*)NativeMemory.Alloc((nuint)sizeof(IWICBitmapSourceImpl));
-#else
-		var ptr = (IWICBitmapSourceImpl*)Marshal.AllocHGlobal(sizeof(IWICBitmapSourceImpl));
-#endif
-		*ptr = new IWICBitmapSourceImpl(managedSource);
+		var pinst = UnsafeUtil.NativeAlloc<IWICBitmapSourceImpl>();
+		*pinst = new(managedSource);
 
-		return (IWICBitmapSource*)ptr;
+		return (IWICBitmapSource*)pinst;
 	}
 
 #if NET5_0_OR_GREATER
@@ -78,11 +74,7 @@ internal unsafe ref struct IWICBitmapSourceImpl
 		{
 			pthis->source.Free();
 			*pthis = default;
-#if NET6_0_OR_GREATER
-			NativeMemory.Free(pthis);
-#else
-			Marshal.FreeHGlobal((IntPtr)pthis);
-#endif
+			UnsafeUtil.NativeFree(pthis);
 		}
 
 		return cnt;

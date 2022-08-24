@@ -145,10 +145,10 @@ public sealed class ProcessImageSettings
 		Math.Min(InnerSize.Width > 0 ? (double)Crop.Width / InnerSize.Width : 0d, InnerSize.Height > 0 ? (double)Crop.Height / InnerSize.Height : 0d);
 
 	internal int LossyQuality =>
-		EncoderOptions is ILossyEncoderOptions opt && opt.Quality != default ? opt.Quality : SettingsUtil.GetDefaultQuality(Math.Max(Width, Height));
+		EncoderOptions is ILossyEncoderOptions { Quality: not 0 } opt ? opt.Quality : SettingsUtil.GetDefaultQuality(Math.Max(Width, Height));
 
 	internal ChromaSubsampleMode Subsample =>
-		EncoderOptions is IPlanarEncoderOptions opt && opt.Subsample != default ? opt.Subsample : SettingsUtil.GetDefaultSubsampling(LossyQuality);
+		EncoderOptions is IPlanarEncoderOptions { Subsample: not ChromaSubsampleMode.Default } opt ? opt.Subsample : SettingsUtil.GetDefaultSubsampling(LossyQuality);
 
 	/// <summary>The horizontal DPI of the output image.  A value of <c>0</c> will preserve the DPI of the input image.</summary>
 	/// <remarks>This affects the image metadata only.  Not all image formats support a DPI setting and most applications will ignore it.</remarks>

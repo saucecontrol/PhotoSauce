@@ -41,7 +41,7 @@ internal unsafe class WicImageFrame : IScaledDecoder, IMetadataSource
 		if (SUCCEEDED(frame.Get()->GetMetadataQueryReader(metareader.GetAddressOf())))
 			WicMetadataReader = metareader.Detach();
 
-		if (index == 0 && Container.Options is CameraRawDecoderOptions ropt && ropt.UsePreview != RawPreviewMode.Never)
+		if (index == 0 && Container.Options is CameraRawDecoderOptions { UsePreview: not RawPreviewMode.Never } ropt)
 		{
 			using var preview = default(ComPtr<IWICBitmapSource>);
 			if (SUCCEEDED(decoder.WicDecoder->GetPreview(preview.GetAddressOf())))
@@ -62,7 +62,7 @@ internal unsafe class WicImageFrame : IScaledDecoder, IMetadataSource
 		if (PixelFormat.FromGuid(guid).NumericRepresentation == PixelNumericRepresentation.Indexed)
 		{
 			var newFormat = PixelFormat.Bgr24;
-			if (Container is WicGifContainer gif && gif.IsAnimation)
+			if (Container is WicGifContainer { IsAnimation: true })
 			{
 				newFormat = PixelFormat.Bgra32;
 			}

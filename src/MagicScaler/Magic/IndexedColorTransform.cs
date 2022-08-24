@@ -82,7 +82,7 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource
 
 	protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 	{
-		if (palBuff.IsEmpty) throw new ObjectDisposedException(nameof(IndexedColorTransform));
+		if (palBuff.IsEmpty) ThrowHelper.ThrowObjectDisposed(nameof(IndexedColorTransform));
 
 		if (isFixedGrey)
 			copyPixelsDirect(prc, cbStride, cbBufferSize, pbBuffer);

@@ -41,7 +41,7 @@ internal sealed class HybridScaleTransform : ChainedPixelSource
 	protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 	{
 		var buffspan = lineBuff.Span;
-		if (buffspan.IsEmpty) throw new ObjectDisposedException(nameof(HybridScaleTransform));
+		if (buffspan.IsEmpty) ThrowHelper.ThrowObjectDisposed(nameof(HybridScaleTransform));
 
 		fixed (byte* bstart = buffspan)
 		{

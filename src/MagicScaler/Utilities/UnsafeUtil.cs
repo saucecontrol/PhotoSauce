@@ -64,6 +64,20 @@ internal static unsafe class UnsafeUtil
 		typeof(T) == typeof(float)  ||
 		typeof(T) == typeof(double);
 
+	public static T* NativeAlloc<T>() where T : unmanaged =>
+#if NET6_0_OR_GREATER
+		(T*)NativeMemory.Alloc((nuint)sizeof(T));
+#else
+		(T*)Marshal.AllocHGlobal(sizeof(T));
+#endif
+
+	public static void NativeFree<T>(T* p) where T : unmanaged =>
+#if NET6_0_OR_GREATER
+		NativeMemory.Free(p);
+#else
+		Marshal.FreeHGlobal((IntPtr)p);
+#endif
+
 #if !NET5_0_OR_GREATER
 	public static T CreateMethodDelegate<T>(this Type t, string method) where T : Delegate =>
 		(T)t.GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance)!.CreateDelegate(typeof(T), null);

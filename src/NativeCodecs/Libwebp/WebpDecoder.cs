@@ -68,7 +68,7 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 		bool isAnimation = features.HasFlag(WebPFeatureFlags.ANIMATION_FLAG);
 		bool isLossless = ffeat.format == 2;
 		bool hasAlpha = ffeat.has_alpha != 0;
-		bool decodePlanar = !hasAlpha && !isAnimation && !isLossless && (options is not IPlanarDecoderOptions opt || opt.AllowPlanar);
+		bool decodePlanar = !hasAlpha && !isAnimation && !isLossless && options is not IPlanarDecoderOptions { AllowPlanar: false };
 
 		return decodePlanar ? new WebpYuvFrame(this, ffeat, index) : new WebpRgbFrame(this, ffeat, index, isAnimation || hasAlpha);
 	}
@@ -178,7 +178,7 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 	private void ensureHandle()
 	{
 		if (handle == default)
-			throw new ObjectDisposedException(nameof(WebpContainer));
+			ThrowHelper.ThrowObjectDisposed(nameof(WebpContainer));
 	}
 
 	private void dispose(bool disposing)

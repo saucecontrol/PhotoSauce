@@ -2,13 +2,13 @@
 
 using System;
 using System.IO;
-using System.Diagnostics;
 using System.Buffers.Binary;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 using PhotoSauce.MagicScaler;
 using PhotoSauce.Interop.Libheif;
 using static PhotoSauce.Interop.Libheif.Libheif;
-using System.Diagnostics.CodeAnalysis;
 
 namespace PhotoSauce.NativeCodecs.Libheif;
 
@@ -60,7 +60,7 @@ internal sealed unsafe class HeifContainer : IImageContainer
 	private void ensureHandle()
 	{
 		if (handle == default)
-			throw new ObjectDisposedException(nameof(HeifContainer));
+			ThrowHelper.ThrowObjectDisposed(nameof(HeifContainer));
 	}
 
 	private void dispose(bool disposing)
@@ -211,7 +211,7 @@ internal sealed unsafe class HeifContainer : IImageContainer
 			HeifResult.Check(heif_decode_image(container.handle, &img, heif_colorspace.heif_colorspace_RGB, heif_chroma.heif_chroma_interleaved_RGB, null));
 
 			var chan = heif_channel.heif_channel_interleaved;
-			Debug.Assert(heif_image_has_channel(img, chan) == 1);
+			Debug.Assert(heif_image_has_channel(img, chan) != 0);
 			Debug.Assert(heif_image_get_width(img, chan) == Width);
 			Debug.Assert(heif_image_get_height(img, chan) == Height);
 			Debug.Assert(heif_image_get_bits_per_pixel(img, chan) == Format.BitsPerPixel);

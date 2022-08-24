@@ -19,6 +19,10 @@ internal enum ColorProfileType { Unknown, Curve, Matrix, Table }
 //http://www.color.org/specification/ICC1v43_2010-12.pdf
 internal class ColorProfile
 {
+	// This value accounts for 132 bytes of header, plus a single tag (20 bytes overhead)
+	// with data length 8. Such a profile would not be useful, but it could be parsed.
+	public const int MinProfileLength = 160;
+
 	internal static class Cache
 	{
 		private static readonly ConcurrentDictionary<Guid, WeakReference<ColorProfile>> dic = new();
@@ -464,9 +468,9 @@ internal class ColorProfile
 	public static ColorProfile Parse(ReadOnlySpan<byte> prof)
 	{
 		const int headerLength = 128;
-		const int headerPlusTagCountLength = 132;
+		const int headerPlusTagCountLength = headerLength + sizeof(uint);
 
-		if (prof.Length < headerPlusTagCountLength)
+		if (prof.Length < MinProfileLength)
 			return invalidProfile;
 
 		uint len = ReadUInt32BigEndian(prof);

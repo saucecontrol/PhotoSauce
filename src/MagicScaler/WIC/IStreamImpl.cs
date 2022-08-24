@@ -18,7 +18,7 @@ using STATSTG = TerraFX.Interop.Windows.STATSTG;
 
 namespace PhotoSauce.Interop.Wic;
 
-internal unsafe ref struct IStreamImpl
+internal unsafe struct IStreamImpl
 {
 	private readonly void** lpVtbl;
 	private readonly GCHandle source;
@@ -34,14 +34,10 @@ internal unsafe ref struct IStreamImpl
 
 	public static IStream* Wrap(Stream managedSource, uint offs = 0)
 	{
-#if NET6_0_OR_GREATER
-		var ptr = (IStreamImpl*)NativeMemory.Alloc((nuint)sizeof(IStreamImpl));
-#else
-		var ptr = (IStreamImpl*)Marshal.AllocHGlobal(sizeof(IStreamImpl));
-#endif
-		*ptr = new IStreamImpl(managedSource, offs);
+		var pinst = UnsafeUtil.NativeAlloc<IStreamImpl>();
+		*pinst = new(managedSource, offs);
 
-		return (IStream*)ptr;
+		return (IStream*)pinst;
 	}
 
 #if NET5_0_OR_GREATER
@@ -82,11 +78,7 @@ internal unsafe ref struct IStreamImpl
 		{
 			pthis->source.Free();
 			*pthis = default;
-#if NET6_0_OR_GREATER
-			NativeMemory.Free(pthis);
-#else
-			Marshal.FreeHGlobal((IntPtr)pthis);
-#endif
+			UnsafeUtil.NativeFree(pthis);
 		}
 
 		return cnt;

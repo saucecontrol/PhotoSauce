@@ -74,7 +74,7 @@ internal sealed class OrientationTransformInternal : ChainedPixelSource
 
 	private unsafe void copyPixelsBuffered(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 	{
-		if (outBuff is null) throw new ObjectDisposedException(nameof(OrientationTransformInternal));
+		if (outBuff is null) ThrowHelper.ThrowObjectDisposed(nameof(OrientationTransformInternal));
 
 		if (!outBuff.ContainsLine(0))
 		{

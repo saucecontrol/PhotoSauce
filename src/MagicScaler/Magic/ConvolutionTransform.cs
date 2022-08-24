@@ -133,7 +133,7 @@ internal class ConvolutionTransform<TPixel, TWeight, TConv> : ChainedPixelSource
 	protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 	{
 		if (XMap is null)
-			throw new ObjectDisposedException(nameof(ConvolutionTransform<TPixel, TWeight, TConv>));
+			ThrowHelper.ThrowObjectDisposed(nameof(ConvolutionTransform<TPixel, TWeight, TConv>));
 
 		fixed (byte* mapystart = YMap.Map)
 		{

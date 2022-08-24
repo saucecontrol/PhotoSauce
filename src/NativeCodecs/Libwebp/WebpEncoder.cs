@@ -50,7 +50,7 @@ internal sealed unsafe class WebpEncoder : IAnimatedImageEncoder
 	{
 		var area = sourceArea == default ? new PixelArea(0, 0, source.Width, source.Height) : ((PixelArea)sourceArea).SnapTo(2, 2, source.Width, source.Height);
 		if (area.Width > WEBP_MAX_DIMENSION || area.Height > WEBP_MAX_DIMENSION)
-			throw new NotSupportedException($"WebP supports a max of {WEBP_MAX_DIMENSION} pixels in either dimension.");
+			throw new NotSupportedException($"Image too large.  WebP supports a max of {WEBP_MAX_DIMENSION} pixels in either dimension.");
 
 		var srcfmt = PixelFormat.FromGuid(source.Format);
 		var dstfmt = srcfmt == PixelFormat.Grey8 || srcfmt == PixelFormat.Bgra32 || srcfmt == PixelFormat.Y8Video

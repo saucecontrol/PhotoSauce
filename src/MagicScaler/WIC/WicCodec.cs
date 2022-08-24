@@ -189,21 +189,21 @@ internal sealed unsafe class WicImageEncoder : IAnimatedImageEncoder, IDisposabl
 
 			if (fmt == GUID_ContainerFormatJpeg)
 			{
-				int qual = Options is ILossyEncoderOptions lopt && lopt.Quality != default
+				int qual = Options is ILossyEncoderOptions { Quality: not 0 } lopt
 					? lopt.Quality
 					: SettingsUtil.GetDefaultQuality(Math.Max(source.Width, source.Height));
 
 				var subs = SettingsUtil.GetDefaultSubsampling(qual);
 				if (src is PlanarPixelSource psrc)
 					subs = psrc.GetSubsampling();
-				else if (Options is IPlanarEncoderOptions popt && popt.Subsample != default)
+				else if (Options is IPlanarEncoderOptions { Subsample: not ChromaSubsampleMode.Default } popt)
 					subs = popt.Subsample;
 
 				pbag.Write("ImageQuality", qual / 100f);
 				pbag.Write("JpegYCrCbSubsampling", (byte)subs);
 
-				if (Options is JpegEncoderOptions jconf && jconf.SuppressApp0)
-					pbag.Write("SuppressApp0", jconf.SuppressApp0);
+				if (Options is JpegEncoderOptions { SuppressApp0: true } jopt)
+					pbag.Write("SuppressApp0", jopt.SuppressApp0);
 			}
 			else if (fmt == GUID_ContainerFormatPng && Options is IPngEncoderOptions pconf)
 			{
@@ -225,7 +225,7 @@ internal sealed unsafe class WicImageEncoder : IAnimatedImageEncoder, IDisposabl
 			}
 			else if (fmt == GUID_ContainerFormatWmp || fmt == GUID_ContainerFormatHeif)
 			{
-				int qual = Options is ILossyEncoderOptions opt && opt.Quality != 0
+				int qual = Options is ILossyEncoderOptions { Quality: not 0 } opt
 					? opt.Quality
 					: SettingsUtil.GetDefaultQuality(Math.Max(source.Width, source.Height));
 
