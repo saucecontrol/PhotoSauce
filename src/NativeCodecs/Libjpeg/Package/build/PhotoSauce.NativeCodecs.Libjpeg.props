@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+	<PropertyGroup Condition="'$(RuntimeIdentifier)' == '' or '$(_UsingDefaultRuntimeIdentifier)' == 'true'">
+		<_LibjpegPackageRuntimesDirectory>$(MSBuildThisFileDirectory)..\..\runtimes\</_LibjpegPackageRuntimesDirectory>
+	</PropertyGroup>
+
+	<ItemGroup Condition="'$(_LibjpegPackageRuntimesDirectory)' != ''">
+		<Content Condition="'$(Platform)' == 'AnyCPU'" Include="$(_LibjpegPackageRuntimesDirectory)win-x86\native\*" Link="x86\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+		<Content Condition="'$(Platform)' == 'AnyCPU'" Include="$(_LibjpegPackageRuntimesDirectory)win-x64\native\*" Link="x64\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+		<Content Condition="'$(Platform)' == 'AnyCPU'" Include="$(_LibjpegPackageRuntimesDirectory)win-arm64\native\*" Link="arm64\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+		<Content Condition="'$(Platform)' == 'x86'" Include="$(_LibjpegPackageRuntimesDirectory)win-x86\native\*" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+		<Content Condition="'$(Platform)' == 'x64'" Include="$(_LibjpegPackageRuntimesDirectory)win-x64\native\*" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+		<Content Condition="'$(Platform)' == 'ARM64'" Include="$(_LibjpegPackageRuntimesDirectory)win-arm64\native\*" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+	</ItemGroup>
+</Project>

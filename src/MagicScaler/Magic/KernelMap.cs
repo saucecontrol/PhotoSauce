@@ -271,7 +271,7 @@ internal sealed class KernelMap<T> : IMultiDisposable where T : unmanaged
 		{
 			var span = map.Span;
 			if (refCount <= 0 || span.IsEmpty)
-				throw new ObjectDisposedException(nameof(KernelMap<T>));
+				ThrowHelper.ThrowObjectDisposed(nameof(KernelMap<T>));
 
 			return span;
 		}

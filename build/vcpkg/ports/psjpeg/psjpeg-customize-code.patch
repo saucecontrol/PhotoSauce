@@ -1,3 +1,18 @@
+diff --git a/jdapistd.c b/jdapistd.c
+index 02cd0cb..6bcba88 100644
+--- a/jdapistd.c
++++ b/jdapistd.c
+@@ -163,8 +163,8 @@ jpeg_crop_scanline(j_decompress_ptr cinfo, JDIMENSION *xoffset,
+   my_master_ptr master = (my_master_ptr)cinfo->master;
+ #endif
+ 
+-  if ((cinfo->global_state != DSTATE_SCANNING &&
+-       cinfo->global_state != DSTATE_BUFIMAGE) || cinfo->output_scanline != 0)
++  if ((cinfo->global_state < DSTATE_SCANNING ||
++       cinfo->global_state > DSTATE_BUFIMAGE) || cinfo->output_scanline != 0)
+     ERREXIT1(cinfo, JERR_BAD_STATE, cinfo->global_state);
+ 
+   if (!xoffset || !width)
 diff --git a/jddctmgr.c b/jddctmgr.c
 index e78d7be..38532a6 100644
 --- a/jddctmgr.c

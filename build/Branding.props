@@ -23,6 +23,12 @@
 				<PackageTags>Image Decode HEIC HEIF</PackageTags>
 			</PropertyGroup>
 		</When>
+		<When Condition="'$(MSBuildProjectName)'=='NativeCodecs.Libjpeg'">
+			<PropertyGroup>
+				<Description>JPEG codec plugin for the PhotoSauce.MagicScaler pipeline.</Description>
+				<PackageTags>Image Decode Encode JPEG JPG</PackageTags>
+			</PropertyGroup>
+		</When>
 		<When Condition="'$(MSBuildProjectName)'=='NativeCodecs.Libjxl'">
 			<PropertyGroup>
 				<Description>JPEG XL codec plugin for the PhotoSauce.MagicScaler pipeline.</Description>

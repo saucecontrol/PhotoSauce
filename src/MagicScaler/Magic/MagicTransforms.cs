@@ -158,13 +158,22 @@ internal static class MagicTransforms
 		}
 	}
 
-	public static void AddNormalizingFormatConverter(PipelineContext ctx, bool lastChance = false)
+	public static unsafe void AddNormalizingFormatConverter(PipelineContext ctx, bool lastChance = false)
 	{
 		var curFormat = ctx.Source.Format;
 		if (curFormat.ColorRepresentation == PixelColorRepresentation.Cmyk)
 		{
 			if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 				throw new PlatformNotSupportedException("CMYK conversion is not yet supported on this platform.");
+
+			if (ctx.SourceColorProfile is null || ctx.DestColorProfile is null || ctx.SourceColorProfile == ctx.DestColorProfile)
+				return;
+
+			if (ctx.WicContext.SourceColorContext is null)
+				ctx.WicContext.SourceColorContext = WicColorProfile.CreateContextFromProfile(ctx.SourceColorProfile.ProfileBytes);
+
+			if (ctx.WicContext.DestColorContext is null)
+				ctx.WicContext.DestColorContext = WicColorProfile.CreateContextFromProfile(ctx.DestColorProfile.ProfileBytes);
 
 			WicTransforms.AddPixelFormatConverter(ctx);
 			curFormat = ctx.Source.Format;

@@ -203,7 +203,7 @@ internal sealed class FrameBufferSource : PixelSource
 	protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 	{
 		var buffspan = frameBuff.Span;
-		if (buffspan.IsEmpty) throw new ObjectDisposedException(nameof(FrameBufferSource));
+		if (buffspan.IsEmpty) ThrowHelper.ThrowObjectDisposed(nameof(FrameBufferSource));
 
 		int bpp = Format.BytesPerPixel;
 		int cb = prc.Width * bpp;

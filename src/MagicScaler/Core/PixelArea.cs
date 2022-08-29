@@ -108,6 +108,13 @@ internal readonly record struct PixelArea
 		return new PixelArea(x, y, Width, Height);
 	}
 
+	public PixelArea Slice(int y)
+	{
+		Debug.Assert(y < Height);
+
+		return new(X, Y + y, Width, Height - y);
+	}
+
 	public PixelArea Slice(int y, int height)
 	{
 		Debug.Assert(y + height <= Height);
@@ -115,11 +122,11 @@ internal readonly record struct PixelArea
 		return new(X, Y + y, Width, height);
 	}
 
-	public PixelArea Slice(int y)
+	public PixelArea SliceMax(int y, int height)
 	{
-		Debug.Assert(y < Height);
+		height = Math.Min(height, Height - y);
 
-		return new(X, Y + y, Width, Height - y);
+		return new(X, Y + y, Width, height);
 	}
 
 	public static implicit operator PixelArea(in Rectangle r) => new(r.X, r.Y, r.Width, r.Height);

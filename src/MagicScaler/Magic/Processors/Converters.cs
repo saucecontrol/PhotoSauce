@@ -1,11 +1,11 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
+using System.Runtime.CompilerServices;
 
 #if HWINTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-using System.Runtime.CompilerServices;
 #endif
 
 using static PhotoSauce.MagicScaler.MathUtil;
@@ -249,5 +249,88 @@ internal sealed unsafe class UQ15Converter<TRng> : IConverter<ushort, byte> wher
 				op += 4;
 			}
 		}
+	}
+}
+
+internal static unsafe class InvertConverter
+{
+	public static void InvertLine(byte* istart, nint cb)
+	{
+		byte* ip = istart, ipe = istart + cb;
+
+#if HWINTRINSICS
+		if (HWIntrinsics.IsSupported && cb >= HWIntrinsics.VectorCount<byte>())
+			convertIntrinsic(ip, ipe);
+		else
+#endif
+		convertScalar(ip, ipe);
+	}
+
+#if HWINTRINSICS
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static void convertIntrinsic(byte* ip, byte* ipe)
+	{
+		if (Avx2.IsSupported)
+		{
+			ipe -= Vector256<byte>.Count;
+			var vlast = Avx.LoadVector256(ipe);
+			var vmask = Avx2.CompareEqual(vlast, vlast);
+
+			LoopTop:
+			do
+			{
+				var vi = Avx2.Xor(vmask, Avx.LoadVector256(ip));
+
+				Avx.Store(ip, vi);
+				ip += Vector256<byte>.Count;
+			}
+			while (ip <= ipe);
+
+			if (ip < ipe + Vector256<byte>.Count)
+			{
+				nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
+				ip = UnsafeUtil.SubtractOffset(ip, offs);
+				Avx.Store(ip, vlast);
+				goto LoopTop;
+			}
+		}
+		else
+		{
+			ipe -= Vector128<byte>.Count;
+			var vlast = Sse2.LoadVector128(ipe);
+			var vmask = Sse2.CompareEqual(vlast, vlast);
+
+			LoopTop:
+			do
+			{
+				var vi = Sse2.LoadVector128(ip);
+
+				Sse2.Store(ip, Sse2.Xor(vi, vmask));
+				ip += Vector128<byte>.Count;
+			}
+			while (ip <= ipe);
+
+			if (ip < ipe + Vector128<byte>.Count)
+			{
+				nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
+				ip = UnsafeUtil.SubtractOffset(ip, offs);
+				Sse2.Store(ip, vlast);
+				goto LoopTop;
+			}
+		}
+	}
+#endif
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static void convertScalar(byte* ip, byte* ipe)
+	{
+		while (ip < ipe - sizeof(nuint))
+		{
+			*(nuint*)ip = ~*(nuint*)ip;
+			ip += sizeof(nuint);
+		}
+
+		while (ip < ipe)
+			*ip++ = (byte)~(uint)*ip;
 	}
 }

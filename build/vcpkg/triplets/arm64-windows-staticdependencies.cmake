@@ -1,5 +1,6 @@
 include(${CMAKE_CURRENT_LIST_DIR}/../libraries.cmake)
 
+set(VCPKG_DISABLE_COMPILER_TRACKING true)
 set(VCPKG_TARGET_ARCHITECTURE arm64)
 set(VCPKG_CRT_LINKAGE static)
 set(VCPKG_LIBRARY_LINKAGE static)
