@@ -77,7 +77,7 @@ internal sealed class PipelineContext : IDisposable
 
 	public void FinalizeSettings()
 	{
-		Orientation = Settings.OrientationMode == OrientationMode.Normalize && ImageFrame is IMetadataSource meta && meta.TryGetMetadata<OrientationMetadata>(out var o) ? o.Orientation : Orientation.Normal;
+		Orientation = Settings.OrientationMode == OrientationMode.Normalize ? ImageFrame.GetOrientation() : Orientation.Normal;
 
 		if (!Settings.IsNormalized)
 		{

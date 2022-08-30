@@ -79,4 +79,7 @@ internal static class ThrowHelper
 
 	[DoesNotReturn]
 	public static void ThrowObjectDisposed(string name) => throw new ObjectDisposedException(name);
+
+	[DoesNotReturn]
+	public static void ThrowOutOfMemory() => throw new OutOfMemoryException();
 }

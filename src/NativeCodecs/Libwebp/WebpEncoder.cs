@@ -112,7 +112,7 @@ internal sealed unsafe class WebpEncoder : IAnimatedImageEncoder
 			}
 
 			if (WebPPictureAlloc(&picture) == 0)
-				throw new OutOfMemoryException();
+				ThrowHelper.ThrowOutOfMemory();
 
 			if (picture.use_argb == 1)
 			{

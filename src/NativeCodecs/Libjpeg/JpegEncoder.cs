@@ -29,7 +29,7 @@ internal sealed unsafe class JpegEncoder : IImageEncoder
 
 		handle = JpegFactory.CreateEncoder();
 		if (handle is null)
-			throw new OutOfMemoryException();
+			ThrowHelper.ThrowOutOfMemory();
 
 		var pcd = (ps_client_data*)handle->client_data;
 		pcd->stream_handle = GCHandle.ToIntPtr(GCHandle.Alloc(outStream));
@@ -75,7 +75,7 @@ internal sealed unsafe class JpegEncoder : IImageEncoder
 				handle->raw_data_in = TRUE;
 		}
 
-		if (options is JpegEncoderOptions { SuppressApp0: true })
+		if (options is JpegEncoderOptions { SuppressApp0: true } || options is JpegOptimizedEncoderOptions { SuppressApp0: true })
 		{
 			handle->write_JFIF_header = FALSE;
 		}
@@ -88,6 +88,16 @@ internal sealed unsafe class JpegEncoder : IImageEncoder
 			handle->X_density = (ushort)(double)dpi.ResolutionX;
 			handle->Y_density = (ushort)(double)dpi.ResolutionY;
 			handle->density_unit = 1;
+		}
+
+		if (options is JpegOptimizedEncoderOptions opt)
+		{
+			handle->optimize_coding = TRUE;
+
+			if (opt.Progressive == JpegProgressiveMode.Semi && handle->jpeg_color_space == J_COLOR_SPACE.JCS_YCbCr)
+				JpegFastProgression(handle);
+			else if (opt.Progressive != JpegProgressiveMode.None)
+				checkResult(JpegSimpleProgression(handle));
 		}
 
 		checkResult(JpegStartCompress(handle));
@@ -132,7 +142,7 @@ internal sealed unsafe class JpegEncoder : IImageEncoder
 		exifspan.CopyTo(markerspan[ExifIdentifier.Length..]);
 
 		fixed (byte* bp = markerspan)
-			checkResult(JpegWriteMarker(handle, JPEG_APP0 + 1, bp, (uint)markerspan.Length));
+			checkResult(JpegWriteMarker(handle, JPEG_APP1, bp, (uint)markerspan.Length));
 	}
 
 	private void writeIccp(IMetadataSource metadata)

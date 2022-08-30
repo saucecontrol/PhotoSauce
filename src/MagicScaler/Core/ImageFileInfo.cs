@@ -154,7 +154,7 @@ public sealed class ImageFileInfo
 			uint width = (uint)src.Width, height = (uint)src.Height;
 			var pixfmt = PixelFormat.FromGuid(src.Format);
 
-			var orient = frame is IMetadataSource meta && meta.TryGetMetadata<OrientationMetadata>(out var o) ? o.Orientation : Orientation.Normal;
+			var orient = frame.GetOrientation();
 			if (orient.SwapsDimensions())
 				(width, height) = (height, width);
 

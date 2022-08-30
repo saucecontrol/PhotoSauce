@@ -25,7 +25,7 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 		int len = checked((int)(stm.Length - stm.Position));
 		filebuff = (byte*)WebpFactory.NativeAlloc((uint)len);
 		if (filebuff is null)
-			throw new OutOfMemoryException();
+			ThrowHelper.ThrowOutOfMemory();
 
 		var buff = new Span<byte>(filebuff, len);
 		stm.FillBuffer(buff);
@@ -115,16 +115,6 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 			var anicnt = new AnimationContainer(cw, ch, fc, lc, bg, 1f, true);
 
 			metadata = (T)(object)anicnt;
-			return true;
-		}
-
-		if (typeof(T) == typeof(OrientationMetadata))
-		{
-			var orient = new OrientationMetadata(Orientation.Normal);
-			if (features.HasFlag(WebPFeatureFlags.EXIF_FLAG))
-				orient = OrientationMetadata.FromExif(this);
-
-			metadata = (T)(object)orient;
 			return true;
 		}
 

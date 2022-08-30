@@ -49,7 +49,7 @@ internal sealed unsafe class JpegContainer : IImageContainer
 		long pos = imgStream.Position;
 		var handle = JpegCreateDecompress();
 		if (handle is null)
-			throw new OutOfMemoryException();
+			ThrowHelper.ThrowOutOfMemory();
 
 		var pcd = (ps_client_data*)handle->client_data;
 		pcd->stream_handle = GCHandle.ToIntPtr(GCHandle.Alloc(imgStream));
@@ -192,8 +192,8 @@ internal sealed unsafe class JpegFrame : IImageFrame, IPlanarDecoder, IMetadataS
 	public JpegFrame(JpegContainer cont)
 	{
 		var handle = cont.GetHandle();
-		cont.CheckResult(JpegSaveMarkers(handle, JPEG_APP0 + 1, ushort.MaxValue));
-		cont.CheckResult(JpegSaveMarkers(handle, JPEG_APP0 + 2, ushort.MaxValue));
+		cont.CheckResult(JpegSaveMarkers(handle, JPEG_APP1, ushort.MaxValue));
+		cont.CheckResult(JpegSaveMarkers(handle, JPEG_APP2, ushort.MaxValue));
 		cont.CheckResult(JpegReadHeader(handle));
 
 		Container = cont;
@@ -254,21 +254,8 @@ internal sealed unsafe class JpegFrame : IImageFrame, IPlanarDecoder, IMetadataS
 	{
 		var handle = Container.GetHandle();
 
-		// no i think not
-		if (typeof(T) == typeof(OrientationMetadata))
-		{
-			var orient = new OrientationMetadata(Orientation.Normal);
-			if (TryGetMetadata<IExifSource>(out var exif))
-				orient = OrientationMetadata.FromExif(exif);
-
-			metadata = (T)(object)orient;
-			return true;
-		}
-
 		if (typeof(T) == typeof(ResolutionMetadata))
 		{
-			var res = ResolutionMetadata.ExifDefault;
-
 			if (handle->saw_JFIF_marker == TRUE)
 			{
 				var unit = handle->density_unit switch {
@@ -276,13 +263,10 @@ internal sealed unsafe class JpegFrame : IImageFrame, IPlanarDecoder, IMetadataS
 					2 => ResolutionUnit.Centimeter,
 					_ => ResolutionUnit.Virtual
 				};
-				res = new ResolutionMetadata(new Rational(handle->X_density, 1), new Rational(handle->Y_density, 1), unit);
-			}
-			else if (TryGetMetadata<IExifSource>(out var exif))
-				res = ResolutionMetadata.FromExif(exif);
 
-			metadata = (T)(object)res;
-			return true;
+				metadata = (T)(object)(new ResolutionMetadata(new Rational(handle->X_density, 1), new Rational(handle->Y_density, 1), unit));
+				return true;
+			}
 		}
 
 		if (typeof(T) == typeof(IIccProfileSource))
@@ -342,8 +326,8 @@ internal sealed unsafe class JpegFrame : IImageFrame, IPlanarDecoder, IMetadataS
 		JpegAbortDecompress(handle);
 		Container.RewindStream();
 
-		Container.CheckResult(JpegSaveMarkers(handle, JPEG_APP0 + 1, 0));
-		Container.CheckResult(JpegSaveMarkers(handle, JPEG_APP0 + 2, 0));
+		Container.CheckResult(JpegSaveMarkers(handle, JPEG_APP1, 0));
+		Container.CheckResult(JpegSaveMarkers(handle, JPEG_APP2, 0));
 		Container.CheckResult(JpegReadHeader(handle));
 
 		handle->scale_denom = scale;
@@ -440,8 +424,8 @@ internal sealed unsafe class JpegFrame : IImageFrame, IPlanarDecoder, IMetadataS
 						Unsafe.CopyBlockUnaligned(pout, pbuff + (frame.outCrop.X + prc.X) * handle->num_components, (uint)(prc.Width * handle->num_components));
 					}
 
-					// libjpeg gives back CMYK pixels inverted.
-					if (handle->num_components == 4)
+					// libjpeg outputs CMYK the way Adobe apps save it, which is inverted.
+					if (handle->out_color_space == J_COLOR_SPACE.JCS_CMYK)
 						InvertConverter.InvertLine(pout, (nint)((uint)prc.Width * 4));
 				}
 			}

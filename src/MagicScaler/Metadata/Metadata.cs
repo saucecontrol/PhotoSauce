@@ -139,10 +139,14 @@ internal sealed class MagicMetadataFilter : IMetadataSource
 
 		if (typeof(T) == typeof(OrientationMetadata))
 		{
-			if (settings.OrientationMode == OrientationMode.Preserve && source.TryGetMetadata<OrientationMetadata>(out var orient) && orient.Orientation != Orientation.Normal)
+			if (settings.OrientationMode == OrientationMode.Preserve)
 			{
-				metadata = (T)(object)(new OrientationMetadata(orient.Orientation));
-				return true;
+				var orient = context.ImageFrame.GetOrientation();
+				if (orient != Orientation.Normal)
+				{
+					metadata = (T)(object)(new OrientationMetadata(orient));
+					return true;
+				}
 			}
 
 			metadata = default;
@@ -184,6 +188,22 @@ internal sealed class MagicMetadataFilter : IMetadataSource
 		}
 
 		return source.TryGetMetadata(out metadata);
+	}
+}
+
+internal static class MetadataExtensions
+{
+	public static Orientation GetOrientation(this IImageFrame frame)
+	{
+		if (frame is IMetadataSource meta)
+		{
+			if (meta.TryGetMetadata<OrientationMetadata>(out var orient))
+				return orient.Orientation;
+			else if (meta.TryGetMetadata<IExifSource>(out var exif))
+				return OrientationMetadata.FromExif(exif).Orientation;
+		}
+
+		return Orientation.Normal;
 	}
 }
 

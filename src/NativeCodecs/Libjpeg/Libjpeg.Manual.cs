@@ -2,6 +2,10 @@
 
 using System;
 using System.Security;
+using System.Runtime.CompilerServices;
+#if !NET5_0_OR_GREATER
+using System.Runtime.InteropServices;
+#endif
 
 using PhotoSauce.MagicScaler;
 
@@ -11,6 +15,11 @@ namespace PhotoSauce.Interop.Libjpeg;
 internal static unsafe partial class Libjpeg
 {
 	public const int DSTATE_READY = 202;
+	public const int JPEG_APP1 = JPEG_APP0 + 1;
+	public const int JPEG_APP2 = JPEG_APP0 + 2;
+
+	private const int semiProgressiveScanCount = 5;
+	private static readonly jpeg_scan_info* semiProgressiveScript = createSemiProgressiveScript();
 
 	public static ReadOnlySpan<byte> ExifIdentifier => "Exif\0\0"u8;
 	public static ReadOnlySpan<byte> IccpIdentifier => "ICC_PROFILE\0"u8;
@@ -31,12 +40,67 @@ internal static unsafe partial class Libjpeg
 		handle.comp_info[2].v_samp_factor is 1;
 
 	public static bool IsExifMarker(this ref jpeg_marker_struct marker) =>
-		marker.marker is JPEG_APP0 + 1 &&
+		marker.marker is JPEG_APP1 &&
 		marker.data_length >= ExifIdentifier.Length + ExifConstants.MinExifLength &&
 		new ReadOnlySpan<byte>(marker.data, ExifIdentifier.Length - 1).SequenceEqual(ExifIdentifier[..^1]);
 
 	public static bool IsIccMarker(this ref jpeg_marker_struct marker) =>
-		marker.marker is JPEG_APP0 + 2 &&
+		marker.marker is JPEG_APP2 &&
 		marker.data_length >= IccpIdentifier.Length + ColorProfile.MinProfileLength &&
 		new ReadOnlySpan<byte>(marker.data, IccpIdentifier.Length).SequenceEqual(IccpIdentifier);
+
+
+	public static void JpegFastProgression(jpeg_compress_struct* handle)
+	{
+		handle->num_scans = semiProgressiveScanCount;
+		handle->scan_info = semiProgressiveScript;
+	}
+
+	private static jpeg_scan_info* createSemiProgressiveScript()
+	{
+#if NET5_0_OR_GREATER
+		var si = (jpeg_scan_info*)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(Libjpeg), sizeof(jpeg_scan_info) * semiProgressiveScanCount);
+#else
+		var si = (jpeg_scan_info*)Marshal.AllocHGlobal(sizeof(jpeg_scan_info) * semiProgressiveScanCount);
+#endif
+
+		si[0].comps_in_scan = 3;
+		si[0].component_index[0] = 0;
+		si[0].component_index[1] = 1;
+		si[0].component_index[2] = 2;
+		si[0].Ss = 0;
+		si[0].Se = 0;
+		si[0].Ah = 0;
+		si[0].Al = 0;
+
+		si[1].comps_in_scan = 1;
+		si[1].component_index[0] = 0;
+		si[1].Ss = 1;
+		si[1].Se = 9;
+		si[1].Ah = 0;
+		si[1].Al = 0;
+
+		si[2].comps_in_scan = 1;
+		si[2].component_index[0] = 2;
+		si[2].Ss = 1;
+		si[2].Se = 63;
+		si[2].Ah = 0;
+		si[2].Al = 0;
+
+		si[3].comps_in_scan = 1;
+		si[3].component_index[0] = 1;
+		si[3].Ss = 1;
+		si[3].Se = 63;
+		si[3].Ah = 0;
+		si[3].Al = 0;
+
+		si[4].comps_in_scan = 1;
+		si[4].component_index[0] = 0;
+		si[4].Ss = 10;
+		si[4].Se = 63;
+		si[4].Ah = 0;
+		si[4].Al = 0;
+
+		return si;
+	}
 }

@@ -53,7 +53,7 @@ public readonly record struct LossyEncoderOptions(int Quality) : ILossyEncoderOp
 /// <param name="Quality"><inheritdoc cref="ILossyEncoderOptions.Quality" path="/summary/node()" /></param>
 /// <param name="Subsample"><inheritdoc cref="IPlanarEncoderOptions.Subsample" path="/summary/node()" /></param>
 /// <param name="SuppressApp0">True to skip writing the JFIF APP0 metadata header, false to include it.</param>
-public readonly record struct JpegEncoderOptions(int Quality, ChromaSubsampleMode Subsample, bool SuppressApp0) : ILossyEncoderOptions, IPlanarEncoderOptions
+public readonly record struct JpegEncoderOptions(int Quality, ChromaSubsampleMode Subsample, bool SuppressApp0 = false) : ILossyEncoderOptions, IPlanarEncoderOptions
 {
 	/// <summary>Default JPEG encoder options.</summary>
 	public static JpegEncoderOptions Default => default;
