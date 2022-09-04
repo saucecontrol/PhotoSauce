@@ -1,1 +1,4 @@
-set(_PKG_LIBS libheif libjxl libwebp psjpeg)
+set(VCPKG_ENV_PASSTHROUGH_UNTRACKED true)
+set(VCPKG_ENV_PASSTHROUGH VCPKG_PSLIBS)
+
+string(REGEX MATCHALL "[^ ]+" _PKG_LIBS $ENV{VCPKG_PSLIBS})

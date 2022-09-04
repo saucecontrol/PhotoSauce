@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<VersionPrefix>1.12.0</VersionPrefix>
+		<VersionPrefix>1.13.0</VersionPrefix>
 		<TargetFrameworks>net6.0;net472</TargetFrameworks>
 		<TargetFrameworks Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">$(TargetFrameworks);net461;netstandard2.0</TargetFrameworks>
 	</PropertyGroup>
@@ -12,16 +12,16 @@
 
 	<ItemGroup>
 		<None Include="Package\build\*" Pack="true" PackagePath="build/net461/;buildMultiTargeting/net461/;buildTransitive/net461/" />
-		<None Include="$(RepositoryRoot)out\vcpkg\install\x64-linux-staticdependencies\lib\libheif.so" Link="Package\native\x64-linux\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/linux-x64/native/" />
-		<None Include="$(RepositoryRoot)out\vcpkg\install\x64-windows-staticdependencies\bin\heif.dll" Link="Package\native\x64-windows\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/win-x64/native/" />
-		<None Include="$(RepositoryRoot)out\vcpkg\install\x86-windows-staticdependencies\bin\heif.dll" Link="Package\native\x86-windows\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/win-x86/native/" />
-		<None Include="$(RepositoryRoot)out\vcpkg\install\arm64-linux-staticdependencies\lib\libheif.so" Link="Package\native\arm64-linux\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/linux-arm64/native/" />
-		<None Include="$(RepositoryRoot)out\vcpkg\install\arm64-windows-staticdependencies\bin\heif.dll" Link="Package\native\arm64-windows\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/win-arm64/native/" />
+		<None Include="$(RepositoryRoot)out\vcpkg\install\x64-linux-ps\lib\libheif.so" Link="Package\native\x64-linux\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/linux-x64/native/" />
+		<None Include="$(RepositoryRoot)out\vcpkg\install\x64-windows-ps\bin\heif.dll" Link="Package\native\x64-windows\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/win-x64/native/" />
+		<None Include="$(RepositoryRoot)out\vcpkg\install\x86-windows-ps\bin\heif.dll" Link="Package\native\x86-windows\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/win-x86/native/" />
+		<None Include="$(RepositoryRoot)out\vcpkg\install\arm64-linux-ps\lib\libheif.so" Link="Package\native\arm64-linux\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/linux-arm64/native/" />
+		<None Include="$(RepositoryRoot)out\vcpkg\install\arm64-windows-ps\bin\heif.dll" Link="Package\native\arm64-windows\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/win-arm64/native/" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)'!='Dist'">
-		<Content Condition="$([MSBuild]::IsOSPlatform('Linux'))" Include="$(RepositoryRoot)out\vcpkg\install\x64-linux-staticdependencies\lib\libheif.so" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
-		<Content Condition="$([MSBuild]::IsOSPlatform('Windows'))" Include="$(RepositoryRoot)out\vcpkg\install\x64-windows-staticdependencies\bin\heif.dll" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+		<Content Condition="$([MSBuild]::IsOSPlatform('Linux'))" Include="$(RepositoryRoot)out\vcpkg\install\x64-linux-ps\lib\libheif.so" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+		<Content Condition="$([MSBuild]::IsOSPlatform('Windows'))" Include="$(RepositoryRoot)out\vcpkg\install\x64-windows-ps\bin\heif.dll" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
 	</ItemGroup>
 
 </Project>

@@ -51,6 +51,7 @@ vcpkg_cmake_configure(
         -DWITH_TURBOJPEG=OFF
         -DENABLE_EXECUTABLES=OFF
         -DINSTALL_DOCS=OFF
+        -DINSTALL_HEADERS=OFF
         -DWITH_CRT_DLL=${WITH_CRT_DLL}
         ${FEATURE_OPTIONS}
         ${LIBJPEGTURBO_SIMD}

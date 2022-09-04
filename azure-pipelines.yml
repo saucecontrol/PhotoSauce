@@ -9,13 +9,15 @@ trigger:
     - readme.md
 
 variables:
-  azureNuget: https://pkgs.dev.azure.com/saucecontrol/PhotoSauce/_packaging/photosauce_ci/nuget/v3/index.json
+  azureNuGet: https://pkgs.dev.azure.com/saucecontrol/PhotoSauce/_packaging/photosauce_ci/nuget/v3/index.json
+  vcpkgNuGet: https://pkgs.dev.azure.com/saucecontrol/PhotoSauce/_packaging/photosauce_vcpkg/nuget/v3/index.json
 
 jobs:
 - job: native
   timeoutInMinutes: 0
   variables:
-    VCPKG_BINARY_SOURCES: clear;nuget,$(azureNuget),readwrite
+    VCPKG_BINARY_SOURCES: clear;nuget,$(vcpkgNuGet),readwrite
+    VCPKG_PSLIBS: libheif libjxl libwebp psjpeg
 
   strategy:
     matrix:
@@ -25,26 +27,26 @@ jobs:
           sudo apt update
           sudo apt install -y g++-aarch64-linux-gnu
           modules/vcpkg/bootstrap-vcpkg.sh
-        buildScript: modules/vcpkg/vcpkg install libheif libjxl libwebp psjpeg --triplet=arm64-linux-staticdependencies @build/vcpkg/response
+        buildScript: modules/vcpkg/vcpkg install $(VCPKG_PSLIBS) --triplet=arm64-linux-ps @build/vcpkg/response
       linux-x64:
         imageName: ubuntu-latest
         setupScript: |
           sudo apt update
           sudo apt install -y nasm
           modules/vcpkg/bootstrap-vcpkg.sh
-        buildScript: modules/vcpkg/vcpkg install libheif libjxl libwebp psjpeg --triplet=x64-linux-staticdependencies @build/vcpkg/response
+        buildScript: modules/vcpkg/vcpkg install $(VCPKG_PSLIBS) --triplet=x64-linux-ps @build/vcpkg/response
       windows-arm64:
         imageName: windows-latest
         setupScript: modules\vcpkg\bootstrap-vcpkg.bat
-        buildScript: modules\vcpkg\vcpkg install libheif libjxl libwebp psjpeg --triplet=arm64-windows-staticdependencies @build\vcpkg\response
+        buildScript: modules\vcpkg\vcpkg install $(VCPKG_PSLIBS) --triplet=arm64-windows-ps @build\vcpkg\response
       windows-x64:
         imageName: windows-latest
         setupScript: modules\vcpkg\bootstrap-vcpkg.bat
-        buildScript: modules\vcpkg\vcpkg install libheif libjxl libwebp psjpeg --triplet=x64-windows-staticdependencies @build\vcpkg\response
+        buildScript: modules\vcpkg\vcpkg install $(VCPKG_PSLIBS) --triplet=x64-windows-ps @build\vcpkg\response
       windows-x86:
         imageName: windows-latest
         setupScript: modules\vcpkg\bootstrap-vcpkg.bat
-        buildScript: modules\vcpkg\vcpkg install libheif libjxl libwebp psjpeg --triplet=x86-windows-staticdependencies @build\vcpkg\response
+        buildScript: modules\vcpkg\vcpkg install $(VCPKG_PSLIBS) --triplet=x86-windows-ps @build\vcpkg\response
 
   pool:
     vmImage: $(imageName)
@@ -135,6 +137,6 @@ jobs:
   - task: NuGetAuthenticate@0
     condition: ne(variables['Build.Reason'], 'PullRequest')
 
-  - script: dotnet nuget push --source $(azureNuget) --api-key AzureArtifacts out/nuget/*.nupkg
+  - script: dotnet nuget push --source $(azureNuGet) --api-key AzureArtifacts out/nuget/*.nupkg
     displayName: Push Packages
     condition: ne(variables['Build.Reason'], 'PullRequest')

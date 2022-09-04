@@ -28,7 +28,7 @@ internal unsafe partial struct jpeg_error_mgr
 
     public int msg_code;
 
-    [NativeTypeName("union (anonymous union at C:/gitlocal/photosauce/out/vcpkg/install/x64-windows-staticdependencies/include/jpeglib.h:738:3)")]
+    [NativeTypeName("union (anonymous union at jpeglib.h:738:3)")]
     public _msg_parm_e__Union msg_parm;
 
     public int trace_level;

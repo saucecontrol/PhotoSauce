@@ -57,4 +57,7 @@ internal unsafe partial struct heif_decoding_options
 
     [NativeTypeName("uint8_t")]
     public byte convert_hdr_to_8bit;
+
+    [NativeTypeName("uint8_t")]
+    public byte strict_decoding;
 }

@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index cf2fa1e..c298606 100644
+index cf2fa1e..8ed501d 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -588,7 +588,7 @@ if(WITH_JAVA)
@@ -23,7 +23,7 @@ index cf2fa1e..c298606 100644
  if(WIN32)
    set(USE_SETMODE "-DUSE_SETMODE")
  endif()
-@@ -1475,6 +1480,17 @@ if(WITH_TURBOJPEG)
+@@ -1475,6 +1480,19 @@ if(WITH_TURBOJPEG)
    endif()
  endif()
  
@@ -36,8 +36,21 @@ index cf2fa1e..c298606 100644
 +  install(FILES "$<TARGET_PDB_FILE:psjpeg>"
 +    DESTINATION ${CMAKE_INSTALL_BINDIR} OPTIONAL)
 +endif()
-+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/psjpeg.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
++install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/psjpeg.h ${CMAKE_CURRENT_BINARY_DIR}/jconfig.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/jerror.h ${CMAKE_CURRENT_SOURCE_DIR}/jmorecfg.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/jpeglib.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/psjpeg)
 +
  if(ENABLE_STATIC)
    install(TARGETS jpeg-static EXPORT ${CMAKE_PROJECT_NAME}Targets
      INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+@@ -1519,9 +1537,9 @@ if((UNIX OR MINGW) AND INSTALL_DOCS)
+     ${CMAKE_CURRENT_SOURCE_DIR}/wrjpgcom.1
+     DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
+ endif()
++if(WITH_TURBOJPEG)
+ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/pkgscripts/libjpeg.pc
+   DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+-if(WITH_TURBOJPEG)
+   install(FILES ${CMAKE_CURRENT_BINARY_DIR}/pkgscripts/libturbojpeg.pc
+     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+ endif()
