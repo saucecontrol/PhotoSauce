@@ -177,7 +177,7 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 				var buffC = EncodeFrame.Source;
 				var buffCSpan = buffC.Span.Slice(src.Area.Y * buffC.Stride + src.Area.X * buffC.Format.BytesPerPixel);
 
-				bool isExact = quant.CreatePalette(gifopt.MaxPaletteSize, buffCSpan, src.Area.Width, src.Area.Height, buffC.Stride);
+				bool isExact = quant.CreatePalette(gifopt.MaxPaletteSize, buffC.Format.AlphaRepresentation != PixelAlphaRepresentation.None, buffCSpan, src.Area.Width, src.Area.Height, buffC.Stride);
 				indexedSource.SetPalette(quant.Palette, isExact || gifopt.Dither == DitherMode.None);
 			}
 

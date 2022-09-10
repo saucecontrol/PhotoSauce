@@ -262,8 +262,6 @@ public static class MagicImageProcessor
 
 	internal static unsafe ProcessImageResult WriteOutput(PipelineContext ctx, Stream ostm)
 	{
-		MagicTransforms.AddExternalFormatConverter(ctx, true);
-
 		using var bfs = PoolBufferedStream.WrapIfFile(ostm);
 		using var enc = ctx.Settings.EncoderInfo!.Factory(bfs ?? ostm, ctx.Settings.EncoderOptions);
 
@@ -276,6 +274,7 @@ public static class MagicImageProcessor
 		else
 		{
 			MagicTransforms.AddIndexedColorConverter(ctx);
+			MagicTransforms.AddExternalFormatConverter(ctx, true);
 			enc.WriteFrame(ctx.Source, ctx.Metadata, PixelArea.Default);
 		}
 

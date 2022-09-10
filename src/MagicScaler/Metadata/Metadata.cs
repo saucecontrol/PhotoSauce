@@ -96,9 +96,16 @@ internal readonly record struct ResolutionMetadata(Rational ResolutionX, Rationa
 
 	public ResolutionMetadata ToDpi() => Units switch {
 		ResolutionUnit.Inch       => this,
-		ResolutionUnit.Centimeter => new(((double)ResolutionX /  2.54).ToRational(), ((double)ResolutionY /  2.54).ToRational(), ResolutionUnit.Inch),
-		ResolutionUnit.Meter      => new(((double)ResolutionX * 39.37).ToRational(), ((double)ResolutionY * 39.37).ToRational(), ResolutionUnit.Inch),
+		ResolutionUnit.Centimeter => new(((double)ResolutionX *  2.54).ToRational(), ((double)ResolutionY *  2.54).ToRational(), ResolutionUnit.Inch),
+		ResolutionUnit.Meter      => new(((double)ResolutionX / 39.37).ToRational(), ((double)ResolutionY / 39.37).ToRational(), ResolutionUnit.Inch),
 		_                         => new(((double)ResolutionX * 96.0 ).ToRational(), ((double)ResolutionY * 96.0 ).ToRational(), ResolutionUnit.Inch)
+	};
+
+	public ResolutionMetadata ToDpm() => Units switch {
+		ResolutionUnit.Inch       => new(((double)ResolutionX *   39.37).ToRational(), ((double)ResolutionY *   39.37).ToRational(), ResolutionUnit.Meter),
+		ResolutionUnit.Centimeter => new(((double)ResolutionX *  100.0 ).ToRational(), ((double)ResolutionY *  100.0 ).ToRational(), ResolutionUnit.Meter),
+		ResolutionUnit.Meter      => this,
+		_                         => new(((double)ResolutionX * 3779.53).ToRational(), ((double)ResolutionY * 3779.53).ToRational(), ResolutionUnit.Meter)
 	};
 }
 

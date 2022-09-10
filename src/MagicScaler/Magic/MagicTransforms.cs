@@ -559,7 +559,7 @@ internal static class MagicTransforms
 				ctx.Source.Dispose();
 
 				using var quant = ctx.AddProfiler(new OctreeQuantizer());
-				bool isExact = quant.CreatePalette(indexedOptions.MaxPaletteSize, buffC.Span, buffC.Width, buffC.Height, buffC.Stride);
+				bool isExact = quant.CreatePalette(indexedOptions.MaxPaletteSize, buffC.Format.AlphaRepresentation != PixelAlphaRepresentation.None, buffC.Span, buffC.Width, buffC.Height, buffC.Stride);
 
 				iconv = new IndexedColorTransform(buffC);
 				iconv.SetPalette(quant.Palette, isExact || indexedOptions.Dither == DitherMode.None);

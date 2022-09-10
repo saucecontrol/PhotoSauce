@@ -24,7 +24,7 @@ internal unsafe partial struct JxlExtraChannelInfo
 
     public int alpha_premultiplied;
 
-    [NativeTypeName("float [4]")]
+    [NativeTypeName("float[4]")]
     public fixed float spot_color[4];
 
     [NativeTypeName("uint32_t")]

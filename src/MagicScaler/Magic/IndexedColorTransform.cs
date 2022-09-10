@@ -33,6 +33,8 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource
 
 	public ReadOnlySpan<uint> Palette => palBuff.Span.Slice(isFixedGrey ? 0 : maxPaletteSize, paletteLength);
 
+	public bool HasAlpha => hasAlpha;
+
 	public override PixelFormat Format => PixelFormat.Indexed8;
 
 	private bool isFixedGrey => PrevSource.Format == PixelFormat.Grey8;
@@ -86,8 +88,10 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource
 
 		if (isFixedGrey)
 			copyPixelsDirect(prc, cbStride, cbBufferSize, pbBuffer);
+		else if (hasAlpha)
+			copyPixelsBuffered<AlphaType.Present>(prc, cbStride, pbBuffer);
 		else
-			copyPixelsBuffered(prc, cbStride, pbBuffer);
+			copyPixelsBuffered<AlphaType.Ignored>(prc, cbStride, pbBuffer);
 	}
 
 	private unsafe void copyPixelsDirect(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
@@ -97,7 +101,7 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource
 		Profiler.ResumeTiming();
 	}
 
-	private unsafe void copyPixelsBuffered(in PixelArea prc, nint cbStride, byte* pbBuffer)
+	private unsafe void copyPixelsBuffered<TAlpha>(in PixelArea prc, nint cbStride, byte* pbBuffer) where TAlpha : struct, AlphaType
 	{
 		if (paletteLength == 0) throw new InvalidOperationException("No palette has been set.");
 
@@ -132,13 +136,13 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource
 				short* perrline = perr + (nint)(uint)prc.X * channels + channels;
 
 				if (!dither)
-					remap(pline, poutline, pilut, ptree, ppal, prc.Width);
+					remap<TAlpha>(pline, poutline, pilut, ptree, ppal, prc.Width);
 #if HWINTRINSICS
 				else if (Sse41.IsSupported)
-					remapDitherSse41(pline, perrline, poutline, pilut, ptree, ppal, prc.Width);
+					remapDitherSse41<TAlpha>(pline, perrline, poutline, pilut, ptree, ppal, prc.Width);
 #endif
 				else
-					remapDitherScalar(pline, perrline, poutline, pilut, ptree, ppal, prc.Width);
+					remapDitherScalar<TAlpha>(pline, perrline, poutline, pilut, ptree, ppal, prc.Width);
 			}
 		}
 	}
@@ -278,7 +282,7 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource
 	}
 
 #if HWINTRINSICS
-	private void remapDitherSse41(byte* pimage, short* perror, byte* pout, uint* pilut, PaletteMapNode* pmap, uint* ppal, nint cp)
+	private void remapDitherSse41<TAlpha>(byte* pimage, short* perror, byte* pout, uint* pilut, PaletteMapNode* pmap, uint* ppal, nint cp) where TAlpha : struct, AlphaType
 	{
 		nuint nextFree = mapNextFree;
 		nuint maxcol = (uint)paletteColors - 1;
@@ -299,7 +303,7 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource
 
 		do
 		{
-			if (ip[3] < alphaThreshold)
+			if (typeof(TAlpha) == typeof(AlphaType.Present) && ip[3] < alphaThreshold)
 			{
 				vppix = vzero;
 				pidx = maxcol + 1;
@@ -373,7 +377,7 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource
 	}
 #endif
 
-	private void remapDitherScalar(byte* pimage, short* perror, byte* pout, uint* pilut, PaletteMapNode* pmap, uint* ppal, nint cp)
+	private void remapDitherScalar<TAlpha>(byte* pimage, short* perror, byte* pout, uint* pilut, PaletteMapNode* pmap, uint* ppal, nint cp) where TAlpha : struct, AlphaType
 	{
 		nuint nextFree = mapNextFree;
 		nuint maxcol = (uint)paletteColors - 1;
@@ -390,7 +394,7 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource
 
 		do
 		{
-			if (ip[3] < alphaThreshold)
+			if (typeof(TAlpha) == typeof(AlphaType.Present) && ip[3] < alphaThreshold)
 			{
 				ppix = 0;
 				pidx = maxcol + 1;
@@ -480,7 +484,7 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource
 		mapNextFree = (uint)nextFree;
 	}
 
-	private void remap(byte* pimage, byte* pout, uint* pilut, PaletteMapNode* pmap, uint* ppal, nint cp)
+	private void remap<TAlpha>(byte* pimage, byte* pout, uint* pilut, PaletteMapNode* pmap, uint* ppal, nint cp) where TAlpha : struct, AlphaType
 	{
 		nuint nextFree = mapNextFree;
 		nuint maxcol = (uint)paletteColors - 1;
@@ -493,7 +497,7 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource
 		nuint ppix = 0;
 		do
 		{
-			if (ip[3] < alphaThreshold)
+			if (typeof(TAlpha) == typeof(AlphaType.Present) && ip[3] < alphaThreshold)
 			{
 				ppix = 0;
 				pidx = maxcol + 1;

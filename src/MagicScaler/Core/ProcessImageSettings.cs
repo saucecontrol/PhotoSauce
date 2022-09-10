@@ -108,7 +108,7 @@ public sealed class ProcessImageSettings
 	private static readonly ProcessImageSettings empty = new();
 
 	/// <summary>An empty settings object, useful for transcode-only operations.</summary>
-	public static ProcessImageSettings Default => empty;
+	public static ProcessImageSettings Default => new();
 
 	private InterpolationSettings interpolation;
 	private UnsharpMaskSettings unsharpMask;
@@ -332,7 +332,6 @@ public sealed class ProcessImageSettings
 	{
 		ThrowHelper.ThrowIfNull(dic);
 		if (dic.Count == 0) return Default;
-
 
 		var ni = NumberFormatInfo.InvariantInfo;
 		var s = new ProcessImageSettings {

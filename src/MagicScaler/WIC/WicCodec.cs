@@ -292,7 +292,7 @@ internal sealed unsafe class WicImageEncoder : IAnimatedImageEncoder, IDisposabl
 		if (hasWriter && fmt == GUID_ContainerFormatGif && source is IndexedColorTransform idxt)
 		{
 			var pal = idxt.Palette;
-			if (pal[^1] <= 0x00ffffffu)
+			if (idxt.HasAlpha)
 			{
 				metawriter.SetValue(Wic.Metadata.Gif.TransparencyFlag, true);
 				metawriter.SetValue(Wic.Metadata.Gif.TransparentColorIndex, (byte)(pal.Length - 1));

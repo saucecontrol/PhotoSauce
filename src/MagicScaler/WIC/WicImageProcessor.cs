@@ -4,13 +4,19 @@
 #pragma warning disable CS1591
 using System;
 using System.IO;
+using System.Linq;
+using System.Runtime.Versioning;
+using System.Runtime.InteropServices;
 
 using PhotoSauce.MagicScaler.Transforms;
 
 namespace PhotoSauce.MagicScaler;
 
+[SupportedOSPlatform(nameof(OSPlatform.Windows))]
 public static class WicImageProcessor
 {
+	private static readonly CodecCollection wicCodecs = getCodecs();
+
 	public static ProcessImageResult ProcessImage(string imgPath, Stream outStream, ProcessImageSettings settings)
 	{
 		using var ctx = new PipelineContext(settings, WicImageDecoder.Load(imgPath, settings.DecoderOptions));
@@ -33,6 +39,15 @@ public static class WicImageProcessor
 		using var ctx = new PipelineContext(settings, WicImageDecoder.Load(imgStream, settings.DecoderOptions));
 
 		return processImage(ctx, outStream);
+	}
+
+	private static CodecCollection getCodecs()
+	{
+		var codecs = new CodecCollection();
+		codecs.UseWicCodecs(WicCodecPolicy.All);
+		codecs.ResetCaches();
+
+		return codecs;
 	}
 
 	private static ProcessImageResult processImage(PipelineContext ctx, Stream ostm)
@@ -61,7 +76,11 @@ public static class WicImageProcessor
 		WicTransforms.AddIndexedColorConverter(ctx);
 		MagicTransforms.AddExternalFormatConverter(ctx, true);
 
-		using var enc = ctx.Settings.EncoderInfo!.Factory(ostm, ctx.Settings.EncoderOptions);
+		var codec = ctx.Settings.EncoderInfo!;
+		if (wicCodecs.TryGetEncoderForMimeType(codec.MimeTypes.First(), out var wicenc))
+			codec = wicenc;
+
+		using var enc = codec.Factory(ostm, ctx.Settings.EncoderOptions);
 		enc.WriteFrame(ctx.Source, ctx.Metadata, PixelArea.Default);
 		enc.Commit();
 

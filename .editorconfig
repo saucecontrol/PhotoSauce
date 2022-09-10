@@ -13,6 +13,7 @@ indent_size = 2
 [*.cs]
 file_header_template = Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
+csharp_style_prefer_tuple_swap = true:silent
 csharp_style_prefer_range_operator = true:silent
 csharp_style_prefer_utf8_string_literals = true:silent
 csharp_style_deconstructed_variable_declaration = true:silent

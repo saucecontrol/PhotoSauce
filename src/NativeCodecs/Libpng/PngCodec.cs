@@ -1,0 +1,80 @@
+// Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
+
+using System;
+using System.Linq;
+#if NETFRAMEWORK
+using System.IO;
+using System.Runtime.InteropServices;
+#endif
+
+using PhotoSauce.MagicScaler;
+using PhotoSauce.Interop.Libpng;
+using static PhotoSauce.Interop.Libpng.Libpng;
+
+namespace PhotoSauce.NativeCodecs.Libpng;
+
+internal static unsafe class PngFactory
+{
+	public const string DisplayName = $"{pspng} (libpng) 1.6.37";
+	public const string pspng = nameof(pspng);
+	public const uint libver = PNG_LIBPNG_VER;
+
+	private static readonly Lazy<bool> dependencyValid = new(() => {
+#if NETFRAMEWORK
+		// netfx doesn't have RID-based native dependency resolution, so we include a .props
+		// file that copies binaries for all supported architectures to the output folder,
+		// then make a perfunctory attempt to load the right one before the first P/Invoke.
+		if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+		{
+			[DllImport("kernel32", ExactSpelling = true)]
+			static extern IntPtr LoadLibraryW(ushort* lpLibFileName);
+
+			string lib = Path.Combine(RuntimeInformation.ProcessArchitecture.ToString(), "pspng");
+			fixed (char* plib = lib)
+				LoadLibraryW((ushort*)plib);
+		}
+#endif
+
+		uint ver = PngVersion();
+		if (ver != libver)
+			throw new NotSupportedException($"Incorrect {pspng} version was loaded.  Expected {libver}, found {ver}.");
+
+		return true;
+	});
+
+	public static ps_png_struct* CreateDecoder() => dependencyValid.Value ? PngCreateRead() : default;
+
+	public static ps_png_struct* CreateEncoder() => dependencyValid.Value ? PngCreateWrite() : default;
+}
+
+/// <inheritdoc cref="WindowsCodecExtensions" />
+public static class CodecCollectionExtensions
+{
+	/// <inheritdoc cref="WindowsCodecExtensions.UseWicCodecs(CodecCollection, WicCodecPolicy)" />
+	/// <param name="removeExisting">Remove any codecs already registered that match <see cref="ImageMimeTypes.Png" />.</param>
+	public static void UseLibpng(this CodecCollection codecs, bool removeExisting = true)
+	{
+		ThrowHelper.ThrowIfNull(codecs);
+
+		var pngMime = new[] { ImageMimeTypes.Png };
+		var pngExtension = new[] { ImageFileExtensions.Png };
+
+		if (removeExisting)
+		{
+			foreach (var codec in codecs.OfType<IImageEncoderInfo>().Where(c => c.MimeTypes.Any(m => m == ImageMimeTypes.Png)).ToList())
+				codecs.Remove(codec);
+		}
+
+		codecs.Add(new EncoderInfo(
+			PngFactory.DisplayName,
+			pngMime,
+			pngExtension,
+			new[] { PixelFormat.Grey8.FormatGuid, PixelFormat.Rgb24.FormatGuid, PixelFormat.Rgba32.FormatGuid, PixelFormat.Indexed8.FormatGuid },
+			PngEncoderOptions.Default,
+			PngEncoder.Create,
+			false,
+			false,
+			true
+		));
+	}
+}

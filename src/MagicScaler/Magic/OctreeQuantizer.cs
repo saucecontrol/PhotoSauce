@@ -12,6 +12,12 @@ using System.Runtime.Intrinsics.X86;
 
 namespace PhotoSauce.MagicScaler;
 
+internal interface AlphaType
+{
+	public readonly struct Present : AlphaType { }
+	public readonly struct Ignored : AlphaType { }
+}
+
 internal sealed unsafe class OctreeQuantizer : IProfileSource, IDisposable
 {
 	private const int maxHistogramSize = 8191; // max possible nodes with 3 bits reserved to stuff level into one of the indices
@@ -37,7 +43,7 @@ internal sealed unsafe class OctreeQuantizer : IProfileSource, IDisposable
 		Profiler = prof ?? StatsManager.GetProfiler(this);
 	}
 
-	public bool CreatePalette(int targetColors, Span<byte> image, nint width, nint height, nint stride)
+	public bool CreatePalette(int targetColors, bool hasAlpha, Span<byte> image, nint width, nint height, nint stride)
 	{
 		if (targetColors < 2 || targetColors > maxPaletteSize) throw new ArgumentOutOfRangeException(nameof(targetColors), $"Target palette size must be between 2 and {maxPaletteSize}");
 
@@ -52,7 +58,10 @@ internal sealed unsafe class OctreeQuantizer : IProfileSource, IDisposable
 		using (var listBuffer = BufferPool.RentLocal<ushort>(maxHistogramSize))
 		{
 			initFreeList(listBuffer.Span);
-			createHistogram(image, listBuffer.Span, nodeBuffer.Span, width, height, stride, subsampleRatio);
+			if (hasAlpha)
+				createHistogram<AlphaType.Present>(image, listBuffer.Span, nodeBuffer.Span, width, height, stride, subsampleRatio);
+			else
+				createHistogram<AlphaType.Ignored>(image, listBuffer.Span, nodeBuffer.Span, width, height, stride, subsampleRatio);
 		}
 
 		bool isExact = buildPalette(nodeBuffer.Span, targetColors - (needAlpha ? 1 : 0), subsampleRatio > 1f);
@@ -69,7 +78,7 @@ internal sealed unsafe class OctreeQuantizer : IProfileSource, IDisposable
 
 	public override string ToString() => $"{nameof(OctreeQuantizer)}: {nameof(CreatePalette)}";
 
-	private void createHistogram(Span<byte> image, Span<ushort> listBuffer, Span<HistogramNode> nodeBuffer, nint width, nint height, nint stride, float subsampleRatio)
+	private void createHistogram<TAlpha>(Span<byte> image, Span<ushort> listBuffer, Span<HistogramNode> nodeBuffer, nint width, nint height, nint stride, float subsampleRatio) where TAlpha : struct, AlphaType
 	{
 		fixed (byte* pimage = image)
 		fixed (uint* pilut = &LookupTables.OctreeIndexTable.GetDataRef())
@@ -81,12 +90,12 @@ internal sealed unsafe class OctreeQuantizer : IProfileSource, IDisposable
 			for (nint y = 0; y < height; yf += subsampleRatio, y = (nint)yf)
 			{
 				uint* pline = (uint*)(pimage + y * stride);
-				updateHistogram(pline, pilut, ptree, pfree, ref pnextFree, width);
+				updateHistogram<TAlpha>(pline, pilut, ptree, pfree, ref pnextFree, width);
 			}
 		}
 	}
 
-	private void updateHistogram(uint* pimage, uint* pilut, HistogramNode* ptree, ushort* plist, ref ushort* pfree, nint cp)
+	private void updateHistogram<TAlpha>(uint* pimage, uint* pilut, HistogramNode* ptree, ushort* plist, ref ushort* pfree, nint cp) where TAlpha : struct, AlphaType
 	{
 		uint* ip = pimage, ipe = ip + cp;
 		nuint level = leafLevel;
@@ -95,7 +104,7 @@ internal sealed unsafe class OctreeQuantizer : IProfileSource, IDisposable
 		var pnode = default(HistogramNode*);
 		do
 		{
-			if (((byte*)ip)[3] < alphaThreshold)
+			if (typeof(TAlpha) == typeof(AlphaType.Present) && ((byte*)ip)[3] < alphaThreshold)
 			{
 				needAlpha = true;
 				ip++;

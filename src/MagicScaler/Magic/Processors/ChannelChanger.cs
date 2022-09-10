@@ -28,6 +28,8 @@ internal static class ChannelChanger<T> where T : unmanaged
 		throw new NotSupportedException($"{nameof(T)} must be float, ushort, or byte");
 	}
 
+	public static IConversionProcessor<T, T> AlphaExtractor => Change4to1Chan.InstanceAlpha;
+
 	public static IConversionProcessor<T, T> GetConverter(int chanIn, int chanOut) =>
 		(chanIn, chanOut) switch {
 			(1, 3) => Change1to3Chan.Instance,
@@ -261,9 +263,12 @@ internal static class ChannelChanger<T> where T : unmanaged
 
 	private sealed class Change4to1Chan : IConversionProcessor<T, T>
 	{
-		public static readonly Change4to1Chan Instance = new();
+		public static readonly Change4to1Chan Instance = new(0);
+		public static readonly Change4to1Chan InstanceAlpha = new(3);
 
-		private Change4to1Chan() { }
+		private readonly byte offset;
+
+		private Change4to1Chan(byte offs) => offset = offs;
 
 		unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
@@ -274,7 +279,7 @@ internal static class ChannelChanger<T> where T : unmanaged
 			{
 				const byte _ = 0x80;
 				var mask = (ReadOnlySpan<byte>)(new byte[] { 0, 4, 8, 12, _, _, _, _, _, _, _, _, _, _, _, _ });
-				var vmask = Sse2.LoadVector128(mask.GetAddressOf());
+				var vmask = Sse2.Add(Vector128.Create(offset), Sse2.LoadVector128(mask.GetAddressOf()));
 
 				ipe -= Vector128<byte>.Count * 4;
 				do

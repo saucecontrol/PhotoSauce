@@ -21,7 +21,7 @@ internal sealed unsafe class JpegEncoder : IImageEncoder
 	private jpeg_compress_struct* handle;
 	private bool written;
 
-	public static JpegEncoder Create(Stream outStream, IEncoderOptions? webpOptions) => new(outStream, webpOptions);
+	public static JpegEncoder Create(Stream outStream, IEncoderOptions? jpegOptions) => new(outStream, jpegOptions);
 
 	private JpegEncoder(Stream outStream, IEncoderOptions? jpegOptions)
 	{
@@ -85,8 +85,8 @@ internal sealed unsafe class JpegEncoder : IImageEncoder
 				remd = ResolutionMetadata.Default;
 
 			var dpi = remd.ToDpi();
-			handle->X_density = (ushort)(double)dpi.ResolutionX;
-			handle->Y_density = (ushort)(double)dpi.ResolutionY;
+			handle->X_density = (ushort)Math.Round((double)dpi.ResolutionX);
+			handle->Y_density = (ushort)Math.Round((double)dpi.ResolutionY);
 			handle->density_unit = 1;
 		}
 
@@ -241,7 +241,7 @@ internal sealed unsafe class JpegEncoder : IImageEncoder
 		using var buff = BufferPool.RentLocalAligned<byte>(stride);
 		var span = buff.Span;
 
-		fixed (byte* pline = buff.Span)
+		fixed (byte* pline = buff)
 		{
 			for (int row = 0; row < area.Height; row++)
 			{

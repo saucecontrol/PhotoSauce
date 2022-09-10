@@ -56,6 +56,6 @@ internal unsafe partial struct JxlBasicInfo
 
     public JxlAnimationHeader animation;
 
-    [NativeTypeName("uint8_t [108]")]
+    [NativeTypeName("uint8_t[108]")]
     public fixed byte padding[108];
 }
