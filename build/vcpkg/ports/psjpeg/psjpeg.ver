@@ -1,0 +1,4 @@
+PSJPEG_1.0 {
+	global: Jpeg*;
+	local: *;
+};

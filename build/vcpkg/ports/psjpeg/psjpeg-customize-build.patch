@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index cf2fa1e..8ed501d 100644
+index cf2fa1e..75f5773 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -588,7 +588,7 @@ if(WITH_JAVA)
@@ -11,7 +11,7 @@ index cf2fa1e..8ed501d 100644
    add_subdirectory(sharedlib)
  endif()
  
-@@ -679,6 +679,11 @@ if(WITH_TURBOJPEG)
+@@ -679,6 +679,16 @@ if(WITH_TURBOJPEG)
    endif()
  endif()
  
@@ -20,10 +20,15 @@ index cf2fa1e..8ed501d 100644
 +add_library(psjpeg SHARED ${PSJPEG_SOURCES})
 +set_target_properties(psjpeg PROPERTIES DEFINE_SYMBOL DLLDEFINE)
 +
++if(UNIX AND HAVE_VERSION_SCRIPT)
++  set_target_properties(psjpeg PROPERTIES LINK_FLAGS
++    "-Wl,--version-script='${CMAKE_CURRENT_SOURCE_DIR}/psjpeg.ver'")
++endif()
++
  if(WIN32)
    set(USE_SETMODE "-DUSE_SETMODE")
  endif()
-@@ -1475,6 +1480,19 @@ if(WITH_TURBOJPEG)
+@@ -1475,6 +1485,19 @@ if(WITH_TURBOJPEG)
    endif()
  endif()
  
@@ -43,7 +48,7 @@ index cf2fa1e..8ed501d 100644
  if(ENABLE_STATIC)
    install(TARGETS jpeg-static EXPORT ${CMAKE_PROJECT_NAME}Targets
      INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-@@ -1519,9 +1537,9 @@ if((UNIX OR MINGW) AND INSTALL_DOCS)
+@@ -1519,9 +1542,9 @@ if((UNIX OR MINGW) AND INSTALL_DOCS)
      ${CMAKE_CURRENT_SOURCE_DIR}/wrjpgcom.1
      DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
  endif()

@@ -1,0 +1,4 @@
+PSPNG_1.0 {
+	global: Png*;
+	local: *;
+};

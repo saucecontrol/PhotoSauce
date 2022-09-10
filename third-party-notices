@@ -75,3 +75,12 @@ Licensed under a 3-clause BSD License.
 
 Available at
 https://github.com/libjpeg-turbo/libjpeg-turbo/blob/main/LICENSE.md
+
+License notice for libpng
+-------------------------
+
+Copyright (c) 1995-2022 The PNG Reference Library Authors.
+Licensed under the PNG Reference Library License version 2.
+
+Available at
+https://github.com/glennrp/libpng/blob/libpng16/LICENSE

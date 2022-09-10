@@ -1,6 +1,5 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
-#include <string.h>
 #include <setjmp.h>
 #include "jerror.h"
 #include "jinclude.h"
@@ -11,7 +10,6 @@
 #elif defined(_MSC_VER)
 #include <malloc.h>
 #else
-#include <stdlib.h>
 #define _mm_free(p) free(p)
 #define _mm_malloc(a, b) malloc(a)
 #endif
@@ -240,9 +238,11 @@ j_decompress_ptr JpegCreateDecompress() {
 }
 
 void JpegDestroy(j_common_ptr cinfo) {
-	jpeg_destroy(cinfo);
-	_mm_free(cinfo->err);
 	free(cinfo->client_data);
+	_mm_free(cinfo->err);
+	jpeg_destroy(cinfo);
+
+	memset(cinfo, 0, sizeof(struct jpeg_common_struct));
 	free(cinfo);
 }
 

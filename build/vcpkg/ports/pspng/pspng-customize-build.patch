@@ -1,0 +1,55 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index a2a0d0d..ba93d9a 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -132,8 +132,9 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "^powerpc*" OR
+ endif()
+ 
+ # set definitions and sources for intel
+-if(TARGET_ARCH MATCHES "^i?86" OR
+-   TARGET_ARCH MATCHES "^x86_64*")
++if(TARGET_ARCH MATCHES "^i[0-9]86" OR
++   TARGET_ARCH MATCHES "^x86" OR
++   TARGET_ARCH MATCHES "^AMD64")
+   set(PNG_INTEL_SSE_POSSIBLE_VALUES on off)
+   set(PNG_INTEL_SSE "on" CACHE STRING "Enable INTEL_SSE optimizations:
+      off: disable the optimizations")
+@@ -604,6 +605,19 @@ if(PNG_FRAMEWORK)
+   target_link_libraries(png_framework ${ZLIB_LIBRARY} ${M_LIBRARY})
+ endif()
+ 
++set(pspng_sources ${libpng_sources} pspng.h pspng.c)
++set(CMAKE_C_VISIBILITY_PRESET hidden)
++add_library(pspng SHARED ${pspng_sources})
++set(PNG_LIB_TARGETS pspng)
++set_target_properties(pspng PROPERTIES DEFINE_SYMBOL DLLDEFINE)
++add_dependencies(pspng genfiles)
++target_link_libraries(pspng ${ZLIB_LIBRARY} ${M_LIBRARY})
++
++if(UNIX AND HAVE_LD_VERSION_SCRIPT)
++  set_target_properties(pspng PROPERTIES LINK_FLAGS
++    "-Wl,--version-script='${CMAKE_CURRENT_SOURCE_DIR}/pspng.ver'")
++endif()
++
+ if(NOT PNG_LIB_TARGETS)
+   message(SEND_ERROR
+     "No library variant selected to build. "
+@@ -863,7 +877,7 @@ endif()
+ # INSTALL
+ if(NOT SKIP_INSTALL_LIBRARIES AND NOT SKIP_INSTALL_ALL)
+   install(TARGETS ${PNG_LIB_TARGETS}
+-          EXPORT libpng
++          EXPORT pspng
+           RUNTIME DESTINATION bin
+           LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+           ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+@@ -894,8 +908,7 @@ if(NOT SKIP_INSTALL_LIBRARIES AND NOT SKIP_INSTALL_ALL)
+ endif()
+ 
+ if(NOT SKIP_INSTALL_HEADERS AND NOT SKIP_INSTALL_ALL)
+-  install(FILES ${libpng_public_hdrs} DESTINATION include)
+-  install(FILES ${libpng_public_hdrs} DESTINATION include/${PNGLIB_NAME})
++  install(FILES ${libpng_public_hdrs} pspng.h DESTINATION include/pspng)
+ endif()
+ if(NOT SKIP_INSTALL_EXECUTABLES AND NOT SKIP_INSTALL_ALL)
+   if(NOT WIN32 OR CYGWIN OR MINGW)
