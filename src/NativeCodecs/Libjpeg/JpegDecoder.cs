@@ -47,7 +47,7 @@ internal sealed unsafe class JpegContainer : IImageContainer
 	public static JpegContainer? TryLoad(Stream imgStream, IDecoderOptions? options)
 	{
 		long pos = imgStream.Position;
-		var handle = JpegCreateDecompress();
+		var handle = JpegFactory.CreateDecoder();
 		if (handle is null)
 			ThrowHelper.ThrowOutOfMemory();
 
@@ -56,19 +56,20 @@ internal sealed unsafe class JpegContainer : IImageContainer
 		pcd->read_callback = pfnReadCallback;
 		pcd->seek_callback = pfnSeekCallback;
 
-		if (JpegReadHeader(handle) == TRUE && handle->IsValidImage())
+		int read = JpegReadHeader(handle);
+		imgStream.Position = pos;
+
+		if (read == TRUE && handle->IsValidImage())
 		{
-			imgStream.Position = pos;
 			JpegAbortDecompress(handle);
 
 			return new JpegContainer(handle, imgStream, options);
 		}
-		else
-		{
-			GCHandle.FromIntPtr(pcd->stream_handle).Free();
-			JpegDestroy((jpeg_common_struct*)handle);
-			return null;
-		}
+
+		GCHandle.FromIntPtr(pcd->stream_handle).Free();
+		JpegDestroy((jpeg_common_struct*)handle);
+
+		return null;
 	}
 
 	public jpeg_decompress_struct* GetHandle()
@@ -403,7 +404,7 @@ internal sealed unsafe class JpegFrame : IImageFrame, IPlanarDecoder, IMetadataS
 			if (prc.Width < handle->output_width)
 			{
 				if (frame.lineBuff.IsEmpty)
-					frame.lineBuff = BufferPool.Rent<byte>(MathUtil.PowerOfTwoCeiling(handle->num_components * (int)handle->output_width, 1));
+					frame.lineBuff = BufferPool.Rent<byte>(handle->num_components * (int)handle->output_width);
 
 				linebuff = frame.lineBuff.Span;
 			}

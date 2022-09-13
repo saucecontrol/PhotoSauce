@@ -9,6 +9,13 @@
 #define TRUE 1
 #define FALSE 0
 
+#define APNG_BLEND_OP_SOURCE 0
+#define APNG_BLEND_OP_OVER 1
+
+#define APNG_DISPOSE_OP_NONE 0
+#define APNG_DISPOSE_OP_BACKGROUND 1
+#define APNG_DISPOSE_OP_PREVIOUS 2
+
 typedef struct {
 	intptr_t stream_handle;
 	size_t(*write_callback)(intptr_t, png_bytep, size_t);
@@ -39,6 +46,7 @@ DLLEXPORT png_uint_32 PngVersion();
 
 DLLEXPORT ps_png_struct* PngCreateWrite();
 DLLEXPORT ps_png_struct* PngCreateRead();
+DLLEXPORT int PngResetRead(ps_png_struct* handle);
 
 DLLEXPORT void PngDestroyWrite(ps_png_struct* handle);
 DLLEXPORT void PngDestroyRead(ps_png_struct* handle);
@@ -58,6 +66,29 @@ DLLEXPORT int PngWriteExif(ps_png_struct* handle, png_const_bytep exif, int num_
 DLLEXPORT int PngWriteRow(ps_png_struct* handle, png_const_bytep row);
 DLLEXPORT int PngWriteImage(ps_png_struct* handle, png_bytepp image);
 DLLEXPORT int PngWriteIend(ps_png_struct* handle);
+
+DLLEXPORT int PngReadInfo(ps_png_struct* handle);
+DLLEXPORT int PngSetExpand(ps_png_struct* handle);
+DLLEXPORT int PngSetGrayToRgb(ps_png_struct* handle);
+DLLEXPORT int PngSetStrip16(ps_png_struct* handle);
+DLLEXPORT int PngSetInterlaceHandling(ps_png_struct* handle);
+DLLEXPORT int PngReadUpdateInfo(ps_png_struct* handle);
+DLLEXPORT int PngReadFrameHead(ps_png_struct* handle);
+DLLEXPORT int PngReadRow(ps_png_struct* handle, png_bytep row);
+DLLEXPORT int PngReadImage(ps_png_struct* handle, png_bytepp image);
+DLLEXPORT int PngReadEnd(ps_png_struct* handle, png_infop end_info);
+
+DLLEXPORT int PngGetValid(ps_png_struct* handle, png_uint_32 flag);
+DLLEXPORT int PngGetIhdr(ps_png_struct* handle, png_uint_32* width, png_uint_32* height, int* bit_depth, int* color_type, int* interlace_method);
+DLLEXPORT void PngGetIccp(ps_png_struct* handle, png_bytepp profile, png_uint_32* proflen);
+DLLEXPORT void PngGetChrm(ps_png_struct* handle, png_fixed_point* white_x, png_fixed_point* white_y, png_fixed_point* red_x, png_fixed_point* red_y, png_fixed_point* green_x, png_fixed_point* green_y, png_fixed_point* blue_x, png_fixed_point* blue_y);
+DLLEXPORT void PngGetGama(ps_png_struct* handle, png_fixed_point* file_gamma);
+DLLEXPORT void PngGetPlte(ps_png_struct* handle, png_colorpp palette, int* num_palette);
+DLLEXPORT void PngGetTrns(ps_png_struct* handle, png_bytepp trans, int* num_trans);
+DLLEXPORT void PngGetPhys(ps_png_struct* handle, png_uint_32* res_x, png_uint_32* res_y, int* unit_type);
+DLLEXPORT void PngGetExif(ps_png_struct* handle, png_bytepp exif, png_uint_32* num_exif);
+DLLEXPORT void PngGetActl(ps_png_struct* handle, png_uint_32* num_frames, png_uint_32* num_plays);
+DLLEXPORT void PngGetNextFrameFctl(ps_png_struct* handle, png_uint_32* width, png_uint_32* height, png_uint_32* x_offset, png_uint_32* y_offset, png_uint_16* delay_num, png_uint_16* delay_den, png_byte* dispose_op, png_byte* blend_op);
 
 #ifdef __cplusplus
 }

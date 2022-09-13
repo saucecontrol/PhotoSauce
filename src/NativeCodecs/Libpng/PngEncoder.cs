@@ -52,8 +52,8 @@ internal sealed unsafe class PngEncoder : IImageEncoder
 			srcfmt == PixelFormat.Indexed8 ? PNG_COLOR_TYPE_PALETTE :
 			throw new NotSupportedException("Image format not supported.");
 
-		int filter = pngfmt == PNG_COLOR_TYPE_PALETTE ? PNG_FILTER_NONE : PNG_FAST_FILTERS;
-		if (options.Filter is not (PngFilter.Unspecified or PngFilter.Adaptive))
+		int filter = pngfmt == PNG_COLOR_TYPE_PALETTE ? PNG_FILTER_VALUE_NONE : PNG_ALL_FILTERS;
+		if (options.Filter is > PngFilter.Unspecified and < PngFilter.Adaptive)
 			filter = (int)options.Filter - 1;
 
 		checkResult(PngWriteSig(handle));
@@ -190,9 +190,7 @@ internal sealed unsafe class PngEncoder : IImageEncoder
 		if (handle == default)
 			return;
 
-		var iod = handle->io_ptr;
-		GCHandle.FromIntPtr(iod->stream_handle).Free();
-
+		GCHandle.FromIntPtr(handle->io_ptr->stream_handle).Free();
 		PngDestroyWrite(handle);
 		handle = default;
 
@@ -211,7 +209,7 @@ internal sealed unsafe class PngEncoder : IImageEncoder
 
 #if !NET5_0_OR_GREATER
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nuint WriteCallback(nint pinst, byte* buff, nuint cb);
-	private static readonly WriteCallback delWriteCallback = typeof(PngContainer).CreateMethodDelegate<WriteCallback>(nameof(writeCallback));
+	private static readonly WriteCallback delWriteCallback = typeof(PngEncoder).CreateMethodDelegate<WriteCallback>(nameof(writeCallback));
 #else
 	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
 	static

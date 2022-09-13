@@ -61,10 +61,20 @@ public static class CodecCollectionExtensions
 
 		if (removeExisting)
 		{
-			foreach (var codec in codecs.OfType<IImageEncoderInfo>().Where(c => c.MimeTypes.Any(m => m == ImageMimeTypes.Png)).ToList())
+			foreach (var codec in codecs.Where(c => c.MimeTypes.Any(m => m == ImageMimeTypes.Png)).ToList())
 				codecs.Remove(codec);
 		}
 
+		codecs.Add(new DecoderInfo(
+			PngFactory.DisplayName,
+			pngMime,
+			pngExtension,
+			new ContainerPattern[] {
+				new(0, new byte[] { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a }, new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }),
+			},
+			null,
+			PngContainer.TryLoad
+		));
 		codecs.Add(new EncoderInfo(
 			PngFactory.DisplayName,
 			pngMime,

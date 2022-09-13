@@ -39,6 +39,7 @@ internal sealed unsafe class HeifContainer : IImageContainer
 
 	public static HeifContainer? TryLoad(Stream imgStream, IDecoderOptions? _)
 	{
+		long stmpos = imgStream.Position;
 		var rdr = HeifReader.Wrap(imgStream);
 		var ctx = HeifFactory.CreateContext();
 
@@ -52,8 +53,10 @@ internal sealed unsafe class HeifContainer : IImageContainer
 			}
 		}
 
+		imgStream.Position = stmpos;
 		heif_context_free(ctx);
 		HeifReader.Free(rdr);
+
 		return null;
 	}
 

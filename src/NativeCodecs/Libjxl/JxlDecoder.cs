@@ -158,7 +158,9 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 				return new JxlContainer(imgStream, stmpos, dec);
 			}
 
+			imgStream.Position = stmpos;
 			JxlDecoderDestroy(dec);
+
 			return null;
 		}
 	}

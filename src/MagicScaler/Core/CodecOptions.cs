@@ -150,8 +150,8 @@ internal readonly record struct MultiFrameDecoderOptions(Range FrameRange) : IMu
 /// <summary>Represents the PNG <a href="https://www.w3.org/TR/PNG-Filters.html">prediction filter</a> applied to image lines before compression.</summary>
 public enum PngFilter
 {
-	/// <summary>The encoder will choose the filter.</summary>
-	/// <remarks>The Windows encoder uses <see cref="Adaptive" /> filtering by default.</remarks>
+	/// <summary>Use the encoder's default filter option.</summary>
+	/// <remarks>Most encoders use <see cref="Adaptive" /> filtering by default.</remarks>
 	Unspecified = 0,
 	/// <summary>No prediction filter will be used.</summary>
 	None = 1,

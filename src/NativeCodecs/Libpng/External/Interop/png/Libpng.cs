@@ -154,11 +154,75 @@ internal static unsafe partial class Libpng
     [NativeTypeName("#define PNG_INTERLACE_LAST 2")]
     public const int PNG_INTERLACE_LAST = 2;
 
+    [NativeTypeName("#define PNG_RESOLUTION_UNKNOWN 0")]
+    public const int PNG_RESOLUTION_UNKNOWN = 0;
+
+    [NativeTypeName("#define PNG_RESOLUTION_METER 1")]
+    public const int PNG_RESOLUTION_METER = 1;
+
     [NativeTypeName("#define PNG_KEYWORD_MAX_LENGTH 79")]
     public const int PNG_KEYWORD_MAX_LENGTH = 79;
 
     [NativeTypeName("#define PNG_MAX_PALETTE_LENGTH 256")]
     public const int PNG_MAX_PALETTE_LENGTH = 256;
+
+    [NativeTypeName("#define PNG_INFO_gAMA 0x0001U")]
+    public const uint PNG_INFO_gAMA = 0x0001U;
+
+    [NativeTypeName("#define PNG_INFO_sBIT 0x0002U")]
+    public const uint PNG_INFO_sBIT = 0x0002U;
+
+    [NativeTypeName("#define PNG_INFO_cHRM 0x0004U")]
+    public const uint PNG_INFO_cHRM = 0x0004U;
+
+    [NativeTypeName("#define PNG_INFO_PLTE 0x0008U")]
+    public const uint PNG_INFO_PLTE = 0x0008U;
+
+    [NativeTypeName("#define PNG_INFO_tRNS 0x0010U")]
+    public const uint PNG_INFO_tRNS = 0x0010U;
+
+    [NativeTypeName("#define PNG_INFO_bKGD 0x0020U")]
+    public const uint PNG_INFO_bKGD = 0x0020U;
+
+    [NativeTypeName("#define PNG_INFO_hIST 0x0040U")]
+    public const uint PNG_INFO_hIST = 0x0040U;
+
+    [NativeTypeName("#define PNG_INFO_pHYs 0x0080U")]
+    public const uint PNG_INFO_pHYs = 0x0080U;
+
+    [NativeTypeName("#define PNG_INFO_oFFs 0x0100U")]
+    public const uint PNG_INFO_oFFs = 0x0100U;
+
+    [NativeTypeName("#define PNG_INFO_tIME 0x0200U")]
+    public const uint PNG_INFO_tIME = 0x0200U;
+
+    [NativeTypeName("#define PNG_INFO_pCAL 0x0400U")]
+    public const uint PNG_INFO_pCAL = 0x0400U;
+
+    [NativeTypeName("#define PNG_INFO_sRGB 0x0800U")]
+    public const uint PNG_INFO_sRGB = 0x0800U;
+
+    [NativeTypeName("#define PNG_INFO_iCCP 0x1000U")]
+    public const uint PNG_INFO_iCCP = 0x1000U;
+
+    [NativeTypeName("#define PNG_INFO_sPLT 0x2000U")]
+    public const uint PNG_INFO_sPLT = 0x2000U;
+
+    [NativeTypeName("#define PNG_INFO_sCAL 0x4000U")]
+    public const uint PNG_INFO_sCAL = 0x4000U;
+
+    [NativeTypeName("#define PNG_INFO_IDAT 0x8000U")]
+    public const uint PNG_INFO_IDAT = 0x8000U;
+
+    [NativeTypeName("#define PNG_INFO_eXIf 0x10000U")]
+    public const uint PNG_INFO_eXIf = 0x10000U;
+
+    [NativeTypeName("#define PNG_INFO_acTL 0x20000U")]
+    public const uint PNG_INFO_acTL = 0x20000U;
+
+    [NativeTypeName("#define PNG_INFO_fcTL 0x40000U")]
+    public const uint PNG_INFO_fcTL = 0x40000U;
+
 
     [NativeTypeName("#define PNG_NO_FILTERS 0x00")]
     public const int PNG_NO_FILTERS = 0x00;
