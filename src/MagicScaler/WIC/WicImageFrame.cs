@@ -203,7 +203,7 @@ internal unsafe class WicImageFrame : IScaledDecoder, IMetadataSource
 			HRESULT.Check(Wic.Factory->CreateColorContext(&profiles[i]));
 
 		HRESULT.Check(WicFrame->GetColorContexts(ccc, profiles, &ccc));
-		var match = matchProfile(new Span<IntPtr>(profiles, (int)ccc), fmt);
+		var match = matchProfile(new Span<nuint>(profiles, (int)ccc), fmt);
 
 		for (int i = 0; i < (int)ccc; i++)
 			profiles[i]->Release();
@@ -211,7 +211,7 @@ internal unsafe class WicImageFrame : IScaledDecoder, IMetadataSource
 		return match;
 	}
 
-	private WicColorProfile matchProfile(ReadOnlySpan<IntPtr> profiles, PixelFormat fmt)
+	private WicColorProfile matchProfile(ReadOnlySpan<nuint> profiles, PixelFormat fmt)
 	{
 		var buff = (Span<byte>)stackalloc byte[8];
 		foreach (var pcc in profiles)

@@ -18,7 +18,7 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 	private readonly IDecoderOptions options;
 	private readonly int frameCount, frameOffset;
 	private byte* filebuff;
-	private IntPtr handle;
+	private void* handle;
 
 	private WebpContainer(Stream stm, IDecoderOptions? opt, WebPFeatureFlags flags)
 	{
@@ -32,7 +32,7 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 
 		var data = new WebPData { bytes = filebuff, size = (uint)len };
 		handle = WebpFactory.CreateDemuxer(&data);
-		if (handle == default)
+		if (handle is null)
 			throw new InvalidDataException();
 
 		features = flags;
@@ -167,7 +167,7 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 
 	private void ensureHandle()
 	{
-		if (handle == default)
+		if (handle is null)
 			ThrowHelper.ThrowObjectDisposed(nameof(WebpContainer));
 	}
 
@@ -180,7 +180,7 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 		filebuff = null;
 
 		WebPDemuxDelete(handle);
-		handle = default;
+		handle = null;
 
 		if (disposing)
 			GC.SuppressFinalize(this);

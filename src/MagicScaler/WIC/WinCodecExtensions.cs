@@ -17,7 +17,7 @@ namespace PhotoSauce.Interop.Wic;
 
 internal static unsafe class Wic
 {
-	private static readonly Lazy<IntPtr> factory = new(() => {
+	private static readonly Lazy<nuint> factory = new(() => {
 		int hr = S_FALSE;
 		using var wicfactory = default(ComPtr<IWICImagingFactory>);
 		if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -37,7 +37,7 @@ internal static unsafe class Wic
 		if (wicfactory.Get() is null)
 			throw new PlatformNotSupportedException("Windows Imaging Component (WIC) is not available on this platform.", Marshal.GetExceptionForHR(hr));
 
-		return (IntPtr)wicfactory.Detach();
+		return (nuint)wicfactory.Detach();
 	});
 
 	public static IWICImagingFactory* Factory => (IWICImagingFactory*)factory.Value;

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<VersionPrefix>2.1.4</VersionPrefix>
+		<VersionPrefix>1.6.37</VersionPrefix>
 		<TargetFrameworks>net6.0;net472</TargetFrameworks>
 		<TargetFrameworks Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">$(TargetFrameworks);net461;netstandard2.0</TargetFrameworks>
 	</PropertyGroup>

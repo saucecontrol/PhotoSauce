@@ -42,9 +42,9 @@ internal static unsafe class JxlFactory
 		return true;
 	});
 
-	public static IntPtr CreateDecoder() => dependencyValid.Value ? JxlDecoderCreate(null) : default;
+	public static void* CreateDecoder() => dependencyValid.Value ? JxlDecoderCreate(null) : default;
 
-	public static IntPtr CreateEncoder() => dependencyValid.Value ? JxlEncoderCreate(null) : default;
+	public static void* CreateEncoder() => dependencyValid.Value ? JxlEncoderCreate(null) : default;
 }
 
 /// <inheritdoc cref="WindowsCodecExtensions" />

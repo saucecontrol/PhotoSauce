@@ -5,7 +5,6 @@
 // Original source copyright (C) 1991-1998, Thomas G. Lane. All Rights Reserved
 // See third-party-notices in the repository root for more information.
 
-using System;
 using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.Interop.Libjpeg;
@@ -217,37 +216,37 @@ internal unsafe partial struct jpeg_decompress_struct
     public int unread_marker;
 
     [NativeTypeName("struct jpeg_decomp_master *")]
-    public IntPtr master;
+    public void* master;
 
     [NativeTypeName("struct jpeg_d_main_controller *")]
-    public IntPtr main;
+    public void* main;
 
     [NativeTypeName("struct jpeg_d_coef_controller *")]
-    public IntPtr coef;
+    public void* coef;
 
     [NativeTypeName("struct jpeg_d_post_controller *")]
-    public IntPtr post;
+    public void* post;
 
     [NativeTypeName("struct jpeg_input_controller *")]
-    public IntPtr inputctl;
+    public void* inputctl;
 
     [NativeTypeName("struct jpeg_marker_reader *")]
-    public IntPtr marker;
+    public void* marker;
 
     [NativeTypeName("struct jpeg_entropy_decoder *")]
-    public IntPtr entropy;
+    public void* entropy;
 
     [NativeTypeName("struct jpeg_inverse_dct *")]
-    public IntPtr idct;
+    public void* idct;
 
     [NativeTypeName("struct jpeg_upsampler *")]
-    public IntPtr upsample;
+    public void* upsample;
 
     [NativeTypeName("struct jpeg_color_deconverter *")]
-    public IntPtr cconvert;
+    public void* cconvert;
 
     [NativeTypeName("struct jpeg_color_quantizer *")]
-    public IntPtr cquantize;
+    public void* cquantize;
 
     public unsafe partial struct _quant_tbl_ptrs_e__FixedBuffer
     {

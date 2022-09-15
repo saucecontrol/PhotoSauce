@@ -4,7 +4,6 @@
 // Original source Copyright 2012 Google Inc. All Rights Reserved.
 // See third-party-notices in the repository root for more information.
 
-using System;
 using System.Runtime.InteropServices;
 using static PhotoSauce.Interop.Libwebp.WEBP_CSP_MODE;
 
@@ -93,43 +92,43 @@ internal static unsafe partial class Libwebp
     public static extern void WebPFreeDecBuffer(WebPDecBuffer* buffer);
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern IntPtr WebPINewDecoder(WebPDecBuffer* output_buffer);
+    public static extern void* WebPINewDecoder(WebPDecBuffer* output_buffer);
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern IntPtr WebPINewRGB(WEBP_CSP_MODE csp, [NativeTypeName("uint8_t *")] byte* output_buffer, [NativeTypeName("size_t")] nuint output_buffer_size, int output_stride);
+    public static extern void* WebPINewRGB(WEBP_CSP_MODE csp, [NativeTypeName("uint8_t *")] byte* output_buffer, [NativeTypeName("size_t")] nuint output_buffer_size, int output_stride);
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern IntPtr WebPINewYUVA([NativeTypeName("uint8_t *")] byte* luma, [NativeTypeName("size_t")] nuint luma_size, int luma_stride, [NativeTypeName("uint8_t *")] byte* u, [NativeTypeName("size_t")] nuint u_size, int u_stride, [NativeTypeName("uint8_t *")] byte* v, [NativeTypeName("size_t")] nuint v_size, int v_stride, [NativeTypeName("uint8_t *")] byte* a, [NativeTypeName("size_t")] nuint a_size, int a_stride);
+    public static extern void* WebPINewYUVA([NativeTypeName("uint8_t *")] byte* luma, [NativeTypeName("size_t")] nuint luma_size, int luma_stride, [NativeTypeName("uint8_t *")] byte* u, [NativeTypeName("size_t")] nuint u_size, int u_stride, [NativeTypeName("uint8_t *")] byte* v, [NativeTypeName("size_t")] nuint v_size, int v_stride, [NativeTypeName("uint8_t *")] byte* a, [NativeTypeName("size_t")] nuint a_size, int a_stride);
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern IntPtr WebPINewYUV([NativeTypeName("uint8_t *")] byte* luma, [NativeTypeName("size_t")] nuint luma_size, int luma_stride, [NativeTypeName("uint8_t *")] byte* u, [NativeTypeName("size_t")] nuint u_size, int u_stride, [NativeTypeName("uint8_t *")] byte* v, [NativeTypeName("size_t")] nuint v_size, int v_stride);
+    public static extern void* WebPINewYUV([NativeTypeName("uint8_t *")] byte* luma, [NativeTypeName("size_t")] nuint luma_size, int luma_stride, [NativeTypeName("uint8_t *")] byte* u, [NativeTypeName("size_t")] nuint u_size, int u_stride, [NativeTypeName("uint8_t *")] byte* v, [NativeTypeName("size_t")] nuint v_size, int v_stride);
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern void WebPIDelete(IntPtr idec);
+    public static extern void WebPIDelete(void* idec);
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern VP8StatusCode WebPIAppend(IntPtr idec, [NativeTypeName("const uint8_t *")] byte* data, [NativeTypeName("size_t")] nuint data_size);
+    public static extern VP8StatusCode WebPIAppend(void* idec, [NativeTypeName("const uint8_t *")] byte* data, [NativeTypeName("size_t")] nuint data_size);
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern VP8StatusCode WebPIUpdate(IntPtr idec, [NativeTypeName("const uint8_t *")] byte* data, [NativeTypeName("size_t")] nuint data_size);
-
-    [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    [return: NativeTypeName("uint8_t *")]
-    public static extern byte* WebPIDecGetRGB([NativeTypeName("const WebPIDecoder *")] IntPtr idec, int* last_y, int* width, int* height, int* stride);
+    public static extern VP8StatusCode WebPIUpdate(void* idec, [NativeTypeName("const uint8_t *")] byte* data, [NativeTypeName("size_t")] nuint data_size);
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     [return: NativeTypeName("uint8_t *")]
-    public static extern byte* WebPIDecGetYUVA([NativeTypeName("const WebPIDecoder *")] IntPtr idec, int* last_y, [NativeTypeName("uint8_t **")] byte** u, [NativeTypeName("uint8_t **")] byte** v, [NativeTypeName("uint8_t **")] byte** a, int* width, int* height, int* stride, int* uv_stride, int* a_stride);
+    public static extern byte* WebPIDecGetRGB([NativeTypeName("const WebPIDecoder *")] void* idec, int* last_y, int* width, int* height, int* stride);
+
+    [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("uint8_t *")]
+    public static extern byte* WebPIDecGetYUVA([NativeTypeName("const WebPIDecoder *")] void* idec, int* last_y, [NativeTypeName("uint8_t **")] byte** u, [NativeTypeName("uint8_t **")] byte** v, [NativeTypeName("uint8_t **")] byte** a, int* width, int* height, int* stride, int* uv_stride, int* a_stride);
 
     [return: NativeTypeName("uint8_t *")]
-    public static byte* WebPIDecGetYUV([NativeTypeName("const WebPIDecoder *")] IntPtr idec, int* last_y, [NativeTypeName("uint8_t **")] byte** u, [NativeTypeName("uint8_t **")] byte** v, int* width, int* height, int* stride, int* uv_stride)
+    public static byte* WebPIDecGetYUV([NativeTypeName("const WebPIDecoder *")] void* idec, int* last_y, [NativeTypeName("uint8_t **")] byte** u, [NativeTypeName("uint8_t **")] byte** v, int* width, int* height, int* stride, int* uv_stride)
     {
         return WebPIDecGetYUVA(idec, last_y, u, v, null, width, height, stride, uv_stride, null);
     }
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     [return: NativeTypeName("const WebPDecBuffer *")]
-    public static extern WebPDecBuffer* WebPIDecodedArea([NativeTypeName("const WebPIDecoder *")] IntPtr idec, int* left, int* top, int* width, int* height);
+    public static extern WebPDecBuffer* WebPIDecodedArea([NativeTypeName("const WebPIDecoder *")] void* idec, int* left, int* top, int* width, int* height);
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     private static extern VP8StatusCode WebPGetFeaturesInternal([NativeTypeName("const uint8_t *")] byte* param0, [NativeTypeName("size_t")] nuint param1, WebPBitstreamFeatures* param2, int param3);
@@ -148,7 +147,7 @@ internal static unsafe partial class Libwebp
     }
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern IntPtr WebPIDecode([NativeTypeName("const uint8_t *")] byte* data, [NativeTypeName("size_t")] nuint data_size, WebPDecoderConfig* config);
+    public static extern void* WebPIDecode([NativeTypeName("const uint8_t *")] byte* data, [NativeTypeName("size_t")] nuint data_size, WebPDecoderConfig* config);
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern VP8StatusCode WebPDecode([NativeTypeName("const uint8_t *")] byte* data, [NativeTypeName("size_t")] nuint data_size, WebPDecoderConfig* config);

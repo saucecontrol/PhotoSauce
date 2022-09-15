@@ -68,7 +68,7 @@ internal sealed unsafe class PngContainer : IImageContainer, IIccProfileSource, 
 
 	public ps_png_struct* GetHandle()
 	{
-		if (handle == default)
+		if (handle is null)
 			ThrowHelper.ThrowObjectDisposed(nameof(PngContainer));
 
 		return handle;
@@ -110,12 +110,12 @@ internal sealed unsafe class PngContainer : IImageContainer, IIccProfileSource, 
 
 	private void dispose(bool disposing)
 	{
-		if (handle == default)
+		if (handle is null)
 			return;
 
 		GCHandle.FromIntPtr(handle->io_ptr->stream_handle).Free();
 		PngDestroyRead(handle);
-		handle = default;
+		handle = null;
 
 		if (disposing)
 			GC.SuppressFinalize(this);

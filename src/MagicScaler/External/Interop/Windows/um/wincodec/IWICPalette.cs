@@ -50,56 +50,48 @@ internal unsafe partial struct IWICPalette : IWICPalette.Interface
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NativeTypeName("HRESULT")]
     public HRESULT InitializeFromBitmap(IWICBitmapSource* pISurface, uint cCount, BOOL fAddTransparentColor)
     {
         return ((delegate* unmanaged[Stdcall]<IWICPalette*, IWICBitmapSource*, uint, BOOL, int>)(lpVtbl[5]))((IWICPalette*)Unsafe.AsPointer(ref this), pISurface, cCount, fAddTransparentColor);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NativeTypeName("HRESULT")]
     public HRESULT InitializeFromPalette(IWICPalette* pIPalette)
     {
         return ((delegate* unmanaged[Stdcall]<IWICPalette*, IWICPalette*, int>)(lpVtbl[6]))((IWICPalette*)Unsafe.AsPointer(ref this), pIPalette);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NativeTypeName("HRESULT")]
     public HRESULT GetType(WICBitmapPaletteType* pePaletteType)
     {
         return ((delegate* unmanaged[Stdcall]<IWICPalette*, WICBitmapPaletteType*, int>)(lpVtbl[7]))((IWICPalette*)Unsafe.AsPointer(ref this), pePaletteType);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NativeTypeName("HRESULT")]
     public HRESULT GetColorCount(uint* pcCount)
     {
         return ((delegate* unmanaged[Stdcall]<IWICPalette*, uint*, int>)(lpVtbl[8]))((IWICPalette*)Unsafe.AsPointer(ref this), pcCount);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NativeTypeName("HRESULT")]
     public HRESULT GetColors(uint cCount, [NativeTypeName("WICColor *")] uint* pColors, uint* pcActualColors)
     {
         return ((delegate* unmanaged[Stdcall]<IWICPalette*, uint, uint*, uint*, int>)(lpVtbl[9]))((IWICPalette*)Unsafe.AsPointer(ref this), cCount, pColors, pcActualColors);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NativeTypeName("HRESULT")]
     public HRESULT IsBlackWhite(BOOL* pfIsBlackWhite)
     {
         return ((delegate* unmanaged[Stdcall]<IWICPalette*, BOOL*, int>)(lpVtbl[10]))((IWICPalette*)Unsafe.AsPointer(ref this), pfIsBlackWhite);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NativeTypeName("HRESULT")]
     public HRESULT IsGrayscale(BOOL* pfIsGrayscale)
     {
         return ((delegate* unmanaged[Stdcall]<IWICPalette*, BOOL*, int>)(lpVtbl[11]))((IWICPalette*)Unsafe.AsPointer(ref this), pfIsGrayscale);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NativeTypeName("HRESULT")]
     public HRESULT HasAlpha(BOOL* pfHasAlpha)
     {
         return ((delegate* unmanaged[Stdcall]<IWICPalette*, BOOL*, int>)(lpVtbl[12]))((IWICPalette*)Unsafe.AsPointer(ref this), pfHasAlpha);

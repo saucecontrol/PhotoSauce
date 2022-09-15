@@ -15,10 +15,10 @@ namespace PhotoSauce.NativeCodecs.Libheif;
 internal sealed unsafe class HeifContainer : IImageContainer
 {
 	private readonly Stream stream;
-	private IntPtr handle;
+	private void* handle;
 	private HeifReader* reader;
 
-	private HeifContainer(Stream stm, HeifReader* rdr, IntPtr frm)
+	private HeifContainer(Stream stm, HeifReader* rdr, void* frm)
 	{
 		stream = stm;
 		reader = rdr;
@@ -45,7 +45,7 @@ internal sealed unsafe class HeifContainer : IImageContainer
 
 		if (HeifResult.Succeeded(heif_context_read_from_reader(ctx, HeifReader.Impl, rdr, null)))
 		{
-			var hfrm = default(IntPtr);
+			void* hfrm;
 			if (HeifResult.Succeeded(heif_context_get_primary_image_handle(ctx, &hfrm)))
 			{
 				heif_context_free(ctx);
@@ -62,20 +62,20 @@ internal sealed unsafe class HeifContainer : IImageContainer
 
 	private void ensureHandle()
 	{
-		if (handle == default)
+		if (handle is null)
 			ThrowHelper.ThrowObjectDisposed(nameof(HeifContainer));
 	}
 
 	private void dispose(bool disposing)
 	{
-		if (handle == default)
+		if (handle is null)
 			return;
 
 		heif_image_handle_release(handle);
-		handle = default;
+		handle = null;
 
 		HeifReader.Free(reader);
-		reader = default;
+		reader = null;
 
 		if (disposing)
 			GC.SuppressFinalize(this);
@@ -175,7 +175,7 @@ internal sealed unsafe class HeifContainer : IImageContainer
 	private sealed class HeifPixelSource : PixelSource
 	{
 		private readonly HeifContainer container;
-		private IntPtr handle;
+		private void* handle;
 		private byte* pixels;
 		private int stride;
 
@@ -210,7 +210,7 @@ internal sealed unsafe class HeifContainer : IImageContainer
 		{
 			container.ensureHandle();
 
-			var img = default(IntPtr);
+			void* img;
 			HeifResult.Check(heif_decode_image(container.handle, &img, heif_colorspace.heif_colorspace_RGB, heif_chroma.heif_chroma_interleaved_RGB, null));
 
 			var chan = heif_channel.heif_channel_interleaved;
@@ -227,12 +227,12 @@ internal sealed unsafe class HeifContainer : IImageContainer
 
 		protected override void Dispose(bool disposing)
 		{
-			if (handle == default)
+			if (handle is null)
 				return;
 
 			heif_image_release(handle);
-			handle = default;
-			pixels = default;
+			handle = null;
+			pixels = null;
 
 			base.Dispose(disposing);
 		}

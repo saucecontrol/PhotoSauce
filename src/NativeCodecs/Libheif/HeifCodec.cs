@@ -42,7 +42,7 @@ internal static unsafe class HeifFactory
 		return true;
 	});
 
-	public static IntPtr CreateContext() => dependencyValid.Value ? heif_context_alloc() : default;
+	public static void* CreateContext() => dependencyValid.Value ? heif_context_alloc() : default;
 }
 
 /// <inheritdoc cref="WindowsCodecExtensions" />

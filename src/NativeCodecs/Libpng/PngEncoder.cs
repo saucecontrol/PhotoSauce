@@ -187,12 +187,12 @@ internal sealed unsafe class PngEncoder : IImageEncoder
 
 	private void dispose(bool disposing)
 	{
-		if (handle == default)
+		if (handle is null)
 			return;
 
 		GCHandle.FromIntPtr(handle->io_ptr->stream_handle).Free();
 		PngDestroyWrite(handle);
-		handle = default;
+		handle = null;
 
 		if (disposing)
 			GC.SuppressFinalize(this);

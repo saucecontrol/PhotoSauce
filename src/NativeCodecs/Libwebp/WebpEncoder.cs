@@ -19,7 +19,7 @@ internal sealed unsafe class WebpEncoder : IAnimatedImageEncoder
 	private readonly IWebpEncoderOptions options;
 	private readonly Stream stream;
 
-	private IntPtr handle;
+	private void* handle;
 	private bool written;
 	private bool animated;
 
@@ -270,11 +270,11 @@ internal sealed unsafe class WebpEncoder : IAnimatedImageEncoder
 
 	private void dispose(bool disposing)
 	{
-		if (handle == default)
+		if (handle is null)
 			return;
 
 		WebPMuxDelete(handle);
-		handle = default;
+		handle = null;
 
 		if (disposing)
 			GC.SuppressFinalize(this);

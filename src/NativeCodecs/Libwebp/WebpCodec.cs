@@ -59,9 +59,9 @@ internal static unsafe class WebpFactory
 
 	public static void* NativeAlloc(nuint size) => dependencyValid.Value ? WebPMalloc(size) : default;
 
-	public static IntPtr CreateDemuxer(WebPData* data) => dependencyValid.Value ? WebPDemux(data) : default;
+	public static void* CreateDemuxer(WebPData* data) => dependencyValid.Value ? WebPDemux(data) : default;
 
-	public static IntPtr CreateMuxer() => dependencyValid.Value ? WebPMuxNew() : default;
+	public static void* CreateMuxer() => dependencyValid.Value ? WebPMuxNew() : default;
 }
 
 /// <inheritdoc cref="WindowsCodecExtensions" />

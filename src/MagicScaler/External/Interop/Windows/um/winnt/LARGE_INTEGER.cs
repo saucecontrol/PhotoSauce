@@ -4,6 +4,7 @@
 // Ported from um/winnt.h in the Windows SDK for Windows 10.0.22000.0
 // Original source is Copyright © Microsoft. All rights reserved.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -25,29 +26,23 @@ internal partial struct LARGE_INTEGER
     [NativeTypeName("LONGLONG")]
     public long QuadPart;
 #if false
+    [UnscopedRef]
     public unsafe ref uint LowPart
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-#if BUILTIN_SPAN
-            return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.LowPart, 1));
-#else
-            return ref ((_Anonymous_e__Struct*)Unsafe.AsPointer(ref Anonymous))->LowPart;
-#endif
+            return ref Anonymous.LowPart;
         }
     }
 
+    [UnscopedRef]
     public unsafe ref int HighPart
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-#if BUILTIN_SPAN
-            return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.HighPart, 1));
-#else
-            return ref ((_Anonymous_e__Struct*)Unsafe.AsPointer(ref Anonymous))->HighPart;
-#endif
+            return ref Anonymous.HighPart;
         }
     }
 

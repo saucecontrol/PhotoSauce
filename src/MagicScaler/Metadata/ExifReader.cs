@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
+using System.Diagnostics.CodeAnalysis;
 
 namespace PhotoSauce.MagicScaler;
 
@@ -168,9 +169,6 @@ internal unsafe ref struct ExifReader
 		return true;
 	}
 
-	public readonly ref readonly ExifItem Current
-	{
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get => ref *(ExifItem*)Unsafe.AsPointer(ref Unsafe.AsRef(curr));
-	}
+	[UnscopedRef]
+	public readonly ref readonly ExifItem Current => ref curr;
 }

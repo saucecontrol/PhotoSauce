@@ -5,7 +5,6 @@
 // Original source copyright (C) 1991-1998, Thomas G. Lane. All Rights Reserved
 // See third-party-notices in the repository root for more information.
 
-using System;
 using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.Interop.Libjpeg;
@@ -154,31 +153,31 @@ internal unsafe partial struct jpeg_compress_struct
     public int Al;
 
     [NativeTypeName("struct jpeg_comp_master *")]
-    public IntPtr master;
+    public void* master;
 
     [NativeTypeName("struct jpeg_c_main_controller *")]
-    public IntPtr main;
+    public void* main;
 
     [NativeTypeName("struct jpeg_c_prep_controller *")]
-    public IntPtr prep;
+    public void* prep;
 
     [NativeTypeName("struct jpeg_c_coef_controller *")]
-    public IntPtr coef;
+    public void* coef;
 
     [NativeTypeName("struct jpeg_marker_writer *")]
-    public IntPtr marker;
+    public void* marker;
 
     [NativeTypeName("struct jpeg_color_converter *")]
-    public IntPtr cconvert;
+    public void* cconvert;
 
     [NativeTypeName("struct jpeg_downsampler *")]
-    public IntPtr downsample;
+    public void* downsample;
 
     [NativeTypeName("struct jpeg_forward_dct *")]
-    public IntPtr fdct;
+    public void* fdct;
 
     [NativeTypeName("struct jpeg_entropy_encoder *")]
-    public IntPtr entropy;
+    public void* entropy;
 
     public jpeg_scan_info* script_space;
 

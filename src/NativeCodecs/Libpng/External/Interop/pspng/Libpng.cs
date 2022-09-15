@@ -4,7 +4,6 @@
 // This software is based in part on the work of the libpng authors.
 // See third-party-notices in the repository root for more information.
 
-using System;
 using System.Runtime.InteropServices;
 
 namespace PhotoSauce.Interop.Libpng;
@@ -101,7 +100,7 @@ internal static unsafe partial class Libpng
     public static extern int PngReadImage(ps_png_struct* handle, [NativeTypeName("png_bytepp")] byte** image);
 
     [DllImport("pspng", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern int PngReadEnd(ps_png_struct* handle, [NativeTypeName("png_infop")] IntPtr end_info);
+    public static extern int PngReadEnd(ps_png_struct* handle, [NativeTypeName("png_infop")] void* end_info);
 
     [DllImport("pspng", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern int PngGetValid(ps_png_struct* handle, [NativeTypeName("png_uint_32")] uint flag);

@@ -261,14 +261,14 @@ internal sealed unsafe class JpegEncoder : IImageEncoder
 
 	private void dispose(bool disposing)
 	{
-		if (handle == default)
+		if (handle is null)
 			return;
 
 		var pcd = (ps_client_data*)handle->client_data;
 		GCHandle.FromIntPtr(pcd->stream_handle).Free();
 
 		JpegDestroy((jpeg_common_struct*)handle);
-		handle = default;
+		handle = null;
 
 		if (disposing)
 			GC.SuppressFinalize(this);

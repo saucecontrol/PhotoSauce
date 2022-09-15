@@ -19,7 +19,7 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 {
 	private readonly Stream stream;
 	private readonly long stmpos;
-	private IntPtr decoder;
+	private void* decoder;
 
 	private RentedBuffer<byte> profilebuff;
 	private JxlBasicInfo basinfo;
@@ -39,7 +39,11 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 		}
 	}
 
-	private JxlContainer(Stream stm, long pos, IntPtr dec) => (stream, stmpos, decoder) = (stm, pos, dec);
+	private JxlContainer(Stream stm, long pos, void* dec)
+	{
+		(stream, stmpos) = (stm, pos);
+		decoder = dec;
+	}
 
 	public string MimeType => ImageMimeTypes.Jxl;
 
@@ -167,14 +171,14 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 
 	private void dispose(bool disposing)
 	{
-		if (decoder == default)
+		if (decoder is null)
 			return;
 
 		profilebuff.Dispose();
 		profilebuff = default;
 
 		JxlDecoderDestroy(decoder);
-		decoder = default;
+		decoder = null;
 
 		if (disposing)
 			GC.SuppressFinalize(this);
@@ -336,7 +340,7 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 
 		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
-			if (gchandle == default)
+			if (!gchandle.IsAllocated)
 				ThrowHelper.ThrowObjectDisposed(nameof(JxlPixelSource));
 
 			int bpp = Format.BytesPerPixel;

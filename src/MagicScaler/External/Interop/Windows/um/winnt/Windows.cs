@@ -6,7 +6,6 @@
 
 #if false
 using System;
-using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -479,7 +478,7 @@ internal static unsafe partial class Windows
     public const int SHUFFLE_FILE_FLAG_SKIP_INITIALIZING_NEW_CLUSTERS = (0x00000001);
 
     [NativeTypeName("#define SMB_CCF_APP_INSTANCE_EA_NAME \"ClusteredApplicationInstance\"")]
-    public static ReadOnlySpan<byte> SMB_CCF_APP_INSTANCE_EA_NAME => new byte[] { 0x43, 0x6C, 0x75, 0x73, 0x74, 0x65, 0x72, 0x65, 0x64, 0x41, 0x70, 0x70, 0x6C, 0x69, 0x63, 0x61, 0x74, 0x69, 0x6F, 0x6E, 0x49, 0x6E, 0x73, 0x74, 0x61, 0x6E, 0x63, 0x65, 0x00 };
+    public static ReadOnlySpan<byte> SMB_CCF_APP_INSTANCE_EA_NAME => "ClusteredApplicationInstance"u8;
 
     [NativeTypeName("#define NETWORK_APP_INSTANCE_CSV_FLAGS_VALID_ONLY_IF_CSV_COORDINATOR 0x00000001")]
     public const int NETWORK_APP_INSTANCE_CSV_FLAGS_VALID_ONLY_IF_CSV_COORDINATOR = 0x00000001;

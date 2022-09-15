@@ -5,8 +5,6 @@
 // Original source copyright (C) 1991-1998, Thomas G. Lane. All Rights Reserved
 // See third-party-notices in the repository root for more information.
 
-using System;
-
 namespace PhotoSauce.Interop.Libjpeg;
 
 internal unsafe partial struct jpeg_memory_mgr
@@ -24,19 +22,19 @@ internal unsafe partial struct jpeg_memory_mgr
     public delegate* unmanaged[Cdecl]<jpeg_common_struct*, int, uint, uint, short**> alloc_barray;
 
     [NativeTypeName("jvirt_sarray_ptr (*)(j_common_ptr, int, boolean, JDIMENSION, JDIMENSION, JDIMENSION)")]
-    public delegate* unmanaged[Cdecl]<jpeg_common_struct*, int, int, uint, uint, uint, IntPtr> request_virt_sarray;
+    public delegate* unmanaged[Cdecl]<jpeg_common_struct*, int, int, uint, uint, uint, void*> request_virt_sarray;
 
     [NativeTypeName("jvirt_barray_ptr (*)(j_common_ptr, int, boolean, JDIMENSION, JDIMENSION, JDIMENSION)")]
-    public delegate* unmanaged[Cdecl]<jpeg_common_struct*, int, int, uint, uint, uint, IntPtr> request_virt_barray;
+    public delegate* unmanaged[Cdecl]<jpeg_common_struct*, int, int, uint, uint, uint, void*> request_virt_barray;
 
     [NativeTypeName("void (*)(j_common_ptr)")]
     public delegate* unmanaged[Cdecl]<jpeg_common_struct*, void> realize_virt_arrays;
 
     [NativeTypeName("JSAMPARRAY (*)(j_common_ptr, jvirt_sarray_ptr, JDIMENSION, JDIMENSION, boolean)")]
-    public delegate* unmanaged[Cdecl]<jpeg_common_struct*, IntPtr, uint, uint, int, byte**> access_virt_sarray;
+    public delegate* unmanaged[Cdecl]<jpeg_common_struct*, void*, uint, uint, int, byte**> access_virt_sarray;
 
     [NativeTypeName("JBLOCKARRAY (*)(j_common_ptr, jvirt_barray_ptr, JDIMENSION, JDIMENSION, boolean)")]
-    public delegate* unmanaged[Cdecl]<jpeg_common_struct*, IntPtr, uint, uint, int, short**> access_virt_barray;
+    public delegate* unmanaged[Cdecl]<jpeg_common_struct*, void*, uint, uint, int, short**> access_virt_barray;
 
     [NativeTypeName("void (*)(j_common_ptr, int)")]
     public delegate* unmanaged[Cdecl]<jpeg_common_struct*, int, void> free_pool;

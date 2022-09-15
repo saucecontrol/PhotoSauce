@@ -15,7 +15,7 @@ internal sealed unsafe class JxlEncoder : IImageEncoder
 	private readonly IJxlEncoderOptions options;
 	private readonly Stream stream;
 
-	private IntPtr encoder, encopt;
+	private void* encoder, encopt;
 	private bool written;
 
 	public static JxlEncoder Create(Stream outStream, IEncoderOptions? jxlOptions) => new(outStream, jxlOptions);
@@ -128,11 +128,11 @@ internal sealed unsafe class JxlEncoder : IImageEncoder
 
 	private void dispose(bool disposing)
 	{
-		if (encoder == default)
+		if (encoder is null)
 			return;
 
 		JxlEncoderDestroy(encoder);
-		encoder = encopt = default;
+		encoder = encopt = null;
 
 		if (disposing)
 			GC.SuppressFinalize(this);

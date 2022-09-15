@@ -51,10 +51,10 @@ internal static unsafe partial class Windows
     public static extern HRESULT CoDecodeProxy([NativeTypeName("DWORD")] uint dwClientPid, [NativeTypeName("UINT64")] ulong ui64ProxyAddress, [NativeTypeName("PServerInformation")] ServerInformation* pServerInformation);
 
     [DllImport("ole32", ExactSpelling = true)]
-    public static extern HRESULT CoIncrementMTAUsage([NativeTypeName("CO_MTA_USAGE_COOKIE *")] IntPtr* pCookie);
+    public static extern HRESULT CoIncrementMTAUsage([NativeTypeName("CO_MTA_USAGE_COOKIE *")] void** pCookie);
 
     [DllImport("ole32", ExactSpelling = true)]
-    public static extern HRESULT CoDecrementMTAUsage([NativeTypeName("CO_MTA_USAGE_COOKIE")] IntPtr Cookie);
+    public static extern HRESULT CoDecrementMTAUsage([NativeTypeName("CO_MTA_USAGE_COOKIE")] void* Cookie);
 
     [DllImport("ole32", ExactSpelling = true)]
     public static extern HRESULT CoAllowUnmarshalerCLSID([NativeTypeName("const IID &")] Guid* clsid);
@@ -271,10 +271,10 @@ internal static unsafe partial class Windows
     public static extern HRESULT CLSIDFromProgIDEx([NativeTypeName("LPCOLESTR")] ushort* lpszProgID, [NativeTypeName("LPCLSID")] Guid* lpclsid);
 
     [DllImport("combase", ExactSpelling = true)]
-    public static extern HRESULT CoRegisterDeviceCatalog([NativeTypeName("PCWSTR")] ushort* deviceInstanceId, [NativeTypeName("CO_DEVICE_CATALOG_COOKIE *")] IntPtr* cookie);
+    public static extern HRESULT CoRegisterDeviceCatalog([NativeTypeName("PCWSTR")] ushort* deviceInstanceId, [NativeTypeName("CO_DEVICE_CATALOG_COOKIE *")] void** cookie);
 
     [DllImport("combase", ExactSpelling = true)]
-    public static extern HRESULT CoRevokeDeviceCatalog([NativeTypeName("CO_DEVICE_CATALOG_COOKIE")] IntPtr cookie);
+    public static extern HRESULT CoRevokeDeviceCatalog([NativeTypeName("CO_DEVICE_CATALOG_COOKIE")] void* cookie);
 
     [NativeTypeName("#define CLSCTX_INPROC (CLSCTX_INPROC_SERVER|CLSCTX_INPROC_HANDLER)")]
     public const int CLSCTX_INPROC = ((int)(CLSCTX_INPROC_SERVER) | (int)(CLSCTX_INPROC_HANDLER));
