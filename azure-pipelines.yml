@@ -25,7 +25,7 @@ jobs:
         imageName: ubuntu-latest
         setupScript: |
           sudo apt update
-          sudo apt install -y g++-aarch64-linux-gnu
+          sudo apt install -y g++-aarch64-linux-gnu nasm
           modules/vcpkg/bootstrap-vcpkg.sh
         buildScript: modules/vcpkg/vcpkg install $(VCPKG_PSLIBS) --triplet=arm64-linux-ps @build/vcpkg/response
       linux-x64:
