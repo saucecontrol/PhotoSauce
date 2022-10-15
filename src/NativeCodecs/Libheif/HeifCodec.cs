@@ -56,16 +56,17 @@ public static class CodecCollectionExtensions
 
 		if (removeExisting)
 		{
-			foreach (var codec in codecs.OfType<IImageDecoderInfo>().Where(c => c.MimeTypes.Any(m => m == ImageMimeTypes.Heic)).ToList())
+			foreach (var codec in codecs.OfType<IImageDecoderInfo>().Where(c => c.MimeTypes.Any(m => m is ImageMimeTypes.Heic or ImageMimeTypes.Avif)).ToList())
 				codecs.Remove(codec);
 		}
 
 		codecs.Add(new DecoderInfo(
 			HeifFactory.DisplayName,
-			new[] { ImageMimeTypes.Heic },
-			new[] { ImageFileExtensions.Heic },
+			new[] { ImageMimeTypes.Heic, ImageMimeTypes.Avif },
+			new[] { ImageFileExtensions.Heic, ImageFileExtensions.Avif },
 			new ContainerPattern[] {
 				new(0, new byte[] { 0, 0, 0, 0, (byte)'f', (byte)'t', (byte)'y', (byte)'p', (byte)'h', (byte)'e', (byte)'i', (byte)'c' }, new byte[] { 0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }),
+				new(0, new byte[] { 0, 0, 0, 0, (byte)'f', (byte)'t', (byte)'y', (byte)'p', (byte)'a', (byte)'v', (byte)'i', (byte)'f' }, new byte[] { 0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }),
 				new(0, new byte[] { 0, 0, 0, 0, (byte)'f', (byte)'t', (byte)'y', (byte)'p', (byte)'m', (byte)'i', (byte)'f', (byte)'1' }, new byte[] { 0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff })
 			},
 			null,

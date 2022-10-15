@@ -12,7 +12,9 @@ vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     OPTIONS
         -DWITH_EXAMPLES=OFF
-        -DWITH_DAV1D=OFF
+        -DWITH_AOM=OFF
+        -DWITH_X265=OFF
+        -DWITH_RAV1E=OFF
 )
 vcpkg_cmake_install()
 vcpkg_copy_pdbs()

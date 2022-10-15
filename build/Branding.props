@@ -19,8 +19,8 @@
 		</When>
 		<When Condition="'$(MSBuildProjectName)'=='NativeCodecs.Libheif'">
 			<PropertyGroup>
-				<Description>HEIC codec plugin for the PhotoSauce.MagicScaler pipeline.</Description>
-				<PackageTags>Image Decode HEIC HEIF</PackageTags>
+				<Description>HEIC and AVIF codec plugin for the PhotoSauce.MagicScaler pipeline.</Description>
+				<PackageTags>Image Decode HEIC HEIF AVIF</PackageTags>
 			</PropertyGroup>
 		</When>
 		<When Condition="'$(MSBuildProjectName)'=='NativeCodecs.Libjpeg'">

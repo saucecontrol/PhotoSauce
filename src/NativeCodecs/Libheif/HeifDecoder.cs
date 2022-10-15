@@ -14,18 +14,20 @@ namespace PhotoSauce.NativeCodecs.Libheif;
 
 internal sealed unsafe class HeifContainer : IImageContainer
 {
+	private readonly string ftype;
 	private readonly Stream stream;
 	private void* handle;
 	private HeifReader* reader;
 
-	private HeifContainer(Stream stm, HeifReader* rdr, void* frm)
+	private HeifContainer(string mime, Stream stm, HeifReader* rdr, void* frm)
 	{
+		ftype = mime;
 		stream = stm;
 		reader = rdr;
 		handle = frm;
 	}
 
-	public string MimeType => ImageMimeTypes.Heic;
+	public string MimeType => ftype;
 
 	int IImageContainer.FrameCount => 1;
 
@@ -40,6 +42,13 @@ internal sealed unsafe class HeifContainer : IImageContainer
 	public static HeifContainer? TryLoad(Stream imgStream, IDecoderOptions? _)
 	{
 		long stmpos = imgStream.Position;
+
+		byte* buff = stackalloc byte[12];
+		imgStream.FillBuffer(new Span<byte>(buff, 12));
+		imgStream.Position = stmpos;
+
+		string mime = new(heif_get_file_mime_type(buff, 12));
+
 		var rdr = HeifReader.Wrap(imgStream);
 		var ctx = HeifFactory.CreateContext();
 
@@ -49,7 +58,7 @@ internal sealed unsafe class HeifContainer : IImageContainer
 			if (HeifResult.Succeeded(heif_context_get_primary_image_handle(ctx, &hfrm)))
 			{
 				heif_context_free(ctx);
-				return new HeifContainer(imgStream, rdr, hfrm);
+				return new HeifContainer(mime, imgStream, rdr, hfrm);
 			}
 		}
 
