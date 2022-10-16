@@ -1,0 +1,12 @@
+diff --git a/libheif/heif_decoder_dav1d.cc b/libheif/heif_decoder_dav1d.cc
+index 511aa61..03eced9 100644
+--- a/libheif/heif_decoder_dav1d.cc
++++ b/libheif/heif_decoder_dav1d.cc
+@@ -94,6 +94,7 @@ struct heif_error dav1d_new_decoder(void** dec)
+ 
+   decoder->settings.frame_size_limit = MAX_IMAGE_WIDTH * MAX_IMAGE_HEIGHT;
+   decoder->settings.all_layers = 0;
++  decoder->settings.n_threads = 1;
+ 
+   if (dav1d_open(&decoder->context, &decoder->settings) != 0) {
+     struct heif_error err = {heif_error_Decoder_plugin_error, heif_suberror_Unspecified, kSuccess};

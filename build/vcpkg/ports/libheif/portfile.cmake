@@ -6,6 +6,7 @@ vcpkg_from_github(
     HEAD_REF master
     PATCHES
         no-gdk-pixbuf.patch
+        dav1d-settings.patch
 )
 
 vcpkg_cmake_configure(
