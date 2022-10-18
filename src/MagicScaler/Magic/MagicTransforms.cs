@@ -166,14 +166,8 @@ internal static class MagicTransforms
 			if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 				throw new PlatformNotSupportedException("CMYK conversion is not yet supported on this platform.");
 
-			if (ctx.SourceColorProfile is null || ctx.DestColorProfile is null || ctx.SourceColorProfile == ctx.DestColorProfile)
-				return;
-
-			if (ctx.WicContext.SourceColorContext is null)
+			if (ctx.WicContext.SourceColorContext is null && ctx.SourceColorProfile is not null)
 				ctx.WicContext.SourceColorContext = WicColorProfile.CreateContextFromProfile(ctx.SourceColorProfile.ProfileBytes);
-
-			if (ctx.WicContext.DestColorContext is null)
-				ctx.WicContext.DestColorContext = WicColorProfile.CreateContextFromProfile(ctx.DestColorProfile.ProfileBytes);
 
 			WicTransforms.AddPixelFormatConverter(ctx);
 			curFormat = ctx.Source.Format;

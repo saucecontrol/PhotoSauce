@@ -560,8 +560,15 @@ internal class ColorProfile
 	public static MatrixProfile sRGB => srgb.Value;
 	public static MatrixProfile AdobeRgb => adobeRgb.Value;
 	public static MatrixProfile DisplayP3 => displayP3.Value;
+	public static ColorProfile Cmyk => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+		? WicColorProfile.Cmyk.Value.ParsedProfile
+		: throw new PlatformNotSupportedException("CMYK conversion is not yet supported on this platform.");
 
-	public static ColorProfile GetDefaultFor(PixelFormat fmt) => fmt.ColorRepresentation == PixelColorRepresentation.Grey ? sGrey : sRGB;
+	public static ColorProfile GetDefaultFor(PixelFormat fmt) => fmt.ColorRepresentation switch {
+		PixelColorRepresentation.Cmyk => Cmyk,
+		PixelColorRepresentation.Grey => sGrey,
+		_                             => sRGB
+	};
 
 	public static ColorProfile GetSourceProfile(ColorProfile prof, ColorProfileMode mode)
 	{
