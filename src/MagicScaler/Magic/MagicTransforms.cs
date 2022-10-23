@@ -2,6 +2,7 @@
 
 using System;
 using System.Drawing;
+using System.Numerics;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -485,7 +486,7 @@ internal static class MagicTransforms
 		{
 			var matrix = srcProf.Matrix * dstProf.InverseMatrix;
 			if (matrix != default && !matrix.IsIdentity)
-				ctx.Source = ctx.AddProfiler(new ColorMatrixTransformInternal(ctx.Source, matrix));
+				ctx.Source = ctx.AddProfiler(new ColorMatrixTransformInternal(ctx.Source, (Matrix4x4)matrix));
 		}
 	}
 

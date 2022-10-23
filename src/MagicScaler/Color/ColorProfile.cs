@@ -1,7 +1,6 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
-using System.Numerics;
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
@@ -91,45 +90,42 @@ internal class ColorProfile
 	private static readonly ColorProfile invalidProfile = new();
 
 	private static readonly Lazy<MatrixProfile> srgb = new(() => {
-		var m = new Matrix4x4(
-			0.43602939f, 0.22243797f, 0.01389754f, 0,
-			0.38510027f, 0.71694100f, 0.09707674f, 0,
-			0.14307328f, 0.06062103f, 0.71393112f, 0,
-			0,           0,           0,           1
+		var m = new Matrix3x3C(
+			0.43602939, 0.22243797, 0.01389754,
+			0.38510027, 0.71694100, 0.09707674,
+			0.14307328, 0.06062103, 0.71393112
 		);
-		var im = m.InvertPrecise();
+		Matrix3x3C.Invert(m, out var im);
 		var curve = new ProfileCurve(LookupTables.SrgbGamma, LookupTables.SrgbInverseGamma);
 
-		return new MatrixProfile(IccProfiles.sRgbV4.Value, m, im, curve, ProfileColorSpace.Rgb, ProfileColorSpace.Xyz);
+		return new MatrixProfile(IccProfiles.sRgbV4.Value, IccProfiles.sRgbCompact.Value, m, im, curve, ProfileColorSpace.Rgb, ProfileColorSpace.Xyz);
 	});
 
 	private static readonly Lazy<CurveProfile> sgrey = new(() =>
-		new CurveProfile(IccProfiles.sGreyV4.Value, sRGB.Curve, ProfileColorSpace.Grey, ProfileColorSpace.Xyz)
+		new CurveProfile(IccProfiles.sGreyV4.Value, IccProfiles.sGreyCompact.Value, sRGB.Curve, ProfileColorSpace.Grey, ProfileColorSpace.Xyz)
 	);
 
 	private static readonly Lazy<MatrixProfile> adobeRgb = new(() => {
-		var m = new Matrix4x4(
-			0.60974189f, 0.31111293f, 0.01946551f, 0,
-			0.20527343f, 0.62567449f, 0.06087462f, 0,
-			0.14918756f, 0.06321258f, 0.74456527f, 0,
-			0,           0,           0,           1
+		var m = new Matrix3x3C(
+			0.60974189, 0.31111293, 0.01946551,
+			0.20527343, 0.62567449, 0.06087462,
+			0.14918756, 0.06321258, 0.74456527
 		);
-		var im = m.InvertPrecise();
+		Matrix3x3C.Invert(m, out var im);
 		var curve = curveFromPower(2.2);
 
-		return new MatrixProfile(IccProfiles.AdobeRgbV4.Value, m, im, curve, ProfileColorSpace.Rgb, ProfileColorSpace.Xyz);
+		return new MatrixProfile(IccProfiles.AdobeRgbV4.Value, IccProfiles.AdobeRgbCompact.Value, m, im, curve, ProfileColorSpace.Rgb, ProfileColorSpace.Xyz);
 	});
 
 	private static readonly Lazy<MatrixProfile> displayP3 = new(() => {
-		var m = new Matrix4x4(
-			0.51511960f, 0.24118953f, -0.00105045f, 0,
-			0.29197886f, 0.69224341f,  0.04187909f, 0,
-			0.15710442f, 0.06656706f,  0.78407676f, 0,
-			0,           0,            0,           1
+		var m = new Matrix3x3C(
+			0.51511960, 0.24118953, -0.00105045,
+			0.29197886, 0.69224341,  0.04187909,
+			0.15710442, 0.06656706,  0.78407676
 		);
-		var im = m.InvertPrecise();
+		Matrix3x3C.Invert(m, out var im);
 
-		return new MatrixProfile(IccProfiles.DisplayP3V4.Value, m, im, sRGB.Curve, ProfileColorSpace.Rgb, ProfileColorSpace.Xyz);
+		return new MatrixProfile(IccProfiles.DisplayP3V4.Value, IccProfiles.DisplayP3Compact.Value, m, im, sRGB.Curve, ProfileColorSpace.Rgb, ProfileColorSpace.Xyz);
 	});
 
 	private static ProfileCurve curveFromPower(double gamma)
@@ -286,7 +282,7 @@ internal class ColorProfile
 		return false;
 	}
 
-	private static bool tryGetMatrix(ReadOnlySpan<byte> bXYZ, ReadOnlySpan<byte> gXYZ, ReadOnlySpan<byte> rXYZ, out Matrix4x4 matrix)
+	private static bool tryGetMatrix(ReadOnlySpan<byte> bXYZ, ReadOnlySpan<byte> gXYZ, ReadOnlySpan<byte> rXYZ, out Matrix3x3C matrix)
 	{
 		matrix = default;
 
@@ -307,12 +303,11 @@ internal class ColorProfile
 		int gz = ReadInt32BigEndian(gXYZ[16..]);
 		int rz = ReadInt32BigEndian(rXYZ[16..]);
 
-		float div = 1 / 65536f;
-		matrix = new Matrix4x4(
-			rx * div, ry * div, rz * div, 0,
-			gx * div, gy * div, gz * div, 0,
-			bx * div, by * div, bz * div, 0,
-			0,        0,        0,        1
+		double div = 65536;
+		matrix = new(
+			rx / div, ry / div, rz / div,
+			gx / div, gy / div, gz / div,
+			bx / div, by / div, bz / div
 		);
 
 		return true;
@@ -324,7 +319,7 @@ internal class ColorProfile
 		curve = default;
 
 		uint tag = ReadUInt32BigEndian(trc);
-		if (trc.Length < 12 || (tag != IccTypes.curv && tag != IccTypes.para))
+		if (trc.Length < 12 || tag is not (IccTypes.curv or IccTypes.para))
 			return false;
 
 		if (tag is IccTypes.curv)
@@ -514,7 +509,7 @@ internal class ColorProfile
 			uint cb = ReadUInt32BigEndian(entry[8..]);
 
 			uint end = pos + cb;
-			if (len < end)
+			if (cb < 8 || len < end)
 				return invalidProfile;
 
 			// not handling these yet, so we'll hand off to WCS
@@ -527,7 +522,7 @@ internal class ColorProfile
 		if (dataColorSpace == ProfileColorSpace.Grey
 			&& tryGetTagEntry(tagEntries, IccTags.kTRC, out var kTRC)
 			&& tryGetCurve(prof[kTRC.Range], out var curve)
-		) return new CurveProfile(prof.ToArray(), curve, dataColorSpace, pcsColorSpace);
+		) return new CurveProfile(prof.ToArray(), null, curve, dataColorSpace, pcsColorSpace);
 
 		if (dataColorSpace == ProfileColorSpace.Rgb
 			&& tryGetTagEntry(tagEntries, IccTags.bTRC, out var bTRC)
@@ -547,9 +542,8 @@ internal class ColorProfile
 				&& tryGetMatrix(prof[bXYZ.Range], prof[gXYZ.Range], prof[rXYZ.Range], out var matrix)
 			)
 			{
-				var imatrix = matrix.InvertPrecise();
-				if (!imatrix.IsNaN())
-					return new MatrixProfile(prof.ToArray(), matrix, imatrix, rgbcurve, dataColorSpace, pcsColorSpace);
+				if (Matrix3x3C.Invert(matrix, out var imatrix))
+					return new MatrixProfile(prof.ToArray(), null, matrix, imatrix, rgbcurve, dataColorSpace, pcsColorSpace);
 			}
 		}
 
@@ -560,12 +554,12 @@ internal class ColorProfile
 	public static MatrixProfile sRGB => srgb.Value;
 	public static MatrixProfile AdobeRgb => adobeRgb.Value;
 	public static MatrixProfile DisplayP3 => displayP3.Value;
-	public static ColorProfile Cmyk => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+	public static ColorProfile CmykDefault => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
 		? WicColorProfile.Cmyk.Value.ParsedProfile
 		: throw new PlatformNotSupportedException("CMYK conversion is not yet supported on this platform.");
 
 	public static ColorProfile GetDefaultFor(PixelFormat fmt) => fmt.ColorRepresentation switch {
-		PixelColorRepresentation.Cmyk => Cmyk,
+		PixelColorRepresentation.Cmyk => CmykDefault,
 		PixelColorRepresentation.Grey => sGrey,
 		_                             => sRGB
 	};
@@ -580,13 +574,13 @@ internal class ColorProfile
 
 		if (prof is MatrixProfile mp)
 		{
-			if (mp.Matrix.IsRouglyEqualTo(sRGB.Matrix) && mp.Curve == sRGB.Curve)
+			if (mp.Curve == sRGB.Curve && mp.Matrix.IsRouglyEqualTo(sRGB.Matrix))
 				return sRGB;
 
-			if (mp.Matrix.IsRouglyEqualTo(DisplayP3.Matrix) && mp.Curve == DisplayP3.Curve)
+			if (mp.Curve == DisplayP3.Curve && mp.Matrix.IsRouglyEqualTo(DisplayP3.Matrix))
 				return DisplayP3;
 
-			if (mp.Matrix.IsRouglyEqualTo(AdobeRgb.Matrix) && mp.Curve == AdobeRgb.Curve)
+			if (mp.Curve == AdobeRgb.Curve && mp.Matrix.IsRouglyEqualTo(AdobeRgb.Matrix))
 				return AdobeRgb;
 		}
 
@@ -613,9 +607,9 @@ internal class ColorProfile
 		return prof.ProfileType == ColorProfileType.Curve ? sGrey : sRGB;
 
 		// check for red or green x,y coordinates outside sRGB gamut
-		static bool isWideGamut(Matrix4x4 m) =>
-			m.M11 / (m.M11 + m.M12 + m.M13) > 0.67f ||
-			m.M22 / (m.M21 + m.M22 + m.M23) > 0.62f;
+		static bool isWideGamut(Matrix3x3C m) =>
+			m.M11 / (m.M11 + m.M12 + m.M13) > 0.67 ||
+			m.M22 / (m.M21 + m.M22 + m.M23) > 0.62;
 	}
 
 	public bool IsValid { get; }
@@ -659,11 +653,13 @@ internal class CurveProfile : ColorProfile
 
 	public bool IsLinear { get; }
 	public ProfileCurve Curve { get; }
+	public byte[]? CompactProfile { get; }
 
-	public CurveProfile(byte[] bytes, ProfileCurve? curve, ProfileColorSpace dataSpace, ProfileColorSpace pcsSpace) : base(bytes, dataSpace, pcsSpace, ColorProfileType.Curve)
+	public CurveProfile(byte[] bytes, byte[]? compact, ProfileCurve? curve, ProfileColorSpace dataSpace, ProfileColorSpace pcsSpace) : base(bytes, dataSpace, pcsSpace, ColorProfileType.Curve)
 	{
 		IsLinear = curve is null;
 		Curve = curve ?? new ProfileCurve(null!, LookupTables.Alpha);
+		CompactProfile = compact;
 	}
 
 	private IConverter addConverter(in (Type, Type, Type, Type, CurveProfile) cacheKey) => converterCache.GetOrAdd(cacheKey, static key => {
@@ -726,10 +722,10 @@ internal class CurveProfile : ColorProfile
 
 internal class MatrixProfile : CurveProfile
 {
-	public Matrix4x4 Matrix { get; }
-	public Matrix4x4 InverseMatrix { get; }
+	public Matrix3x3C Matrix { get; }
+	public Matrix3x3C InverseMatrix { get; }
 
-	public MatrixProfile(byte[] bytes, Matrix4x4 matrix, Matrix4x4 imatrix, ProfileCurve? curve, ProfileColorSpace dataSpace, ProfileColorSpace pcsSpace) : base(bytes, curve, dataSpace, pcsSpace)
+	public MatrixProfile(byte[] bytes, byte[]? compact, Matrix3x3C matrix, Matrix3x3C imatrix, ProfileCurve? curve, ProfileColorSpace dataSpace, ProfileColorSpace pcsSpace) : base(bytes, compact, curve, dataSpace, pcsSpace)
 	{
 		ProfileType = ColorProfileType.Matrix;
 		Matrix = matrix;

@@ -222,10 +222,10 @@ internal sealed unsafe class WebpEncoder : IAnimatedImageEncoder
 		if (written || !metadata.TryGetMetadata<ColorProfileMetadata>(out var prof))
 			return;
 
-		var profile = prof.Profile.ProfileBytes;
-		fixed (byte* bp = &profile.GetDataRef())
+		var embed = prof.Embed;
+		fixed (byte* bp = &embed.GetDataRef())
 		{
-			var data = new WebPData { size = (uint)profile.Length, bytes = bp };
+			var data = new WebPData { size = (uint)embed.Length, bytes = bp };
 			setChunk(WebpConstants.IccpTag, data);
 		}
 	}

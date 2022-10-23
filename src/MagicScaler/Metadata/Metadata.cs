@@ -44,7 +44,10 @@ internal interface IExifSource : IMetadata
 	void CopyExif(Span<byte> dest);
 }
 
-internal readonly record struct ColorProfileMetadata(ColorProfile Profile) : IMetadata { }
+internal readonly record struct ColorProfileMetadata(ColorProfile Profile) : IMetadata
+{
+	public byte[] Embed => (Profile as CurveProfile)?.CompactProfile ?? Profile.ProfileBytes;
+}
 
 internal readonly record struct OrientationMetadata(Orientation Orientation) : IMetadata
 {

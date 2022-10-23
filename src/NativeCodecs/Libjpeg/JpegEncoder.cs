@@ -150,9 +150,9 @@ internal sealed unsafe class JpegEncoder : IImageEncoder
 		if (!metadata.TryGetMetadata<ColorProfileMetadata>(out var prof))
 			return;
 
-		var profile = prof.Profile.ProfileBytes;
-		fixed (byte* bp = &profile.GetDataRef())
-			checkResult(JpegWriteIccProfile(handle, bp, (uint)profile.Length));
+		var embed = prof.Embed;
+		fixed (byte* bp = &embed.GetDataRef())
+			checkResult(JpegWriteIccProfile(handle, bp, (uint)embed.Length));
 	}
 
 	private void writePlanar(PlanarPixelSource src, PixelArea area)

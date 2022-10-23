@@ -47,34 +47,14 @@ public static class ColorMatrix
 public static class YccMatrix
 {
 	/// <summary>Coefficients for converting R'G'B' to <a href="https://en.wikipedia.org/wiki/Rec._601">Rec. 601</a> Y'CbCr. Kr = 0.299, Kb = 0.114.</summary>
-	public static readonly Matrix4x4 Rec601 = createYccMatrix(Rec601Luma.R, Rec601Luma.B);
+	public static readonly Matrix4x4 Rec601 = (Matrix4x4)ConversionMatrix.GetRgbToYcc(Rec601Luma.R, Rec601Luma.B);
 
 	/// <summary>Coefficients for converting R'G'B' to <a href="https://en.wikipedia.org/wiki/Rec._709">Rec. 709</a> Y'CbCr. Kr = 0.2126, Kb = 0.0722.</summary>
-	public static readonly Matrix4x4 Rec709 = createYccMatrix(Rec709Luma.R, Rec709Luma.B);
+	public static readonly Matrix4x4 Rec709 = (Matrix4x4)ConversionMatrix.GetRgbToYcc(Rec709Luma.R, Rec709Luma.B);
 
 	/// <summary>Coefficients for converting R'G'B' to <a href="https://en.wikipedia.org/wiki/Rec._2020">Rec. 2020</a> Y'CbCr. Kr = 0.2627, Kb = 0.0593.</summary>
-	public static readonly Matrix4x4 Rec2020 = createYccMatrix(0.2627, 0.0593);
+	public static readonly Matrix4x4 Rec2020 = (Matrix4x4)ConversionMatrix.GetRgbToYcc(0.2627, 0.0593);
 
 	/// <summary>Coefficients for converting R'G'B' to <a href="https://en.wikipedia.org/wiki/Luma_(video)">SMPTE 240M</a> (NTSC) Y'CbCr. Kr = 0.2122, Kb = 0.0865.</summary>
-	public static readonly Matrix4x4 Smpte240M = createYccMatrix(0.2122, 0.0865);
-
-	private static Matrix4x4 createYccMatrix(double kr, double kb)
-	{
-		double kg = 1 - kr - kb;
-		double kbs = (1 - kb) * 2;
-		double krs = (1 - kr) * 2;
-
-		return new Matrix4x4 {
-			M11 = (float)kr,
-			M21 = (float)kg,
-			M31 = (float)kb,
-			M12 = (float)(-kr / kbs),
-			M22 = (float)(-kg / kbs),
-			M32 = 0.5f,
-			M13 = 0.5f,
-			M23 = (float)(-kg / krs),
-			M33 = (float)(-kb / krs),
-			M44 = 1
-		};
-	}
+	public static readonly Matrix4x4 Smpte240M = (Matrix4x4)ConversionMatrix.GetRgbToYcc(0.2122, 0.0865);
 }

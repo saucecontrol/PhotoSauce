@@ -246,11 +246,12 @@ internal sealed unsafe class WicImageEncoder : IAnimatedImageEncoder, IDisposabl
 		if (meta.TryGetMetadata<ColorProfileMetadata>(out var prof))
 		{
 			var cp = prof.Profile;
+			var cc = default(IWICColorContext*);
 
 			// We give preference to V2 compact profiles when possible, for the file size and compatibility advantages.
-			// However, WIC writes gAMA and cHRM tags along with iCCP when a V2 ICC profile is written to a PNG frame.
-			// Chromium ignores the iCCP tag if the others are present, so we keep the V4 reference profiles for PNG.
-			var cc = default(IWICColorContext*);
+			// However, WIC's PNG encoder writes gAMA and cHRM chunks along with iCCP when a V2 ICC profile is written, as is
+			// recommended by the PNG spec. When reading, libpng gets clever and may ignore the iCCP tag if it sees cHRM values it
+			// thinks are invalid, so for PNG we keep the V4 reference profile, which forces iCCP to be written without the others.
 			if (cp == ColorProfile.sRGB)
 				cc = (fmt == GUID_ContainerFormatPng ? WicColorProfile.Srgb : WicColorProfile.SrgbCompact).Value.WicColorContext;
 			else if (cp == ColorProfile.sGrey)

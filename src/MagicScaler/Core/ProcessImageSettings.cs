@@ -16,7 +16,7 @@ namespace PhotoSauce.MagicScaler;
 
 /// <summary>Defines settings for an <a href="https://en.wikipedia.org/wiki/Unsharp_masking">Unsharp Masking</a> operation.</summary>
 /// <remarks>These settings are designed to function similarly to the Unsharp Mask settings in Photoshop.</remarks>
-public readonly struct UnsharpMaskSettings
+public readonly record struct UnsharpMaskSettings
 {
 	/// <summary>No sharpening.</summary>
 	public static readonly UnsharpMaskSettings None;
@@ -45,7 +45,7 @@ public readonly struct UnsharpMaskSettings
 }
 
 /// <summary>Defines settings for resampling interpolation.</summary>
-public readonly struct InterpolationSettings
+public readonly record struct InterpolationSettings
 {
 	/// <summary>A predefined <see cref="PointInterpolator" />.</summary>
 	public static readonly InterpolationSettings NearestNeighbor = new(new PointInterpolator());
@@ -122,16 +122,18 @@ public sealed class ProcessImageSettings
 	internal bool IsNormalized => imageInfo is not null;
 
 	internal bool IsEmpty =>
-		OuterSize       == empty.OuterSize  &&
-		DpiX            == empty.DpiX       &&
-		DpiY            == empty.DpiY       &&
-		Crop            == empty.Crop       &&
-		CropBasis       == empty.CropBasis  &&
-		MatteColor      == empty.MatteColor &&
-		EncoderInfo     is null             &&
-		EncoderOptions  is null             &&
-		DecoderOptions  is null             &&
-		unsharpMask.Equals(empty.unsharpMask)
+		DpiX           == empty.DpiX          &&
+		DpiY           == empty.DpiY          &&
+		Sharpen        == empty.Sharpen       &&
+		Crop           == empty.Crop          &&
+		CropBasis      == empty.CropBasis     &&
+		OuterSize      == empty.OuterSize     &&
+		MatteColor     == empty.MatteColor    &&
+		unsharpMask    == empty.unsharpMask   &&
+		interpolation  == empty.interpolation &&
+		EncoderInfo    is null                &&
+		EncoderOptions is null                &&
+		DecoderOptions is null
 	;
 
 	internal Rectangle InnerRect => new(
@@ -511,8 +513,8 @@ public sealed class ProcessImageSettings
 			if (ResizeMode == CropScaleMode.Crop)
 			{
 				double rat = Math.Min(wrat, hrat);
-				hwin = height > 0 ? MathUtil.Clamp((int)Math.Ceiling(rat * height), 1, imgHeight) : hwin;
-				wwin = width > 0 ? MathUtil.Clamp((int)Math.Ceiling(rat * width), 1, imgWidth) : wwin;
+				hwin = height > 0 ? ((int)Math.Ceiling(rat * height)).Clamp(1, imgHeight) : hwin;
+				wwin = width > 0 ? ((int)Math.Ceiling(rat * width)).Clamp(1, imgWidth) : wwin;
 
 				int left = Anchor.HasFlag(CropAnchor.Left) ? 0 : Anchor.HasFlag(CropAnchor.Right) ? (imgWidth - wwin) : ((imgWidth - wwin) / 2);
 				int top = Anchor.HasFlag(CropAnchor.Top) ? 0 : Anchor.HasFlag(CropAnchor.Bottom) ? (imgHeight - hwin) : ((imgHeight - hwin) / 2);
@@ -544,8 +546,8 @@ public sealed class ProcessImageSettings
 			if (ResizeMode == CropScaleMode.Max)
 				rat = Math.Max(rat, 1d);
 
-			width = MathUtil.Clamp((int)Math.Round(Crop.Width / rat), 1, dim);
-			height = MathUtil.Clamp((int)Math.Round(Crop.Height / rat), 1, dim);
+			width = ((int)Math.Round(Crop.Width / rat)).Clamp(1, dim);
+			height = ((int)Math.Round(Crop.Height / rat)).Clamp(1, dim);
 		}
 
 		InnerSize.Width = width > 0 ? width : Math.Max((int)Math.Round(Crop.Width / wrat), 1);

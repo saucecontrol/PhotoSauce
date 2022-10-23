@@ -31,16 +31,15 @@ internal sealed class PlanarConversionTransform : ChainedPixelSource
 		if (srcCb.Format.BitsPerPixel != srcY.Format.BitsPerPixel) throw new ArgumentException("Chroma plane incorrect format", nameof(srcCb));
 		if (srcCr.Format.BitsPerPixel != srcY.Format.BitsPerPixel) throw new ArgumentException("Chroma plane incorrect format", nameof(srcCr));
 
-		var matrix = yccMatrix.InvertPrecise();
-		if (matrix.IsNaN()) throw new ArgumentException("Invalid YCC matrix", nameof(yccMatrix));
+		if (!Matrix3x3C.Invert((Matrix3x3C)yccMatrix, out var matrix)) throw new ArgumentException("Invalid YCC matrix", nameof(yccMatrix));
 
 		if (srcCb.Format.Range == PixelValueRange.Video)
-			matrix *= (float)byte.MaxValue / VideoChromaScale;
+			matrix *= (double)byte.MaxValue / VideoChromaScale;
 
-		coeffCb0 = matrix.M23;
-		coeffCb1 = matrix.M22;
-		coeffCr0 = matrix.M32;
-		coeffCr1 = matrix.M31;
+		coeffCb0 = (float)matrix.M23;
+		coeffCb1 = (float)matrix.M22;
+		coeffCr0 = (float)matrix.M32;
+		coeffCr1 = (float)matrix.M31;
 
 		sourceCb = srcCb;
 		sourceCr = srcCr;

@@ -80,9 +80,9 @@ internal sealed unsafe class JxlEncoder : IImageEncoder
 
 		if (metadata.TryGetMetadata<ColorProfileMetadata>(out var prof))
 		{
-			var profile = prof.Profile;
-			fixed (byte* pp = &profile.ProfileBytes.GetDataRef())
-				JxlError.Check(JxlEncoderSetICCProfile(encoder, pp, (uint)profile.ProfileBytes.Length));
+			var embed = prof.Embed;
+			fixed (byte* pp = &embed.GetDataRef())
+				JxlError.Check(JxlEncoderSetICCProfile(encoder, pp, (uint)embed.Length));
 		}
 		else
 		{

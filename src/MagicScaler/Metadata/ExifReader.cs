@@ -69,8 +69,8 @@ internal unsafe ref struct ExifReader
 		if (sizeof(T) == sizeof(byte) || !swap)
 			return;
 
-		for (int i = 0; i < dest.Length; i++)
-			dest[i] = BufferUtil.ReverseEndianness(dest[i]);
+		foreach (ref T val in dest)
+			val = BufferUtil.ReverseEndianness(val);
 	}
 
 	public readonly T CoerceValue<T>(in ExifItem item) where T : unmanaged

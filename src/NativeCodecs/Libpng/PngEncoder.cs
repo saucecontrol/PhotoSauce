@@ -116,8 +116,8 @@ internal sealed unsafe class PngEncoder : IImageEncoder
 			return;
 		}
 
-		var profile = prof.Profile.ProfileBytes;
-		fixed (byte* bp = &profile.GetDataRef())
+		var embed = prof.Embed;
+		fixed (byte* bp = &embed.GetDataRef())
 			checkResult(PngWriteIccp(handle, bp));
 	}
 
