@@ -1,10 +1,10 @@
 # Used for .pc file
-set(VERSION "1.0.8")
+set(VERSION "1.0.9")
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO strukturag/libde265
-    REF 8aed7472df0af25b811828fa14f2f169dc34d35a # v1.0.8
-    SHA512 e2da1436e5b0d8a3841087e879fbbff5a92de4ebb69d097959972ec8c9407305bc2a17020cb46139fbacc84f91ff8cfb4d9547308074ba213e002ee36bb2e006
+    REF 2b5dedd1a238267a59de0baaa91035f01194ce23 #v1.0.9+
+    SHA512 223724746cf3d5fcfd7e80b15c6a202d2d0f7c136411687c85f491c8434b0edcd7f2b2ff773466e079aa6428315bbeddd5e2a85476be35a0b15dbee914e2028d
     HEAD_REF master
     PATCHES
         fix-libde265-headers.patch
@@ -18,12 +18,13 @@ vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     OPTIONS
         -DCMAKE_DISABLE_FIND_PACKAGE_SDL=ON
+        -DENABLE_ENCODER=OFF
         -DDISABLE_SSE=${DISABLE_SSE}
 )
 
 vcpkg_cmake_install()
 vcpkg_cmake_config_fixup(CONFIG_PATH lib/cmake/libde265)
-vcpkg_copy_tools(TOOL_NAMES dec265 enc265 AUTO_CLEAN)
+vcpkg_copy_tools(TOOL_NAMES dec265 AUTO_CLEAN)
 
 set(prefix "")
 set(exec_prefix [[${prefix}]])
