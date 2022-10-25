@@ -83,7 +83,7 @@ public static class CodecCollectionExtensions
 			PngEncoderOptions.Default,
 			PngEncoder.Create,
 			false,
-			false,
+			true,
 			true
 		));
 	}

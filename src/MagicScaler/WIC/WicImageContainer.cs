@@ -38,7 +38,7 @@ internal unsafe class WicImageContainer : IImageContainer
 
 		uint fcount;
 		HRESULT.Check(dec->GetFrameCount(&fcount));
-		if (options is IMultiFrameDecoderOptions opt)
+		if (options is IMultiFrameDecoderOptions opt && mime != ImageMimeTypes.Png)
 			(FrameOffset, FrameCount) = opt.FrameRange.GetOffsetAndLength((int)fcount);
 		else
 			(FrameOffset, FrameCount) = (0, (int)fcount);

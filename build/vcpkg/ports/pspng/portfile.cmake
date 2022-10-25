@@ -44,6 +44,7 @@ vcpkg_from_github(
         macos-arch-fix.patch
         fix-msa-support-for-mips.patch
         pspng-customize-build.patch
+        pspng-customize-code.patch
 )
 
 file(COPY ${CURRENT_PORT_DIR}/pngusr.h ${CURRENT_PORT_DIR}/pspng.h

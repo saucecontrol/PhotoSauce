@@ -84,7 +84,7 @@ public static class GdiImageProcessor
 	{
 		using var img = Image.FromStream(istm, s.ColorProfileMode != ColorProfileMode.Ignore, false);
 
-		if (s.DecoderOptions is IMultiFrameDecoderOptions opt)
+		if (s.DecoderOptions is IMultiFrameDecoderOptions opt && img.RawFormat.Guid != ImageFormat.Png.Guid)
 		{
 			var fd = img.RawFormat.Guid == ImageFormat.Gif.Guid ? FrameDimension.Time : FrameDimension.Page;
 			int fi = opt.FrameRange.GetOffsetAndLength(img.GetFrameCount(fd)).Offset;

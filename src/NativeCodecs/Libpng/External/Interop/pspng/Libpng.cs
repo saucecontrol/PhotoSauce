@@ -64,6 +64,15 @@ internal static unsafe partial class Libpng
     public static extern int PngWriteExif(ps_png_struct* handle, [NativeTypeName("png_const_bytep")] byte* exif, int num_exif);
 
     [DllImport("pspng", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int PngWriteActl(ps_png_struct* handle, [NativeTypeName("png_uint_32")] uint num_frames, [NativeTypeName("png_uint_32")] uint num_plays);
+
+    [DllImport("pspng", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int PngWriteFrameHead(ps_png_struct* handle, [NativeTypeName("png_uint_32")] uint width, [NativeTypeName("png_uint_32")] uint height, [NativeTypeName("png_uint_32")] uint x_offset, [NativeTypeName("png_uint_32")] uint y_offset, [NativeTypeName("png_uint_16")] ushort delay_num, [NativeTypeName("png_uint_16")] ushort delay_den, [NativeTypeName("png_byte")] byte dispose_op, [NativeTypeName("png_byte")] byte blend_op);
+
+    [DllImport("pspng", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int PngWriteFrameTail(ps_png_struct* handle);
+
+    [DllImport("pspng", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern int PngWriteRow(ps_png_struct* handle, [NativeTypeName("png_const_bytep")] byte* row);
 
     [DllImport("pspng", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -102,10 +111,10 @@ internal static unsafe partial class Libpng
     [DllImport("pspng", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern int PngReadEnd(ps_png_struct* handle, [NativeTypeName("png_infop")] void* end_info);
 
+    [DllImport("pspng", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
 #if NET5_0_OR_GREATER
     [SuppressGCTransition]
 #endif
-    [DllImport("pspng", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern int PngGetValid(ps_png_struct* handle, [NativeTypeName("png_uint_32")] uint flag);
 
     [DllImport("pspng", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -143,19 +152,4 @@ internal static unsafe partial class Libpng
 
     [NativeTypeName("#define FALSE 0")]
     public const int FALSE = 0;
-
-    [NativeTypeName("#define APNG_BLEND_OP_SOURCE 0")]
-    public const int APNG_BLEND_OP_SOURCE = 0;
-
-    [NativeTypeName("#define APNG_BLEND_OP_OVER 1")]
-    public const int APNG_BLEND_OP_OVER = 1;
-
-    [NativeTypeName("#define APNG_DISPOSE_OP_NONE 0")]
-    public const int APNG_DISPOSE_OP_NONE = 0;
-
-    [NativeTypeName("#define APNG_DISPOSE_OP_BACKGROUND 1")]
-    public const int APNG_DISPOSE_OP_BACKGROUND = 1;
-
-    [NativeTypeName("#define APNG_DISPOSE_OP_PREVIOUS 2")]
-    public const int APNG_DISPOSE_OP_PREVIOUS = 2;
 }

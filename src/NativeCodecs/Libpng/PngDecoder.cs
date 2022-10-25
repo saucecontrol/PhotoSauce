@@ -14,27 +14,69 @@ using static System.Buffers.Binary.BinaryPrimitives;
 
 namespace PhotoSauce.NativeCodecs.Libpng;
 
-internal sealed unsafe class PngContainer : IImageContainer, IIccProfileSource, IExifSource
+internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, IIccProfileSource, IExifSource
 {
 	private static readonly bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
 	private readonly Stream stream;
 	private readonly long streamStart;
+	private readonly bool interlace, expand, strip, torgb, skip;
+	private readonly int frameCount, frameOffset;
+	public readonly int Width, Height;
+	public readonly PixelFormat Format;
+
 	private ps_png_struct* handle;
 	private ColorProfile? profile;
 	private PngFrame? frame;
 
-	private PngContainer(ps_png_struct* pinst, Stream stm, long pos, IDecoderOptions? _)
+	private PngContainer(ps_png_struct* pinst, Stream stm, long pos, IDecoderOptions? opt)
 	{
 		stream = stm;
 		streamStart = pos;
 		handle = pinst;
-		frame = null;
+
+		uint w, h;
+		int bpc, color, ilace;
+		CheckResult(PngGetIhdr(handle, &w, &h, &bpc, &color, &ilace));
+
+		(Width, Height) = ((int)w, (int)h);
+
+		bool hasTrns = handle->HasChunk(PNG_INFO_tRNS);
+		bool hasAlpha = (color & PNG_COLOR_MASK_ALPHA) != 0 || hasTrns;
+		bool hasColor = (color & PNG_COLOR_MASK_COLOR) != 0;
+		Format = hasAlpha ? PixelFormat.Rgba32 : hasColor ? PixelFormat.Rgb24 : PixelFormat.Grey8;
+
+		interlace = ilace != PNG_INTERLACE_NONE;
+		expand = bpc < 8 || hasTrns || (color & PNG_COLOR_MASK_PALETTE) != 0;
+		strip = bpc == 16;
+		torgb = hasAlpha && !hasColor;
+
+		frameCount = 1;
+		if (handle->HasChunk(PNG_INFO_acTL))
+		{
+			uint fcount, plays;
+			PngGetActl(handle, &fcount, &plays);
+
+			var range = opt is IMultiFrameDecoderOptions mul ? mul.FrameRange : Range.All;
+			(frameOffset, frameCount) = range.GetOffsetAndLength((int)fcount);
+			if (!handle->HasChunk(PNG_INFO_fcTL))
+			{
+				skip = true;
+				if (frameOffset == 0)
+					frameCount--;
+				if (frameOffset == 0 || !range.Start.IsFromEnd)
+					frameOffset++;
+			}
+		}
+
+		setupDecoder(handle);
 	}
 
 	public string MimeType => ImageMimeTypes.Png;
 
-	public int FrameCount => 1;
+	public int FrameCount => frameCount;
+
+	public bool IsInterlaced => interlace;
 
 	int IIccProfileSource.ProfileLength => getIccp().Length;
 
@@ -42,10 +84,60 @@ internal sealed unsafe class PngContainer : IImageContainer, IIccProfileSource, 
 
 	public IImageFrame GetFrame(int index)
 	{
-		if (index != 0)
-			throw new ArgumentOutOfRangeException(nameof(index));
+		index += frameOffset;
+		if ((uint)index >= (uint)(frameOffset + frameCount))
+			throw new ArgumentOutOfRangeException(nameof(index), "Invalid frame index.");
 
-		return frame ??= new PngFrame(this);
+		int curr = frame?.Index ?? 0;
+		if (index <= curr)
+		{
+			ResetDecoder();
+			curr = 0;
+		}
+
+		for (; curr < index; curr++)
+			CheckResult(PngReadFrameHead(handle));
+
+		return frame = new PngFrame(this, index);
+	}
+
+	public bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata
+	{
+		ensureHandle();
+
+		if (typeof(T) == typeof(AnimationContainer) && handle->HasChunk(PNG_INFO_acTL))
+		{
+			uint fcount, plays;
+			PngGetActl(handle, &fcount, &plays);
+
+			metadata = (T)(object)(new AnimationContainer(Width, Height, (int)fcount - (skip ? 1 : 0), (int)plays, 0, 1f, true));
+			return true;
+		}
+
+		if (typeof(T) == typeof(ResolutionMetadata) && handle->HasChunk(PNG_INFO_pHYs))
+		{
+			uint xres, yres;
+			int unit;
+			PngGetPhys(handle, &xres, &yres, &unit);
+
+			metadata = (T)(object)(new ResolutionMetadata(new Rational(xres, 1), new Rational(yres, 1), unit == PNG_RESOLUTION_METER ? ResolutionUnit.Meter : ResolutionUnit.Virtual));
+			return true;
+		}
+
+		if (typeof(T) == typeof(IIccProfileSource) && (handle->HasChunk(PNG_INFO_iCCP) || handle->HasChunk(PNG_INFO_cHRM) || handle->HasChunk(PNG_INFO_gAMA)))
+		{
+			metadata = (T)(object)this;
+			return true;
+		}
+
+		if (typeof(T) == typeof(IExifSource) && handle->HasChunk(PNG_INFO_eXIf))
+		{
+			metadata = (T)(object)this;
+			return true;
+		}
+
+		metadata = default;
+		return false;
 	}
 
 	public static PngContainer? TryLoad(Stream imgStream, IDecoderOptions? options)
@@ -71,8 +163,7 @@ internal sealed unsafe class PngContainer : IImageContainer, IIccProfileSource, 
 
 	public ps_png_struct* GetHandle()
 	{
-		if (handle is null)
-			ThrowHelper.ThrowObjectDisposed(nameof(PngContainer));
+		ensureHandle();
 
 		return handle;
 	}
@@ -83,11 +174,41 @@ internal sealed unsafe class PngContainer : IImageContainer, IIccProfileSource, 
 			throwPngError(handle);
 	}
 
+	public void ResetDecoder(bool keepFrame = false)
+	{
+		var handle = GetHandle();
+
+		RewindStream();
+		CheckResult(PngResetRead(handle));
+		CheckResult(PngReadInfo(handle));
+		setupDecoder(handle);
+
+		if (keepFrame)
+			for (int i = 0; i < frame!.Index; i++)
+				CheckResult(PngReadFrameHead(handle));
+		else
+			frame = null;
+	}
+
 	public void RewindStream() => stream.Position = streamStart;
 
 	void IIccProfileSource.CopyProfile(Span<byte> dest) => getIccp().CopyTo(dest);
 
 	void IExifSource.CopyExif(Span<byte> dest) => getExif().CopyTo(dest);
+
+	private void setupDecoder(ps_png_struct* handle)
+	{
+		if (interlace)
+			CheckResult(PngSetInterlaceHandling(handle));
+		if (expand)
+			CheckResult(PngSetExpand(handle));
+		if (strip)
+			CheckResult(PngSetStrip16(handle));
+		if (torgb)
+			CheckResult(PngSetGrayToRgb(handle));
+
+		CheckResult(PngReadUpdateInfo(handle));
+	}
 
 	[DoesNotReturn]
 	private static void throwPngError(ps_png_struct* handle) =>
@@ -207,6 +328,12 @@ internal sealed unsafe class PngContainer : IImageContainer, IIccProfileSource, 
 		static Vector3C xyToXYZ(double x, double y) => new(x / y, 1, (1 - x - y) / y);
 	}
 
+	private void ensureHandle()
+	{
+		if (handle is null)
+			ThrowHelper.ThrowObjectDisposed(nameof(PngContainer));
+	}
+
 	private void dispose(bool disposing)
 	{
 		if (handle is null)
@@ -261,93 +388,54 @@ internal sealed unsafe class PngContainer : IImageContainer, IIccProfileSource, 
 
 internal sealed unsafe class PngFrame : IImageFrame, IMetadataSource
 {
-	public readonly PngContainer container;
+	private readonly PngContainer container;
+	private readonly int width, height;
+	public readonly int Index;
 
-	private bool interlace;
-	private int width, height;
-	private PixelFormat format;
 	private FrameBufferSource? frameBuff;
 	private RentedBuffer<byte> lineBuff;
 
 	public IPixelSource PixelSource { get; }
 
-	public PngFrame(PngContainer cont)
+	public PngFrame(PngContainer cont, int idx)
 	{
 		container = cont;
+		(width, height) = (cont.Width, cont.Height);
+
+		var handle = cont.GetHandle();
+		if (handle->HasChunk(PNG_INFO_fcTL))
+		{
+			uint w, h, x, y;
+			ushort dn, dd;
+			byte disp, blend;
+			PngGetNextFrameFctl(handle, &w, &h, &x, &y, &dn, &dd, &disp, &blend);
+
+			(width, height) = ((int)w, (int)h);
+		}
+
+		Index = idx;
 		PixelSource = new PngPixelSource(this);
-
-		setupDecoder(cont.GetHandle());
-	}
-
-	[MemberNotNull(nameof(format))]
-	private void setupDecoder(ps_png_struct* handle)
-	{
-		uint w, h;
-		int bpc, color, ilace;
-		container.CheckResult(PngGetIhdr(handle, &w, &h, &bpc, &color, &ilace));
-
-		(width, height) = ((int)w, (int)h);
-		interlace = ilace != PNG_INTERLACE_NONE;
-
-		bool hasTrns = handle->HasChunk(PNG_INFO_tRNS);
-		bool hasAlpha = (color & PNG_COLOR_MASK_ALPHA) != 0 || hasTrns;
-		bool hasColor = (color & PNG_COLOR_MASK_COLOR) != 0;
-		format = hasAlpha ? PixelFormat.Rgba32 : hasColor ? PixelFormat.Rgb24 : PixelFormat.Grey8;
-
-		if (bpc < 8 || hasTrns || (color & PNG_COLOR_MASK_PALETTE) != 0)
-			container.CheckResult(PngSetExpand(handle));
-
-		if (hasAlpha && !hasColor)
-			container.CheckResult(PngSetGrayToRgb(handle));
-
-		if (bpc == 16)
-			container.CheckResult(PngSetStrip16(handle));
-
-		if (interlace)
-			container.CheckResult(PngSetInterlaceHandling(handle));
-
-		container.CheckResult(PngReadUpdateInfo(handle));
 	}
 
 	public bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata
 	{
 		var handle = container.GetHandle();
 
-		if (typeof(T) == typeof(ResolutionMetadata) && handle->HasChunk(PNG_INFO_pHYs))
+		if (typeof(T) == typeof(AnimationFrame) && handle->HasChunk(PNG_INFO_fcTL))
 		{
-			uint xres, yres;
-			int unit;
-			PngGetPhys(handle, &xres, &yres, &unit);
+			uint w, h, x, y;
+			ushort dn, dd;
+			byte disp, blend;
+			PngGetNextFrameFctl(handle, &w, &h, &x, &y, &dn, &dd, &disp, &blend);
 
-			metadata = (T)(object)(new ResolutionMetadata(new Rational(xres, 1), new Rational(yres, 1), unit == PNG_RESOLUTION_METER ? ResolutionUnit.Meter : ResolutionUnit.Virtual));
+			// TODO handle blend
+			var afrm = new AnimationFrame((int)x, (int)y, new(dn, dd), (FrameDisposalMethod)(disp + 1), container.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
+
+			metadata = (T)(object)afrm;
 			return true;
 		}
 
-		if (typeof(T) == typeof(IIccProfileSource) && (handle->HasChunk(PNG_INFO_iCCP) || handle->HasChunk(PNG_INFO_cHRM) || handle->HasChunk(PNG_INFO_gAMA)))
-		{
-			metadata = (T)(object)container;
-			return true;
-		}
-
-		if (typeof(T) == typeof(IExifSource) && handle->HasChunk(PNG_INFO_eXIf))
-		{
-			metadata = (T)(object)container;
-			return true;
-		}
-
-		metadata = default;
-		return false;
-	}
-
-	public void ResetDecoder()
-	{
-		var handle = container.GetHandle();
-
-		container.RewindStream();
-		container.CheckResult(PngResetRead(handle));
-		container.CheckResult(PngReadInfo(handle));
-
-		setupDecoder(handle);
+		return container.TryGetMetadata(out metadata);
 	}
 
 	public void Dispose()
@@ -358,22 +446,22 @@ internal sealed unsafe class PngFrame : IImageFrame, IMetadataSource
 
 	private class PngPixelSource : PixelSource, IFramePixelSource
 	{
+		public readonly PngContainer container;
+		public readonly PngFrame frame;
+
 		private int lastRow;
 
-		public PngFrame frame;
-
-		public override PixelFormat Format => frame.format;
+		public override PixelFormat Format => container.Format;
 		public override int Width => frame.width;
 		public override int Height => frame.height;
 		public IImageFrame Frame => frame;
 
-		public PngPixelSource(PngFrame frm) => frame = frm;
+		public PngPixelSource(PngFrame frm) => (container, frame) = (frm.container, frm);
 
 		private FrameBufferSource getFrameBuffer()
 		{
 			if (frame.frameBuff is null)
 			{
-				var container = frame.container;
 				var handle = container.GetHandle();
 
 				var fbuf = new FrameBufferSource(Width, Height, Format);
@@ -397,7 +485,7 @@ internal sealed unsafe class PngFrame : IImageFrame, IMetadataSource
 
 		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
-			if (frame.interlace)
+			if (container.IsInterlaced)
 			{
 				getFrameBuffer().CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
 				return;
@@ -405,11 +493,10 @@ internal sealed unsafe class PngFrame : IImageFrame, IMetadataSource
 
 			if (prc.Y < lastRow)
 			{
-				frame.ResetDecoder();
+				container.ResetDecoder(true);
 				lastRow = 0;
 			}
 
-			var container = frame.container;
 			var handle = container.GetHandle();
 			int bpp = Format.BytesPerPixel;
 

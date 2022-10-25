@@ -574,6 +574,8 @@ internal static class MagicTransforms
 		if (nocntmeta && nofrmmeta)
 			return;
 
+		AddNormalizingFormatConverter(ctx);
+
 		if (nocntmeta || anicnt.ScreenWidth is 0 || anicnt.ScreenHeight is 0)
 			anicnt = new(ctx.Source.Width, ctx.Source.Height, ctx.ImageContainer.FrameCount);
 		if (nofrmmeta)

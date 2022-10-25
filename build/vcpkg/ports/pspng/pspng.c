@@ -218,6 +218,21 @@ int PngWriteExif(ps_png_struct* handle, png_const_bytep exif, int num_exif) {
 	return TRY_RESULT;
 }
 
+int PngWriteActl(ps_png_struct* handle, png_uint_32 num_frames, png_uint_32 num_plays) {
+	TRY png_write_acTL(handle->png_ptr, num_frames, num_plays);
+	return TRY_RESULT;
+}
+
+int PngWriteFrameHead(ps_png_struct* handle, png_uint_32 width, png_uint_32 height, png_uint_32 x_offset, png_uint_32 y_offset, png_uint_16 delay_num, png_uint_16 delay_den, png_byte dispose_op, png_byte blend_op) {
+	TRY png_write_frame_head(handle->png_ptr, NULL, NULL, width, height, x_offset, y_offset, delay_num, delay_den, dispose_op, blend_op);
+	return TRY_RESULT;
+}
+
+int PngWriteFrameTail(ps_png_struct* handle) {
+	TRY png_write_frame_tail(handle->png_ptr, NULL);
+	return TRY_RESULT;
+}
+
 int PngWriteRow(ps_png_struct* handle, png_const_bytep row) {
 	TRY png_write_row(handle->png_ptr, row);
 	return TRY_RESULT;
@@ -264,7 +279,11 @@ int PngReadUpdateInfo(ps_png_struct* handle) {
 }
 
 int PngReadFrameHead(ps_png_struct* handle) {
-	TRY png_read_frame_head(handle->png_ptr, handle->info_ptr);
+	TRY {
+		png_read_finish_IDAT(handle->png_ptr);
+		png_read_frame_head(handle->png_ptr, handle->info_ptr);
+		png_read_update_info(handle->png_ptr, handle->info_ptr);
+	}
 	return TRY_RESULT;
 }
 

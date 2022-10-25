@@ -9,13 +9,6 @@
 #define TRUE 1
 #define FALSE 0
 
-#define APNG_BLEND_OP_SOURCE 0
-#define APNG_BLEND_OP_OVER 1
-
-#define APNG_DISPOSE_OP_NONE 0
-#define APNG_DISPOSE_OP_BACKGROUND 1
-#define APNG_DISPOSE_OP_PREVIOUS 2
-
 typedef struct {
 	intptr_t stream_handle;
 	size_t(*write_callback)(intptr_t, png_bytep, size_t);
@@ -63,6 +56,9 @@ DLLEXPORT int PngWritePlte(ps_png_struct* handle, png_const_colorp palette, int 
 DLLEXPORT int PngWriteTrns(ps_png_struct* handle, png_const_bytep trans, int num_trans);
 DLLEXPORT int PngWritePhys(ps_png_struct* handle, png_uint_32 x_pixels_per_meter, png_uint_32 y_pixels_per_meter);
 DLLEXPORT int PngWriteExif(ps_png_struct* handle, png_const_bytep exif, int num_exif);
+DLLEXPORT int PngWriteActl(ps_png_struct* handle, png_uint_32 num_frames, png_uint_32 num_plays);
+DLLEXPORT int PngWriteFrameHead(ps_png_struct* handle, png_uint_32 width, png_uint_32 height, png_uint_32 x_offset, png_uint_32 y_offset, png_uint_16 delay_num, png_uint_16 delay_den, png_byte dispose_op, png_byte blend_op);
+DLLEXPORT int PngWriteFrameTail(ps_png_struct* handle);
 DLLEXPORT int PngWriteRow(ps_png_struct* handle, png_const_bytep row);
 DLLEXPORT int PngWriteImage(ps_png_struct* handle, png_bytepp image);
 DLLEXPORT int PngWriteIend(ps_png_struct* handle);

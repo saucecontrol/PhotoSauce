@@ -24,7 +24,7 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 		{
 			var src = ctx.Source;
 
-			Source = new FrameBufferSource(src.Width, src.Height, src.Format);
+			Source = new FrameBufferSource(src.Width, src.Height, src.Format, true);
 			context = ctx;
 		}
 
@@ -39,13 +39,13 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 			return context.Metadata.TryGetMetadata(out metadata);
 		}
 
-		public void Dispose() => Source.Dispose();
+		public void Dispose() => Source.DisposeBuffer();
 	}
 
 	private readonly PipelineContext context;
 	private readonly IAnimatedImageEncoder encoder;
 	private readonly PixelSource lastSource;
-	private readonly IndexedColorTransform? indexedSource;
+	private readonly ChainedPixelSource? convertSource;
 	private readonly AnimationBufferFrame[] frames = new AnimationBufferFrame[3];
 	private readonly int lastFrame;
 
@@ -71,8 +71,14 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 		for (int i = 0; i < Math.Min(frames.Length, lastFrame + 1); i++)
 			frames[i] = new AnimationBufferFrame(context);
 
-		if (ctx.Settings.EncoderInfo is IImageEncoderInfo encinfo && !encinfo.SupportsPixelFormat(lastSource.Format.FormatGuid) && encinfo.SupportsPixelFormat(PixelFormat.Indexed8.FormatGuid))
-			indexedSource = ctx.AddProfiler(new IndexedColorTransform(EncodeFrame.Source));
+		if (ctx.Settings.EncoderInfo is IImageEncoderInfo encinfo && !encinfo.SupportsPixelFormat(lastSource.Format.FormatGuid))
+		{
+			var fmt = encinfo.GetClosestPixelFormat(lastSource.Format);
+			if (fmt == lastSource.Format && encinfo.SupportsPixelFormat(PixelFormat.Indexed8.FormatGuid))
+				convertSource = ctx.AddProfiler(new IndexedColorTransform(EncodeFrame.Source));
+			else
+				convertSource = ctx.AddProfiler(new ConversionTransform(EncodeFrame.Source, fmt));
+		}
 
 		loadFrame(Current);
 		Current.Source.Span.CopyTo(EncodeFrame.Source.Span);
@@ -107,7 +113,7 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 	{
 		lastSource.Dispose();
 		EncodeFrame.Dispose();
-		indexedSource?.Dispose();
+		convertSource?.Dispose();
 		for (int i = 0; i < frames.Length; i++)
 			frames[i]?.Dispose();
 	}
@@ -165,7 +171,7 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 
 	private void writeFrame(AnimationBufferFrame src, in GifEncoderOptions gifopt, IProfiler ppq)
 	{
-		if (indexedSource is not null)
+		if (convertSource is IndexedColorTransform indexedSource)
 		{
 			if (gifopt.PredefinedPalette is not null)
 			{
@@ -180,11 +186,10 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 				bool isExact = quant.CreatePalette(gifopt.MaxPaletteSize, buffC.Format.AlphaRepresentation != PixelAlphaRepresentation.None, buffCSpan, src.Area.Width, src.Area.Height, buffC.Stride);
 				indexedSource.SetPalette(quant.Palette, isExact || gifopt.Dither == DitherMode.None);
 			}
-
-			indexedSource.ReInit(EncodeFrame.Source);
 		}
 
-		context.Source = indexedSource ?? (PixelSource)EncodeFrame.Source;
+		convertSource?.ReInit(EncodeFrame.Source);
+		context.Source = convertSource ?? (PixelSource)EncodeFrame.Source;
 
 		encoder.WriteFrame(context.Source, src, src.Area);
 	}

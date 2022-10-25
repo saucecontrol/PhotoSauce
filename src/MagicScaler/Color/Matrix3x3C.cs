@@ -376,7 +376,7 @@ internal readonly record struct Matrix3x3C
 	public static Matrix3x3C operator *(in Matrix3x3C left, double right)
 	{
 #if HWINTRINSICS
-		if (Avx.IsSupported)
+		if (Avx2.IsSupported)
 		{
 			ref var rl = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref Unsafe.AsRef(left));
 			var vr = Avx2.Permute4x64(Vector128.CreateScalar(right).ToVector256Unsafe(), 0b_11_00_00_00);

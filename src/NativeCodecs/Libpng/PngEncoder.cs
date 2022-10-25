@@ -14,7 +14,7 @@ using static PhotoSauce.Interop.Libpng.Libpng;
 
 namespace PhotoSauce.NativeCodecs.Libpng;
 
-internal sealed unsafe class PngEncoder : IImageEncoder
+internal sealed unsafe class PngEncoder : IAnimatedImageEncoder
 {
 	private static readonly bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
@@ -22,6 +22,7 @@ internal sealed unsafe class PngEncoder : IImageEncoder
 
 	private ps_png_struct* handle;
 	private bool written;
+	private AnimationContainer? animation;
 
 	public static PngEncoder Create(Stream outStream, IEncoderOptions? pngOptions) => new(outStream, pngOptions);
 
@@ -38,6 +39,14 @@ internal sealed unsafe class PngEncoder : IImageEncoder
 		iod->write_callback = pfnWriteCallback;
 	}
 
+	public void WriteAnimationMetadata(IMetadataSource metadata)
+	{
+		if (!metadata.TryGetMetadata<AnimationContainer>(out var anicnt))
+			anicnt = default;
+
+		animation = anicnt;
+	}
+
 	public void WriteFrame(IPixelSource source, IMetadataSource metadata, Rectangle sourceArea)
 	{
 		var area = sourceArea == default ? new PixelArea(0, 0, source.Width, source.Height) : ((PixelArea)sourceArea);
@@ -52,49 +61,44 @@ internal sealed unsafe class PngEncoder : IImageEncoder
 			srcfmt == PixelFormat.Indexed8 ? PNG_COLOR_TYPE_PALETTE :
 			throw new NotSupportedException("Image format not supported.");
 
-		int filter = pngfmt == PNG_COLOR_TYPE_PALETTE ? PNG_FILTER_VALUE_NONE : PNG_ALL_FILTERS;
-		if (options.Filter is > PngFilter.Unspecified and < PngFilter.Adaptive)
-			filter = (int)options.Filter - 1;
+		if (pngfmt == PNG_COLOR_TYPE_PALETTE && animation.HasValue)
+			throw new NotSupportedException("Animation is not supported for indexed PNG.");
 
-		checkResult(PngWriteSig(handle));
-		checkResult(PngSetFilter(handle, filter));
-		checkResult(PngSetCompressionLevel(handle, 5));
-		checkResult(PngWriteIhdr(handle, (uint)area.Width, (uint)area.Height, 8, pngfmt, options.Interlace ? PNG_INTERLACE_ADAM7 : PNG_INTERLACE_NONE));
-
-		if (source is IndexedColorTransform idx)
+		if (!written)
 		{
-			var pal = idx.Palette;
-			fixed (uint* ppal = pal)
-			{
-				using (var palbuf = BufferPool.RentLocal<byte>(pal.Length * 4))
-				fixed (byte* pp = palbuf)
-				{
-					Unsafe.CopyBlock(pp, ppal, (uint)palbuf.Length);
+			var (width, height) = (area.Width, area.Height);
+			if (animation.HasValue)
+				(width, height) = (animation.Value.ScreenWidth, animation.Value.ScreenHeight);
 
-					// convert palette BGRA->RGBA then RGBA->RGB
-					ChannelChanger<byte>.GetConverter(4, 4).ConvertLine(pp, pp, palbuf.Length);
-					ChannelChanger<byte>.GetConverter(4, 3).ConvertLine(pp, pp, palbuf.Length);
-					checkResult(PngWritePlte(handle, (png_color_struct*)pp, pal.Length));
-				}
-
-				if (idx.HasAlpha)
-				{
-					using var trnbuf = BufferPool.RentLocal<byte>(pal.Length);
-					fixed (byte* pt = trnbuf)
-					{
-						ChannelChanger<byte>.AlphaExtractor.ConvertLine((byte*)ppal, pt, pal.Length * 4);
-						checkResult(PngWriteTrns(handle, pt, pal.Length));
-					}
-				}
-			}
+			writeHeader(pngfmt, width, height, source, metadata);
 		}
 
-		writeIccp(metadata);
-		writeExif(metadata);
+		if (animation.HasValue)
+		{
+			if (!metadata.TryGetMetadata<AnimationFrame>(out var anifrm))
+				anifrm = AnimationFrame.Default;
 
-		writePixels(source, area);
+			var duration = anifrm.Duration;
+			if (duration.Numerator > ushort.MaxValue || duration.Denominator > ushort.MaxValue)
+				duration.NormalizeTo(100);
+
+			int disposal = MathUtil.Clamp((int)anifrm.Disposal - 1, (int)PNG_DISPOSE_OP_NONE, (int)PNG_DISPOSE_OP_PREVIOUS);
+
+			checkResult(PngWriteFrameHead(handle, (uint)area.Width, (uint)area.Height, (uint)anifrm.OffsetLeft, (uint)anifrm.OffsetTop, (ushort)duration.Numerator, (ushort)duration.Denominator, (byte)disposal, (byte)PNG_BLEND_OP_OVER));
+			writePixels(source, area);
+			checkResult(PngWriteFrameTail(handle));
+		}
+		else
+		{
+			if (written)
+				throw new InvalidOperationException("An image frame has already been written, and this encoder is not configured for multiple frames.");
+
+			writePixels(source, area);
+		}
 
 		written = true;
+
+		((Stream)GCHandle.FromIntPtr(handle->io_ptr->stream_handle).Target!).Flush();
 	}
 
 	public void Commit()
@@ -143,6 +147,52 @@ internal sealed unsafe class PngEncoder : IImageEncoder
 		var exifspan = exif.Span;
 		fixed (byte* bp = exifspan)
 			checkResult(PngWriteExif(handle, bp, exifspan.Length));
+	}
+
+	private void writeHeader(int pngfmt, int width, int height, IPixelSource src, IMetadataSource meta)
+	{
+		int filter = pngfmt == PNG_COLOR_TYPE_PALETTE ? PNG_FILTER_VALUE_NONE : PNG_ALL_FILTERS;
+		if (options.Filter is > PngFilter.Unspecified and < PngFilter.Adaptive)
+			filter = (int)options.Filter - 1;
+
+		checkResult(PngWriteSig(handle));
+		checkResult(PngSetFilter(handle, filter));
+		checkResult(PngSetCompressionLevel(handle, 5));
+		checkResult(PngWriteIhdr(handle, (uint)width, (uint)height, 8, pngfmt, options.Interlace ? PNG_INTERLACE_ADAM7 : PNG_INTERLACE_NONE));
+
+		if (src is IndexedColorTransform idx)
+		{
+			var pal = idx.Palette;
+			fixed (uint* ppal = pal)
+			{
+				using (var palbuf = BufferPool.RentLocal<byte>(pal.Length * 4))
+					fixed (byte* pp = palbuf)
+					{
+						Unsafe.CopyBlock(pp, ppal, (uint)palbuf.Length);
+
+						// convert palette BGRA->RGBA then RGBA->RGB
+						ChannelChanger<byte>.GetConverter(4, 4).ConvertLine(pp, pp, palbuf.Length);
+						ChannelChanger<byte>.GetConverter(4, 3).ConvertLine(pp, pp, palbuf.Length);
+						checkResult(PngWritePlte(handle, (png_color_struct*)pp, pal.Length));
+					}
+
+				if (idx.HasAlpha)
+				{
+					using var trnbuf = BufferPool.RentLocal<byte>(pal.Length);
+					fixed (byte* pt = trnbuf)
+					{
+						ChannelChanger<byte>.AlphaExtractor.ConvertLine((byte*)ppal, pt, pal.Length * 4);
+						checkResult(PngWriteTrns(handle, pt, pal.Length));
+					}
+				}
+			}
+		}
+
+		writeIccp(meta);
+		writeExif(meta);
+
+		if (animation.HasValue)
+			checkResult(PngWriteActl(handle, (uint)animation.Value.FrameCount, (uint)animation.Value.LoopCount));
 	}
 
 	private void writePixels(IPixelSource src, PixelArea area)

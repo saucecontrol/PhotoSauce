@@ -193,7 +193,10 @@ internal sealed class MagicMetadataFilter : IMetadataSource
 			if (context.ImageContainer is not IMetadataSource cmsrc || !cmsrc.TryGetMetadata<AnimationContainer>(out var anicnt))
 				anicnt = default;
 
-			metadata = (T)(object)anicnt;
+			var range = settings.DecoderOptions is IMultiFrameDecoderOptions mul ? mul.FrameRange : Range.All;
+			int frameCount = range.GetOffsetAndLength(anicnt.FrameCount).Length;
+
+			metadata = (T)(object)(new AnimationContainer(settings.Width, settings.Height, frameCount, anicnt.LoopCount, anicnt.BackgroundColor, anicnt.PixelAspectRatio, anicnt.RequiresScreenBuffer));
 			return true;
 		}
 
