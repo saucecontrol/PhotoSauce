@@ -66,10 +66,7 @@ internal sealed unsafe class PngEncoder : IAnimatedImageEncoder
 
 		if (!written)
 		{
-			var (width, height) = (area.Width, area.Height);
-			if (animation.HasValue)
-				(width, height) = (animation.Value.ScreenWidth, animation.Value.ScreenHeight);
-
+			var (width, height) = animation.HasValue ? (animation.Value.ScreenWidth, animation.Value.ScreenHeight) : (area.Width, area.Height);
 			writeHeader(pngfmt, width, height, source, metadata);
 		}
 
@@ -82,9 +79,10 @@ internal sealed unsafe class PngEncoder : IAnimatedImageEncoder
 			if (duration.Numerator > ushort.MaxValue || duration.Denominator > ushort.MaxValue)
 				duration.NormalizeTo(100);
 
-			int disposal = MathUtil.Clamp((int)anifrm.Disposal - 1, (int)PNG_DISPOSE_OP_NONE, (int)PNG_DISPOSE_OP_PREVIOUS);
+			byte disposal = (byte)MathUtil.Clamp((int)anifrm.Disposal - 1, (int)PNG_DISPOSE_OP_NONE, (int)PNG_DISPOSE_OP_PREVIOUS);
+			byte blend = anifrm.Blend == AlphaBlendMethod.Source ? (byte)PNG_BLEND_OP_SOURCE : (byte)PNG_BLEND_OP_OVER;
 
-			checkResult(PngWriteFrameHead(handle, (uint)area.Width, (uint)area.Height, (uint)anifrm.OffsetLeft, (uint)anifrm.OffsetTop, (ushort)duration.Numerator, (ushort)duration.Denominator, (byte)disposal, (byte)PNG_BLEND_OP_OVER));
+			checkResult(PngWriteFrameHead(handle, (uint)area.Width, (uint)area.Height, (uint)anifrm.OffsetLeft, (uint)anifrm.OffsetTop, (ushort)duration.Numerator, (ushort)duration.Denominator, disposal, blend));
 			writePixels(source, area);
 			checkResult(PngWriteFrameTail(handle));
 		}
@@ -170,9 +168,8 @@ internal sealed unsafe class PngEncoder : IAnimatedImageEncoder
 					{
 						Unsafe.CopyBlock(pp, ppal, (uint)palbuf.Length);
 
-						// convert palette BGRA->RGBA then RGBA->RGB
-						ChannelChanger<byte>.GetConverter(4, 4).ConvertLine(pp, pp, palbuf.Length);
-						ChannelChanger<byte>.GetConverter(4, 3).ConvertLine(pp, pp, palbuf.Length);
+						// convert palette BGRA->RGB
+						ChannelChanger<byte>.GetSwapConverter(4, 3).ConvertLine(pp, pp, palbuf.Length);
 						checkResult(PngWritePlte(handle, (png_color_struct*)pp, pal.Length));
 					}
 

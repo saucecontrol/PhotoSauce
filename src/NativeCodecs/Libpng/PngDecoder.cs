@@ -89,7 +89,7 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 			throw new ArgumentOutOfRangeException(nameof(index), "Invalid frame index.");
 
 		int curr = frame?.Index ?? 0;
-		if (index <= curr)
+		if (index < curr)
 		{
 			ResetDecoder();
 			curr = 0;
@@ -339,6 +339,8 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 		if (handle is null)
 			return;
 
+		_ = PngReadEnd(handle, null);
+
 		GCHandle.FromIntPtr(handle->io_ptr->stream_handle).Free();
 		PngDestroyRead(handle);
 		handle = null;
@@ -425,11 +427,11 @@ internal sealed unsafe class PngFrame : IImageFrame, IMetadataSource
 		{
 			uint w, h, x, y;
 			ushort dn, dd;
-			byte disp, blend;
-			PngGetNextFrameFctl(handle, &w, &h, &x, &y, &dn, &dd, &disp, &blend);
+			byte dispose_op, blend_op;
+			PngGetNextFrameFctl(handle, &w, &h, &x, &y, &dn, &dd, &dispose_op, &blend_op);
 
-			// TODO handle blend
-			var afrm = new AnimationFrame((int)x, (int)y, new(dn, dd), (FrameDisposalMethod)(disp + 1), container.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
+			var blend = blend_op == PNG_BLEND_OP_OVER ? AlphaBlendMethod.BlendOver : AlphaBlendMethod.Source;
+			var afrm = new AnimationFrame((int)x, (int)y, new(dn, dd), (FrameDisposalMethod)(dispose_op + 1), blend, container.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
 
 			metadata = (T)(object)afrm;
 			return true;

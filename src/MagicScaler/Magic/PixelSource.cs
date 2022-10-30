@@ -117,6 +117,9 @@ internal abstract class ChainedPixelSource : PixelSource
 	public virtual bool Passthrough => true;
 	protected virtual void Reset() { }
 
+	protected virtual bool IsCompatible(PixelSource newSource) =>
+		PrevSource.Format == newSource.Format && PrevSource.Width == newSource.Width && PrevSource.Height == newSource.Height;
+
 	public virtual void ReInit(PixelSource newSource)
 	{
 		Reset();
@@ -131,7 +134,7 @@ internal abstract class ChainedPixelSource : PixelSource
 			return;
 		}
 
-		if (prev.Format != newSource.Format || prev.Width != newSource.Width || prev.Height != newSource.Height)
+		if (!IsCompatible(newSource))
 			throw new NotSupportedException("New source is not compatible with current pipeline.");
 
 		prev.Dispose();

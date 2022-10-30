@@ -14,8 +14,9 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 	{
 		public readonly FrameBufferSource Source;
 		public PixelArea Area;
-		public FrameDisposalMethod Disposal;
 		public Rational Delay;
+		public FrameDisposalMethod Disposal;
+		public AlphaBlendMethod Blend;
 		public bool HasTransparency;
 
 		private readonly PipelineContext context;
@@ -32,7 +33,7 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 		{
 			if (typeof(T) == typeof(AnimationFrame))
 			{
-				metadata = (T)(object)(new AnimationFrame(Area.X, Area.Y, Delay, Disposal, true));
+				metadata = (T)(object)(new AnimationFrame(Area.X, Area.Y, Delay, Disposal, Blend, true));
 				return true;
 			}
 
@@ -102,7 +103,7 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 		while (moveNext())
 		{
 			ppt.ResumeTiming(Current.Source.Area);
-			TemporalFilters.Dedupe(this, bgColor);
+			TemporalFilters.Dedupe(this, bgColor, Current.Blend != AlphaBlendMethod.Source);
 			ppt.PauseTiming();
 
 			writeFrame(Current, encopt, ppq);
@@ -159,8 +160,9 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 		if (context.ImageFrame is not IMetadataSource fmsrc || !fmsrc.TryGetMetadata<AnimationFrame>(out var anifrm))
 			anifrm = AnimationFrame.Default;
 
-		frame.Disposal = anifrm.Disposal == FrameDisposalMethod.RestoreBackground ? FrameDisposalMethod.RestoreBackground : FrameDisposalMethod.Preserve;
 		frame.Delay = anifrm.Duration;
+		frame.Disposal = anifrm.Disposal == FrameDisposalMethod.RestoreBackground ? FrameDisposalMethod.RestoreBackground : FrameDisposalMethod.Preserve;
+		frame.Blend = anifrm.Blend;
 		frame.HasTransparency = anifrm.HasAlpha;
 		frame.Area = context.Source.Area;
 

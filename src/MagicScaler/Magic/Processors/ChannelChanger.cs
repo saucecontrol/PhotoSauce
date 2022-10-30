@@ -38,10 +38,79 @@ internal static class ChannelChanger<T> where T : unmanaged
 			(3, 4) => Change3to4Chan.Instance,
 			(4, 1) => Change4to1Chan.Instance,
 			(4, 3) => Change4to3Chan.Instance,
+			_      => throw new NotSupportedException("Unsupported pixel format")
+		};
+
+	public static IConversionProcessor<T, T> GetSwapConverter(int chanIn, int chanOut) =>
+		(chanIn, chanOut) switch {
+			(3, 4) => Swap3to4Chan.Instance,
+			(4, 3) => Swap4to3Chan.Instance,
 			(3, 3) => Swap3Chan.Instance,
 			(4, 4) => Swap4Chan.Instance,
 			_      => throw new NotSupportedException("Unsupported pixel format")
 		};
+
+#if HWINTRINSICS
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static unsafe void change3to4Ssse3(ref T* ip, T* ipe, ref T* op, Vector128<byte> vmask)
+	{
+		var vfill = Vector128.Create(0xff000000u).AsByte();
+
+		do
+		{
+			var v0 = Sse2.LoadVector128((byte*)ip);
+			var v1 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count);
+			var v2 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count * 2);
+			var v3 = Sse2.ShiftRightLogical128BitLane(v2, 4);
+			ip += Vector128<byte>.Count * 3;
+
+			v2 = Ssse3.AlignRight(v2, v1, 8);
+			v1 = Ssse3.AlignRight(v1, v0, 12);
+
+			v0 = Sse2.Or(Ssse3.Shuffle(v0, vmask), vfill);
+			v1 = Sse2.Or(Ssse3.Shuffle(v1, vmask), vfill);
+			v2 = Sse2.Or(Ssse3.Shuffle(v2, vmask), vfill);
+			v3 = Sse2.Or(Ssse3.Shuffle(v3, vmask), vfill);
+
+			Sse2.Store((byte*)op, v0);
+			Sse2.Store((byte*)op + Vector128<byte>.Count, v1);
+			Sse2.Store((byte*)op + Vector128<byte>.Count * 2, v2);
+			Sse2.Store((byte*)op + Vector128<byte>.Count * 3, v3);
+			op += Vector128<byte>.Count * 4;
+		}
+		while (ip <= ipe - Vector128<byte>.Count * 3);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static unsafe void change4to3Ssse3(ref T* ip, T* ipe, ref T* op, Vector128<byte> vmasko)
+	{
+		var vmaske = Ssse3.AlignRight(vmasko, vmasko, 12).AsByte();
+
+		do
+		{
+			var v0 = Sse2.LoadVector128((byte*)ip);
+			var v1 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count);
+			var v2 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count * 2);
+			var v3 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count * 3);
+			ip += Vector128<byte>.Count * 4;
+
+			v0 = Ssse3.Shuffle(v0, vmaske);
+			v1 = Ssse3.Shuffle(v1, vmasko);
+			v2 = Ssse3.Shuffle(v2, vmaske);
+			v3 = Ssse3.Shuffle(v3, vmasko);
+
+			v0 = Ssse3.AlignRight(v1, v0, 4);
+			v1 = Sse2.Or(Sse2.ShiftRightLogical128BitLane(v1, 4), Sse2.ShiftLeftLogical128BitLane(v2, 4));
+			v2 = Ssse3.AlignRight(v3, v2, 12);
+
+			Sse2.Store((byte*)op, v0);
+			Sse2.Store((byte*)op + Vector128<byte>.Count, v1);
+			Sse2.Store((byte*)op + Vector128<byte>.Count * 2, v2);
+			op += Vector128<byte>.Count * 3;
+		}
+		while (ip <= ipe - Vector128<byte>.Count * 4);
+	}
+#endif
 
 	private sealed class Change1to3Chan : IConversionProcessor<T, T>
 	{
@@ -217,33 +286,7 @@ internal static class ChannelChanger<T> where T : unmanaged
 			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count * 3)
 			{
 				var vmask = Sse2.LoadVector128(HWIntrinsics.ShuffleMask3To3xChan.GetAddressOf());
-				var vfill = Vector128.Create(0xff000000u).AsByte();
-
-				ipe -= Vector128<byte>.Count * 3;
-				do
-				{
-					var v0 = Sse2.LoadVector128((byte*)ip);
-					var v1 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count);
-					var v2 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count * 2);
-					var v3 = Sse2.ShiftRightLogical128BitLane(v2, 4);
-					ip += Vector128<byte>.Count * 3;
-
-					v2 = Ssse3.AlignRight(v2, v1, 8);
-					v1 = Ssse3.AlignRight(v1, v0, 12);
-
-					v0 = Sse2.Or(Ssse3.Shuffle(v0, vmask), vfill);
-					v1 = Sse2.Or(Ssse3.Shuffle(v1, vmask), vfill);
-					v2 = Sse2.Or(Ssse3.Shuffle(v2, vmask), vfill);
-					v3 = Sse2.Or(Ssse3.Shuffle(v3, vmask), vfill);
-
-					Sse2.Store((byte*)op, v0);
-					Sse2.Store((byte*)op + Vector128<byte>.Count, v1);
-					Sse2.Store((byte*)op + Vector128<byte>.Count * 2, v2);
-					Sse2.Store((byte*)op + Vector128<byte>.Count * 3, v3);
-					op += Vector128<byte>.Count * 4;
-				}
-				while (ip <= ipe);
-				ipe += Vector128<byte>.Count * 3;
+				ChannelChanger<T>.change3to4Ssse3(ref ip, ipe, ref op, vmask);
 			}
 #endif
 
@@ -253,6 +296,41 @@ internal static class ChannelChanger<T> where T : unmanaged
 				op[0] = ip[0];
 				op[1] = ip[1];
 				op[2] = ip[2];
+				op[3] = alpha;
+
+				ip += 3;
+				op += 4;
+			}
+		}
+	}
+
+	private sealed class Swap3to4Chan : IConversionProcessor<T, T>
+	{
+		public static readonly Swap3to4Chan Instance = new();
+
+		private Swap3to4Chan() { }
+
+		unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
+		{
+			T* ip = (T*)istart, ipe = (T*)(istart + cb), op = (T*)ostart;
+			var alpha = maxalpha;
+
+#if HWINTRINSICS
+			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count * 3)
+			{
+				const byte _ = 0x80;
+				var mask = (ReadOnlySpan<byte>)(new byte[] { 2, 1, 0, _, 5, 4, 3, _, 8, 7, 6, _, 11, 10, 9, _ });
+				var vmask = Sse2.LoadVector128(mask.GetAddressOf());
+				ChannelChanger<T>.change3to4Ssse3(ref ip, ipe, ref op, vmask);
+			}
+#endif
+
+			ipe -= 3;
+			while (ip <= ipe)
+			{
+				op[0] = ip[2];
+				op[1] = ip[1];
+				op[2] = ip[0];
 				op[3] = alpha;
 
 				ip += 3;
@@ -330,34 +408,8 @@ internal static class ChannelChanger<T> where T : unmanaged
 #if HWINTRINSICS
 			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count * 4)
 			{
-				var vmasko = Sse2.LoadVector128(HWIntrinsics.ShuffleMask3xTo3Chan.GetAddressOf());
-				var vmaske = Ssse3.AlignRight(vmasko, vmasko, 12).AsByte();
-
-				ipe -= Vector128<byte>.Count * 4;
-				do
-				{
-					var v0 = Sse2.LoadVector128((byte*)ip);
-					var v1 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count);
-					var v2 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count * 2);
-					var v3 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count * 3);
-					ip += Vector128<byte>.Count * 4;
-
-					v0 = Ssse3.Shuffle(v0, vmaske);
-					v1 = Ssse3.Shuffle(v1, vmasko);
-					v2 = Ssse3.Shuffle(v2, vmaske);
-					v3 = Ssse3.Shuffle(v3, vmasko);
-
-					v0 = Ssse3.AlignRight(v1, v0, 4);
-					v1 = Sse2.Or(Sse2.ShiftRightLogical128BitLane(v1, 4), Sse2.ShiftLeftLogical128BitLane(v2, 4));
-					v2 = Ssse3.AlignRight(v3, v2, 12);
-
-					Sse2.Store((byte*)op, v0);
-					Sse2.Store((byte*)op + Vector128<byte>.Count, v1);
-					Sse2.Store((byte*)op + Vector128<byte>.Count * 2, v2);
-					op += Vector128<byte>.Count * 3;
-				}
-				while (ip <= ipe);
-				ipe += Vector128<byte>.Count * 4;
+				var vmask = Sse2.LoadVector128(HWIntrinsics.ShuffleMask3xTo3Chan.GetAddressOf());
+				ChannelChanger<T>.change4to3Ssse3(ref ip, ipe, ref op, vmask);
 			}
 #endif
 
@@ -367,6 +419,39 @@ internal static class ChannelChanger<T> where T : unmanaged
 				op[0] = ip[0];
 				op[1] = ip[1];
 				op[2] = ip[2];
+
+				ip += 4;
+				op += 3;
+			}
+		}
+	}
+
+	private sealed class Swap4to3Chan : IConversionProcessor<T, T>
+	{
+		public static readonly Swap4to3Chan Instance = new();
+
+		private Swap4to3Chan() { }
+
+		unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
+		{
+			T* ip = (T*)istart, ipe = (T*)(istart + cb), op = (T*)ostart;
+
+#if HWINTRINSICS
+			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count * 4)
+			{
+				const byte _ = 0x80;
+				var mask = (ReadOnlySpan<byte>)(new byte[] { 2, 1, 0, 6, 5, 4, 10, 9, 8, 14, 13, 12, _, _, _, _ });
+				var vmask = Sse2.LoadVector128(mask.GetAddressOf());
+				ChannelChanger<T>.change4to3Ssse3(ref ip, ipe, ref op, vmask);
+			}
+#endif
+
+			ipe -= 4;
+			while (ip <= ipe)
+			{
+				op[0] = ip[2];
+				op[1] = ip[1];
+				op[2] = ip[0];
 
 				ip += 4;
 				op += 3;

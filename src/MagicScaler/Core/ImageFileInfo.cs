@@ -145,13 +145,10 @@ public sealed class ImageFileInfo
 
 	private static unsafe FrameInfo[] getFrameInfo(IImageContainer cont)
 	{
-		bool anim = false;
+		bool animation = false;
 		int cwidth = 0, cheight = 0;
-		if (cont is IMetadataSource meta && meta.TryGetMetadata<AnimationContainer>(out var anicnt))
-		{
-			anim = true;
+		if (cont is IMetadataSource meta && (animation = meta.TryGetMetadata<AnimationContainer>(out var anicnt)))
 			(cwidth, cheight) = (anicnt.ScreenWidth, anicnt.ScreenHeight);
-		}
 
 		var frames = new FrameInfo[cont.FrameCount];
 		for (int i = 0; i < frames.Length; i++)
@@ -160,9 +157,7 @@ public sealed class ImageFileInfo
 			var src = frame.PixelSource;
 
 			var pixfmt = PixelFormat.FromGuid(src.Format);
-			var (width, height) = (src.Width, src.Height);
-			if (anim)
-				(width, height) = (cwidth, cheight);
+			var (width, height) = animation ? (cwidth, cheight) : (src.Width, src.Height);
 
 			var orient = frame.GetOrientation();
 			if (orient.SwapsDimensions())

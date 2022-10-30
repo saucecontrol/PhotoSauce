@@ -227,8 +227,8 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 					iter.y_offset,
 					new Rational((uint)iter.duration, 1000u),
 					iter.dispose_method == WebPMuxAnimDispose.WEBP_MUX_DISPOSE_BACKGROUND ? FrameDisposalMethod.RestoreBackground : FrameDisposalMethod.Preserve,
+					iter.blend_method == WebPMuxAnimBlend.WEBP_MUX_BLEND ? AlphaBlendMethod.BlendOver : AlphaBlendMethod.Source,
 					iter.has_alpha != 0
-					// TODO iter.blend_method
 				);
 
 				WebPDemuxReleaseIterator(&iter);

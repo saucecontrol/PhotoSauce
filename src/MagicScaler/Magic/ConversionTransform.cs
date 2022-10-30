@@ -11,6 +11,7 @@ internal sealed class ConversionTransform : ChainedPixelSource
 	private readonly IConversionProcessor processor;
 
 	public override PixelFormat Format { get; }
+	public PixelFormat SourceFormat => PrevSource.Format;
 
 	public ConversionTransform(PixelSource source, PixelFormat destFormat, ColorProfile? sourceProfile = null, ColorProfile? destProfile = null) : base(source)
 	{
@@ -118,28 +119,35 @@ internal sealed class ConversionTransform : ChainedPixelSource
 			else
 				processor = Format.Range == PixelValueRange.Full ? FloatConverter.Narrowing.InstanceFullRange.Processor : FloatConverter.Narrowing.InstanceVideoRange.Processor;
 		}
-		else if (srcFormat.NumericRepresentation == Format.NumericRepresentation && srcFormat.ChannelCount != Format.ChannelCount)
+		else if (srcFormat.NumericRepresentation == Format.NumericRepresentation)
 		{
-			if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Float)
-				processor = ChannelChanger<float>.GetConverter(srcFormat.ChannelCount, Format.ChannelCount);
-			else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Fixed)
-				processor = ChannelChanger<ushort>.GetConverter(srcFormat.ChannelCount, Format.ChannelCount);
-			else
-				processor = ChannelChanger<byte>.GetConverter(srcFormat.ChannelCount, Format.ChannelCount);
-		}
-		else if (srcFormat.NumericRepresentation == Format.NumericRepresentation && srcFormat.ChannelCount == Format.ChannelCount && srcFormat.ColorRepresentation != Format.ColorRepresentation)
-		{
-			if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Float)
-				processor = ChannelChanger<float>.GetConverter(srcFormat.ChannelCount, Format.ChannelCount);
-			else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Fixed)
-				processor = ChannelChanger<ushort>.GetConverter(srcFormat.ChannelCount, Format.ChannelCount);
-			else
-				processor = ChannelChanger<byte>.GetConverter(srcFormat.ChannelCount, Format.ChannelCount);
+			if ((srcFormat.ColorRepresentation is PixelColorRepresentation.Bgr && Format.ColorRepresentation is PixelColorRepresentation.Rgb) ||
+					(srcFormat.ColorRepresentation is PixelColorRepresentation.Rgb && Format.ColorRepresentation is PixelColorRepresentation.Bgr)
+				)
+			{
+				if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Float)
+					processor = ChannelChanger<float>.GetSwapConverter(srcFormat.ChannelCount, Format.ChannelCount);
+				else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Fixed)
+					processor = ChannelChanger<ushort>.GetSwapConverter(srcFormat.ChannelCount, Format.ChannelCount);
+				else
+					processor = ChannelChanger<byte>.GetSwapConverter(srcFormat.ChannelCount, Format.ChannelCount);
+			}
+			else if (srcFormat.ChannelCount != Format.ChannelCount)
+			{
+				if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Float)
+					processor = ChannelChanger<float>.GetConverter(srcFormat.ChannelCount, Format.ChannelCount);
+				else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Fixed)
+					processor = ChannelChanger<ushort>.GetConverter(srcFormat.ChannelCount, Format.ChannelCount);
+				else
+					processor = ChannelChanger<byte>.GetConverter(srcFormat.ChannelCount, Format.ChannelCount);
+			}
 		}
 
 		if (processor is null)
 			throw new NotSupportedException("Unsupported pixel format");
 	}
+
+	protected override bool IsCompatible(PixelSource newSource) => PrevSource.Format == newSource.Format;
 
 	protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 	{

@@ -1,5 +1,18 @@
+diff --git a/pngread.c b/pngread.c
+index fa44d5a..4736f92 100644
+--- a/pngread.c
++++ b/pngread.c
+@@ -320,7 +320,7 @@ png_read_frame_head(png_structp png_ptr, png_infop info_ptr)
+             png_ensure_sequence_number(png_ptr, length);
+ 
+             /* discard trailing fdATs for frames other than the first */
+-            if (!have_chunk_after_DAT && png_ptr->num_frames_read > 1)
++            if (!have_chunk_after_DAT && png_ptr->num_frames_read >= 1)
+                 png_crc_finish(png_ptr, length - 4);
+             else if(png_ptr->mode & PNG_HAVE_fcTL)
+             {
 diff --git a/pngwrite.c b/pngwrite.c
-index 5e680323..cf99bf96 100644
+index 5e68032..cf99bf9 100644
 --- a/pngwrite.c
 +++ b/pngwrite.c
 @@ -1480,11 +1480,6 @@ png_write_frame_head(png_structp png_ptr, png_infop info_ptr,
@@ -15,7 +28,7 @@ index 5e680323..cf99bf96 100644
  
      png_write_reinit(png_ptr, info_ptr, width, height);
 diff --git a/pngwutil.c b/pngwutil.c
-index b4809cda..6c66eb1f 100644
+index b4809cd..6c66eb1 100644
 --- a/pngwutil.c
 +++ b/pngwutil.c
 @@ -2902,11 +2902,6 @@ png_write_reinit(png_structp png_ptr, png_infop info_ptr,

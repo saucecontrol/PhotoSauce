@@ -15,7 +15,7 @@ internal static unsafe class TemporalFilters
 {
 	private const byte denoiseThreshold = 15;
 
-	public static void Dedupe(AnimationEncoder buffer, uint bgcolor)
+	public static void Dedupe(AnimationEncoder buffer, uint bgcolor, bool blend)
 	{
 		var src = buffer.Current.Source;
 		if (src.Format != PixelFormat.Bgra32)
@@ -57,12 +57,12 @@ internal static unsafe class TemporalFilters
 
 #if HWINTRINSICS
 				if (Avx2.IsSupported && cb >= Vector256<byte>.Count)
-					(eql, eqr) = dedupeLineAvx2(pcurr + offs, pp is null ? pp : pp + offs, penc + offs, cb, bgcolor);
+					(eql, eqr) = dedupeLineAvx2(pcurr + offs, pp is null ? pp : pp + offs, penc + offs, cb, bgcolor, blend);
 				else if (Sse2.IsSupported && cb >= Vector128<byte>.Count)
-					(eql, eqr) = dedupeLineSse2(pcurr + offs, pp is null ? pp : pp + offs, penc + offs, cb, bgcolor);
+					(eql, eqr) = dedupeLineSse2(pcurr + offs, pp is null ? pp : pp + offs, penc + offs, cb, bgcolor, blend);
 				else
 #endif
-					(eql, eqr) = dedupeLineScalar(pcurr + offs, pp is null ? pp : pp + offs, penc + offs, cb, bgcolor);
+					(eql, eqr) = dedupeLineScalar(pcurr + offs, pp is null ? pp : pp + offs, penc + offs, cb, bgcolor, blend);
 
 				if (eql == (uint)src.Width)
 				{
@@ -205,7 +205,7 @@ internal static unsafe class TemporalFilters
 
 #if HWINTRINSICS
 	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-	private static (uint eql, uint eqr) dedupeLineAvx2(byte* pcurr, byte* pprev, byte* penc, nint cb, uint bg)
+	private static (uint eql, uint eqr) dedupeLineAvx2(byte* pcurr, byte* pprev, byte* penc, nint cb, uint bg, bool blend)
 	{
 		byte* ip = pcurr, pp = pprev, op = penc;
 		nint cnt = 0, end = cb - Vector256<byte>.Count;
@@ -213,6 +213,9 @@ internal static unsafe class TemporalFilters
 		bool lfound = false;
 		uint eql = 0u, eqr = 0u;
 		var vbg = pp is null ? Vector256.Create(bg) : Vector256<uint>.Zero;
+		var vmb = Vector256<uint>.Zero;
+		if (blend)
+			vmb = Avx2.CompareEqual(vmb, vmb);
 
 		LoopTop:
 		do
@@ -221,7 +224,7 @@ internal static unsafe class TemporalFilters
 			var vcurr = Avx.LoadVector256(ip + cnt).AsUInt32();
 
 			var veq = Avx2.CompareEqual(vcurr, vprev);
-			vcurr = Avx2.BlendVariable(vcurr, vbg, veq);
+			vcurr = Avx2.BlendVariable(vcurr, vbg, Avx2.And(veq, vmb));
 
 			Avx.Store(op + cnt, vcurr.AsByte());
 			cnt += Vector256<byte>.Count;
@@ -266,7 +269,7 @@ internal static unsafe class TemporalFilters
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-	private static (uint eql, uint eqr) dedupeLineSse2(byte* pcurr, byte* pprev, byte* penc, nint cb, uint bg)
+	private static (uint eql, uint eqr) dedupeLineSse2(byte* pcurr, byte* pprev, byte* penc, nint cb, uint bg, bool blend)
 	{
 		byte* ip = pcurr, pp = pprev, op = penc;
 		nint cnt = 0, end = cb - Vector128<byte>.Count;
@@ -274,6 +277,9 @@ internal static unsafe class TemporalFilters
 		bool lfound = false;
 		uint eql = 0u, eqr = 0u;
 		var vbg = pp is null ? Vector128.Create(bg) : Vector128<uint>.Zero;
+		var vmb = Vector128<uint>.Zero;
+		if (blend)
+			vmb = Sse2.CompareEqual(vmb, vmb);
 
 		LoopTop:
 		do
@@ -282,7 +288,7 @@ internal static unsafe class TemporalFilters
 			var vcurr = Sse2.LoadVector128(ip + cnt).AsUInt32();
 
 			var veq = Sse2.CompareEqual(vcurr, vprev);
-			vcurr = HWIntrinsics.BlendVariable(vcurr, vbg, veq);
+			vcurr = HWIntrinsics.BlendVariable(vcurr, vbg, Sse2.And(veq, vmb));
 
 			Sse2.Store(op + cnt, vcurr.AsByte());
 			cnt += Vector128<byte>.Count;
@@ -327,7 +333,7 @@ internal static unsafe class TemporalFilters
 	}
 #endif
 
-	private static (uint eql, uint eqr) dedupeLineScalar(byte* pcurr, byte* pprev, byte* penc, nint cb, uint bg)
+	private static (uint eql, uint eqr) dedupeLineScalar(byte* pcurr, byte* pprev, byte* penc, nint cb, uint bg, bool blend)
 	{
 		byte* ip = pcurr, pp = pprev, op = penc;
 		nint end = cb;
@@ -341,7 +347,7 @@ internal static unsafe class TemporalFilters
 		{
 			uint curr = *(uint*)(ip + cnt);
 			bool peq = curr == (pp is not null ? *(uint*)(pp + cnt) : bg);
-			*(uint*)(op + cnt) = peq ? bg : curr;
+			*(uint*)(op + cnt) = (blend & peq) ? bg : curr;
 
 			if (!peq)
 			{

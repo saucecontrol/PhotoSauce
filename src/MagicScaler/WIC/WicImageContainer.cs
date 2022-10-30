@@ -81,6 +81,8 @@ internal sealed unsafe class WicGifContainer : WicImageContainer, IMetadataSourc
 
 	public readonly AnimationContainer AnimationMetadata;
 
+	public FrameDisposalMethod LastDisposal;
+
 	public bool IsAnimation => FrameOffset + FrameCount > 1;
 
 	public WicGifContainer(IWICBitmapDecoder* dec, IDecoderOptions? options) : base(dec, ImageMimeTypes.Gif, options)

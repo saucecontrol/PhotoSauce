@@ -196,7 +196,7 @@ internal sealed class MagicMetadataFilter : IMetadataSource
 			var range = settings.DecoderOptions is IMultiFrameDecoderOptions mul ? mul.FrameRange : Range.All;
 			int frameCount = range.GetOffsetAndLength(anicnt.FrameCount).Length;
 
-			metadata = (T)(object)(new AnimationContainer(settings.Width, settings.Height, frameCount, anicnt.LoopCount, anicnt.BackgroundColor, anicnt.PixelAspectRatio, anicnt.RequiresScreenBuffer));
+			metadata = (T)(object)(anicnt with { ScreenWidth = settings.Width, ScreenHeight = settings.Height, FrameCount = frameCount });
 			return true;
 		}
 
@@ -245,57 +245,25 @@ internal readonly record struct SRational(int Numerator, int Denominator)
 }
 
 /// <summary>Defines global/container metadata for a sequence of animated frames.</summary>
-internal readonly struct AnimationContainer : IMetadata
-{
-	/// <summary>The width of the animation's logical screen.  Values less than 1 imply the width is equal to the width of the first frame.</summary>
-	public readonly int ScreenWidth;
-
-	/// <summary>The height of the animation's logical screen.  Values less than 1 imply the height is equal to the height of the first frame.</summary>
-	public readonly int ScreenHeight;
-
-	/// <summary>The total number of frames in the animation, disregarding any <see cref="IMultiFrameDecoderOptions.FrameRange" /> decoder option.</summary>
-	/// <remarks>Coalescing the animation may require frames that precede the <see cref="IMultiFrameDecoderOptions.FrameRange" />.  The decoder must allow this.</remarks>
-	public readonly int FrameCount;
-
-	/// <summary>The number of times to loop the animation.  Values less than 1 imply inifinte looping.</summary>
-	public readonly int LoopCount;
-
-	/// <summary>The background color to restore when a frame's disposal method is RestoreBackground, in ARGB order.</summary>
-	public readonly int BackgroundColor;
-
-	/// <summary>The pixel aspect ratio of the animation.</summary>
-	/// <remarks>This property is used only for GIF.  Valid range is 0.25 to 4.21875, where 0 or 1 means square pixels.</remarks>
-	public readonly float PixelAspectRatio;
-
-	/// <summary>True if this animation requires a persistent screen buffer onto which frames are rendered, otherwise false.</summary>
-	public readonly bool RequiresScreenBuffer;
-
-	public AnimationContainer(int screenWidth, int screenHeight, int frameCount, int loopCount = 0, int bgColor = 0, float pixelAspect = 1f, bool screenBuffer = false) =>
-		(ScreenWidth, ScreenHeight, FrameCount, LoopCount, BackgroundColor, PixelAspectRatio, RequiresScreenBuffer) = (screenWidth, screenHeight, frameCount, loopCount, bgColor, pixelAspect, screenBuffer);
-}
+/// <param name="ScreenWidth">The width of the animation's logical screen.  Values less than 1 imply the width is equal to the width of the first frame.</param>
+/// <param name="ScreenHeight">The height of the animation's logical screen.  Values less than 1 imply the height is equal to the height of the first frame.</param>
+/// <param name="FrameCount">The total number of frames in the animation, disregarding any <see cref="IMultiFrameDecoderOptions.FrameRange" /> decoder option.</param>
+/// <param name="LoopCount">The number of times to loop the animation.  Values less than 1 imply inifinte looping.</param>
+/// <param name="BackgroundColor">The background color to restore when a frame's disposal method is RestoreBackground, in ARGB order.</param>
+/// <param name="PixelAspectRatio">The pixel aspect ratio of the animation.</param>
+/// <param name="RequiresScreenBuffer">True if this animation requires a persistent screen buffer onto which frames are rendered, otherwise false.</param>
+/// <remarks>Coalescing the animation may require frames that precede the <see cref="IMultiFrameDecoderOptions.FrameRange" />.  The decoder must allow this.</remarks>
+/// <remarks><paramref name="PixelAspectRatio"/> is used only for GIF.  Valid range is 0.25 to 4.21875, where 0 or 1 means square pixels.</remarks>
+internal readonly record struct AnimationContainer(int ScreenWidth, int ScreenHeight, int FrameCount, int LoopCount = 0, int BackgroundColor = 0, float PixelAspectRatio = 1f, bool RequiresScreenBuffer = false) : IMetadata;
 
 /// <summary>Defines metadata for a single frame within an animated image sequence.</summary>
-internal readonly struct AnimationFrame : IMetadata
+/// <param name="OffsetLeft">The horizontal offset of the frame's content, relative to the logical screen.</param>
+/// <param name="OffsetTop">The vertical offset of the frame's content, relative to the logical screen.</param>
+/// <param name="Duration">The amount of time, in seconds, the frame should be displayed.</param>
+/// <param name="Disposal">The disposition of the frame.</param>
+/// <param name="HasAlpha">True to indicate the frame contains transparent pixels, otherwise false.</param>
+internal readonly record struct AnimationFrame(int OffsetLeft, int OffsetTop, Rational Duration, FrameDisposalMethod Disposal, AlphaBlendMethod Blend, bool HasAlpha) : IMetadata
 {
 	// Rather arbitrary default of NTSC film speed
-	internal static AnimationFrame Default = new(default, default, new Rational(1001, 24000), default, default);
-
-	/// <summary>The horizontal offset of the frame's content, relative to the logical screen.</summary>
-	public readonly int OffsetLeft;
-
-	/// <summary>The vertical offset of the frame's content, relative to the logical screen.</summary>
-	public readonly int OffsetTop;
-
-	/// <summary>The amount of time, in seconds, the frame should be displayed.</summary>
-	/// <remarks>For animated GIF output, the denominator will be normalized to <c>100</c>.</remarks>
-	public readonly Rational Duration;
-
-	/// <summary>The disposition of the frame.</summary>
-	public readonly FrameDisposalMethod Disposal;
-
-	/// <summary>True to indicate the frame contains transparent pixels, otherwise false.</summary>
-	public readonly bool HasAlpha;
-
-	public AnimationFrame(int offsetLeft, int offsetTop, Rational duration, FrameDisposalMethod disposal, bool alpha) =>
-		(OffsetLeft, OffsetTop, Duration, Disposal, HasAlpha) = (offsetLeft, offsetTop, duration, disposal, alpha);
+	internal static AnimationFrame Default = new(default, default, new Rational(1001, 24000), default, default, default);
 }

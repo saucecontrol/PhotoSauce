@@ -629,7 +629,7 @@ internal static class MagicTransforms
 			var anictx = ctx.AnimationContext;
 			var fbuff = anictx.ScreenBuffer;
 
-			ctx.Source = new OverlayTransform(fbuff, frmsrc, anifrm.OffsetLeft, anifrm.OffsetTop, anifrm.HasAlpha);
+			ctx.Source = new OverlayTransform(fbuff, frmsrc, anifrm.OffsetLeft, anifrm.OffsetTop, anifrm.HasAlpha, anifrm.Blend);
 		}
 		else if (ctx.Source != frmsrc)
 		{

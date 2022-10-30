@@ -176,7 +176,7 @@ internal sealed unsafe class WebpEncoder : IAnimatedImageEncoder
 					y_offset = anifrm.OffsetTop,
 					duration = (int)anifrm.Duration.NormalizeTo(1000).Numerator,
 					dispose_method = anifrm.Disposal == FrameDisposalMethod.RestoreBackground ? WebPMuxAnimDispose.WEBP_MUX_DISPOSE_BACKGROUND : WebPMuxAnimDispose.WEBP_MUX_DISPOSE_NONE,
-					blend_method = WebPMuxAnimBlend.WEBP_MUX_BLEND,
+					blend_method = anifrm.Blend == AlphaBlendMethod.Source ? WebPMuxAnimBlend.WEBP_MUX_NO_BLEND : WebPMuxAnimBlend.WEBP_MUX_BLEND,
 					bitstream = img
 				};
 				WebpResult.Check(WebPMuxPushFrame(handle, &anif, 1));

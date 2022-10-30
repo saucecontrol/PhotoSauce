@@ -282,7 +282,7 @@ int PngReadFrameHead(ps_png_struct* handle) {
 	TRY {
 		png_read_finish_IDAT(handle->png_ptr);
 		png_read_frame_head(handle->png_ptr, handle->info_ptr);
-		png_read_update_info(handle->png_ptr, handle->info_ptr);
+		png_read_start_row(handle->png_ptr);
 	}
 	return TRY_RESULT;
 }

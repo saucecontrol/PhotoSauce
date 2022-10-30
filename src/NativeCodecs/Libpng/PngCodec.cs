@@ -82,7 +82,7 @@ public static class CodecCollectionExtensions
 			new[] { PixelFormat.Grey8.FormatGuid, PixelFormat.Rgb24.FormatGuid, PixelFormat.Rgba32.FormatGuid, PixelFormat.Indexed8.FormatGuid },
 			PngEncoderOptions.Default,
 			PngEncoder.Create,
-			false,
+			true,
 			true,
 			true
 		));

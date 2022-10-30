@@ -189,6 +189,16 @@ internal enum FrameDisposalMethod : byte
 	RestorePrevious = 3
 }
 
+internal enum AlphaBlendMethod : byte
+{
+	/// <summary>Layer is taken as-is, overwriting the background.</summary>
+	Source,
+	/// <summary>Layer is overlayed on the background, with transparent pixels allowing the background through.</summary>
+	Over,
+	/// <summary>Layer is alpha blended over the background using the transparency value of each.</summary>
+	BlendOver
+}
+
 internal enum ResolutionUnit
 {
 	Virtual,
