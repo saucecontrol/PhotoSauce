@@ -9,7 +9,7 @@ namespace PhotoSauce.MagicScaler;
 
 internal sealed class AnimationPipelineContext : IDisposable
 {
-	private ConversionTransform? converter;
+	private ChainedPixelSource? converter;
 	private OverlayTransform? overlay;
 
 	public FrameBufferSource? ScreenBuffer;
@@ -21,20 +21,27 @@ internal sealed class AnimationPipelineContext : IDisposable
 		int width = Math.Min(src.Width, anicnt.ScreenWidth - anifrm.OffsetLeft);
 		int height = Math.Min(src.Height, anicnt.ScreenHeight - anifrm.OffsetTop);
 
-		var fbuff = ScreenBuffer ??= new(anicnt.ScreenWidth, anicnt.ScreenHeight, PixelFormat.Bgra32, true);
+		if (ScreenBuffer is null)
+		{
+			ScreenBuffer = new(anicnt.ScreenWidth, anicnt.ScreenHeight, PixelFormat.Bgra32, true);
+			ScreenBuffer.Span.Clear();
+		}
+
+		var fbuff = ScreenBuffer;
 		var bspan = fbuff.Span;
 
 		if (src.Format != PixelFormat.Bgra32.FormatGuid)
 		{
-			if (converter?.SourceFormat.FormatGuid == src.Format)
+			var psrc = src.AsPixelSource();
+			if (converter?.IsCompatible(psrc) ?? false)
 			{
-				converter.ReInit(src.AsPixelSource());
+				converter.ReInit(psrc);
 				src = converter;
 			}
 			else
 			{
 				converter?.Dispose();
-				src = converter = new ConversionTransform(src.AsPixelSource(), PixelFormat.Bgra32);
+				src = converter = psrc.Format == PixelFormat.Indexed8 ? new PaletteTransform(psrc, PixelFormat.Bgra32) : new ConversionTransform(psrc, PixelFormat.Bgra32);
 			}
 		}
 

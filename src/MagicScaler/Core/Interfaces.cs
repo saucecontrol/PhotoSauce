@@ -149,9 +149,14 @@ public interface IImageEncoderInfo : IImageCodecInfo
 	bool SupportsColorProfile { get; }
 }
 
-internal interface IFramePixelSource
+internal interface IFramePixelSource : IPixelSource
 {
 	IImageFrame Frame { get; }
+}
+
+internal interface IIndexedPixelSource : IPixelSource
+{
+	ReadOnlySpan<uint> Palette { get; }
 }
 
 internal interface IPlanarDecoder : IImageFrame

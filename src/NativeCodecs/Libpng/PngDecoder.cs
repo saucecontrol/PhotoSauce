@@ -446,7 +446,7 @@ internal sealed unsafe class PngFrame : IImageFrame, IMetadataSource
 		lineBuff.Dispose();
 	}
 
-	private class PngPixelSource : PixelSource, IFramePixelSource
+	private sealed class PngPixelSource : PixelSource, IFramePixelSource
 	{
 		public readonly PngContainer container;
 		public readonly PngFrame frame;

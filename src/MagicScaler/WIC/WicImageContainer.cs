@@ -121,7 +121,7 @@ internal sealed unsafe class WicGifContainer : WicImageContainer, IMetadataSourc
 		int loopCount = 0;
 		var sbuff = (Span<byte>)stackalloc byte[16];
 		var appext = meta.Get()->GetValueOrDefault(Wic.Metadata.Gif.AppExtension, sbuff);
-		if (appext.Length == 11 && (Netscape2_0.SequenceEqual(appext) || Animexts1_0.SequenceEqual(appext)))
+		if (appext.Length == 11 && (appext.SequenceEqual(Netscape2_0) || appext.SequenceEqual(Animexts1_0)))
 		{
 			var appdata = meta.Get()->GetValueOrDefault(Wic.Metadata.Gif.AppExtensionData, sbuff);
 			if (appdata.Length >= 4 && appdata[0] >= 3 && appdata[1] == 1)

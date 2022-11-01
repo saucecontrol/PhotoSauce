@@ -290,10 +290,10 @@ internal sealed unsafe class WicImageEncoder : IAnimatedImageEncoder, IDisposabl
 				metawriter.SetValue(Wic.Metadata.Gif.FrameTop, (ushort)anifrm.OffsetTop);
 		}
 
-		if (hasWriter && fmt == GUID_ContainerFormatGif && source is IndexedColorTransform idxt)
+		if (hasWriter && fmt == GUID_ContainerFormatGif && source is IIndexedPixelSource idxs)
 		{
-			var pal = idxt.Palette;
-			if (idxt.HasAlpha)
+			var pal = idxs.Palette;
+			if (idxs.HasAlpha())
 			{
 				metawriter.SetValue(Wic.Metadata.Gif.TransparencyFlag, true);
 				metawriter.SetValue(Wic.Metadata.Gif.TransparentColorIndex, (byte)(pal.Length - 1));
@@ -352,9 +352,9 @@ internal sealed unsafe class WicImageEncoder : IAnimatedImageEncoder, IDisposabl
 					using var pal = default(ComPtr<IWICPalette>);
 					HRESULT.Check(Wic.Factory->CreatePalette(pal.GetAddressOf()));
 
-					if (src is IndexedColorTransform iconv)
+					if (src is IIndexedPixelSource idxs)
 					{
-						var palspan = iconv.Palette;
+						var palspan = idxs.Palette;
 						fixed (uint* ppal = palspan)
 							HRESULT.Check(pal.Get()->InitializeCustom(ppal, (uint)palspan.Length));
 					}

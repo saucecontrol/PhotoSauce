@@ -17,7 +17,7 @@ jobs:
   timeoutInMinutes: 0
   variables:
     VCPKG_BINARY_SOURCES: clear;nuget,$(vcpkgNuGet),readwrite
-    VCPKG_PSLIBS: libheif libjxl libwebp psjpeg pspng
+    VCPKG_PSLIBS: giflib libheif libjxl libwebp psjpeg pspng
 
   strategy:
     matrix:

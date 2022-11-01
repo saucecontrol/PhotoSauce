@@ -121,7 +121,18 @@ internal unsafe struct IWICBitmapSourceImpl
 	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
 	static
 #endif
-	private int copyPalette(IWICBitmapSource* pinst, IWICPalette* pIPalette) => E_NOTIMPL;
+	private int copyPalette(IWICBitmapSource* pinst, IWICPalette* pIPalette)
+	{
+		var ps = Unsafe.As<PixelSource>(((IWICBitmapSourceImpl*)pinst)->source.Target!);
+		if (ps is not IIndexedPixelSource idxs)
+			return E_NOTIMPL;
+
+		var pspan = idxs.Palette;
+		fixed (uint* pp = pspan)
+			pIPalette->InitializeCustom(pp, (uint)pspan.Length);
+
+		return S_OK;
+	}
 
 #if NET5_0_OR_GREATER
 	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]

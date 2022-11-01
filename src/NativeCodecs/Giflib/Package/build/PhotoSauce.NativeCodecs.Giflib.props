@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+	<PropertyGroup Condition="'$(RuntimeIdentifier)' == '' or '$(_UsingDefaultRuntimeIdentifier)' == 'true'">
+		<_GiflibPackageRuntimesDirectory>$(MSBuildThisFileDirectory)..\..\runtimes\</_GiflibPackageRuntimesDirectory>
+	</PropertyGroup>
+
+	<ItemGroup Condition="'$(_GiflibPackageRuntimesDirectory)' != ''">
+		<Content Condition="'$(Platform)' == 'AnyCPU'" Include="$(_GiflibPackageRuntimesDirectory)win-x86\native\*" Link="x86\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+		<Content Condition="'$(Platform)' == 'AnyCPU'" Include="$(_GiflibPackageRuntimesDirectory)win-x64\native\*" Link="x64\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+		<Content Condition="'$(Platform)' == 'AnyCPU'" Include="$(_GiflibPackageRuntimesDirectory)win-arm64\native\*" Link="arm64\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+		<Content Condition="'$(Platform)' == 'x86'" Include="$(_GiflibPackageRuntimesDirectory)win-x86\native\*" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+		<Content Condition="'$(Platform)' == 'x64'" Include="$(_GiflibPackageRuntimesDirectory)win-x64\native\*" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+		<Content Condition="'$(Platform)' == 'ARM64'" Include="$(_GiflibPackageRuntimesDirectory)win-arm64\native\*" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+	</ItemGroup>
+</Project>

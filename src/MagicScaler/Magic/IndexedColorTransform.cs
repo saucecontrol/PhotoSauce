@@ -12,7 +12,7 @@ using System.Runtime.Intrinsics.X86;
 
 namespace PhotoSauce.MagicScaler.Transforms;
 
-internal sealed unsafe class IndexedColorTransform : ChainedPixelSource
+internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexedPixelSource
 {
 	private const int maxPaletteMapSize = 5376;  // max possible nodes at minLeafLevel = 8^3 + ... + 8^(minLeafLevel+1) + maxPaletteSize * (6 - minLeafLevel)
 	private const int maxPaletteSize = 256;

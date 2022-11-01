@@ -8,7 +8,6 @@ using System.Runtime.CompilerServices;
 
 using PhotoSauce.MagicScaler;
 using PhotoSauce.MagicScaler.Converters;
-using PhotoSauce.MagicScaler.Transforms;
 using PhotoSauce.Interop.Libpng;
 using static PhotoSauce.Interop.Libpng.Libpng;
 
@@ -158,22 +157,21 @@ internal sealed unsafe class PngEncoder : IAnimatedImageEncoder
 		checkResult(PngSetCompressionLevel(handle, 5));
 		checkResult(PngWriteIhdr(handle, (uint)width, (uint)height, 8, pngfmt, options.Interlace ? PNG_INTERLACE_ADAM7 : PNG_INTERLACE_NONE));
 
-		if (src is IndexedColorTransform idx)
+		if (src is IIndexedPixelSource idxs)
 		{
-			var pal = idx.Palette;
+			var pal = idxs.Palette;
 			fixed (uint* ppal = pal)
 			{
 				using (var palbuf = BufferPool.RentLocal<byte>(pal.Length * 4))
-					fixed (byte* pp = palbuf)
-					{
-						Unsafe.CopyBlock(pp, ppal, (uint)palbuf.Length);
+				fixed (byte* pp = palbuf)
+				{
+					Unsafe.CopyBlock(pp, ppal, (uint)palbuf.Length);
 
-						// convert palette BGRA->RGB
-						ChannelChanger<byte>.GetSwapConverter(4, 3).ConvertLine(pp, pp, palbuf.Length);
-						checkResult(PngWritePlte(handle, (png_color_struct*)pp, pal.Length));
-					}
+					ChannelChanger<byte>.GetSwapConverter(4, 3).ConvertLine(pp, pp, palbuf.Length);
+					checkResult(PngWritePlte(handle, (png_color_struct*)pp, pal.Length));
+				}
 
-				if (idx.HasAlpha)
+				if (idxs.HasAlpha())
 				{
 					using var trnbuf = BufferPool.RentLocal<byte>(pal.Length);
 					fixed (byte* pt = trnbuf)

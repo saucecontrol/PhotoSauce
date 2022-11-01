@@ -171,10 +171,21 @@ internal static class MagicTransforms
 				ctx.WicContext.SourceColorContext = WicColorProfile.CreateContextFromProfile(ctx.SourceColorProfile.ProfileBytes);
 
 			WicTransforms.AddPixelFormatConverter(ctx);
-			curFormat = ctx.Source.Format;
+			return;
 		}
 
 		var newFormat = PixelFormat.Bgr24;
+		if (curFormat == PixelFormat.Indexed8 && ctx.Source is IIndexedPixelSource idxs)
+		{
+			if (ctx.ImageContainer.FrameCount > 1 || idxs.HasAlpha())
+				newFormat = PixelFormat.Bgra32;
+			else if (idxs.IsGreyscale())
+				newFormat = PixelFormat.Grey8;
+
+			ctx.Source = ctx.AddProfiler(new PaletteTransform(ctx.Source, newFormat));
+			return;
+		}
+
 		if (!lastChance && curFormat.AlphaRepresentation == PixelAlphaRepresentation.Associated && ctx.Settings.BlendingMode != GammaMode.Linear && ctx.Settings.MatteColor.IsEmpty)
 			newFormat = PixelFormat.Pbgra32;
 		else if (curFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
@@ -185,7 +196,7 @@ internal static class MagicTransforms
 		if (curFormat == newFormat)
 			return;
 
-		if ((curFormat == PixelFormat.Rgb24 && newFormat == PixelFormat.Bgr24) || (curFormat == PixelFormat.Rgba32 && curFormat == PixelFormat.Bgra32))
+		if ((curFormat == PixelFormat.Rgb24 || curFormat == PixelFormat.Rgba32) && (newFormat == PixelFormat.Bgr24 || newFormat == PixelFormat.Bgra32))
 		{
 			ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, newFormat));
 			return;

@@ -11,7 +11,6 @@ internal sealed class ConversionTransform : ChainedPixelSource
 	private readonly IConversionProcessor processor;
 
 	public override PixelFormat Format { get; }
-	public PixelFormat SourceFormat => PrevSource.Format;
 
 	public ConversionTransform(PixelSource source, PixelFormat destFormat, ColorProfile? sourceProfile = null, ColorProfile? destProfile = null) : base(source)
 	{
@@ -147,7 +146,7 @@ internal sealed class ConversionTransform : ChainedPixelSource
 			throw new NotSupportedException("Unsupported pixel format");
 	}
 
-	protected override bool IsCompatible(PixelSource newSource) => PrevSource.Format == newSource.Format;
+	public override bool IsCompatible(PixelSource newSource) => PrevSource.Format == newSource.Format;
 
 	protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 	{

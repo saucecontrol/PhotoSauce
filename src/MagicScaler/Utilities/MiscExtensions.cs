@@ -35,6 +35,32 @@ internal static class MiscExtensions
 
 	public static bool IsGrey(this Color c) => c.R == c.G && c.G == c.B;
 
+	public static bool HasAlpha(this IIndexedPixelSource s)
+	{
+		foreach (uint c in s.Palette)
+		{
+			if (c < 0xff000000)
+				return true;
+		}
+
+		return false;
+	}
+
+	public static bool IsGreyscale(this IIndexedPixelSource s)
+	{
+		foreach (uint c in s.Palette)
+		{
+			uint c0 = (byte)c;
+			uint c1 = (byte)(c >> 8);
+			uint c2 = (byte)(c >> 16);
+
+			if (c0 != c1 || c1 != c2)
+				return false;
+		}
+
+		return true;
+	}
+
 	public static void TryReturn<T>(this ArrayPool<T> pool, T[]? buff)
 	{
 		if (buff is not null)

@@ -117,7 +117,7 @@ internal abstract class ChainedPixelSource : PixelSource
 	public virtual bool Passthrough => true;
 	protected virtual void Reset() { }
 
-	protected virtual bool IsCompatible(PixelSource newSource) =>
+	public virtual bool IsCompatible(PixelSource newSource) =>
 		PrevSource.Format == newSource.Format && PrevSource.Width == newSource.Width && PrevSource.Height == newSource.Height;
 
 	public virtual void ReInit(PixelSource newSource)
