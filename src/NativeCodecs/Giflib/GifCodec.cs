@@ -53,11 +53,7 @@ internal static unsafe class GifFactory
 			return default;
 
 		int err;
-		var gif = codec is CodecType.Decoder ? DGifOpen(stmHandle, ioFunc, &err) : EGifOpen(stmHandle, ioFunc, &err);
-		if (codec is CodecType.Encoder && err != E_GIF_SUCCEEDED)
-			throw new InvalidOperationException($"{nameof(Giflib)} encoder failed. {new string(GifErrorString(err))}");
-
-		return gif;
+		return codec is CodecType.Decoder ? DGifOpen(stmHandle, ioFunc, &err) : EGifOpen(stmHandle, ioFunc, &err);
 	}
 }
 
@@ -75,7 +71,7 @@ public static class CodecCollectionExtensions
 
 		if (removeExisting)
 		{
-			foreach (var codec in codecs.OfType<IImageDecoderInfo>().Where(c => c.MimeTypes.Any(m => m == ImageMimeTypes.Gif)).ToList())
+			foreach (var codec in codecs.Where(c => c.MimeTypes.Any(m => m == ImageMimeTypes.Gif)).ToList())
 				codecs.Remove(codec);
 		}
 
@@ -89,6 +85,17 @@ public static class CodecCollectionExtensions
 			},
 			null,
 			GifContainer.TryLoad
+		));
+		codecs.Add(new EncoderInfo(
+			GifFactory.DisplayName,
+			gifMime,
+			gifExtension,
+			new[] { PixelFormat.Indexed8.FormatGuid },
+			GifEncoderOptions.Default,
+			GifEncoder.Create,
+			true,
+			true,
+			false
 		));
 	}
 }

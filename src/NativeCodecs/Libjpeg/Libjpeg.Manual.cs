@@ -49,7 +49,6 @@ internal static unsafe partial class Libjpeg
 		marker.data_length >= IccpIdentifier.Length + ColorProfile.MinProfileLength &&
 		new ReadOnlySpan<byte>(marker.data, IccpIdentifier.Length).SequenceEqual(IccpIdentifier);
 
-
 	public static void JpegFastProgression(jpeg_compress_struct* handle)
 	{
 		handle->num_scans = semiProgressiveScanCount;

@@ -242,7 +242,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource
 
 	[DoesNotReturn]
 	private static void throwGifError(GifFileType* handle) =>
-		throw new InvalidOperationException($"{nameof(Giflib)} decoder failed. {new string(GifErrorString(handle->Error))}");
+		throw new InvalidDataException($"{nameof(Giflib)} decoder failed. {new string(GifErrorString(handle->Error))}");
 
 	private void ensureHandle()
 	{

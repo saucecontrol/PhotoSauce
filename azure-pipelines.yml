@@ -124,6 +124,7 @@ jobs:
   - script: |
       dotnet build -c Dist --version-suffix ci$(Build.BuildNumber) src/MagicScaler
       dotnet build -c Dist --version-suffix ci$(Build.BuildNumber) --no-dependencies src/WebRSize
+      dotnet build -c Dist --version-suffix ci$(Build.BuildNumber) --no-dependencies src/NativeCodecs/Giflib
       dotnet build -c Dist --version-suffix ci$(Build.BuildNumber) --no-dependencies src/NativeCodecs/Libjxl
       dotnet build -c Dist --version-suffix ci$(Build.BuildNumber) --no-dependencies src/NativeCodecs/Libpng
       dotnet build -c Dist --version-suffix ci$(Build.BuildNumber) --no-dependencies src/NativeCodecs/Libheif

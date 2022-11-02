@@ -94,8 +94,6 @@ internal sealed unsafe class PngEncoder : IAnimatedImageEncoder
 		}
 
 		written = true;
-
-		((Stream)GCHandle.FromIntPtr(handle->io_ptr->stream_handle).Target!).Flush();
 	}
 
 	public void Commit()
@@ -215,9 +213,9 @@ internal sealed unsafe class PngEncoder : IAnimatedImageEncoder
 			}
 			else
 			{
-				for (int row = 0; row < area.Height; row++)
+				for (int y = 0; y < area.Height; y++)
 				{
-					src.CopyPixels(area.Slice(row, 1), stride, span);
+					src.CopyPixels(area.Slice(y, 1), stride, span);
 					checkResult(PngWriteRow(handle, pbuf));
 				}
 			}

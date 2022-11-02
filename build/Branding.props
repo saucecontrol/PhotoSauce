@@ -17,6 +17,12 @@
 				<PackageTags>ASP.NET Web Handler Module VirtualPathProvider Image Resize Resample Process</PackageTags>
 			</PropertyGroup>
 		</When>
+		<When Condition="'$(MSBuildProjectName)'=='NativeCodecs.Giflib'">
+			<PropertyGroup>
+				<Description>GIF codec plugin for the PhotoSauce.MagicScaler pipeline.</Description>
+				<PackageTags>Image Decode Encode GIF</PackageTags>
+			</PropertyGroup>
+		</When>
 		<When Condition="'$(MSBuildProjectName)'=='NativeCodecs.Libheif'">
 			<PropertyGroup>
 				<Description>HEIC and AVIF codec plugin for the PhotoSauce.MagicScaler pipeline.</Description>

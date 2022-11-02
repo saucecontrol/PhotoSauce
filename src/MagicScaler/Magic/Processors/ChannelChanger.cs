@@ -328,9 +328,10 @@ internal static class ChannelChanger<T> where T : unmanaged
 			ipe -= 3;
 			while (ip <= ipe)
 			{
+				var t = ip[0];
 				op[0] = ip[2];
 				op[1] = ip[1];
-				op[2] = ip[0];
+				op[2] = t;
 				op[3] = alpha;
 
 				ip += 3;
@@ -449,9 +450,10 @@ internal static class ChannelChanger<T> where T : unmanaged
 			ipe -= 4;
 			while (ip <= ipe)
 			{
+				var t = ip[0];
 				op[0] = ip[2];
 				op[1] = ip[1];
-				op[2] = ip[0];
+				op[2] = t;
 
 				ip += 4;
 				op += 3;

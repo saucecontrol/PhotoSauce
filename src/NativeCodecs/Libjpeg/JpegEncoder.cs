@@ -243,9 +243,9 @@ internal sealed unsafe class JpegEncoder : IImageEncoder
 
 		fixed (byte* pline = buff)
 		{
-			for (int row = 0; row < area.Height; row++)
+			for (int y = 0; y < area.Height; y++)
 			{
-				src.CopyPixels(area.Slice(row, 1), stride, span);
+				src.CopyPixels(area.Slice(y, 1), stride, span);
 
 				uint written;
 				checkResult(JpegWriteScanlines(handle, &pline, 1, &written));
