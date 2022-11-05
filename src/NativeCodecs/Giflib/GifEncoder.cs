@@ -1,4 +1,5 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
+
 using System;
 using System.IO;
 using System.Drawing;
@@ -120,12 +121,11 @@ internal sealed unsafe class GifEncoder : IAnimatedImageEncoder
 		if (animation.HasValue && animation.Value.BackgroundColor != default)
 		{
 			uint bg = (uint)animation.Value.BackgroundColor;
-			byte* pal = stackalloc byte[12];
-			new Span<byte>(pal, 12).Clear();
-			pal[0] = (byte)(bg >> 16);
-			pal[1] = (byte)(bg >> 8);
-			pal[2] = (byte)(bg);
-			var cmap = new ColorMapObject { BitsPerPixel = 2, ColorCount = 4, Colors = (GifColorType*)pal };
+			var pal = stackalloc GifColorType[2];
+			pal[0] = new GifColorType { Red = (byte)(bg >> 16), Green = (byte)(bg >> 8), Blue = (byte)bg };
+			pal[1] = default;
+
+			var cmap = new ColorMapObject { BitsPerPixel = 1, ColorCount = 2, Colors = pal };
 			checkResult(EGifPutScreenDesc(handle, width, height, 1, 0, &cmap));
 		}
 		else
@@ -196,7 +196,7 @@ internal sealed unsafe class GifEncoder : IAnimatedImageEncoder
 	}
 
 #if !NET5_0_OR_GREATER
-	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int WriteCallback(GifFileType pinst, byte* buff, int cb);
+	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int WriteCallback(GifFileType* pinst, byte* buff, int cb);
 	private static readonly WriteCallback delWriteCallback = typeof(GifEncoder).CreateMethodDelegate<WriteCallback>(nameof(writeCallback));
 #else
 	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]

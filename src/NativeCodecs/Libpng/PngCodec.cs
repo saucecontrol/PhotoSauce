@@ -50,6 +50,10 @@ internal static unsafe class PngFactory
 /// <inheritdoc cref="WindowsCodecExtensions" />
 public static class CodecCollectionExtensions
 {
+	internal const string EnableApngEncodeName = $"{nameof(PhotoSauce)}.{nameof(NativeCodecs)}.{nameof(Libpng)}.{nameof(EnableApngEncode)}";
+
+	internal static readonly bool EnableApngEncode = AppContext.TryGetSwitch(EnableApngEncodeName, out bool val) && val;
+
 	/// <inheritdoc cref="WindowsCodecExtensions.UseWicCodecs(CodecCollection, WicCodecPolicy)" />
 	/// <param name="removeExisting">Remove any codecs already registered that match <see cref="ImageMimeTypes.Png" />.</param>
 	public static void UseLibpng(this CodecCollection codecs, bool removeExisting = true)
@@ -82,8 +86,8 @@ public static class CodecCollectionExtensions
 			new[] { PixelFormat.Grey8.FormatGuid, PixelFormat.Rgb24.FormatGuid, PixelFormat.Rgba32.FormatGuid, PixelFormat.Indexed8.FormatGuid },
 			PngEncoderOptions.Default,
 			PngEncoder.Create,
-			true,
-			true,
+			EnableApngEncode,
+			EnableApngEncode,
 			true
 		));
 	}

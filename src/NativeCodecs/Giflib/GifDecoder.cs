@@ -9,25 +9,29 @@ using System.Diagnostics.CodeAnalysis;
 
 using PhotoSauce.MagicScaler;
 using PhotoSauce.MagicScaler.Converters;
+using PhotoSauce.MagicScaler.Transforms;
 using PhotoSauce.Interop.Giflib;
 using static PhotoSauce.Interop.Giflib.Giflib;
 
 namespace PhotoSauce.NativeCodecs.Giflib;
 
-internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource
+internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, IIccProfileSource
 {
 	private static readonly bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
 	private readonly Stream stream;
 	private readonly long streamStart;
-	private readonly int frameCount, frameOffset;
+	private readonly int frameCount, frameOffset, colorCount;
 	private readonly AnimationContainer animation;
+	public readonly PixelFormat Format;
 
 	private GifFileType* handle;
 	private GifFrame? frame;
 	private RentedBuffer<uint> palette;
+	private RentedBuffer<byte> iccpData;
 
 	public FrameDisposalMethod LastDisposal;
+	public bool EOF;
 
 	private GifContainer(GifFileType* pinst, Stream stm, long pos, IDecoderOptions? opt)
 	{
@@ -36,26 +40,54 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource
 		handle = pinst;
 
 		int loopCount = 0;
+		bool alpha = false;
+
 		var rec = default(GifRecordType);
 		do
 		{
+			LoopTop:
 			CheckResult(DGifGetRecordType(handle, &rec));
 			if (rec == GifRecordType.EXTENSION_RECORD_TYPE)
 			{
 				int ext;
 				byte* data;
 				CheckResult(DGifGetExtension(handle, &ext, &data));
-				while (data is not null)
+				while (data is not null && !EOF)
 				{
 					if (ext == APPLICATION_EXT_FUNC_CODE)
 					{
-						var dspan = new Span<byte>(data + 1, data[0]);
+						var dspan = new ReadOnlySpan<byte>(data + 1, data[0]);
 						if (dspan.SequenceEqual(Netscape2_0) || dspan.SequenceEqual(Animexts1_0))
 						{
 							CheckResult(DGifGetExtensionNext(handle, &data));
 							if (data is not null && data[0] >= 3 && data[1] == 1)
-								loopCount = BinaryPrimitives.ReadUInt16LittleEndian(new Span<byte>(data + 2, 2));
+								loopCount = BinaryPrimitives.ReadUInt16LittleEndian(new ReadOnlySpan<byte>(data + 2, 2));
 						}
+						else if (dspan.Length >= 15 && dspan[..11].SequenceEqual(IccExtBlock))
+						{
+							int proflen = BinaryPrimitives.ReadInt32BigEndian(dspan[11..]);
+							if (proflen <= 1 << 20)
+							{
+								iccpData = BufferPool.Rent<byte>(proflen);
+								var wtr = new SpanBufferWriter(iccpData.Span);
+								wtr.TryWrite(dspan[11..]);
+
+								while (!EOF)
+								{
+									CheckResult(DGifGetExtensionNext(handle, &data));
+									if (data is null)
+										goto LoopTop;
+
+									wtr.TryWrite(new ReadOnlySpan<byte>(data + 1, data[0]));
+								}
+							}
+						}
+					}
+					else if (handle->ImageCount == 0 && ext == GRAPHICS_EXT_FUNC_CODE)
+					{
+						var gcb = default(GraphicsControlBlock);
+						CheckResult(DGifExtensionToGCB(data[0], data + 1, &gcb));
+						alpha = gcb.TransparentColor != NO_TRANSPARENT_COLOR;
 					}
 
 					CheckResult(DGifGetExtensionNext(handle, &data));
@@ -67,19 +99,20 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource
 				advanceFrame();
 			}
 		}
-		while (rec != GifRecordType.TERMINATE_RECORD_TYPE);
+		while (rec != GifRecordType.TERMINATE_RECORD_TYPE && !EOF);
 
 		uint bgColor = 0;
 		if (handle->SColorMap is not null)
 		{
 			var cmap = handle->SColorMap;
-			palette = BufferPool.Rent<uint>(cmap->ColorCount);
+			colorCount = cmap->ColorCount;
+			palette = BufferPool.Rent<uint>(256, true);
 
 			var cspan = palette.Span;
 			fixed (uint* pp = cspan)
-				ChannelChanger<byte>.GetSwapConverter(3, 4).ConvertLine((byte*)cmap->Colors, (byte*)pp, cspan.Length * 3);
+				ChannelChanger<byte>.GetSwapConverter(3, 4).ConvertLine((byte*)cmap->Colors, (byte*)pp, colorCount * 3);
 
-			if (handle->SBackGroundColor < cspan.Length)
+			if (handle->SBackGroundColor < colorCount)
 				bgColor = cspan[handle->SBackGroundColor];
 		}
 
@@ -89,14 +122,22 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource
 		var range = opt is IMultiFrameDecoderOptions mul ? mul.FrameRange : Range.All;
 		(frameOffset, frameCount) = range.GetOffsetAndLength(handle->ImageCount);
 
-		ResetDecoder();
+		Format = PixelFormat.Bgr24;
+		if (alpha || handle->ImageCount > 1)
+			Format = PixelFormat.Bgra32;
+		else if (isGreyscale())
+			Format = PixelFormat.Grey8;
+
+		handle = ResetDecoder();
 	}
 
 	public string MimeType => ImageMimeTypes.Gif;
 
 	public int FrameCount => frameCount;
 
-	public ReadOnlySpan<uint> Palette => palette.Span;
+	public ReadOnlySpan<uint> Palette => palette.Span[..colorCount];
+
+	int IIccProfileSource.ProfileLength => iccpData.Length;
 
 	public IImageFrame GetFrame(int index)
 	{
@@ -107,7 +148,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource
 		int curr = frame?.Index ?? -1;
 		if (index < curr)
 		{
-			ResetDecoder();
+			handle = ResetDecoder();
 			curr = -1;
 		}
 
@@ -117,7 +158,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource
 		var rec = default(GifRecordType);
 		var gcb = default(GraphicsControlBlock);
 		bool hasGcb = false;
-		while (true)
+		while (!EOF)
 		{
 			CheckResult(DGifGetRecordType(handle, &rec));
 			if (rec == GifRecordType.EXTENSION_RECORD_TYPE)
@@ -131,7 +172,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource
 					hasGcb = true;
 				}
 
-				while (data is not null)
+				while (data is not null && !EOF)
 					CheckResult(DGifGetExtensionNext(handle, &data));
 			}
 			else if (rec == GifRecordType.IMAGE_DESC_RECORD_TYPE)
@@ -154,6 +195,12 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource
 		if (typeof(T) == typeof(AnimationContainer))
 		{
 			metadata = (T)(object)animation;
+			return true;
+		}
+
+		if (typeof(T) == typeof(IIccProfileSource))
+		{
+			metadata = (T)(object)this;
 			return true;
 		}
 
@@ -183,15 +230,16 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource
 
 	public void CheckResult(int res)
 	{
-		// TODO handle early EOF as a soft error
-		//if (res == GIF_ERROR && handle->Error == D_GIF_ERR_READ_FAILED && handle->ImageCount > 0)
-		//	return;
+		if (res == GIF_OK)
+			return;
 
-		if (res == GIF_ERROR)
+		if (handle->ImageCount != 0 && stream.Position == stream.Length)
+			EOF = true;
+		else
 			throwGifError(handle);
 	}
 
-	public void ResetDecoder(bool keepFrame = false)
+	public GifFileType* ResetDecoder(bool keepFrame = false)
 	{
 		var gch = handle->UserData;
 		int err;
@@ -202,10 +250,10 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource
 		if (!keepFrame)
 		{
 			frame = null;
-			return;
+			return handle;
 		}
 
-		int curr = 0;
+		int curr = -1;
 		var rec = default(GifRecordType);
 		do
 		{
@@ -215,7 +263,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource
 				int ext;
 				byte* data;
 				CheckResult(DGifGetExtension(handle, &ext, &data));
-				while (data is not null)
+				while (data is not null && !EOF)
 					CheckResult(DGifGetExtensionNext(handle, &data));
 			}
 			else if (rec == GifRecordType.IMAGE_DESC_RECORD_TYPE)
@@ -227,17 +275,42 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource
 				advanceFrame();
 			}
 		}
-		while (rec != GifRecordType.TERMINATE_RECORD_TYPE);
+		while (rec != GifRecordType.TERMINATE_RECORD_TYPE && !EOF);
+
+		return handle;
 	}
 
-	public void RewindStream() => stream.Position = streamStart;
+	public void RewindStream()
+	{
+		stream.Position = streamStart;
+		EOF = false;
+	}
+
+	void IIccProfileSource.CopyProfile(Span<byte> dest) => iccpData.Span.CopyTo(dest);
 
 	private void advanceFrame()
 	{
 		byte* data;
 		do
 			CheckResult(DGifGetCodeNext(handle, &data));
-		while (data is not null);
+		while (data is not null && !EOF);
+	}
+
+	private bool isGreyscale()
+	{
+		var cmap = handle->Image.ColorMap;
+		if (cmap is null)
+			cmap = handle->SColorMap;
+
+		int cc = cmap->ColorCount;
+		for (int i = 0; i < cc; i++)
+		{
+			var clr = cmap->Colors[i];
+			if (clr.Red != clr.Blue | clr.Blue != clr.Green)
+				return false;
+		}
+
+		return true;
 	}
 
 	[DoesNotReturn]
@@ -257,6 +330,9 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource
 
 		palette.Dispose();
 		palette = default;
+
+		iccpData.Dispose();
+		iccpData = default;
 
 		GCHandle.FromIntPtr((IntPtr)handle->UserData).Free();
 
@@ -278,7 +354,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource
 	}
 
 #if !NET5_0_OR_GREATER
-	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int ReadCallback(GifFileType pinst, byte* buff, int cb);
+	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int ReadCallback(GifFileType* pinst, byte* buff, int cb);
 	private static readonly ReadCallback delReadCallback = typeof(GifContainer).CreateMethodDelegate<ReadCallback>(nameof(readCallback));
 #else
 	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
@@ -373,19 +449,22 @@ internal sealed unsafe class GifFrame : IImageFrame, IMetadataSource
 	public void Dispose()
 	{
 		frameBuff?.Dispose();
-		lineBuff.Dispose();
-		palette.Dispose();
 
+		lineBuff.Dispose();
 		lineBuff = default;
+
+		palette.Dispose();
 		palette = default;
 	}
 
 	private sealed class GifPixelSource : PixelSource, IFramePixelSource, IIndexedPixelSource
 	{
+		private int colorCount;
+
 		public readonly GifContainer container;
 		public readonly GifFrame frame;
 
-		public override PixelFormat Format => PixelFormat.Indexed8;
+		public override PixelFormat Format => container.Format;
 		public override int Width => frame.width;
 		public override int Height => frame.height;
 		public IImageFrame Frame => frame;
@@ -394,35 +473,109 @@ internal sealed unsafe class GifFrame : IImageFrame, IMetadataSource
 		{
 			get {
 				if (!frame.palette.IsEmpty)
-					return frame.palette.Span;
+					return frame.palette.Span[..colorCount];
 
 				var handle = container.GetHandle();
 				var cmap = handle->Image.ColorMap;
 				if (cmap is null && frame.transIdx == NO_TRANSPARENT_COLOR)
 					return container.Palette;
 
-				int pallen = cmap is not null ? cmap->ColorCount : container.Palette.Length;
-				frame.palette = BufferPool.Rent<uint>(pallen);
+				colorCount = cmap is not null ? cmap->ColorCount : container.Palette.Length;
+				frame.palette = BufferPool.Rent<uint>(256, true);
 
 				var cspan = frame.palette.Span;
 				if (cmap is not null)
 					fixed (uint* pp = cspan)
-						ChannelChanger<byte>.GetSwapConverter(3, 4).ConvertLine((byte*)cmap->Colors, (byte*)pp, cspan.Length * 3);
+						ChannelChanger<byte>.GetSwapConverter(3, 4).ConvertLine((byte*)cmap->Colors, (byte*)pp, colorCount * 3);
 				else
 					container.Palette.CopyTo(cspan);
 
 				int trn = frame.transIdx;
-				if (trn >= cspan.Length)
+				if (trn >= colorCount)
 					trn = 0;
 
 				if (trn != NO_TRANSPARENT_COLOR)
 					cspan[trn] &= 0xffffffu;
 
-				return cspan;
+				return cspan[..colorCount];
 			}
 		}
 
 		public GifPixelSource(GifFrame frm) => (container, frame) = (frm.container, frm);
+
+		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
+		{
+			var handle = container.GetHandle();
+			if (handle->Image.Interlace != 0)
+			{
+				copyPixelsInterlaced(prc, cbStride, cbBufferSize, pbBuffer);
+				return;
+			}
+
+			if (container.EOF)
+				return;
+
+			if (prc.Y < frame.lastRow)
+			{
+				handle = container.ResetDecoder(true);
+				frame.lastRow = 0;
+			}
+
+			var linebuff = Span<byte>.Empty;
+			if (prc.Width < Width)
+			{
+				if (frame.lineBuff.IsEmpty)
+					frame.lineBuff = BufferPool.Rent<byte>(Width);
+
+				linebuff = frame.lineBuff.Span;
+			}
+
+			fixed (byte* pbuff = linebuff)
+			fixed (uint* ppal = Palette)
+			{
+				for (int y = frame.lastRow; y < prc.Y; y++)
+				{
+					container.CheckResult(DGifGetLine(handle, pbuff is null ? pbBuffer : pbuff, Width));
+					frame.lastRow++;
+				}
+
+				int cbout = prc.Width * Format.ChannelCount;
+				for (int y = 0; y < prc.Height; y++)
+				{
+					byte* pout = pbBuffer + cbStride * y;
+					if (pbuff is null)
+					{
+						byte* pin = pout + cbout - prc.Width;
+						container.CheckResult(DGifGetLine(handle, pin, Width));
+						convertLine(pin, pout, ppal, prc.Width);
+					}
+					else
+					{
+						container.CheckResult(DGifGetLine(handle, pbuff, Width));
+						convertLine(pbuff + prc.X, pout, ppal, prc.Width);
+					}
+
+					frame.lastRow++;
+				}
+			}
+		}
+
+		private void copyPixelsInterlaced(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
+		{
+			var src = getFrameBuffer();
+			int cbout = prc.Width * Format.ChannelCount;
+
+			fixed (uint* ppal = Palette)
+			{
+				for (int y = 0; y < prc.Height; y++)
+				{
+					byte* pout = pbBuffer + cbStride * y;
+					byte* pin = pout + cbout - prc.Width;
+					src.CopyPixels(prc.Slice(y, 1), cbStride, cbBufferSize, pin);
+					convertLine(pin, pout, ppal, prc.Width);
+				}
+			}
+		}
 
 		private FrameBufferSource getFrameBuffer()
 		{
@@ -430,7 +583,7 @@ internal sealed unsafe class GifFrame : IImageFrame, IMetadataSource
 			{
 				var handle = container.GetHandle();
 
-				var fbuf = new FrameBufferSource(Width, Height, Format);
+				var fbuf = new FrameBufferSource(Width, Height, PixelFormat.Indexed8);
 				fixed (byte* pbuf = fbuf.Span)
 				{
 					int* offs = stackalloc int[] { 0, 4, 2, 1 };
@@ -451,56 +604,19 @@ internal sealed unsafe class GifFrame : IImageFrame, IMetadataSource
 			return frame.frameBuff;
 		}
 
-		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
+		private void convertLine(byte* istart, byte* ostart, uint* pstart, nint cb)
 		{
-			var handle = container.GetHandle();
-
-			if (handle->Image.Interlace != 0)
+			switch (Format.ChannelCount)
 			{
-				getFrameBuffer().CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
-				return;
-			}
-
-			if (prc.Y < frame.lastRow)
-			{
-				container.ResetDecoder(true);
-				frame.lastRow = 0;
-			}
-
-			int bpp = Format.BytesPerPixel;
-
-			var linebuff = Span<byte>.Empty;
-			if (prc.Width < Width)
-			{
-				if (frame.lineBuff.IsEmpty)
-					frame.lineBuff = BufferPool.Rent<byte>(Width * bpp);
-
-				linebuff = frame.lineBuff.Span;
-			}
-
-			fixed (byte* pbuff = linebuff)
-			{
-				for (int y = frame.lastRow; y < prc.Y; y++)
-				{
-					container.CheckResult(DGifGetLine(handle, pbuff is null ? pbBuffer : pbuff, Width));
-					frame.lastRow++;
-				}
-
-				for (int y = 0; y < prc.Height; y++)
-				{
-					byte* pout = pbBuffer + cbStride * y;
-					if (pbuff is null)
-					{
-						container.CheckResult(DGifGetLine(handle, pout, Width));
-					}
-					else
-					{
-						container.CheckResult(DGifGetLine(handle, pbuff, Width));
-						Unsafe.CopyBlockUnaligned(pout, pbuff + prc.X * bpp, (uint)(prc.Width * bpp));
-					}
-
-					frame.lastRow++;
-				}
+				case 1:
+					PaletteTransform.CopyPixels1Chan(istart, ostart, pstart, cb);
+					break;
+				case 3:
+					PaletteTransform.CopyPixels3Chan(istart, ostart, pstart, cb);
+					break;
+				case 4:
+					PaletteTransform.CopyPixels4Chan(istart, ostart, pstart, cb);
+					break;
 			}
 		}
 

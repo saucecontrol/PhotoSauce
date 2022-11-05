@@ -1,0 +1,17 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 0e643e9..8eec487 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -393,12 +393,6 @@ macro(set_version FILE TARGET_NAME NAME_IN_MAKEFILE)
+   list(GET LT_VERSION 2 LT_AGE)
+   math(EXPR LT_CURRENT_MINUS_AGE "${LT_CURRENT} - ${LT_AGE}")
+ 
+-  set_target_properties(
+-    ${TARGET_NAME}
+-    PROPERTIES VERSION
+-               ${LT_CURRENT_MINUS_AGE}.${LT_AGE}.${LT_REVISION}
+-               SOVERSION
+-               ${LT_CURRENT_MINUS_AGE})
+ endmacro()
+ set_version(Makefile.am webp webp)
+ set_version(Makefile.am webpdecoder webpdecoder)

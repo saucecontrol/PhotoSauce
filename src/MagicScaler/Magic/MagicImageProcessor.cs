@@ -34,18 +34,6 @@ public static class MagicImageProcessor
 	[Obsolete($"This feature will be removed in a future version."), EditorBrowsable(EditorBrowsableState.Never)]
 	public static bool EnableSimd { get; set; } = Vector.IsHardwareAccelerated && (Vector<float>.Count is 4 or 8);
 
-	private static void setEncoderFromPath(ProcessImageSettings settings, string path)
-	{
-		if (settings.EncoderInfo is not null)
-			return;
-
-		string extension = Path.GetExtension(path);
-		if (CodecManager.TryGetEncoderForFileExtension(extension, out var info))
-			settings.EncoderInfo = info;
-		else
-			throw new NotSupportedException($"An encoder for file extension '{extension}' could not be found.");
-	}
-
 	/// <summary>All-in-one processing of an image according to the specified <paramref name="settings" />.</summary>
 	/// <param name="imgPath">The path to a file containing the input image.</param>
 	/// <param name="outStream">The stream to which the output image will be written. The stream must allow Seek and Write.</param>
@@ -74,10 +62,14 @@ public static class MagicImageProcessor
 		ThrowHelper.ThrowIfNullOrEmpty(imgPath);
 		ThrowHelper.ThrowIfNull(settings);
 
-		setEncoderFromPath(settings, outPath);
-		using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
+		using var fsi = new FileStream(imgPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+		using var bfs = new PoolBufferedStream(fsi);
+		using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(bfs, settings.DecoderOptions));
+		ctx.Settings.EncoderInfo ??= getEncoderFromPath(outPath);
+		buildPipeline(ctx);
 
-		return ProcessImage(imgPath, fso, settings);
+		using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
+		return WriteOutput(ctx, fso);
 	}
 
 	/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
@@ -108,10 +100,16 @@ public static class MagicImageProcessor
 		ThrowHelper.ThrowIfEmpty(imgBuffer);
 		ThrowHelper.ThrowIfNull(settings);
 
-		setEncoderFromPath(settings, outPath);
-		using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
+		fixed (byte* pbBuffer = imgBuffer)
+		{
+			using var ums = new UnmanagedMemoryStream(pbBuffer, imgBuffer.Length);
+			using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(ums, settings.DecoderOptions));
+			ctx.Settings.EncoderInfo ??= getEncoderFromPath(outPath);
+			buildPipeline(ctx);
 
-		return ProcessImage(imgBuffer, fso, settings);
+			using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
+			return WriteOutput(ctx, fso);
+		}
 	}
 
 	/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
@@ -137,10 +135,13 @@ public static class MagicImageProcessor
 		ThrowHelper.ThrowIfNotValidForInput(imgStream);
 		ThrowHelper.ThrowIfNull(settings);
 
-		setEncoderFromPath(settings, outPath);
-		using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
+		using var bfs = PoolBufferedStream.WrapIfFile(imgStream);
+		using var ctx = new PipelineContext(settings, CodecManager.GetDecoderForStream(bfs ?? imgStream, settings.DecoderOptions));
+		ctx.Settings.EncoderInfo ??= getEncoderFromPath(outPath);
+		buildPipeline(ctx);
 
-		return ProcessImage(imgStream, fso, settings);
+		using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
+		return WriteOutput(ctx, fso);
 	}
 
 	/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
@@ -165,10 +166,12 @@ public static class MagicImageProcessor
 		ThrowHelper.ThrowIfNull(imgSource);
 		ThrowHelper.ThrowIfNull(settings);
 
-		setEncoderFromPath(settings, outPath);
-		using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
+		using var ctx = new PipelineContext(settings, new PixelSourceContainer(imgSource));
+		ctx.Settings.EncoderInfo ??= getEncoderFromPath(outPath);
+		buildPipeline(ctx);
 
-		return ProcessImage(imgSource, fso, settings);
+		using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
+		return WriteOutput(ctx, fso);
 	}
 
 	/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
@@ -193,10 +196,12 @@ public static class MagicImageProcessor
 		ThrowHelper.ThrowIfNull(imgContainer);
 		ThrowHelper.ThrowIfNull(settings);
 
-		setEncoderFromPath(settings, outPath);
-		using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
+		using var ctx = new PipelineContext(settings, imgContainer, false);
+		ctx.Settings.EncoderInfo ??= getEncoderFromPath(outPath);
+		buildPipeline(ctx);
 
-		return ProcessImage(imgContainer, fso, settings);
+		using var fso = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.Read, 1);
+		return WriteOutput(ctx, fso);
 	}
 
 	/// <summary>Constructs a new processing pipeline from which pixels can be retrieved.</summary>
@@ -283,6 +288,15 @@ public static class MagicImageProcessor
 		enc.Commit();
 
 		return new ProcessImageResult(ctx.UsedSettings, ctx.Stats);
+	}
+
+	private static IImageEncoderInfo getEncoderFromPath(string path)
+	{
+		string extension = Path.GetExtension(path);
+		if (!CodecManager.TryGetEncoderForFileExtension(extension, out var info))
+			throw new NotSupportedException($"An encoder for file extension '{extension}' could not be found.");
+
+		return info;
 	}
 
 	private static unsafe void buildPipeline(PipelineContext ctx, bool closedPipeline = true)

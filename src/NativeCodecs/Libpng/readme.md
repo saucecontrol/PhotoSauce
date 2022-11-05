@@ -44,3 +44,9 @@ Or the encoder can be selected by file extension on overloads accepting file pat
 ```C#
 MagicImageProcessor.ProcessImage(@"\img\input.jpeg", @"\img\output.png", settings);
 ```
+
+### APNG Support
+
+[APNG](https://en.wikipedia.org/wiki/APNG) decode is enabled by default in this codec, but encode is currently disabled due to an intermittent memory corruption bug in libpng.
+
+You can enable APNG encoding for testing purposes by setting the `PhotoSauce.NativeCodecs.Libpng.EnableApngEncode` switch at app startup using [AppContext](https://learn.microsoft.com/en-us/dotnet/api/system.appcontext.setswitch) or [runtimeconfig.json](https://docs.microsoft.com/en-us/dotnet/core/runtime-config/).

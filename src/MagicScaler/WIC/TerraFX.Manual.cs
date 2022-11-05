@@ -77,10 +77,3 @@ internal static partial class Windows
 		}
 	}
 }
-
-internal enum ExifColorSpace : uint
-{
-	sRGB = 1,
-	AdobeRGB = 2,
-	Uncalibrated = 65535
-}

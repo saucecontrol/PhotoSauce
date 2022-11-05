@@ -15,9 +15,8 @@ internal sealed class AnimationPipelineContext : IDisposable
 	public FrameBufferSource? ScreenBuffer;
 	public FrameDisposalMethod LastDisposal = FrameDisposalMethod.RestoreBackground;
 
-	public unsafe void UpdateFrameBuffer(IImageFrame frame, in AnimationContainer anicnt, in AnimationFrame anifrm)
+	public unsafe void UpdateFrameBuffer(IPixelSource src, in AnimationContainer anicnt, in AnimationFrame anifrm)
 	{
-		var src = frame.PixelSource;
 		int width = Math.Min(src.Width, anicnt.ScreenWidth - anifrm.OffsetLeft);
 		int height = Math.Min(src.Height, anicnt.ScreenHeight - anifrm.OffsetTop);
 

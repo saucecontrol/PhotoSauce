@@ -1,7 +1,6 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
-using System.Diagnostics;
 
 #if HWINTRINSICS
 using System.Runtime.Intrinsics;
@@ -469,38 +468,63 @@ internal static class ChannelChanger<T> where T : unmanaged
 
 		unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
-			Debug.Assert(istart == ostart);
-
-			T* ip = (T*)istart, ipe = (T*)(istart + cb);
+			T* ip = (T*)istart, ipe = (T*)(istart + cb), op = (T*)ostart;
 
 #if HWINTRINSICS
-			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count)
+			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count + sizeof(ulong))
 			{
-				var mask = (ReadOnlySpan<byte>)(new byte[] { 2, 1, 0, 5, 4, 3, 8, 7, 6, 11, 10, 9, 14, 13, 12, 15 });
-				var vmask = Sse2.LoadVector128(mask.GetAddressOf());
+				const byte _ = 0x80;
+				var mask = (ReadOnlySpan<byte>)(new byte[] {
+					2, 1, 0, 5, 4, 3, 8, 7, 6, 11, 10,  9, 14, 13, 12,  _,
+					_, 3, 2, 1, 6, 5, 4, 9, 8,  7, 12, 11, 10, 15, 14, 13
+				});
+				ref byte rmask = ref Unsafe.Add(ref MemoryMarshal.GetReference(mask), 0);
 
-				ipe -= Vector128<byte>.Count;
+				var vmask0 = Unsafe.As<byte, Vector128<byte>>(ref rmask);
+				var vmask1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref rmask, Vector128<byte>.Count));
+
+				ipe -= Vector128<byte>.Count + sizeof(ulong);
 				do
 				{
 					var v0 = Sse2.LoadVector128((byte*)ip);
-					v0 = Ssse3.Shuffle(v0, vmask);
+					var v1 = Sse2.LoadVector128((byte*)ip + sizeof(ulong));
+					ip += Vector128<byte>.Count + sizeof(ulong);
 
-					Sse2.Store((byte*)ip, v0);
-					ip += Vector128<byte>.Count - 1;
+					v0 = Ssse3.Shuffle(v0, vmask0);
+					v1 = Ssse3.Shuffle(v1, vmask1);
+
+					Sse2.StoreScalar((ulong*)op, v0.AsUInt64());
+					Sse2.Store((byte*)op + sizeof(ulong), Sse2.Or(v1, Sse2.ShiftRightLogical128BitLane(v0, 8)));
+					op += Vector128<byte>.Count + sizeof(ulong);
 				}
 				while (ip <= ipe);
-				ipe += Vector128<byte>.Count;
+				ipe += Vector128<byte>.Count + sizeof(ulong);
 			}
 #endif
 
 			ipe -= 3;
+			if (ip == op)
+			{
+				while (ip <= ipe)
+				{
+					var t = ip[0];
+					ip[0] = ip[2];
+					ip[2] = t;
+
+					ip += 3;
+				}
+				return;
+			}
+
 			while (ip <= ipe)
 			{
 				var t = ip[0];
-				ip[0] = ip[2];
-				ip[2] = t;
+				op[0] = ip[2];
+				op[1] = ip[1];
+				op[2] = t;
 
 				ip += 3;
+				op += 3;
 			}
 		}
 	}
@@ -513,38 +537,76 @@ internal static class ChannelChanger<T> where T : unmanaged
 
 		unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
-			Debug.Assert(istart == ostart);
-
-			T* ip = (T*)istart, ipe = (T*)(istart + cb);
+			T* ip = (T*)istart, ipe = (T*)(istart + cb), op = (T*)ostart;
 
 #if HWINTRINSICS
-			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count)
+			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb >= Vector256<byte>.Count)
 			{
 				var mask = (ReadOnlySpan<byte>)(new byte[] { 2, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15 });
-				var vmask = Sse2.LoadVector128(mask.GetAddressOf());
 
-				ipe -= Vector128<byte>.Count;
-				do
+				if (Avx2.IsSupported)
 				{
-					var v0 = Sse2.LoadVector128((byte*)ip);
-					v0 = Ssse3.Shuffle(v0, vmask);
+					var vmask = Avx2.BroadcastVector128ToVector256(mask.GetAddressOf());
 
-					Sse2.Store((byte*)ip, v0);
-					ip += Vector128<byte>.Count;
+					ipe -= Vector256<byte>.Count;
+					do
+					{
+						var v0 = Avx.LoadVector256((byte*)ip);
+						ip += Vector256<byte>.Count;
+
+						v0 = Avx2.Shuffle(v0, vmask);
+
+						Avx.Store((byte*)op, v0);
+						op += Vector256<byte>.Count;
+					}
+					while (ip <= ipe);
+					ipe += Vector256<byte>.Count;
 				}
-				while (ip <= ipe);
-				ipe += Vector128<byte>.Count;
+				else
+				{
+					var vmask = Sse2.LoadVector128(mask.GetAddressOf());
+
+					ipe -= Vector128<byte>.Count;
+					do
+					{
+						var v0 = Sse2.LoadVector128((byte*)ip);
+						ip += Vector128<byte>.Count;
+
+						v0 = Ssse3.Shuffle(v0, vmask);
+
+						Sse2.Store((byte*)op, v0);
+						op += Vector128<byte>.Count;
+					}
+					while (ip <= ipe);
+					ipe += Vector128<byte>.Count;
+				}
 			}
 #endif
 
 			ipe -= 4;
+			if (ip == op)
+			{
+				while (ip <= ipe)
+				{
+					var t = ip[0];
+					ip[0] = ip[2];
+					ip[2] = t;
+
+					ip += 4;
+				}
+				return;
+			}
+
 			while (ip <= ipe)
 			{
 				var t = ip[0];
-				ip[0] = ip[2];
-				ip[2] = t;
+				op[0] = ip[2];
+				op[1] = ip[1];
+				op[2] = t;
+				op[3] = ip[3];
 
 				ip += 4;
+				op += 4;
 			}
 		}
 	}

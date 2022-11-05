@@ -573,7 +573,7 @@ public sealed class ProcessImageSettings
 
 	internal void NormalizeFrom(ImageFileInfo img)
 	{
-		int index = DecoderOptions is IMultiFrameDecoderOptions opt ? opt.FrameRange.GetOffsetAndLength(img.Frames.Count).Offset : 0;
+		int index = img.Frames.Count > 1 && DecoderOptions is IMultiFrameDecoderOptions opt ? opt.FrameRange.GetOffsetAndLength(img.Frames.Count).Offset : 0;
 		var frame = img.Frames[index];
 
 		Fixup(frame.Width, frame.Height, OrientationMode != OrientationMode.Normalize && frame.ExifOrientation.SwapsDimensions());

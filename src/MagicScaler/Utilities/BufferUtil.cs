@@ -51,8 +51,6 @@ internal unsafe ref struct SpanBufferWriter
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public void Write<T>(T val) where T : unmanaged
 	{
-		Debug.Assert((uint)span.Length >= (uint)(pos + sizeof(T)));
-
 		Unsafe.WriteUnaligned(ref Unsafe.Add(ref MemoryMarshal.GetReference(span), pos), val);
 		pos += sizeof(T);
 	}
@@ -60,9 +58,16 @@ internal unsafe ref struct SpanBufferWriter
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public void Write<T>(ReadOnlySpan<T> val) where T : unmanaged
 	{
-		Debug.Assert((uint)span.Length >= (uint)(pos + MemoryMarshal.AsBytes(val).Length));
-
 		MemoryMarshal.AsBytes(val).CopyTo(span[(int)pos..]);
+		pos += val.Length;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public void TryWrite<T>(ReadOnlySpan<T> val) where T : unmanaged
+	{
+		int len = Math.Min(span.Length - (int)pos, MemoryMarshal.AsBytes(val).Length);
+
+		MemoryMarshal.AsBytes(val)[..len].CopyTo(span[(int)pos..]);
 		pos += val.Length;
 	}
 }

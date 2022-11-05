@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
 
 using PhotoSauce.MagicScaler;
+using PhotoSauce.MagicScaler.Converters;
 using PhotoSauce.Interop.Libpng;
 using static PhotoSauce.Interop.Libpng.Libpng;
 using static System.Buffers.Binary.BinaryPrimitives;
@@ -29,6 +30,8 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 	private ColorProfile? profile;
 	private PngFrame? frame;
 
+	public bool EOF;
+
 	private PngContainer(ps_png_struct* pinst, Stream stm, long pos, IDecoderOptions? opt)
 	{
 		stream = stm;
@@ -44,7 +47,7 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 		bool hasTrns = handle->HasChunk(PNG_INFO_tRNS);
 		bool hasAlpha = (color & PNG_COLOR_MASK_ALPHA) != 0 || hasTrns;
 		bool hasColor = (color & PNG_COLOR_MASK_COLOR) != 0;
-		Format = hasAlpha ? PixelFormat.Rgba32 : hasColor ? PixelFormat.Rgb24 : PixelFormat.Grey8;
+		Format = hasAlpha ? PixelFormat.Bgra32 : hasColor ? PixelFormat.Bgr24 : PixelFormat.Grey8;
 
 		interlace = ilace != PNG_INTERLACE_NONE;
 		expand = bpc < 8 || hasTrns || (color & PNG_COLOR_MASK_PALETTE) != 0;
@@ -155,7 +158,7 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 			return new PngContainer(handle, imgStream, pos, options);
 
 		imgStream.Position = pos;
-		GCHandle.FromIntPtr(handle->io_ptr->stream_handle).Free();
+		GCHandle.FromIntPtr(iod->stream_handle).Free();
 		PngDestroyRead(handle);
 
 		return null;
@@ -170,7 +173,12 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 
 	public void CheckResult(int res)
 	{
-		if (res == FALSE)
+		if (res == TRUE)
+			return;
+
+		if (stream.Position == stream.Length)
+			EOF = true;
+		else
 			throwPngError(handle);
 	}
 
@@ -190,7 +198,11 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 			frame = null;
 	}
 
-	public void RewindStream() => stream.Position = streamStart;
+	public void RewindStream()
+	{
+		stream.Position = streamStart;
+		EOF = false;
+	}
 
 	void IIccProfileSource.CopyProfile(Span<byte> dest) => getIccp().CopyTo(dest);
 
@@ -370,7 +382,7 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 		try
 		{
 			var stm = Unsafe.As<Stream>(GCHandle.FromIntPtr(pinst).Target!);
-			cb = (uint)stm.Read(new Span<byte>(buff, checked((int)cb)));
+			cb = (uint)stm.TryFillBuffer(new Span<byte>(buff, checked((int)cb)));
 
 			return cb;
 		}
@@ -431,7 +443,7 @@ internal sealed unsafe class PngFrame : IImageFrame, IMetadataSource
 			PngGetNextFrameFctl(handle, &w, &h, &x, &y, &dn, &dd, &dispose_op, &blend_op);
 
 			var blend = blend_op == PNG_BLEND_OP_OVER ? AlphaBlendMethod.BlendOver : AlphaBlendMethod.Source;
-			var afrm = new AnimationFrame((int)x, (int)y, new(dn, dd), (FrameDisposalMethod)(dispose_op + 1), blend, container.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
+			var afrm = new AnimationFrame((int)x, (int)y, new(dn, dd == 0 ? 100u : dd), (FrameDisposalMethod)(dispose_op + 1), blend, container.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
 
 			metadata = (T)(object)afrm;
 			return true;
@@ -460,38 +472,16 @@ internal sealed unsafe class PngFrame : IImageFrame, IMetadataSource
 
 		public PngPixelSource(PngFrame frm) => (container, frame) = (frm.container, frm);
 
-		private FrameBufferSource getFrameBuffer()
-		{
-			if (frame.frameBuff is null)
-			{
-				var handle = container.GetHandle();
-
-				var fbuf = new FrameBufferSource(Width, Height, Format);
-				fixed (byte* pbuf = fbuf.Span)
-				{
-					using var lines = BufferPool.RentLocal<nint>(Height);
-					var lspan = lines.Span;
-
-					for (int i = 0; i < lspan.Length; i++)
-						lspan[i] = (nint)(pbuf + i * fbuf.Stride);
-
-					fixed (nint* plines = lines)
-						container.CheckResult(PngReadImage(handle, (byte**)plines));
-				}
-
-				frame.frameBuff = fbuf;
-			}
-
-			return frame.frameBuff;
-		}
-
 		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
 			if (container.IsInterlaced)
 			{
-				getFrameBuffer().CopyPixels(prc, cbStride, cbBufferSize, pbBuffer);
+				copyPixelsInterlaced(prc, cbStride, cbBufferSize, pbBuffer);
 				return;
 			}
+
+			if (container.EOF)
+				return;
 
 			if (prc.Y < lastRow)
 			{
@@ -519,22 +509,75 @@ internal sealed unsafe class PngFrame : IImageFrame, IMetadataSource
 					lastRow++;
 				}
 
+				int cb = prc.Width * bpp;
 				for (int y = 0; y < prc.Height; y++)
 				{
 					byte* pout = pbBuffer + cbStride * y;
 					if (pbuff is null)
 					{
 						container.CheckResult(PngReadRow(handle, pout));
+						convertLine(pout, pout, cb);
 					}
 					else
 					{
 						container.CheckResult(PngReadRow(handle, pbuff));
-						Unsafe.CopyBlockUnaligned(pout, pbuff + prc.X * bpp, (uint)(prc.Width * bpp));
+						convertLine(pbuff + prc.X * bpp, pout, cb);
 					}
 
 					lastRow++;
 				}
 			}
+		}
+
+		private void copyPixelsInterlaced(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
+		{
+			var src = getFrameBuffer();
+			int cb = prc.Width * Format.ChannelCount;
+
+			for (int y = 0; y < prc.Height; y++)
+			{
+				byte* pout = pbBuffer + cbStride * y;
+				src.CopyPixels(prc.Slice(y, 1), cbStride, cbBufferSize, pout);
+				convertLine(pout, pout, cb);
+			}
+		}
+
+		private FrameBufferSource getFrameBuffer()
+		{
+			if (frame.frameBuff is null)
+			{
+				var handle = container.GetHandle();
+
+				var fbuf = new FrameBufferSource(Width, Height, Format);
+				fixed (byte* pbuf = fbuf.Span)
+				{
+					using var lines = BufferPool.RentLocal<nint>(Height);
+					var lspan = lines.Span;
+
+					for (int i = 0; i < lspan.Length; i++)
+						lspan[i] = (nint)(pbuf + i * fbuf.Stride);
+
+					fixed (nint* plines = lines)
+						container.CheckResult(PngReadImage(handle, (byte**)plines));
+				}
+
+				frame.frameBuff = fbuf;
+			}
+
+			return frame.frameBuff;
+		}
+
+		private void convertLine(byte* istart, byte* ostart, nint cb)
+		{
+			int bpp = Format.ChannelCount;
+			if (bpp == 1)
+			{
+				if (ostart != istart)
+					Unsafe.CopyBlockUnaligned(ostart, istart, (uint)cb);
+				return;
+			}
+
+			ChannelChanger<byte>.GetSwapConverter(bpp, bpp).ConvertLine(istart, ostart, cb);
 		}
 
 		public override string ToString() => nameof(PngPixelSource);

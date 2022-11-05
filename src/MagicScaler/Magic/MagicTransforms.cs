@@ -454,14 +454,67 @@ internal static class MagicTransforms
 			var fmt = ctx.ImageFrame is IYccImageFrame ? PixelFormat.Bgr24 : ctx.Source.Format;
 			var profile = ColorProfile.GetDefaultFor(fmt);
 
-			if (ctx.ImageFrame is IMetadataSource meta && meta.TryGetMetadata<IIccProfileSource>(out var icc))
+			if (ctx.ImageFrame is IMetadataSource meta)
 			{
-				using var buff = BufferPool.RentLocal<byte>(icc.ProfileLength);
-				icc.CopyProfile(buff.Span);
+				if (meta.TryGetMetadata<IIccProfileSource>(out var icc))
+				{
+					using var buff = BufferPool.RentLocal<byte>(icc.ProfileLength);
+					icc.CopyProfile(buff.Span);
 
-				var prof = ColorProfile.Cache.GetOrAdd(buff.Span);
-				if (prof.IsValid && prof.IsCompatibleWith(fmt))
-					profile = ColorProfile.GetSourceProfile(prof, mode);
+					var prof = ColorProfile.Cache.GetOrAdd(buff.Span);
+					if (prof.IsValid && prof.IsCompatibleWith(fmt))
+						profile = ColorProfile.GetSourceProfile(prof, mode);
+				}
+				else if (ColorProfile.AdobeRgb.IsCompatibleWith(fmt) && meta.TryGetMetadata<IExifSource>(out var exif))
+				{
+					// Check Exif color space for AdobeRGB or the more common Uncalibrated/InteropIndex=R03 convention.
+					// See http://ninedegreesbelow.com/photography/embedded-color-space-information.html
+					using var buff = BufferPool.RentLocal<byte>(exif.ExifLength);
+					exif.CopyExif(buff.Span);
+
+					var ecs = ExifColorSpace.sRGB;
+					bool r03 = false;
+
+					var rdr = ExifReader.Create(buff.Span);
+					while (rdr.MoveNext())
+					{
+						ref readonly var tag = ref rdr.Current;
+						if (tag.ID == ExifTags.Tiff.ExifIFD)
+						{
+							var erdr = rdr.GetReader(tag);
+							while (erdr.MoveNext())
+							{
+								ref readonly var etag = ref erdr.Current;
+								if (etag.ID == ExifTags.Exif.ColorSpace)
+								{
+									ecs = (ExifColorSpace)rdr.CoerceValue<ushort>(etag);
+								}
+								else if (etag.ID == ExifTags.Exif.InteropIFD)
+								{
+									var irdr = erdr.GetReader(etag);
+									while (irdr.MoveNext())
+									{
+										ref readonly var itag = ref irdr.Current;
+										if (itag.ID == ExifTags.Interop.InteropIndex && itag.Type == ExifType.Ascii && itag.Count == 4)
+										{
+											int v;
+											var val = new Span<byte>(&v, sizeof(int));
+											irdr.GetValues(itag, val);
+
+											if (val[..3].SequenceEqual("R03"u8))
+												r03 = true;
+										}
+									}
+								}
+							}
+
+							break;
+						}
+					}
+
+					if (ecs == ExifColorSpace.AdobeRGB || (ecs == ExifColorSpace.Uncalibrated && r03))
+						profile = ColorProfile.AdobeRgb;
+				}
 			}
 
 			ctx.SourceColorProfile = profile;
@@ -585,8 +638,6 @@ internal static class MagicTransforms
 		if (nocntmeta && nofrmmeta)
 			return;
 
-		AddNormalizingFormatConverter(ctx);
-
 		if (nocntmeta || anicnt.ScreenWidth is 0 || anicnt.ScreenHeight is 0)
 			anicnt = new(ctx.Source.Width, ctx.Source.Height, ctx.ImageContainer.FrameCount);
 		if (nofrmmeta)
@@ -610,7 +661,7 @@ internal static class MagicTransforms
 			var anictx = ctx.AnimationContext ??= new();
 
 			if (anicnt.RequiresScreenBuffer && disposal == FrameDisposalMethod.Preserve)
-				anictx.UpdateFrameBuffer(ctx.ImageFrame, anicnt, anifrm);
+				anictx.UpdateFrameBuffer(ctx.Source, anicnt, anifrm);
 
 			ldisp = anictx.LastDisposal = disposal;
 		}
@@ -654,15 +705,19 @@ internal static class MagicTransforms
 	public static void ReplayAnimation(PipelineContext ctx, AnimationContainer anicnt, int offset)
 	{
 		var anictx = ctx.AnimationContext ??= new();
-		for (int i = -offset; i <= 0; i++)
+		for (int i = -offset; i < 0; i++)
 		{
 			using var frame = ctx.ImageContainer.GetFrame(i);
 			var anifrm = frame is IMetadataSource fmeta && fmeta.TryGetMetadata<AnimationFrame>(out var anif) ? anif : AnimationFrame.Default;
 
 			if (anifrm.Disposal == FrameDisposalMethod.Preserve)
-				anictx.UpdateFrameBuffer(frame, anicnt, anifrm);
+				anictx.UpdateFrameBuffer(frame.PixelSource, anicnt, anifrm);
 
 			anictx.LastDisposal = anifrm.Disposal;
 		}
+
+		ctx.ImageFrame.Dispose();
+		ctx.ImageFrame = ctx.ImageContainer.GetFrame(0);
+		ctx.Source = ctx.ImageFrame.PixelSource.AsPixelSource();
 	}
 }

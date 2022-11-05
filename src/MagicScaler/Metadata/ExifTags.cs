@@ -18,6 +18,7 @@ internal static class ExifTags
 
 	public static class Exif
 	{
+		public const ushort ColorSpace = 0xa001;
 		public const ushort InteropIFD = 0xa005;
 	}
 
@@ -26,4 +27,11 @@ internal static class ExifTags
 		public const ushort InteropIndex = 0x0001;
 		public const ushort InteropVersion = 0x0002;
 	}
+}
+
+internal enum ExifColorSpace : ushort
+{
+	sRGB = 0x0001,
+	AdobeRGB = 0x0002,
+	Uncalibrated = 0xffff
 }
