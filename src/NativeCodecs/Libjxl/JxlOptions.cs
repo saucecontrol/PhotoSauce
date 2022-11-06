@@ -19,7 +19,7 @@ public interface IJxlEncoderOptions : IEncoderOptions
 public readonly record struct JxlLosslessEncoderOptions(JxlEncodeSpeed EncodeSpeed, JxlDecodeSpeed DecodeSpeed) : IJxlEncoderOptions
 {
 	/// <summary>Default lossless JPEG XL encoder options.</summary>
-	public static JxlLosslessEncoderOptions Default => new(JxlEncodeSpeed.Falcon, JxlDecodeSpeed.Slowest);
+	public static JxlLosslessEncoderOptions Default => new(JxlEncodeSpeed.Squirrel, JxlDecodeSpeed.Slowest);
 }
 
 /// <summary>Lossy JPEG XL encoder options.</summary>

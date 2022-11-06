@@ -8,7 +8,7 @@ Windows includes a GIF codec that is auto-discoverable by the MagicScaler pipeli
 Requirements
 ------------
 
-A compatible native binary must be present for this plugin to function.  For convenience, the NuGet package includes native binaries for Windows 10+ (x86, x64, and ARM64) and Ubuntu 20.04 (x64 and ARM64).
+A compatible native binary must be present for this plugin to function.  For convenience, the NuGet package includes native binaries for Windows (x86, x64, and ARM64) and Linux (glibc x64 and ARM64).
 
 Usage
 -----

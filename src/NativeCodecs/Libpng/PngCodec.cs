@@ -29,7 +29,7 @@ internal static unsafe class PngFactory
 			[DllImport("kernel32", ExactSpelling = true)]
 			static extern IntPtr LoadLibraryW(ushort* lpLibFileName);
 
-			string lib = Path.Combine(RuntimeInformation.ProcessArchitecture.ToString(), "pspng");
+			string lib = Path.Combine(RuntimeInformation.ProcessArchitecture.ToString(), pspng);
 			fixed (char* plib = lib)
 				LoadLibraryW((ushort*)plib);
 		}

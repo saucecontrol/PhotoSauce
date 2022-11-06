@@ -12,7 +12,7 @@ Windows 10 and 11 include a HEIF codec by default, but it may not function for H
 Requirements
 ------------
 
-A compatible `libheif` binary must be present for this plugin to function.  For convenience, the NuGet package includes native binaries for Windows 10+ (x86, x64, and ARM64) and Ubuntu 20.04 (x64 and ARM64).
+A compatible `libheif` binary must be present for this plugin to function.  For convenience, the NuGet package includes native binaries for Windows (x86, x64, and ARM64) and Linux (glibc x64 and ARM64).
 
 Usage
 -----

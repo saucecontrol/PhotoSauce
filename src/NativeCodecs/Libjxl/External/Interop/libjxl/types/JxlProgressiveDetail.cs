@@ -6,10 +6,13 @@
 
 namespace PhotoSauce.Interop.Libjxl;
 
-internal enum JxlDataType
+internal enum JxlProgressiveDetail
 {
-    JXL_TYPE_FLOAT = 0,
-    JXL_TYPE_UINT8 = 2,
-    JXL_TYPE_UINT16 = 3,
-    JXL_TYPE_FLOAT16 = 5,
+    kFrames = 0,
+    kDC = 1,
+    kLastPasses = 2,
+    kPasses = 3,
+    kDCProgressive = 4,
+    kDCGroups = 5,
+    kGroups = 6,
 }

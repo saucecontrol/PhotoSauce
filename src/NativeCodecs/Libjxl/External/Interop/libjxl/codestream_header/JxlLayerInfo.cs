@@ -6,18 +6,24 @@
 
 namespace PhotoSauce.Interop.Libjxl;
 
-internal partial struct JxlFrameHeader
+internal partial struct JxlLayerInfo
 {
-    [NativeTypeName("uint32_t")]
-    public uint duration;
+    public int have_crop;
+
+    [NativeTypeName("int32_t")]
+    public int crop_x0;
+
+    [NativeTypeName("int32_t")]
+    public int crop_y0;
 
     [NativeTypeName("uint32_t")]
-    public uint timecode;
+    public uint xsize;
 
     [NativeTypeName("uint32_t")]
-    public uint name_length;
+    public uint ysize;
 
-    public int is_last;
+    public JxlBlendInfo blend_info;
 
-    public JxlLayerInfo layer_info;
+    [NativeTypeName("uint32_t")]
+    public uint save_as_reference;
 }

@@ -198,7 +198,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 			return true;
 		}
 
-		if (typeof(T) == typeof(IIccProfileSource))
+		if (typeof(T) == typeof(IIccProfileSource) && iccpData.Length != 0)
 		{
 			metadata = (T)(object)this;
 			return true;

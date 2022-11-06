@@ -456,7 +456,7 @@ internal static class MagicTransforms
 
 			if (ctx.ImageFrame is IMetadataSource meta)
 			{
-				if (meta.TryGetMetadata<IIccProfileSource>(out var icc))
+				if (meta.TryGetMetadata<IIccProfileSource>(out var icc) && icc.ProfileLength >= ColorProfile.MinProfileLength)
 				{
 					using var buff = BufferPool.RentLocal<byte>(icc.ProfileLength);
 					icc.CopyProfile(buff.Span);

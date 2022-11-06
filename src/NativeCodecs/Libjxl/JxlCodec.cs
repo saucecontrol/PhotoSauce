@@ -15,9 +15,9 @@ namespace PhotoSauce.NativeCodecs.Libjxl;
 
 internal static unsafe class JxlFactory
 {
-	public const string DisplayName = $"{libjxl} 0.6.1";
+	public const string DisplayName = $"{libjxl} 0.7.0";
 	public const string libjxl = nameof(libjxl);
-	public const uint libver = 6001;
+	public const uint libver = 7000;
 
 	private static readonly Lazy<bool> dependencyValid = new(() => {
 #if NETFRAMEWORK
@@ -96,11 +96,5 @@ internal static class JxlError
 	{
 		if (status == JxlDecoderStatus.JXL_DEC_ERROR)
 			throw new InvalidOperationException($"{nameof(Libjxl)} decoder failed.");
-	}
-
-	public static void Check(JxlEncoderStatus status)
-	{
-		if (status == JxlEncoderStatus.JXL_ENC_ERROR || status == JxlEncoderStatus.JXL_ENC_NOT_SUPPORTED)
-			throw new InvalidOperationException($"{nameof(Libjxl)} encoder failed.");
 	}
 }

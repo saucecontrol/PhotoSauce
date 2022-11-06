@@ -1,15 +1,18 @@
 // Copyright © Clinton Ingram and Contributors. Licensed under the MIT License (MIT).
 
-// Ported from libjxl headers (types.h)
+// Ported from libjxl headers (encode.h)
 // Original source Copyright (c) the JPEG XL Project Authors. All rights reserved.
 // See third-party-notices in the repository root for more information.
 
 namespace PhotoSauce.Interop.Libjxl;
 
-internal enum JxlDataType
+internal enum JxlEncoderError
 {
-    JXL_TYPE_FLOAT = 0,
-    JXL_TYPE_UINT8 = 2,
-    JXL_TYPE_UINT16 = 3,
-    JXL_TYPE_FLOAT16 = 5,
+    JXL_ENC_ERR_OK = 0,
+    JXL_ENC_ERR_GENERIC = 1,
+    JXL_ENC_ERR_OOM = 2,
+    JXL_ENC_ERR_JBRD = 3,
+    JXL_ENC_ERR_BAD_INPUT = 4,
+    JXL_ENC_ERR_NOT_SUPPORTED = 0x80,
+    JXL_ENC_ERR_API_USAGE = 0x81,
 }

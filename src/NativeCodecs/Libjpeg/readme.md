@@ -8,7 +8,7 @@ Windows includes a JPEG codec that is auto-discoverable by the MagicScaler pipel
 Requirements
 ------------
 
-A compatible native binary must be present for this plugin to function.  For convenience, the NuGet package includes native binaries for Windows 10+ (x86, x64, and ARM64) and Ubuntu 20.04 (x64 and ARM64).
+A compatible native binary must be present for this plugin to function.  For convenience, the NuGet package includes native binaries for Windows (x86, x64, and ARM64) and Linux (glibc x64 and ARM64).
 
 Standard releases of `libjpeg` and `libjpeg-turbo` are not usable reliably from .NET; a custom build is required.  A [vcpkg](https://github.com/microsoft/vcpkg) port containing the customizations is located in the [PhotoSauce GitHub repo](https://github.com/saucecontrol/PhotoSauce/tree/master/build/vcpkg/ports/psjpeg) if you need to build for a platform not included in this package.
 

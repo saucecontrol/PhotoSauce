@@ -137,10 +137,8 @@ internal sealed unsafe class HeifContainer : IImageContainer
 
 			if (typeof(T) == typeof(IExifSource))
 			{
-				var exif = "Exif"u8;
-
 				uint blockid;
-				if (heif_image_handle_get_list_of_metadata_block_IDs(container.handle, (sbyte*)exif.GetAddressOf(), &blockid, 1) != 0)
+				if (heif_image_handle_get_list_of_metadata_block_IDs(container.handle, (sbyte*)"Exif"u8.GetAddressOf(), &blockid, 1) != 0)
 				{
 					int blocklen = (int)heif_image_handle_get_metadata_size(container.handle, blockid);
 					exifbuff = BufferPool.Rent<byte>(blocklen);

@@ -3,12 +3,12 @@ PhotoSauce.NativeCodecs.Libjxl
 
 This MagicScaler plugin wraps the [libjxl](https://github.com/libjxl/libjxl) reference [JPEG XL](https://jpeg.org/jpegxl/) codec.
 
-*IMPORTANT: Version 0.6.1 of `libjxl` is a preview release and is not fully stable.  Some combinations of encoder settings may lead to access violations, infinte loops, or other catastrophic failures.  Use with caution.*
+*IMPORTANT: Version 0.7.0 of `libjxl` is a preview release and may not be fully stable.  Use the encoder with caution.*
 
 Requirements
 ------------
 
-A compatible `libjxl` binary must be present for this plugin to function.  For convenience, the NuGet package includes native binaries for Windows 10+ (x86, x64, and ARM64) and Ubuntu 20.04 (x64 and ARM64).
+A compatible `libjxl` binary must be present for this plugin to function.  For convenience, the NuGet package includes native binaries for Windows (x86, x64, and ARM64) and Linux (glibc x64 and ARM64).
 
 Usage
 -----

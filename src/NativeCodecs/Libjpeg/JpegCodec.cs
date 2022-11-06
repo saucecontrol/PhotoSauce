@@ -29,7 +29,7 @@ internal static unsafe class JpegFactory
 			[DllImport("kernel32", ExactSpelling = true)]
 			static extern IntPtr LoadLibraryW(ushort* lpLibFileName);
 
-			string lib = Path.Combine(RuntimeInformation.ProcessArchitecture.ToString(), "psjpeg");
+			string lib = Path.Combine(RuntimeInformation.ProcessArchitecture.ToString(), psjpeg);
 			fixed (char* plib = lib)
 				LoadLibraryW((ushort*)plib);
 		}
