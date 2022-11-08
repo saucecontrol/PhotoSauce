@@ -176,6 +176,11 @@ internal sealed unsafe class GifEncoder : IAnimatedImageEncoder
 
 		var gch = GCHandle.FromIntPtr((IntPtr)handle->UserData);
 
+		// EGifCloseFile will attempt to write GIF trailer byte before cleaning up.
+		// We prevent that during finalization by taking the file handle away from it.
+		if (!disposing)
+			handle->UserData = null;
+
 		int err;
 		_ = EGifCloseFile(handle, &err);
 		handle = null;
@@ -206,6 +211,9 @@ internal sealed unsafe class GifEncoder : IAnimatedImageEncoder
 	{
 		try
 		{
+			if (pinst->UserData is null)
+				return 0;
+
 			var stm = Unsafe.As<Stream>(GCHandle.FromIntPtr((IntPtr)pinst->UserData).Target!);
 			stm.Write(new ReadOnlySpan<byte>(buff, cb));
 

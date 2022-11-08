@@ -12,9 +12,9 @@ Speed and efficiency are unmatched by anything else on the .NET platform.
 Requirements
 ------------
 
-MagicScaler currently has full functionality only on Windows.  Although MagicScaler is compatible with -- and optimized for -- .NET Core and .NET 5+, it requires the [Windows Imaging Component](https://docs.microsoft.com/en-us/windows/desktop/wic/-wic-about-windows-imaging-codec) for its image codec support.
+MagicScaler currently has full functionality only on Windows.
 
-Work is in progress to reach full feature parity on Linux.
+Work is in progress to reach full feature parity on Linux.  A growing collection of cross-platform codecs is available on [nuget.org](https://www.nuget.org/packages?q=photosauce.nativecodecs), and at this point most use cases are covered.  Notable exceptions are support for BMP and TIFF images and CMYK JPEG.
 
 Usage
 -----
@@ -35,94 +35,161 @@ See the [full documentation](https://docs.photosauce.net/api/PhotoSauce.MagicSca
 MagicScaler Performance
 -----------------------
 
-Benchmark results in this section come from the tests used in https://blogs.msdn.microsoft.com/dotnet/2017/01/19/net-core-image-processing/ -- updated to use current (Apr 2022) versions of the libraries and runtime.  The original benchmark project [is also on GitHub](https://github.com/bleroy/core-imaging-playground).
+Benchmark results in this section come from the tests used in https://blogs.msdn.microsoft.com/dotnet/2017/01/19/net-core-image-processing/ -- updated to use current (Nov 2022) versions of the libraries and runtime.  The original benchmark project [is also on GitHub](https://github.com/bleroy/core-imaging-playground).
 
 *For these results, the benchmarks were modified to use a constant `UnrollFactor` so these runs more accurately report managed memory allocations and GC counts.  By default, BenchmarkDotNet targets a run time in the range of 500ms-1s for each iteration.  This means it executes slower benchmark methods using a smaller number of operations per iteration, and it can wildly under-report allocation and GCs, as those numbers are extrapolated from the limited iterations it runs.  The constant `UnrollFactor` ensures all benchmarks' reported memory stats are based on the same run counts. The `UnrollFactor` used for each run is listed at the top of each set of results.*
 
-Benchmark environment:
-
-``` ini
-BenchmarkDotNet=v0.13.1.1695-nightly, OS=Windows 10 (10.0.19043.1586/21H1/May2021Update)
-Intel Xeon W-11855M CPU 3.20GHz, 1 CPU, 12 logical and 6 physical cores
-.NET SDK=6.0.300-preview.22204.3
-  [Host]   : .NET 6.0.3 (6.0.322.12309), X64 RyuJIT
-  ShortRun : .NET 6.0.3 (6.0.322.12309), X64 RyuJIT
-```
-
 ### End-to-End Image Resizing
 
-First up is a semi-real-world image resizing benchmark, in which 12 JPEGs of approximately 1-megapixel each are resized to 150px wide thumbnails and saved back as JPEG.
+This is a semi-real-world image resizing benchmark, in which 12 JPEGs of approximately 1 megapixel each are resized to 150px wide thumbnails and saved back as JPEG.  Not all libraries are supported on all platforms.  See version notes below.
 
-``` ini
-Job=ShortRun  IterationCount=5  LaunchCount=1  UnrollFactor=32  WarmupCount=5
+#### Windows x64
 
-|                                 Method |      Mean |     Error |   StdDev | Ratio | RatioSD |     Gen 0 |     Gen 1 |     Gen 2 |  Allocated | Alloc Ratio |
-|--------------------------------------- |----------:|----------:|---------:|------:|--------:|----------:|----------:|----------:|-----------:|------------:|
-|     *MagicScaler Load, Resize, Save(1) |  55.71 ms |  3.683 ms | 0.957 ms |  0.16 |    0.00 |         - |         - |         - |   45.51 KB |        4.45 |
-|   System.Drawing Load, Resize, Save(2) | 357.62 ms | 12.352 ms | 3.208 ms |  1.00 |    0.00 |         - |         - |         - |   10.23 KB |        1.00 |
-|       ImageSharp Load, Resize, Save(3) | 108.06 ms |  7.481 ms | 1.943 ms |  0.30 |    0.01 |  156.2500 |   62.5000 |         - | 1492.73 KB |      145.98 |
-|      ImageMagick Load, Resize, Save(4) | 349.53 ms | 13.851 ms | 3.597 ms |  0.98 |    0.02 |         - |         - |         - |   51.75 KB |        5.06 |
-|        ImageFree Load, Resize, Save(5) | 209.06 ms |  8.241 ms | 2.140 ms |  0.58 |    0.01 | 6000.0000 | 6000.0000 | 6000.0000 |   92.69 KB |        9.06 |
-| SkiaSharp Canvas Load, Resize, Save(6) | 167.62 ms |  7.604 ms | 1.975 ms |  0.47 |    0.01 |         - |         - |         - |  101.44 KB |        9.92 |
-| SkiaSharp Bitmap Load, Resize, Save(6) | 169.28 ms |  2.591 ms | 0.401 ms |  0.47 |    0.00 |         - |         - |         - |    85.5 KB |        8.36 |
-|          NetVips Load, Resize, Save(7) | 102.40 ms |  1.180 ms | 0.307 ms |  0.29 |    0.00 |         - |         - |         - |   46.04 KB |        4.50 |
+```ini
+BenchmarkDotNet=v0.13.2.1974-nightly, OS=Windows 10 (10.0.19043.2006/21H1/May2021Update)
+Intel Xeon W-11855M CPU 3.20GHz, 1 CPU, 12 logical and 6 physical cores
+.NET SDK=7.0.100-rc.2.22477.23
+  ShortRun : .NET 6.0.10 (6.0.1022.47605), X64 RyuJIT AVX2
+
+Job=ShortRun  IterationCount=5  LaunchCount=1  UnrollFactor=32  WarmupCount=3
+
+|                               Method |      Mean |     Error |   StdDev | Ratio | RatioSD |      Gen0 |      Gen1 |      Gen2 |  Allocated | Alloc Ratio |
+|------------------------------------- |----------:|----------:|---------:|------:|--------:|----------:|----------:|----------:|-----------:|------------:|
+|   *MagicScaler Load, Resize, Save(1) |  46.85 ms |  2.948 ms | 0.456 ms |  0.13 |    0.00 |         - |         - |         - |   42.37 KB |        4.65 |
+| System.Drawing Load, Resize, Save(2) | 354.73 ms |  8.168 ms | 1.264 ms |  1.00 |    0.00 |         - |         - |         - |    9.11 KB |        1.00 |
+|      ImageFlow Load, Resize, Save(3) | 226.48 ms |  2.284 ms | 0.353 ms |  0.64 |    0.00 |  968.7500 |  968.7500 |  968.7500 | 4627.13 KB |      508.17 |
+|     ImageSharp Load, Resize, Save(4) | 115.90 ms | 12.847 ms | 3.724 ms |  0.33 |    0.04 |  156.2500 |   62.5000 |         - |  1532.8 KB |      168.34 |
+|    ImageMagick Load, Resize, Save(5) | 345.99 ms | 14.847 ms | 3.856 ms |  0.98 |    0.01 |         - |         - |         - |   50.44 KB |        5.54 |
+|      ImageFree Load, Resize, Save(6) | 212.10 ms |  2.055 ms | 0.318 ms |  0.60 |    0.00 | 6000.0000 | 6000.0000 | 6000.0000 |   91.95 KB |       10.10 |
+|      SkiaSharp Load, Resize, Save(7) | 117.43 ms |  1.270 ms | 0.330 ms |  0.33 |    0.00 |         - |         - |         - |   84.19 KB |        9.25 |
+|        NetVips Load, Resize, Save(8) | 100.92 ms |  4.383 ms | 0.678 ms |  0.28 |    0.00 |         - |         - |         - |   115.9 KB |       12.73 |
 ```
 
-* (1) `PhotoSauce.MagicScaler` version 0.13.0.
+#### Windows Arm64 (Windows Dev Kit 2023)
+
+```ini
+BenchmarkDotNet=v0.13.2.1974-nightly, OS=Windows 11 (10.0.22621.674)
+Snapdragon Compute Platform, 1 CPU, 8 logical and 8 physical cores
+.NET SDK=6.0.402
+  ShortRun : .NET 6.0.10 (6.0.1022.47605), Arm64 RyuJIT AdvSIMD
+
+Job=ShortRun  IterationCount=5  LaunchCount=1  UnrollFactor=32  WarmupCount=3
+
+|                               Method |      Mean |     Error |   StdDev | Ratio |     Gen0 |     Gen1 |  Allocated | Alloc Ratio |
+|------------------------------------- |----------:|----------:|---------:|------:|---------:|---------:|-----------:|------------:|
+|   *MagicScaler Load, Resize, Save(1) |  65.72 ms |  0.532 ms | 0.082 ms |  0.17 |        - |        - |   42.36 KB |        4.65 |
+| System.Drawing Load, Resize, Save(2) | 386.78 ms |  2.359 ms | 0.613 ms |  1.00 |        - |        - |    9.11 KB |        1.00 |
+|     ImageSharp Load, Resize, Save(4) | 287.06 ms |  3.125 ms | 0.812 ms |  0.74 | 375.0000 | 187.5000 | 1635.48 KB |      179.62 |
+|    ImageMagick Load, Resize, Save(5) | 588.63 ms | 13.049 ms | 2.019 ms |  1.52 |        - |        - |   50.44 KB |        5.54 |
+|      SkiaSharp Load, Resize, Save(7) | 158.27 ms |  1.816 ms | 0.472 ms |  0.41 |        - |        - |   82.32 KB |        9.04 |
+|        NetVips Load, Resize, Save(8) | 136.21 ms |  6.125 ms | 1.591 ms |  0.35 |        - |        - |   115.9 KB |       12.73 |
+```
+
+#### Linux x64 (WSL2)
+
+```ini
+BenchmarkDotNet=v0.13.2.1974-nightly, OS=ubuntu 20.04
+Intel Xeon W-11855M CPU 3.20GHz, 1 CPU, 12 logical and 6 physical cores
+.NET SDK=6.0.402
+  ShortRun : .NET 6.0.10 (6.0.1022.47605), X64 RyuJIT AVX2
+
+Job=ShortRun  IterationCount=5  LaunchCount=1  UnrollFactor=32  WarmupCount=3
+
+|                               Method |     Mean |    Error |   StdDev | Ratio | RatioSD |     Gen0 |     Gen1 |     Gen2 |  Allocated | Alloc Ratio |
+|------------------------------------- |---------:|---------:|---------:|------:|--------:|---------:|---------:|---------:|-----------:|------------:|
+|    MagicScaler Load, Resize, Save(1) |  99.8 ms |  1.91 ms |  0.47 ms |  0.37 |    0.01 |        - |        - |        - |   42.38 KB |        4.51 |
+| System.Drawing Load, Resize, Save(2) | 271.7 ms | 12.34 ms |  3.20 ms |  1.00 |    0.00 |        - |        - |        - |     9.4 KB |        1.00 |
+|      ImageFlow Load, Resize, Save(3) | 321.2 ms |  6.80 ms |  1.77 ms |  1.18 |    0.01 | 968.7500 | 968.7500 | 968.7500 | 4627.46 KB |      492.06 |
+|     ImageSharp Load, Resize, Save(4) | 226.5 ms |  4.09 ms |  1.06 ms |  0.83 |    0.01 | 156.2500 |  62.5000 |        - | 1532.81 KB |      162.99 |
+|    ImageMagick Load, Resize, Save(5) | 522.6 ms | 27.02 ms |  7.02 ms |  1.92 |    0.04 |        - |        - |        - |   50.84 KB |        5.41 |
+|      SkiaSharp Load, Resize, Save(7) | 338.4 ms | 38.62 ms | 10.03 ms |  1.25 |    0.04 |        - |        - |        - |   84.48 KB |        8.98 |
+|        NetVips Load, Resize, Save(8) | 380.5 ms | 11.04 ms |  2.87 ms |  1.40 |    0.02 |        - |        - |        - |  116.48 KB |       12.39 |
+```
+
+#### Linux Arm64 (Raspberry Pi 4b 2GB)
+
+```ini
+BenchmarkDotNet=v0.13.2.1974-nightly, OS=ubuntu 22.04
+Unknown processor
+.NET SDK=6.0.402
+  ShortRun : .NET 6.0.10 (6.0.1022.47605), Arm64 RyuJIT AdvSIMD
+
+Job=ShortRun  IterationCount=5  LaunchCount=1  UnrollFactor=8  WarmupCount=3
+
+|                               Method |       Mean |    Error |  StdDev | Ratio |      Gen0 |     Gen1 |  Allocated | Alloc Ratio |
+|------------------------------------- |-----------:|---------:|--------:|------:|----------:|---------:|-----------:|------------:|
+|   *MagicScaler Load, Resize, Save(1) |   214.7 ms |  4.33 ms | 0.67 ms |  0.18 |         - |        - |   43.67 KB |        4.42 |
+| System.Drawing Load, Resize, Save(2) | 1,205.9 ms | 26.54 ms | 6.89 ms |  1.00 |         - |        - |    9.87 KB |        1.00 |
+|     ImageSharp Load, Resize, Save(4) |   997.0 ms | 18.08 ms | 4.70 ms |  0.83 | 1625.0000 | 375.0000 | 1635.48 KB |      165.72 |
+|    ImageMagick Load, Resize, Save(5) | 1,688.5 ms | 12.84 ms | 3.34 ms |  1.40 |         - |        - |   51.47 KB |        5.21 |
+|      SkiaSharp Load, Resize, Save(7) |   279.7 ms |  1.87 ms | 0.48 ms |  0.23 |  125.0000 |        - |   81.29 KB |        8.24 |
+|        NetVips Load, Resize, Save(8) |   421.5 ms | 14.72 ms | 3.82 ms |  0.35 |  125.0000 |        - |  117.35 KB |       11.89 |
+```
+
+#### Versions Tested
+
+* (1) `PhotoSauce.MagicScaler` version 0.13.2 with `PhotoSauce.NativeCodecs.Libjpeg` version 2.1.4-preview1.
 * (2) `System.Drawing.Common` version 5.0.3.
-* (3) `SixLabors.ImageSharp` version 2.1.0.
-* (4) `Magick.NET-Q8-AnyCPU` version 11.1.0.
-* (5) `FreeImage.Standard` version 4.3.8.
-* (6) `SkiaSharp` version 2.80.3.
-* (7) `NetVips` version 2.1.0 with `NetVips.Native` (libvips) version 8.12.2.
+* (3) `Imageflow.AllPlatforms` Version 0.9.0.
+* (4) `SixLabors.ImageSharp` version 2.1.3.
+* (5) `Magick.NET-Q8-AnyCPU` version 12.2.0.
+* (6) `FreeImage.Standard` version 4.3.8.
+* (7) `SkiaSharp` version 2.88.3.
+* (8) `NetVips` version 2.2.0 with `NetVips.Native` (libvips) version 8.13.2.
 
 Note that unmanaged memory usage is not measured by BenchmarkDotNet's `MemoryDiagnoser`, nor is managed memory allocated but never released to GC (e.g. pooled objects/buffers).  See the [MagicScaler Efficiency](#magicscaler-efficiency) section for an analysis of total process memory usage for each library.
 
 The performance numbers mostly speak for themselves, but some notes on image quality are warranted.  The benchmark suite saves the output so that the visual quality of the output of each library can be compared in addition to the performance.  See the [MagicScaler Quality](#magicscaler-quality) section below for details.
+
+<details>
+<summary>More Benchmarks</summary>
+
+Benchmark environment:
+
+``` ini
+BenchmarkDotNet=v0.13.2.1974-nightly, OS=Windows 10 (10.0.19043.2006/21H1/May2021Update)
+Intel Xeon W-11855M CPU 3.20GHz, 1 CPU, 12 logical and 6 physical cores
+.NET SDK=7.0.100-rc.2.22477.23
+  ShortRun : .NET 6.0.10 (6.0.1022.47605), X64 RyuJIT AVX2
+```
 
 ### Parallel End-to-End Resizing
 
 This benchmark is the same as the previous but uses `Parallel.ForEach` to run the 12 test images in parallel.  It is meant to highlight cases where the libraries' performance doesn't scale up linearly with extra processors.
 
 ``` ini
-Job=ShortRun  IterationCount=5  LaunchCount=1  UnrollFactor=64  WarmupCount=5
+Job=ShortRun  IterationCount=5  LaunchCount=1  UnrollFactor=64  WarmupCount=3
 
-|                                         Method |      Mean |    Error |   StdDev | Ratio |     Gen 0 |     Gen 1 |     Gen 2 |  Allocated | Alloc Ratio |
-|----------------------------------------------- |----------:|---------:|---------:|------:|----------:|----------:|----------:|-----------:|------------:|
-|     *MagicScaler Load, Resize, Save - Parallel |  11.49 ms | 0.643 ms | 0.100 ms |  0.09 |         - |         - |         - |   73.98 KB |        1.88 |
-|   System.Drawing Load, Resize, Save - Parallel | 133.11 ms | 0.709 ms | 0.184 ms |  1.00 |         - |         - |         - |   39.41 KB |        1.00 |
-|       ImageSharp Load, Resize, Save - Parallel |  22.91 ms | 0.281 ms | 0.073 ms |  0.17 |  156.2500 |   78.1250 |         - | 1524.18 KB |       38.68 |
-|      ImageMagick Load, Resize, Save - Parallel | 100.92 ms | 5.891 ms | 1.530 ms |  0.76 |         - |         - |         - |   85.45 KB |        2.17 |
-|        ImageFree Load, Resize, Save - Parallel |  46.08 ms | 2.399 ms | 0.371 ms |  0.35 | 3062.5000 | 3062.5000 | 3062.5000 |  118.96 KB |        3.02 |
-| SkiaSharp Canvas Load, Resize, Save - Parallel |  34.09 ms | 0.527 ms | 0.082 ms |  0.26 |   15.6250 |         - |         - |  134.99 KB |        3.43 |
-| SkiaSharp Bitmap Load, Resize, Save - Parallel |  34.36 ms | 1.025 ms | 0.159 ms |  0.26 |   15.6250 |         - |         - |   116.9 KB |        2.97 |
-|          NetVips Load, Resize, Save - Parallel |  38.69 ms | 0.252 ms | 0.065 ms |  0.29 |         - |         - |         - |   77.99 KB |        1.98 |
+|                                       Method |      Mean |     Error |    StdDev | Ratio | RatioSD |      Gen0 |      Gen1 |      Gen2 |  Allocated | Alloc Ratio |
+|--------------------------------------------- |----------:|----------:|----------:|------:|--------:|----------:|----------:|----------:|-----------:|------------:|
+|   *MagicScaler Load, Resize, Save - Parallel |  11.07 ms |  0.511 ms |  0.133 ms |  0.08 |    0.00 |         - |         - |         - |   71.35 KB |        1.95 |
+| System.Drawing Load, Resize, Save - Parallel | 144.01 ms | 26.195 ms |  4.054 ms |  1.00 |    0.00 |         - |         - |         - |   36.62 KB |        1.00 |
+|      ImageFlow Load, Resize, Save - Parallel |  51.70 ms |  5.179 ms |  0.801 ms |  0.36 |    0.01 |  984.3750 |  984.3750 |  984.3750 | 4628.02 KB |      126.39 |
+|     ImageSharp Load, Resize, Save - Parallel |  26.25 ms | 32.435 ms |  5.019 ms |  0.18 |    0.03 |  171.8750 |   78.1250 |         - | 1564.91 KB |       42.74 |
+|    ImageMagick Load, Resize, Save - Parallel | 149.86 ms | 27.115 ms |  7.042 ms |  1.03 |    0.05 |         - |         - |         - |   88.22 KB |        2.41 |
+|      ImageFree Load, Resize, Save - Parallel |  63.07 ms | 41.212 ms | 10.703 ms |  0.45 |    0.09 | 3156.2500 | 3156.2500 | 3156.2500 |  117.06 KB |        3.20 |
+|      SkiaSharp Load, Resize, Save - Parallel |  26.31 ms |  1.399 ms |  0.216 ms |  0.18 |    0.01 |   15.6250 |         - |         - |  110.13 KB |        3.01 |
 ```
 
-Note the relative performance drop-off for NetVips.  It uses multiple threads for a single operation by default, making it scale up poorly and leaving it vulnerable to [CPU oversubscription](https://web.archive.org/web/20200221153045/https://docs.microsoft.com/en-us/archive/blogs/visualizeparallel/oversubscription-a-classic-parallel-performance-problem) problems under heavy server load.
-
-Similarly, System.Drawing fails to scale up as well as the other libraries, but for the opposite reason.  The System.Drawing tests run at less than 100% CPU when run in parallel, presumably due to some internal locking/serialization designed to limit memory use.
-
-<details>
-<summary>Resize-Only Synthetic Benchmark</summary>
+The NetVips test hung during this benchmark and had to be excluded.  Previous versions worked, so it is unclear whether the issue lies with BenchmarkDotNet or a change in NetVips.
 
 ### Resize-Only Synthetic Benchmark
 
-This benchmark creates a blank image of 1280x853 and resizes it to 150x99, throwing away the result.  MagicScaler does very well on this one, and it's the only one MagicScaler can do on Linux (for now), but it isn't a real-world scenario, so take the results with a grain of salt.
+This benchmark creates a blank image of 1280x853 and resizes it to 150x99, throwing away the result.  MagicScaler does very well on this one, but it isn't a real-world scenario, so take the results with a grain of salt.
 
 ``` ini
-Job=ShortRun  IterationCount=15  LaunchCount=1  UnrollFactor=256  WarmupCount=5
+Job=ShortRun  IterationCount=5  LaunchCount=1  UnrollFactor=256  WarmupCount=3
 
-|                  Method |        Mean |     Error |    StdDev | Ratio | RatioSD |    Gen 0 |    Gen 1 |    Gen 2 | Allocated | Alloc Ratio |
-|------------------------ |------------:|----------:|----------:|------:|--------:|---------:|---------:|---------:|----------:|------------:|
-|     *MagicScaler Resize |    577.9 μs |   1.01 μs |   0.94 μs |  0.06 |    0.00 |        - |        - |        - |    1425 B |       10.33 |
-|   System.Drawing Resize |  9,093.6 μs |  84.16 μs |  74.61 μs |  1.00 |    0.00 |        - |        - |        - |     138 B |        1.00 |
-|       ImageSharp Resize |  2,247.4 μs |  94.39 μs |  88.29 μs |  0.25 |    0.01 |        - |        - |        - |   10364 B |       75.10 |
-|      ImageMagick Resize | 37,032.8 μs | 906.42 μs | 847.87 μs |  4.08 |    0.11 |        - |        - |        - |    5338 B |       38.68 |
-|        FreeImage Resize |  5,940.9 μs | 119.98 μs | 112.23 μs |  0.65 |    0.01 | 500.0000 | 500.0000 | 500.0000 |     306 B |        2.22 |
-| SkiaSharp Canvas Resize |  1,577.6 μs |  19.76 μs |  18.49 μs |  0.17 |    0.00 |        - |        - |        - |    1745 B |       12.64 |
-| SkiaSharp Bitmap Resize |  1,558.8 μs |  10.30 μs |   9.13 μs |  0.17 |    0.00 |        - |        - |        - |     489 B |        3.54 |
-|          NetVips Resize |  3,540.6 μs |  23.28 μs |  21.78 μs |  0.39 |    0.00 |        - |        - |        - |    3859 B |       27.96 |
+|                Method |        Mean |       Error |    StdDev | Ratio | RatioSD |     Gen0 |     Gen1 |     Gen2 | Allocated | Alloc Ratio |
+|---------------------- |------------:|------------:|----------:|------:|--------:|---------:|---------:|---------:|----------:|------------:|
+|   *MagicScaler Resize |    621.8 us |    57.39 us |  14.90 us |  0.07 |    0.00 |        - |        - |        - |    1385 B |       10.04 |
+| System.Drawing Resize |  9,525.0 us |   619.59 us | 160.91 us |  1.00 |    0.00 |        - |        - |        - |     138 B |        1.00 |
+|      ImageFlow Resize |  6,464.7 us |   237.70 us |  61.73 us |  0.68 |    0.01 |  11.7188 |        - |        - |  116005 B |      840.62 |
+|     ImageSharp Resize |  2,299.1 us |    72.70 us |  18.88 us |  0.24 |    0.01 |        - |        - |        - |   10365 B |       75.11 |
+|    ImageMagick Resize | 39,426.5 us | 2,093.00 us | 543.54 us |  4.14 |    0.10 |        - |        - |        - |    5338 B |       38.68 |
+|      FreeImage Resize |  5,855.3 us |   324.42 us |  84.25 us |  0.61 |    0.01 | 500.0000 | 500.0000 | 500.0000 |     306 B |        2.22 |
+|      SkiaSharp Resize |  1,560.8 us |    49.18 us |   7.61 us |  0.16 |    0.00 |        - |        - |        - |     489 B |        3.54 |
+|        NetVips Resize |  9,412.2 us |   131.95 us |  34.27 us |  0.99 |    0.02 |        - |        - |        - |    3859 B |       27.96 |
 ```
 
 </details>
@@ -140,57 +207,22 @@ In order to accurately measure both CPU time and total memory usage, I devised a
 
 I re-used the image resizing code from the benchmark app but processed the test images only once, using `Parallel.ForEach` to load up the system.  Because of the test image set's size, startup and JIT overhead are overshadowed by the actual image processing, and although there may be some variation in times between runs, the overall picture is accurate and is more realistic than the BDN runs that cycle through the same small set of small images.  Each library's test was run in isolation so memory stats would include only that library.
 
-This table shows the actual CPU time and peak memory usage as captured by the [Windows Performance Toolkit](https://docs.microsoft.com/en-us/windows-hardware/test/wpt/) when running the modified benchmark app on .NET 5.0 x64.
+This table shows the actual CPU time and peak memory usage as captured by the [Windows Performance Toolkit](https://docs.microsoft.com/en-us/windows-hardware/test/wpt/) when running the modified benchmark app on .NET 6.0 x64.
 
-|                   Method | Peak Memory | VirtualAlloc Total |  CPU Time |
-|------------------------- |------------:|-------------------:|----------:|
-|   *MagicScaler Bee Heads |      404 MB |            4749 MB |  50053 ms |
-| System.Drawing Bee Heads |      849 MB |           36435 MB | 201269 ms |
-|     ImageSharp Bee Heads |     7459 MB |           27575 MB | 161416 ms |
-|    ImageMagick Bee Heads |      699 MB |           17481 MB | 291919 ms |
-|      FreeImage Bee Heads |      612 MB |           16408 MB | 232971 ms |
-|      SkiaSharp Bee Heads |      991 MB |           26368 MB | 190533 ms |
-|        NetVips Bee Heads |      443 MB |            3170 MB | 130149 ms |
+|                   Method | Peak Memory | VirtualAlloc Total |  CPU Time | Clock Time |
+|------------------------- |------------:|-------------------:|----------:|-----------:|
+|   *MagicScaler Bee Heads |      420 MB |            2389 MB |  37153 ms |      3.99s |
+| System.Drawing Bee Heads |     1001 MB |           36449 MB | 156050 ms |     39.58s |
+|     ImageSharp Bee Heads |     1079 MB |            1101 MB |  96510 ms |     10.76s |
+|      ImageFlow Bee Heads |     1485 MB |           28843 MB | 209247 ms |     22.61s |
+|    ImageMagick Bee Heads |      878 MB |           17426 MB | 277780 ms |     29.86s |
+|      FreeImage Bee Heads |     1048 MB |           16398 MB | 198207 ms |     21.77s |
+|      SkiaSharp Bee Heads |     1273 MB |           26371 MB | 110919 ms |     12.13s |
+|        NetVips Bee Heads |      785 MB |            3029 MB |  43515 ms |      5.01s |
 
-A few of the more interesting points from the above numbers:
+It's clear from the CPU time vs wall clock time that System.Drawing is spending a fair amount of its time idle.  Its total consumed CPU time is middle of the pack, but its wall clock time shows it to be the slowest by far.
 
-ImageSharp shows relatively low allocations and GC counts in the BDN managed memory diagnoser, but it is clear from the WPT trace that it is allocating and never releasing large amounts of memory.  In a repetitive benchmark, this might not be obvious, but when working on a larger number of larger images, it will put a major strain on memory.
-
-It's clear from the CPU time numbers that System.Drawing is spending a fair amount of its time idle.  Its total consumed time is roughly the same as SkiaSharp's, but its wall clock time shows it to be roughly 3x slower.  This can be seen in WPA's CPU utilization graphs but not in the BDN results.
-
-NetVips shows higher CPU time in the WPT trace than it does running without tracing.  Its wall-clock time was almost identical to MagicScaler's on this image set.  Both Vips and MagicScaler lazily evaluate requests for pixels, so their memory usage is significantly lower than other libraries'.
-
-<details>
-<summary>32-bit Process Results</summary>
-<br />
-
-Because the peak memory numbers for some libraries are so high, it's also worth looking at how they perform in 32-bit environment, which is naturally memory constrained.  The following table shows results of the same test for .NET Core 5.0 x86.
-
-|                   Method | Peak Memory | VirtualAlloc Total |  CPU Time |
-|------------------------- |------------:|-------------------:|----------:|
-|   *MagicScaler Bee Heads |      361 MB |            4747 MB |  57250 ms |
-| System.Drawing Bee Heads |      769 MB |           36405 MB | 219007 ms |
-|     ImageSharp Bee Heads |  FAIL - OOM |                    |           |
-|    ImageMagick Bee Heads |      701 MB |           17381 MB | 359497 ms |
-|      FreeImage Bee Heads |      671 MB |           16393 MB | 264883 ms |
-|      SkiaSharp Bee Heads |      944 MB |           26366 MB | 288483 ms |
-|        NetVips Bee Heads |      424 MB |            3277 MB |  94891 ms |
-
-ImageSharp failed to complete the test with less addressable memory available.
-
-Once again, MagicScaler is the most efficient with memory and CPU.  However once again, NetVips completed the suite in similar wall-clock time to MagicScaler, so its CPU time may not be accurate under the profiler.  All libraries that succeeded took longer in 32-bit mode, but SkiaSharp was disproportionately slower.
-
-For the record, here is the exception thrown by ImageSharp:
-
-ImageSharp
-```
-System.OutOfMemoryException: Exception of type 'System.OutOfMemoryException' was thrown.
-   at System.Buffers.ConfigurableArrayPool`1.Rent(Int32 minimumLength)
-   at SixLabors.Memory.ArrayPoolMemoryAllocator.Allocate[T](Int32 length, AllocationOptions options)
-   ...
-```
-
-</details>
+Earlier runs of this test showed extreme total memory use in NetVips and ImageSharp, but they've both brough their memory use way down.  MagicScaler still manages clear wins in peak memory and CPU time.
 
 MagicScaler Quality
 -------------------
@@ -230,8 +262,6 @@ The libraries tested in the benchmark have different capabilities, so the option
 
 The net result is that if you look at the sample image output in @bleroy's [blog post](https://devblogs.microsoft.com/dotnet/net-core-image-processing/), the MagicScaler output has different colors than all the others.  10 of the 12 images have washed-out colors in the output from the other libraries -- most apparent in the vibrant red, green, and blue hues, such as the snake or the Wild River ride on the back of what is now the [MoPOP building](https://www.mopop.org/building).  If you download the project today and run it, the outputs from System.Drawing (corrected by me), ImageSharp (fixed in the library), SkiaSharp (fixed in the library), and MagicScaler will all have correct colors, and the rest will be wrong.
 
-The recently-added NetVips test has the same problem as ImageMagick.  It would do option 2) by default but would carry all the metadata with it and so has been written to do 3).  Like ImageMagick, it could be modified to do option 1) instead, but that would require much more code and would be significantly slower.
-
 These are common mistakes made by developers starting out with image processing, because it can be easy to miss the shift in colors and difficult to discover how to do the right thing.
 
 </details>
@@ -239,23 +269,23 @@ These are common mistakes made by developers starting out with image processing,
 <samp>
 Sample Images:
 
-| System.Drawing | &nbsp;&nbsp;MagicScaler&nbsp; | &nbsp;&nbsp;ImageSharp&nbsp;&nbsp; | &nbsp;&nbsp;Magick.NET&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;NetVips&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;FreeImage&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;SkiaSharp&nbsp;&nbsp; |
-|----------------|-------------|------------|------------|---------|-----------|-----------|
-|<img src="/doc/images/IMG_2525-SystemDrawing.jpg" alt="System.Drawing" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-MagicScaler.jpg" alt="MagicScaler" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-ImageSharp.jpg" alt="ImageSharp" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-MagickNET.jpg" alt="MagickNET" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-NetVips.jpg" alt="NetVips" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-FreeImage.jpg" alt="FreeImage" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-SkiaSharpCanvas.jpg" alt="SkiaSharp" style="max-width: 150px" />|
+| System.Drawing | &nbsp;&nbsp;MagicScaler&nbsp; | &nbsp;&nbsp;ImageSharp&nbsp;&nbsp; | &nbsp;&nbsp;Magick.NET&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;NetVips&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;FreeImage&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;SkiaSharp&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;ImageFlow&nbsp;&nbsp; |
+|----------------|-------------|------------|------------|---------|-----------|-----------|-----------|
+|<img src="/doc/images/IMG_2525-SystemDrawing.jpg" alt="System.Drawing" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-MagicScaler.jpg" alt="MagicScaler" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-ImageSharp.jpg" alt="ImageSharp" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-MagickNET.jpg" alt="MagickNET" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-NetVips.jpg" alt="NetVips" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-FreeImage.jpg" alt="FreeImage" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-SkiaSharpCanvas.jpg" alt="SkiaSharp" style="max-width: 150px" />|<img src="/doc/images/IMG_2525-ImageFlow.jpg" alt="ImageFlow" style="max-width: 150px" />|
 </samp>
 
 The color difference between these should be obvious.  Compared to the [original image](https://github.com/bleroy/core-imaging-playground/blob/master/images/IMG_2525.jpg), it's easy to see which are correct (unless your browser is busted).
 
 ### Gamma-Corrected Blending
 
-Of the libraries tested in the benchmark, only MagicScaler performs the resampling step in [linear light](http://www.imagemagick.org/Usage/resize/#resize_colorspace).  ImageSharp, ImageMagick, and Vips are capable of processing in linear light but would require extra code to do so and would perform significantly worse.
+Of the libraries originally tested in the benchmark, only MagicScaler performs the resampling step in [linear light](http://www.imagemagick.org/Usage/resize/#resize_colorspace).  ImageSharp, ImageMagick, and Vips are capable of processing in linear light but would require extra code to do so and would perform significantly worse.  ImageFlow is a recent addition which also processes in linear light by default.
 
 <samp>
 Sample Images:
 
-| System.Drawing | &nbsp;&nbsp;MagicScaler&nbsp; | &nbsp;&nbsp;ImageSharp&nbsp;&nbsp; | &nbsp;&nbsp;Magick.NET&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;NetVips&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;FreeImage&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;SkiaSharp&nbsp;&nbsp; |
-|----------------|-------------|------------|------------|---------|-----------|-----------|
-|<img src="/doc/images/IMG_2301-SystemDrawing.jpg" alt="System.Drawing" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-MagicScaler.jpg" alt="MagicScaler" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-ImageSharp.jpg" alt="ImageSharp" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-MagickNET.jpg" alt="MagickNET" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-NetVips.jpg" alt="NetVips" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-FreeImage.jpg" alt="FreeImage" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-SkiaSharpCanvas.jpg" alt="SkiaSharp" style="max-width: 150px" />|
+| System.Drawing | &nbsp;&nbsp;MagicScaler&nbsp; | &nbsp;&nbsp;ImageSharp&nbsp;&nbsp; | &nbsp;&nbsp;Magick.NET&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;NetVips&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;FreeImage&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;SkiaSharp&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;ImageFlow&nbsp;&nbsp; |
+|----------------|-------------|------------|------------|---------|-----------|-----------|-----------|
+|<img src="/doc/images/IMG_2301-SystemDrawing.jpg" alt="System.Drawing" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-MagicScaler.jpg" alt="MagicScaler" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-ImageSharp.jpg" alt="ImageSharp" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-MagickNET.jpg" alt="MagickNET" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-NetVips.jpg" alt="NetVips" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-FreeImage.jpg" alt="FreeImage" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-SkiaSharpCanvas.jpg" alt="SkiaSharp" style="max-width: 150px" />|<img src="/doc/images/IMG_2301-ImageFlow.jpg" alt="ImageFlow" style="max-width: 150px" />|
 </samp>
 
 In addition to keeping the correct colors, MagicScaler does markedly better at preserving image highlights because of the linear light blending.  Notice the highlights on the flowers are a better representation of those in the [original image](https://github.com/bleroy/core-imaging-playground/blob/master/images/IMG_2301.jpg)
@@ -267,12 +297,12 @@ Most imaging libraries have at least some capability to do high-quality resampli
 <samp>
 Sample Images:
 
-| System.Drawing | &nbsp;&nbsp;MagicScaler&nbsp; | &nbsp;&nbsp;ImageSharp&nbsp;&nbsp; | &nbsp;&nbsp;Magick.NET&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;NetVips&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;FreeImage&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;SkiaSharp&nbsp;&nbsp; |
-|----------------|-------------|------------|------------|---------|-----------|-----------|
-|<img src="/doc/images/IMG_2445-SystemDrawing.jpg" alt="System.Drawing" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-MagicScaler.jpg" alt="MagicScaler" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-ImageSharp.jpg" alt="ImageSharp" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-MagickNET.jpg" alt="MagickNET" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-NetVips.jpg" alt="NetVips" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-FreeImage.jpg" alt="FreeImage" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-SkiaSharpCanvas.jpg" alt="SkiaSharp" style="max-width: 150px" />|
+| System.Drawing | &nbsp;&nbsp;MagicScaler&nbsp; | &nbsp;&nbsp;ImageSharp&nbsp;&nbsp; | &nbsp;&nbsp;Magick.NET&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;NetVips&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;FreeImage&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;SkiaSharp&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;ImageFlow&nbsp;&nbsp; |
+|----------------|-------------|------------|------------|---------|-----------|-----------|-----------|
+|<img src="/doc/images/IMG_2445-SystemDrawing.jpg" alt="System.Drawing" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-MagicScaler.jpg" alt="MagicScaler" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-ImageSharp.jpg" alt="ImageSharp" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-MagickNET.jpg" alt="MagickNET" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-NetVips.jpg" alt="NetVips" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-FreeImage.jpg" alt="FreeImage" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-SkiaSharpCanvas.jpg" alt="SkiaSharp" style="max-width: 150px" />|<img src="/doc/images/IMG_2445-ImageFlow.jpg" alt="ImageFlow" style="max-width: 150px" />|
 </samp>
 
-FreeImage and SkiaSharp have particularly poor image quality in this test, with output substantially more blurry than the others.
+FreeImage and SkiaSharp have particularly poor image quality in this test, with output substantially more blurry than the others.  ImageFlow benefits from its linear light processing but also produces blurrier output than others.
 
 Note that when the benchmark and blog post were originally published, Skia supported multiple ways to resize images, which is why there are two Skia benchmark tests.  Under the current version of Skia, those two versions have the same benchmark numbers and same output quality, because the Skia internals have been changed to unify its resizing code.  The lower-quality version is [all that's left](https://github.com/mono/SkiaSharp/issues/520).
 
@@ -285,14 +315,14 @@ Finally, MagicScaler performs a post-resizing sharpening step to compensate for 
 <samp>
 Sample Images:
 
-| System.Drawing | &nbsp;&nbsp;MagicScaler&nbsp; | &nbsp;&nbsp;ImageSharp&nbsp;&nbsp; | &nbsp;&nbsp;Magick.NET&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;NetVips&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;FreeImage&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;SkiaSharp&nbsp;&nbsp; |
-|----------------|-------------|------------|------------|---------|-----------|-----------|
-|<img src="/doc/images/sample-SystemDrawing.jpg" alt="System.Drawing" style="max-width: 150px" />|<img src="/doc/images/sample-MagicScaler.jpg" alt="MagicScaler" style="max-width: 150px" />|<img src="/doc/images/sample-ImageSharp.jpg" alt="ImageSharp" style="max-width: 150px" />|<img src="/doc/images/sample-MagickNET.jpg" alt="MagickNET" style="max-width: 150px" />|<img src="/doc/images/sample-NetVips.jpg" alt="NetVips" style="max-width: 150px" />|<img src="/doc/images/sample-FreeImage.jpg" alt="FreeImage" style="max-width: 150px" />|<img src="/doc/images/sample-SkiaSharpCanvas.jpg" alt="SkiaSharp" style="max-width: 150px" />|
+| System.Drawing | &nbsp;&nbsp;MagicScaler&nbsp; | &nbsp;&nbsp;ImageSharp&nbsp;&nbsp; | &nbsp;&nbsp;Magick.NET&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;NetVips&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;FreeImage&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;SkiaSharp&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;ImageFlow&nbsp;&nbsp; |
+|----------------|-------------|------------|------------|---------|-----------|-----------|-----------|
+|<img src="/doc/images/sample-SystemDrawing.jpg" alt="System.Drawing" style="max-width: 150px" />|<img src="/doc/images/sample-MagicScaler.jpg" alt="MagicScaler" style="max-width: 150px" />|<img src="/doc/images/sample-ImageSharp.jpg" alt="ImageSharp" style="max-width: 150px" />|<img src="/doc/images/sample-MagickNET.jpg" alt="MagickNET" style="max-width: 150px" />|<img src="/doc/images/sample-NetVips.jpg" alt="NetVips" style="max-width: 150px" />|<img src="/doc/images/sample-FreeImage.jpg" alt="FreeImage" style="max-width: 150px" />|<img src="/doc/images/sample-SkiaSharpCanvas.jpg" alt="SkiaSharp" style="max-width: 150px" />|<img src="/doc/images/sample-ImageFlow.jpg" alt="ImageFlow" style="max-width: 150px" />|
 </samp>
 
 The linear light blending combined with the sharpening work to preserve more details from this [original image](https://github.com/bleroy/core-imaging-playground/blob/master/images/sample.jpg) than the other libraries do.  Again, some details are mangled by the poor JPEG settings, so MagicScaler's default settings would do even better.
 
-Also of note is that ImageSharp's thumbnail for this image is roughly twice the size of the others because it has embedded the 3KiB sRGB color profile from the original image unnecessarily.
+Also of note is that ImageSharp's and NetVips' thumbnails for this image are roughly twice the size of the others because they have embedded the 3KiB sRGB color profile from the original image unnecessarily.
 
 Versioning
 ----------

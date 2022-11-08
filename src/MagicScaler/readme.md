@@ -10,9 +10,9 @@ Speed and efficiency are unmatched by anything else on the .NET platform.
 Requirements
 ------------
 
-MagicScaler currently has full functionality only on Windows 10+.
+MagicScaler currently has full functionality only on Windows.
 
-Work is in progress to reach full feature parity on Linux.  A growing collection of codecs for Linux is available on [nuget.org](https://www.nuget.org/packages?q=photosauce.nativecodecs), and at this point most use cases are covered.  Notable exceptions are support for BMP and TIFF images and CMYK JPEG.
+Work is in progress to reach full feature parity on Linux.  A growing collection of cross-platform codecs is available on [nuget.org](https://www.nuget.org/packages?q=photosauce.nativecodecs), and at this point most use cases are covered.  Notable exceptions are support for BMP and TIFF images and CMYK JPEG.
 
 Usage
 -----

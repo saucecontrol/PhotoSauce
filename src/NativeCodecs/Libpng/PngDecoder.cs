@@ -351,14 +351,15 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 		if (handle is null)
 			return;
 
-		_ = PngReadEnd(handle, null);
+		if (disposing)
+		{
+			_ = PngReadEnd(handle, null);
+			GC.SuppressFinalize(this);
+		}
 
 		GCHandle.FromIntPtr(handle->io_ptr->stream_handle).Free();
 		PngDestroyRead(handle);
 		handle = null;
-
-		if (disposing)
-			GC.SuppressFinalize(this);
 	}
 
 	public void Dispose() => dispose(true);

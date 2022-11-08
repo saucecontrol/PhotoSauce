@@ -324,13 +324,13 @@ internal static unsafe class InvertConverter
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private static void convertScalar(byte* ip, byte* ipe)
 	{
-		while (ip < ipe - sizeof(nuint))
+		while (ip <= ipe - sizeof(nuint))
 		{
 			*(nuint*)ip = ~*(nuint*)ip;
 			ip += sizeof(nuint);
 		}
 
-		while (ip < ipe)
-			*ip++ = (byte)~(uint)*ip;
+		if (ip < ipe)
+			*(uint*)ip = ~*(uint*)ip;
 	}
 }

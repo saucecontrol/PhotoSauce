@@ -328,12 +328,6 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 		if (handle is null)
 			return;
 
-		palette.Dispose();
-		palette = default;
-
-		iccpData.Dispose();
-		iccpData = default;
-
 		GCHandle.FromIntPtr((IntPtr)handle->UserData).Free();
 
 		int err;
@@ -341,7 +335,15 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 		handle = null;
 
 		if (disposing)
+		{
+			palette.Dispose();
+			palette = default;
+
+			iccpData.Dispose();
+			iccpData = default;
+
 			GC.SuppressFinalize(this);
+		}
 	}
 
 	public void Dispose() => dispose(true);

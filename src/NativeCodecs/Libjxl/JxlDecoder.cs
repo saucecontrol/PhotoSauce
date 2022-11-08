@@ -228,17 +228,19 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 		if (decoder is null)
 			return;
 
-		iccpData.Dispose();
-		iccpData = default;
-
-		exifData.Dispose();
-		exifData= default;
-
 		JxlDecoderDestroy(decoder);
 		decoder = null;
 
 		if (disposing)
+		{
+			iccpData.Dispose();
+			iccpData = default;
+
+			exifData.Dispose();
+			exifData= default;
+
 			GC.SuppressFinalize(this);
+		}
 	}
 
 	public void Dispose() => dispose(true);

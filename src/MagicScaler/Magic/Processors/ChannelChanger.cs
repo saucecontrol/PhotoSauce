@@ -554,9 +554,7 @@ internal static class ChannelChanger<T> where T : unmanaged
 						var v0 = Avx.LoadVector256((byte*)ip);
 						ip += Vector256<byte>.Count;
 
-						v0 = Avx2.Shuffle(v0, vmask);
-
-						Avx.Store((byte*)op, v0);
+						Avx.Store((byte*)op, Avx2.Shuffle(v0, vmask));
 						op += Vector256<byte>.Count;
 					}
 					while (ip <= ipe);
@@ -572,9 +570,7 @@ internal static class ChannelChanger<T> where T : unmanaged
 						var v0 = Sse2.LoadVector128((byte*)ip);
 						ip += Vector128<byte>.Count;
 
-						v0 = Ssse3.Shuffle(v0, vmask);
-
-						Sse2.Store((byte*)op, v0);
+						Sse2.Store((byte*)op, Ssse3.Shuffle(v0, vmask));
 						op += Vector128<byte>.Count;
 					}
 					while (ip <= ipe);

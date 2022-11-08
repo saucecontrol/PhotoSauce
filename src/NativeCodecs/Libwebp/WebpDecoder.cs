@@ -314,14 +314,14 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 
 		protected virtual void Dispose(bool disposing)
 		{
-			if (disposing)
-				GC.SuppressFinalize(this);
-
 			if (!buffer.IsAllocated())
 				return;
 
 			fixed (WebPDecBuffer* pbuff = &buffer)
 				WebPFreeDecBuffer(pbuff);
+
+			if (disposing)
+				GC.SuppressFinalize(this);
 		}
 
 		public void Dispose() => Dispose(true);
