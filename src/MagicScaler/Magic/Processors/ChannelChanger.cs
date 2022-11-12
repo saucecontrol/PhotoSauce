@@ -122,18 +122,11 @@ internal static class ChannelChanger<T> where T : unmanaged
 			T* ip = (T*)istart, ipe = (T*)(istart + cb), op = (T*)ostart;
 
 #if HWINTRINSICS
-			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count)
+			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb >= Vector128<byte>.Count)
 			{
-				var mask = (ReadOnlySpan<byte>)(new byte[] {
-					 0,  0,  0,  1,  1,  1,  2,  2,  2,  3,  3,  3,  4,  4,  4,  5,
-					 5,  5,  6,  6,  6,  7,  7,  7,  8,  8,  8,  9,  9,  9, 10, 10,
-					10, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14, 15, 15, 15
-				});
-				ref byte rmask = ref Unsafe.Add(ref MemoryMarshal.GetReference(mask), 0);
-
-				var vmask0 = Unsafe.As<byte, Vector128<byte>>(ref rmask);
-				var vmask1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref rmask, Vector128<byte>.Count));
-				var vmask2 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref rmask, Vector128<byte>.Count * 2));
+				var vmask0 = Vector128.Create((byte) 0,  0,  0,  1,  1,  1,  2,  2,  2,  3,  3,  3,  4,  4,  4,  5);
+				var vmask1 = Vector128.Create((byte) 5,  5,  6,  6,  6,  7,  7,  7,  8,  8,  8,  9,  9,  9, 10, 10);
+				var vmask2 = Vector128.Create((byte)10, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14, 15, 15, 15);
 
 				ipe -= Vector128<byte>.Count;
 				do
@@ -176,7 +169,7 @@ internal static class ChannelChanger<T> where T : unmanaged
 			var alpha = maxalpha;
 
 #if HWINTRINSICS
-			if (typeof(T) == typeof(byte) && Sse2.IsSupported && cb > Vector128<byte>.Count)
+			if (typeof(T) == typeof(byte) && Sse2.IsSupported && cb >= Vector128<byte>.Count)
 			{
 				var vfill = Vector128.Create(byte.MaxValue);
 
@@ -227,19 +220,12 @@ internal static class ChannelChanger<T> where T : unmanaged
 			T* ip = (T*)istart, ipe = (T*)(istart + cb), op = (T*)ostart;
 
 #if HWINTRINSICS
-			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count * 3)
+			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb >= Vector128<byte>.Count * 3)
 			{
 				const byte _ = 0x80;
-				var mask = (ReadOnlySpan<byte>)(new byte[] {
-					0, 3, 6, 9, 12, 15, _, _, _,  _,  _, _, _, _,  _,  _,
-					_, _, _, _,  _,  _, 2, 5, 8, 11, 14, _, _, _,  _,  _,
-					_, _, _, _,  _,  _, _, _, _,  _,  _, 1, 4, 7, 10, 13
-				});
-				ref byte rmask = ref Unsafe.Add(ref MemoryMarshal.GetReference(mask), 0);
-
-				var vmask0 = Unsafe.As<byte, Vector128<byte>>(ref rmask);
-				var vmask1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref rmask, Vector128<byte>.Count));
-				var vmask2 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref rmask, Vector128<byte>.Count * 2));
+				var vmask0 = Vector128.Create(0, 3, 6, 9, 12, 15, _, _, _,  _,  _, _, _, _,  _,  _);
+				var vmask1 = Vector128.Create(_, _, _, _,  _,  _, 2, 5, 8, 11, 14, _, _, _,  _,  _);
+				var vmask2 = Vector128.Create(_, _, _, _,  _,  _, _, _, _,  _,  _, 1, 4, 7, 10, 13);
 
 				ipe -= Vector128<byte>.Count * 3;
 				do
@@ -249,9 +235,11 @@ internal static class ChannelChanger<T> where T : unmanaged
 					var v2 = Sse2.LoadVector128((byte*)ip + Vector128<byte>.Count * 2);
 					ip += Vector128<byte>.Count * 3;
 
-					v0 = Sse2.Or(Sse2.Or(Ssse3.Shuffle(v0, vmask0), Ssse3.Shuffle(v1, vmask1)), Ssse3.Shuffle(v2, vmask2));
+					v0 = Ssse3.Shuffle(v0, vmask0);
+					v1 = Ssse3.Shuffle(v1, vmask1);
+					v2 = Ssse3.Shuffle(v2, vmask2);
 
-					Sse2.Store((byte*)op, v0);
+					Sse2.Store((byte*)op, Sse2.Or(Sse2.Or(v0, v1), v2));
 					op += Vector128<byte>.Count;
 				}
 				while (ip <= ipe);
@@ -282,9 +270,10 @@ internal static class ChannelChanger<T> where T : unmanaged
 			var alpha = maxalpha;
 
 #if HWINTRINSICS
-			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count * 3)
+			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb >= Vector128<byte>.Count * 3)
 			{
-				var vmask = Sse2.LoadVector128(HWIntrinsics.ShuffleMask3To3xChan.GetAddressOf());
+				const byte _ = 0x80;
+				var vmask = Vector128.Create(0, 1, 2, _, 3, 4, 5, _, 6, 7, 8, _, 9, 10, 11, _);
 				ChannelChanger<T>.change3to4Ssse3(ref ip, ipe, ref op, vmask);
 			}
 #endif
@@ -315,11 +304,10 @@ internal static class ChannelChanger<T> where T : unmanaged
 			var alpha = maxalpha;
 
 #if HWINTRINSICS
-			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count * 3)
+			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb >= Vector128<byte>.Count * 3)
 			{
 				const byte _ = 0x80;
-				var mask = (ReadOnlySpan<byte>)(new byte[] { 2, 1, 0, _, 5, 4, 3, _, 8, 7, 6, _, 11, 10, 9, _ });
-				var vmask = Sse2.LoadVector128(mask.GetAddressOf());
+				var vmask = Vector128.Create(2, 1, 0, _, 5, 4, 3, _, 8, 7, 6, _, 11, 10, 9, _ );
 				ChannelChanger<T>.change3to4Ssse3(ref ip, ipe, ref op, vmask);
 			}
 #endif
@@ -353,11 +341,10 @@ internal static class ChannelChanger<T> where T : unmanaged
 			T* ip = (T*)istart, ipe = (T*)(istart + cb), op = (T*)ostart;
 
 #if HWINTRINSICS
-			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count * 4)
+			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb >= Vector128<byte>.Count * 4)
 			{
 				const byte _ = 0x80;
-				var mask = (ReadOnlySpan<byte>)(new byte[] { 0, 4, 8, 12, _, _, _, _, _, _, _, _, _, _, _, _ });
-				var vmask = Sse2.Add(Vector128.Create(offset), Sse2.LoadVector128(mask.GetAddressOf()));
+				var vmask = Sse2.Add(Vector128.Create(offset), Vector128.Create(0, 4, 8, 12, _, _, _, _, _, _, _, _, _, _, _, _));
 
 				ipe -= Vector128<byte>.Count * 4;
 				do
@@ -406,9 +393,10 @@ internal static class ChannelChanger<T> where T : unmanaged
 			T* ip = (T*)istart, ipe = (T*)(istart + cb), op = (T*)ostart;
 
 #if HWINTRINSICS
-			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count * 4)
+			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb >= Vector128<byte>.Count * 4)
 			{
-				var vmask = Sse2.LoadVector128(HWIntrinsics.ShuffleMask3xTo3Chan.GetAddressOf());
+				const byte _ = 0x80;
+				var vmask = Vector128.Create(0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, _, _, _, _);
 				ChannelChanger<T>.change4to3Ssse3(ref ip, ipe, ref op, vmask);
 			}
 #endif
@@ -437,11 +425,10 @@ internal static class ChannelChanger<T> where T : unmanaged
 			T* ip = (T*)istart, ipe = (T*)(istart + cb), op = (T*)ostart;
 
 #if HWINTRINSICS
-			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count * 4)
+			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb >= Vector128<byte>.Count * 4)
 			{
 				const byte _ = 0x80;
-				var mask = (ReadOnlySpan<byte>)(new byte[] { 2, 1, 0, 6, 5, 4, 10, 9, 8, 14, 13, 12, _, _, _, _ });
-				var vmask = Sse2.LoadVector128(mask.GetAddressOf());
+				var vmask = Vector128.Create(2, 1, 0, 6, 5, 4, 10, 9, 8, 14, 13, 12, _, _, _, _);
 				ChannelChanger<T>.change4to3Ssse3(ref ip, ipe, ref op, vmask);
 			}
 #endif
@@ -471,17 +458,11 @@ internal static class ChannelChanger<T> where T : unmanaged
 			T* ip = (T*)istart, ipe = (T*)(istart + cb), op = (T*)ostart;
 
 #if HWINTRINSICS
-			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb > Vector128<byte>.Count + sizeof(ulong))
+			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb >= Vector128<byte>.Count + sizeof(ulong))
 			{
 				const byte _ = 0x80;
-				var mask = (ReadOnlySpan<byte>)(new byte[] {
-					2, 1, 0, 5, 4, 3, 8, 7, 6, 11, 10,  9, 14, 13, 12,  _,
-					_, 3, 2, 1, 6, 5, 4, 9, 8,  7, 12, 11, 10, 15, 14, 13
-				});
-				ref byte rmask = ref Unsafe.Add(ref MemoryMarshal.GetReference(mask), 0);
-
-				var vmask0 = Unsafe.As<byte, Vector128<byte>>(ref rmask);
-				var vmask1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref rmask, Vector128<byte>.Count));
+				var vmask0 = Vector128.Create(2, 1, 0, 5, 4, 3, 8, 7, 6, 11, 10,  9, 14, 13, 12,  _);
+				var vmask1 = Vector128.Create(_, 3, 2, 1, 6, 5, 4, 9, 8,  7, 12, 11, 10, 15, 14, 13);
 
 				ipe -= Vector128<byte>.Count + sizeof(ulong);
 				do
@@ -542,11 +523,11 @@ internal static class ChannelChanger<T> where T : unmanaged
 #if HWINTRINSICS
 			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb >= Vector256<byte>.Count)
 			{
-				var mask = (ReadOnlySpan<byte>)(new byte[] { 2, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15 });
+				var vmask = Vector128.Create((byte)2, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15);
 
 				if (Avx2.IsSupported)
 				{
-					var vmask = Avx2.BroadcastVector128ToVector256(mask.GetAddressOf());
+					var wmask = vmask.ToVector256Unsafe().WithUpper(vmask);
 
 					ipe -= Vector256<byte>.Count;
 					do
@@ -554,7 +535,7 @@ internal static class ChannelChanger<T> where T : unmanaged
 						var v0 = Avx.LoadVector256((byte*)ip);
 						ip += Vector256<byte>.Count;
 
-						Avx.Store((byte*)op, Avx2.Shuffle(v0, vmask));
+						Avx.Store((byte*)op, Avx2.Shuffle(v0, wmask));
 						op += Vector256<byte>.Count;
 					}
 					while (ip <= ipe);
@@ -562,8 +543,6 @@ internal static class ChannelChanger<T> where T : unmanaged
 				}
 				else
 				{
-					var vmask = Sse2.LoadVector128(mask.GetAddressOf());
-
 					ipe -= Vector128<byte>.Count;
 					do
 					{

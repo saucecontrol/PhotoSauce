@@ -591,13 +591,13 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexe
 
 		if (Avx2.IsSupported)
 		{
-			var wmul = HWIntrinsics.CreateVector256(0x0001_0000_fffful).AsInt16();
-			var wadd = HWIntrinsics.CreateVector256(0x0040_0080_0060ul).AsInt16();
+			var wmul = Vector256.Create(-1, 0, 1, 0, -1, 0, 1, 0, -1, 0, 1, 0, -1, 0, 1, 0);
+			var wadd = Vector256.Create(0x60, 0x80, 0x40, 0, 0x60, 0x80, 0x40, 0, 0x60, 0x80, 0x40, 0, 0x60, 0x80, 0x40, 0);
 
-			var widm = HWIntrinsics.CreateVector256((ulong)maxidx).AsUInt32();
-			var wdsm = HWIntrinsics.CreateVector256((ulong)int.MaxValue).AsInt32();
-			var winc = HWIntrinsics.CreateVector256((ulong)Vector256<ulong>.Count).AsUInt32();
-			var wcnt = Avx.LoadVector256(HWIntrinsics.IndicesUInt64.GetAddressOf()).AsUInt32();
+			var widm = HWIntrinsics.CreateVector256(maxidx).AsUInt32();
+			var wdsm = HWIntrinsics.CreateVector256(int.MaxValue).AsInt32();
+			var winc = Vector256.Create(4u, 0, 4u, 0, 4u, 0, 4u, 0);
+			var wcnt = Vector256.Create(0u, 0, 1u, 0, 2u, 0, 3u, 0);
 			var widx = widm;
 			var wdst = wdsm;
 
@@ -632,13 +632,13 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexe
 		}
 		else
 		{
-			var vmul = HWIntrinsics.CreateVector128(0x0001_0000_fffful).AsInt16();
-			var vadd = HWIntrinsics.CreateVector128(0x0040_0080_0060ul).AsInt16();
+			var vmul = Vector128.Create(-1, 0, 1, 0, -1, 0, 1, 0);
+			var vadd = Vector128.Create(0x60, 0x80, 0x40, 0, 0x60, 0x80, 0x40, 0);
 
-			vidx = HWIntrinsics.CreateVector128((ulong)maxidx).AsUInt32();
-			vdst = HWIntrinsics.CreateVector128((ulong)int.MaxValue).AsInt32();
-			var vinc = HWIntrinsics.CreateVector128((ulong)Vector128<ulong>.Count).AsUInt32();
-			var vcnt = Sse2.LoadVector128(HWIntrinsics.IndicesUInt64.GetAddressOf()).AsUInt32();
+			vidx = HWIntrinsics.CreateVector128(maxidx).AsUInt32();
+			vdst = HWIntrinsics.CreateVector128(int.MaxValue).AsInt32();
+			var vinc = Vector128.Create(2u, 0, 2u, 0);
+			var vcnt = Vector128.Create(0u, 0, 1u, 0);
 
 			var vppix = Sse2.UnpackLow(vpix.AsUInt64(), vpix.AsUInt64()).AsInt16();
 			byte* pp = (byte*)ppal, ppe = (byte*)(ppal + maxidx);

@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<VersionPrefix>0.13.2</VersionPrefix>
+		<VersionPrefix>0.14.0</VersionPrefix>
 		<TargetFrameworks>net6.0;net7.0;net472</TargetFrameworks>
-		<TargetFrameworks Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">$(TargetFrameworks);net461;netcoreapp3.1;netstandard2.0;netstandard2.1</TargetFrameworks>
+		<TargetFrameworks Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">$(TargetFrameworks);net461;netstandard2.0;netstandard2.1</TargetFrameworks>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -40,7 +40,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Compile Include="..\Shared\Polyfills\*.cs" Link="External\Polyfills\%(FileName)%(Extension)" />
 		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\Blake2b\*.cs" Link="External\Blake2Fast\Blake2b\%(FileName)%(Extension)" />
 		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\IBlake2Incremental.cs" Link="External\Blake2Fast\%(FileName)%(Extension)" />
 		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\ThrowHelper.cs" Link="External\Blake2Fast\%(FileName)%(Extension)" />

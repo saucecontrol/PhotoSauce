@@ -12,6 +12,7 @@
 		<Nullable>annotations</Nullable>
 		<Nullable Condition="$(DefineConstants.Contains('BUILTIN_NULLABLE'))">enable</Nullable>
 		<SignAssembly>true</SignAssembly>
+		<PolySharpIncludeRuntimeSupportedAttributes>true</PolySharpIncludeRuntimeSupportedAttributes>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)'!='Debug'">
@@ -26,6 +27,10 @@
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="PolySharp" Version="1.7.1" PrivateAssets="all" />
+	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
 		<PackageDownload Include="NETStandard.Library.Ref" Version="[2.1.0]" />

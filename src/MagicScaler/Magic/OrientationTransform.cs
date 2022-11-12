@@ -441,8 +441,7 @@ internal sealed class OrientationTransformInternal : ChainedPixelSource
 #if HWINTRINSICS
 				if (Ssse3.IsSupported && cb >= Vector128<byte>.Count)
 				{
-					var mask = (ReadOnlySpan<byte>)(new byte[] { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 });
-					var vshuf = Sse2.LoadVector128(mask.GetAddressOf());
+					var vshuf = Vector128.Create((byte)15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
 
 					pe -= Vector128<byte>.Count;
 					do
@@ -472,8 +471,7 @@ internal sealed class OrientationTransformInternal : ChainedPixelSource
 #if HWINTRINSICS
 				if (Ssse3.IsSupported && cb > Vector128<byte>.Count * 2)
 				{
-					var mask = (ReadOnlySpan<byte>)(new byte[] { 0, 13, 14, 15, 10, 11, 12, 7, 8, 9, 4, 5, 6, 1, 2, 3 });
-					var vshufs = Sse2.LoadVector128(mask.GetAddressOf());
+					var vshufs = Vector128.Create((byte)0, 13, 14, 15, 10, 11, 12, 7, 8, 9, 4, 5, 6, 1, 2, 3);
 					var vshufe = Sse2.ShiftRightLogical128BitLane(vshufs, 1);
 
 					pe -= Vector128<byte>.Count;

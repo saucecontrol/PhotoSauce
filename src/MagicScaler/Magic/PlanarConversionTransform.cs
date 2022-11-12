@@ -180,7 +180,7 @@ internal sealed class PlanarConversionTransform : ChainedPixelSource
 			var vc1 = Vector256.Create(coeffCb1);
 			var vc2 = Vector256.Create(coeffCr0);
 			var vc3 = Vector256.Create(coeffCr1);
-			var vmaskp = Avx.LoadVector256((int*)HWIntrinsics.PermuteMaskEvenOdd8x32.GetAddressOf());
+			var vmaskp = Vector256.Create(0, 2, 4, 6, 1, 3, 5, 7);
 
 			ipe -= Vector256<float>.Count;
 

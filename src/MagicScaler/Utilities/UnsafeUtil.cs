@@ -78,6 +78,13 @@ internal static unsafe class UnsafeUtil
 		Marshal.FreeHGlobal((IntPtr)p);
 #endif
 
+	public static void* AllocateTypeAssociatedMemory(Type type, int cb) =>
+#if NET5_0_OR_GREATER
+		(void*)RuntimeHelpers.AllocateTypeAssociatedMemory(type, cb);
+#else
+		(void*)Marshal.AllocHGlobal(cb);
+#endif
+
 #if !NET5_0_OR_GREATER
 	public static T CreateMethodDelegate<T>(this Type t, string method) where T : Delegate =>
 		(T)t.GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance)!.CreateDelegate(typeof(T), null);

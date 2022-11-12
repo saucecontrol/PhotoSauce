@@ -639,13 +639,13 @@ internal sealed class ConverterFromLinear<TFrom, TTo> : IConverter<TFrom, TTo> w
 		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 		private static void convertFloatAvx2(float* ip, float* ipe, byte* op, byte* gt)
 		{
-			var vzero = Vector256<float>.Zero;
+			var vzero = Vector256<int>.Zero;
 			var vmin = Vector256.Create(0.5f / byte.MaxValue);
 			var vmsk = Vector256.Create((int)byte.MaxValue);
 
 			var vmaskp = Avx.LoadVector256((int*)HWIntrinsics.PermuteMaskDeinterleave8x32.GetAddressOf());
-			var vscalf = Avx.BroadcastVector128ToVector256((float*)HWIntrinsics.ScaleUQ15WithAlphaFloat.GetAddressOf());
-			var vscali = Avx2.BroadcastVector128ToVector256((int*)HWIntrinsics.ScaleUQ15WithAlphaInt.GetAddressOf());
+			var vscalf = Vector256.Create((float)UQ15One, UQ15One, UQ15One, byte.MaxValue, UQ15One, UQ15One, UQ15One, byte.MaxValue);
+			var vscali = Vector256.Create(       UQ15One, UQ15One, UQ15One, byte.MaxValue, UQ15One, UQ15One, UQ15One, byte.MaxValue);
 			ipe -= Vector256<float>.Count * 4;
 
 			LoopTop:
@@ -662,10 +662,10 @@ internal sealed class ConverterFromLinear<TFrom, TTo> : IConverter<TFrom, TTo> w
 				var vfa2 = Avx.Shuffle(vf2, vf2, HWIntrinsics.ShuffleMaskAlpha);
 				var vfa3 = Avx.Shuffle(vf3, vf3, HWIntrinsics.ShuffleMaskAlpha);
 
-				var vfr0 = Avx.AndNot(HWIntrinsics.AvxCompareLessThan(vfa0, vmin), Avx.Reciprocal(vfa0));
-				var vfr1 = Avx.AndNot(HWIntrinsics.AvxCompareLessThan(vfa1, vmin), Avx.Reciprocal(vfa1));
-				var vfr2 = Avx.AndNot(HWIntrinsics.AvxCompareLessThan(vfa2, vmin), Avx.Reciprocal(vfa2));
-				var vfr3 = Avx.AndNot(HWIntrinsics.AvxCompareLessThan(vfa3, vmin), Avx.Reciprocal(vfa3));
+				var vfr0 = Avx.AndNot(Avx.CompareLessThan(vfa0, vmin), Avx.Reciprocal(vfa0));
+				var vfr1 = Avx.AndNot(Avx.CompareLessThan(vfa1, vmin), Avx.Reciprocal(vfa1));
+				var vfr2 = Avx.AndNot(Avx.CompareLessThan(vfa2, vmin), Avx.Reciprocal(vfa2));
+				var vfr3 = Avx.AndNot(Avx.CompareLessThan(vfa3, vmin), Avx.Reciprocal(vfa3));
 
 				vf0 = Avx.Multiply(vf0, vfr0);
 				vf1 = Avx.Multiply(vf1, vfr1);
@@ -687,10 +687,10 @@ internal sealed class ConverterFromLinear<TFrom, TTo> : IConverter<TFrom, TTo> w
 				var vi2 = Avx.ConvertToVector256Int32(vf2);
 				var vi3 = Avx.ConvertToVector256Int32(vf3);
 
-				vi0 = Avx2.Min(Avx2.Max(vzero.AsInt32(), vi0), vscali);
-				vi1 = Avx2.Min(Avx2.Max(vzero.AsInt32(), vi1), vscali);
-				vi2 = Avx2.Min(Avx2.Max(vzero.AsInt32(), vi2), vscali);
-				vi3 = Avx2.Min(Avx2.Max(vzero.AsInt32(), vi3), vscali);
+				vi0 = Avx2.Min(Avx2.Max(vzero, vi0), vscali);
+				vi1 = Avx2.Min(Avx2.Max(vzero, vi1), vscali);
+				vi2 = Avx2.Min(Avx2.Max(vzero, vi2), vscali);
+				vi3 = Avx2.Min(Avx2.Max(vzero, vi3), vscali);
 
 				var vg0 = Avx2.GatherVector256((int*)gt, vi0, sizeof(byte));
 				var vg1 = Avx2.GatherVector256((int*)gt, vi1, sizeof(byte));

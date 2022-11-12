@@ -5,13 +5,13 @@
         {
           "src": "../",
           "files": [
-            "out/bin/MagicScaler/Dist/netcoreapp3.1/PhotoSauce.MagicScaler.dll"
+            "out/bin/MagicScaler/Dist/net6.0/PhotoSauce.MagicScaler.dll"
           ]
         }
       ],
       "dest": "../out/doc/api",
       "properties": {
-          "TargetFramework": "netcoreapp3.1",
+          "TargetFramework": "net6.0",
           "Configuration": "Dist"
       }
     }

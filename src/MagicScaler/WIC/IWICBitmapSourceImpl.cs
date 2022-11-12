@@ -171,8 +171,8 @@ internal unsafe struct IWICBitmapSourceImpl
 
 	private static void** createVtbl()
 	{
+		var vtbl = (IWICBitmapSource.Vtbl<IWICBitmapSource>*)UnsafeUtil.AllocateTypeAssociatedMemory(typeof(IWICBitmapSourceImpl), sizeof(IWICBitmapSource.Vtbl<IWICBitmapSource>));
 #if NET5_0_OR_GREATER
-		var vtbl = (IWICBitmapSource.Vtbl<IWICBitmapSource>*)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(IWICBitmapSourceImpl), sizeof(IWICBitmapSource.Vtbl<IWICBitmapSource>));
 		vtbl->QueryInterface = &queryInterface;
 		vtbl->AddRef = &addRef;
 		vtbl->Release = &release;
@@ -182,7 +182,6 @@ internal unsafe struct IWICBitmapSourceImpl
 		vtbl->CopyPalette = &copyPalette;
 		vtbl->CopyPixels = &copyPixels;
 #else
-		var vtbl = (IWICBitmapSource.Vtbl<IWICBitmapSource>*)Marshal.AllocHGlobal(sizeof(IWICBitmapSource.Vtbl<IWICBitmapSource>));
 		vtbl->QueryInterface = (delegate* unmanaged[Stdcall]<IWICBitmapSource*, Guid*, void**, int>)Marshal.GetFunctionPointerForDelegate(delQueryInterface);
 		vtbl->AddRef = (delegate* unmanaged[Stdcall]<IWICBitmapSource*, uint>)Marshal.GetFunctionPointerForDelegate(delAddRef);
 		vtbl->Release = (delegate* unmanaged[Stdcall]<IWICBitmapSource*, uint>)Marshal.GetFunctionPointerForDelegate(delRelease);

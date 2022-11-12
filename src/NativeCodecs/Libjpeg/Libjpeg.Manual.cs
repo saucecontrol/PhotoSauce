@@ -2,10 +2,6 @@
 
 using System;
 using System.Security;
-using System.Runtime.CompilerServices;
-#if !NET5_0_OR_GREATER
-using System.Runtime.InteropServices;
-#endif
 
 using PhotoSauce.MagicScaler;
 
@@ -57,11 +53,7 @@ internal static unsafe partial class Libjpeg
 
 	private static jpeg_scan_info* createSemiProgressiveScript()
 	{
-#if NET5_0_OR_GREATER
-		var si = (jpeg_scan_info*)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(Libjpeg), sizeof(jpeg_scan_info) * semiProgressiveScanCount);
-#else
-		var si = (jpeg_scan_info*)Marshal.AllocHGlobal(sizeof(jpeg_scan_info) * semiProgressiveScanCount);
-#endif
+		var si = (jpeg_scan_info*)UnsafeUtil.AllocateTypeAssociatedMemory(typeof(Libjpeg), sizeof(jpeg_scan_info) * semiProgressiveScanCount);
 
 		si[0].comps_in_scan = 3;
 		si[0].component_index[0] = 0;

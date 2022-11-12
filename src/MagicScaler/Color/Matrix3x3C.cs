@@ -111,11 +111,8 @@ internal readonly record struct Matrix3x3C
 			var r1 = Avx.Permute2x128(m1h, m2h, 0b_0010_0000);
 			var r2 = Avx.Permute2x128(m1l, m2l, 0b_0011_0001);
 
-#if NET5_0_OR_GREATER
 			Unsafe.SkipInit(out Matrix3x3C r);
-#else
-			var r = default(Matrix3x3C);
-#endif
+
 			ref var rr = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref r);
 			Unsafe.Add(ref rr, 0) = r0;
 			Unsafe.Add(ref rr, 1) = r1;
@@ -177,11 +174,8 @@ internal readonly record struct Matrix3x3C
 			a0 = Fma.MultiplyAddNegated(a2, v0, a0);
 			a1 = Fma.MultiplyAddNegated(a2, v1, a1);
 
-#if NET5_0_OR_GREATER
 			Unsafe.SkipInit(out r);
-#else
-			r = default;
-#endif
+
 			ref var rr = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref r);
 			Unsafe.Add(ref rr, 0) = a0;
 			Unsafe.Add(ref rr, 1) = a1;
@@ -232,11 +226,8 @@ internal readonly record struct Matrix3x3C
 			m1 = Avx.Permute2x128(m0h, m1h, 0b_0010_0000);
 			m2 = Avx.Permute2x128(m0l, m1l, 0b_0011_0001);
 
-#if NET5_0_OR_GREATER
 			Unsafe.SkipInit(out Matrix3x3C r);
-#else
-			var r = default(Matrix3x3C);
-#endif
+
 			ref var rr = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref r);
 			Unsafe.Add(ref rr, 0) = m0;
 			Unsafe.Add(ref rr, 1) = m1;
@@ -257,7 +248,7 @@ internal readonly record struct Matrix3x3C
 	{
 		const double epsilon = 1e-3d;
 
-#if HWINTRINSICS && NET5_0_OR_GREATER
+#if HWINTRINSICS
 		if (Avx.IsSupported)
 		{
 			ref var r1 = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref Unsafe.AsRef(this));
@@ -283,7 +274,7 @@ internal readonly record struct Matrix3x3C
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static bool operator ==(in Matrix3x3C left, in Matrix3x3C right)
 	{
-#if HWINTRINSICS && NET5_0_OR_GREATER
+#if HWINTRINSICS
 		if (Avx.IsSupported)
 		{
 			ref var rl = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref Unsafe.AsRef(left));
@@ -345,11 +336,8 @@ internal readonly record struct Matrix3x3C
 				Avx.Multiply(Avx2.Permute4x64(vl, 0b_11_10_10_10), vr2)
 			);
 
-#if NET5_0_OR_GREATER
 			Unsafe.SkipInit(out Matrix3x3C r);
-#else
-			var r = default(Matrix3x3C);
-#endif
+
 			ref var ro = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref r);
 			Unsafe.Add(ref ro, 0) = m0;
 			Unsafe.Add(ref ro, 1) = m1;
@@ -385,11 +373,8 @@ internal readonly record struct Matrix3x3C
 			var m1 = Avx.Multiply(Unsafe.Add(ref rl, 1), vr);
 			var m2 = Avx.Multiply(Unsafe.Add(ref rl, 2), vr);
 
-#if NET5_0_OR_GREATER
 			Unsafe.SkipInit(out Matrix3x3C r);
-#else
-			var r = default(Matrix3x3C);
-#endif
+
 			ref var rr = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref r);
 			Unsafe.Add(ref rr, 0) = m0;
 			Unsafe.Add(ref rr, 1) = m1;

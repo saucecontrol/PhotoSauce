@@ -154,15 +154,14 @@ internal unsafe struct HeifReader
 
 	private static heif_reader* createImpl()
 	{
+		var impl = (heif_reader*)UnsafeUtil.AllocateTypeAssociatedMemory(typeof(HeifReader), sizeof(heif_reader));
 #if NET5_0_OR_GREATER
-		var impl = (heif_reader*)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(HeifReader), sizeof(heif_reader));
 		impl->reader_api_version = 1;
 		impl->get_position = &getPosition;
 		impl->read = &read;
 		impl->seek = &seek;
 		impl->wait_for_file_size = &waitForLength;
 #else
-		var impl = (heif_reader*)Marshal.AllocHGlobal(sizeof(heif_reader));
 		impl->reader_api_version = 1;
 		impl->get_position = (delegate* unmanaged[Cdecl]<void*, long>)Marshal.GetFunctionPointerForDelegate(delGetPosition);
 		impl->read = (delegate* unmanaged[Cdecl]<void*, nuint, void*, int>)Marshal.GetFunctionPointerForDelegate(delRead);

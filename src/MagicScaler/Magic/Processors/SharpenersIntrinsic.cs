@@ -85,14 +85,8 @@ internal sealed partial class Convolver1ChanIntrinsic : IConvolver
 				bp += VectorAvx.Count;
 
 				if (threshold)
-				{
-#if NET5_0_OR_GREATER
-					var sm = Avx.CompareGreaterThan(Avx.And(vd, vmsk), vthresh);
-#else
-					var sm = Avx.Compare(Avx.And(vd, vmsk), vthresh, FloatComparisonMode.OrderedGreaterThanSignaling); // https://github.com/dotnet/runtime/issues/31193
-#endif
-					vd = Avx.And(vd, sm);
-				}
+					vd = Avx.And(vd, Avx.CompareGreaterThan(Avx.And(vd, vmsk), vthresh));
+
 				vd = Avx.Multiply(vd, vamt);
 
 				var v0 = Avx.LoadVector256(ip);
@@ -132,10 +126,8 @@ internal sealed partial class Convolver1ChanIntrinsic : IConvolver
 				bp += VectorSse.Count;
 
 				if (threshold)
-				{
-					var sm = Sse.CompareGreaterThan(Sse.And(vd, vmsk), vthresh);
-					vd = Sse.And(vd, sm);
-				}
+					vd = Sse.And(vd, Sse.CompareGreaterThan(Sse.And(vd, vmsk), vthresh));
+
 				vd = Sse.Multiply(vd, vamt);
 
 				var v0 = Sse.LoadVector128(ip);

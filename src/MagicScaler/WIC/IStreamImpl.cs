@@ -267,8 +267,8 @@ internal unsafe struct IStreamImpl
 
 	private static void** createVtbl()
 	{
+		var vtbl = (IStream.Vtbl<IStream>*)UnsafeUtil.AllocateTypeAssociatedMemory(typeof(IStreamImpl), sizeof(IStream.Vtbl<IStream>));
 #if NET5_0_OR_GREATER
-		var vtbl = (IStream.Vtbl<IStream>*)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(IStreamImpl), sizeof(IStream.Vtbl<IStream>));
 		vtbl->QueryInterface = &queryInterface;
 		vtbl->AddRef = &addRef;
 		vtbl->Release = &release;
@@ -284,7 +284,6 @@ internal unsafe struct IStreamImpl
 		vtbl->Stat	= &stat;
 		vtbl->Clone = &clone;
 #else
-		var vtbl = (IStream.Vtbl<IStream>*)Marshal.AllocHGlobal(sizeof(IStream.Vtbl<IStream>));
 		vtbl->QueryInterface = (delegate* unmanaged[Stdcall]<IStream*, Guid*, void**, int>)Marshal.GetFunctionPointerForDelegate(delQueryInterface);
 		vtbl->AddRef = (delegate* unmanaged[Stdcall]<IStream*, uint>)Marshal.GetFunctionPointerForDelegate(delAddRef);
 		vtbl->Release = (delegate* unmanaged[Stdcall]<IStream*, uint>)Marshal.GetFunctionPointerForDelegate(delRelease);

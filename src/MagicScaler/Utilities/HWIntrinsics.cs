@@ -38,7 +38,6 @@ internal static class HWIntrinsics
 #if HWINTRINSICS
 	public static bool HasFastGather = getFastGather();
 
-#if NET5_0_OR_GREATER
 	private static bool getFastGather()
 	{
 		bool intel = X86Base.CpuId(0, 0) is (_, 0x756e6547, 0x6c65746e, 0x49656e69); // "Genu", "ntel", "ineI"
@@ -46,12 +45,9 @@ internal static class HWIntrinsics
 		uint fam = ((fms & 0xfu << 20) >> 16) + ((fms & 0xfu << 8) >> 8);
 		uint mod = ((fms & 0xfu << 16) >> 12) + ((fms & 0xfu << 4) >> 4);
 
-		// Intel Skylake and newer -- AMD is still slow as of Zen 3
+		// Intel Skylake and newer -- AMD is still slow as of Zen 4
 		return intel && fam == 6 && mod >= 0x4e;
 	}
-#else
-	private static bool getFastGather() => true;
-#endif
 
 	private const byte _ = 0x80;
 	public const byte BlendMaskAlpha = 0b_1000_1000;
@@ -63,7 +59,6 @@ internal static class HWIntrinsics
 	public const byte PermuteMaskDeinterleave4x64 = 0b_11_01_10_00;
 
 	public static ReadOnlySpan<byte> PermuteMaskDeinterleave8x32 => new byte[] { 0, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 5, 0, 0, 0, 2, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0 };
-	public static ReadOnlySpan<byte> PermuteMaskEvenOdd8x32 => new byte[] { 0, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 6, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 5, 0, 0, 0, 7, 0, 0, 0 };
 	public static ReadOnlySpan<byte> PermuteMask3To3xChan => new byte[] { 0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0 };
 	public static ReadOnlySpan<byte> PermuteMask3xTo3Chan => new byte[] { 0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0 };
 	public static ReadOnlySpan<byte> ShuffleMask3ChanPairs => new byte[] { 0, 3, 1, 4, 2, 5, _, _, 6, 9, 7, 10, 8, 11, _, _ };
@@ -74,11 +69,8 @@ internal static class HWIntrinsics
 	public static ReadOnlySpan<byte> ShuffleMaskWidenAlpha => new byte[] { 3, _, 7, _, 11, _, 15, _, 3, _, 7, _, 11, _, 15, _ };
 	public static ReadOnlySpan<byte> ShuffleMaskWidenEven => new byte[] { 0, _, 4, _, 8, _, 12, _, 2, _, 6, _, 10, _, 14, _ };
 	public static ReadOnlySpan<byte> ShuffleMaskWidenOdd => new byte[] { 1, _, 5, _, 9, _, 13, _, 3, _, 7, _, 11, _, 15, _ };
-	public static ReadOnlySpan<byte> IndicesUInt64 => new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0 };
 
 	public static ReadOnlySpan<byte> GatherMask3x => new byte[] { 0, 0, 0, 0x80, 0, 0, 0, 0x80, 0, 0, 0, 0x80, 0, 0, 0, 0 };
-	public static ReadOnlySpan<byte> ScaleUQ15WithAlphaInt => new byte[] { 0, 0x80, 0, 0, 0, 0x80, 0, 0, 0, 0x80, 0, 0, 0xff, 0, 0, 0 };
-	public static ReadOnlySpan<byte> ScaleUQ15WithAlphaFloat => new byte[] { 0, 0, 0, 0x47, 0, 0, 0, 0x47, 0, 0, 0, 0x47, 0, 0, 0x7f, 0x43 };
 
 	// https://github.com/dotnet/runtime/issues/64784
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -92,9 +84,6 @@ internal static class HWIntrinsics
 		sizeof(nuint) == sizeof(uint)
 			? Avx2.UnpackLow(Vector256.Create((uint)val), Vector256.Create((uint)(val >> 32))).AsUInt64()
 			: Vector256.Create(val);
-
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static Vector256<float> AvxCompareLessThan(Vector256<float> v1, Vector256<float> v2) => Avx.Compare(v1, v2, FloatComparisonMode.OrderedLessThanSignaling);
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static float HorizontalAdd(this Vector128<float> v)

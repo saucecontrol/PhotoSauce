@@ -802,10 +802,10 @@ internal static class FloatConverter
 					var vfa2 = Avx.Shuffle(vf2, vf2, HWIntrinsics.ShuffleMaskAlpha);
 					var vfa3 = Avx.Shuffle(vf3, vf3, HWIntrinsics.ShuffleMaskAlpha);
 
-					var vfr0 = Avx.AndNot(HWIntrinsics.AvxCompareLessThan(vfa0, vmin), Avx.Reciprocal(vfa0));
-					var vfr1 = Avx.AndNot(HWIntrinsics.AvxCompareLessThan(vfa1, vmin), Avx.Reciprocal(vfa1));
-					var vfr2 = Avx.AndNot(HWIntrinsics.AvxCompareLessThan(vfa2, vmin), Avx.Reciprocal(vfa2));
-					var vfr3 = Avx.AndNot(HWIntrinsics.AvxCompareLessThan(vfa3, vmin), Avx.Reciprocal(vfa3));
+					var vfr0 = Avx.AndNot(Avx.CompareLessThan(vfa0, vmin), Avx.Reciprocal(vfa0));
+					var vfr1 = Avx.AndNot(Avx.CompareLessThan(vfa1, vmin), Avx.Reciprocal(vfa1));
+					var vfr2 = Avx.AndNot(Avx.CompareLessThan(vfa2, vmin), Avx.Reciprocal(vfa2));
+					var vfr3 = Avx.AndNot(Avx.CompareLessThan(vfa3, vmin), Avx.Reciprocal(vfa3));
 
 					vf0 = Avx.Multiply(vf0, vfr0);
 					vf1 = Avx.Multiply(vf1, vfr1);
@@ -1034,11 +1034,7 @@ internal static class FloatConverter
 					LastBlock:
 					var vl0 = vb0.AsUInt64();
 					Sse2.StoreScalar((ulong*)op, vl0);
-#if NET5_0_OR_GREATER
 					Sse2.StoreScalar((uint*)(op + sizeof(ulong)), Sse2.UnpackHigh(vl0, vl0).AsUInt32());
-#else
-					Sse.StoreScalar((float*)(op + sizeof(ulong)), Sse2.UnpackHigh(vl0, vl0).AsSingle()); // https://github.com/dotnet/runtime/issues/31179
-#endif
 					op += Vector128<byte>.Count * 3 / 4;
 					break;
 				}

@@ -55,10 +55,6 @@
 		<IsTrimmable>true</IsTrimmable>
 	</PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="Microsoft.Net.Compilers.Toolset" Version="4.4.0-4.final" PrivateAssets="all" />
-	</ItemGroup>
-
 	<ItemGroup Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">
 		<None Include="$(MSBuildThisFileDirectory)$(Company).png" Pack="true" PackagePath="/" />
 		<None Include="$(ProjectRoot)readme.md" Pack="true" PackagePath="/" />
