@@ -21,9 +21,10 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 
 	private readonly Stream stream;
 	private readonly long streamStart;
-	private readonly int frameCount, frameOffset, colorCount;
+	private readonly int frameCount, frameOffset;
 	private readonly AnimationContainer animation;
 	public readonly PixelFormat Format;
+	public readonly int ColorCount;
 
 	private GifFileType* handle;
 	private GifFrame? frame;
@@ -105,14 +106,14 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 		if (handle->SColorMap is not null)
 		{
 			var cmap = handle->SColorMap;
-			colorCount = cmap->ColorCount;
+			ColorCount = cmap->ColorCount;
 			palette = BufferPool.Rent<uint>(256, true);
 
 			var cspan = palette.Span;
 			fixed (uint* pp = cspan)
-				ChannelChanger<byte>.GetSwapConverter(3, 4).ConvertLine((byte*)cmap->Colors, (byte*)pp, colorCount * 3);
+				ChannelChanger<byte>.GetSwapConverter(3, 4).ConvertLine((byte*)cmap->Colors, (byte*)pp, ColorCount * 3);
 
-			if (handle->SBackGroundColor < colorCount)
+			if (handle->SBackGroundColor < ColorCount)
 				bgColor = cspan[handle->SBackGroundColor];
 		}
 
@@ -135,7 +136,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 
 	public int FrameCount => frameCount;
 
-	public ReadOnlySpan<uint> Palette => palette.Span[..colorCount];
+	public ReadOnlySpan<uint> Palette => palette.Span;
 
 	int IIccProfileSource.ProfileLength => iccpData.Length;
 
@@ -461,7 +462,7 @@ internal sealed unsafe class GifFrame : IImageFrame, IMetadataSource
 
 	private sealed class GifPixelSource : PixelSource, IFramePixelSource, IIndexedPixelSource
 	{
-		private int colorCount;
+		private readonly int colorCount;
 
 		public readonly GifContainer container;
 		public readonly GifFrame frame;
@@ -480,11 +481,9 @@ internal sealed unsafe class GifFrame : IImageFrame, IMetadataSource
 				var handle = container.GetHandle();
 				var cmap = handle->Image.ColorMap;
 				if (cmap is null && frame.transIdx == NO_TRANSPARENT_COLOR)
-					return container.Palette;
+					return container.Palette[..colorCount];
 
-				colorCount = cmap is not null ? cmap->ColorCount : container.Palette.Length;
 				frame.palette = BufferPool.Rent<uint>(256, true);
-
 				var cspan = frame.palette.Span;
 				if (cmap is not null)
 					fixed (uint* pp = cspan)
@@ -492,18 +491,21 @@ internal sealed unsafe class GifFrame : IImageFrame, IMetadataSource
 				else
 					container.Palette.CopyTo(cspan);
 
-				int trn = frame.transIdx;
-				if (trn >= colorCount)
-					trn = 0;
-
-				if (trn != NO_TRANSPARENT_COLOR)
-					cspan[trn] &= 0xffffffu;
+				if (frame.transIdx != NO_TRANSPARENT_COLOR)
+					cspan[frame.transIdx] &= 0xffffffu;
 
 				return cspan[..colorCount];
 			}
 		}
 
-		public GifPixelSource(GifFrame frm) => (container, frame) = (frm.container, frm);
+		public GifPixelSource(GifFrame frm)
+		{
+			(container, frame) = (frm.container, frm);
+
+			var handle = container.GetHandle();
+			var cmap = handle->Image.ColorMap;
+			colorCount = Math.Max(cmap is not null ? cmap->ColorCount : container.ColorCount, frame.transIdx + 1);
+		}
 
 		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{

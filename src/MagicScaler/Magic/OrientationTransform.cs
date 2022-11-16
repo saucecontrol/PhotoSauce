@@ -17,8 +17,6 @@ internal sealed class OrientationTransformInternal : ChainedPixelSource
 	private readonly PixelBuffer<BufferType.Caching>? outBuff;
 	private readonly int bytesPerPixel;
 
-	private RentedBuffer<byte> lineBuff;
-
 	public override int Width { get; }
 	public override int Height { get; }
 
@@ -33,11 +31,7 @@ internal sealed class OrientationTransformInternal : ChainedPixelSource
 
 		orient = orientation;
 		if (orient.SwapsDimensions())
-		{
-			int buffLines = bytesPerPixel == 1 ? 8 : 4;
-			lineBuff = BufferPool.Rent<byte>(BufferStride * buffLines);
 			(Width, Height) = (Height, Width);
-		}
 
 		int bufferStride = MathUtil.PowerOfTwoCeiling(Width * bytesPerPixel, IntPtr.Size);
 		if (orient.RequiresCache())
@@ -115,11 +109,11 @@ internal sealed class OrientationTransformInternal : ChainedPixelSource
 
 	private unsafe void loadBufferTransposed(byte* bstart)
 	{
-		var buffSpan = lineBuff.Span;
 		int lineBuffStride = BufferStride;
-		int lineBuffHeight = buffSpan.Length / lineBuffStride;
+		int lineBuffHeight = bytesPerPixel == 1 ? 8 : 4;
+		using var lineBuff = BufferPool.RentLocalAligned<byte>(lineBuffStride * lineBuffHeight);
 
-		fixed (byte* lstart = buffSpan)
+		fixed (byte* lstart = lineBuff)
 		{
 			byte* bp = bstart, lp = lstart;
 			nint colStride = outBuff!.Stride;
@@ -147,7 +141,7 @@ internal sealed class OrientationTransformInternal : ChainedPixelSource
 			for (; y <= PrevSource.Height - lineBuffHeight; y += lineBuffHeight)
 			{
 				Profiler.PauseTiming();
-				PrevSource.CopyPixels(new PixelArea(0, y, PrevSource.Width, lineBuffHeight), lineBuffStride, buffSpan.Length, lstart);
+				PrevSource.CopyPixels(new PixelArea(0, y, PrevSource.Width, lineBuffHeight), lineBuffStride, lineBuff.Length, lstart);
 				Profiler.ResumeTiming();
 
 				byte* op = bp + y * rowStride + stripOffs;
@@ -443,8 +437,30 @@ internal sealed class OrientationTransformInternal : ChainedPixelSource
 				{
 					var vshuf = Vector128.Create((byte)15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
 
+					if (Avx2.IsSupported && cb >= Vector256<byte>.Count * 2)
+					{
+						var wshuf = vshuf.ToVector256Unsafe().WithUpper(vshuf);
+
+						pe -= Vector256<byte>.Count;
+						do
+						{
+							var vs = Avx.LoadVector256(pp);
+							var ve = Avx.LoadVector256(pe);
+
+							vs = Avx2.Shuffle(vs, wshuf);
+							ve = Avx2.Shuffle(ve, wshuf);
+							Avx.Store(pe, Avx.Permute2x128(vs, vs, 0b_0000_0001));
+							Avx.Store(pp, Avx.Permute2x128(ve, ve, 0b_0000_0001));
+
+							pe -= Vector256<byte>.Count;
+							pp += Vector256<byte>.Count;
+						}
+						while (pp <= pe);
+						pe += Vector256<byte>.Count;
+					}
+
 					pe -= Vector128<byte>.Count;
-					do
+					while (pp <= pe)
 					{
 						var vs = Sse2.LoadVector128(pp);
 						var ve = Sse2.LoadVector128(pe);
@@ -455,7 +471,6 @@ internal sealed class OrientationTransformInternal : ChainedPixelSource
 						pe -= Vector128<byte>.Count;
 						pp += Vector128<byte>.Count;
 					}
-					while (pp <= pe);
 					pe += Vector128<byte>.Count;
 				}
 #endif
@@ -469,28 +484,35 @@ internal sealed class OrientationTransformInternal : ChainedPixelSource
 				break;
 			case 3:
 #if HWINTRINSICS
-				if (Ssse3.IsSupported && cb > Vector128<byte>.Count * 2)
+				if (Ssse3.IsSupported && cb >= Vector128<byte>.Count + sizeof(ulong))
 				{
-					var vshufs = Vector128.Create((byte)0, 13, 14, 15, 10, 11, 12, 7, 8, 9, 4, 5, 6, 1, 2, 3);
-					var vshufe = Sse2.ShiftRightLogical128BitLane(vshufs, 1);
+					const byte _ = 0x80;
+					var vshuf0 = Vector128.Create( _, 12, 13, 14,  9, 10, 11, 6, 7, 8, 3, 4, 5, 0, 1, 2);
+					var vshuf1 = Vector128.Create(13, 14, 15, 10, 11, 12,  7, 8, 9, 4, 5, 6, 1, 2, 3, _);
 
-					pe -= Vector128<byte>.Count;
+					pe -= Vector128<byte>.Count + sizeof(ulong);
 					do
 					{
-						var vs = Sse2.LoadVector128(pp);
-						var ve = Ssse3.Shuffle(Sse2.LoadVector128(pe), vshufe);
+						var vs0 = Sse2.LoadVector128(pp);
+						var vs1 = Sse2.LoadVector128(pp + sizeof(ulong));
+						var ve0 = Sse2.LoadVector128(pe);
+						var ve1 = Sse2.LoadVector128(pe + sizeof(ulong));
 
-						var vsa = Ssse3.AlignRight(vs, ve, 15);
-						var vea = Ssse3.AlignRight(ve, vs, 15);
+						vs0 = Ssse3.Shuffle(vs0, vshuf0);
+						vs1 = Ssse3.Shuffle(vs1, vshuf1);
+						ve0 = Ssse3.Shuffle(ve0, vshuf0);
+						ve1 = Ssse3.Shuffle(ve1, vshuf1);
 
-						Sse2.Store(pe, Ssse3.Shuffle(vsa, vshufs));
-						Sse2.Store(pp, Ssse3.AlignRight(vea, vea, 1));
+						Sse2.StoreScalar((ulong*)pe, vs1.AsUInt64());
+						Sse2.Store(pe + sizeof(ulong), Sse2.Or(vs0, Sse2.ShiftRightLogical128BitLane(vs1, 8)));
+						Sse2.StoreScalar((ulong*)pp, ve1.AsUInt64());
+						Sse2.Store(pp + sizeof(ulong), Sse2.Or(ve0, Sse2.ShiftRightLogical128BitLane(ve1, 8)));
 
-						pe -= 15;
-						pp += 15;
+						pe -= Vector128<byte>.Count + sizeof(ulong);
+						pp += Vector128<byte>.Count + sizeof(ulong);
 					}
-					while ((pe - pp) > Vector128<byte>.Count);
-					pe += Vector128<byte>.Count;
+					while (pp <= pe);
+					pe += Vector128<byte>.Count + sizeof(ulong);
 				}
 #endif
 				pe -= 3;
@@ -512,8 +534,28 @@ internal sealed class OrientationTransformInternal : ChainedPixelSource
 #if HWINTRINSICS
 				if (Sse2.IsSupported && cb >= Vector128<byte>.Count)
 				{
+					if (Avx2.IsSupported && cb >= Vector256<byte>.Count * 2)
+					{
+						var vperm = Vector256.Create(7, 6, 5, 4, 3, 2, 1, 0);
+
+						pe -= Vector256<byte>.Count;
+						do
+						{
+							var vs = Avx.LoadVector256(pp);
+							var ve = Avx.LoadVector256(pe);
+
+							Avx.Store(pe, Avx2.PermuteVar8x32(vs.AsInt32(), vperm).AsByte());
+							Avx.Store(pp, Avx2.PermuteVar8x32(ve.AsInt32(), vperm).AsByte());
+
+							pe -= Vector256<byte>.Count;
+							pp += Vector256<byte>.Count;
+						}
+						while (pp <= pe);
+						pe += Vector256<byte>.Count;
+					}
+
 					pe -= Vector128<byte>.Count;
-					do
+					while (pp <= pe)
 					{
 						var vs = Sse2.LoadVector128(pp);
 						var ve = Sse2.LoadVector128(pe);
@@ -524,7 +566,6 @@ internal sealed class OrientationTransformInternal : ChainedPixelSource
 						pe -= Vector128<byte>.Count;
 						pp += Vector128<byte>.Count;
 					}
-					while (pp <= pe);
 					pe += Vector128<byte>.Count;
 				}
 #endif
@@ -545,12 +586,7 @@ internal sealed class OrientationTransformInternal : ChainedPixelSource
 	protected override void Dispose(bool disposing)
 	{
 		if (disposing)
-		{
 			outBuff?.Dispose();
-
-			lineBuff.Dispose();
-			lineBuff = default;
-		}
 
 		base.Dispose(disposing);
 	}

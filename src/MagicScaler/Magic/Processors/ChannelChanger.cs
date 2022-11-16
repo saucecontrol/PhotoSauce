@@ -5,7 +5,6 @@ using System;
 #if HWINTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 #endif
 
@@ -83,7 +82,7 @@ internal static class ChannelChanger<T> where T : unmanaged
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private static unsafe void change4to3Ssse3(ref T* ip, T* ipe, ref T* op, Vector128<byte> vmasko)
 	{
-		var vmaske = Ssse3.AlignRight(vmasko, vmasko, 12).AsByte();
+		var vmaske = Sse2.Shuffle(vmasko.AsUInt32(), 0b_10_01_00_11).AsByte();
 
 		do
 		{
