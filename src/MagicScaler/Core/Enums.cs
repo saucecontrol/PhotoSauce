@@ -58,9 +58,7 @@ public enum GammaMode : byte
 	Companded
 }
 
-/// <summary>Use ImageMimeTypes instead.</summary>
-[Obsolete($"Use {nameof(ImageMimeTypes)} instead.")]
-public enum FileFormat : byte
+internal enum FileFormat : byte
 {
 	/// <summary>Set output container format automatically based on input format and image contents.  The container format will be a web-friendly format (JPEG, PNG, or GIF).</summary>
 	Auto,
@@ -134,18 +132,6 @@ public enum OrientationMode : byte
 [Flags]
 public enum ChromaPosition
 {
-	/// <summary>Chroma components are aligned with luma columns.</summary>
-	[EditorBrowsable(EditorBrowsableState.Never)]
-	CositedHorizontal = 1,
-	/// <summary>Chroma components are aligned with luma rows.</summary>
-	[EditorBrowsable(EditorBrowsableState.Never)]
-	CositedVertical = 2,
-	/// <summary>Chroma components are offset between luma columns.</summary>
-	[EditorBrowsable(EditorBrowsableState.Never)]
-	InterstitialHorizontal = 0,
-	/// <summary>Chroma components are offset between luma rows.</summary>
-	[EditorBrowsable(EditorBrowsableState.Never)]
-	InterstitalVertical = 0,
 	/// <summary>Chroma components are offset between luma rows and columns, as in JPEG images.</summary>
 	Jpeg = Center,
 	/// <summary>Chroma components are aligned with luma columns and offset between luma rows, as in most modern video formats.</summary>

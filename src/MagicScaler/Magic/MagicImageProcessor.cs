@@ -12,24 +12,7 @@ namespace PhotoSauce.MagicScaler;
 /// <summary>Provides a set of methods for constructing a MagicScaler processing pipeline or for all-at-once processing of an image.</summary>
 public static class MagicImageProcessor
 {
-	/// <summary>This property is no longer functional.  Use the <c>PhotoSauce.MagicScaler.MaxPooledBufferSize</c> <see cref="AppContext"/> value instead.</summary>
-	[Obsolete($"Use {nameof(AppContext)} value {AppConfig.MaxPooledBufferSizeName} instead."), EditorBrowsable(EditorBrowsableState.Never)]
-	public static bool EnableLargeBufferPool { get; set; }
-
-	/// <summary>The property is obsolete.  Use DecoderOptions instead.</summary>
-	[Obsolete($"Use {nameof(ProcessImageSettings.DecoderOptions)} with a type implementing {nameof(IPlanarDecoderOptions)} instead."), EditorBrowsable(EditorBrowsableState.Never)]
-	public static bool EnablePlanarPipeline { get; set; } = true;
-
-	/// <summary>This feature will be removed in a future version.</summary>
-	[Obsolete($"This feature will be removed in a future version."), EditorBrowsable(EditorBrowsableState.Never)]
-	public static bool EnableXmpOrientation { get; set; }
-
-	/// <summary>This property is no longer functional.  Use the <c>PhotoSauce.MagicScaler.EnablePixelSourceStats</c> <see cref="AppContext"/> switch instead.</summary>
-	[Obsolete($"Use {nameof(AppContext)} switch {AppConfig.EnablePixelSourceStatsName} instead."), EditorBrowsable(EditorBrowsableState.Never)]
-	public static bool EnablePixelSourceStats { get; set; }
-
 	/// <summary>Overrides the default <a href="https://en.wikipedia.org/wiki/SIMD">SIMD</a> support detection to force floating point processing on or off.</summary>
-	/// <include file='Docs/Remarks.xml' path='doc/member[@name="EnableSimd"]/*'/>
 	/// <value>Default value: <see langword="true" /> if the runtime/JIT and hardware support hardware-accelerated <see cref="Vector{T}" />, otherwise <see langword="false" /></value>
 	[Obsolete($"This feature will be removed in a future version."), EditorBrowsable(EditorBrowsableState.Never)]
 	public static bool EnableSimd { get; set; } = Vector.IsHardwareAccelerated && (Vector<float>.Count is 4 or 8);

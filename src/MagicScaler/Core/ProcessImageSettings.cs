@@ -4,7 +4,6 @@ using System;
 using System.Linq;
 using System.Drawing;
 using System.Globalization;
-using System.ComponentModel;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Diagnostics.CodeAnalysis;
@@ -248,36 +247,6 @@ public sealed class ProcessImageSettings
 		}
 	}
 
-	/// <summary>Use EncoderOptions instead.</summary>
-	[Obsolete($"Use {nameof(EncoderOptions)} with {nameof(JpegEncoderOptions)} instead."), EditorBrowsable(EditorBrowsableState.Never)]
-	public int JpegQuality
-	{
-		get => LossyQuality;
-		set
-		{
-			if (value < 0 || value > 100)
-				throw new ArgumentOutOfRangeException(nameof(JpegQuality), "Value must be between 0 and 100");
-
-			EncoderOptions = EncoderOptions is JpegEncoderOptions jopt ? jopt with { Quality = value } : new JpegEncoderOptions(value, default, default);
-		}
-	}
-
-	/// <summary>Use DecoderOptions instead.</summary>
-	[Obsolete($"Use a {nameof(DecoderOptions)} type that supports {nameof(IMultiFrameDecoderOptions)}.{nameof(IMultiFrameDecoderOptions.FrameRange)} instead."), EditorBrowsable(EditorBrowsableState.Never)]
-	public int FrameIndex
-	{
-		get => DecoderOptions is IMultiFrameDecoderOptions opt ? opt.FrameRange.GetOffsetAndLength(imageInfo?.Frames.Count ?? int.MaxValue).Offset : 0;
-		set => DecoderOptions = new MultiFrameDecoderOptions(value..(value+1));
-	}
-
-	/// <summary>Use EncoderOptions instead.</summary>
-	[Obsolete($"Use {nameof(EncoderOptions)} with {nameof(JpegEncoderOptions)} instead."), EditorBrowsable(EditorBrowsableState.Never)]
-	public ChromaSubsampleMode JpegSubsampleMode
-	{
-		get => Subsample;
-		set => EncoderOptions = EncoderOptions is JpegEncoderOptions jopt ? jopt with { Subsample = value } : new JpegEncoderOptions(default, value, default);
-	}
-
 	/// <summary>Determines how resampling interpolation is performed.</summary>
 	/// <remarks>If this value is unset, the algorithm will be chosen automatically to maximize image quality and performance based on the ratio of input image size to output image size.</remarks>
 	/// <value>Default value: calculated based on resize ratio</value>
@@ -294,20 +263,6 @@ public sealed class ProcessImageSettings
 	{
 		get => unsharpMask.Amount > 0 ? unsharpMask : SettingsUtil.GetDefaultUnsharpMask(!Sharpen ? 1.0 : ScaleRatio);
 		set => unsharpMask = value;
-	}
-
-	/// <summary>Use TrySetEncoderFormat instead.</summary>
-	[Obsolete($"Use {nameof(TrySetEncoderFormat)} instead."), EditorBrowsable(EditorBrowsableState.Never)]
-	public FileFormat SaveFormat
-	{
-		get => ImageMimeTypes.ToFileFormat(EncoderInfo?.MimeTypes.FirstOrDefault(), EncoderOptions is IIndexedEncoderOptions);
-		set
-		{
-			if (value == FileFormat.Png8 && EncoderOptions is not IIndexedEncoderOptions)
-				EncoderOptions = PngIndexedEncoderOptions.Default;
-
-			EncoderInfo = value != default ? CodecManager.TryGetEncoderForMimeType(value.ToMimeType()!, out var enc) ? enc : CodecManager.FallbackEncoder : null;
-		}
 	}
 
 	/// <summary>Sets the preferred format of the output image.  If no encoder is set, the pipeline will choose the output codec based on the input image type or <see cref="EncoderOptions" />.</summary>
@@ -376,16 +331,17 @@ public sealed class ProcessImageSettings
 				s.Anchor |= anchor;
 		}
 
+		var subs = ChromaSubsampleMode.Default;
 		foreach (var cap in subsampleExpression.Value.Match(dic.GetValueOrDefault("subsample") ?? string.Empty).Captures.Cast<Capture>())
-			s.JpegSubsampleMode = Enum.TryParse(string.Concat("Subsample", cap!.Value), true, out ChromaSubsampleMode csub) ? csub : s.JpegSubsampleMode;
+			subs = Enum.TryParse(string.Concat("Subsample", cap!.Value), true, out ChromaSubsampleMode csub) ? csub : subs;
 
 		int jq = Math.Max(int.TryParse(dic.GetValueOrDefault("quality") ?? dic.GetValueOrDefault("q"), NumberStyles.Integer, ni, out int q) ? q : 0, 0);
-		if (jq != 0)
-			s.JpegQuality = jq;
+		if (jq != 0 || subs != ChromaSubsampleMode.Default)
+			s.EncoderOptions = new JpegEncoderOptions(jq, subs, default);
 
 		int fi = Math.Max(int.TryParse(dic.GetValueOrDefault("frame") ?? dic.GetValueOrDefault("page"), NumberStyles.Integer, ni, out int f) ? f : 0, 0);
 		if (fi != 0)
-			s.FrameIndex = fi;
+			s.DecoderOptions = new MultiFrameDecoderOptions(fi..(fi + 1));
 
 		string? colorName = dic.GetValueOrDefault("bgcolor") ?? dic.GetValueOrDefault("bg");
 		if (!string.IsNullOrWhiteSpace(colorName) && ColorParser.TryParse(colorName, out var color))
@@ -601,7 +557,7 @@ public sealed class ProcessImageSettings
 		var hash = Blake2b.CreateIncrementalHasher(CacheHash.DigestLength);
 		hash.Update(imageInfo.FileSize);
 		hash.Update(imageInfo.FileDate.Ticks);
-		hash.Update(FrameIndex);
+		hash.Update(DecoderOptions is IMultiFrameDecoderOptions opt ? opt.FrameRange.GetOffsetAndLength(imageInfo.Frames.Count).Offset : 0);
 		hash.Update(Crop);
 		hash.Update(InnerSize);
 		hash.Update(OuterSize);
@@ -613,12 +569,12 @@ public sealed class ProcessImageSettings
 		hash.Update(uif.UniqueID);
 		hash.Update(Interpolation.Blur);
 		hash.Update(UnsharpMask);
-		hash.Update((int)SaveFormat);
+		hash.Update((int)ImageMimeTypes.ToFileFormat(EncoderInfo!.MimeTypes.FirstOrDefault(), EncoderOptions is IIndexedEncoderOptions));
 
-		if (EncoderInfo!.SupportsMimeType(ImageMimeTypes.Jpeg))
+		if (EncoderInfo.SupportsMimeType(ImageMimeTypes.Jpeg))
 		{
-			hash.Update(JpegSubsampleMode);
-			hash.Update(JpegQuality);
+			hash.Update(Subsample);
+			hash.Update(LossyQuality);
 		}
 
 		foreach (string m in MetadataNames ?? Enumerable.Empty<string>())

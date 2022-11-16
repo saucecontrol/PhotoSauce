@@ -108,7 +108,6 @@ internal unsafe class WicImageFrame : IScaledDecoder, IMetadataSource
 			if (WicMetadataReader is not null)
 			{
 				string orientationPath =
-					MagicImageProcessor.EnableXmpOrientation ? Wic.Metadata.OrientationWindowsPolicy :
 					Container.MimeType == ImageMimeTypes.Jpeg ? Wic.Metadata.OrientationJpeg :
 					Container.MimeType == ImageMimeTypes.Heic ? Wic.Metadata.OrientationHeif :
 					Wic.Metadata.OrientationExif;

@@ -24,7 +24,7 @@ internal unsafe class WicImageContainer : IImageContainer
 		uint fidx = (uint)(FrameOffset + index);
 		if (fidx >= (uint)(FrameOffset + FrameCount)) throw new ArgumentOutOfRangeException(nameof(index), "Invalid frame index.");
 
-		if (MimeType == ImageMimeTypes.Jpeg && MagicImageProcessor.EnablePlanarPipeline && Options is not IPlanarDecoderOptions { AllowPlanar: false })
+		if (MimeType == ImageMimeTypes.Jpeg && Options is not IPlanarDecoderOptions { AllowPlanar: false })
 			return new WicPlanarFrame(this, fidx);
 
 		return new WicImageFrame(this, fidx);

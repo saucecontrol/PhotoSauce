@@ -76,12 +76,15 @@ internal static class MagicTransforms
 		var ifmt = ctx.Source.Format;
 		var ofmt = ifmt;
 		bool linear = enc == PixelValueEncoding.Unspecified ? ctx.Settings.BlendingMode == GammaMode.Linear : enc == PixelValueEncoding.Linear;
+#pragma warning disable CS0618
+		bool simd = MagicImageProcessor.EnableSimd;
+#pragma warning restore CS0618
 
-		if (allow96bppFloat && MagicImageProcessor.EnableSimd && ifmt == PixelFormat.Bgr24)
+		if (allow96bppFloat && simd && ifmt == PixelFormat.Bgr24)
 			ofmt = linear ? PixelFormat.Bgr96FloatLinear : PixelFormat.Bgr96Float;
-		else if (linear && (MagicImageProcessor.EnableSimd ? internalFormatMapLinearSimd : internalFormatMapLinear).TryGetValue(ifmt, out var ofmtl))
+		else if (linear && (simd ? internalFormatMapLinearSimd : internalFormatMapLinear).TryGetValue(ifmt, out var ofmtl))
 			ofmt = ofmtl;
-		else if (MagicImageProcessor.EnableSimd && internalFormatMapSimd.TryGetValue(ifmt, out var ofmts))
+		else if (simd && internalFormatMapSimd.TryGetValue(ifmt, out var ofmts))
 			ofmt = ofmts;
 
 		if (ctx.Source is PlanarPixelSource plsrc)
@@ -92,7 +95,7 @@ internal static class MagicTransforms
 				plsrc.SourceY = ctx.AddProfiler(new ConversionTransform(plsrc.SourceY, ofmt, forceSrgb ? ColorProfile.sRGB : ctx.SourceColorProfile, ctx.DestColorProfile));
 			}
 
-			if (MagicImageProcessor.EnableSimd && internalFormatMapSimd.TryGetValue(plsrc.SourceCb.Format, out var ofmtb) && internalFormatMapSimd.TryGetValue(plsrc.SourceCr.Format, out var ofmtc))
+			if (simd && internalFormatMapSimd.TryGetValue(plsrc.SourceCb.Format, out var ofmtb) && internalFormatMapSimd.TryGetValue(plsrc.SourceCr.Format, out var ofmtc))
 			{
 				plsrc.SourceCb = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCb, ofmtb));
 				plsrc.SourceCr = ctx.AddProfiler(new ConversionTransform(plsrc.SourceCr, ofmtc));

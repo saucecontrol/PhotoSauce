@@ -54,7 +54,6 @@ internal static unsafe class Wic
 		public const string InteropIndexExif = "/ifd/exif/interop/{ushort=1}";
 		public const string InteropIndexJpeg = "/app1" + InteropIndexExif;
 
-		public const string OrientationWindowsPolicy = "System.Photo.Orientation";
 		public const string OrientationExif = "/ifd/{ushort=274}";
 		public const string OrientationJpeg = "/app1" + OrientationExif;
 		public const string OrientationHeif = "/heifProps/Orientation";
