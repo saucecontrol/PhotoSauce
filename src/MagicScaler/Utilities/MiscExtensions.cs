@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Buffers;
 using System.Drawing;
+using System.Reflection;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
@@ -116,6 +117,15 @@ internal static class MiscExtensions
 
 	public static IDictionary<string, string> ToDictionary(this KeyValueConfigurationCollection kv) =>
 		kv.AllKeys.Where(k => !string.IsNullOrEmpty(k)).ToDictionary(k => k, k => kv[k].Value, StringComparer.OrdinalIgnoreCase);
+
+	public static string GetArchDirectory(this Assembly asm)
+	{
+		string dir = RuntimeInformation.ProcessArchitecture.ToString();
+		if (asm.CodeBase?.StartsWithOrdinal("file:") ?? false)
+			dir = Path.Combine(Path.GetDirectoryName(new Uri(asm.CodeBase).LocalPath), dir);
+
+		return dir;
+	}
 #endif
 
 	public static IDictionary<TKey, TValue> Coalesce<TKey, TValue>(this IDictionary<TKey, TValue> dic1, IDictionary<TKey, TValue> dic2) where TKey : notnull

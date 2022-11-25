@@ -112,9 +112,7 @@ internal static unsafe partial class Libpng
     public static extern int PngReadEnd(ps_png_struct* handle, [NativeTypeName("png_infop")] void* end_info);
 
     [DllImport("pspng", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-#if NET5_0_OR_GREATER
     [SuppressGCTransition]
-#endif
     public static extern int PngGetValid(ps_png_struct* handle, [NativeTypeName("png_uint_32")] uint flag);
 
     [DllImport("pspng", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]

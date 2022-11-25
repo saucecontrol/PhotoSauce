@@ -35,48 +35,48 @@ internal sealed class SimpleLruCache<TKey, TValue> where TKey : IEquatable<TKey>
 	{
 		for (var curr = head; curr is not null; curr = curr.Next)
 		{
-			if (curr.Key.Equals(key))
+			if (!curr.Key.Equals(key))
+				continue;
+
+			bool keep = curr.Value.TryAddRef();
+
+			var prev = curr.Prev;
+			var next = curr.Next;
+
+			if (prev is not null)
 			{
-				bool keep = curr.Value.TryAddRef();
+				prev.Next = next;
 
-				var prev = curr.Prev;
-				var next = curr.Next;
-
-				if (prev is not null)
-				{
-					prev.Next = next;
-
-					if (next is null)
-						tail = prev;
-					else
-						next.Prev = prev;
-
-					if (keep)
-					{
-						head!.Prev = curr;
-						curr.Next = head;
-						curr.Prev = null;
-
-						head = curr;
-					}
-				}
+				if (next is null)
+					tail = prev;
+				else
+					next.Prev = prev;
 
 				if (keep)
 				{
-					value = curr.Value;
-					return true;
+					head!.Prev = curr;
+					curr.Next = head;
+					curr.Prev = null;
+
+					head = curr;
 				}
-
-				if (prev is null)
-				{
-					if (next is not null)
-						next.Prev = null;
-
-					head = next;
-				}
-
-				count--;
 			}
+
+			if (keep)
+			{
+				value = curr.Value;
+				return true;
+			}
+
+			if (prev is null)
+			{
+				if (next is not null)
+					next.Prev = null;
+
+				head = next;
+			}
+
+			count--;
 		}
 
 		value = default;
@@ -111,8 +111,7 @@ internal sealed class SimpleLruCache<TKey, TValue> where TKey : IEquatable<TKey>
 					head.Prev = node;
 
 				head = node;
-				if (tail is null)
-					tail = node;
+				tail ??= node;
 
 				count++;
 			}

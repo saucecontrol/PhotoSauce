@@ -131,7 +131,7 @@ internal sealed unsafe class OctreeQuantizer : IProfileSource, IDisposable
 					{
 						// TODO Log RyuJIT issue. None of these conditions will ever be true. Referencing these locals stops the JIT
 						// from spilling them on each inner and outer loop iteration; instead it spills only in this (unlikely) block.
-						// Related: https://github.com/dotnet/runtime/issues/43318
+						// Related: https://github.com/dotnet/runtime/issues/43318 and https://github.com/dotnet/runtime/issues/66994
 						if (i == ppix || idx == ppix || node is null)
 							break;
 
@@ -163,7 +163,7 @@ internal sealed unsafe class OctreeQuantizer : IProfileSource, IDisposable
 	private void pruneTree(HistogramNode* ptree, ushort* pfree)
 	{
 #if HWINTRINSICS
-		var vsmsk = Unsafe.As<byte, Vector128<uint>>(ref MemoryMarshal.GetReference(HistogramNode.SumsMask));
+		var vsmsk = Vector128.Create(uint.MaxValue, uint.MaxValue, uint.MaxValue, HistogramNode.CountMask);
 		var vzero = Vector128<uint>.Zero;
 #endif
 
@@ -538,10 +538,10 @@ internal sealed unsafe class OctreeQuantizer : IProfileSource, IDisposable
 			do
 			{
 				Unsafe.WriteUnaligned(ref listPtr, vslot);
-				listPtr = ref Unsafe.Add(ref listPtr, Unsafe.SizeOf<Vector<ushort>>());
+				listPtr = ref Unsafe.Add(ref listPtr, sizeof(Vector<ushort>));
 				vslot += vincr;
 			}
-			while (!Unsafe.IsAddressGreaterThan(ref listPtr, ref Unsafe.Subtract(ref listEnd, Unsafe.SizeOf<Vector<ushort>>())));
+			while (!Unsafe.IsAddressGreaterThan(ref listPtr, ref Unsafe.Subtract(ref listEnd, sizeof(Vector<ushort>))));
 		}
 
 		uint islot = (uint)Unsafe.ByteOffset(ref listStart, ref listPtr) / sizeof(ushort) + reserveNodes;
@@ -581,8 +581,6 @@ internal sealed unsafe class OctreeQuantizer : IProfileSource, IDisposable
 		[FieldOffset(0)]
 		public fixed uint FloatSums[4];
 
-		public static ReadOnlySpan<byte> SumsMask => new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x1f };
-
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void AddSample(HistogramNode* node, uint bgr)
 		{
@@ -613,7 +611,7 @@ internal sealed unsafe class OctreeQuantizer : IProfileSource, IDisposable
 #if HWINTRINSICS
 			if (Sse2.IsSupported)
 			{
-				var vmsk = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(SumsMask));
+				var vmsk = Vector128.Create(uint.MaxValue, uint.MaxValue, uint.MaxValue, CountMask).AsByte();
 				return !HWIntrinsics.IsMaskedZero(vmsk, Sse2.LoadVector128((byte*)children));
 			}
 #endif

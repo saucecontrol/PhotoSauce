@@ -30,8 +30,7 @@ internal static unsafe class GifFactory
 			[DllImport("kernel32", ExactSpelling = true)]
 			static extern IntPtr LoadLibraryW(ushort* lpLibFileName);
 
-			string lib = Path.Combine(RuntimeInformation.ProcessArchitecture.ToString(), "gif");
-			fixed (char* plib = lib)
+			fixed (char* plib = Path.Combine(typeof(GifFactory).Assembly.GetArchDirectory(), "gif"))
 				LoadLibraryW((ushort*)plib);
 		}
 #endif

@@ -29,8 +29,7 @@ internal static unsafe class HeifFactory
 			[DllImport("kernel32", ExactSpelling = true)]
 			static extern IntPtr LoadLibraryW(ushort* lpLibFileName);
 
-			string lib = Path.Combine(RuntimeInformation.ProcessArchitecture.ToString(), "heif");
-			fixed (char* plib = lib)
+			fixed (char* plib = Path.Combine(typeof(HeifFactory).Assembly.GetArchDirectory(), "heif"))
 				LoadLibraryW((ushort*)plib);
 		}
 #endif
@@ -43,6 +42,8 @@ internal static unsafe class HeifFactory
 	});
 
 	public static void* CreateContext() => dependencyValid.Value ? heif_context_alloc() : default;
+
+	public static string GetMimeType(byte* data, int len) => dependencyValid.Value ? new(heif_get_file_mime_type(data, len)) : default;
 }
 
 /// <inheritdoc cref="WindowsCodecExtensions" />

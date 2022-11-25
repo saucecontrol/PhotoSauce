@@ -32,11 +32,10 @@ internal static unsafe class WebpFactory
 			[DllImport("kernel32", ExactSpelling = true)]
 			static extern IntPtr LoadLibraryW(ushort* lpLibFileName);
 
-			string arch = RuntimeInformation.ProcessArchitecture.ToString();
+			string arch = typeof(WebpFactory).Assembly.GetArchDirectory();
 			foreach (string name in new[] { "webp", "webpdemux", "webpmux" })
 			{
-				string lib = Path.Combine(arch, name);
-				fixed (char* plib = lib)
+				fixed (char* plib = Path.Combine(arch, name))
 					LoadLibraryW((ushort*)plib);
 			}
 		}

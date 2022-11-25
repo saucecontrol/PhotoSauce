@@ -47,7 +47,7 @@ internal sealed unsafe class HeifContainer : IImageContainer
 		imgStream.FillBuffer(new Span<byte>(buff, 12));
 		imgStream.Position = stmpos;
 
-		string mime = new(heif_get_file_mime_type(buff, 12));
+		string mime = HeifFactory.GetMimeType(buff, 12);
 
 		var rdr = HeifReader.Wrap(imgStream);
 		var ctx = HeifFactory.CreateContext();

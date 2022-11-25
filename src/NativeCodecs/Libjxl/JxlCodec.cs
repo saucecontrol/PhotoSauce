@@ -29,8 +29,7 @@ internal static unsafe class JxlFactory
 			[DllImport("kernel32", ExactSpelling = true)]
 			static extern IntPtr LoadLibraryW(ushort* lpLibFileName);
 
-			string lib = Path.Combine(RuntimeInformation.ProcessArchitecture.ToString(), "jxl");
-			fixed (char* plib = lib)
+			fixed (char* plib = Path.Combine(typeof(JxlFactory).Assembly.GetArchDirectory(), "jxl"))
 				LoadLibraryW((ushort*)plib);
 		}
 #endif

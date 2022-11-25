@@ -11,7 +11,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Include="Package\build\*" Pack="true" PackagePath="build/net461/;buildMultiTargeting/net461/;buildTransitive/net461/" />
+		<None Include="Package\build\*" Pack="true" PackagePath="build/net461/;buildTransitive/net461/" />
 		<None Include="$(RepositoryRoot)out\vcpkg\install\x64-linux-ps\lib\libjxl.so" Link="Package\native\x64-linux\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/linux-x64/native/" />
 		<None Include="$(RepositoryRoot)out\vcpkg\install\x64-windows-ps\bin\jxl.dll" Link="Package\native\x64-windows\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/win-x64/native/" />
 		<None Include="$(RepositoryRoot)out\vcpkg\install\x86-windows-ps\bin\jxl.dll" Link="Package\native\x86-windows\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/win-x86/native/" />
