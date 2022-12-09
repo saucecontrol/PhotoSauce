@@ -1,9 +1,2 @@
-[*]
-end_of_line = lf
-indent_style = space
-indent_size = 4
-
 [*.cs]
-generated_code = true
 file_header_template = unset
-dotnet_diagnostic.CS0649.severity = silent

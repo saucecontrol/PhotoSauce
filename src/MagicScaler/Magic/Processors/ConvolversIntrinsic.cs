@@ -29,7 +29,6 @@ internal sealed partial class Convolver4ChanIntrinsic : IConvolver
 	int IConvolver.Channels => channels;
 	int IConvolver.MapChannels => channels;
 
-	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
 	{
 		float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
@@ -113,7 +112,6 @@ internal sealed partial class Convolver4ChanIntrinsic : IConvolver
 		}
 	}
 
-	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 	{
 		float* op = (float*)ostart;
@@ -213,7 +211,6 @@ internal sealed partial class Convolver3ChanIntrinsic : IConvolver
 	int IConvolver.Channels => channels;
 	int IConvolver.MapChannels => channels;
 
-	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
 	{
 		float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
@@ -312,7 +309,6 @@ internal sealed partial class Convolver1ChanIntrinsic : IConvolver
 	int IConvolver.Channels => channels;
 	int IConvolver.MapChannels => channels;
 
-	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
 	{
 		float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
@@ -396,7 +392,6 @@ internal sealed partial class Convolver1ChanIntrinsic : IConvolver
 		}
 	}
 
-	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 	{
 		float* op = (float*)ostart;

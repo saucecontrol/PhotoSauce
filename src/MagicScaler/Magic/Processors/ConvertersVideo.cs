@@ -57,7 +57,6 @@ internal static class VideoLumaConverter
 		}
 
 #if HWINTRINSICS
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 		private static void convertIntrinsic(byte* ip, byte* ipe)
 		{
 			if (Avx2.IsSupported)
@@ -189,7 +188,6 @@ internal static class VideoLumaConverter
 		}
 
 #if HWINTRINSICS
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 		private static void convertIntrinsic(byte* ip, byte* ipe)
 		{
 			if (Avx2.IsSupported)
@@ -317,7 +315,6 @@ internal static class VideoChromaConverter
 		}
 
 #if HWINTRINSICS
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 		private static void convertIntrinsic(byte* ip, byte* ipe)
 		{
 			if (Avx2.IsSupported)
@@ -467,7 +464,6 @@ internal static class VideoChromaConverter
 		}
 
 #if HWINTRINSICS
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 		private static void convertIntrinsic(byte* ip, byte* ipe)
 		{
 			if (Avx2.IsSupported)

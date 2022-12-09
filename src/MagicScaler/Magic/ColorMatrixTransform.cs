@@ -154,7 +154,6 @@ internal sealed class ColorMatrixTransformInternal : ChainedPixelSource
 	}
 
 #if HWINTRINSICS
-	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private unsafe void copyPixelsSse41(in PixelArea prc, int cbStride, byte* pbBuffer)
 	{
 		int chan = Format.ChannelCount;

@@ -314,9 +314,6 @@ internal static unsafe class GreyConverter
 	{
 		public static readonly FloatProcessor Instance = new();
 
-#if HWINTRINSICS
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-#endif
 		void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
 			float* ip = (float*)istart, ipe = (float*)(istart + cb), op = (float*)ostart;

@@ -60,7 +60,6 @@ internal sealed unsafe class NarrowingConverter : IConversionProcessor<ushort, b
 	}
 
 #if HWINTRINSICS
-	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private static void convertIntrinsic(ushort* ip, ushort* ipe, byte* op)
 	{
 		if (Avx2.IsSupported)

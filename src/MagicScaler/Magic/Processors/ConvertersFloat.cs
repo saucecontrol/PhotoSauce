@@ -96,7 +96,6 @@ internal static class FloatConverter
 		}
 
 #if HWINTRINSICS
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 		private void convertIntrinsic(byte* ip, byte* ipe, float* op)
 		{
 			if (Avx2.IsSupported)
@@ -309,7 +308,6 @@ internal static class FloatConverter
 		}
 
 #if HWINTRINSICS
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 		private static void convertIntrinsic(byte* ip, byte* ipe, float* op)
 		{
 			if (Avx2.IsSupported)
@@ -457,9 +455,6 @@ internal static class FloatConverter
 
 	private sealed unsafe class WideningImpl3X : IConversionProcessor<byte, float>
 	{
-#if HWINTRINSICS
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-#endif
 		void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
 			fixed (float* atstart = &LookupTables.Alpha.GetDataRef())
@@ -584,7 +579,6 @@ internal static class FloatConverter
 		}
 
 #if HWINTRINSICS
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 		private void convertIntrinsic(float* ip, float* ipe, byte* op)
 		{
 			if (Avx2.IsSupported)
@@ -777,7 +771,6 @@ internal static class FloatConverter
 		}
 
 #if HWINTRINSICS
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 		private static unsafe void convertIntrinsic(float* ip, float* ipe, byte* op)
 		{
 			if (Avx2.IsSupported)
@@ -944,9 +937,6 @@ internal static class FloatConverter
 
 	private sealed unsafe class NarrowingImpl3X : IConversionProcessor<float, byte>
 	{
-#if HWINTRINSICS
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-#endif
 		void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
 			float* ip = (float*)istart, ipe = (float*)(istart + cb);
@@ -1105,7 +1095,6 @@ internal static class FloatConverter
 		}
 
 #if HWINTRINSICS
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 		private static void convertFloatAvx2(float* ip, float* ipe, float* lp, int lutmax)
 		{
 			var vlmax = Vector256.Create((float)lutmax);
@@ -1182,9 +1171,6 @@ internal static class FloatConverter
 			}
 		}
 
-#if HWINTRINSICS
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-#endif
 		public static void ConvertFloat3A(byte* istart, byte* ostart, float* lutstart, int lutmax, nint cb)
 		{
 			Debug.Assert(istart == ostart);
@@ -1201,7 +1187,6 @@ internal static class FloatConverter
 		}
 
 #if HWINTRINSICS
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 		private static void convertFloat3AAvx2(float* ip, float* ipe, float* lp, int lutmax)
 		{
 			var vgmsk = Avx.BroadcastVector128ToVector256((float*)HWIntrinsics.GatherMask3x.GetAddressOf());

@@ -13,7 +13,6 @@ namespace PhotoSauce.MagicScaler.Transforms;
 
 internal sealed partial class Convolver4ChanIntrinsic : IConvolver
 {
-	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
 	{
 		float* ip = (float*)cstart + (uint)ox * channels, yp = (float*)ystart + (uint)ox, bp = (float*)bstart, op = (float*)ostart;
@@ -62,7 +61,6 @@ internal sealed partial class Convolver3ChanIntrinsic : IConvolver
 
 internal sealed partial class Convolver1ChanIntrinsic : IConvolver
 {
-	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	unsafe void IConvolver.SharpenLine(byte* cstart, byte* ystart, byte* bstart, byte* ostart, int ox, int ow, float amt, float thresh, bool gamma)
 	{
 		float* ip = (float*)cstart + (uint)ox * channels, yp = (float*)ystart + (uint)ox, bp = (float*)bstart, op = (float*)ostart;

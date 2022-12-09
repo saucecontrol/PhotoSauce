@@ -63,7 +63,6 @@ internal sealed partial class Convolver<#= t.name #>Intrinsic : IConvolver
 	int IConvolver.Channels => channels;
 	int IConvolver.MapChannels => channels;
 
-	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	unsafe void IConvolver.ConvolveSourceLine(byte* istart, byte* tstart, nint cb, byte* mapxstart, int smapx, int smapy)
 	{
 		float* tp = (float*)tstart, tpe = (float*)(tstart + cb);
@@ -260,7 +259,6 @@ if (t.channels == 1) {
 <#
 if (t.yUnroll > 0) {
 #>
-	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	unsafe void IConvolver.WriteDestLine(byte* tstart, byte* ostart, int ox, int ow, byte* pmapy, int smapy)
 	{
 		float* op = (float*)ostart;

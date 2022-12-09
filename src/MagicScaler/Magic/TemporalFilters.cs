@@ -88,7 +88,6 @@ internal static unsafe class TemporalFilters
 	}
 
 #if HWINTRINSICS
-	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private static void denoiseLineAvx2(byte* pcurr, byte* pprev, byte* pnext, nint cb)
 	{
 		byte* ip = pcurr, pp = pprev, np = pnext;
@@ -132,7 +131,6 @@ internal static unsafe class TemporalFilters
 		}
 	}
 
-	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private static void denoiseLineSse2(byte* pcurr, byte* pprev, byte* pnext, nint cb)
 	{
 		byte* ip = pcurr, pp = pprev, np = pnext;
@@ -204,7 +202,6 @@ internal static unsafe class TemporalFilters
 	}
 
 #if HWINTRINSICS
-	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private static (uint eql, uint eqr) dedupeLineAvx2(byte* pcurr, byte* pprev, byte* penc, nint cb, uint bg, bool blend)
 	{
 		byte* ip = pcurr, pp = pprev, op = penc;
@@ -268,7 +265,6 @@ internal static unsafe class TemporalFilters
 		return (eql, eqr);
 	}
 
-	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private static (uint eql, uint eqr) dedupeLineSse2(byte* pcurr, byte* pprev, byte* penc, nint cb, uint bg, bool blend)
 	{
 		byte* ip = pcurr, pp = pprev, op = penc;

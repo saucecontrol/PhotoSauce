@@ -1,3 +1,5 @@
+// Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
+
 using System;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;

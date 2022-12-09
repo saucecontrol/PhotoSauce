@@ -5,11 +5,11 @@ using System.IO;
 using System.Linq;
 using System.Buffers;
 using System.Drawing;
-using System.Reflection;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 #if NETFRAMEWORK
+using System.Reflection;
 using System.Configuration;
 using System.Collections.Specialized;
 #endif

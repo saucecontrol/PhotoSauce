@@ -17,7 +17,6 @@ using static TerraFX.Interop.Windows.WINCODEC;
 using static TerraFX.Interop.Windows.Windows;
 
 using PhotoSauce.Interop.Wic;
-using PhotoSauce.MagicScaler.Transforms;
 
 namespace PhotoSauce.MagicScaler;
 

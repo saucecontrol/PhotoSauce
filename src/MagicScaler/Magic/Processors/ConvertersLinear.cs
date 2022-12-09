@@ -99,7 +99,6 @@ internal sealed class ConverterToLinear<TFrom, TTo> : IConverter<TFrom, TTo> whe
 		}
 
 #if HWINTRINSICS
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 		private static void convertFloatAvx2(byte*ip, byte* ipe, float* op, float* igt)
 		{
 			ipe -= Vector256<byte>.Count;
@@ -233,7 +232,6 @@ internal sealed class ConverterToLinear<TFrom, TTo> : IConverter<TFrom, TTo> whe
 		}
 
 #if HWINTRINSICS
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 		private static void convertFloatAvx2(byte* ip, byte* ipe, float* op, float* igt)
 		{
 			var vscale = Vector256.Create(1f / byte.MaxValue);
@@ -338,9 +336,6 @@ internal sealed class ConverterToLinear<TFrom, TTo> : IConverter<TFrom, TTo> whe
 			}
 		}
 
-#if HWINTRINSICS
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-#endif
 		private static void convertFloat(byte* istart, byte* ostart, float* igtstart, nint cb)
 		{
 			byte* ip = istart, ipe = istart + cb;
@@ -443,7 +438,6 @@ internal sealed class ConverterFromLinear<TFrom, TTo> : IConverter<TFrom, TTo> w
 		}
 
 #if HWINTRINSICS
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 		private static void convertFloatAvx2(float* ip, float* ipe, byte* op, byte* gt)
 		{
 			var vmin = Vector256<int>.Zero;
@@ -636,7 +630,6 @@ internal sealed class ConverterFromLinear<TFrom, TTo> : IConverter<TFrom, TTo> w
 		}
 
 #if HWINTRINSICS
-		[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 		private static void convertFloatAvx2(float* ip, float* ipe, byte* op, byte* gt)
 		{
 			var vzero = Vector256<int>.Zero;

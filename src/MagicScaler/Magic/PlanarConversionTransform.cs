@@ -167,7 +167,6 @@ internal sealed class PlanarConversionTransform : ChainedPixelSource
 	}
 
 #if HWINTRINSICS
-	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private unsafe void copyPixelsIntrinsic(byte* bstart, byte* opstart, uint bstride, uint cb)
 	{
 		uint stride = bstride / sizeof(float);

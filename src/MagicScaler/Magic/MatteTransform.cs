@@ -85,7 +85,6 @@ internal sealed class MatteTransform : ChainedPixelSource
 	}
 
 #if HWINTRINSICS
-	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private unsafe void applyMatteLinearAvx(byte* pixels, nint cp)
 	{
 		var vmt = vmatte;

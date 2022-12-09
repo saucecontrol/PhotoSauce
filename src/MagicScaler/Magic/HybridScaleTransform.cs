@@ -117,9 +117,6 @@ internal sealed class HybridScaleTransform : ChainedPixelSource
 		}
 	}
 
-#if HWINTRINSICS
-	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-#endif
 	private static unsafe void process4A(byte* istart, byte* ostart, nuint stride)
 	{
 		const ushort scalec = ((UQ15One << 8) + byte.MaxValue / 2) / byte.MaxValue;
@@ -369,9 +366,6 @@ internal sealed class HybridScaleTransform : ChainedPixelSource
 		}
 	}
 
-#if HWINTRINSICS
-	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-#endif
 	private static unsafe void process4(byte* istart, byte* ostart, nuint stride)
 	{
 		byte* ip = istart, ipe = istart + stride;
@@ -487,9 +481,6 @@ internal sealed class HybridScaleTransform : ChainedPixelSource
 		}
 	}
 
-#if HWINTRINSICS
-	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-#endif
 	private static unsafe void process3(byte* istart, byte* ostart, nuint stride)
 	{
 		byte* ip = istart, ipe = istart + stride;
@@ -592,9 +583,6 @@ internal sealed class HybridScaleTransform : ChainedPixelSource
 		}
 	}
 
-#if HWINTRINSICS
-	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-#endif
 	private static unsafe void process(byte* istart, byte* ostart, nuint stride)
 	{
 		byte* ip = istart, ipe = istart + stride;
