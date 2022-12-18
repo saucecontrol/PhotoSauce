@@ -22,6 +22,7 @@ csharp_style_namespace_declarations = file_scoped:suggestion
 dotnet_diagnostic.CA1031.severity = silent
 dotnet_diagnostic.CA1308.severity = silent
 dotnet_diagnostic.CA1816.severity = silent
+dotnet_diagnostic.CA2255.severity = silent
 dotnet_diagnostic.CS3016.severity = silent ; https://github.com/dotnet/runtime/issues/40461
 dotnet_diagnostic.CS1573.severity = silent ; https://github.com/dotnet/roslyn/issues/40325
 

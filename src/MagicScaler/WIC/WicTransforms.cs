@@ -1,6 +1,8 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
+using System.Runtime.Versioning;
+using System.Runtime.InteropServices;
 
 using TerraFX.Interop.Windows;
 using static TerraFX.Interop.Windows.GUID;
@@ -11,6 +13,7 @@ using PhotoSauce.MagicScaler.Transforms;
 
 namespace PhotoSauce.MagicScaler;
 
+[SupportedOSPlatform(nameof(OSPlatform.Windows))]
 internal static unsafe class WicTransforms
 {
 	public static void AddColorProfileReader(PipelineContext ctx)

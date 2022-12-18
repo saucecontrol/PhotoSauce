@@ -167,13 +167,25 @@ internal static class MagicTransforms
 		var curFormat = ctx.Source.Format;
 		if (curFormat.ColorRepresentation == PixelColorRepresentation.Cmyk)
 		{
-			if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-				throw new PlatformNotSupportedException("CMYK conversion is not yet supported on this platform.");
+			if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && !ColorProfileTransform.HaveLcms)
+				throw new PlatformNotSupportedException("CMYK conversion requires LittleCMS (liblcms2) v2.09 or later on non-Windows platforms.");
 
-			if (ctx.WicContext.SourceColorContext is null && ctx.SourceColorProfile is not null)
-				ctx.WicContext.SourceColorContext = WicColorProfile.CreateContextFromProfile(ctx.SourceColorProfile.ProfileBytes);
+			var convFormat = curFormat.AlphaRepresentation == PixelAlphaRepresentation.None ? PixelFormat.Bgr24 : PixelFormat.Bgra32;
+			ctx.DestColorProfile = ctx.Settings.ColorProfileMode == ColorProfileMode.ConvertToSrgb ? ColorProfile.sRGB : ColorProfile.AdobeRgb;
+			ctx.SourceColorProfile ??= ColorProfile.CmykDefault;
 
-			WicTransforms.AddPixelFormatConverter(ctx);
+			if (ColorProfileTransform.TryCreate(ctx.Source, convFormat, ctx.SourceColorProfile, ctx.DestColorProfile, out var conv))
+			{
+				ctx.Source = ctx.AddProfiler(conv);
+			}
+			else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+			{
+				if (ctx.WicContext.SourceColorContext is null && ctx.SourceColorProfile is not null)
+					ctx.WicContext.SourceColorContext = WicColorProfile.CreateContextFromProfile(ctx.SourceColorProfile.ProfileBytes);
+
+				WicTransforms.AddPixelFormatConverter(ctx);
+			}
+
 			return;
 		}
 
@@ -448,7 +460,7 @@ internal static class MagicTransforms
 		if (mode == ColorProfileMode.Ignore)
 			return;
 
-		if (ctx.ImageFrame is WicImageFrame or WicPlanarCache)
+		if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && ctx.ImageFrame is WicImageFrame or WicPlanarCache)
 		{
 			WicTransforms.AddColorProfileReader(ctx);
 		}
@@ -532,7 +544,13 @@ internal static class MagicTransforms
 
 		if (ctx.SourceColorProfile.ProfileType > ColorProfileType.Matrix || ctx.DestColorProfile.ProfileType > ColorProfileType.Matrix)
 		{
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+			if (ColorProfileTransform.HaveLcms)
+			{
+				AddExternalFormatConverter(ctx);
+				if (ColorProfileTransform.TryCreate(ctx.Source, ctx.Source.Format, ctx.SourceColorProfile, ctx.DestColorProfile, out var conv))
+					ctx.Source = ctx.AddProfiler(conv);
+			}
+			else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 			{
 				if (ctx.WicContext.SourceColorContext is null)
 					ctx.WicContext.SourceColorContext = WicColorProfile.CreateContextFromProfile(ctx.SourceColorProfile.ProfileBytes);

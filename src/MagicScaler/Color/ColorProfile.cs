@@ -128,6 +128,8 @@ internal class ColorProfile
 		return new MatrixProfile(IccProfiles.DisplayP3V4.Value, IccProfiles.DisplayP3Compact.Value, m, im, sRGB.Curve, ProfileColorSpace.Rgb, ProfileColorSpace.Xyz);
 	});
 
+	private static readonly Lazy<ColorProfile> cmykDefault = new(() => Parse(IccProfiles.CmykDefault.Value));
+
 	private static ProfileCurve curveFromPower(double gamma)
 	{
 		var igt = new float[LookupTables.InverseGammaLength];
@@ -397,7 +399,6 @@ internal class ColorProfile
 			if (param.Length < minLen)
 				return false;
 
-
 			int a = 0, b = 0, c = 0, d = 0, e = 0, f = 0, g = 0;
 			switch (func)
 			{
@@ -554,9 +555,7 @@ internal class ColorProfile
 	public static MatrixProfile sRGB => srgb.Value;
 	public static MatrixProfile AdobeRgb => adobeRgb.Value;
 	public static MatrixProfile DisplayP3 => displayP3.Value;
-	public static ColorProfile CmykDefault => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-		? WicColorProfile.Cmyk.Value.ParsedProfile
-		: throw new PlatformNotSupportedException("CMYK conversion is not yet supported on this platform.");
+	public static ColorProfile CmykDefault => cmykDefault.Value;
 
 	public static ColorProfile GetDefaultFor(PixelFormat fmt) => fmt.ColorRepresentation switch {
 		PixelColorRepresentation.Cmyk => CmykDefault,
@@ -634,17 +633,7 @@ internal class ColorProfile
 		ProfileType = profileType;
 	}
 
-	public class ProfileCurve
-	{
-		public float[] Gamma { get; }
-		public float[] InverseGamma { get; }
-
-		public ProfileCurve(float[] gamma, float[] inverseGamma)
-		{
-			Gamma = gamma;
-			InverseGamma = inverseGamma;
-		}
-	}
+	public record struct ProfileCurve(float[] Gamma, float[] InverseGamma);
 }
 
 internal class CurveProfile : ColorProfile
@@ -752,6 +741,7 @@ internal static class IccProfiles
 	public static readonly Lazy<byte[]> sGreyCompact = new(() => getResourceBinary("sRGB-v2-micro.icc"));
 	public static readonly Lazy<byte[]> AdobeRgbV4 = new(() => getResourceBinary("AdobeCompat-v4.icc"));
 	public static readonly Lazy<byte[]> AdobeRgbCompact = new(() => getResourceBinary("AdobeCompat-v2.icc"));
-	public static readonly Lazy<byte[]> DisplayP3V4 = new(() => getResourceBinary("DisplayP3Compat-v4.icc"));
-	public static readonly Lazy<byte[]> DisplayP3Compact = new(() => getResourceBinary("DisplayP3Compat-v2-micro.icc"));
+	public static readonly Lazy<byte[]> DisplayP3V4 = new(() => getResourceBinary("DisplayP3-v4.icc"));
+	public static readonly Lazy<byte[]> DisplayP3Compact = new(() => getResourceBinary("DisplayP3-v2-micro.icc"));
+	public static readonly Lazy<byte[]> CmykDefault = new(() => getResourceBinary("CGATS001Compat-v2-micro.icc"));
 }

@@ -10,7 +10,7 @@ namespace PhotoSauce.MagicScaler;
 
 internal sealed unsafe class WicColorProfile : IDisposable
 {
-	public static readonly Lazy<WicColorProfile> Cmyk = new(() => new WicColorProfile(getDefaultColorContext(PixelFormat.Cmyk32.FormatGuid), null));
+	public static readonly Lazy<WicColorProfile> Cmyk = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.CmykDefault.Value), null));
 	public static readonly Lazy<WicColorProfile> Srgb = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sRgbV4.Value), ColorProfile.sRGB));
 	public static readonly Lazy<WicColorProfile> Grey = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.sGreyV4.Value), ColorProfile.sGrey));
 	public static readonly Lazy<WicColorProfile> AdobeRgb = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.AdobeRgbV4.Value), ColorProfile.AdobeRgb));
@@ -54,11 +54,11 @@ internal sealed unsafe class WicColorProfile : IDisposable
 
 	public static IWICColorContext* CreateContextFromProfile(Span<byte> profile)
 	{
-		fixed (byte* pprop = profile)
+		fixed (byte* pprof = profile)
 		{
 			using var cc = default(ComPtr<IWICColorContext>);
 			HRESULT.Check(Wic.Factory->CreateColorContext(cc.GetAddressOf()));
-			HRESULT.Check(cc.Get()->InitializeFromMemory(pprop, (uint)profile.Length));
+			HRESULT.Check(cc.Get()->InitializeFromMemory(pprof, (uint)profile.Length));
 			return cc.Detach();
 		}
 	}
@@ -73,18 +73,6 @@ internal sealed unsafe class WicColorProfile : IDisposable
 			HRESULT.Check(cc->GetProfileBytes(cb, pbuff, &cb));
 
 		return ColorProfile.Cache.GetOrAdd(buff.Span);
-	}
-
-	private static IWICColorContext* getDefaultColorContext(Guid pixelFormat)
-	{
-		using var wci = default(ComPtr<IWICComponentInfo>);
-		using var pfi = default(ComPtr<IWICPixelFormatInfo>);
-		HRESULT.Check(Wic.Factory->CreateComponentInfo(&pixelFormat, wci.GetAddressOf()));
-		HRESULT.Check(wci.As(&pfi));
-
-		using var wcc = default(ComPtr<IWICColorContext>);
-		HRESULT.Check(pfi.Get()->GetColorContext(wcc.GetAddressOf()));
-		return wcc.Detach();
 	}
 
 	public IWICColorContext* WicColorContext { get; private set; }
