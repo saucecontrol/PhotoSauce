@@ -15,7 +15,7 @@ namespace PhotoSauce.NativeCodecs.Libpng;
 
 internal static unsafe class PngFactory
 {
-	public const string DisplayName = $"{pspng} (libpng) 1.6.37";
+	public const string DisplayName = $"{pspng} (libpng) 1.6.39";
 	public const string pspng = nameof(pspng);
 	public const uint libver = PNG_LIBPNG_VER;
 

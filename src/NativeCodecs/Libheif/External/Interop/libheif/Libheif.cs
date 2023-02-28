@@ -36,8 +36,23 @@ internal static unsafe partial class Libheif
     public static extern void heif_deinit();
 
     [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_load_plugin([NativeTypeName("const char *")] sbyte* filename, [NativeTypeName("const struct heif_plugin_info **")] heif_plugin_info** out_plugin);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_load_plugins([NativeTypeName("const char *")] sbyte* directory, [NativeTypeName("const struct heif_plugin_info **")] heif_plugin_info** out_plugins, int* out_nPluginsLoaded, int output_array_size);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_unload_plugin([NativeTypeName("const struct heif_plugin_info *")] heif_plugin_info* plugin);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     [return: NativeTypeName("enum heif_filetype_result")]
     public static extern heif_filetype_result heif_check_filetype([NativeTypeName("const uint8_t *")] byte* data, int len);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int heif_check_jpeg_filetype([NativeTypeName("const uint8_t *")] byte* data, int len);
 
     [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     [return: NativeTypeName("enum heif_brand")]
@@ -344,6 +359,34 @@ internal static unsafe partial class Libheif
     public static extern void heif_image_release([NativeTypeName("const struct heif_image *")] void* param0);
 
     [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int heif_image_has_content_light_level([NativeTypeName("const struct heif_image *")] void* param0);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern void heif_image_get_content_light_level([NativeTypeName("const struct heif_image *")] void* param0, [NativeTypeName("struct heif_content_light_level *")] heif_content_light_level* @out);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern void heif_image_set_content_light_level([NativeTypeName("const struct heif_image *")] void* param0, [NativeTypeName("const struct heif_content_light_level *")] heif_content_light_level* @in);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int heif_image_has_mastering_display_colour_volume([NativeTypeName("const struct heif_image *")] void* param0);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern void heif_image_get_mastering_display_colour_volume([NativeTypeName("const struct heif_image *")] void* param0, [NativeTypeName("struct heif_mastering_display_colour_volume *")] heif_mastering_display_colour_volume* @out);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern void heif_image_set_mastering_display_colour_volume([NativeTypeName("const struct heif_image *")] void* param0, [NativeTypeName("const struct heif_mastering_display_colour_volume *")] heif_mastering_display_colour_volume* @in);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_mastering_display_colour_volume_decode([NativeTypeName("const struct heif_mastering_display_colour_volume *")] heif_mastering_display_colour_volume* @in, [NativeTypeName("struct heif_decoded_mastering_display_colour_volume *")] heif_decoded_mastering_display_colour_volume* @out);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern void heif_image_get_pixel_aspect_ratio([NativeTypeName("const struct heif_image *")] void* param0, [NativeTypeName("uint32_t *")] uint* aspect_h, [NativeTypeName("uint32_t *")] uint* aspect_v);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern void heif_image_set_pixel_aspect_ratio([NativeTypeName("struct heif_image *")] void* param0, [NativeTypeName("uint32_t")] uint aspect_h, [NativeTypeName("uint32_t")] uint aspect_v);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     [return: NativeTypeName("struct heif_error")]
     public static extern heif_error heif_context_write_to_file([NativeTypeName("struct heif_context *")] void* param0, [NativeTypeName("const char *")] sbyte* filename);
 
@@ -352,7 +395,21 @@ internal static unsafe partial class Libheif
     public static extern heif_error heif_context_write([NativeTypeName("struct heif_context *")] void* param0, [NativeTypeName("struct heif_writer *")] heif_writer* writer, void* userdata);
 
     [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int heif_get_decoder_descriptors([NativeTypeName("enum heif_compression_format")] heif_compression_format format_filter, [NativeTypeName("const struct heif_decoder_descriptor **")] void** out_decoders, int count);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("const char *")]
+    public static extern sbyte* heif_decoder_descriptor_get_name([NativeTypeName("const struct heif_decoder_descriptor *")] void* param0);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("const char *")]
+    public static extern sbyte* heif_decoder_descriptor_get_id_name([NativeTypeName("const struct heif_decoder_descriptor *")] void* param0);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern int heif_context_get_encoder_descriptors([NativeTypeName("struct heif_context *")] void* param0, [NativeTypeName("enum heif_compression_format")] heif_compression_format format_filter, [NativeTypeName("const char *")] sbyte* name_filter, [NativeTypeName("const struct heif_encoder_descriptor **")] void** out_encoders, int count);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int heif_get_encoder_descriptors([NativeTypeName("enum heif_compression_format")] heif_compression_format format_filter, [NativeTypeName("const char *")] sbyte* name_filter, [NativeTypeName("const struct heif_encoder_descriptor **")] void** out_encoders, int count);
 
     [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     [return: NativeTypeName("const char *")]
@@ -509,6 +566,10 @@ internal static unsafe partial class Libheif
 
     [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_context_add_XMP_metadata2([NativeTypeName("struct heif_context *")] void* param0, [NativeTypeName("const struct heif_image_handle *")] void* image_handle, [NativeTypeName("const void *")] void* data, int size, [NativeTypeName("enum heif_metadata_compression")] heif_metadata_compression compression);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
     public static extern heif_error heif_context_add_generic_metadata([NativeTypeName("struct heif_context *")] void* ctx, [NativeTypeName("const struct heif_image_handle *")] void* image_handle, [NativeTypeName("const void *")] void* data, int size, [NativeTypeName("const char *")] sbyte* item_type, [NativeTypeName("const char *")] sbyte* content_type);
 
     [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -524,6 +585,10 @@ internal static unsafe partial class Libheif
 
     [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern int heif_image_is_premultiplied_alpha([NativeTypeName("struct heif_image *")] void* image);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_image_extend_padding_to_size([NativeTypeName("struct heif_image *")] void* image, int min_physical_width, int min_physical_height);
 
     [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     [return: NativeTypeName("struct heif_error")]

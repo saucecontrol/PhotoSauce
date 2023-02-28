@@ -1,17 +1,33 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 0e643e9..8eec487 100644
+index 12a0c85..bdee5a8 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -393,12 +393,6 @@ macro(set_version FILE TARGET_NAME NAME_IN_MAKEFILE)
+@@ -142,7 +142,7 @@ endif()
+ set(PTHREAD_LIBS ${CMAKE_THREAD_LIBS_INIT})
+ set(INSTALLED_LIBRARIES)
+ 
+-if(MSVC)
++if(MSVC AND FALSE)
+   # match the naming convention used by nmake
+   set(webp_libname_prefix "lib")
+   set(CMAKE_SHARED_LIBRARY_PREFIX "${webp_libname_prefix}")
+@@ -258,10 +258,6 @@ macro(set_version FILE TARGET_NAME NAME_IN_MAKEFILE)
    list(GET LT_VERSION 2 LT_AGE)
    math(EXPR LT_CURRENT_MINUS_AGE "${LT_CURRENT} - ${LT_AGE}")
  
 -  set_target_properties(
 -    ${TARGET_NAME}
--    PROPERTIES VERSION
--               ${LT_CURRENT_MINUS_AGE}.${LT_AGE}.${LT_REVISION}
--               SOVERSION
--               ${LT_CURRENT_MINUS_AGE})
- endmacro()
- set_version(Makefile.am webp webp)
- set_version(Makefile.am webpdecoder webpdecoder)
+-    PROPERTIES VERSION ${LT_CURRENT_MINUS_AGE}.${LT_AGE}.${LT_REVISION}
+-               SOVERSION ${LT_CURRENT_MINUS_AGE})
+   if(APPLE)
+     # For compatibility, set MACHO_COMPATIBILITY_VERSION and
+     # MACHO_CURRENT_VERSION to match libtool. These properties were introduced
+@@ -302,7 +298,7 @@ function(libwebp_add_stub_file TARGET)
+ endfunction()
+ 
+ parse_makefile_am(${CMAKE_CURRENT_SOURCE_DIR}/sharpyuv "WEBP_SHARPYUV_SRCS" "")
+-add_library(sharpyuv ${WEBP_SHARPYUV_SRCS})
++add_library(sharpyuv STATIC ${WEBP_SHARPYUV_SRCS})
+ target_link_libraries(sharpyuv ${SHARPYUV_DEP_LIBRARIES})
+ set_version(sharpyuv/Makefile.am sharpyuv sharpyuv)
+ target_include_directories(

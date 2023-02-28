@@ -15,9 +15,9 @@ namespace PhotoSauce.NativeCodecs.Libheif;
 
 internal static unsafe class HeifFactory
 {
-	public const string DisplayName = $"{libheif} 1.13.0";
+	public const string DisplayName = $"{libheif} 1.15.1";
 	public const string libheif = nameof(libheif);
-	public const uint libver = 0x010d0000;
+	public const uint libver = 0x010f0100;
 
 	private static readonly Lazy<bool> dependencyValid = new(() => {
 #if NETFRAMEWORK
@@ -43,7 +43,7 @@ internal static unsafe class HeifFactory
 
 	public static void* CreateContext() => dependencyValid.Value ? heif_context_alloc() : default;
 
-	public static string GetMimeType(byte* data, int len) => dependencyValid.Value ? new(heif_get_file_mime_type(data, len)) : default;
+	public static string GetMimeType(byte* data, int len) => dependencyValid.Value ? new(heif_get_file_mime_type(data, len)) : "image/heif";
 }
 
 /// <inheritdoc cref="WindowsCodecExtensions" />

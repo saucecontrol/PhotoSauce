@@ -47,6 +47,9 @@ internal static unsafe partial class Libjxl
     public static extern JxlEncoderStatus JxlEncoderSetFrameName([NativeTypeName("JxlEncoderFrameSettings *")] void* frame_settings, [NativeTypeName("const char *")] sbyte* frame_name);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern JxlEncoderStatus JxlEncoderSetFrameBitDepth([NativeTypeName("JxlEncoderFrameSettings *")] void* frame_settings, [NativeTypeName("const JxlBitDepth *")] JxlBitDepth* bit_depth);
+
+    [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern JxlEncoderStatus JxlEncoderAddJPEGFrame([NativeTypeName("const JxlEncoderFrameSettings *")] void* frame_settings, [NativeTypeName("const uint8_t *")] byte* buffer, [NativeTypeName("size_t")] nuint size);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -150,4 +153,7 @@ internal static unsafe partial class Libjxl
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern void JxlColorEncodingSetToLinearSRGB(JxlColorEncoding* color_encoding, int is_gray);
+
+    [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern void JxlEncoderAllowExpertOptions([NativeTypeName("JxlEncoder *")] void* enc);
 }

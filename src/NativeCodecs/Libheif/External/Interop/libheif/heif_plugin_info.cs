@@ -6,23 +6,15 @@
 
 namespace PhotoSauce.Interop.Libheif;
 
-internal enum heif_brand
+internal unsafe partial struct heif_plugin_info
 {
-    heif_unknown_brand,
-    heif_heic,
-    heif_heix,
-    heif_hevc,
-    heif_hevx,
-    heif_heim,
-    heif_heis,
-    heif_hevm,
-    heif_hevs,
-    heif_mif1,
-    heif_msf1,
-    heif_avif,
-    heif_avis,
-    heif_vvic,
-    heif_vvis,
-    heif_evbi,
-    heif_evbs,
+    public int version;
+
+    [NativeTypeName("enum heif_plugin_type")]
+    public heif_plugin_type type;
+
+    [NativeTypeName("const void *")]
+    public void* plugin;
+
+    public void* internal_handle;
 }

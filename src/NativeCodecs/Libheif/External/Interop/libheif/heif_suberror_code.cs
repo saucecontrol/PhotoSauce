@@ -58,6 +58,10 @@ internal enum heif_suberror_code
     heif_suberror_Unsupported_data_version = 3002,
     heif_suberror_Unsupported_color_conversion = 3003,
     heif_suberror_Unsupported_item_construction_method = 3004,
+    heif_suberror_Unsupported_header_compression_method = 3005,
     heif_suberror_Unsupported_bit_depth = 4000,
     heif_suberror_Cannot_write_output_data = 5000,
+    heif_suberror_Plugin_loading_error = 6000,
+    heif_suberror_Plugin_is_not_loaded = 6001,
+    heif_suberror_Cannot_read_plugin_directory = 6002,
 }

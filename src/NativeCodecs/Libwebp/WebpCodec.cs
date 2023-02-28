@@ -18,9 +18,9 @@ namespace PhotoSauce.NativeCodecs.Libwebp;
 
 internal static unsafe class WebpFactory
 {
-	public const string DisplayName = $"{libwebp} 1.2.4";
+	public const string DisplayName = $"{libwebp} 1.3.0";
 	public const string libwebp = nameof(libwebp);
-	public const uint libver = 0x00010204;
+	public const uint libver = 0x00010300;
 
 	private static readonly Lazy<bool> dependencyValid = new(() => {
 #if NETFRAMEWORK

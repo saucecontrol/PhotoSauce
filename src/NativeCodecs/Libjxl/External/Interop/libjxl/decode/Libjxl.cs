@@ -101,6 +101,12 @@ internal static unsafe partial class Libjxl
     public static extern JxlDecoderStatus JxlDecoderSetDesiredIntensityTarget([NativeTypeName("JxlDecoder *")] void* dec, float desired_intensity_target);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern JxlDecoderStatus JxlDecoderSetOutputColorProfile([NativeTypeName("JxlDecoder *")] void* dec, [NativeTypeName("const JxlColorEncoding *")] JxlColorEncoding* color_encoding, [NativeTypeName("const uint8_t *")] byte* icc_data, [NativeTypeName("size_t")] nuint icc_size);
+
+    [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern void JxlDecoderSetCms([NativeTypeName("JxlDecoder *")] void* dec, JxlCmsInterface cms);
+
+    [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern JxlDecoderStatus JxlDecoderPreviewOutBufferSize([NativeTypeName("const JxlDecoder *")] void* dec, [NativeTypeName("const JxlPixelFormat *")] JxlPixelFormat* format, [NativeTypeName("size_t *")] nuint* size);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -114,14 +120,6 @@ internal static unsafe partial class Libjxl
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern JxlDecoderStatus JxlDecoderGetExtraChannelBlendInfo([NativeTypeName("const JxlDecoder *")] void* dec, [NativeTypeName("size_t")] nuint index, JxlBlendInfo* blend_info);
-
-    [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    [Obsolete]
-    public static extern JxlDecoderStatus JxlDecoderDCOutBufferSize([NativeTypeName("const JxlDecoder *")] void* dec, [NativeTypeName("const JxlPixelFormat *")] JxlPixelFormat* format, [NativeTypeName("size_t *")] nuint* size);
-
-    [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    [Obsolete]
-    public static extern JxlDecoderStatus JxlDecoderSetDCOutBuffer([NativeTypeName("JxlDecoder *")] void* dec, [NativeTypeName("const JxlPixelFormat *")] JxlPixelFormat* format, void* buffer, [NativeTypeName("size_t")] nuint size);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern JxlDecoderStatus JxlDecoderImageOutBufferSize([NativeTypeName("const JxlDecoder *")] void* dec, [NativeTypeName("const JxlPixelFormat *")] JxlPixelFormat* format, [NativeTypeName("size_t *")] nuint* size);
@@ -173,4 +171,7 @@ internal static unsafe partial class Libjxl
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern JxlDecoderStatus JxlDecoderFlushImage([NativeTypeName("JxlDecoder *")] void* dec);
+
+    [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern JxlDecoderStatus JxlDecoderSetImageOutBitDepth([NativeTypeName("JxlDecoder *")] void* dec, [NativeTypeName("const JxlBitDepth *")] JxlBitDepth* bit_depth);
 }

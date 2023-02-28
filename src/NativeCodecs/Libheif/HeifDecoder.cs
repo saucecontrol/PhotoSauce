@@ -209,8 +209,8 @@ internal sealed unsafe class HeifContainer : IImageContainer
 
 			int bpp = Format.BytesPerPixel;
 
-			for (int i = 0; i < prc.Height; i++)
-				Buffer.MemoryCopy(pixels + (prc.Y + i) * stride + prc.X * bpp, pbBuffer + i * cbStride, cbStride, prc.Width * bpp);
+			for (int y = 0; y < prc.Height; y++)
+				Buffer.MemoryCopy(pixels + (prc.Y + y) * stride + prc.X * bpp, pbBuffer + y * cbStride, cbStride, prc.Width * bpp);
 		}
 
 		private void decodeImage()

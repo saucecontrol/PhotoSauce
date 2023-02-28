@@ -60,4 +60,7 @@ internal unsafe partial struct heif_decoding_options
 
     [NativeTypeName("uint8_t")]
     public byte strict_decoding;
+
+    [NativeTypeName("const char *")]
+    public sbyte* decoder_id;
 }

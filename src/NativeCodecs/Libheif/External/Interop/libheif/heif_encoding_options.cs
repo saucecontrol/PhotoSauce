@@ -25,4 +25,7 @@ internal unsafe partial struct heif_encoding_options
 
     [NativeTypeName("uint8_t")]
     public byte macOS_compatibility_workaround_no_nclx_profile;
+
+    [NativeTypeName("enum heif_orientation")]
+    public heif_orientation image_orientation;
 }

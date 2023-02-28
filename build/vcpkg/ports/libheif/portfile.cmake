@@ -1,8 +1,8 @@
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO  strukturag/libheif 
-    REF v1.13.0
-    SHA512 df5d64f83a4935bdf9b30836e634a2349ce24521c7c59f6f1a640d8ced9c7dc42198235684e131a713ef5c10fbe063da3611c774bbde509165bd6f7f44e70bf0
+    REF "v${VERSION}"
+    SHA512 966a95dacc12722d2dd37d449125c3df08f9e9be76ec2dc6762866bf285442c33836046df884b50cc14c799dfdcc1d5c9b16e4f9f36a2dbaf422df089756a234
     HEAD_REF master
     PATCHES
         no-gdk-pixbuf.patch
@@ -12,10 +12,14 @@ vcpkg_from_github(
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     OPTIONS
+        -DENABLE_PLUGIN_LOADING=OFF
+        -DENABLE_PARALLEL_TILE_DECODING=OFF
         -DWITH_EXAMPLES=OFF
-        -DWITH_AOM=OFF
+        -DWITH_AOM_DECODER=OFF
+        -DWITH_AOM_ENCODER=OFF
         -DWITH_X265=OFF
         -DWITH_RAV1E=OFF
+        -DWITH_SvtEnc=OFF
 )
 vcpkg_cmake_install()
 vcpkg_copy_pdbs()
@@ -35,5 +39,7 @@ else()
 endif()
 
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
+
+vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/include/libheif/heif_version.h" "#define LIBHEIF_PLUGIN_DIRECTORY \"${CURRENT_PACKAGES_DIR}/lib/libheif\"" "")
 
 file(INSTALL "${SOURCE_PATH}/COPYING" DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}" RENAME copyright)
