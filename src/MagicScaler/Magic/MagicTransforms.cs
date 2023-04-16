@@ -201,17 +201,17 @@ internal static class MagicTransforms
 			return;
 		}
 
-		if (!lastChance && curFormat.AlphaRepresentation == PixelAlphaRepresentation.Associated && ctx.Settings.BlendingMode != GammaMode.Linear && ctx.Settings.MatteColor.IsEmpty)
+		if (!lastChance && curFormat.AlphaRepresentation is PixelAlphaRepresentation.Associated && ctx.Settings.BlendingMode is not GammaMode.Linear && ctx.Settings.MatteColor.IsEmpty)
 			newFormat = PixelFormat.Pbgra32;
-		else if (curFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
+		else if (curFormat.AlphaRepresentation is not PixelAlphaRepresentation.None)
 			newFormat = PixelFormat.Bgra32;
-		else if (curFormat.ColorRepresentation == PixelColorRepresentation.Grey)
+		else if (curFormat.ColorRepresentation is PixelColorRepresentation.Grey)
 			newFormat = PixelFormat.Grey8;
 
 		if (curFormat == newFormat)
 			return;
 
-		if ((curFormat == PixelFormat.Rgb24 || curFormat == PixelFormat.Rgba32) && (newFormat == PixelFormat.Bgr24 || newFormat == PixelFormat.Bgra32))
+		if ((curFormat == PixelFormat.Rgb24 || curFormat == PixelFormat.Rgba32 || curFormat == PixelFormat.Bgrx32) && (newFormat == PixelFormat.Bgr24 || newFormat == PixelFormat.Bgra32))
 		{
 			ctx.Source = ctx.AddProfiler(new ConversionTransform(ctx.Source, newFormat));
 			return;

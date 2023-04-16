@@ -93,7 +93,7 @@ internal sealed unsafe class GifEncoder : IAnimatedImageEncoder
 		{
 			var bpal = MemoryMarshal.AsBytes(pal);
 			Unsafe.CopyBlock(ref *pp, ref MemoryMarshal.GetReference(bpal), (uint)bpal.Length);
-			ChannelChanger<byte>.GetSwapConverter(4, 3).ConvertLine(pp, pp, bpal.Length);
+			Swizzlers<byte>.GetSwapConverter(4, 3).ConvertLine(pp, pp, bpal.Length);
 
 			var cmap = new ColorMapObject { BitsPerPixel = palbits, ColorCount = palcnt, Colors = (GifColorType*)pp };
 			checkResult(EGifPutImageDesc(handle, anifrm.OffsetLeft, anifrm.OffsetTop, area.Width, area.Height, 0, &cmap));

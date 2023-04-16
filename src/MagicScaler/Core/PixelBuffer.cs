@@ -212,7 +212,7 @@ internal sealed class PixelBuffer<T> : IDisposable where T : struct, BufferType
 
 		Reset();
 
-		BufferPool.ReturnRaw(new ArraySegment<byte>(buffArray!, buffOffset, buffLength));
+		BufferPool.ReturnRaw(new ArraySegment<byte>(buffArray, buffOffset, buffLength));
 		buffArray = null;
 		capacity = 0;
 	}

@@ -2,7 +2,6 @@
 
 using System;
 using System.IO;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
@@ -11,7 +10,6 @@ using PhotoSauce.MagicScaler;
 using PhotoSauce.MagicScaler.Converters;
 using PhotoSauce.Interop.Libpng;
 using static PhotoSauce.Interop.Libpng.Libpng;
-using static System.Buffers.Binary.BinaryPrimitives;
 
 namespace PhotoSauce.NativeCodecs.Libpng;
 
@@ -251,92 +249,30 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 
 	private ColorProfile generateIccProfile()
 	{
-		bool isGrey = ((PixelSource)frame!.PixelSource).Format.ColorRepresentation is PixelColorRepresentation.Grey;
-		var prof = isGrey ? ColorProfile.sGrey : ColorProfile.sRGB;
-
-		using var buff = BufferPool.RentLocal<byte>(prof.ProfileBytes.Length);
-		var span = buff.Span;
-
-		prof.ProfileBytes.CopyTo(span);
-		span[84..100].Clear();
-		WriteUInt32BigEndian(span[80..], 0x6D616763);
-
-		var name = span[(isGrey ? 220 : 280)..];
-		WriteUInt16BigEndian(name[0..], '.');
-		WriteUInt16BigEndian(name[2..], 'P');
-		WriteUInt16BigEndian(name[4..], 'N');
-		WriteUInt16BigEndian(name[6..], 'G');
-
+		Vector3C wxyz = default, rxyz = default, gxyz = default, bxyz = default;
 		if (handle->HasChunk(PNG_INFO_cHRM))
 		{
-			Debug.Assert(span.Length == 480);
-
 			int wx, wy, rx, ry, gx, gy, bx, by;
 			PngGetChrm(handle, &wx, &wy, &rx, &ry, &gx, &gy, &bx, &by);
 
-			var wxyz = xyToXYZ(fromPngFixed(wx), fromPngFixed(wy));
-			var rxyz = xyToXYZ(fromPngFixed(rx), fromPngFixed(ry));
-			var gxyz = xyToXYZ(fromPngFixed(gx), fromPngFixed(gy));
-			var bxyz = xyToXYZ(fromPngFixed(bx), fromPngFixed(by));
-
-			var adapt = ConversionMatrix.GetChromaticAdaptation(wxyz);
-			var mxyz = ConversionMatrix.GetRgbToXyz(rxyz, gxyz, bxyz, wxyz);
-			var axyz = adapt * mxyz;
-
-			var chad = span[352..];
-			WriteInt32BigEndian(chad[ 0..], toS15Fixed16(adapt.M11));
-			WriteInt32BigEndian(chad[ 4..], toS15Fixed16(adapt.M12));
-			WriteInt32BigEndian(chad[ 8..], toS15Fixed16(adapt.M13));
-			WriteInt32BigEndian(chad[12..], toS15Fixed16(adapt.M21));
-			WriteInt32BigEndian(chad[16..], toS15Fixed16(adapt.M22));
-			WriteInt32BigEndian(chad[20..], toS15Fixed16(adapt.M23));
-			WriteInt32BigEndian(chad[24..], toS15Fixed16(adapt.M31));
-			WriteInt32BigEndian(chad[28..], toS15Fixed16(adapt.M32));
-			WriteInt32BigEndian(chad[32..], toS15Fixed16(adapt.M33));
-
-			var rcol = span[396..];
-			WriteInt32BigEndian(rcol[0..], toS15Fixed16(axyz.M11));
-			WriteInt32BigEndian(rcol[4..], toS15Fixed16(axyz.M21));
-			WriteInt32BigEndian(rcol[8..], toS15Fixed16(axyz.M31));
-
-			var gcol = span[416..];
-			WriteInt32BigEndian(gcol[0..], toS15Fixed16(axyz.M12));
-			WriteInt32BigEndian(gcol[4..], toS15Fixed16(axyz.M22));
-			WriteInt32BigEndian(gcol[8..], toS15Fixed16(axyz.M32));
-
-			var bcol = span[436..];
-			WriteInt32BigEndian(bcol[0..], toS15Fixed16(axyz.M13));
-			WriteInt32BigEndian(bcol[4..], toS15Fixed16(axyz.M23));
-			WriteInt32BigEndian(bcol[8..], toS15Fixed16(axyz.M33));
+			wxyz = xyToXYZ(fromPngFixed(wx), fromPngFixed(wy));
+			rxyz = xyToXYZ(fromPngFixed(rx), fromPngFixed(ry));
+			gxyz = xyToXYZ(fromPngFixed(gx), fromPngFixed(gy));
+			bxyz = xyToXYZ(fromPngFixed(bx), fromPngFixed(by));
 		}
 
+		double gamma = default;
 		if (handle->HasChunk(PNG_INFO_gAMA))
 		{
-			Debug.Assert(span.Length == (isGrey ? 360 : 480));
-
 			int gama;
 			PngGetGama(handle, &gama);
 
-			span = span[..^16];
-			WriteUInt32BigEndian(span, (uint)span.Length);
-
-			var trc = span[(isGrey ? 188 : 224)..];
-			WriteUInt32BigEndian(trc[0..], 16);
-			if (!isGrey)
-			{
-				WriteUInt32BigEndian(trc[12..], 16);
-				WriteUInt32BigEndian(trc[24..], 16);
-			}
-
-			var para = span[(isGrey ? 336 : 456)..];
-			WriteUInt16BigEndian(para[0..], 0);
-			WriteInt32BigEndian(para[4..], toS15Fixed16(1 / fromPngFixed(gama)));
+			gamma = fromPngFixed(gama);
 		}
 
-		return ColorProfile.Parse(span);
+		return ColorProfile.CreateFromMetadata(".PNG"u8, ((PixelSource)frame!.PixelSource).Format, gamma, wxyz, rxyz, gxyz, bxyz);
 
 		static double fromPngFixed(int val) => val / 100000d;
-		static int toS15Fixed16(double val) => (int)Math.Round(val * 65536);
 		static Vector3C xyToXYZ(double x, double y) => new(x / y, 1, (1 - x - y) / y);
 	}
 
@@ -578,7 +514,7 @@ internal sealed unsafe class PngFrame : IImageFrame, IMetadataSource
 				return;
 			}
 
-			ChannelChanger<byte>.GetSwapConverter(bpp, bpp).ConvertLine(istart, ostart, cb);
+			Swizzlers<byte>.GetSwapConverter(bpp, bpp).ConvertLine(istart, ostart, cb);
 		}
 
 		public override string ToString() => nameof(PngPixelSource);

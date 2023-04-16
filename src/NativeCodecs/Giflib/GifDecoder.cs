@@ -111,7 +111,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 
 			var cspan = palette.Span;
 			fixed (uint* pp = cspan)
-				ChannelChanger<byte>.GetSwapConverter(3, 4).ConvertLine((byte*)cmap->Colors, (byte*)pp, ColorCount * 3);
+				Swizzlers<byte>.GetSwapConverter(3, 4).ConvertLine((byte*)cmap->Colors, (byte*)pp, ColorCount * 3);
 
 			if (handle->SBackGroundColor < ColorCount)
 				bgColor = cspan[handle->SBackGroundColor];
@@ -487,7 +487,7 @@ internal sealed unsafe class GifFrame : IImageFrame, IMetadataSource
 				var cspan = frame.palette.Span;
 				if (cmap is not null)
 					fixed (uint* pp = cspan)
-						ChannelChanger<byte>.GetSwapConverter(3, 4).ConvertLine((byte*)cmap->Colors, (byte*)pp, colorCount * 3);
+						Swizzlers<byte>.GetSwapConverter(3, 4).ConvertLine((byte*)cmap->Colors, (byte*)pp, colorCount * 3);
 				else
 					container.Palette.CopyTo(cspan);
 

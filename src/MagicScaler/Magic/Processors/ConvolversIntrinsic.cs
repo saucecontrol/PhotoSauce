@@ -11,7 +11,6 @@
 using System;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-using System.Runtime.CompilerServices;
 
 using VectorAvx = System.Runtime.Intrinsics.Vector256<float>;
 using VectorSse = System.Runtime.Intrinsics.Vector128<float>;

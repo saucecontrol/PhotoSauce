@@ -82,4 +82,12 @@ internal static class ThrowHelper
 
 	[DoesNotReturn]
 	public static void ThrowOutOfMemory() => throw new OutOfMemoryException();
+
+	[DoesNotReturn]
+	public static void ThrowUnreachable() =>
+#if NET7_0_OR_GREATER
+		throw new UnreachableException();
+#else
+		throw new NotSupportedException("Unreachable");
+#endif
 }

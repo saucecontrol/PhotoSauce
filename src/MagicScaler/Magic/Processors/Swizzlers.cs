@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler.Converters;
 
-internal static class ChannelChanger<T> where T : unmanaged
+internal static class Swizzlers<T> where T : unmanaged
 {
 	private static readonly T maxalpha = getOneValue();
 
@@ -26,31 +26,31 @@ internal static class ChannelChanger<T> where T : unmanaged
 		throw new NotSupportedException($"{nameof(T)} must be float, ushort, or byte");
 	}
 
-	public static IConversionProcessor<T, T> AlphaExtractor => Change4to1Chan.InstanceAlpha;
+	public static IConversionProcessor<T, T> AlphaExtractor => Narrow4to1.InstanceAlpha;
 
 	public static IConversionProcessor<T, T> GetConverter(int chanIn, int chanOut) =>
 		(chanIn, chanOut) switch {
-			(1, 3) => Change1to3Chan.Instance,
-			(1, 4) => Change1to4Chan.Instance,
-			(3, 1) => Change3to1Chan.Instance,
-			(3, 4) => Change3to4Chan.Instance,
-			(4, 1) => Change4to1Chan.Instance,
-			(4, 3) => Change4to3Chan.Instance,
+			(1, 3) => Widen1to3.Instance,
+			(1, 4) => Widen1to4.Instance,
+			(3, 4) => Widen3to4.Instance,
+			(3, 1) => Narrow3to1.Instance,
+			(4, 1) => Narrow4to1.Instance,
+			(4, 3) => Narrow4to3.Instance,
 			_      => throw new NotSupportedException("Unsupported pixel format")
 		};
 
 	public static IConversionProcessor<T, T> GetSwapConverter(int chanIn, int chanOut) =>
 		(chanIn, chanOut) switch {
-			(3, 4) => Swap3to4Chan.Instance,
-			(4, 3) => Swap4to3Chan.Instance,
-			(3, 3) => Swap3Chan.Instance,
-			(4, 4) => Swap4Chan.Instance,
+			(3, 4) => SwapWiden3to4.Instance,
+			(4, 3) => SwapNarrow4to3.Instance,
+			(3, 3) => Swap3.Instance,
+			(4, 4) => Swap4.Instance,
 			_      => throw new NotSupportedException("Unsupported pixel format")
 		};
 
 #if HWINTRINSICS
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private static unsafe void change3to4Ssse3(ref T* ip, T* ipe, ref T* op, Vector128<byte> vmask)
+	private static unsafe void widen3to4Ssse3(ref T* ip, T* ipe, ref T* op, Vector128<byte> vmask)
 	{
 		var vfill = Vector128.Create(0xff000000u).AsByte();
 
@@ -80,7 +80,7 @@ internal static class ChannelChanger<T> where T : unmanaged
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private static unsafe void change4to3Ssse3(ref T* ip, T* ipe, ref T* op, Vector128<byte> vmasko)
+	private static unsafe void narrow4to3Ssse3(ref T* ip, T* ipe, ref T* op, Vector128<byte> vmasko)
 	{
 		var vmaske = Sse2.Shuffle(vmasko.AsUInt32(), 0b_10_01_00_11).AsByte();
 
@@ -110,11 +110,11 @@ internal static class ChannelChanger<T> where T : unmanaged
 	}
 #endif
 
-	private sealed class Change1to3Chan : IConversionProcessor<T, T>
+	private sealed class Widen1to3 : IConversionProcessor<T, T>
 	{
-		public static readonly Change1to3Chan Instance = new();
+		public static readonly Widen1to3 Instance = new();
 
-		private Change1to3Chan() { }
+		private Widen1to3() { }
 
 		unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
@@ -156,11 +156,11 @@ internal static class ChannelChanger<T> where T : unmanaged
 		}
 	}
 
-	private sealed class Change1to4Chan : IConversionProcessor<T, T>
+	private sealed class Widen1to4 : IConversionProcessor<T, T>
 	{
-		public static readonly Change1to4Chan Instance = new();
+		public static readonly Widen1to4 Instance = new();
 
-		private Change1to4Chan() { }
+		private Widen1to4() { }
 
 		unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
@@ -208,11 +208,11 @@ internal static class ChannelChanger<T> where T : unmanaged
 		}
 	}
 
-	private sealed class Change3to1Chan : IConversionProcessor<T, T>
+	private sealed class Narrow3to1 : IConversionProcessor<T, T>
 	{
-		public static readonly Change3to1Chan Instance = new();
+		public static readonly Narrow3to1 Instance = new();
 
-		private Change3to1Chan() { }
+		private Narrow3to1() { }
 
 		unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
@@ -257,11 +257,11 @@ internal static class ChannelChanger<T> where T : unmanaged
 		}
 	}
 
-	private sealed class Change3to4Chan : IConversionProcessor<T, T>
+	private sealed class Widen3to4 : IConversionProcessor<T, T>
 	{
-		public static readonly Change3to4Chan Instance = new();
+		public static readonly Widen3to4 Instance = new();
 
-		private Change3to4Chan() { }
+		private Widen3to4() { }
 
 		unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
@@ -273,7 +273,7 @@ internal static class ChannelChanger<T> where T : unmanaged
 			{
 				const byte _ = 0x80;
 				var vmask = Vector128.Create(0, 1, 2, _, 3, 4, 5, _, 6, 7, 8, _, 9, 10, 11, _);
-				ChannelChanger<T>.change3to4Ssse3(ref ip, ipe, ref op, vmask);
+				Swizzlers<T>.widen3to4Ssse3(ref ip, ipe, ref op, vmask);
 			}
 #endif
 
@@ -291,11 +291,11 @@ internal static class ChannelChanger<T> where T : unmanaged
 		}
 	}
 
-	private sealed class Swap3to4Chan : IConversionProcessor<T, T>
+	private sealed class SwapWiden3to4 : IConversionProcessor<T, T>
 	{
-		public static readonly Swap3to4Chan Instance = new();
+		public static readonly SwapWiden3to4 Instance = new();
 
-		private Swap3to4Chan() { }
+		private SwapWiden3to4() { }
 
 		unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
@@ -307,7 +307,7 @@ internal static class ChannelChanger<T> where T : unmanaged
 			{
 				const byte _ = 0x80;
 				var vmask = Vector128.Create(2, 1, 0, _, 5, 4, 3, _, 8, 7, 6, _, 11, 10, 9, _ );
-				ChannelChanger<T>.change3to4Ssse3(ref ip, ipe, ref op, vmask);
+				Swizzlers<T>.widen3to4Ssse3(ref ip, ipe, ref op, vmask);
 			}
 #endif
 
@@ -326,14 +326,14 @@ internal static class ChannelChanger<T> where T : unmanaged
 		}
 	}
 
-	private sealed class Change4to1Chan : IConversionProcessor<T, T>
+	private sealed class Narrow4to1 : IConversionProcessor<T, T>
 	{
-		public static readonly Change4to1Chan Instance = new(0);
-		public static readonly Change4to1Chan InstanceAlpha = new(3);
+		public static readonly Narrow4to1 Instance = new(0);
+		public static readonly Narrow4to1 InstanceAlpha = new(3);
 
 		private readonly byte offset;
 
-		private Change4to1Chan(byte offs) => offset = offs;
+		private Narrow4to1(byte offs) => offset = offs;
 
 		unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
@@ -370,10 +370,11 @@ internal static class ChannelChanger<T> where T : unmanaged
 			}
 #endif
 
-			ipe -= 4;
+			ip += offset;
+			ipe -= 4 - offset;
 			while (ip <= ipe)
 			{
-				op[0] = ip[0];
+				*op = *ip;
 
 				ip += 4;
 				op++;
@@ -381,11 +382,11 @@ internal static class ChannelChanger<T> where T : unmanaged
 		}
 	}
 
-	private sealed class Change4to3Chan : IConversionProcessor<T, T>
+	private sealed class Narrow4to3 : IConversionProcessor<T, T>
 	{
-		public static readonly Change4to3Chan Instance = new();
+		public static readonly Narrow4to3 Instance = new();
 
-		private Change4to3Chan() { }
+		private Narrow4to3() { }
 
 		unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
@@ -396,7 +397,7 @@ internal static class ChannelChanger<T> where T : unmanaged
 			{
 				const byte _ = 0x80;
 				var vmask = Vector128.Create(0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, _, _, _, _);
-				ChannelChanger<T>.change4to3Ssse3(ref ip, ipe, ref op, vmask);
+				Swizzlers<T>.narrow4to3Ssse3(ref ip, ipe, ref op, vmask);
 			}
 #endif
 
@@ -413,11 +414,11 @@ internal static class ChannelChanger<T> where T : unmanaged
 		}
 	}
 
-	private sealed class Swap4to3Chan : IConversionProcessor<T, T>
+	private sealed class SwapNarrow4to3 : IConversionProcessor<T, T>
 	{
-		public static readonly Swap4to3Chan Instance = new();
+		public static readonly SwapNarrow4to3 Instance = new();
 
-		private Swap4to3Chan() { }
+		private SwapNarrow4to3() { }
 
 		unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
@@ -428,7 +429,7 @@ internal static class ChannelChanger<T> where T : unmanaged
 			{
 				const byte _ = 0x80;
 				var vmask = Vector128.Create(2, 1, 0, 6, 5, 4, 10, 9, 8, 14, 13, 12, _, _, _, _);
-				ChannelChanger<T>.change4to3Ssse3(ref ip, ipe, ref op, vmask);
+				Swizzlers<T>.narrow4to3Ssse3(ref ip, ipe, ref op, vmask);
 			}
 #endif
 
@@ -446,11 +447,11 @@ internal static class ChannelChanger<T> where T : unmanaged
 		}
 	}
 
-	private sealed class Swap3Chan : IConversionProcessor<T, T>
+	private sealed class Swap3 : IConversionProcessor<T, T>
 	{
-		public static readonly Swap3Chan Instance = new();
+		public static readonly Swap3 Instance = new();
 
-		private Swap3Chan() { }
+		private Swap3() { }
 
 		unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
@@ -509,11 +510,11 @@ internal static class ChannelChanger<T> where T : unmanaged
 		}
 	}
 
-	private sealed class Swap4Chan : IConversionProcessor<T, T>
+	private sealed class Swap4 : IConversionProcessor<T, T>
 	{
-		public static readonly Swap4Chan Instance = new();
+		public static readonly Swap4 Instance = new();
 
-		private Swap4Chan() { }
+		private Swap4() { }
 
 		unsafe void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{

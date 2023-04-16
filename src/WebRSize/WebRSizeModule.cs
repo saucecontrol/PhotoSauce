@@ -3,6 +3,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Web;
 using System.Web.Hosting;
 using System.Globalization;
@@ -43,11 +44,18 @@ public class WebRSizeModule : IHttpModule
 		if (exists && s.IsEmpty && !folderConfig.ForceProcessing)
 			return;
 
+		if (ctx.Request.HttpMethod is not (WebRequestMethods.Http.Get or WebRequestMethods.Http.Head))
+		{
+			ctx.Response.StatusCode = (int)HttpStatusCode.MethodNotAllowed;
+			ctx.ApplicationInstance.CompleteRequest();
+			return;
+		}
+
 		var ifi = default(ImageFileInfo);
 		if (!exists)
 		{
 			ctx.Response.TrySkipIisCustomErrors = true;
-			ctx.Response.StatusCode = 404;
+			ctx.Response.StatusCode = (int)HttpStatusCode.NotFound;
 			path = NotFoundPath;
 
 			if (s.Width <= 0 && s.Height <= 0)
@@ -102,7 +110,7 @@ public class WebRSizeModule : IHttpModule
 
 		if (s.Width * s.Height > folderConfig.MaxPixels)
 		{
-			ctx.Response.StatusCode = 400;
+			ctx.Response.StatusCode = (int)HttpStatusCode.BadRequest;
 			ctx.ApplicationInstance.CompleteRequest();
 			return;
 		}
@@ -124,6 +132,13 @@ public class WebRSizeModule : IHttpModule
 
 		if (path == NotFoundPath)
 			ctx.RewritePath(NotFoundPath);
+
+		if (ctx.Request.HttpMethod is WebRequestMethods.Http.Head)
+		{
+			ctx.Response.ContentType = s.EncoderInfo.MimeTypes.FirstOrDefault();
+			ctx.ApplicationInstance.CompleteRequest();
+			return;
+		}
 
 		ctx.Items[ProcessImageSettingsKey] = s;
 		ctx.Items[CachePathKey] = cachePath;

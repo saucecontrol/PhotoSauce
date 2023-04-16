@@ -38,30 +38,42 @@ public class WebRSizeHandler : HttpTaskAsyncHandler
 		tcs.SetResult(bytes);
 
 		if (!diskCacheEnabled)
-			return;
-
-		HostingEnvironment.QueueBackgroundWorkItem(async __ => { try {
-			var fi = new FileInfo(cachePath);
-			if (!fi.Exists)
-			{
-				if (!fi.Directory.Exists)
-					fi.Directory.Create();
-
-				string tmpPath = $"{cachePath}.tmp";
-				using (var fs = new FileStream(tmpPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.Asynchronous))
-				{
-					await fs.WriteAsync(bytes.Array, bytes.Offset, bytes.Count);
-					await fs.FlushAsync();
-				}
-
-				if (lastWrite > DateTime.MinValue)
-					File.SetLastWriteTimeUtc(tmpPath, lastWrite);
-
-				File.Move(tmpPath, cachePath);
-			}
-
+		{
 			tdic.TryRemove(cachePath, out _);
-		} catch { }});
+			return;
+		}
+
+		HostingEnvironment.QueueBackgroundWorkItem(async __ => {
+			try
+			{
+				var fi = new FileInfo(cachePath);
+				if (!fi.Exists)
+				{
+					if (!fi.Directory.Exists)
+						fi.Directory.Create();
+
+					string tmpPath = $"{cachePath}.tmp";
+					using (var fs = new FileStream(tmpPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.Asynchronous))
+					{
+						await fs.WriteAsync(bytes.Array, bytes.Offset, bytes.Count);
+						await fs.FlushAsync();
+					}
+
+					if (lastWrite > DateTime.MinValue)
+						File.SetLastWriteTimeUtc(tmpPath, lastWrite);
+
+					File.Move(tmpPath, cachePath);
+				}
+			}
+			catch
+			{
+				// nothing we can do here if save fails
+			}
+			finally
+			{
+				tdic.TryRemove(cachePath, out _);
+			}
+		});
 	}
 
 	private static async Task process(TaskCompletionSource<ArraySegment<byte>> tcs, string reqPath, string cachePath, ProcessImageSettings s)
@@ -70,14 +82,13 @@ public class WebRSizeHandler : HttpTaskAsyncHandler
 		{
 			if (reqPath == WebRSizeModule.NotFoundPath)
 			{
-				using (await enterWorkQueueAsync())
-				using (var oimg = new MemoryStream(8192))
-				{
-					GdiUtil.CreateBrokenImage(oimg, s);
-					oimg.Position = 0;
-					saveResult(tcs, oimg, cachePath, DateTime.MinValue);
-					return;
-				}
+				using var eslot = await enterWorkQueueAsync();
+				using var eimg = new MemoryStream(8192);
+
+				GdiUtil.CreateBrokenImage(eimg, s);
+				eimg.Position = 0;
+				saveResult(tcs, eimg, cachePath, DateTime.MinValue);
+				return;
 			}
 
 			var vpp = HostingEnvironment.VirtualPathProvider;
@@ -89,14 +100,12 @@ public class WebRSizeHandler : HttpTaskAsyncHandler
 			if (lastWrite == DateTime.MinValue && mpbvfType.Value.IsAssignableFrom(file.GetType()))
 				lastWrite = File.GetLastWriteTimeUtc(HostingEnvironment.MapPath(reqPath));
 
-			using (var iimg = afile != null ? await afile.OpenAsync() : file.Open())
-			using (await enterWorkQueueAsync())
-			using (var oimg = new MemoryStream(16384))
-			{
-				MagicImageProcessor.ProcessImage(iimg, oimg, s);
+			using var iimg = afile != null ? await afile.OpenAsync() : file.Open();
+			using var slot = await enterWorkQueueAsync();
+			using var oimg = new MemoryStream(16384);
 
-				saveResult(tcs, oimg, cachePath, lastWrite);
-			}
+			MagicImageProcessor.ProcessImage(iimg, oimg, s);
+			saveResult(tcs, oimg, cachePath, lastWrite);
 		}
 		catch (Exception ex)
 		{

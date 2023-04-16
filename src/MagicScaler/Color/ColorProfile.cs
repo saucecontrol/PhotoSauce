@@ -1,6 +1,7 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
+using System.Diagnostics;
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
@@ -34,10 +35,10 @@ internal class ColorProfile
 			return prof;
 		}
 
-		public static ColorProfile GetOrAdd(ReadOnlySpan<byte> bytes)
+		public static unsafe ColorProfile GetOrAdd(ReadOnlySpan<byte> bytes)
 		{
-			var hash = (Span<byte>)stackalloc byte[Unsafe.SizeOf<Guid>()];
-			Blake2b.ComputeAndWriteHash(Unsafe.SizeOf<Guid>(), bytes, hash);
+			var hash = (Span<byte>)stackalloc byte[sizeof(Guid)];
+			Blake2b.ComputeAndWriteHash(sizeof(Guid), bytes, hash);
 
 			var guid = MemoryMarshal.Read<Guid>(hash);
 
@@ -513,7 +514,7 @@ internal class ColorProfile
 			if (cb < 8 || len < end)
 				return invalidProfile;
 
-			// not handling these yet, so we'll hand off to WCS
+			// not handling these yet, so we'll hand off to native CMS
 			if (tag is IccTags.A2B0 or IccTags.B2A0)
 				return new ColorProfile(prof.ToArray(), dataColorSpace, pcsColorSpace, ColorProfileType.Table);
 
@@ -549,6 +550,84 @@ internal class ColorProfile
 		}
 
 		return invalidProfile;
+	}
+
+	public static ColorProfile CreateFromMetadata(ReadOnlySpan<byte> profName, PixelFormat fmt, double gamma, Vector3C wxyz, Vector3C rxyz, Vector3C gxyz, Vector3C bxyz)
+	{
+		bool isGrey = fmt.ColorRepresentation is PixelColorRepresentation.Grey;
+		var prof = isGrey ? sGrey : sRGB;
+
+		using var buff = BufferPool.RentLocal<byte>(prof.ProfileBytes.Length);
+		var span = buff.Span;
+
+		prof.ProfileBytes.CopyTo(span);
+		span[84..100].Clear();
+		WriteUInt32BigEndian(span[80..], 0x6d616763);
+
+		var name = span[(isGrey ? 220 : 280)..];
+		WriteUInt16BigEndian(name[0..], profName[0]);
+		WriteUInt16BigEndian(name[2..], profName[1]);
+		WriteUInt16BigEndian(name[4..], profName[2]);
+		WriteUInt16BigEndian(name[6..], profName[3]);
+
+		if (wxyz != default && rxyz != default && gxyz != default && bxyz != default)
+		{
+			Debug.Assert(span.Length == 480);
+
+			var mxyz = ConversionMatrix.GetRgbToXyz(rxyz, gxyz, bxyz, wxyz);
+			var adapt = ConversionMatrix.GetChromaticAdaptation(wxyz);
+			var axyz = adapt * mxyz;
+
+			var chad = span[352..];
+			WriteInt32BigEndian(chad[ 0..], toS15Fixed16(adapt.M11));
+			WriteInt32BigEndian(chad[ 4..], toS15Fixed16(adapt.M12));
+			WriteInt32BigEndian(chad[ 8..], toS15Fixed16(adapt.M13));
+			WriteInt32BigEndian(chad[12..], toS15Fixed16(adapt.M21));
+			WriteInt32BigEndian(chad[16..], toS15Fixed16(adapt.M22));
+			WriteInt32BigEndian(chad[20..], toS15Fixed16(adapt.M23));
+			WriteInt32BigEndian(chad[24..], toS15Fixed16(adapt.M31));
+			WriteInt32BigEndian(chad[28..], toS15Fixed16(adapt.M32));
+			WriteInt32BigEndian(chad[32..], toS15Fixed16(adapt.M33));
+
+			var rcol = span[396..];
+			WriteInt32BigEndian(rcol[0..], toS15Fixed16(axyz.M11));
+			WriteInt32BigEndian(rcol[4..], toS15Fixed16(axyz.M21));
+			WriteInt32BigEndian(rcol[8..], toS15Fixed16(axyz.M31));
+
+			var gcol = span[416..];
+			WriteInt32BigEndian(gcol[0..], toS15Fixed16(axyz.M12));
+			WriteInt32BigEndian(gcol[4..], toS15Fixed16(axyz.M22));
+			WriteInt32BigEndian(gcol[8..], toS15Fixed16(axyz.M32));
+
+			var bcol = span[436..];
+			WriteInt32BigEndian(bcol[0..], toS15Fixed16(axyz.M13));
+			WriteInt32BigEndian(bcol[4..], toS15Fixed16(axyz.M23));
+			WriteInt32BigEndian(bcol[8..], toS15Fixed16(axyz.M33));
+		}
+
+		if (gamma != default)
+		{
+			Debug.Assert(span.Length == (isGrey ? 360 : 480));
+
+			span = span[..^16];
+			WriteUInt32BigEndian(span, (uint)span.Length);
+
+			var trc = span[(isGrey ? 188 : 224)..];
+			WriteUInt32BigEndian(trc[0..], 16);
+			if (!isGrey)
+			{
+				WriteUInt32BigEndian(trc[12..], 16);
+				WriteUInt32BigEndian(trc[24..], 16);
+			}
+
+			var para = span[(isGrey ? 336 : 456)..];
+			WriteUInt16BigEndian(para[0..], 0);
+			WriteInt32BigEndian(para[4..], toS15Fixed16(1 / gamma));
+		}
+
+		return Parse(span);
+
+		static int toS15Fixed16(double val) => (int)Math.Round(val * 65536);
 	}
 
 	public static CurveProfile sGrey => sgrey.Value;

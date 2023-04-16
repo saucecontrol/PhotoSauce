@@ -327,13 +327,13 @@ public sealed class ProcessImageSettings
 
 		foreach (var group in anchorExpression.Value.Match(dic.GetValueOrDefault("anchor") ?? string.Empty).Groups.Cast<Group>())
 		{
-			if (Enum.TryParse(group!.Value, true, out CropAnchor anchor))
+			if (Enum.TryParse(group.Value, true, out CropAnchor anchor))
 				s.Anchor |= anchor;
 		}
 
 		var subs = ChromaSubsampleMode.Default;
 		foreach (var cap in subsampleExpression.Value.Match(dic.GetValueOrDefault("subsample") ?? string.Empty).Captures.Cast<Capture>())
-			subs = Enum.TryParse(string.Concat("Subsample", cap!.Value), true, out ChromaSubsampleMode csub) ? csub : subs;
+			subs = Enum.TryParse(string.Concat("Subsample", cap.Value), true, out ChromaSubsampleMode csub) ? csub : subs;
 
 		int jq = Math.Max(int.TryParse(dic.GetValueOrDefault("quality") ?? dic.GetValueOrDefault("q"), NumberStyles.Integer, ni, out int q) ? q : 0, 0);
 		if (jq != 0 || subs != ChromaSubsampleMode.Default)

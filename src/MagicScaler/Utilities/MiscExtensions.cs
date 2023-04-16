@@ -165,8 +165,8 @@ internal static class MiscExtensions
 		stream.Write(buff.Array, 0, buff.Length);
 	}
 
-	public static ArraySegment<T> Slice<T>(this ArraySegment<T> s, int index) => new(s.Array!, s.Offset + index, s.Count - index);
+	public static ArraySegment<T> Slice<T>(this ArraySegment<T> s, int index) => new(s.Array, s.Offset + index, s.Count - index);
 
-	public static ArraySegment<T> Slice<T>(this ArraySegment<T> s, int index, int count) => new(s.Array!, s.Offset + index, count);
+	public static ArraySegment<T> Slice<T>(this ArraySegment<T> s, int index, int count) => new(s.Array, s.Offset + index, count);
 #endif
 }

@@ -90,14 +90,14 @@ internal static unsafe class WinCodecExtensions
 		int orientation = (int)o;
 
 		var opt = WICBitmapTransformOptions.WICBitmapTransformRotate0;
-		if (orientation == 3 || orientation == 4)
+		if (orientation is 3 or 4)
 			opt = WICBitmapTransformOptions.WICBitmapTransformRotate180;
-		else if (orientation == 6 || orientation == 7)
+		else if (orientation is 6 or 7)
 			opt = WICBitmapTransformOptions.WICBitmapTransformRotate90;
-		else if (orientation == 5 || orientation == 8)
+		else if (orientation is 5 or 8)
 			opt = WICBitmapTransformOptions.WICBitmapTransformRotate270;
 
-		if (orientation == 2 || orientation == 4 || orientation == 5 || orientation == 7)
+		if (orientation is 2 or 4 or 5 or 7)
 			opt |= WICBitmapTransformOptions.WICBitmapTransformFlipHorizontal;
 
 		return opt;
@@ -147,7 +147,7 @@ internal static unsafe class WinCodecExtensions
 				len = (int)Math.Min(span.Length, pv.Anonymous.blob.cbSize);
 				new Span<T>(pv.Anonymous.blob.pBlobData, len).CopyTo(span);
 			}
-			if (pv.vt == (ushort)VARENUM.VT_LPSTR)
+			else if (pv.vt is (ushort)VARENUM.VT_LPSTR)
 			{
 				len = Math.Min(span.Length, new Span<byte>(pv.Anonymous.pszVal, int.MaxValue).IndexOf((byte)'\0'));
 				new Span<T>(pv.Anonymous.pszVal, len).CopyTo(span);
@@ -155,12 +155,12 @@ internal static unsafe class WinCodecExtensions
 		}
 		else if (typeof(T) == typeof(char))
 		{
-			if (pv.vt == (ushort)VARENUM.VT_LPWSTR)
+			if (pv.vt is (ushort)VARENUM.VT_LPWSTR)
 			{
 				len = Math.Min(span.Length, new Span<char>(pv.Anonymous.pwszVal, int.MaxValue).IndexOf('\0'));
 				new Span<T>(pv.Anonymous.pwszVal, len).CopyTo(span);
 			}
-			if (pv.vt == (ushort)VARENUM.VT_LPSTR)
+			else if (pv.vt is (ushort)VARENUM.VT_LPSTR)
 			{
 				var str = new string(pv.Anonymous.pszVal);
 				len = Math.Min(span.Length, str.Length);
@@ -182,7 +182,7 @@ internal static unsafe class WinCodecExtensions
 	{
 		if (typeof(T) == typeof(bool))
 		{
-			if (pv.vt == (ushort)VARENUM.VT_BOOL)
+			if (pv.vt is (ushort)VARENUM.VT_BOOL)
 			{
 				val = (T)(object)(pv.Anonymous.boolVal != 0);
 				return true;
@@ -190,7 +190,7 @@ internal static unsafe class WinCodecExtensions
 		}
 		else if (typeof(T) == typeof(byte))
 		{
-			if (pv.vt == (ushort)VARENUM.VT_UI1)
+			if (pv.vt is (ushort)VARENUM.VT_UI1)
 			{
 				val = (T)(object)pv.Anonymous.bVal;
 				return true;
@@ -198,7 +198,7 @@ internal static unsafe class WinCodecExtensions
 		}
 		else if (typeof(T) == typeof(ushort))
 		{
-			if (pv.vt == (ushort)VARENUM.VT_UI2)
+			if (pv.vt is (ushort)VARENUM.VT_UI2)
 			{
 				val = (T)(object)pv.Anonymous.uiVal;
 				return true;

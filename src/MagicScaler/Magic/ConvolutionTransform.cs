@@ -176,7 +176,7 @@ internal class ConvolutionTransform<TPixel, TWeight, TConv> : ChainedPixelSource
 		if (typeof(TConv) == typeof(ConvolutionType.Buffered))
 		{
 			var cbuf = (ConvolutionType.Buffered)(object)ConvBuff;
-			bspan = cbuf.SrcBuff!.PrepareLoad(first, lines);
+			bspan = cbuf.SrcBuff.PrepareLoad(first, lines);
 			if (cbuf.WorkBuff is not null)
 				wspan = cbuf.WorkBuff.PrepareLoad(first, lines);
 			else

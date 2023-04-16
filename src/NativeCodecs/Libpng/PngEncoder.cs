@@ -165,7 +165,7 @@ internal sealed unsafe class PngEncoder : IAnimatedImageEncoder
 				{
 					Unsafe.CopyBlock(pp, ppal, (uint)palbuf.Length);
 
-					ChannelChanger<byte>.GetSwapConverter(4, 3).ConvertLine(pp, pp, palbuf.Length);
+					Swizzlers<byte>.GetSwapConverter(4, 3).ConvertLine(pp, pp, palbuf.Length);
 					checkResult(PngWritePlte(handle, (png_color_struct*)pp, pal.Length));
 				}
 
@@ -174,7 +174,7 @@ internal sealed unsafe class PngEncoder : IAnimatedImageEncoder
 					using var trnbuf = BufferPool.RentLocal<byte>(pal.Length);
 					fixed (byte* pt = trnbuf)
 					{
-						ChannelChanger<byte>.AlphaExtractor.ConvertLine((byte*)ppal, pt, pal.Length * 4);
+						Swizzlers<byte>.AlphaExtractor.ConvertLine((byte*)ppal, pt, pal.Length * 4);
 						checkResult(PngWriteTrns(handle, pt, pal.Length));
 					}
 				}

@@ -113,17 +113,17 @@ internal static partial class BufferPool
 		returnBytes(buff.Array);
 	}
 
-	public static RentedBuffer<T> Rent<T>(int length, bool clear = false) where T : unmanaged =>
-		RentedBuffer<T>.Wrap(RentRaw(length * Unsafe.SizeOf<T>(), clear));
+	public static unsafe RentedBuffer<T> Rent<T>(int length, bool clear = false) where T : unmanaged =>
+		RentedBuffer<T>.Wrap(RentRaw(length * sizeof(T), clear));
 
-	public static RentedBuffer<T> RentAligned<T>(int length, bool clear = false) where T : unmanaged =>
-		RentedBuffer<T>.Wrap(RentRawAligned(length * Unsafe.SizeOf<T>(), clear));
+	public static unsafe RentedBuffer<T> RentAligned<T>(int length, bool clear = false) where T : unmanaged =>
+		RentedBuffer<T>.Wrap(RentRawAligned(length * sizeof(T), clear));
 
-	public static LocalBuffer<T> RentLocal<T>(int length, bool clear = false) where T : unmanaged =>
-		LocalBuffer<T>.Wrap(RentRaw(length * Unsafe.SizeOf<T>(), clear));
+	public static unsafe LocalBuffer<T> RentLocal<T>(int length, bool clear = false) where T : unmanaged =>
+		LocalBuffer<T>.Wrap(RentRaw(length * sizeof(T), clear));
 
-	public static LocalBuffer<T> RentLocalAligned<T>(int length, bool clear = false) where T : unmanaged =>
-		LocalBuffer<T>.Wrap(RentRawAligned(length * Unsafe.SizeOf<T>(), clear));
+	public static unsafe LocalBuffer<T> RentLocalAligned<T>(int length, bool clear = false) where T : unmanaged =>
+		LocalBuffer<T>.Wrap(RentRawAligned(length * sizeof(T), clear));
 
 	public static LocalBuffer<T> WrapLocal<T>(Span<T> span) where T : unmanaged =>
 		LocalBuffer<T>.Wrap(span);
@@ -161,7 +161,7 @@ internal readonly struct RentedBuffer<T> where T : unmanaged
 	public static RentedBuffer<T> Wrap(ArraySegment<byte> buff) => new(buff);
 
 	public bool IsEmpty => buffer.Count == 0;
-	public int Length => (int)((uint)buffer.Count / (uint)Unsafe.SizeOf<T>());
+	public unsafe int Length => (int)((uint)buffer.Count / (uint)sizeof(T));
 	public Span<T> Span => MemoryMarshal.Cast<byte, T>(buffer);
 
 	public ref T GetPinnableReference() => ref Unsafe.As<byte, T>(ref buffer.Array![buffer.Offset]);

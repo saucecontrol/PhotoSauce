@@ -29,14 +29,14 @@ internal static class CacheHash
 		var b32 = base32Table;
 		var hash = (Span<char>)stackalloc char[8];
 
-		hash[0] = (char)b32[  bhash[0]         >> 3];
-		hash[1] = (char)b32[((bhash[0] & 0x07) << 2) | (bhash[1] >> 6)];
-		hash[2] = (char)b32[( bhash[1] & 0x3e) >> 1];
-		hash[3] = (char)b32[((bhash[1] & 0x01) << 4) | (bhash[2] >> 4)];
-		hash[4] = (char)b32[((bhash[2] & 0x0f) << 1) | (bhash[3] >> 7)];
-		hash[5] = (char)b32[( bhash[3] & 0x7c) >> 2];
-		hash[6] = (char)b32[((bhash[3] & 0x03) << 3) | (bhash[4] >> 5)];
 		hash[7] = (char)b32[  bhash[4] & 0x1f];
+		hash[6] = (char)b32[((bhash[3] & 0x03) << 3) | (bhash[4] >> 5)];
+		hash[5] = (char)b32[( bhash[3] & 0x7c) >> 2];
+		hash[4] = (char)b32[((bhash[2] & 0x0f) << 1) | (bhash[3] >> 7)];
+		hash[3] = (char)b32[((bhash[1] & 0x01) << 4) | (bhash[2] >> 4)];
+		hash[2] = (char)b32[( bhash[1] & 0x3e) >> 1];
+		hash[1] = (char)b32[((bhash[0] & 0x07) << 2) | (bhash[1] >> 6)];
+		hash[0] = (char)b32[  bhash[0]         >> 3];
 
 #if BUILTIN_SPAN
 		return new string(hash);

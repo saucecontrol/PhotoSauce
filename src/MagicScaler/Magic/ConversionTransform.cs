@@ -125,20 +125,20 @@ internal sealed class ConversionTransform : ChainedPixelSource
 				)
 			{
 				if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Float)
-					processor = ChannelChanger<float>.GetSwapConverter(srcFormat.ChannelCount, Format.ChannelCount);
+					processor = Swizzlers<float>.GetSwapConverter(srcFormat.ChannelCount, Format.ChannelCount);
 				else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Fixed)
-					processor = ChannelChanger<ushort>.GetSwapConverter(srcFormat.ChannelCount, Format.ChannelCount);
+					processor = Swizzlers<ushort>.GetSwapConverter(srcFormat.ChannelCount, Format.ChannelCount);
 				else
-					processor = ChannelChanger<byte>.GetSwapConverter(srcFormat.ChannelCount, Format.ChannelCount);
+					processor = Swizzlers<byte>.GetSwapConverter(srcFormat.ChannelCount, Format.ChannelCount);
 			}
 			else if (srcFormat.ChannelCount != Format.ChannelCount)
 			{
 				if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Float)
-					processor = ChannelChanger<float>.GetConverter(srcFormat.ChannelCount, Format.ChannelCount);
+					processor = Swizzlers<float>.GetConverter(srcFormat.ChannelCount, Format.ChannelCount);
 				else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Fixed)
-					processor = ChannelChanger<ushort>.GetConverter(srcFormat.ChannelCount, Format.ChannelCount);
+					processor = Swizzlers<ushort>.GetConverter(srcFormat.ChannelCount, Format.ChannelCount);
 				else
-					processor = ChannelChanger<byte>.GetConverter(srcFormat.ChannelCount, Format.ChannelCount);
+					processor = Swizzlers<byte>.GetConverter(srcFormat.ChannelCount, Format.ChannelCount);
 			}
 		}
 

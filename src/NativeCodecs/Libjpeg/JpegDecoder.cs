@@ -426,7 +426,7 @@ internal sealed unsafe class JpegFrame : IImageFrame, IPlanarDecoder, IMetadataS
 					}
 
 					// libjpeg outputs CMYK the way Adobe apps save it, which is inverted.
-					if (handle->out_color_space == J_COLOR_SPACE.JCS_CMYK)
+					if (handle->out_color_space is J_COLOR_SPACE.JCS_CMYK)
 						InvertConverter.InvertLine(pout, (nint)((uint)prc.Width * 4));
 				}
 			}

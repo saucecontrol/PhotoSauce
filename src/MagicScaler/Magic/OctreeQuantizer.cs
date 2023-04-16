@@ -129,11 +129,11 @@ internal sealed unsafe class OctreeQuantizer : IProfileSource, IDisposable
 				{
 					if (*pfree == 0)
 					{
-						// TODO Log RyuJIT issue. None of these conditions will ever be true. Referencing these locals stops the JIT
+						// TODO Log RyuJIT issue. The below condition cannot ever be true. Referencing these locals stops the JIT
 						// from spilling them on each inner and outer loop iteration; instead it spills only in this (unlikely) block.
 						// Related: https://github.com/dotnet/runtime/issues/43318 and https://github.com/dotnet/runtime/issues/66994
-						if (i == ppix || idx == ppix || node is null)
-							break;
+						if ((i | /*idx |*/ (nuint)node | ppix) == 0)
+							ThrowHelper.ThrowUnreachable();
 
 						pfree = plist;
 						pruneTree(ptree, pfree);

@@ -75,7 +75,7 @@ internal static unsafe class UnsafeUtil
 #if NET6_0_OR_GREATER
 		NativeMemory.Free(p);
 #else
-		Marshal.FreeHGlobal((IntPtr)p);
+		Marshal.FreeHGlobal((nint)p);
 #endif
 
 	public static void* AllocateTypeAssociatedMemory(Type type, int cb) =>
@@ -87,7 +87,7 @@ internal static unsafe class UnsafeUtil
 
 #if !NET5_0_OR_GREATER
 	public static T CreateMethodDelegate<T>(this Type t, string method) where T : Delegate =>
-		(T)t.GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance)!.CreateDelegate(typeof(T), null);
+		(T)t.GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance).CreateDelegate(typeof(T), null);
 
 	private static ref T getRefOrNull<T>(this T[] array)
 	{

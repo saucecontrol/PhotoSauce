@@ -230,12 +230,13 @@ internal sealed class ColorMatrixTransformInternal : ChainedPixelSource
 }
 
 /// <summary>Transforms an image according to coefficients in a <see cref="Matrix4x4" />.</summary>
+/// <remarks>The matrix is treated as 3x4, with the 4th row used for translation.</remarks>
 public sealed class ColorMatrixTransform : PixelTransformInternalBase
 {
 	private readonly Matrix4x4 matrix;
 
 	/// <summary>Constructs a new <see cref="ColorMatrixTransform" /> using the specified <paramref name="matrix" />.</summary>
-	/// <param name="matrix">A 4x4 matrix of coefficients.  The channel order is RGBA, column-major.</param>
+	/// <param name="matrix">A 4x4 matrix of coefficients.  The channel order is RGB, column-major.</param>
 	public ColorMatrixTransform(Matrix4x4 matrix) => this.matrix = matrix;
 
 	internal override void Init(PipelineContext ctx)
