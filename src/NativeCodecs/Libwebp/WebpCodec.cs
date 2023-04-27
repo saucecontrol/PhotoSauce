@@ -58,6 +58,8 @@ internal static unsafe class WebpFactory
 
 	public static void* NativeAlloc(nuint size) => dependencyValid.Value ? WebPMalloc(size) : default;
 
+	public static void* CreateDemuxerPartial(WebPData* data, WebPDemuxState* state) => dependencyValid.Value ? WebPDemuxPartial(data, state) : default;
+
 	public static void* CreateDemuxer(WebPData* data) => dependencyValid.Value ? WebPDemux(data) : default;
 
 	public static void* CreateMuxer() => dependencyValid.Value ? WebPMuxNew() : default;

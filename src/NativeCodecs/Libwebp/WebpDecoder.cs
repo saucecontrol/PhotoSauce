@@ -151,7 +151,7 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 		fixed (byte* ptr = buff)
 		{
 			var data = new WebPData { bytes = ptr, size = bufflen };
-			var demuxer = WebPDemuxPartial(&data, &state);
+			var demuxer = WebpFactory.CreateDemuxerPartial(&data, &state);
 
 			if (state >= WebPDemuxState.WEBP_DEMUX_PARSED_HEADER)
 				flags = (WebPFeatureFlags)WebPDemuxGetI(demuxer, WebPFormatFeature.WEBP_FF_FORMAT_FLAGS);
