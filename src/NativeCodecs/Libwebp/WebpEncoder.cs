@@ -149,7 +149,7 @@ internal sealed unsafe class WebpEncoder : IAnimatedImageEncoder
 					srcV.CopyPixels(areaUV.Slice(lastc, incc), picture.uv_stride, spanV.Slice(lastc * picture.uv_stride));
 				}
 
-				if (lasty < area.Height - 1)
+				if (lasty < area.Height)
 				{
 					srcY.CopyPixels(area.Slice(lasty), picture.y_stride, spanY.Slice(lasty * picture.y_stride));
 					srcU.CopyPixels(areaUV.Slice(lastc), picture.uv_stride, spanU.Slice(lastc * picture.uv_stride));
