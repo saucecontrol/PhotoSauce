@@ -93,15 +93,17 @@ internal sealed class OrientationTransformInternal : ChainedPixelSource
 	private unsafe void loadBufferReversed(byte* bstart)
 	{
 		byte* pb = bstart + (Height - 1) * outBuff!.Stride;
+		var area = PrevSource.Area;
+		nint cb = area.Width * bytesPerPixel;
 
 		for (int y = 0; y < Height; y++)
 		{
 			Profiler.PauseTiming();
-			PrevSource.CopyPixels(new PixelArea(0, y, PrevSource.Width, 1), outBuff.Stride, outBuff.Stride, pb);
+			PrevSource.CopyPixels(area.Slice(y, 1), outBuff.Stride, (int)cb, pb);
 			Profiler.ResumeTiming();
 
 			if (orient == Orientation.Rotate180)
-				flipLine(pb, PrevSource.Width * bytesPerPixel);
+				flipLine(pb, cb);
 
 			pb -= outBuff.Stride;
 		}
@@ -134,14 +136,15 @@ internal sealed class OrientationTransformInternal : ChainedPixelSource
 				bufStride = -bufStride;
 			}
 
-			nint cb = PrevSource.Width * bytesPerPixel;
+			var area = PrevSource.Area;
+			nint cb = area.Width * bytesPerPixel;
 			nint stripOffs = rowStride < 0 ? (lineBuffHeight - 1) * rowStride : 0;
 
 			int y = 0;
-			for (; y <= PrevSource.Height - lineBuffHeight; y += lineBuffHeight)
+			for (; y <= area.Height - lineBuffHeight; y += lineBuffHeight)
 			{
 				Profiler.PauseTiming();
-				PrevSource.CopyPixels(new PixelArea(0, y, PrevSource.Width, lineBuffHeight), lineBuffStride, lineBuff.Length, lstart);
+				PrevSource.CopyPixels(area.Slice(y, lineBuffHeight), lineBuffStride, lineBuff.Length, lstart);
 				Profiler.ResumeTiming();
 
 				byte* op = bp + y * rowStride + stripOffs;
@@ -160,10 +163,10 @@ internal sealed class OrientationTransformInternal : ChainedPixelSource
 				}
 			}
 
-			for (; y < PrevSource.Height; y++)
+			for (; y < area.Height; y++)
 			{
 				Profiler.PauseTiming();
-				PrevSource.CopyPixels(new PixelArea(0, y, PrevSource.Width, 1), lineBuffStride, lineBuffStride, lp);
+				PrevSource.CopyPixels(area.Slice(y, 1), lineBuffStride, lineBuffStride, lp);
 				Profiler.ResumeTiming();
 
 				byte* ip = lp, ipe = lp + cb;

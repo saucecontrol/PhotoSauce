@@ -32,6 +32,7 @@ internal sealed class PadTransformInternal : ChainedPixelSource
 		int tx = Math.Max(prc.X - inner.X, 0);
 		int tw = Math.Min(prc.Width, Math.Min(Math.Max(prc.X + prc.Width - inner.X, 0), inner.Width - tx));
 		int cx = Math.Max(inner.X - prc.X, 0);
+		int cb = tw * bpp;
 
 		for (int y = 0; y < prc.Height; y++)
 		{
@@ -56,7 +57,7 @@ internal sealed class PadTransformInternal : ChainedPixelSource
 			if (tw > 0 && cy >= inner.Y && cy < inner.Y + inner.Height)
 			{
 				Profiler.PauseTiming();
-				PrevSource.CopyPixels(new PixelArea(tx, cy - inner.Y, tw, 1), cbStride, cbBufferSize, pbBuffer + cx * bpp);
+				PrevSource.CopyPixels(new PixelArea(tx, cy - inner.Y, tw, 1), cbStride, cb, pbBuffer + cx * bpp);
 				Profiler.ResumeTiming();
 			}
 

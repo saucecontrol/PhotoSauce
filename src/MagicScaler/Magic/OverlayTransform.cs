@@ -59,25 +59,26 @@ internal sealed class OverlayTransform : ChainedPixelSource
 		int tx = Math.Max(prc.X - inner.X, 0);
 		int tw = Math.Min(prc.Width, Math.Min(Math.Max(prc.X + prc.Width - inner.X, 0), inner.Width - tx));
 		int cx = Math.Max(inner.X - prc.X, 0);
+		int cbb = prc.Width * bytesPerPixel;
+		int cbo = tw * bytesPerPixel;
 
 		for (int y = 0; y < prc.Height; y++)
 		{
-			int cy = prc.Y + y;
-
 			if (copyBase)
 			{
 				Profiler.PauseTiming();
-				PrevSource.CopyPixels(new PixelArea(prc.X, cy, prc.Width, 1), cbStride, cbBufferSize, pbBuffer);
+				PrevSource.CopyPixels(prc.Slice(y, 1), cbStride, cbb, pbBuffer);
 				Profiler.ResumeTiming();
 			}
 
+			int cy = prc.Y + y;
 			if (tw > 0 && cy >= inner.Y && cy < inner.Y + inner.Height)
 			{
 				var area = new PixelArea(tx, cy - inner.Y, tw, 1);
 				byte* ptr = pbBuffer + cx * bytesPerPixel;
 
 				if (directCopy)
-					copyPixelsDirect(area, cbStride, cbBufferSize, ptr);
+					copyPixelsDirect(area, cbStride, cbo, ptr);
 				else
 					copyPixelsBuffered(area, ptr);
 			}

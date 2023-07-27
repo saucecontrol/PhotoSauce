@@ -173,10 +173,12 @@ internal class ConvolutionTransform<TPixel, TWeight, TConv> : ChainedPixelSource
 		var ispan = IntBuff.PrepareLoad(ref fli, ref cli);
 
 		Span<byte> bspan, wspan;
+		int bstride;
 		if (typeof(TConv) == typeof(ConvolutionType.Buffered))
 		{
 			var cbuf = (ConvolutionType.Buffered)(object)ConvBuff;
 			bspan = cbuf.SrcBuff.PrepareLoad(first, lines);
+			bstride = cbuf.SrcBuff.Stride;
 			if (cbuf.WorkBuff is not null)
 				wspan = cbuf.WorkBuff.PrepareLoad(first, lines);
 			else
@@ -186,16 +188,18 @@ internal class ConvolutionTransform<TPixel, TWeight, TConv> : ChainedPixelSource
 		{
 			var cbuf = (ConvolutionType.Direct)(object)ConvBuff;
 			bspan = cbuf.LineBuff.Span;
+			bstride = cbuf.LineBuff.Length;
 			wspan = bspan;
 		}
 
+		var area = PrevSource.Area.Slice(fli);
 		fixed (byte* bline = bspan, wline = wspan, tline = ispan, mapxstart = XMap.Map)
 		{
 			byte* bp = bline, wp = wline, tp = tline;
 			for (int ly = 0; ly < cli; ly++)
 			{
 				Profiler.PauseTiming();
-				PrevSource.CopyPixels(new PixelArea(0, fli + ly, PrevSource.Width, 1), bspan.Length, bspan.Length, bp);
+				PrevSource.CopyPixels(area.Slice(ly, 1), bstride, bstride, bp);
 				Profiler.ResumeTiming();
 
 				if (typeof(TConv) == typeof(ConvolutionType.Buffered) && bp != wp)
