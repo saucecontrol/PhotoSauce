@@ -1,4 +1,4 @@
-include(${CMAKE_CURRENT_LIST_DIR}/../libraries.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../shared.cmake)
 
 set(VCPKG_TARGET_ARCHITECTURE x64)
 set(VCPKG_CRT_LINKAGE dynamic)

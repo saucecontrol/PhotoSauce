@@ -16,4 +16,5 @@ internal enum heif_compression_format
     heif_compression_VVC = 5,
     heif_compression_EVC = 6,
     heif_compression_JPEG2000 = 7,
+    heif_compression_uncompressed = 8,
 }

@@ -15,9 +15,9 @@ namespace PhotoSauce.NativeCodecs.Libheif;
 
 internal static unsafe class HeifFactory
 {
-	public const string DisplayName = $"{libheif} 1.15.1";
+	public const string DisplayName = $"{libheif} 1.16.2";
 	public const string libheif = nameof(libheif);
-	public const uint libver = 0x010f0100;
+	public const uint libver = 0x01100200;
 
 	private static readonly Lazy<bool> dependencyValid = new(() => {
 #if NETFRAMEWORK

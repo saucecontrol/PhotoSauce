@@ -63,4 +63,7 @@ internal unsafe partial struct heif_decoding_options
 
     [NativeTypeName("const char *")]
     public sbyte* decoder_id;
+
+    [NativeTypeName("struct heif_color_conversion_options")]
+    public heif_color_conversion_options color_conversion_options;
 }

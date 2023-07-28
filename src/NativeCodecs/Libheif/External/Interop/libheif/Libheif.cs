@@ -143,6 +143,10 @@ internal static unsafe partial class Libheif
     public static extern int heif_image_handle_is_primary_image([NativeTypeName("const struct heif_image_handle *")] void* handle);
 
     [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("heif_item_id")]
+    public static extern uint heif_image_handle_get_item_id([NativeTypeName("const struct heif_image_handle *")] void* handle);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern int heif_image_handle_get_width([NativeTypeName("const struct heif_image_handle *")] void* handle);
 
     [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -204,6 +208,9 @@ internal static unsafe partial class Libheif
     [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     [return: NativeTypeName("struct heif_error")]
     public static extern heif_error heif_image_handle_get_auxiliary_type([NativeTypeName("const struct heif_image_handle *")] void* handle, [NativeTypeName("const char **")] sbyte** out_type);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern void heif_image_handle_release_auxiliary_type([NativeTypeName("const struct heif_image_handle *")] void* handle, [NativeTypeName("const char **")] sbyte** out_type);
 
     [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern void heif_image_handle_free_auxiliary_types([NativeTypeName("const struct heif_image_handle *")] void* handle, [NativeTypeName("const char **")] sbyte** out_type);
@@ -284,6 +291,37 @@ internal static unsafe partial class Libheif
     [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     [return: NativeTypeName("struct heif_error")]
     public static extern heif_error heif_image_get_nclx_color_profile([NativeTypeName("const struct heif_image *")] void* image, [NativeTypeName("struct heif_color_profile_nclx **")] heif_color_profile_nclx** out_data);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int heif_item_get_properties_of_type([NativeTypeName("const struct heif_context *")] void* context, [NativeTypeName("heif_item_id")] uint id, [NativeTypeName("enum heif_item_property_type")] heif_item_property_type type, [NativeTypeName("heif_property_id *")] uint* out_list, int count);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int heif_item_get_transformation_properties([NativeTypeName("const struct heif_context *")] void* context, [NativeTypeName("heif_item_id")] uint id, [NativeTypeName("heif_property_id *")] uint* out_list, int count);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("enum heif_item_property_type")]
+    public static extern heif_item_property_type heif_item_get_property_type([NativeTypeName("const struct heif_context *")] void* context, [NativeTypeName("heif_item_id")] uint id, [NativeTypeName("heif_property_id")] uint property_id);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_item_get_property_user_description([NativeTypeName("const struct heif_context *")] void* context, [NativeTypeName("heif_item_id")] uint itemId, [NativeTypeName("heif_property_id")] uint propertyId, [NativeTypeName("struct heif_property_user_description **")] heif_property_user_description** @out);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_item_add_property_user_description([NativeTypeName("const struct heif_context *")] void* context, [NativeTypeName("heif_item_id")] uint itemId, [NativeTypeName("const struct heif_property_user_description *")] heif_property_user_description* description, [NativeTypeName("heif_property_id *")] uint* out_propertyId);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern void heif_property_user_description_release([NativeTypeName("struct heif_property_user_description *")] heif_property_user_description* param0);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("enum heif_transform_mirror_direction")]
+    public static extern heif_transform_mirror_direction heif_item_get_property_transform_mirror([NativeTypeName("const struct heif_context *")] void* context, [NativeTypeName("heif_item_id")] uint itemId, [NativeTypeName("heif_property_id")] uint propertyId);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int heif_item_get_property_transform_rotation_ccw([NativeTypeName("const struct heif_context *")] void* context, [NativeTypeName("heif_item_id")] uint itemId, [NativeTypeName("heif_property_id")] uint propertyId);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern void heif_item_get_property_transform_crop_borders([NativeTypeName("const struct heif_context *")] void* context, [NativeTypeName("heif_item_id")] uint itemId, [NativeTypeName("heif_property_id")] uint propertyId, int image_width, int image_height, int* left, int* top, int* right, int* bottom);
 
     [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     [return: NativeTypeName("struct heif_decoding_options *")]
@@ -607,6 +645,163 @@ internal static unsafe partial class Libheif
 
     [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern int heif_encoder_descriptor_supportes_lossless_compression([NativeTypeName("const struct heif_encoder_descriptor *")] void* param0);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int heif_image_handle_get_number_of_region_items([NativeTypeName("const struct heif_image_handle *")] void* image_handle);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int heif_image_handle_get_list_of_region_item_ids([NativeTypeName("const struct heif_image_handle *")] void* image_handle, [NativeTypeName("heif_item_id *")] uint* region_item_ids_array, int max_count);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_context_get_region_item([NativeTypeName("const struct heif_context *")] void* context, [NativeTypeName("heif_item_id")] uint region_item_id, [NativeTypeName("struct heif_region_item **")] void** @out);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("heif_item_id")]
+    public static extern uint heif_region_item_get_id([NativeTypeName("struct heif_region_item *")] void* param0);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern void heif_region_item_release([NativeTypeName("struct heif_region_item *")] void* param0);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern void heif_region_item_get_reference_size([NativeTypeName("struct heif_region_item *")] void* param0, [NativeTypeName("uint32_t *")] uint* width, [NativeTypeName("uint32_t *")] uint* height);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int heif_region_item_get_number_of_regions([NativeTypeName("const struct heif_region_item *")] void* region_item);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int heif_region_item_get_list_of_regions([NativeTypeName("const struct heif_region_item *")] void* region_item, [NativeTypeName("struct heif_region **")] void** out_regions_array, int max_count);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern void heif_region_release([NativeTypeName("const struct heif_region *")] void* region);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern void heif_region_release_many([NativeTypeName("const struct heif_region *const *")] void** regions_array, int num);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("enum heif_region_type")]
+    public static extern heif_region_type heif_region_get_type([NativeTypeName("const struct heif_region *")] void* region);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_region_get_point([NativeTypeName("const struct heif_region *")] void* region, [NativeTypeName("int32_t *")] int* x, [NativeTypeName("int32_t *")] int* y);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_region_get_point_transformed([NativeTypeName("const struct heif_region *")] void* region, double* x, double* y, [NativeTypeName("heif_item_id")] uint image_id);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_region_get_rectangle([NativeTypeName("const struct heif_region *")] void* region, [NativeTypeName("int32_t *")] int* x, [NativeTypeName("int32_t *")] int* y, [NativeTypeName("uint32_t *")] uint* width, [NativeTypeName("uint32_t *")] uint* height);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_region_get_rectangle_transformed([NativeTypeName("const struct heif_region *")] void* region, double* x, double* y, double* width, double* height, [NativeTypeName("heif_item_id")] uint image_id);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_region_get_ellipse([NativeTypeName("const struct heif_region *")] void* region, [NativeTypeName("int32_t *")] int* x, [NativeTypeName("int32_t *")] int* y, [NativeTypeName("uint32_t *")] uint* radius_x, [NativeTypeName("uint32_t *")] uint* radius_y);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_region_get_ellipse_transformed([NativeTypeName("const struct heif_region *")] void* region, double* x, double* y, double* radius_x, double* radius_y, [NativeTypeName("heif_item_id")] uint image_id);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int heif_region_get_polygon_num_points([NativeTypeName("const struct heif_region *")] void* region);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_region_get_polygon_points([NativeTypeName("const struct heif_region *")] void* region, [NativeTypeName("int32_t *")] int* out_pts_array);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_region_get_polygon_points_transformed([NativeTypeName("const struct heif_region *")] void* region, double* out_pts_array, [NativeTypeName("heif_item_id")] uint image_id);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int heif_region_get_polyline_num_points([NativeTypeName("const struct heif_region *")] void* region);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_region_get_polyline_points([NativeTypeName("const struct heif_region *")] void* region, [NativeTypeName("int32_t *")] int* out_pts_array);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_region_get_polyline_points_transformed([NativeTypeName("const struct heif_region *")] void* region, double* out_pts_array, [NativeTypeName("heif_item_id")] uint image_id);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_image_handle_add_region_item([NativeTypeName("struct heif_image_handle *")] void* image_handle, [NativeTypeName("uint32_t")] uint reference_width, [NativeTypeName("uint32_t")] uint reference_height, [NativeTypeName("struct heif_region_item **")] void** out_region_item);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_region_item_add_region_point([NativeTypeName("struct heif_region_item *")] void* param0, [NativeTypeName("int32_t")] int x, [NativeTypeName("int32_t")] int y, [NativeTypeName("struct heif_region **")] void** out_region);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_region_item_add_region_rectangle([NativeTypeName("struct heif_region_item *")] void* param0, [NativeTypeName("int32_t")] int x, [NativeTypeName("int32_t")] int y, [NativeTypeName("uint32_t")] uint width, [NativeTypeName("uint32_t")] uint height, [NativeTypeName("struct heif_region **")] void** out_region);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_region_item_add_region_ellipse([NativeTypeName("struct heif_region_item *")] void* param0, [NativeTypeName("int32_t")] int x, [NativeTypeName("int32_t")] int y, [NativeTypeName("uint32_t")] uint radius_x, [NativeTypeName("uint32_t")] uint radius_y, [NativeTypeName("struct heif_region **")] void** out_region);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_region_item_add_region_polygon([NativeTypeName("struct heif_region_item *")] void* param0, [NativeTypeName("const int32_t *")] int* pts_array, int nPoints, [NativeTypeName("struct heif_region **")] void** out_region);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_region_item_add_region_polyline([NativeTypeName("struct heif_region_item *")] void* param0, [NativeTypeName("const int32_t *")] int* pts_array, int nPoints, [NativeTypeName("struct heif_region **")] void** out_region);
+
+    [NativeTypeName("#define heif_brand2_heic heif_fourcc('h','e','i','c')")]
+    public const uint heif_brand2_heic = ((uint)(('h' << 24) | ('e' << 16) | ('i' << 8) | 'c'));
+
+    [NativeTypeName("#define heif_brand2_heix heif_fourcc('h','e','i','x')")]
+    public const uint heif_brand2_heix = ((uint)(('h' << 24) | ('e' << 16) | ('i' << 8) | 'x'));
+
+    [NativeTypeName("#define heif_brand2_hevc heif_fourcc('h','e','v','c')")]
+    public const uint heif_brand2_hevc = ((uint)(('h' << 24) | ('e' << 16) | ('v' << 8) | 'c'));
+
+    [NativeTypeName("#define heif_brand2_hevx heif_fourcc('h','e','v','x')")]
+    public const uint heif_brand2_hevx = ((uint)(('h' << 24) | ('e' << 16) | ('v' << 8) | 'x'));
+
+    [NativeTypeName("#define heif_brand2_heim heif_fourcc('h','e','i','m')")]
+    public const uint heif_brand2_heim = ((uint)(('h' << 24) | ('e' << 16) | ('i' << 8) | 'm'));
+
+    [NativeTypeName("#define heif_brand2_heis heif_fourcc('h','e','i','s')")]
+    public const uint heif_brand2_heis = ((uint)(('h' << 24) | ('e' << 16) | ('i' << 8) | 's'));
+
+    [NativeTypeName("#define heif_brand2_hevm heif_fourcc('h','e','v','m')")]
+    public const uint heif_brand2_hevm = ((uint)(('h' << 24) | ('e' << 16) | ('v' << 8) | 'm'));
+
+    [NativeTypeName("#define heif_brand2_hevs heif_fourcc('h','e','v','s')")]
+    public const uint heif_brand2_hevs = ((uint)(('h' << 24) | ('e' << 16) | ('v' << 8) | 's'));
+
+    [NativeTypeName("#define heif_brand2_avif heif_fourcc('a','v','i','f')")]
+    public const uint heif_brand2_avif = ((uint)(('a' << 24) | ('v' << 16) | ('i' << 8) | 'f'));
+
+    [NativeTypeName("#define heif_brand2_avis heif_fourcc('a','v','i','s')")]
+    public const uint heif_brand2_avis = ((uint)(('a' << 24) | ('v' << 16) | ('i' << 8) | 's'));
+
+    [NativeTypeName("#define heif_brand2_mif1 heif_fourcc('m','i','f','1')")]
+    public const uint heif_brand2_mif1 = ((uint)(('m' << 24) | ('i' << 16) | ('f' << 8) | '1'));
+
+    [NativeTypeName("#define heif_brand2_mif2 heif_fourcc('m','i','f','2')")]
+    public const uint heif_brand2_mif2 = ((uint)(('m' << 24) | ('i' << 16) | ('f' << 8) | '2'));
+
+    [NativeTypeName("#define heif_brand2_msf1 heif_fourcc('m','s','f','1')")]
+    public const uint heif_brand2_msf1 = ((uint)(('m' << 24) | ('s' << 16) | ('f' << 8) | '1'));
+
+    [NativeTypeName("#define heif_brand2_vvic heif_fourcc('v','v','i','c')")]
+    public const uint heif_brand2_vvic = ((uint)(('v' << 24) | ('v' << 16) | ('i' << 8) | 'c'));
+
+    [NativeTypeName("#define heif_brand2_vvis heif_fourcc('v','v','i','s')")]
+    public const uint heif_brand2_vvis = ((uint)(('v' << 24) | ('v' << 16) | ('i' << 8) | 's'));
+
+    [NativeTypeName("#define heif_brand2_evbi heif_fourcc('e','v','b','i')")]
+    public const uint heif_brand2_evbi = ((uint)(('e' << 24) | ('v' << 16) | ('b' << 8) | 'i'));
+
+    [NativeTypeName("#define heif_brand2_evbs heif_fourcc('e','v','b','s')")]
+    public const uint heif_brand2_evbs = ((uint)(('e' << 24) | ('v' << 16) | ('b' << 8) | 's'));
 
     [NativeTypeName("#define LIBHEIF_AUX_IMAGE_FILTER_OMIT_ALPHA (1UL<<1)")]
     public const uint LIBHEIF_AUX_IMAGE_FILTER_OMIT_ALPHA = (1U << 1);

@@ -28,4 +28,7 @@ internal unsafe partial struct heif_encoding_options
 
     [NativeTypeName("enum heif_orientation")]
     public heif_orientation image_orientation;
+
+    [NativeTypeName("struct heif_color_conversion_options")]
+    public heif_color_conversion_options color_conversion_options;
 }
