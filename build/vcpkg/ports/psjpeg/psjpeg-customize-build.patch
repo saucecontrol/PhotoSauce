@@ -1,21 +1,23 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index cf2fa1e..75f5773 100644
+index 65401c8..2ee8e61 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -588,7 +588,7 @@ if(WITH_JAVA)
-   add_subdirectory(java)
- endif()
- 
--if(ENABLE_SHARED)
-+if(ENABLE_SHARED AND WITH_TURBOJPEG)
+@@ -627,8 +627,10 @@ if(ENABLE_SHARED)
+   add_library(jpeg16 OBJECT ${JPEG16_SOURCES})
+   set_property(TARGET jpeg16 PROPERTY COMPILE_FLAGS "-DBITS_IN_JSAMPLE=16")
+   set_target_properties(jpeg16 PROPERTIES POSITION_INDEPENDENT_CODE 1)
++if(WITH_TURBOJPEG)
    add_subdirectory(sharedlib)
  endif()
++endif()
  
-@@ -679,6 +679,16 @@ if(WITH_TURBOJPEG)
+ if(ENABLE_STATIC)
+   # Compile a separate version of these source files with 12-bit and 16-bit
+@@ -743,6 +745,16 @@ if(WITH_TURBOJPEG)
    endif()
  endif()
  
-+set(PSJPEG_SOURCES ${JPEG_SOURCES} $<TARGET_OBJECTS:simd> ${SIMD_OBJS} psjpeg.c)
++set(PSJPEG_SOURCES ${JPEG_SOURCES} ${SIMD_TARGET_OBJECTS} ${SIMD_OBJS} psjpeg.c $<TARGET_OBJECTS:jpeg12>)
 +set(CMAKE_C_VISIBILITY_PRESET hidden)
 +add_library(psjpeg SHARED ${PSJPEG_SOURCES})
 +set_target_properties(psjpeg PROPERTIES DEFINE_SYMBOL DLLDEFINE)
@@ -28,7 +30,7 @@ index cf2fa1e..75f5773 100644
  if(WIN32)
    set(USE_SETMODE "-DUSE_SETMODE")
  endif()
-@@ -1475,6 +1485,19 @@ if(WITH_TURBOJPEG)
+@@ -1733,6 +1745,19 @@ if(WITH_TURBOJPEG)
    endif()
  endif()
  
@@ -48,7 +50,7 @@ index cf2fa1e..75f5773 100644
  if(ENABLE_STATIC)
    install(TARGETS jpeg-static EXPORT ${CMAKE_PROJECT_NAME}Targets
      INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-@@ -1519,9 +1542,9 @@ if((UNIX OR MINGW) AND INSTALL_DOCS)
+@@ -1777,9 +1802,9 @@ if((UNIX OR MINGW) AND INSTALL_DOCS)
      ${CMAKE_CURRENT_SOURCE_DIR}/wrjpgcom.1
      DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
  endif()

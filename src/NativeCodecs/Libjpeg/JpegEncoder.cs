@@ -34,6 +34,7 @@ internal sealed unsafe class JpegEncoder : IImageEncoder
 		var pcd = (ps_client_data*)handle->client_data;
 		pcd->stream_handle = GCHandle.ToIntPtr(GCHandle.Alloc(outStream));
 		pcd->write_callback = pfnWriteCallback;
+		handle->data_precision = 8;
 	}
 
 	public void WriteFrame(IPixelSource source, IMetadataSource metadata, Rectangle sourceArea)

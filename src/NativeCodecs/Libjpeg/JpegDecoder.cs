@@ -59,7 +59,7 @@ internal sealed unsafe class JpegContainer : IImageContainer
 		int read = JpegReadHeader(handle);
 		imgStream.Position = pos;
 
-		if (read == TRUE && handle->IsValidImage())
+		if (read == TRUE && handle->IsValidImage() && handle->data_precision == 8)
 		{
 			JpegAbortDecompress(handle);
 
