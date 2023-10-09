@@ -133,7 +133,7 @@ internal sealed unsafe class GifEncoder : IAnimatedImageEncoder
 			checkResult(EGifPutScreenDesc(handle, width, height, 1, 0, null));
 		}
 
-		if (animation.HasValue)
+		if (animation.HasValue && animation.Value.LoopCount != 1)
 		{
 			byte* ext = stackalloc byte[] { 1, 0, 0 };
 			BinaryPrimitives.WriteUInt16LittleEndian(new Span<byte>(ext + 1, 2), (ushort)animation.Value.LoopCount);

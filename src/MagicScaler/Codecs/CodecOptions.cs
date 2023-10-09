@@ -113,6 +113,14 @@ public interface IMultiFrameDecoderOptions : IDecoderOptions
 	Range FrameRange { get; }
 }
 
+/// <summary>Describes a decoder that supports animation properies in a container.</summary>
+public interface IAnimationDecoderOptions : IDecoderOptions
+{
+	/// <summary>True to honor the background color given in the container metadata, otherwise false.</summary>
+	/// <remarks>Most animation viewers, including web browsers, override the background.</remarks>
+	bool UseBackgroundColor { get; }
+}
+
 /// <summary>JPEG decoder options.</summary>
 /// <param name="AllowPlanar"><inheritdoc cref="IPlanarDecoderOptions.AllowPlanar" path="/summary/node()" /></param>
 public readonly record struct JpegDecoderOptions(bool AllowPlanar) : IPlanarDecoderOptions
@@ -123,7 +131,8 @@ public readonly record struct JpegDecoderOptions(bool AllowPlanar) : IPlanarDeco
 
 /// <summary>GIF decoder options.</summary>
 /// <param name="FrameRange"><inheritdoc cref="IMultiFrameDecoderOptions.FrameRange" path="/summary/node()" /></param>
-public readonly record struct GifDecoderOptions(Range FrameRange) : IMultiFrameDecoderOptions
+/// <param name="UseBackgroundColor"><inheritdoc cref="IAnimationDecoderOptions.UseBackgroundColor" path="/summary/node()" /></param>
+public readonly record struct GifDecoderOptions(Range FrameRange, bool UseBackgroundColor = false) : IMultiFrameDecoderOptions, IAnimationDecoderOptions
 {
 	/// <summary>Default GIF decoder options.</summary>
 	public static GifDecoderOptions Default => new(..);

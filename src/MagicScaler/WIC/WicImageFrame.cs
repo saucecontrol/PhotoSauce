@@ -271,16 +271,11 @@ internal sealed unsafe class WicGifFrame : WicImageFrame
 			top = meta.Get()->GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameTop);
 		}
 
+		bool hasAlpha = meta.Get()->GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
 		var duration = new Rational(meta.Get()->GetValueOrDefault<ushort>(Wic.Metadata.Gif.FrameDelay), 100);
 		var disposal = ((FrameDisposalMethod)meta.Get()->GetValueOrDefault<byte>(Wic.Metadata.Gif.FrameDisposal)).Clamp();
-		var hasAlpha = meta.Get()->GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag);
-		var blend = cont.LastDisposal == FrameDisposalMethod.RestoreBackground ? AlphaBlendMethod.Source : AlphaBlendMethod.Over;
 
-		if (index == 0 && disposal == FrameDisposalMethod.RestorePrevious)
-			disposal = FrameDisposalMethod.Preserve;
-
-		cont.LastDisposal = disposal;
-		AnimationMetadata = new(left, top, duration, disposal, blend, hasAlpha);
+		AnimationMetadata = new(left, top, duration, disposal, AlphaBlendMethod.Over, hasAlpha);
 	}
 
 	public override bool TryGetMetadata<T>(out T metadata)

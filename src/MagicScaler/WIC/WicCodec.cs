@@ -129,19 +129,22 @@ internal sealed unsafe class WicImageEncoder : IAnimatedImageEncoder, IDisposabl
 		using var encmeta = default(ComPtr<IWICMetadataQueryWriter>);
 		HRESULT.Check(WicEncoder->GetMetadataQueryWriter(encmeta.GetAddressOf()));
 
-		var appext = WicGifContainer.Netscape2_0;
-		var pvae = new PROPVARIANT { vt = (ushort)(VARENUM.VT_UI1 | VARENUM.VT_VECTOR) };
-		pvae.Anonymous.blob.cbSize = (uint)appext.Length;
-		pvae.Anonymous.blob.pBlobData = appext.GetAddressOf();
-		HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.AppExtension, &pvae));
+		if (anicnt.LoopCount != 1)
+		{
+			var appext = WicGifContainer.Netscape2_0;
+			var pvae = new PROPVARIANT { vt = (ushort)(VARENUM.VT_UI1 | VARENUM.VT_VECTOR) };
+			pvae.Anonymous.blob.cbSize = (uint)appext.Length;
+			pvae.Anonymous.blob.pBlobData = appext.GetAddressOf();
+			HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.AppExtension, &pvae));
 
-		byte* pvdd = stackalloc byte[] { 3, 1, 0, 0 };
-		BinaryPrimitives.WriteUInt16LittleEndian(new Span<byte>(pvdd + 2, 2), (ushort)anicnt.LoopCount);
+			byte* pvdd = stackalloc byte[] { 3, 1, 0, 0 };
+			BinaryPrimitives.WriteUInt16LittleEndian(new Span<byte>(pvdd + 2, 2), (ushort)anicnt.LoopCount);
 
-		var pvad = new PROPVARIANT { vt = (ushort)(VARENUM.VT_UI1 | VARENUM.VT_VECTOR) };
-		pvad.Anonymous.blob.cbSize = 4;
-		pvad.Anonymous.blob.pBlobData = pvdd;
-		HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.AppExtensionData, &pvad));
+			var pvad = new PROPVARIANT { vt = (ushort)(VARENUM.VT_UI1 | VARENUM.VT_VECTOR) };
+			pvad.Anonymous.blob.cbSize = 4;
+			pvad.Anonymous.blob.pBlobData = pvdd;
+			HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.AppExtensionData, &pvad));
+		}
 
 		// TODO WIC ignores these and sets the logical screen descriptor dimensions from the first frame
 		//pv.vt = (ushort)VARENUM.VT_UI2;

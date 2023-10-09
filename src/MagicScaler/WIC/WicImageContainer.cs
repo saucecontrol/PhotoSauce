@@ -80,8 +80,6 @@ internal sealed unsafe class WicGifContainer : WicImageContainer, IMetadataSourc
 
 	public readonly AnimationContainer AnimationMetadata;
 
-	public FrameDisposalMethod LastDisposal;
-
 	public bool IsAnimation => FrameOffset + FrameCount > 1;
 
 	public WicGifContainer(IWICBitmapDecoder* dec, IDecoderOptions? options) : base(dec, ImageMimeTypes.Gif, options)
@@ -89,10 +87,11 @@ internal sealed unsafe class WicGifContainer : WicImageContainer, IMetadataSourc
 		using var meta = default(ComPtr<IWICMetadataQueryReader>);
 		HRESULT.Check(dec->GetMetadataQueryReader(meta.GetAddressOf()));
 
+		bool useBackground = options is IAnimationDecoderOptions { UseBackgroundColor: true };
 		int screenWidth = meta.Get()->GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenWidth);
 		int screenHeight = meta.Get()->GetValueOrDefault<ushort>(Wic.Metadata.Gif.LogicalScreenHeight);
 
-		int bgColor = 0;
+		uint bgColor = default;
 		if (meta.Get()->GetValueOrDefault<bool>(Wic.Metadata.Gif.GlobalPaletteFlag))
 		{
 			using var pal = default(ComPtr<IWICPalette>);
@@ -103,24 +102,21 @@ internal sealed unsafe class WicGifContainer : WicImageContainer, IMetadataSourc
 			HRESULT.Check(pal.Get()->GetColorCount(&cc));
 
 			uint idx = meta.Get()->GetValueOrDefault<byte>(Wic.Metadata.Gif.BackgroundColorIndex);
-			if (idx < cc)
+			if (useBackground && idx < cc)
 			{
 				using var buff = BufferPool.RentLocal<uint>((int)cc);
 				fixed (uint* pbuff = buff)
 				{
 					HRESULT.Check(pal.Get()->GetColors(cc, pbuff, &cc));
-					bgColor = (int)pbuff[idx];
+					bgColor = pbuff[idx];
 				}
 			}
 		}
 
-		uint fcount;
-		WicDecoder->GetFrameCount(&fcount);
-
-		int loopCount = 0;
+		int loopCount = 1;
 		var sbuff = (Span<byte>)stackalloc byte[16];
 		var appext = meta.Get()->GetValueOrDefault(Wic.Metadata.Gif.AppExtension, sbuff);
-		if (appext.Length == 11 && (appext.SequenceEqual(Netscape2_0) || appext.SequenceEqual(Animexts1_0)))
+		if (appext.SequenceEqual(Netscape2_0) || appext.SequenceEqual(Animexts1_0))
 		{
 			var appdata = meta.Get()->GetValueOrDefault(Wic.Metadata.Gif.AppExtensionData, sbuff);
 			if (appdata.Length >= 4 && appdata[0] >= 3 && appdata[1] == 1)
@@ -130,7 +126,19 @@ internal sealed unsafe class WicGifContainer : WicImageContainer, IMetadataSourc
 		int par = meta.Get()->GetValueOrDefault<byte>(Wic.Metadata.Gif.PixelAspectRatio);
 		float pixelAspect = par == default ? 1f : ((par + 15) / 64f);
 
-		AnimationMetadata = new(screenWidth, screenHeight, (int)fcount, loopCount, bgColor, pixelAspect, true);
+		uint fcount;
+		WicDecoder->GetFrameCount(&fcount);
+
+		using var frame = default(ComPtr<IWICBitmapFrameDecode>);
+		HRESULT.Check(WicDecoder->GetFrame(0, frame.GetAddressOf()));
+
+		using var frmmeta = default(ComPtr<IWICMetadataQueryReader>);
+		HRESULT.Check(frame.Get()->GetMetadataQueryReader(frmmeta.GetAddressOf()));
+
+		if (frmmeta.Get()->GetValueOrDefault<bool>(Wic.Metadata.Gif.TransparencyFlag))
+			bgColor = default;
+
+		AnimationMetadata = new(screenWidth, screenHeight, (int)fcount, loopCount, (int)bgColor, pixelAspect, true);
 	}
 
 	public override IImageFrame GetFrame(int index)

@@ -380,7 +380,8 @@ internal sealed unsafe class PngFrame : IImageFrame, IMetadataSource
 			PngGetNextFrameFctl(handle, &w, &h, &x, &y, &dn, &dd, &dispose_op, &blend_op);
 
 			var blend = blend_op == PNG_BLEND_OP_OVER ? AlphaBlendMethod.BlendOver : AlphaBlendMethod.Source;
-			var afrm = new AnimationFrame((int)x, (int)y, new(dn, dd == 0 ? 100u : dd), (FrameDisposalMethod)(dispose_op + 1), blend, container.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
+			var disp = ((FrameDisposalMethod)(dispose_op + 1)).Clamp();
+			var afrm = new AnimationFrame((int)x, (int)y, new(dn, dd == 0 ? 100u : dd), disp, blend, container.Format.AlphaRepresentation != PixelAlphaRepresentation.None);
 
 			metadata = (T)(object)afrm;
 			return true;

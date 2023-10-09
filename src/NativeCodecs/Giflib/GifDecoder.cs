@@ -31,7 +31,6 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 	private RentedBuffer<uint> palette;
 	private RentedBuffer<byte> iccpData;
 
-	public FrameDisposalMethod LastDisposal;
 	public bool EOF;
 
 	private GifContainer(GifFileType* pinst, Stream stm, long pos, IDecoderOptions? options)
@@ -40,7 +39,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 		streamStart = pos;
 		handle = pinst;
 
-		int loopCount = 0;
+		int loopCount = 1;
 		bool alpha = false;
 
 		var rec = default(GifRecordType);
@@ -102,7 +101,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 		}
 		while (rec != GifRecordType.TERMINATE_RECORD_TYPE && !EOF);
 
-		uint bgColor = 0;
+		uint bgColor = default;
 		if (handle->SColorMap is not null)
 		{
 			var cmap = handle->SColorMap;
@@ -113,7 +112,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 			fixed (uint* pp = cspan)
 				Swizzlers<byte>.GetSwapConverter(3, 4).ConvertLine((byte*)cmap->Colors, (byte*)pp, ColorCount * 3);
 
-			if (handle->SBackGroundColor < ColorCount)
+			if (options is IAnimationDecoderOptions { UseBackgroundColor: true } && !alpha && handle->SBackGroundColor < ColorCount)
 				bgColor = cspan[handle->SBackGroundColor];
 		}
 
@@ -414,24 +413,18 @@ internal sealed unsafe class GifFrame : IImageFrame, IMetadataSource
 		(width, height) = (handle->Image.Width, handle->Image.Height);
 
 		var disposal = FrameDisposalMethod.Preserve;
-		var blend = cont.LastDisposal == FrameDisposalMethod.RestoreBackground ? AlphaBlendMethod.Source : AlphaBlendMethod.Over;
-
 		if (hasGcb)
 		{
 			transIdx = gcb.TransparentColor;
 			disposal = ((FrameDisposalMethod)gcb.DisposalMode).Clamp();
-
-			if (idx == 0 && disposal == FrameDisposalMethod.RestorePrevious)
-				disposal = FrameDisposalMethod.Preserve;
 		}
 
-		cont.LastDisposal = disposal;
 		anifrm = new AnimationFrame(
 			handle->Image.Left,
 			handle->Image.Top,
 			new((uint)gcb.DelayTime, 100),
 			disposal,
-			blend,
+			AlphaBlendMethod.Over,
 			transIdx != NO_TRANSPARENT_COLOR
 		);
 

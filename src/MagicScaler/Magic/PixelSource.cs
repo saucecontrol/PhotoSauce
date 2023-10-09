@@ -3,6 +3,7 @@
 using System;
 using System.Drawing;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler;
@@ -215,6 +216,30 @@ internal sealed class FrameBufferSource : PixelSource
 
 		for (int y = 0; y < prc.Height; y++)
 			Unsafe.CopyBlockUnaligned(ref *(pbBuffer + y * cbStride), ref Unsafe.Add(ref buff, y * Stride), (uint)cb);
+	}
+
+	public void Clear(PixelArea area, uint color)
+	{
+		Debug.Assert(Format.BytesPerPixel is sizeof(uint));
+
+		if (area == Area)
+		{
+			if (color <= 0x00ffffffu)
+				frameBuff.Span.Clear();
+			else
+				MemoryMarshal.Cast<byte, uint>(frameBuff.Span).Fill(color);
+
+			return;
+		}
+
+		for (int y = area.Y; y < area.Y + area.Height; y++)
+		{
+			var span = frameBuff.Span.Slice(y * Stride + area.X * sizeof(uint), area.Width * sizeof(uint));
+			if (color < 0x00ffffffu)
+				span.Clear();
+			else
+				MemoryMarshal.Cast<byte, uint>(span).Fill(color);
+		}
 	}
 }
 

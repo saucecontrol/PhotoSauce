@@ -111,7 +111,7 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 			int ch = (int)WebPDemuxGetI(handle, WebPFormatFeature.WEBP_FF_CANVAS_HEIGHT);
 			int fc = (int)WebPDemuxGetI(handle, WebPFormatFeature.WEBP_FF_FRAME_COUNT);
 			int lc = (int)WebPDemuxGetI(handle, WebPFormatFeature.WEBP_FF_LOOP_COUNT);
-			int bg = (int)WebPDemuxGetI(handle, WebPFormatFeature.WEBP_FF_BACKGROUND_COLOR);
+			int bg = options is IAnimationDecoderOptions { UseBackgroundColor: true } ? (int)WebPDemuxGetI(handle, WebPFormatFeature.WEBP_FF_BACKGROUND_COLOR) : 0;
 			var anicnt = new AnimationContainer(cw, ch, fc, lc, bg, 1f, true);
 
 			metadata = (T)(object)anicnt;

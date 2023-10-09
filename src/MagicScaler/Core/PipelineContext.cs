@@ -75,6 +75,24 @@ internal sealed class PipelineContext : IDisposable
 		return source;
 	}
 
+	public bool TryGetAnimationMetadata(out AnimationContainer anicnt, out AnimationFrame anifrm)
+	{
+		anicnt = default;
+		anifrm = default;
+
+		bool nocntmeta = ImageContainer is not IMetadataSource cmsrc || !cmsrc.TryGetMetadata(out anicnt);
+		bool nofrmmeta = ImageFrame is not IMetadataSource fmsrc || !fmsrc.TryGetMetadata(out anifrm);
+		if (nocntmeta && nofrmmeta)
+			return false;
+
+		if (nocntmeta || anicnt.ScreenWidth is 0 || anicnt.ScreenHeight is 0)
+			anicnt = new(Source.Width, Source.Height, ImageContainer.FrameCount);
+		if (nofrmmeta)
+			anifrm = AnimationFrame.Default;
+
+		return true;
+	}
+
 	public void FinalizeSettings()
 	{
 		Orientation = Settings.OrientationMode == OrientationMode.Normalize ? ImageFrame.GetOrientation() : Orientation.Normal;

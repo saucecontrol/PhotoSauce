@@ -3,7 +3,6 @@
 using System;
 using System.Drawing;
 using System.Numerics;
-using System.Diagnostics;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
@@ -649,92 +648,80 @@ internal static class MagicTransforms
 		}
 	}
 
-	public static unsafe void AddAnimationFrameBuffer(PipelineContext ctx, bool replay = true)
+	public static unsafe void AddAnimationFrameBuffer(PipelineContext ctx)
 	{
-		var anicnt = default(AnimationContainer);
-		var anifrm = default(AnimationFrame);
-
-		bool nocntmeta = ctx.ImageContainer is not IMetadataSource cmsrc || !cmsrc.TryGetMetadata(out anicnt);
-		bool nofrmmeta = ctx.ImageFrame is not IMetadataSource fmsrc || !fmsrc.TryGetMetadata(out anifrm);
-		if (nocntmeta && nofrmmeta)
+		if (!ctx.TryGetAnimationMetadata(out var anicnt, out var anifrm))
 			return;
 
-		if (nocntmeta || anicnt.ScreenWidth is 0 || anicnt.ScreenHeight is 0)
-			anicnt = new(ctx.Source.Width, ctx.Source.Height, ctx.ImageContainer.FrameCount);
-		if (nofrmmeta)
-			anifrm = AnimationFrame.Default;
+		if (anicnt.RequiresScreenBuffer && ctx.ImageFrame is IYccImageFrame)
+			throw new NotSupportedException("Screen buffer not supported with YCbCr animations");
 
-		if (replay && anicnt.RequiresScreenBuffer)
-		{
-			var range = ctx.Settings.DecoderOptions is IMultiFrameDecoderOptions mul ? mul.FrameRange : Range.All;
-			var (offset, count) = range.GetOffsetAndLengthNoThrow(anicnt.FrameCount);
-			replay = count == 1 && offset == 0;
+		var range = ctx.Settings.DecoderOptions is IMultiFrameDecoderOptions mul ? mul.FrameRange : Range.All;
+		if (!range.IsValidForLength(anicnt.FrameCount))
+			throw new InvalidOperationException($"{nameof(ProcessImageSettings.DecoderOptions)} specifies an invalid {nameof(IMultiFrameDecoderOptions.FrameRange)}");
 
-			if (offset != 0)
-				ReplayAnimation(ctx, anicnt, offset);
-		}
+		var (offset, count) = range.GetOffsetAndLength(anicnt.FrameCount);
+		bool singleFrame = count == 1 && offset == 0;
+		if (anicnt.RequiresScreenBuffer && offset != 0)
+			replayAnimation(ctx, anicnt, offset);
 
-		var disposal = anifrm.Disposal;
-		var ldisp = ctx.AnimationContext?.LastDisposal ?? FrameDisposalMethod.RestoreBackground;
-
-		if (!replay)
-		{
-			var anictx = ctx.AnimationContext ??= new();
-
-			if (anicnt.RequiresScreenBuffer && disposal == FrameDisposalMethod.Preserve)
-				anictx.UpdateFrameBuffer(ctx.Source, anicnt, anifrm);
-
-			ldisp = anictx.LastDisposal = disposal;
-		}
-
-		if (!anicnt.RequiresScreenBuffer)
-			return;
-
-		var frmsrc = ctx.Source;
-		if (ctx.AnimationContext?.ScreenBuffer is not null && ldisp != FrameDisposalMethod.RestoreBackground)
-			ctx.Source = ctx.AnimationContext.ScreenBuffer;
-
-		var innerArea = new PixelArea(anifrm.OffsetLeft, anifrm.OffsetTop, ctx.Source.Width, ctx.Source.Height);
-		bool useBuffer = !replay && disposal == FrameDisposalMethod.Preserve;
-
-		bool fullScreen = innerArea.Width >= anicnt.ScreenWidth && innerArea.Height >= anicnt.ScreenHeight;
-		if (!fullScreen && ldisp == FrameDisposalMethod.RestoreBackground && !useBuffer)
-		{
-			var outerArea = new PixelArea(0, 0, anicnt.ScreenWidth, anicnt.ScreenHeight);
-			var bgColor = anifrm.HasAlpha ? Color.Empty : Color.FromArgb(anicnt.BackgroundColor);
-
-			ctx.Source = new PadTransformInternal(frmsrc, bgColor, innerArea, outerArea, true);
-		}
-		else if (ldisp != FrameDisposalMethod.RestoreBackground && !useBuffer)
-		{
-			Debug.Assert(ctx.AnimationContext?.ScreenBuffer is not null);
-
-			var anictx = ctx.AnimationContext;
-			var fbuff = anictx.ScreenBuffer;
-
-			ctx.Source = new OverlayTransform(fbuff, frmsrc, anifrm.OffsetLeft, anifrm.OffsetTop, anifrm.HasAlpha, anifrm.Blend);
-		}
-		else if (ctx.Source != frmsrc)
-		{
-			frmsrc.Dispose();
-		}
-
-		if (ctx.Source.Width > anicnt.ScreenWidth || ctx.Source.Height > anicnt.ScreenHeight)
-			ctx.Source = new CropTransform(ctx.Source, new PixelArea(0, 0, anicnt.ScreenWidth, anicnt.ScreenHeight), true);
+		AddAnimationTransforms(ctx, anicnt, anifrm, singleFrame);
 	}
 
-	public static void ReplayAnimation(PipelineContext ctx, AnimationContainer anicnt, int offset)
+	public static unsafe void AddAnimationTransforms(PipelineContext ctx, in AnimationContainer anicnt, in AnimationFrame anifrm, bool singleFrame = false)
+	{
+		var frameSource = ctx.Source;
+		var screenArea = PixelArea.FromSize(anicnt.ScreenWidth, anicnt.ScreenHeight);
+		var frameArea = new PixelArea(anifrm.OffsetLeft, anifrm.OffsetTop, frameSource.Width, frameSource.Height).Intersect(screenArea);
+
+		if (!singleFrame)
+		{
+			var anictx = ctx.AnimationContext ??= new();
+			if (anictx.ScreenBuffer is not null && anictx.LastDisposal is FrameDisposalMethod.RestoreBackground)
+				anictx.ClearFrameBuffer((uint)anicnt.BackgroundColor);
+
+			if (anicnt.RequiresScreenBuffer && anifrm.Disposal is FrameDisposalMethod.Preserve)
+			{
+				anictx.UpdateFrameBuffer(frameSource, anicnt, anifrm);
+				frameSource.Dispose();
+				frameSource = null;
+
+				ctx.Source = ctx.AnimationContext.ScreenBuffer!;
+			}
+
+			anictx.LastDisposal = anifrm.Disposal;
+			anictx.LastArea = frameArea;
+		}
+
+		if (!anicnt.RequiresScreenBuffer || frameSource is null)
+			return;
+
+		if (ctx.AnimationContext?.ScreenBuffer is not null)
+			ctx.Source = new OverlayTransform(ctx.AnimationContext.ScreenBuffer, frameSource, anifrm.OffsetLeft, anifrm.OffsetTop, anifrm.HasAlpha, anifrm.Blend);
+		else if (frameArea != screenArea)
+			ctx.Source = new PadTransformInternal(frameSource, Color.FromArgb(anicnt.BackgroundColor), frameArea, screenArea, true);
+		else if (frameSource.Width > anicnt.ScreenWidth || frameSource.Height > anicnt.ScreenHeight)
+			ctx.Source = new CropTransform(frameSource, screenArea, true);
+	}
+
+	private static void replayAnimation(PipelineContext ctx, in AnimationContainer anicnt, int offset)
 	{
 		var anictx = ctx.AnimationContext ??= new();
 		for (int i = -offset; i < 0; i++)
 		{
 			using var frame = ctx.ImageContainer.GetFrame(i);
 			var anifrm = frame is IMetadataSource fmeta && fmeta.TryGetMetadata<AnimationFrame>(out var anif) ? anif : AnimationFrame.Default;
+			var screenArea = PixelArea.FromSize(anicnt.ScreenWidth, anicnt.ScreenHeight);
 
-			if (anifrm.Disposal == FrameDisposalMethod.Preserve)
+			if (anictx.ScreenBuffer is not null && anictx.LastDisposal is FrameDisposalMethod.RestoreBackground)
+				anictx.ClearFrameBuffer((uint)anicnt.BackgroundColor);
+
+			if (anifrm.Disposal is FrameDisposalMethod.Preserve)
 				anictx.UpdateFrameBuffer(frame.PixelSource, anicnt, anifrm);
 
 			anictx.LastDisposal = anifrm.Disposal;
+			if (anifrm.Disposal is FrameDisposalMethod.RestoreBackground)
+				anictx.LastArea = new PixelArea(anifrm.OffsetLeft, anifrm.OffsetTop, frame.PixelSource.Width, frame.PixelSource.Height).Intersect(screenArea);
 		}
 
 		ctx.ImageFrame.Dispose();

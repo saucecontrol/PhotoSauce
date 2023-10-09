@@ -6,16 +6,15 @@ using System;
 using System.Numerics;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-using System.Runtime.CompilerServices;
 #endif
 
 namespace PhotoSauce.MagicScaler;
 
 internal static unsafe class TemporalFilters
 {
-	private const byte denoiseThreshold = 15;
+	private const byte denoiseThreshold = 9;
 
-	public static void Dedupe(AnimationEncoder buffer, uint bgcolor, bool blend)
+	public static void Dedupe(AnimationEncoder buffer, FrameDisposalMethod disposal, uint bgcolor, bool blend)
 	{
 		var src = buffer.Current.Source;
 		if (src.Format != PixelFormat.Bgra32)
@@ -30,14 +29,8 @@ internal static unsafe class TemporalFilters
 			bool tfound = false;
 			uint al = (uint)src.Width, ar = al, at = 0u, ab = (uint)(src.Height - 1);
 
-			byte* pp = pprev;
-			if (prev == buffer.Current || prev.Disposal == FrameDisposalMethod.RestoreBackground)
-			{
-				pp = null;
-				if (buffer.Current.HasTransparency)
-					bgcolor = 0u;
-			}
-
+			byte* pp = prev == buffer.Current ? null : pprev;
+			byte* pn = next == buffer.Current || disposal is not FrameDisposalMethod.RestoreBackground ? null : pnext;
 			for (int y = 0; y < src.Height; y++)
 			{
 				nuint offs = (uint)(y * src.Stride);
@@ -57,12 +50,12 @@ internal static unsafe class TemporalFilters
 
 #if HWINTRINSICS
 				if (Avx2.IsSupported && cb >= Vector256<byte>.Count)
-					(eql, eqr) = dedupeLineAvx2(pcurr + offs, pp is null ? pp : pp + offs, penc + offs, cb, bgcolor, blend);
+					(eql, eqr) = dedupeLineAvx2(pcurr + offs, pp is null ? pp : pp + offs, pn is null ? pn : pn + offs, penc + offs, cb, bgcolor, blend);
 				else if (Sse2.IsSupported && cb >= Vector128<byte>.Count)
-					(eql, eqr) = dedupeLineSse2(pcurr + offs, pp is null ? pp : pp + offs, penc + offs, cb, bgcolor, blend);
+					(eql, eqr) = dedupeLineSse2(pcurr + offs, pp is null ? pp : pp + offs, pn is null ? pn : pn + offs, penc + offs, cb, bgcolor, blend);
 				else
 #endif
-					(eql, eqr) = dedupeLineScalar(pcurr + offs, pp is null ? pp : pp + offs, penc + offs, cb, bgcolor, blend);
+					(eql, eqr) = dedupeLineScalar(pcurr + offs, pp is null ? pp : pp + offs, pn is null ? pn : pn + offs, penc + offs, cb, bgcolor, blend);
 
 				if (eql == (uint)src.Width)
 				{
@@ -202,9 +195,9 @@ internal static unsafe class TemporalFilters
 	}
 
 #if HWINTRINSICS
-	private static (uint eql, uint eqr) dedupeLineAvx2(byte* pcurr, byte* pprev, byte* penc, nint cb, uint bg, bool blend)
+	private static (uint eql, uint eqr) dedupeLineAvx2(byte* pcurr, byte* pprev, byte* pnext, byte* penc, nint cb, uint bg, bool blend)
 	{
-		byte* ip = pcurr, pp = pprev, op = penc;
+		byte* ip = pcurr, pp = pprev, pn = pnext, op = penc;
 		nint cnt = 0, end = cb - Vector256<byte>.Count;
 
 		bool lfound = false;
@@ -221,9 +214,15 @@ internal static unsafe class TemporalFilters
 			var vcurr = Avx.LoadVector256(ip + cnt).AsUInt32();
 
 			var veq = Avx2.CompareEqual(vcurr, vprev);
-			vcurr = Avx2.BlendVariable(vcurr, vbg, Avx2.And(veq, vmb));
+			var vout = Avx2.BlendVariable(vcurr, vbg, Avx2.And(veq, vmb));
 
-			Avx.Store(op + cnt, vcurr.AsByte());
+			if (pn is not null)
+			{
+				var vnext = Avx2.ShiftRightLogical(Avx.LoadVector256(pn + cnt).AsUInt32(), 24).AsInt32();
+				veq = Avx2.AndNot(Avx2.CompareGreaterThan(Avx2.ShiftRightLogical(vcurr, 24).AsInt32(), vnext).AsUInt32(), veq);
+			}
+
+			Avx.Store(op + cnt, vout.AsByte());
 			cnt += Vector256<byte>.Count;
 
 			uint msk = (uint)Avx2.MoveMask(veq.AsByte());
@@ -265,9 +264,9 @@ internal static unsafe class TemporalFilters
 		return (eql, eqr);
 	}
 
-	private static (uint eql, uint eqr) dedupeLineSse2(byte* pcurr, byte* pprev, byte* penc, nint cb, uint bg, bool blend)
+	private static (uint eql, uint eqr) dedupeLineSse2(byte* pcurr, byte* pprev, byte* pnext, byte* penc, nint cb, uint bg, bool blend)
 	{
-		byte* ip = pcurr, pp = pprev, op = penc;
+		byte* ip = pcurr, pp = pprev, pn = pnext, op = penc;
 		nint cnt = 0, end = cb - Vector128<byte>.Count;
 
 		bool lfound = false;
@@ -284,9 +283,15 @@ internal static unsafe class TemporalFilters
 			var vcurr = Sse2.LoadVector128(ip + cnt).AsUInt32();
 
 			var veq = Sse2.CompareEqual(vcurr, vprev);
-			vcurr = HWIntrinsics.BlendVariable(vcurr, vbg, Sse2.And(veq, vmb));
+			var vout = HWIntrinsics.BlendVariable(vcurr, vbg, Sse2.And(veq, vmb));
 
-			Sse2.Store(op + cnt, vcurr.AsByte());
+			if (pn is not null)
+			{
+				var vnext = Sse2.ShiftRightLogical(Sse2.LoadVector128(pn + cnt).AsUInt32(), 24).AsInt32();
+				veq = Sse2.AndNot(Sse2.CompareGreaterThan(Sse2.ShiftRightLogical(vcurr, 24).AsInt32(), vnext).AsUInt32(), veq);
+			}
+
+			Sse2.Store(op + cnt, vout.AsByte());
 			cnt += Vector128<byte>.Count;
 
 			uint msk = (uint)Sse2.MoveMask(veq.AsByte());
@@ -329,9 +334,9 @@ internal static unsafe class TemporalFilters
 	}
 #endif
 
-	private static (uint eql, uint eqr) dedupeLineScalar(byte* pcurr, byte* pprev, byte* penc, nint cb, uint bg, bool blend)
+	private static (uint eql, uint eqr) dedupeLineScalar(byte* pcurr, byte* pprev, byte* pnext, byte* penc, nint cb, uint bg, bool blend)
 	{
-		byte* ip = pcurr, pp = pprev, op = penc;
+		byte* ip = pcurr, pp = pprev, pn = pnext, op = penc;
 		nint end = cb;
 
 		bool lfound = false;
@@ -343,8 +348,11 @@ internal static unsafe class TemporalFilters
 		{
 			uint curr = *(uint*)(ip + cnt);
 			bool peq = curr == (pp is not null ? *(uint*)(pp + cnt) : bg);
-			*(uint*)(op + cnt) = (blend & peq) ? bg : curr;
+			uint val = (blend & peq) ? bg : curr;
 
+			peq &= pn is null || (*(uint*)(pn + cnt) >> 24 >= curr >> 24);
+
+			*(uint*)(op + cnt) = val;
 			if (!peq)
 			{
 				lfound = true;

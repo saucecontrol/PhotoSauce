@@ -19,7 +19,7 @@ internal sealed class OverlayTransform : ChainedPixelSource
 	const int bytesPerPixel = 4;
 
 	private PixelSource overSource;
-	private int offsX, offsY;
+	private PixelArea overArea;
 	private bool directCopy, blendOver;
 
 	public override bool Passthrough => false;
@@ -39,7 +39,7 @@ internal sealed class OverlayTransform : ChainedPixelSource
 			throw new NotSupportedException("Sources must be same pixel format.");
 
 		overSource = over;
-		(offsX, offsY) = (left, top);
+		overArea = new PixelArea(left, top, over.Width, over.Height).Intersect(PrevSource.Area);
 
 		directCopy = !alpha || blend == AlphaBlendMethod.Source;
 		blendOver = blend == AlphaBlendMethod.Over;
@@ -54,7 +54,7 @@ internal sealed class OverlayTransform : ChainedPixelSource
 			copyBase = Unsafe.IsAddressLessThan(ref *pbBuffer, ref baseref) || Unsafe.IsAddressGreaterThan(ref *pbBuffer, ref Unsafe.Add(ref baseref, fbuff.Span.Length));
 		}
 
-		var inner = new PixelArea(offsX, offsY, overSource.Width, overSource.Height);
+		var inner = overArea;
 
 		int tx = Math.Max(prc.X - inner.X, 0);
 		int tw = Math.Min(prc.Width, Math.Min(Math.Max(prc.X + prc.Width - inner.X, 0), inner.Width - tx));

@@ -48,6 +48,7 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 	private readonly PixelSource lastSource;
 	private readonly ChainedPixelSource? convertSource;
 	private readonly AnimationBufferFrame[] frames = new AnimationBufferFrame[3];
+	private readonly AnimationContainer anicnt;
 	private readonly int lastFrame;
 
 	private int currentFrame;
@@ -59,6 +60,9 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 
 	public AnimationEncoder(PipelineContext ctx, IAnimatedImageEncoder enc)
 	{
+		if (!ctx.TryGetAnimationMetadata(out anicnt, out var anifrm))
+			throw new InvalidOperationException("Not an animation source.");
+
 		context = ctx;
 		encoder = enc;
 
@@ -68,9 +72,9 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 		lastSource = ctx.Source;
 		lastFrame = ctx.ImageContainer.FrameCount - 1;
 
-		EncodeFrame = new AnimationBufferFrame(context);
+		EncodeFrame = new AnimationBufferFrame(ctx);
 		for (int i = 0; i < Math.Min(frames.Length, lastFrame + 1); i++)
-			frames[i] = new AnimationBufferFrame(context);
+			frames[i] = new AnimationBufferFrame(ctx);
 
 		if (ctx.Settings.EncoderInfo is IImageEncoderInfo encinfo && !encinfo.SupportsPixelFormat(lastSource.Format.FormatGuid))
 		{
@@ -81,32 +85,32 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 				convertSource = ctx.AddProfiler(new ConversionTransform(EncodeFrame.Source, fmt));
 		}
 
-		loadFrame(Current);
+		loadFrame(Current, anifrm);
 		Current.Source.Span.CopyTo(EncodeFrame.Source.Span);
 
-		moveToFrame(1);
-		loadFrame(Next!);
+		moveToFrame(1, out anifrm);
+		loadFrame(Next!, anifrm);
 	}
 
 	public void WriteGlobalMetadata() => encoder.WriteAnimationMetadata(context.Metadata);
 
 	public void WriteFrames()
 	{
-		uint bgColor = context.Metadata.TryGetMetadata<AnimationContainer>(out var anicnt) ? (uint)anicnt.BackgroundColor : default;
-
 		var ppt = context.AddProfiler(nameof(TemporalFilters));
 		var ppq = context.AddProfiler($"{nameof(OctreeQuantizer)}: {nameof(OctreeQuantizer.CreatePalette)}");
 
 		var encopt = context.Settings.EncoderOptions is GifEncoderOptions gifopt ? gifopt : GifEncoderOptions.Default;
-		writeFrame(Current, encopt, ppq);
+		var frame = Current;
+		writeFrame(frame, encopt, ppq);
 
 		while (moveNext())
 		{
-			ppt.ResumeTiming(Current.Source.Area);
-			TemporalFilters.Dedupe(this, bgColor, Current.Blend != AlphaBlendMethod.Source);
+			frame = Current;
+			ppt.ResumeTiming(frame.Source.Area);
+			TemporalFilters.Dedupe(this, frame.Disposal, (uint)anicnt.BackgroundColor, frame.Blend != AlphaBlendMethod.Source);
 			ppt.PauseTiming();
 
-			writeFrame(Current, encopt, ppq);
+			writeFrame(frame, encopt, ppq);
 		}
 	}
 
@@ -124,16 +128,20 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 		if (currentFrame == lastFrame)
 			return false;
 
+		var frame = Current;
+		if (frame.Disposal is FrameDisposalMethod.RestoreBackground)
+			frame.Source.Clear(frame.Area, (uint)anicnt.BackgroundColor);
+
 		if (++currentFrame != lastFrame)
 		{
-			moveToFrame(currentFrame + 1);
-			loadFrame(Next!);
+			moveToFrame(currentFrame + 1, out var anifrm);
+			loadFrame(Next!, anifrm);
 		}
 
 		return true;
 	}
 
-	private void moveToFrame(int index)
+	private void moveToFrame(int index, out AnimationFrame anifrm)
 	{
 		context.ImageFrame.Dispose();
 		context.ImageFrame = context.ImageContainer.GetFrame(index);
@@ -143,7 +151,10 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 		else
 			context.Source = context.ImageFrame.PixelSource.AsPixelSource();
 
-		MagicTransforms.AddAnimationFrameBuffer(context, false);
+		if (context.ImageFrame is not IMetadataSource fmsrc || !fmsrc.TryGetMetadata<AnimationFrame>(out anifrm))
+			anifrm = AnimationFrame.Default;
+
+		MagicTransforms.AddAnimationTransforms(context, anicnt, anifrm);
 
 		if ((context.Source is PlanarPixelSource plan ? plan.SourceY : context.Source) is IProfileSource prof)
 			context.AddProfiler(prof);
@@ -155,13 +166,10 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 		}
 	}
 
-	private void loadFrame(AnimationBufferFrame frame)
+	private void loadFrame(AnimationBufferFrame frame, in AnimationFrame anifrm)
 	{
-		if (context.ImageFrame is not IMetadataSource fmsrc || !fmsrc.TryGetMetadata<AnimationFrame>(out var anifrm))
-			anifrm = AnimationFrame.Default;
-
 		frame.Delay = anifrm.Duration;
-		frame.Disposal = anifrm.Disposal == FrameDisposalMethod.RestoreBackground ? FrameDisposalMethod.RestoreBackground : FrameDisposalMethod.Preserve;
+		frame.Disposal = anifrm.Disposal is FrameDisposalMethod.RestoreBackground || (anifrm.Disposal is FrameDisposalMethod.RestorePrevious && anicnt.BackgroundColor is 0) ? FrameDisposalMethod.RestoreBackground : FrameDisposalMethod.Preserve;
 		frame.Blend = anifrm.Blend;
 		frame.HasTransparency = anifrm.HasAlpha;
 		frame.Area = context.Source.Area;
@@ -177,7 +185,7 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 		{
 			if (gifopt.PredefinedPalette is not null)
 			{
-				indexedSource.SetPalette(MemoryMarshal.Cast<int, uint>(gifopt.PredefinedPalette.AsSpan()), gifopt.Dither == DitherMode.None);
+				indexedSource.SetPalette(MemoryMarshal.Cast<int, uint>(gifopt.PredefinedPalette.AsSpan()), gifopt.Dither is DitherMode.None);
 			}
 			else
 			{
@@ -186,7 +194,7 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 				var buffCSpan = buffC.Span.Slice(src.Area.Y * buffC.Stride + src.Area.X * buffC.Format.BytesPerPixel);
 
 				bool isExact = quant.CreatePalette(gifopt.MaxPaletteSize, buffC.Format.AlphaRepresentation != PixelAlphaRepresentation.None, buffCSpan, src.Area.Width, src.Area.Height, buffC.Stride);
-				indexedSource.SetPalette(quant.Palette, isExact || gifopt.Dither == DitherMode.None);
+				indexedSource.SetPalette(quant.Palette, isExact || gifopt.Dither is DitherMode.None);
 			}
 		}
 

@@ -129,8 +129,10 @@ internal readonly record struct PixelArea
 		return new(X, Y + y, Width, height);
 	}
 
+	public static PixelArea FromSize(int width, int height) => new(0, 0, width, height);
+
 	public static implicit operator PixelArea(in Rectangle r) => new(r.X, r.Y, r.Width, r.Height);
 	public static implicit operator Rectangle(in PixelArea a) => Unsafe.As<PixelArea, Rectangle>(ref Unsafe.AsRef(a));
 
-	public static implicit operator PixelArea(Size s) => new(0, 0, s.Width, s.Height);
+	public static implicit operator PixelArea(Size s) => FromSize(s.Width, s.Height);
 }
