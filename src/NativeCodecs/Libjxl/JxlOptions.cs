@@ -57,7 +57,6 @@ public readonly record struct JxlLossyEncoderOptions(float Distance, JxlEncodeSp
 }
 
 /// <summary>Determines speed/effort of the JPEG XL encoder.</summary>
-/// <remarks>Values Hare(5) through Tortoise(9) are currently disabled for lossy encoding due to a crashing bug in libjxl.</remarks>
 public enum JxlEncodeSpeed
 {
 	/// <summary>Useful only for losless encoding.</summary>

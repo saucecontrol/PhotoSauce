@@ -83,13 +83,13 @@ public static class GdiImageProcessor
 	private static ProcessImageResult processImage(Stream istm, Stream ostm, ProcessImageSettings s)
 	{
 		using var img = Image.FromStream(istm, s.ColorProfileMode != ColorProfileMode.Ignore, false);
+		var frameDimension = img.RawFormat.Guid == ImageFormat.Gif.Guid ? FrameDimension.Time : FrameDimension.Page;
+		int frameCount = img.GetFrameCount(frameDimension);
 
-		if (s.DecoderOptions is IMultiFrameDecoderOptions opt && img.RawFormat.Guid != ImageFormat.Png.Guid)
+		if (s.DecoderOptions is IMultiFrameDecoderOptions mul && mul.FrameRange.IsValidForLength(frameCount))
 		{
-			var fd = img.RawFormat.Guid == ImageFormat.Gif.Guid ? FrameDimension.Time : FrameDimension.Page;
-			int fi = opt.FrameRange.GetOffsetAndLength(img.GetFrameCount(fd)).Offset;
-
-			img.SelectActiveFrame(fd, fi);
+			int frameIndex = mul.FrameRange.GetOffsetAndLength(img.GetFrameCount(frameDimension)).Offset;
+			img.SelectActiveFrame(frameDimension, frameIndex);
 		}
 
 		if (s.OrientationMode == OrientationMode.Normalize)

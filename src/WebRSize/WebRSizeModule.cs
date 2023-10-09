@@ -73,7 +73,7 @@ public class WebRSizeModule : IHttpModule
 			dpr = dpr.Clamp(1d, 5d);
 			if (dpr > 1d)
 			{
-				int index = s.DecoderOptions is IMultiFrameDecoderOptions opt ? opt.FrameRange.GetOffsetAndLength(ifi.Frames.Count).Offset : 0;
+				int index = s.DecoderOptions is IMultiFrameDecoderOptions opt ? opt.FrameRange.GetOffsetAndLengthNoThrow(ifi.Frames.Count).Offset : 0;
 				var frame = ifi.Frames[index];
 				int nw = (int)Math.Floor(s.Width * dpr), nh = (int)Math.Floor(s.Height * dpr);
 
@@ -90,7 +90,7 @@ public class WebRSizeModule : IHttpModule
 
 		if (!folderConfig.AllowEnlarge && s.ResizeMode != CropScaleMode.Pad)
 		{
-			int index = s.DecoderOptions is IMultiFrameDecoderOptions opt ? opt.FrameRange.GetOffsetAndLength(ifi.Frames.Count).Offset : 0;
+			int index = s.DecoderOptions is IMultiFrameDecoderOptions opt ? opt.FrameRange.GetOffsetAndLengthNoThrow(ifi.Frames.Count).Offset : 0;
 			var frame = ifi.Frames[index];
 			if (s.Width > frame.Width)
 			{

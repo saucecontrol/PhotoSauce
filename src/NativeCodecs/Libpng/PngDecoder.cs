@@ -59,7 +59,7 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 			PngGetActl(handle, &fcount, &plays);
 
 			var range = opt is IMultiFrameDecoderOptions mul ? mul.FrameRange : Range.All;
-			(frameOffset, frameCount) = range.GetOffsetAndLength((int)fcount);
+			(frameOffset, frameCount) = range.GetOffsetAndLengthNoThrow((int)fcount);
 			if (!handle->HasChunk(PNG_INFO_fcTL))
 			{
 				skip = true;

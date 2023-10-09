@@ -194,7 +194,7 @@ internal sealed class MagicMetadataFilter : IMetadataSource
 				anicnt = default;
 
 			var range = settings.DecoderOptions is IMultiFrameDecoderOptions mul ? mul.FrameRange : Range.All;
-			int frameCount = range.GetOffsetAndLength(anicnt.FrameCount).Length;
+			int frameCount = range.GetOffsetAndLengthNoThrow(anicnt.FrameCount).Length;
 
 			metadata = (T)(object)(anicnt with { ScreenWidth = settings.Width, ScreenHeight = settings.Height, FrameCount = frameCount });
 			return true;

@@ -34,7 +34,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 	public FrameDisposalMethod LastDisposal;
 	public bool EOF;
 
-	private GifContainer(GifFileType* pinst, Stream stm, long pos, IDecoderOptions? opt)
+	private GifContainer(GifFileType* pinst, Stream stm, long pos, IDecoderOptions? options)
 	{
 		stream = stm;
 		streamStart = pos;
@@ -120,8 +120,8 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 		float pixelAspect = handle->AspectByte == default ? 1f : ((handle->AspectByte + 15) / 64f);
 		animation = new(handle->SWidth, handle->SHeight, handle->ImageCount, loopCount, (int)bgColor, pixelAspect, true);
 
-		var range = opt is IMultiFrameDecoderOptions mul ? mul.FrameRange : Range.All;
-		(frameOffset, frameCount) = range.GetOffsetAndLength(handle->ImageCount);
+		var range = options is IMultiFrameDecoderOptions mul ? mul.FrameRange : Range.All;
+		(frameOffset, frameCount) = range.GetOffsetAndLengthNoThrow(handle->ImageCount);
 
 		Format = PixelFormat.Bgr24;
 		if (alpha || handle->ImageCount > 1)
@@ -394,12 +394,13 @@ internal sealed unsafe class GifFrame : IImageFrame, IMetadataSource
 	private readonly bool interlace;
 	public readonly int Index;
 
+	private GifPixelSource? pixelSource;
 	private FrameBufferSource? frameBuff;
 	private RentedBuffer<byte> lineBuff;
 	private RentedBuffer<uint> palette;
 	private int lastRow;
 
-	public IPixelSource PixelSource { get; }
+	public IPixelSource PixelSource => pixelSource ??= new(this);
 	public bool IsAtEnd => lastRow == height;
 
 	public GifFrame(GifContainer cont, int idx, bool hasGcb, in GraphicsControlBlock gcb)
@@ -435,7 +436,6 @@ internal sealed unsafe class GifFrame : IImageFrame, IMetadataSource
 		);
 
 		Index = idx;
-		PixelSource = new GifPixelSource(this);
 	}
 
 	public bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata

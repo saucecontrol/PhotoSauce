@@ -133,7 +133,7 @@ internal static unsafe class WinCodecExtensions
 		return default;
 	}
 
-	public static Span<T> GetValueOrDefault<T>(this ref IWICMetadataQueryReader meta, string name, Span<T> span) where T : unmanaged
+	public static ReadOnlySpan<T> GetValueOrDefault<T>(this ref IWICMetadataQueryReader meta, string name, Span<T> span) where T : unmanaged
 	{
 		var pv = default(PROPVARIANT);
 		if (FAILED(meta.GetMetadataByName(name, &pv)))
@@ -145,20 +145,20 @@ internal static unsafe class WinCodecExtensions
 			if (pv.vt is (ushort)VARENUM.VT_BLOB or (ushort)(VARENUM.VT_UI1 | VARENUM.VT_VECTOR) or (ushort)(VARENUM.VT_I1 | VARENUM.VT_VECTOR))
 			{
 				len = (int)Math.Min(span.Length, pv.Anonymous.blob.cbSize);
-				new Span<T>(pv.Anonymous.blob.pBlobData, len).CopyTo(span);
+				new ReadOnlySpan<T>(pv.Anonymous.blob.pBlobData, len).CopyTo(span);
 			}
 			else if (pv.vt is (ushort)VARENUM.VT_LPSTR)
 			{
-				len = Math.Min(span.Length, new Span<byte>(pv.Anonymous.pszVal, int.MaxValue).IndexOf((byte)'\0'));
-				new Span<T>(pv.Anonymous.pszVal, len).CopyTo(span);
+				len = Math.Min(span.Length, UnsafeUtil.StrLen((byte*)pv.Anonymous.pszVal));
+				new ReadOnlySpan<T>(pv.Anonymous.pszVal, len).CopyTo(span);
 			}
 		}
 		else if (typeof(T) == typeof(char))
 		{
 			if (pv.vt is (ushort)VARENUM.VT_LPWSTR)
 			{
-				len = Math.Min(span.Length, new Span<char>(pv.Anonymous.pwszVal, int.MaxValue).IndexOf('\0'));
-				new Span<T>(pv.Anonymous.pwszVal, len).CopyTo(span);
+				len = Math.Min(span.Length, UnsafeUtil.WcsLen((char*)pv.Anonymous.pwszVal));
+				new ReadOnlySpan<T>(pv.Anonymous.pwszVal, len).CopyTo(span);
 			}
 			else if (pv.vt is (ushort)VARENUM.VT_LPSTR)
 			{

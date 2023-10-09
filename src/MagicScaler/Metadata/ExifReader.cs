@@ -1,4 +1,4 @@
-// Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
+// Copyright Â© Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
 using System.Runtime.InteropServices;

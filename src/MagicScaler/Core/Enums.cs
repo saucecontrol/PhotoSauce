@@ -208,7 +208,7 @@ public enum WicCodecPolicy
 
 internal static partial class EnumExtensions
 {
-	public static FrameDisposalMethod Clamp(this FrameDisposalMethod m) => m < FrameDisposalMethod.Preserve || m > FrameDisposalMethod.RestorePrevious ? FrameDisposalMethod.Preserve : m;
+	public static FrameDisposalMethod Clamp(this FrameDisposalMethod m) => m is < FrameDisposalMethod.Preserve or > FrameDisposalMethod.RestorePrevious ? FrameDisposalMethod.Preserve : m;
 
 	public static Orientation Clamp(this Orientation o) => o < Orientation.Normal ? Orientation.Normal : o > Orientation.Rotate270 ? Orientation.Rotate270 : o;
 

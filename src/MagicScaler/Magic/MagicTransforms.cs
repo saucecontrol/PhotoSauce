@@ -667,7 +667,7 @@ internal static class MagicTransforms
 		if (replay && anicnt.RequiresScreenBuffer)
 		{
 			var range = ctx.Settings.DecoderOptions is IMultiFrameDecoderOptions mul ? mul.FrameRange : Range.All;
-			var (offset, count) = range.GetOffsetAndLength(anicnt.FrameCount);
+			var (offset, count) = range.GetOffsetAndLengthNoThrow(anicnt.FrameCount);
 			replay = count == 1 && offset == 0;
 
 			if (offset != 0)

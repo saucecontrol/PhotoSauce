@@ -529,7 +529,7 @@ public sealed class ProcessImageSettings
 
 	internal void NormalizeFrom(ImageFileInfo img)
 	{
-		int index = img.Frames.Count > 1 && DecoderOptions is IMultiFrameDecoderOptions opt ? opt.FrameRange.GetOffsetAndLength(img.Frames.Count).Offset : 0;
+		int index = img.Frames.Count > 1 && DecoderOptions is IMultiFrameDecoderOptions opt ? opt.FrameRange.GetOffsetAndLengthNoThrow(img.Frames.Count).Offset : 0;
 		var frame = img.Frames[index];
 
 		Fixup(frame.Width, frame.Height, OrientationMode != OrientationMode.Normalize && frame.ExifOrientation.SwapsDimensions());
@@ -557,7 +557,7 @@ public sealed class ProcessImageSettings
 		var hash = Blake2b.CreateIncrementalHasher(CacheHash.DigestLength);
 		hash.Update(imageInfo.FileSize);
 		hash.Update(imageInfo.FileDate.Ticks);
-		hash.Update(DecoderOptions is IMultiFrameDecoderOptions opt ? opt.FrameRange.GetOffsetAndLength(imageInfo.Frames.Count).Offset : 0);
+		hash.Update(DecoderOptions is IMultiFrameDecoderOptions opt ? opt.FrameRange.GetOffsetAndLengthNoThrow(imageInfo.Frames.Count).Offset : 0);
 		hash.Update(Crop);
 		hash.Update(InnerSize);
 		hash.Update(OuterSize);

@@ -23,11 +23,11 @@ internal static unsafe class UnsafeUtil
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static nuint ByteOffset<T>(T* tgt, T* cur) where T : unmanaged =>
-		(nuint)(nint)Unsafe.ByteOffset(ref *tgt, ref *cur);
+		(nuint)(nint)((byte*)cur - (byte*)tgt);
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static T* SubtractOffset<T>(T* ptr, nuint offset) where T : unmanaged =>
-		(T*)Unsafe.AsPointer(ref Unsafe.SubtractByteOffset(ref *ptr, (nint)offset));
+		(T*)((byte*)ptr - (nint)offset);
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static nuint ConvertOffset<TFrom, TTo>(nuint offset) where TFrom : unmanaged where TTo : unmanaged
@@ -76,6 +76,20 @@ internal static unsafe class UnsafeUtil
 		NativeMemory.Free(p);
 #else
 		Marshal.FreeHGlobal((nint)p);
+#endif
+
+	public static int StrLen(byte* p) =>
+#if NET6_0_OR_GREATER
+		MemoryMarshal.CreateReadOnlySpanFromNullTerminated(p).Length;
+#else
+		new ReadOnlySpan<byte>(p, int.MaxValue).IndexOf((byte)'\0');
+#endif
+
+	public static int WcsLen(char* p) =>
+#if NET6_0_OR_GREATER
+		MemoryMarshal.CreateReadOnlySpanFromNullTerminated(p).Length;
+#else
+		new ReadOnlySpan<char>(p, int.MaxValue).IndexOf('\0');
 #endif
 
 	public static void* AllocateTypeAssociatedMemory(Type type, int cb) =>

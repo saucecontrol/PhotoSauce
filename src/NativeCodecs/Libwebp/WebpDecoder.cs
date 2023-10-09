@@ -40,7 +40,7 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 
 		uint fcount = WebPDemuxGetI(handle, WebPFormatFeature.WEBP_FF_FRAME_COUNT);
 		var range = opt is IMultiFrameDecoderOptions mul ? mul.FrameRange : Range.All;
-		(frameOffset, frameCount) = range.GetOffsetAndLength((int)fcount);
+		(frameOffset, frameCount) = range.GetOffsetAndLengthNoThrow((int)fcount);
 	}
 
 	public string MimeType => ImageMimeTypes.Webp;

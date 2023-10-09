@@ -9,17 +9,17 @@ namespace PhotoSauce.MagicScaler;
 [StructLayout(LayoutKind.Auto)]
 internal unsafe ref struct ExifWriter
 {
-	const int nextIfdLength = sizeof(uint);
-	const uint nextIfd = default;
+	private const int nextIfdLength = sizeof(uint);
+	private const uint nextIfd = default;
 
-	BufferPool.LocalBuffer<byte> buffer;
-	SpanBufferWriter tagWriter;
-	SpanBufferWriter dataWriter;
-	readonly int dataOffset;
-	int length;
+	private readonly int dataOffset;
+	private BufferPool.LocalBuffer<byte> buffer;
+	private SpanBufferWriter tagWriter;
+	private SpanBufferWriter dataWriter;
+	private int length;
 
-	private int dataPos => dataOffset + dataWriter.Position;
-	public int Length => length;
+	private readonly int dataPos => dataOffset + dataWriter.Position;
+	public readonly int Length => length;
 
 	private ExifWriter(int tagCount, int dataLength)
 	{

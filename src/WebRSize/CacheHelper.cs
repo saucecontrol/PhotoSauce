@@ -27,7 +27,7 @@ internal static class CacheHelper
 		if (getValue is null)
 			return CompletedTask<T>.Default;
 
-		lock (cacheItemLocks.GetOrAdd(cacheKey, _ => new object()))
+		lock (cacheItemLocks.GetOrAdd(cacheKey, _ => new()))
 		{
 			task = HttpRuntime.Cache[cacheKey] as Task<T>;
 			if (task is null)

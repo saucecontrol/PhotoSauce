@@ -97,6 +97,17 @@ internal static class MiscExtensions
 #endif
 	}
 
+	public static bool IsValidForLength(this Range r, int length)
+	{
+		int start = r.Start.GetOffset(length);
+		int end = r.End.GetOffset(length);
+
+		return (uint)start <= (uint)end && (uint)length <= (uint)end;
+	}
+
+	public static (int Offset, int Length) GetOffsetAndLengthNoThrow(this Range r, int length) =>
+		r.IsValidForLength(length) ? r.GetOffsetAndLength(length) : (0, length);
+
 	public static Guid FinalizeToGuid<T>(this T hasher) where T : IBlake2Incremental
 	{
 		var hash = (Span<byte>)stackalloc byte[hasher.DigestLength];

@@ -17,19 +17,24 @@ namespace PhotoSauce.WebRSize;
 /// <summary>An <see cref="IHttpHandler" /> implementation that performs a dynamic image processing operation, returns the result to the client, and queues caching the result.</summary>
 public class WebRSizeHandler : HttpTaskAsyncHandler
 {
-	internal static WebRSizeHandler Instance = new();
-
-	private struct QueueReleaser : IDisposable { public void Dispose() => semaphore.Release(); }
+	private readonly struct QueueReleaser : IDisposable
+	{
+		private readonly SemaphoreSlim semaphore;
+		public QueueReleaser(SemaphoreSlim sem) => semaphore = sem;
+		public void Dispose() => semaphore.Release();
+	}
 
 	private static readonly bool diskCacheEnabled = WebRSizeConfig.Current.DiskCache.Enabled;
 	private static readonly SemaphoreSlim semaphore = new(Environment.ProcessorCount, Environment.ProcessorCount);
 	private static readonly ConcurrentDictionary<string, Task<ArraySegment<byte>>> tdic = new();
 	private static readonly Lazy<Type> mpbvfType = new(() => Assembly.GetAssembly(typeof(HostingEnvironment)).GetType("System.Web.Hosting.MapPathBasedVirtualFile", true));
 
+	internal static WebRSizeHandler Instance = new();
+
 	private static Task<QueueReleaser> enterWorkQueueAsync()
 	{
 		var wait = semaphore.WaitAsync();
-		return wait.IsCompleted ? CacheHelper.CompletedTask<QueueReleaser>.Default : wait.ContinueWith(_ => new QueueReleaser(), TaskContinuationOptions.ExecuteSynchronously);
+		return wait.IsCompleted ? CacheHelper.CompletedTask<QueueReleaser>.Default : wait.ContinueWith((_, sem) => new QueueReleaser((SemaphoreSlim)sem), semaphore, TaskContinuationOptions.ExecuteSynchronously);
 	}
 
 	private static void saveResult(TaskCompletionSource<ArraySegment<byte>> tcs, MemoryStream oimg, string cachePath, DateTime lastWrite)
@@ -55,8 +60,8 @@ public class WebRSizeHandler : HttpTaskAsyncHandler
 					string tmpPath = $"{cachePath}.tmp";
 					using (var fs = new FileStream(tmpPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.Asynchronous))
 					{
-						await fs.WriteAsync(bytes.Array, bytes.Offset, bytes.Count);
-						await fs.FlushAsync();
+						await fs.WriteAsync(bytes.Array, bytes.Offset, bytes.Count).ConfigureAwait(false);
+						await fs.FlushAsync().ConfigureAwait(false);
 					}
 
 					if (lastWrite > DateTime.MinValue)
@@ -82,7 +87,7 @@ public class WebRSizeHandler : HttpTaskAsyncHandler
 		{
 			if (reqPath == WebRSizeModule.NotFoundPath)
 			{
-				using var eslot = await enterWorkQueueAsync();
+				using var eslot = await enterWorkQueueAsync().ConfigureAwait(false);
 				using var eimg = new MemoryStream(8192);
 
 				GdiUtil.CreateBrokenImage(eimg, s);
@@ -93,15 +98,15 @@ public class WebRSizeHandler : HttpTaskAsyncHandler
 
 			var vpp = HostingEnvironment.VirtualPathProvider;
 
-			var file = vpp is CachingAsyncVirtualPathProvider vppAsync ? await vppAsync.GetFileAsync(reqPath) : vpp.GetFile(reqPath);
+			var file = vpp is CachingAsyncVirtualPathProvider vppAsync ? await vppAsync.GetFileAsync(reqPath).ConfigureAwait(false) : vpp.GetFile(reqPath);
 			var afile = file as AsyncVirtualFile;
 
 			var lastWrite = afile?.LastModified ?? DateTime.MinValue;
 			if (lastWrite == DateTime.MinValue && mpbvfType.Value.IsAssignableFrom(file.GetType()))
 				lastWrite = File.GetLastWriteTimeUtc(HostingEnvironment.MapPath(reqPath));
 
-			using var iimg = afile != null ? await afile.OpenAsync() : file.Open();
-			using var slot = await enterWorkQueueAsync();
+			using var iimg = afile != null ? await afile.OpenAsync().ConfigureAwait(false) : file.Open();
+			using var slot = await enterWorkQueueAsync().ConfigureAwait(false);
 			using var oimg = new MemoryStream(16384);
 
 			MagicImageProcessor.ProcessImage(iimg, oimg, s);
