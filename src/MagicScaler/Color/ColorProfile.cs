@@ -133,15 +133,25 @@ internal class ColorProfile
 
 	private static ProfileCurve curveFromPower(double gamma)
 	{
+		// Slope limiting based on Adobe RGB (1998) Annex C
+		// https://www.adobe.com/digitalimag/pdfs/AdobeRGB1998.pdf
+		const double limit = 32;
+
 		var igt = new float[LookupTables.InverseGammaLength];
 		for (int i = 0; i < igt.Length; i++)
-			igt[i] = (float)Math.Pow((double)i / LookupTables.InverseGammaScale, gamma);
+		{
+			double val = (double)i / LookupTables.InverseGammaScale;
+			igt[i] = (float)Math.Max(Math.Pow(val, gamma), val / limit);
+		}
 
 		gamma = 1d / gamma;
 
 		var gt = new float[LookupTables.GammaLengthFloat];
 		for (int i = 0; i < gt.Length; i++)
-			gt[i] = (float)Math.Pow((double)i / LookupTables.GammaScaleFloat, gamma);
+		{
+			double val = (double)i / LookupTables.GammaScaleFloat;
+			gt[i] = (float)Math.Min(Math.Pow(val, gamma), val * limit);
+		}
 
 		LookupTables.Fixup(gt, LookupTables.GammaScaleFloat);
 		LookupTables.Fixup(igt, LookupTables.InverseGammaScale);
@@ -451,6 +461,10 @@ internal class ColorProfile
 					dc = 0d;
 					goto case 1;
 				case 3:
+					// parametric x/32 slope-limiting curve
+					if (a == 0x10000 && b == 0 && c == 0x800)
+						goto case 0;
+					goto case 4;
 				case 4:
 					de -= dc;
 					break;

@@ -2,10 +2,9 @@
 
 	<Import Project="$(MSBuildThisFileDirectory)..\build\Common.props" />
 	<Import Project="$(MSBuildThisFileDirectory)..\build\Branding.props" />
-	<Import Project="$(MSBuildThisFileDirectory)..\build\FrameworkVersions.props" />
 
 	<PropertyGroup>
-		<DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetStandardVersion), '2.1'))">$(DefineConstants);BUILTIN_NULLABLE</DefineConstants>
+		<DefineConstants Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'netstandard2.1'))">$(DefineConstants);BUILTIN_NULLABLE</DefineConstants>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -29,7 +28,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="PolySharp" Version="1.12.1" PrivateAssets="all" />
+		<PackageReference Include="PolySharp" Version="1.13.2" PrivateAssets="all" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">

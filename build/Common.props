@@ -52,7 +52,8 @@
 	<PropertyGroup Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">
 		<Deterministic>true</Deterministic>
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>
-		<IsTrimmable>true</IsTrimmable>
+		<IsTrimmable Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net7.0'))">true</IsTrimmable>
+		<IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net7.0'))">true</IsAotCompatible>
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">

@@ -5,7 +5,7 @@
 		<ItemGroup>
 			<AssemblyInfoLines Include="[assembly:System.CLSCompliant(true)]" />
 			<AssemblyInfoLines Include="[assembly:System.Runtime.InteropServices.ComVisible(false)]" />
-			<AssemblyInfoLines Include="[assembly:System.Runtime.CompilerServices.DisableRuntimeMarshalling]" Condition="$([MSBuild]::VersionGreaterThanOrEquals($(NetCoreVersion), '7.0'))" />
+			<AssemblyInfoLines Include="[assembly:System.Runtime.CompilerServices.DisableRuntimeMarshalling]" Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net7.0'))" />
 			<AssemblyInfoLines Include="[module:System.Runtime.CompilerServices.SkipLocalsInit]" />
 		</ItemGroup>
 

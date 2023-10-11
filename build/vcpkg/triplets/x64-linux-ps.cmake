@@ -6,6 +6,7 @@ set(VCPKG_LIBRARY_LINKAGE static)
 set(VCPKG_BUILD_TYPE release)
 
 set(VCPKG_CMAKE_SYSTEM_NAME Linux)
+set(VCPKG_CHAINLOAD_TOOLCHAIN_FILE ${CMAKE_CURRENT_LIST_DIR}/../toolchains/linux-gcc.cmake)
 
 if(PORT IN_LIST _PKG_LIBS)
   set(VCPKG_LIBRARY_LINKAGE dynamic)
