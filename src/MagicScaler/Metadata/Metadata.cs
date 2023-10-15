@@ -32,9 +32,7 @@ internal readonly unsafe struct WicFrameMetadataReader : IMetadata
 	}
 }
 
-/// <summary>
-/// Provides a mechanism for accessing ICC color profile metadata.
-/// </summary>
+/// <summary>Provides a mechanism for accessing ICC color profile metadata.</summary>
 public interface IIccProfileSource : IMetadata
 {
 	int ProfileLength { get; }
