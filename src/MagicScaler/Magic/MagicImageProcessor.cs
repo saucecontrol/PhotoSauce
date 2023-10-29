@@ -284,7 +284,9 @@ public static class MagicImageProcessor
 
 	private static unsafe void buildPipeline(PipelineContext ctx, bool closedPipeline = true)
 	{
-		ctx.Settings.ColorProfileMode = closedPipeline ? ctx.Settings.ColorProfileMode : ColorProfileMode.ConvertToSrgb;
+		ctx.Settings.ColorProfileMode = closedPipeline
+			? ctx.Settings.ColorProfileMode
+			: ctx.Settings.ColorProfileMode == ColorProfileMode.Preserve ? ColorProfileMode.Preserve : ColorProfileMode.ConvertToSrgb;
 
 		ctx.ImageFrame = ctx.ImageContainer.GetFrame(0);
 		ctx.Source = ctx.ImageFrame.PixelSource.AsPixelSource();
