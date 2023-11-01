@@ -246,7 +246,7 @@ internal readonly record struct Matrix3x3C
 		);
 	}
 
-	public unsafe bool IsRouglyEqualTo(in Matrix3x3C m)
+	public unsafe bool IsRoughlyEqualTo(in Matrix3x3C m)
 	{
 		const double epsilon = 1e-3d;
 
