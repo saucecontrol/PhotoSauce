@@ -28,7 +28,7 @@ public static class TransformFactory
 	/// <param name="newHeight">The height of the resulting <see cref="IPixelSource"/>.</param>
 	/// <param name="settings">The interpolation settings to use. If <c>default</c>, then the default high-quality scaler will be used.</param>
 	/// <returns>An <see cref="IPixelSource"/> that provides the resulting pixel data.</returns>
-	public static IPixelSource CreateScaleTransform(IPixelSource source, int newWidth, int newHeight, InterpolationSettings settings)
+	public static IPixelSource CreateScaleTransform(IPixelSource source, int newWidth, int newHeight, InterpolationSettings settings = default)
 	{
 		if (settings.WeightingFunction is null)
 		{
