@@ -26,21 +26,18 @@ public static class TransformFactory
 	/// <param name="source">The <see cref="IPixelSource"/> to retrieve pixels from.</param>
 	/// <param name="newWidth">The width of the resulting <see cref="IPixelSource"/>.</param>
 	/// <param name="newHeight">The height of the resulting <see cref="IPixelSource"/>.</param>
-	/// <param name="interpolationSettings">The interpolation settings to use. If <c>null</c>, the default high-quality scaler will be used.</param>
+	/// <param name="settings">The interpolation settings to use. If <c>default</c>, then the default high-quality scaler will be used.</param>
 	/// <returns>An <see cref="IPixelSource"/> that provides the resulting pixel data.</returns>
-	public static IPixelSource CreateScalerTransform(IPixelSource source, int newWidth, int newHeight, InterpolationSettings? interpolationSettings)
+	public static IPixelSource CreateScaleTransform(IPixelSource source, int newWidth, int newHeight, InterpolationSettings settings)
 	{
-		if (interpolationSettings is null)
+		if (settings.WeightingFunction is null)
 		{
 			double scaleRatio = Math.Min(
 				source.Width > 0 ? (double)newWidth / source.Width : 0, 
 				source.Height > 0 ? (double)newHeight / source.Height : 0);
-			InterpolationSettings defaultInterpolationSettings = SettingsUtil.GetDefaultInterpolation(scaleRatio);
-			return CreateScalerTransform(source, newWidth, newHeight, defaultInterpolationSettings);
+			settings = SettingsUtil.GetDefaultInterpolation(scaleRatio);
 		}
-		else
-		{
-			return ConvolutionTransform.CreateResample(source.AsPixelSource(), newWidth, newHeight, interpolationSettings.Value, interpolationSettings.Value);
-		}
+
+		return ConvolutionTransform.CreateResample(source.AsPixelSource(), newWidth, newHeight, settings, settings);
 	}
 }
