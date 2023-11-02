@@ -21,4 +21,23 @@ public static class TransformFactory
 		ColorProfile? destProf = destProfile.IsEmpty ? null : ColorProfile.Parse(destProfile);
 		return new ConversionTransform(source.AsPixelSource(), PixelFormat.FromGuid(destFormat), sourceProf, destProf);
 	}
+
+	/// <summary>Creates a transform that resizes an <see cref="IPixelSource"/> to the given size, optionally using a specific interpolator.</summary>
+	/// <param name="source">The <see cref="IPixelSource"/> to retrieve pixels from.</param>
+	/// <param name="newWidth">The width of the resulting <see cref="IPixelSource"/>.</param>
+	/// <param name="newHeight">The height of the resulting <see cref="IPixelSource"/>.</param>
+	/// <param name="settings">The interpolation settings to use. If <c>default</c>, then the default high-quality scaler will be used.</param>
+	/// <returns>An <see cref="IPixelSource"/> that provides the resulting pixel data.</returns>
+	public static IPixelSource CreateScaleTransform(IPixelSource source, int newWidth, int newHeight, InterpolationSettings settings = default)
+	{
+		if (settings.WeightingFunction is null)
+		{
+			double scaleRatio = Math.Min(
+				source.Width > 0 ? (double)newWidth / source.Width : 0, 
+				source.Height > 0 ? (double)newHeight / source.Height : 0);
+			settings = SettingsUtil.GetDefaultInterpolation(scaleRatio);
+		}
+
+		return ConvolutionTransform.CreateResample(source.AsPixelSource(), newWidth, newHeight, settings, settings);
+	}
 }
