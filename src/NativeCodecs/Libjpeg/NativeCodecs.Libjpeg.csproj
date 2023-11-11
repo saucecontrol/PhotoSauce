@@ -12,16 +12,16 @@
 
 	<ItemGroup>
 		<None Include="Package\build\*" Pack="true" PackagePath="build/net461/;buildTransitive/net461/" />
-		<None Include="$(RepositoryRoot)out\vcpkg\install\x64-linux-ps\lib\libpsjpeg.so" Link="Package\native\x64-linux\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/linux-x64/native/" />
-		<None Include="$(RepositoryRoot)out\vcpkg\install\x64-windows-ps\bin\psjpeg.dll" Link="Package\native\x64-windows\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/win-x64/native/" />
-		<None Include="$(RepositoryRoot)out\vcpkg\install\x86-windows-ps\bin\psjpeg.dll" Link="Package\native\x86-windows\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/win-x86/native/" />
-		<None Include="$(RepositoryRoot)out\vcpkg\install\arm64-linux-ps\lib\libpsjpeg.so" Link="Package\native\arm64-linux\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/linux-arm64/native/" />
-		<None Include="$(RepositoryRoot)out\vcpkg\install\arm64-windows-ps\bin\psjpeg.dll" Link="Package\native\arm64-windows\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/win-arm64/native/" />
+		<None Include="$(RepositoryRoot)out\vcpkg\install\win-x64\bin\psjpeg.dll" Link="Package\native\win-x64\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/win-x64/native/" />
+		<None Include="$(RepositoryRoot)out\vcpkg\install\win-x86\bin\psjpeg.dll" Link="Package\native\win-x86\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/win-x86/native/" />
+		<None Include="$(RepositoryRoot)out\vcpkg\install\win-arm64\bin\psjpeg.dll" Link="Package\native\win-arm64\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/win-arm64/native/" />
+		<None Include="$(RepositoryRoot)out\vcpkg\install\linux-x64\lib\libpsjpeg.so" Link="Package\native\linux-x64\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/linux-x64/native/" />
+		<None Include="$(RepositoryRoot)out\vcpkg\install\linux-arm64\lib\libpsjpeg.so" Link="Package\native\linux-arm64\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/linux-arm64/native/" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)'!='Dist'">
-		<Content Condition="$([MSBuild]::IsOSPlatform('Linux'))" Include="$(RepositoryRoot)out\vcpkg\install\x64-linux-ps\lib\libpsjpeg.so" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
-		<Content Condition="$([MSBuild]::IsOSPlatform('Windows'))" Include="$(RepositoryRoot)out\vcpkg\install\x64-windows-ps\bin\psjpeg.dll" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+		<Content Condition="$(NETCoreSdkRuntimeIdentifier.StartsWith('win'))" Include="$(RepositoryRoot)out\vcpkg\install\$(NETCoreSdkRuntimeIdentifier)\bin\psjpeg.dll" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+		<Content Condition="$(NETCoreSdkRuntimeIdentifier.StartsWith('lin'))" Include="$(RepositoryRoot)out\vcpkg\install\$(NETCoreSdkRuntimeIdentifier)\lib\libpsjpeg.so" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
 	</ItemGroup>
 
 </Project>

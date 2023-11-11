@@ -27,26 +27,26 @@ jobs:
           sudo apt update
           sudo apt install -y g++-10-aarch64-linux-gnu nasm
           modules/vcpkg/bootstrap-vcpkg.sh
-        buildScript: modules/vcpkg/vcpkg install $(VCPKG_PSLIBS) --triplet=arm64-linux-ps @build/vcpkg/response
+        buildScript: modules/vcpkg/vcpkg install $(VCPKG_PSLIBS) --triplet=linux-arm64 @build/vcpkg/response
       linux-x64:
         imageName: ubuntu-20.04
         setupScript: |
           sudo apt update
           sudo apt install -y nasm
           modules/vcpkg/bootstrap-vcpkg.sh
-        buildScript: modules/vcpkg/vcpkg install $(VCPKG_PSLIBS) --triplet=x64-linux-ps @build/vcpkg/response
-      windows-arm64:
+        buildScript: modules/vcpkg/vcpkg install $(VCPKG_PSLIBS) --triplet=linux-x64 @build/vcpkg/response
+      win-arm64:
         imageName: windows-latest
         setupScript: modules\vcpkg\bootstrap-vcpkg.bat
-        buildScript: modules\vcpkg\vcpkg install $(VCPKG_PSLIBS) --triplet=arm64-windows-ps @build\vcpkg\response
-      windows-x64:
+        buildScript: modules\vcpkg\vcpkg install $(VCPKG_PSLIBS) --triplet=win-arm64 @build\vcpkg\response
+      win-x64:
         imageName: windows-latest
         setupScript: modules\vcpkg\bootstrap-vcpkg.bat
-        buildScript: modules\vcpkg\vcpkg install $(VCPKG_PSLIBS) --triplet=x64-windows-ps @build\vcpkg\response
-      windows-x86:
+        buildScript: modules\vcpkg\vcpkg install $(VCPKG_PSLIBS) --triplet=win-x64 @build\vcpkg\response
+      win-x86:
         imageName: windows-latest
         setupScript: modules\vcpkg\bootstrap-vcpkg.bat
-        buildScript: modules\vcpkg\vcpkg install $(VCPKG_PSLIBS) --triplet=x86-windows-ps @build\vcpkg\response
+        buildScript: modules\vcpkg\vcpkg install $(VCPKG_PSLIBS) --triplet=win-x86 @build\vcpkg\response
 
   pool:
     vmImage: $(imageName)
@@ -86,7 +86,7 @@ jobs:
     displayName: Download Native Binaries
 
   - task: CopyFiles@2
-    displayName: Copy Linux AArch64 Binaries
+    displayName: Copy Linux Arm64 Binaries
     inputs:
       sourceFolder: $(Pipeline.Workspace)/native.linux-arm64
       targetFolder: out/vcpkg/install
@@ -98,21 +98,21 @@ jobs:
       targetFolder: out/vcpkg/install
 
   - task: CopyFiles@2
-    displayName: Copy Windows AArch64 Binaries
+    displayName: Copy Windows Arm64 Binaries
     inputs:
-      sourceFolder: $(Pipeline.Workspace)/native.windows-arm64
+      sourceFolder: $(Pipeline.Workspace)/native.win-arm64
       targetFolder: out/vcpkg/install
 
   - task: CopyFiles@2
     displayName: Copy Windows x64 Binaries
     inputs:
-      sourceFolder: $(Pipeline.Workspace)/native.windows-x64
+      sourceFolder: $(Pipeline.Workspace)/native.win-x64
       targetFolder: out/vcpkg/install
 
   - task: CopyFiles@2
     displayName: Copy Windows x86 Binaries
     inputs:
-      sourceFolder: $(Pipeline.Workspace)/native.windows-x86
+      sourceFolder: $(Pipeline.Workspace)/native.win-x86
       targetFolder: out/vcpkg/install
 
   - task: UseDotNet@2
