@@ -359,7 +359,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int ReadCallback(GifFileType* pinst, byte* buff, int cb);
 	private static readonly ReadCallback delReadCallback = typeof(GifContainer).CreateMethodDelegate<ReadCallback>(nameof(readCallback));
 #else
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvCdecl) ])]
 	static
 #endif
 	private int readCallback(GifFileType* pinst, byte* buff, int cb)

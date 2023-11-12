@@ -14,28 +14,19 @@ using VectorF = System.Numerics.Vector<float>;
 
 namespace PhotoSauce.MagicScaler.Converters;
 
-internal sealed class ConverterToLinear<TFrom, TTo> : IConverter<TFrom, TTo> where TFrom : unmanaged where TTo : unmanaged
+internal sealed class ConverterToLinear<TFrom, TTo>(TTo[] inverseGamma) : IConverter<TFrom, TTo> where TFrom : unmanaged where TTo : unmanaged
 {
-	public IConversionProcessor<TFrom, TTo> Processor { get; }
-	public IConversionProcessor<TFrom, TTo> Processor3A { get; }
-	public IConversionProcessor<TFrom, TTo> Processor3X { get; }
+	public IConversionProcessor<TFrom, TTo> Processor { get; } = new Converter(inverseGamma);
+	public IConversionProcessor<TFrom, TTo> Processor3A { get; } = new Converter3A(inverseGamma);
+	public IConversionProcessor<TFrom, TTo> Processor3X { get; } = new Converter3X(inverseGamma);
 
-	public ConverterToLinear(TTo[] inverseGammaTable)
+	private sealed unsafe class Converter(TTo[] inverseGamma) : IConversionProcessor<TFrom, TTo>
 	{
-		Processor = new Converter(inverseGammaTable);
-		Processor3A = new Converter3A(inverseGammaTable);
-		Processor3X = new Converter3X(inverseGammaTable);
-	}
-
-	private sealed unsafe class Converter : IConversionProcessor<TFrom, TTo>
-	{
-		private readonly TTo[] igt;
-
-		public Converter(TTo[] inverseGammaTable) => igt = inverseGammaTable;
+		private readonly TTo[] inverseGammaTable = inverseGamma;
 
 		void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
-			fixed (TTo* igtstart = &igt.GetDataRef())
+			fixed (TTo* igtstart = &inverseGammaTable.GetDataRef())
 			{
 				if (typeof(TFrom) == typeof(byte) && typeof(TTo) == typeof(ushort))
 					convertUQ15(istart, ostart, (ushort*)igtstart, cb);
@@ -174,15 +165,13 @@ internal sealed class ConverterToLinear<TFrom, TTo> : IConverter<TFrom, TTo> whe
 		}
 	}
 
-	private sealed unsafe class Converter3A : IConversionProcessor<TFrom, TTo>
+	private sealed unsafe class Converter3A(TTo[] inverseGamma) : IConversionProcessor<TFrom, TTo>
 	{
-		private readonly TTo[] igt;
-
-		public Converter3A(TTo[] inverseGammaTable) => igt = inverseGammaTable;
+		private readonly TTo[] inverseGammaTable = inverseGamma;
 
 		void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
-			fixed (TTo* igtstart = &igt.GetDataRef())
+			fixed (TTo* igtstart = &inverseGammaTable.GetDataRef())
 			{
 				if (typeof(TFrom) == typeof(byte) && typeof(TTo) == typeof(ushort))
 					convertUQ15(istart, ostart, (ushort*)igtstart, cb);
@@ -321,15 +310,13 @@ internal sealed class ConverterToLinear<TFrom, TTo> : IConverter<TFrom, TTo> whe
 		}
 	}
 
-	private sealed unsafe class Converter3X : IConversionProcessor<TFrom, TTo>
+	private sealed unsafe class Converter3X(TTo[] inverseGamma) : IConversionProcessor<TFrom, TTo>
 	{
-		private readonly TTo[] igt;
-
-		public Converter3X(TTo[] inverseGammaTable) => igt = inverseGammaTable;
+		private readonly TTo[] inverseGammaTable = inverseGamma;
 
 		void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
-			fixed (TTo* igtstart = &igt.GetDataRef())
+			fixed (TTo* igtstart = &inverseGammaTable.GetDataRef())
 			{
 				if (typeof(TFrom) == typeof(byte) && typeof(TTo) == typeof(float))
 					convertFloat(istart, ostart, (float*)igtstart, cb);
@@ -359,28 +346,19 @@ internal sealed class ConverterToLinear<TFrom, TTo> : IConverter<TFrom, TTo> whe
 	}
 }
 
-internal sealed class ConverterFromLinear<TFrom, TTo> : IConverter<TFrom, TTo> where TFrom : unmanaged where TTo : unmanaged
+internal sealed class ConverterFromLinear<TFrom, TTo>(TTo[] gamma) : IConverter<TFrom, TTo> where TFrom : unmanaged where TTo : unmanaged
 {
-	public IConversionProcessor<TFrom, TTo> Processor { get; }
-	public IConversionProcessor<TFrom, TTo> Processor3A { get; }
-	public IConversionProcessor<TFrom, TTo> Processor3X { get; }
+	public IConversionProcessor<TFrom, TTo> Processor { get; } = new Converter(gamma);
+	public IConversionProcessor<TFrom, TTo> Processor3A { get; } = new Converter3A(gamma);
+	public IConversionProcessor<TFrom, TTo> Processor3X { get; } = new Converter3X(gamma);
 
-	public ConverterFromLinear(TTo[] gammaTable)
+	private sealed unsafe class Converter(TTo[] gamma) : IConversionProcessor<TFrom, TTo>
 	{
-		Processor = new Converter(gammaTable);
-		Processor3A = new Converter3A(gammaTable);
-		Processor3X = new Converter3X(gammaTable);
-	}
-
-	private sealed unsafe class Converter : IConversionProcessor<TFrom, TTo>
-	{
-		private readonly TTo[] gt;
-
-		public Converter(TTo[] gammaTable) => gt = gammaTable;
+		private readonly TTo[] gammaTable = gamma;
 
 		void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
-			fixed (TTo* gtstart = &gt.GetDataRef())
+			fixed (TTo* gtstart = &gammaTable.GetDataRef())
 			{
 				if (typeof(TFrom) == typeof(ushort) && typeof(TTo) == typeof(byte))
 					convertUQ15(istart, ostart, (byte*)gtstart, cb);
@@ -562,15 +540,13 @@ internal sealed class ConverterFromLinear<TFrom, TTo> : IConverter<TFrom, TTo> w
 		}
 	}
 
-	private sealed unsafe class Converter3A : IConversionProcessor<TFrom, TTo>
+	private sealed unsafe class Converter3A(TTo[] gamma) : IConversionProcessor<TFrom, TTo>
 	{
-		private readonly TTo[] gt;
-
-		public Converter3A(TTo[] gammaTable) => gt = gammaTable;
+		private readonly TTo[] gammaTable = gamma;
 
 		void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
-			fixed (TTo* gtstart = &gt.GetDataRef())
+			fixed (TTo* gtstart = &gammaTable.GetDataRef())
 			{
 				if (typeof(TFrom) == typeof(ushort) && typeof(TTo) == typeof(byte))
 					convertUQ15(istart, ostart, (byte*)gtstart, cb);
@@ -751,15 +727,13 @@ internal sealed class ConverterFromLinear<TFrom, TTo> : IConverter<TFrom, TTo> w
 		}
 	}
 
-	private sealed unsafe class Converter3X : IConversionProcessor<TFrom, TTo>
+	private sealed unsafe class Converter3X(TTo[] gamma) : IConversionProcessor<TFrom, TTo>
 	{
-		private readonly TTo[] gt;
-
-		public Converter3X(TTo[] gammaTable) => gt = gammaTable;
+		private readonly TTo[] gammaTable = gamma;
 
 		void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{
-			fixed (TTo* gtstart = &gt.GetDataRef())
+			fixed (TTo* gtstart = &gammaTable.GetDataRef())
 			{
 				if (typeof(TFrom) == typeof(float) && typeof(TTo) == typeof(byte))
 					convertFloat(istart, ostart, (byte*)gtstart, cb);

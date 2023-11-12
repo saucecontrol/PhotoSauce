@@ -25,8 +25,8 @@ internal partial struct WICRect
 {
 	public WICRect(int x, int y, int width, int height) => (X, Y, Width, Height) = (x, y, width, height);
 
-	public static implicit operator WICRect(in PixelArea a) => Unsafe.As<PixelArea, WICRect>(ref Unsafe.AsRef(a));
-	public static implicit operator WICRect(in Rectangle r) => Unsafe.As<Rectangle, WICRect>(ref Unsafe.AsRef(r));
+	public static implicit operator WICRect(in PixelArea a) => Unsafe.As<PixelArea, WICRect>(ref Unsafe.AsRef(in a));
+	public static implicit operator WICRect(in Rectangle r) => Unsafe.As<Rectangle, WICRect>(ref Unsafe.AsRef(in r));
 }
 
 internal unsafe partial struct IWICMetadataQueryReader
@@ -58,7 +58,7 @@ internal static partial class Windows
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		get
 		{
-			ReadOnlySpan<byte> data = new byte[] {
+			ReadOnlySpan<byte> data = [
 				0xcb, 0x85, 0xfc, 0xc1,
 				0x4f, 0xd6,
 				0x8b, 0x47,
@@ -70,7 +70,7 @@ internal static partial class Windows
 				0xee,
 				0x13,
 				0x92
-			};
+			];
 
 			Debug.Assert(data.Length == Unsafe.SizeOf<Guid>());
 			return ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data));

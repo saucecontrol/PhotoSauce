@@ -55,8 +55,8 @@ public static class CodecCollectionExtensions
 	{
 		ThrowHelper.ThrowIfNull(codecs);
 
-		var jxlMime = new[] { ImageMimeTypes.Jxl };
-		var jxlExtension = new[] { ImageFileExtensions.Jxl };
+		string[] jxlMime = [ ImageMimeTypes.Jxl ];
+		string[] jxlExtension = [ ImageFileExtensions.Jxl ];
 
 		if (removeExisting)
 		{
@@ -69,8 +69,8 @@ public static class CodecCollectionExtensions
 			jxlMime,
 			jxlExtension,
 			new ContainerPattern[] {
-				new(0, new byte[] { 0xff, 0x0a }, new byte[] { 0xff, 0xff }),
-				new(0, new byte[] { 0x00, 0x00, 0x00, 0x0c, 0x4a, 0x58, 0x4c, 0x20, 0x0d, 0x0a, 0x87, 0x0a }, new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff })
+				new(0, [ 0xff, 0x0a ], [ 0xff, 0xff ]),
+				new(0, [ 0x00, 0x00, 0x00, 0x0c, 0x4a, 0x58, 0x4c, 0x20, 0x0d, 0x0a, 0x87, 0x0a ], [ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff ])
 			},
 			null,
 			JxlContainer.TryLoad
@@ -79,7 +79,7 @@ public static class CodecCollectionExtensions
 			JxlFactory.DisplayName,
 			jxlMime,
 			jxlExtension,
-			new[] { PixelFormat.Grey8.FormatGuid, PixelFormat.Rgb24.FormatGuid, PixelFormat.Rgba32.FormatGuid },
+			[ PixelFormat.Grey8.FormatGuid, PixelFormat.Rgb24.FormatGuid, PixelFormat.Rgba32.FormatGuid ],
 			JxlLossyEncoderOptions.Default,
 			JxlEncoder.Create,
 			false,

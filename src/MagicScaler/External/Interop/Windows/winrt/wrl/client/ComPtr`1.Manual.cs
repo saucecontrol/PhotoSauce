@@ -7,6 +7,7 @@
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using static TerraFX.Interop.Windows.S;
 using static TerraFX.Interop.Windows.Windows;
@@ -249,12 +250,10 @@ internal unsafe ref partial struct ComPtr<T>
     /// <returns>The raw pointer to the current <see cref="ComPtr{T}"/> instance.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public readonly ref T* GetPinnableReference()
+    [UnscopedRef]
+    public readonly ref readonly T* GetPinnableReference()
     {
-        fixed (T** ptr = &ptr_)
-        {
-            return ref *ptr;
-        }
+        return ref ptr_;
     }
 
     /// <summary>Releases the current COM object in use and gets the address of the <see cref="ComPtr{T}"/> instance as a raw <typeparamref name="T"/> double pointer. This method is only valid when the current <see cref="ComPtr{T}"/> instance is on the stack or pinned.</summary>

@@ -254,7 +254,7 @@ internal sealed unsafe class PngEncoder : IAnimatedImageEncoder
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nuint WriteCallback(nint pinst, byte* buff, nuint cb);
 	private static readonly WriteCallback delWriteCallback = typeof(PngEncoder).CreateMethodDelegate<WriteCallback>(nameof(writeCallback));
 #else
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvCdecl) ])]
 	static
 #endif
 	private nuint writeCallback(nint pinst, byte* buff, nuint cb)

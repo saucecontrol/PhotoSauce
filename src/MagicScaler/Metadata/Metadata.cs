@@ -20,28 +20,27 @@ internal sealed class NoopMetadataSource : IMetadataSource
 	}
 }
 
-internal readonly unsafe struct WicFrameMetadataReader : IMetadata
+internal readonly unsafe struct WicFrameMetadataReader(IWICMetadataQueryReader* reader, IEnumerable<string> names) : IMetadata
 {
-	public readonly IWICMetadataQueryReader* Reader;
-	public readonly IEnumerable<string> CopyNames;
-
-	public WicFrameMetadataReader(IWICMetadataQueryReader* reader, IEnumerable<string> names)
-	{
-		Reader = reader;
-		CopyNames = names;
-	}
+	public readonly IWICMetadataQueryReader* Reader = reader;
+	public readonly IEnumerable<string> CopyNames = names;
 }
 
-/// <summary>Provides a mechanism for accessing ICC color profile metadata.</summary>
+/// <summary>Provides a mechanism for accessing <a href="https://en.wikipedia.org/wiki/ICC_profile">ICC color profile</a> metadata.</summary>
 public interface IIccProfileSource : IMetadata
 {
+	/// <summary>The length of the profile, in bytes.</summary>
 	int ProfileLength { get; }
+	/// <summary>Copy the profile bytes into a destination buffer.</summary>
 	void CopyProfile(Span<byte> dest);
 }
 
-internal interface IExifSource : IMetadata
+/// <summary>Provides a mechanism for accessing <a href="https://en.wikipedia.org/wiki/Exif">Exif</a> metadata.</summary>
+public interface IExifSource : IMetadata
 {
+	/// <summary>The length of the Exif data, in bytes.</summary>
 	int ExifLength { get; }
+	/// <summary>Copy the Exif data into a destination buffer.</summary>
 	void CopyExif(Span<byte> dest);
 }
 
@@ -118,11 +117,9 @@ internal interface IMetadataTransform
 	void Init(IMetadataSource source);
 }
 
-internal sealed class MagicMetadataFilter : IMetadataSource
+internal sealed class MagicMetadataFilter(PipelineContext ctx) : IMetadataSource
 {
-	private readonly PipelineContext context;
-
-	public MagicMetadataFilter(PipelineContext ctx) => context = ctx;
+	private readonly PipelineContext context = ctx;
 
 	public unsafe bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata
 	{

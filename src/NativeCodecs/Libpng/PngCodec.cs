@@ -59,8 +59,8 @@ public static class CodecCollectionExtensions
 	{
 		ThrowHelper.ThrowIfNull(codecs);
 
-		var pngMime = new[] { ImageMimeTypes.Png };
-		var pngExtension = new[] { ImageFileExtensions.Png };
+		string[] pngMime = [ ImageMimeTypes.Png ];
+		string[] pngExtension = [ ImageFileExtensions.Png ];
 
 		if (removeExisting)
 		{
@@ -73,7 +73,7 @@ public static class CodecCollectionExtensions
 			pngMime,
 			pngExtension,
 			new ContainerPattern[] {
-				new(0, new byte[] { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a }, new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }),
+				new(0, [ 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a ], [ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff ]),
 			},
 			null,
 			PngContainer.TryLoad
@@ -82,7 +82,7 @@ public static class CodecCollectionExtensions
 			PngFactory.DisplayName,
 			pngMime,
 			pngExtension,
-			new[] { PixelFormat.Grey8.FormatGuid, PixelFormat.Rgb24.FormatGuid, PixelFormat.Rgba32.FormatGuid, PixelFormat.Indexed8.FormatGuid },
+			[ PixelFormat.Grey8.FormatGuid, PixelFormat.Rgb24.FormatGuid, PixelFormat.Rgba32.FormatGuid, PixelFormat.Indexed8.FormatGuid ],
 			PngEncoderOptions.Default,
 			PngEncoder.Create,
 			EnableApngEncode,

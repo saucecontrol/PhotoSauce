@@ -6,20 +6,20 @@ using System.Collections.Generic;
 
 namespace PhotoSauce.MagicScaler;
 
-internal sealed class PipelineContext : IDisposable
+internal sealed class PipelineContext(ProcessImageSettings settings, IImageContainer cont, bool ownCont = true) : IDisposable
 {
-	private readonly bool ownContainer;
+	private readonly bool ownContainer = ownCont;
 
 	private List<IProfiler>? profilers;
 	private Stack<IDisposable>? disposables;
 	private WicPipelineContext? wicContext;
 
-	public ProcessImageSettings Settings { get; }
-	public ProcessImageSettings UsedSettings { get; private set; }
+	public ProcessImageSettings Settings { get; } = settings.Clone();
+	public ProcessImageSettings UsedSettings { get; private set; } = null!;
 	public Orientation Orientation { get; set; }
 
-	public IImageContainer ImageContainer { get; set; }
-	public IImageFrame ImageFrame { get; set; }
+	public IImageContainer ImageContainer { get; set; } = cont;
+	public IImageFrame ImageFrame { get; set; } = null!;
 	public PixelSource Source { get; set; } = NoopPixelSource.Instance;
 	public IMetadataSource Metadata { get; set; } = NoopMetadataSource.Instance;
 
@@ -34,16 +34,6 @@ internal sealed class PipelineContext : IDisposable
 
 	public bool IsAnimationPipeline =>
 		Settings.EncoderInfo!.SupportsAnimation && ImageContainer.FrameCount > 1 && ImageContainer is IMetadataSource meta && meta.TryGetMetadata<AnimationContainer>(out _);
-
-	public PipelineContext(ProcessImageSettings settings, IImageContainer cont, bool ownCont = true)
-	{
-		Settings = settings.Clone();
-		ImageContainer = cont;
-		ownContainer = ownCont;
-
-		ImageFrame = null!;
-		UsedSettings = null!;
-	}
 
 	public T AddDispose<T>(T disposeHandle) where T : IDisposable
 	{

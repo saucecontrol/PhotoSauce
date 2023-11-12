@@ -2,7 +2,6 @@
 
 using System;
 using System.Runtime.InteropServices;
-using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
 
 namespace PhotoSauce.MagicScaler;
@@ -87,31 +86,31 @@ internal unsafe ref struct ExifReader
 		if (typeof(T) == typeof(float))
 		{
 			if (item.Type == ExifType.Double)
-				return Unsafe.As<float, T>(ref Unsafe.AsRef((float)GetValue<double>(item)));
+				return UnsafeUtil.BitCast<float, T>((float)GetValue<double>(item));
 
-			return Unsafe.As<float, T>(ref Unsafe.AsRef((float)CoerceValue<int>(item)));
+			return UnsafeUtil.BitCast<float, T>((float)CoerceValue<int>(item));
 		}
 
 		if (typeof(T) == typeof(double))
 		{
 			if (item.Type == ExifType.Float)
-				return Unsafe.As<double, T>(ref Unsafe.AsRef((double)GetValue<float>(item)));
+				return UnsafeUtil.BitCast<double, T>((double)GetValue<float>(item));
 
-			return Unsafe.As<double, T>(ref Unsafe.AsRef((double)CoerceValue<long>(item)));
+			return UnsafeUtil.BitCast<double, T>((double)CoerceValue<long>(item));
 		}
 
 		if (dlen >= sizeof(T))
 		{
 			if (item.Type == ExifType.Float)
-				return Unsafe.As<int, T>(ref Unsafe.AsRef((int)GetValue<float>(item)));
+				return UnsafeUtil.BitCastTruncate<int, T>((int)GetValue<float>(item));
 			if (item.Type == ExifType.Double)
-				return Unsafe.As<long, T>(ref Unsafe.AsRef((long)GetValue<double>(item)));
+				return UnsafeUtil.BitCastTruncate<long, T>((long)GetValue<double>(item));
 			if (dlen == sizeof(short))
-				return Unsafe.As<short, T>(ref Unsafe.AsRef(GetValue<short>(item)));
+				return UnsafeUtil.BitCastTruncate<short, T>(GetValue<short>(item));
 			if (dlen == sizeof(int))
-				return Unsafe.As<int, T>(ref Unsafe.AsRef(GetValue<int>(item)));
+				return UnsafeUtil.BitCastTruncate<int, T>(GetValue<int>(item));
 
-			return Unsafe.As<long, T>(ref Unsafe.AsRef(GetValue<long>(item)));
+			return UnsafeUtil.BitCastTruncate<long, T>(GetValue<long>(item));
 		}
 
 		long val;
@@ -134,7 +133,7 @@ internal unsafe ref struct ExifReader
 				_              => default
 			});
 
-		return Unsafe.As<long, T>(ref Unsafe.AsRef(val));
+		return UnsafeUtil.BitCastTruncate<long, T>(val);
 	}
 
 	public readonly ExifReader GetReader(in ExifItem item)

@@ -99,13 +99,11 @@ internal sealed unsafe class HeifContainer : IImageContainer
 		dispose(false);
 	}
 
-	private sealed class HeifFrame : IImageFrame, IMetadataSource, IIccProfileSource, IExifSource
+	private sealed class HeifFrame(HeifContainer cont) : IImageFrame, IMetadataSource, IIccProfileSource, IExifSource
 	{
-		private readonly HeifContainer container;
+		private readonly HeifContainer container = cont;
 		private HeifPixelSource? pixsrc;
 		private RentedBuffer<byte> exifbuff;
-
-		public HeifFrame(HeifContainer cont) => container = cont;
 
 		public IPixelSource PixelSource => pixsrc ??= new HeifPixelSource(container);
 

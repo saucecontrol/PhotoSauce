@@ -3,13 +3,11 @@
 namespace PhotoSauce.MagicScaler.Transforms;
 
 /// <summary>Applies a <a href="https://en.wikipedia.org/wiki/Gaussian_blur">Gaussian blur</a> to an image.</summary>
-public sealed class GaussianBlurTransform : PixelTransformInternalBase
+/// <remarks>Constructs a new <see cref="GaussianBlurTransform" /> with the specified <paramref name="radius" />.</remarks>
+/// <param name="radius">The blur radius (sigma value).</param>
+public sealed class GaussianBlurTransform(double radius) : PixelTransformInternalBase
 {
-	private readonly double radius;
-
-	/// <summary>Constructs a new <see cref="GaussianBlurTransform" /> with the specified <paramref name="radius" />.</summary>
-	/// <param name="radius">The blur radius (sigma value).</param>
-	public GaussianBlurTransform(double radius) => this.radius = radius;
+	private readonly double radius = radius;
 
 	internal override void Init(PipelineContext ctx)
 	{

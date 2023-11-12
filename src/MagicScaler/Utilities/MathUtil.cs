@@ -15,16 +15,10 @@ using static System.Math;
 namespace PhotoSauce.MagicScaler;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
-internal readonly struct Triple
+internal readonly struct Triple(uint v)
 {
-	public readonly ushort v1;
-	public readonly byte v2;
-
-	public Triple(uint v)
-	{
-		v1 = (ushort)v;
-		v2 = (byte)(v >> 16);
-	}
+	public readonly ushort v1 = (ushort)v;
+	public readonly byte v2 = (byte)(v >> 16);
 
 	public static explicit operator Triple(uint v) => new(v);
 }
@@ -228,10 +222,10 @@ internal static class MathUtil
 		double va = Abs(v);
 
 		if ((typeof(T) == typeof(uint) && sign <= 0) || va < 1d / maxVal)
-			return Unsafe.As<(int, int), (T, T)>(ref Unsafe.AsRef((0, 1)));
+			return UnsafeUtil.BitCast<(int, int), (T, T)>((0, 1));
 
 		if (va > maxVal)
-			return Unsafe.As<(int, int), (T, T)>(ref Unsafe.AsRef((sign, 0)));
+			return UnsafeUtil.BitCast<(int, int), (T, T)>((sign, 0));
 
 		double f = va;
 		long np = 0, n = 1;
@@ -266,7 +260,7 @@ internal static class MathUtil
 			(d, dp) = (dn, d);
 		}
 
-		return Unsafe.As<(int, int), (T, T)>(ref Unsafe.AsRef(((int)(n * sign), (int)d)));
+		return UnsafeUtil.BitCast<(int, int), (T, T)>(((int)(n * sign), (int)d));
 	}
 
 	public static Rational ToRational(this double d) => d.toFraction<uint>();
@@ -282,8 +276,8 @@ internal static class MathUtil
 #if HWINTRINSICS
 		if (Sse.IsSupported)
 		{
-			ref var r1 = ref Unsafe.As<Matrix4x4, Vector128<float>>(ref Unsafe.AsRef(m1));
-			ref var r2 = ref Unsafe.As<Matrix4x4, Vector128<float>>(ref Unsafe.AsRef(m2));
+			ref var r1 = ref Unsafe.As<Matrix4x4, Vector128<float>>(ref Unsafe.AsRef(in m1));
+			ref var r2 = ref Unsafe.As<Matrix4x4, Vector128<float>>(ref Unsafe.AsRef(in m2));
 			var veps = Vector128.Create(epsilon);
 			var vmsk = Vector128.Create(0x7fffffff).AsSingle();
 

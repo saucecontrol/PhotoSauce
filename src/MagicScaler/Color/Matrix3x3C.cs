@@ -59,21 +59,21 @@ internal readonly record struct Matrix3x3C
 	public ref readonly Vector3C Row1
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get => ref Unsafe.As<double, Vector3C>(ref Unsafe.AsRef(M11));
+		get => ref Unsafe.As<double, Vector3C>(ref Unsafe.AsRef(in M11));
 	}
 
 	[UnscopedRef]
 	public ref readonly Vector3C Row2
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get => ref Unsafe.As<double, Vector3C>(ref Unsafe.AsRef(M21));
+		get => ref Unsafe.As<double, Vector3C>(ref Unsafe.AsRef(in M21));
 	}
 
 	[UnscopedRef]
 	public ref readonly Vector3C Row3
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get => ref Unsafe.As<double, Vector3C>(ref Unsafe.AsRef(M31));
+		get => ref Unsafe.As<double, Vector3C>(ref Unsafe.AsRef(in M31));
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -99,9 +99,9 @@ internal readonly record struct Matrix3x3C
 #if HWINTRINSICS
 		if (Avx.IsSupported)
 		{
-			var m0 = Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(c0));
-			var m1 = Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(c1));
-			var m2 = Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(c2));
+			var m0 = Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(in c0));
+			var m1 = Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(in c1));
+			var m2 = Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(in c2));
 			var m3 = Vector256<double>.Zero;
 
 			var m1l = Avx.UnpackLow(m0, m1);
@@ -132,7 +132,7 @@ internal readonly record struct Matrix3x3C
 #if HWINTRINSICS
 		if (Fma.IsSupported)
 		{
-			ref var rm = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref Unsafe.AsRef(m));
+			ref var rm = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref Unsafe.AsRef(in m));
 			var m0 = Unsafe.Add(ref rm, 0);
 			var m1 = Unsafe.Add(ref rm, 1);
 			var m2 = Unsafe.Add(ref rm, 2);
@@ -213,7 +213,7 @@ internal readonly record struct Matrix3x3C
 #if HWINTRINSICS
 		if (Avx.IsSupported)
 		{
-			ref var rm = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref Unsafe.AsRef(m));
+			ref var rm = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref Unsafe.AsRef(in m));
 			var m0 = Unsafe.Add(ref rm, 0);
 			var m1 = Unsafe.Add(ref rm, 1);
 			var m2 = Unsafe.Add(ref rm, 2);
@@ -253,8 +253,8 @@ internal readonly record struct Matrix3x3C
 #if HWINTRINSICS
 		if (Avx.IsSupported)
 		{
-			ref var r1 = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref Unsafe.AsRef(this));
-			ref var r2 = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref Unsafe.AsRef(m));
+			ref var r1 = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref Unsafe.AsRef(in this));
+			ref var r2 = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref Unsafe.AsRef(in m));
 			var veps = Vector256.Create(epsilon);
 			var vmsk = Vector256.Create(0x7fffffffffffffff).AsDouble();
 
@@ -279,8 +279,8 @@ internal readonly record struct Matrix3x3C
 #if HWINTRINSICS
 		if (Avx.IsSupported)
 		{
-			ref var rl = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref Unsafe.AsRef(left));
-			ref var rr = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref Unsafe.AsRef(right));
+			ref var rl = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref Unsafe.AsRef(in left));
+			ref var rr = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref Unsafe.AsRef(in right));
 
 			var v0 = Avx.CompareNotEqual(Unsafe.Add(ref rl, 0), Unsafe.Add(ref rr, 0));
 			var v1 = Avx.CompareNotEqual(Unsafe.Add(ref rl, 1), Unsafe.Add(ref rr, 1));
@@ -303,8 +303,8 @@ internal readonly record struct Matrix3x3C
 #if HWINTRINSICS
 		if (Avx2.IsSupported)
 		{
-			ref var rl = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref Unsafe.AsRef(left));
-			ref var rr = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref Unsafe.AsRef(right));
+			ref var rl = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref Unsafe.AsRef(in left));
+			ref var rr = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref Unsafe.AsRef(in right));
 			var vm = Vector256.Create(~0ul, ~0ul, ~0ul, 0ul).AsDouble();
 
 			var vr0 = Unsafe.Add(ref rr, 0);
@@ -368,7 +368,7 @@ internal readonly record struct Matrix3x3C
 #if HWINTRINSICS
 		if (Avx2.IsSupported)
 		{
-			ref var rl = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref Unsafe.AsRef(left));
+			ref var rl = ref Unsafe.As<Matrix3x3C, Vector256<double>>(ref Unsafe.AsRef(in left));
 			var vr = Avx2.Permute4x64(Vector128.CreateScalar(right).ToVector256Unsafe(), 0b_11_00_00_00);
 
 			var m0 = Avx.Multiply(Unsafe.Add(ref rl, 0), vr);

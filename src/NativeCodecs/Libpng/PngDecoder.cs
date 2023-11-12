@@ -311,7 +311,7 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nuint ReadCallback(nint pinst, byte* buff, nuint cb);
 	private static readonly ReadCallback delReadCallback = typeof(PngContainer).CreateMethodDelegate<ReadCallback>(nameof(readCallback));
 #else
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvCdecl) ])]
 	static
 #endif
 	private nuint readCallback(nint pinst, byte* buff, nuint cb)

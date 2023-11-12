@@ -7,10 +7,10 @@ using static PhotoSauce.Interop.Lcms.Lcms;
 
 namespace PhotoSauce.MagicScaler.Transforms;
 
-internal sealed unsafe class ColorProfileTransform : ChainedPixelSource
+internal sealed unsafe class ColorProfileTransform(PixelSource source, PixelFormat dstfmt, void* hndsrc, void* hnddst, void* hndxform) : ChainedPixelSource(source)
 {
-	private readonly PixelFormat dstFormat;
-	private void* hProfSrc, hProfDst, hTransform;
+	private readonly PixelFormat dstFormat = dstfmt;
+	private void* hProfSrc = hndsrc, hProfDst = hnddst, hTransform = hndxform;
 
 	public static bool HaveLcms => dependencyValid.Value;
 
@@ -26,14 +26,6 @@ internal sealed unsafe class ColorProfileTransform : ChainedPixelSource
 	});
 
 	public override PixelFormat Format => dstFormat;
-
-	public ColorProfileTransform(PixelSource source, PixelFormat dstfmt, void* hndsrc, void* hnddst, void* hndxform) : base(source)
-	{
-		dstFormat = dstfmt;
-		hProfSrc = hndsrc;
-		hProfDst = hnddst;
-		hTransform = hndxform;
-	}
 
 	public static bool TryCreate(PixelSource src, PixelFormat dstfmt, ColorProfile srcProfile, ColorProfile dstProfile, [NotNullWhen(true)] out ColorProfileTransform? transform)
 	{

@@ -9,7 +9,7 @@ namespace PhotoSauce.MagicScaler;
 /// <remarks>This pixel source produces a complex pattern that is useful for detecting subtle errors in processing.  It is minimally optimized in order to emulate an expensive decoder.</remarks>
 public sealed class ZonePlatePixelSource : IPixelSource, IProfileSource
 {
-	private static readonly Guid[] formats = new[] { default, PixelFormats.Grey8bpp, default, PixelFormats.Bgr24bpp, PixelFormats.Bgra32bpp };
+	private static readonly Guid[] formats = [ default, PixelFormats.Grey8bpp, default, PixelFormats.Bgr24bpp, PixelFormats.Bgra32bpp ];
 
 	private readonly int channels;
 	private readonly double diameter;
@@ -43,7 +43,7 @@ public sealed class ZonePlatePixelSource : IPixelSource, IProfileSource
 		profiler = StatsManager.GetProfiler(this);
 	}
 
-	private void copyPixels(in PixelArea area, int cbStride, in Span<byte> buffer)
+	private void copyPixels(in PixelArea area, int cbStride, Span<byte> buffer)
 	{
 		int xo = area.X - (Width >> 1);
 		int yo = area.Y - (Height >> 1);

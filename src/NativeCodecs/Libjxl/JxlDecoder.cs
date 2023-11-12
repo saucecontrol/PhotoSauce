@@ -252,12 +252,10 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 		dispose(false);
 	}
 
-	private sealed class JxlFrame : IImageFrame, IMetadataSource
+	private sealed class JxlFrame(JxlContainer cont) : IImageFrame, IMetadataSource
 	{
-		private readonly JxlContainer container;
+		private readonly JxlContainer container = cont;
 		private JxlPixelSource? pixsrc;
-
-		public JxlFrame(JxlContainer cont) => container = cont;
 
 		public IPixelSource PixelSource
 		{
@@ -326,7 +324,7 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 		}
 
 #if NET5_0_OR_GREATER
-		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+		[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvCdecl) ])]
 		static
 #endif
 		private void imageOutCallback(void* pinst, nuint x, nuint y, nuint w, void* pb)

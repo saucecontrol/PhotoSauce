@@ -43,7 +43,7 @@ internal readonly record struct PixelArea
 		if (orientation.FlipsY())
 			y = targetHeight - height - y;
 
-		return new PixelArea(x, y, width, height);
+		return new(x, y, width, height);
 	}
 
 	public PixelArea ReOrient(Orientation orientation, int targetWidth, int targetHeight)
@@ -64,7 +64,7 @@ internal readonly record struct PixelArea
 		int width = (int)Math.Min(Math.Ceiling(Width / xRatio), targetWidth - x);
 		int height = (int)Math.Min(Math.Ceiling(Height / yRatio), targetHeight - y);
 
-		return new PixelArea(x, y, width, height);
+		return new(x, y, width, height);
 	}
 
 	public PixelArea SnapTo(int incX, int incY, int maxWidth, int maxHeight)
@@ -74,7 +74,7 @@ internal readonly record struct PixelArea
 		int width = Math.Min(MathUtil.PowerOfTwoCeiling(Width + X - x, incX), maxWidth - x);
 		int height = Math.Min(MathUtil.PowerOfTwoCeiling(Height + Y - y, incY), maxHeight - y);
 
-		return new PixelArea(x, y, width, height);
+		return new(x, y, width, height);
 	}
 
 	public PixelArea ScaleTo(int ratioX, int ratioY, int maxWidth, int maxHeight)
@@ -84,7 +84,7 @@ internal readonly record struct PixelArea
 		int width = Math.Min(MathUtil.DivCeiling(Width, ratioX), maxWidth);
 		int height = Math.Min(MathUtil.DivCeiling(Height, ratioY), maxHeight);
 
-		return new PixelArea(x, y, width, height);
+		return new(x, y, width, height);
 	}
 
 	public PixelArea Intersect(PixelArea other)
@@ -95,7 +95,7 @@ internal readonly record struct PixelArea
 		int y2 = Math.Min(Y + Height, other.Y + other.Height);
 
 		if (x2 >= x1 && y2 >= y1)
-			return new PixelArea(x1, y1, x2 - x1, y2 - y1);
+			return new(x1, y1, x2 - x1, y2 - y1);
 
 		return default;
 	}
@@ -105,7 +105,7 @@ internal readonly record struct PixelArea
 		int x = X - other.X;
 		int y = Y - other.Y;
 
-		return new PixelArea(x, y, Width, Height);
+		return new(x, y, Width, Height);
 	}
 
 	public PixelArea Slice(int y)
@@ -132,7 +132,7 @@ internal readonly record struct PixelArea
 	public static PixelArea FromSize(int width, int height) => new(0, 0, width, height);
 
 	public static implicit operator PixelArea(in Rectangle r) => new(r.X, r.Y, r.Width, r.Height);
-	public static implicit operator Rectangle(in PixelArea a) => Unsafe.As<PixelArea, Rectangle>(ref Unsafe.AsRef(a));
+	public static implicit operator Rectangle(in PixelArea a) => Unsafe.As<PixelArea, Rectangle>(ref Unsafe.AsRef(in a));
 
 	public static implicit operator PixelArea(Size s) => FromSize(s.Width, s.Height);
 }

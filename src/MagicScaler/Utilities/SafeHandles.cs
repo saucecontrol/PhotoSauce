@@ -30,13 +30,11 @@ internal sealed class SafeHGlobalHandle : SafeHandle
 	}
 }
 
-internal ref struct SafeHandleReleaser
+internal ref struct SafeHandleReleaser(SafeHandle h)
 {
-	private SafeHandle? handle;
+	private SafeHandle? handle = h;
 
-	public SafeHandle? Handle => handle;
-
-	public SafeHandleReleaser(SafeHandle h) => handle = h;
+	public readonly SafeHandle? Handle => handle;
 
 	public SafeHandle Attach(SafeHandle h) => handle = h;
 

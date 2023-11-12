@@ -55,11 +55,11 @@ internal static class FloatConverter
 		public IConversionProcessor<float, byte> Processor3X => processor3X;
 	}
 
-	private sealed unsafe class WideningImpl : IConversionProcessor<byte, float>
+	private sealed unsafe class WideningImpl(int offset, int scale) : IConversionProcessor<byte, float>
 	{
-		private readonly float scale;
-		private readonly float offset;
-		private readonly float[] valueTable;
+		private readonly float scale = 1f / scale;
+		private readonly float offset = (float)-offset / scale;
+		private readonly float[] valueTable = offset != 0 || scale != byte.MaxValue ? makeTable(offset, scale) : LookupTables.Alpha;
 
 		private static float[] makeTable(int offset, int scale)
 		{
@@ -68,13 +68,6 @@ internal static class FloatConverter
 				tbl[i] = (float)((double)(i - offset) / scale);
 
 			return tbl;
-		}
-
-		public WideningImpl(int offs, int scal)
-		{
-			scale = 1f / scal;
-			offset = (float)-offs / scal;
-			valueTable = offs != 0 || scal != byte.MaxValue ? makeTable(offs, scal) : LookupTables.Alpha;
 		}
 
 		void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
@@ -551,16 +544,10 @@ internal static class FloatConverter
 		}
 	}
 
-	private sealed unsafe class NarrowingImpl : IConversionProcessor<float, byte>
+	private sealed unsafe class NarrowingImpl(int offset, int scale) : IConversionProcessor<float, byte>
 	{
-		private readonly float scale;
-		private readonly short offset;
-
-		public NarrowingImpl(int offs, int scal)
-		{
-			scale = scal;
-			offset = (short)offs;
-		}
+		private readonly float scale = scale;
+		private readonly short offset = (short)offset;
 
 		void IConversionProcessor.ConvertLine(byte* istart, byte* ostart, nint cb)
 		{

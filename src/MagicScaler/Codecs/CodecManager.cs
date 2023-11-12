@@ -144,10 +144,10 @@ internal sealed record class PlanarEncoderInfo(
 /// <remarks>Instances should not be retained or used outside of <see cref="CodecManager.Configure(Action{CodecCollection}?)"/>.</remarks>
 public sealed class CodecCollection : ICollection<IImageCodecInfo>, IReadOnlyCollection<IImageCodecInfo>
 {
-	private readonly List<IImageCodecInfo> codecs = new();
+	private readonly List<IImageCodecInfo> codecs = [ ];
 	private readonly Dictionary<string, IImageEncoderInfo> encoderMimeMap = new(StringComparer.OrdinalIgnoreCase);
 	private readonly Dictionary<string, IImageEncoderInfo> encoderExtensionMap = new(StringComparer.OrdinalIgnoreCase);
-	private DecoderPattern[] decoderPatterns = Array.Empty<DecoderPattern>();
+	private DecoderPattern[] decoderPatterns = [ ];
 
 	/// <inheritdoc />
 	public int Count => codecs.Count;
@@ -238,10 +238,7 @@ public sealed class CodecCollection : ICollection<IImageCodecInfo>, IReadOnlyCol
 
 		encoderMimeMap.Clear();
 		foreach (var enc in codecs.OfType<IImageEncoderInfo>().SelectMany(static i => i.MimeTypes.Select(s => (Info: i, MimeType: s))))
-		{
-			if (!encoderMimeMap.ContainsKey(enc.MimeType))
-				encoderMimeMap.Add(enc.MimeType, enc.Info);
-		}
+			encoderMimeMap.TryAdd(enc.MimeType, enc.Info);
 
 		encoderExtensionMap.Clear();
 		foreach (var enc in codecs.OfType<IImageEncoderInfo>().SelectMany(static i => i.FileExtensions.Select(s => (Info: i, Extension: s))))
@@ -253,8 +250,7 @@ public sealed class CodecCollection : ICollection<IImageCodecInfo>, IReadOnlyCol
 			if (ext[0] != '.')
 				ext = string.Concat(".", ext);
 
-			if (!encoderExtensionMap.ContainsKey(ext))
-				encoderExtensionMap.Add(ext, enc.Info);
+			encoderExtensionMap.TryAdd(ext, enc.Info);
 		}
 	}
 

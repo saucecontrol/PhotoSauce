@@ -16,7 +16,7 @@ internal sealed unsafe class WicPlanarCache : IYccImageFrame, IMetadataSource, I
 {
 	private const int mcuLines = 16;
 
-	public static readonly Guid[] PlanarPixelFormats = new[] { GUID_WICPixelFormat8bppY, GUID_WICPixelFormat8bppCb, GUID_WICPixelFormat8bppCr };
+	public static readonly Guid[] PlanarPixelFormats = [ GUID_WICPixelFormat8bppY, GUID_WICPixelFormat8bppCb, GUID_WICPixelFormat8bppCr ];
 
 	private enum WicPlane { Y, Cb, Cr }
 

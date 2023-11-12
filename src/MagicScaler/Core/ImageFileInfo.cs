@@ -14,32 +14,24 @@ namespace PhotoSauce.MagicScaler;
 public sealed class ImageFileInfo
 {
 	/// <summary>Represents basic information about an image frame within a container.</summary>
-	public readonly struct FrameInfo
+	/// <remarks>Constructs a new <see cref="FrameInfo" /> instance with the supplied values.</remarks>
+	/// <param name="width">The width of the image frame in pixels.</param>
+	/// <param name="height">The height of the image frame in pixels.</param>
+	/// <param name="hasAlpha">True if the image frame contains transparency data, otherwise false.</param>
+	/// <param name="orientation">The Exif orientation associated with the image frame.</param>
+	public readonly struct FrameInfo(int width, int height, bool hasAlpha, Orientation orientation)
 	{
 		/// <summary>The width of the image frame in pixels.</summary>
-		public int Width { get; }
+		public int Width { get; } = width;
 		/// <summary>The height of the image frame in pixels.</summary>
-		public int Height { get; }
+		public int Height { get; } = height;
 		/// <summary>True if the image frame contains transparency data, otherwise false.</summary>
-		public bool HasAlpha { get; }
+		public bool HasAlpha { get; } = hasAlpha;
 		/// <summary>
 		/// The stored <a href="https://magnushoff.com/articles/jpeg-orientation/">Exif orientation</a> for the image frame.
 		/// The <see cref="Width" /> and <see cref="Height" /> values reflect the corrected orientation, not the stored orientation.
 		/// </summary>
-		public Orientation ExifOrientation { get; }
-
-		/// <summary>Constructs a new <see cref="FrameInfo" /> instance with the supplied values.</summary>
-		/// <param name="width">The width of the image frame in pixels.</param>
-		/// <param name="height">The height of the image frame in pixels.</param>
-		/// <param name="hasAlpha">True if the image frame contains transparency data, otherwise false.</param>
-		/// <param name="orientation">The Exif orientation associated with the image frame.</param>
-		public FrameInfo(int width, int height, bool hasAlpha, Orientation orientation)
-		{
-			Width = width;
-			Height = height;
-			HasAlpha = hasAlpha;
-			ExifOrientation = orientation;
-		}
+		public Orientation ExifOrientation { get; } = orientation;
 	}
 
 	/// <summary>The size of the image container in bytes.</summary>

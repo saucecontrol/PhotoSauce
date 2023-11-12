@@ -11,7 +11,7 @@ namespace PhotoSauce.MagicScaler;
 /// <remarks>This pixel source is useful when a simple recognizable pattern is desired.  It produces output at <c>memcpy</c> speed.</remarks>
 public sealed class TestPatternPixelSource : IPixelSource, IDisposable
 {
-	private static readonly Guid[] formats = new[] { default, PixelFormats.Grey8bpp, default, PixelFormats.Bgr24bpp, PixelFormats.Bgra32bpp };
+	private static readonly Guid[] formats = [ default, PixelFormats.Grey8bpp, default, PixelFormats.Bgr24bpp, PixelFormats.Bgra32bpp ];
 
 	private readonly int channels;
 	private readonly int cols;

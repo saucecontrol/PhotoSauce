@@ -9,7 +9,7 @@ using PhotoSauce.MagicScaler;
 
 namespace PhotoSauce.Interop.Libheif;
 
-internal unsafe struct HeifReader
+internal readonly unsafe struct HeifReader
 {
 	private static readonly bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
@@ -38,7 +38,7 @@ internal unsafe struct HeifReader
 	}
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvCdecl) ])]
 	static
 #endif
 	private long getPosition(void* pinst)
@@ -57,7 +57,7 @@ internal unsafe struct HeifReader
 	}
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvCdecl) ])]
 	static
 #endif
 	private int read(void* pv, nuint cb, void* pinst)
@@ -92,7 +92,7 @@ internal unsafe struct HeifReader
 	}
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvCdecl) ])]
 	static
 #endif
 	private int seek(long npos, void* pinst)
@@ -118,7 +118,7 @@ internal unsafe struct HeifReader
 	}
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvCdecl) ])]
 	static
 #endif
 	private heif_reader_grow_status waitForLength(long len, void* pinst)
@@ -155,14 +155,13 @@ internal unsafe struct HeifReader
 	private static heif_reader* createImpl()
 	{
 		var impl = (heif_reader*)UnsafeUtil.AllocateTypeAssociatedMemory(typeof(HeifReader), sizeof(heif_reader));
-#if NET5_0_OR_GREATER
 		impl->reader_api_version = 1;
+#if NET5_0_OR_GREATER
 		impl->get_position = &getPosition;
 		impl->read = &read;
 		impl->seek = &seek;
 		impl->wait_for_file_size = &waitForLength;
 #else
-		impl->reader_api_version = 1;
 		impl->get_position = (delegate* unmanaged[Cdecl]<void*, long>)Marshal.GetFunctionPointerForDelegate(delGetPosition);
 		impl->read = (delegate* unmanaged[Cdecl]<void*, nuint, void*, int>)Marshal.GetFunctionPointerForDelegate(delRead);
 		impl->seek = (delegate* unmanaged[Cdecl]<long, void*, int>)Marshal.GetFunctionPointerForDelegate(delSeek);

@@ -74,8 +74,8 @@ public static class WebpCodec
 	{
 		ThrowHelper.ThrowIfNull(codecs);
 
-		var webpMime = new[] { ImageMimeTypes.Webp };
-		var webpExtension = new[] { ImageFileExtensions.Webp };
+		string[] webpMime = [ ImageMimeTypes.Webp ];
+		string[] webpExtension = [ ImageFileExtensions.Webp ];
 
 		if (removeExisting)
 		{
@@ -88,7 +88,7 @@ public static class WebpCodec
 			webpMime,
 			webpExtension,
 			new ContainerPattern[] {
-				new(0, new byte[] { (byte)'R', (byte)'I', (byte)'F', (byte)'F', 0, 0, 0, 0, (byte)'W', (byte)'E', (byte)'B', (byte)'P' }, new byte[] { 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff })
+				new(0, [ (byte)'R', (byte)'I', (byte)'F', (byte)'F', 0, 0, 0, 0, (byte)'W', (byte)'E', (byte)'B', (byte)'P' ], [ 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff ])
 			},
 			WebpDecoderOptions.Default,
 			WebpContainer.TryLoad
@@ -97,13 +97,13 @@ public static class WebpCodec
 			WebpFactory.DisplayName,
 			webpMime,
 			webpExtension,
-			new[] { PixelFormat.Bgra32.FormatGuid, PixelFormat.Y8Video.FormatGuid, PixelFormat.Cb8Video.FormatGuid, PixelFormat.Cr8Video.FormatGuid, PixelFormat.Grey8.FormatGuid },
+			[ PixelFormat.Bgra32.FormatGuid, PixelFormat.Y8Video.FormatGuid, PixelFormat.Cb8Video.FormatGuid, PixelFormat.Cr8Video.FormatGuid, PixelFormat.Grey8.FormatGuid ],
 			WebpLossyEncoderOptions.Default,
 			WebpEncoder.Create,
 			true,
 			true,
 			true,
-			new[] { ChromaSubsampleMode.Subsample420 },
+			[ ChromaSubsampleMode.Subsample420 ],
 			ChromaPosition.Bottom,
 			WebpConstants.YccMatrix,
 			false

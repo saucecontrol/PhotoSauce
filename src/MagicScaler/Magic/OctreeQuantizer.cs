@@ -528,10 +528,10 @@ internal sealed unsafe class OctreeQuantizer : IProfileSource, IDisposable
 
 		if (Vector.IsHardwareAccelerated && maxFree > Vector<ushort>.Count)
 		{
-			var slots = (ReadOnlySpan<byte>)(new byte[] {
+			var slots = (ReadOnlySpan<byte>)[
 				64, 0, 65, 0, 66, 0, 67, 0, 68, 0, 69, 0, 70, 0, 71, 0,
 				72, 0, 73, 0, 74, 0, 75, 0, 76, 0, 77, 0, 78, 0, 79, 0
-			});
+			];
 			var vslot = Unsafe.As<byte, Vector<ushort>>(ref MemoryMarshal.GetReference(slots));
 			var vincr = new Vector<ushort>((ushort)Vector<ushort>.Count);
 

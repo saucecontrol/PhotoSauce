@@ -316,7 +316,7 @@ internal class ColorProfile
 		int gz = ReadInt32BigEndian(gXYZ[16..]);
 		int rz = ReadInt32BigEndian(rXYZ[16..]);
 
-		double div = 65536;
+		const double div = 65536;
 		matrix = new(
 			rx / div, ry / div, rz / div,
 			gx / div, gy / div, gz / div,
@@ -715,7 +715,7 @@ internal class ColorProfile
 		(ProfileColorSpace.Rgb, PixelColorRepresentation.Bgr) or (ProfileColorSpace.Rgb, PixelColorRepresentation.Rgb) or
 		(ProfileColorSpace.Cmyk, PixelColorRepresentation.Cmyk) or (ProfileColorSpace.Grey, PixelColorRepresentation.Grey);
 
-	private ColorProfile() => ProfileBytes = Array.Empty<byte>();
+	private ColorProfile() => ProfileBytes = [ ];
 
 	protected ColorProfile(byte[] bytes, ProfileColorSpace dataSpace, ProfileColorSpace pcsSpace, ColorProfileType profileType)
 	{

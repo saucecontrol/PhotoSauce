@@ -34,8 +34,8 @@ internal readonly record struct Vector3C
 		if (Avx.IsSupported)
 		{
 			var w = Avx.Multiply(
-				Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(left)),
-				Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(right))
+				Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(in left)),
+				Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(in right))
 			);
 
 			var v = w.GetLower();
@@ -56,8 +56,8 @@ internal readonly record struct Vector3C
 		if (Avx.IsSupported)
 		{
 			var w = Avx.Divide(
-				Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(left)),
-				Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(right))
+				Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(in left)),
+				Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(in right))
 			);
 
 			return Unsafe.As<Vector256<double>, Vector3C>(ref w);
@@ -74,8 +74,8 @@ internal readonly record struct Vector3C
 		if (Avx.IsSupported)
 		{
 			var w = Avx.Add(
-				Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(left)),
-				Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(right))
+				Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(in left)),
+				Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(in right))
 			);
 
 			return Unsafe.As<Vector256<double>, Vector3C>(ref w);
@@ -92,8 +92,8 @@ internal readonly record struct Vector3C
 		if (Avx.IsSupported)
 		{
 			var w = Avx.Subtract(
-				Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(left)),
-				Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(right))
+				Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(in left)),
+				Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(in right))
 			);
 
 			return Unsafe.As<Vector256<double>, Vector3C>(ref w);
@@ -110,8 +110,8 @@ internal readonly record struct Vector3C
 		if (Avx.IsSupported)
 		{
 			var w = Avx.Multiply(
-				Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(left)),
-				Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(right))
+				Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(in left)),
+				Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(in right))
 			);
 
 			return Unsafe.As<Vector256<double>, Vector3C>(ref w);
@@ -128,7 +128,7 @@ internal readonly record struct Vector3C
 		if (Avx2.IsSupported)
 		{
 			var w = Avx.Multiply(
-				Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(left)),
+				Unsafe.As<Vector3C, Vector256<double>>(ref Unsafe.AsRef(in left)),
 				Avx2.Permute4x64(Vector128.CreateScalar(right).ToVector256Unsafe(), 0b_11_00_00_00)
 			);
 

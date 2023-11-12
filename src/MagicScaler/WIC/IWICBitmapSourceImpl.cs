@@ -1,6 +1,6 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
-#pragma warning disable IDE0060
+#pragma warning disable IDE0060, IDE0251
 
 using System;
 using System.Threading;
@@ -37,7 +37,7 @@ internal unsafe struct IWICBitmapSourceImpl
 	}
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvStdcall) ])]
 	static
 #endif
 	private int queryInterface(IWICBitmapSource* pinst, Guid* riid, void** ppvObject)
@@ -56,13 +56,13 @@ internal unsafe struct IWICBitmapSourceImpl
 	}
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvStdcall) ])]
 	static
 #endif
 	private uint addRef(IWICBitmapSource* pinst) => (uint)Interlocked.Increment(ref ((IWICBitmapSourceImpl*)pinst)->refCount);
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvStdcall) ])]
 	static
 #endif
 	private uint release(IWICBitmapSource* pinst)
@@ -81,7 +81,7 @@ internal unsafe struct IWICBitmapSourceImpl
 	}
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvStdcall) ])]
 	static
 #endif
 	private int getSize(IWICBitmapSource* pinst, uint* puiWidth, uint* puiHeight)
@@ -94,7 +94,7 @@ internal unsafe struct IWICBitmapSourceImpl
 	}
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvStdcall) ])]
 	static
 #endif
 	private int getPixelFormat(IWICBitmapSource* pinst, Guid* pPixelFormat)
@@ -106,7 +106,7 @@ internal unsafe struct IWICBitmapSourceImpl
 	}
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvStdcall) ])]
 	static
 #endif
 	private int getResolution(IWICBitmapSource* pinst, double* pDpiX, double* pDpiY)
@@ -118,7 +118,7 @@ internal unsafe struct IWICBitmapSourceImpl
 	}
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvStdcall) ])]
 	static
 #endif
 	private int copyPalette(IWICBitmapSource* pinst, IWICPalette* pIPalette)
@@ -135,7 +135,7 @@ internal unsafe struct IWICBitmapSourceImpl
 	}
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvStdcall) ])]
 	static
 #endif
 	private int copyPixels(IWICBitmapSource* pinst, WICRect* prc, uint cbStride, uint cbBufferSize, byte* pbBuffer)

@@ -30,14 +30,12 @@ internal sealed class NoopProfiler : IProfiler
 	public void ResumeTiming(in PixelArea prc) { }
 }
 
-internal sealed class ProcessingProfiler : IProfiler
+internal sealed class ProcessingProfiler(object proc) : IProfiler
 {
+	private readonly Stopwatch timer = new();
+	private readonly object processor = proc;
 	private int callCount;
 	private long pixelCount;
-	private readonly Stopwatch timer = new();
-	private readonly object processor;
-
-	public ProcessingProfiler(object proc) => processor = proc;
 
 	public PixelSourceStats Stats => new(processor.ToString()!, callCount, pixelCount, (double)timer.ElapsedTicks / Stopwatch.Frequency * 1000);
 

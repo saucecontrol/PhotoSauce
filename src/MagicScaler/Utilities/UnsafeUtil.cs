@@ -22,6 +22,18 @@ internal static unsafe class UnsafeUtil
 #endif
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static unsafe TTo BitCast<TFrom, TTo>(TFrom val) where TFrom : unmanaged where TTo : unmanaged =>
+#if NET8_0_OR_GREATER
+		Unsafe.BitCast<TFrom, TTo>(val);
+#else
+		*(TTo*)&val;
+#endif
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static unsafe TTo BitCastTruncate<TFrom, TTo>(TFrom val) where TFrom : unmanaged where TTo : unmanaged =>
+		*(TTo*)&val;
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static nuint ByteOffset<T>(T* tgt, T* cur) where T : unmanaged =>
 		(nuint)(nint)((byte*)cur - (byte*)tgt);
 
@@ -41,7 +53,7 @@ internal static unsafe class UnsafeUtil
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static Guid* GetAddressOf(this in Guid val) => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(val));
+	public static Guid* GetAddressOf(this in Guid val) => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in val));
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static byte* GetAddressOf(this ReadOnlySpan<byte> val) => (byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(val));

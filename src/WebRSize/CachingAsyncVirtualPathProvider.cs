@@ -48,7 +48,7 @@ public class CachingAsyncVirtualPathProvider : VirtualPathProvider
 
 	/// <inheritdoc cref="GetCacheDependency(string, IEnumerable, DateTime)" />
 	protected virtual CacheDependency GetCacheDependencyInternal(string virtualPath, IEnumerable virtualPathDependencies, DateTime utcStart) =>
-		new CacheDependency(new[] { virtualPath }, virtualPathDependencies.Cast<string>().ToArray(), utcStart);
+		new([ virtualPath ], virtualPathDependencies.Cast<string>().ToArray(), utcStart);
 
 	/// <inheritdoc cref="FileExists(string)" />
 	protected virtual Task<bool> FileExistsAsyncInternal(string virtualPath) => False;
@@ -135,24 +135,22 @@ public class CachingAsyncVirtualPathProvider : VirtualPathProvider
 }
 
 /// <inheritdoc />
-public class DiskCachedVirtualFile : VirtualFile
+/// <param name="virtualPath">The virtual path of the file.</param>
+/// <param name="cachePath">The local disk cache path of the file.</param>
+public class DiskCachedVirtualFile(string virtualPath, string cachePath) : VirtualFile(virtualPath)
 {
-	private readonly string cachePath;
-
-	/// <inheritdoc cref="VirtualFile(string)" />
-	public DiskCachedVirtualFile(string virtualPath, string cachePath) : base(virtualPath) => this.cachePath = cachePath;
+	private readonly string cachePath = cachePath;
 
 	/// <inheritdoc />
 	public override Stream Open() => new FileStream(cachePath, FileMode.Open, FileAccess.Read, FileShare.Read);
 }
 
 /// <inheritdoc />
-public class MemoryCachedVirtualFile : VirtualFile
+/// <param name="virtualPath">The virtual path of the file.</param>
+/// <param name="data">The content of the file.</param>
+public class MemoryCachedVirtualFile(string virtualPath, byte[] data) : VirtualFile(virtualPath)
 {
-	private readonly byte[] data;
-
-	/// <inheritdoc cref="VirtualFile(string)" />
-	public MemoryCachedVirtualFile(string virtualPath, byte[] data) : base(virtualPath) => this.data = data;
+	private readonly byte[] data = data;
 
 	/// <inheritdoc />
 	public override Stream Open() => new MemoryStream(data);
@@ -164,7 +162,7 @@ public abstract class AsyncVirtualFile : VirtualFile
 	/// <inheritdoc />
 	protected AsyncVirtualFile(string virtualPath) : base(virtualPath) { }
 
-	/// <inheritdoc cref="FileSystemInfo.LastAccessTimeUtc" />
+	/// <inheritdoc cref="FileSystemInfo.LastWriteTimeUtc" />
 	public DateTime LastModified { get; protected set; }
 
 	/// <inheritdoc cref="Open" />

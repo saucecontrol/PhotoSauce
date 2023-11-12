@@ -148,6 +148,15 @@ internal static class MiscExtensions
 	}
 
 #if !BUILTIN_SPAN
+	public static bool TryAdd<TKey, TValue>(this Dictionary<TKey, TValue> dic, TKey key, TValue val)
+	{
+		if (dic.ContainsKey(key))
+			return false;
+
+		dic.Add(key, val);
+		return true;
+	}
+
 	public static int Read(this Stream stream, Span<byte> buffer)
 	{
 		if (stream is PoolBufferedStream ps)

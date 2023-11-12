@@ -8,14 +8,12 @@ using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler;
 
-internal unsafe ref struct SpanBufferReader
+internal unsafe ref struct SpanBufferReader(ReadOnlySpan<byte> buff)
 {
-	private readonly ReadOnlySpan<byte> span;
+	private readonly ReadOnlySpan<byte> span = buff;
 	private nint pos;
 
 	public readonly int Position => (int)pos;
-
-	public SpanBufferReader(ReadOnlySpan<byte> buff) => span = buff;
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public T Read<T>() where T : unmanaged
@@ -39,14 +37,12 @@ internal unsafe ref struct SpanBufferReader
 	}
 }
 
-internal unsafe ref struct SpanBufferWriter
+internal unsafe ref struct SpanBufferWriter(Span<byte> buff)
 {
-	private readonly Span<byte> span;
+	private readonly Span<byte> span = buff;
 	private nint pos;
 
 	public readonly int Position => (int)pos;
-
-	public SpanBufferWriter(Span<byte> buff) => span = buff;
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public void Write<T>(T val) where T : unmanaged
@@ -87,16 +83,16 @@ internal static class BufferUtil
 	{
 		if (typeof(T) == typeof(Rational) || typeof(T) == typeof(SRational))
 		{
-			var (n, d) = Unsafe.As<T, (uint, uint)>(ref val);
-			return Unsafe.As<(uint, uint), T>(ref Unsafe.AsRef((BinaryPrimitives.ReverseEndianness(n), BinaryPrimitives.ReverseEndianness(d))));
+			var (n, d) = UnsafeUtil.BitCast<T, Rational>(val);
+			return UnsafeUtil.BitCast<Rational, T>(new Rational(BinaryPrimitives.ReverseEndianness(n), BinaryPrimitives.ReverseEndianness(d)));
 		}
 
 		if (sizeof(T) == sizeof(ushort))
-			return Unsafe.As<ushort, T>(ref Unsafe.AsRef(BinaryPrimitives.ReverseEndianness(Unsafe.As<T, ushort>(ref val))));
+			return UnsafeUtil.BitCast<ushort, T>(BinaryPrimitives.ReverseEndianness(UnsafeUtil.BitCast<T, ushort>(val)));
 		if (sizeof(T) == sizeof(uint))
-			return Unsafe.As<uint, T>(ref Unsafe.AsRef(BinaryPrimitives.ReverseEndianness(Unsafe.As<T, uint>(ref val))));
+			return UnsafeUtil.BitCast<uint, T>(BinaryPrimitives.ReverseEndianness(UnsafeUtil.BitCast<T, uint>(val)));
 		if (sizeof(T) == sizeof(ulong))
-			return Unsafe.As<ulong, T>(ref Unsafe.AsRef(BinaryPrimitives.ReverseEndianness(Unsafe.As<T, ulong>(ref val))));
+			return UnsafeUtil.BitCast<ulong, T>(BinaryPrimitives.ReverseEndianness(UnsafeUtil.BitCast<T, ulong>(val)));
 
 		throw new ArgumentException($"Reverse not implemented for {typeof(T).Name}", nameof(T));
 	}

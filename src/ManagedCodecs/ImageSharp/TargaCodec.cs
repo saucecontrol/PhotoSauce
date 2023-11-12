@@ -158,11 +158,9 @@ public sealed class TargaFrame : IImageFrame
 	public void Dispose() => decodedFrame.Dispose();
 }
 
-internal sealed class ImagePixelSource : IPixelSource
+internal sealed class ImagePixelSource(ImageFrame frame) : IPixelSource
 {
-	private readonly ImageFrame decodedFrame;
-
-	public ImagePixelSource(ImageFrame frame) => decodedFrame = frame;
+	private readonly ImageFrame decodedFrame = frame;
 
 	private int bytesPerPixel => decodedFrame switch {
 		ImageFrame<L8>    => 1,
@@ -224,14 +222,14 @@ public static class CodecCollectionExtensions
 			throw new ArgumentNullException(nameof(codecs));
 
 		var targa = TgaFormat.Instance;
-		var mimeTypes = new[] { targa.DefaultMimeType }.Concat(targa.MimeTypes).Distinct().ToArray();
-		var fileExtensions = targa.FileExtensions.Select(static e => e[0] == '.' ? e : string.Concat(".", e)).ToArray();
+		string[] mimeTypes = new[] { targa.DefaultMimeType }.Concat(targa.MimeTypes).Distinct().ToArray();
+		string[] fileExtensions = targa.FileExtensions.Select(static e => e[0] == '.' ? e : string.Concat(".", e)).ToArray();
 
 		codecs.Add(new DecoderInfo(
 			$"{nameof(SixLabors.ImageSharp)} {targa.Name}",
 			mimeTypes,
 			fileExtensions,
-			new[] { new ContainerPattern(0, new byte[] { 0, 0, 0 }, new byte[] { 0, 0b_1111_1110, 0b_1111_0100 }) },
+			[ new ContainerPattern(0, [ 0, 0, 0 ], [ 0, 0b_1111_1110, 0b_1111_0100 ]) ],
 			null,
 			TargaContainer.TryLoad
 		));
@@ -239,7 +237,7 @@ public static class CodecCollectionExtensions
 			$"{nameof(SixLabors.ImageSharp)} {targa.Name}",
 			mimeTypes,
 			fileExtensions,
-			new[] { PixelFormats.Grey8bpp, PixelFormats.Bgr24bpp, PixelFormats.Bgra32bpp },
+			[ PixelFormats.Grey8bpp, PixelFormats.Bgr24bpp, PixelFormats.Bgra32bpp ],
 			TargaEncoderOptions.Default,
 			TargaEncoder.Create,
 			false,

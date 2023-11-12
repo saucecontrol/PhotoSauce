@@ -598,13 +598,11 @@ internal sealed class OrientationTransformInternal : ChainedPixelSource
 }
 
 /// <summary>Transforms an image by changing its column/row order according to an <see cref="Orientation" /> value.</summary>
-public sealed class OrientationTransform : PixelTransformInternalBase
+/// <remarks>Creates a new transform with the specified <paramref name="orientation" /> value.</remarks>
+/// <param name="orientation">The <see cref="Orientation" /> correction to apply to the image.</param>
+public sealed class OrientationTransform(Orientation orientation) : PixelTransformInternalBase
 {
-	private readonly Orientation orientation;
-
-	/// <summary>Creates a new transform with the specified <paramref name="orientation" /> value.</summary>
-	/// <param name="orientation">The <see cref="Orientation" /> correction to apply to the image.</param>
-	public OrientationTransform(Orientation orientation) => this.orientation = orientation;
+	private readonly Orientation orientation = orientation;
 
 	internal override void Init(PipelineContext ctx)
 	{

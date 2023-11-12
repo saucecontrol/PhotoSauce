@@ -293,7 +293,7 @@ internal sealed unsafe class WebpEncoder : IAnimatedImageEncoder
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int MemoryWriter(byte* data, nuint data_size, WebPPicture* picture);
 	private static readonly MemoryWriter delMemoryWrite = typeof(WebpEncoder).CreateMethodDelegate<MemoryWriter>(nameof(memoryWriterCallback));
 #else
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvCdecl) ])]
 	static
 #endif
 	private int memoryWriterCallback(byte* data, nuint data_size, WebPPicture* picture) => WebPMemoryWrite(data, data_size, picture);

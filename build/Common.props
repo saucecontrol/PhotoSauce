@@ -17,7 +17,7 @@
 		<PackageProjectUrl>https://photosauce.net</PackageProjectUrl>
 		<PackageReleaseNotes>See $(RepositoryUrl)/releases for release-specific notes.</PackageReleaseNotes>
 
-		<LangVersion>11</LangVersion>
+		<LangVersion>12</LangVersion>
 		<WarningLevel>7</WarningLevel>
 		<Features>strict</Features>
 		<Nullable>annotations</Nullable>

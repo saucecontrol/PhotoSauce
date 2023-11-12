@@ -1,6 +1,6 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
-#pragma warning disable IDE0060
+#pragma warning disable IDE0060, IDE0251
 
 using System;
 using System.IO;
@@ -41,7 +41,7 @@ internal unsafe struct IStreamImpl
 	}
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvStdcall) ])]
 	static
 #endif
 	private int queryInterface(IStream* pinst, Guid* riid, void** ppvObject)
@@ -60,13 +60,13 @@ internal unsafe struct IStreamImpl
 	}
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvStdcall) ])]
 	static
 #endif
 	private uint addRef(IStream* pinst) => (uint)Interlocked.Increment(ref ((IStreamImpl*)pinst)->refCount);
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvStdcall) ])]
 	static
 #endif
 	private uint release(IStream* pinst)
@@ -85,7 +85,7 @@ internal unsafe struct IStreamImpl
 	}
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvStdcall) ])]
 	static
 #endif
 	private int read(IStream* pinst, void* pv, uint cb, uint* pcbRead)
@@ -115,7 +115,7 @@ internal unsafe struct IStreamImpl
 	}
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvStdcall) ])]
 	static
 #endif
 	private int write(IStream* pinst, void* pv, uint cb, uint* pcbWritten)
@@ -134,7 +134,7 @@ internal unsafe struct IStreamImpl
 	}
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvStdcall) ])]
 	static
 #endif
 	private int seek(IStream* pinst, LARGE_INTEGER dlibMove, uint dwOrigin, ULARGE_INTEGER* plibNewPosition)
@@ -164,7 +164,7 @@ internal unsafe struct IStreamImpl
 	}
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvStdcall) ])]
 	static
 #endif
 	private int setSize(IStream* pinst, ULARGE_INTEGER libNewSize)
@@ -177,13 +177,13 @@ internal unsafe struct IStreamImpl
 	}
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvStdcall) ])]
 	static
 #endif
 	private int copyTo(IStream* pinst, IStream* pstm, ULARGE_INTEGER cb, ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten) => E_NOTIMPL;
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvStdcall) ])]
 	static
 #endif
 	private int commit(IStream* pinst, uint grfCommitFlags)
@@ -195,25 +195,25 @@ internal unsafe struct IStreamImpl
 	}
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvStdcall) ])]
 	static
 #endif
 	private int revert(IStream* pinst) => E_NOTIMPL;
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvStdcall) ])]
 	static
 #endif
 	private int lockRegion(IStream* pinst, ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, uint dwLockType) => E_NOTIMPL;
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvStdcall) ])]
 	static
 #endif
 	private int unlockRegion(IStream* pinst, ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, uint dwLockType) => E_NOTIMPL;
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvStdcall) ])]
 	static
 #endif
 	private int stat(IStream* pinst, STATSTG* pstatstg, uint grfStatFlag)
@@ -226,7 +226,7 @@ internal unsafe struct IStreamImpl
 	}
 
 #if NET5_0_OR_GREATER
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvStdcall) ])]
 	static
 #endif
 	private int clone(IStream* pinst, IStream** ppstm) => E_NOTIMPL;

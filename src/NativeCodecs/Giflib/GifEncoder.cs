@@ -204,7 +204,7 @@ internal sealed unsafe class GifEncoder : IAnimatedImageEncoder
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int WriteCallback(GifFileType* pinst, byte* buff, int cb);
 	private static readonly WriteCallback delWriteCallback = typeof(GifEncoder).CreateMethodDelegate<WriteCallback>(nameof(writeCallback));
 #else
-	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvCdecl) ])]
 	static
 #endif
 	private int writeCallback(GifFileType* pinst, byte* buff, int cb)

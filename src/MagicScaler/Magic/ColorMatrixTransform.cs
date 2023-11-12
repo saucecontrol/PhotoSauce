@@ -158,10 +158,10 @@ internal sealed class ColorMatrixTransformInternal : ChainedPixelSource
 	{
 		int chan = Format.ChannelCount;
 
-		var vm0 = Unsafe.ReadUnaligned<Vector128<float>>(ref Unsafe.As<float, byte>(ref Unsafe.AsRef(vec0.X)));
-		var vm1 = Unsafe.ReadUnaligned<Vector128<float>>(ref Unsafe.As<float, byte>(ref Unsafe.AsRef(vec1.X)));
-		var vm2 = Unsafe.ReadUnaligned<Vector128<float>>(ref Unsafe.As<float, byte>(ref Unsafe.AsRef(vec2.X)));
-		var vm3 = Unsafe.ReadUnaligned<Vector128<float>>(ref Unsafe.As<float, byte>(ref Unsafe.AsRef(vec3.X)));
+		var vm0 = Unsafe.ReadUnaligned<Vector128<float>>(ref Unsafe.As<float, byte>(ref Unsafe.AsRef(in vec0.X)));
+		var vm1 = Unsafe.ReadUnaligned<Vector128<float>>(ref Unsafe.As<float, byte>(ref Unsafe.AsRef(in vec1.X)));
+		var vm2 = Unsafe.ReadUnaligned<Vector128<float>>(ref Unsafe.As<float, byte>(ref Unsafe.AsRef(in vec2.X)));
+		var vm3 = Unsafe.ReadUnaligned<Vector128<float>>(ref Unsafe.As<float, byte>(ref Unsafe.AsRef(in vec3.X)));
 
 		var vml0 = Sse.UnpackLow (vm0, vm1).AsDouble();
 		var vmh0 = Sse.UnpackHigh(vm0, vm1).AsDouble();
@@ -231,13 +231,11 @@ internal sealed class ColorMatrixTransformInternal : ChainedPixelSource
 
 /// <summary>Transforms an image according to coefficients in a <see cref="Matrix4x4" />.</summary>
 /// <remarks>The matrix is treated as 3x4, with the 4th row used for translation.</remarks>
-public sealed class ColorMatrixTransform : PixelTransformInternalBase
+/// <remarks>Constructs a new <see cref="ColorMatrixTransform" /> using the specified <paramref name="matrix" />.</remarks>
+/// <param name="matrix">A 4x4 matrix of coefficients.  The channel order is RGB, column-major.</param>
+public sealed class ColorMatrixTransform(Matrix4x4 matrix) : PixelTransformInternalBase
 {
-	private readonly Matrix4x4 matrix;
-
-	/// <summary>Constructs a new <see cref="ColorMatrixTransform" /> using the specified <paramref name="matrix" />.</summary>
-	/// <param name="matrix">A 4x4 matrix of coefficients.  The channel order is RGB, column-major.</param>
-	public ColorMatrixTransform(Matrix4x4 matrix) => this.matrix = matrix;
+	private readonly Matrix4x4 matrix = matrix;
 
 	internal override void Init(PipelineContext ctx)
 	{

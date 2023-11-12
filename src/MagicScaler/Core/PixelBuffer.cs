@@ -5,19 +5,19 @@ using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler;
 
-internal sealed class PixelBuffer<T> : IDisposable where T : struct, BufferType
+internal sealed class PixelBuffer<T>(int minLines, int stride, T param = default) : IDisposable where T : struct, BufferType
 {
-	private readonly T tval;
+	private readonly T tval = param;
 
-	private int capacity;
+	private int capacity = minLines;
+	private int read = typeof(T) == typeof(BufferType.Windowed) ? minLines : 0;
 	private int start;
 	private int loaded;
-	private int read;
 
 	private byte[]? buffArray;
 	private byte buffOffset;
 
-	public readonly int Stride;
+	public readonly int Stride = stride;
 
 	private int buffLength
 	{
@@ -50,14 +50,6 @@ internal sealed class PixelBuffer<T> : IDisposable where T : struct, BufferType
 			if (typeof(T) != typeof(BufferType.Windowed))
 				read = value;
 		}
-	}
-
-	public PixelBuffer(int minLines, int stride, T param = default)
-	{
-		capacity = minLines;
-		Stride = stride;
-		tval = param;
-		read = typeof(T) == typeof(BufferType.Windowed) ? minLines : 0;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -222,5 +214,5 @@ internal interface BufferType
 {
 	public readonly struct Caching : BufferType { }
 	public readonly struct Sliding : BufferType { }
-	public readonly struct Windowed : BufferType { public readonly int Window; public Windowed(int w) => Window = w; }
+	public readonly struct Windowed(int w) : BufferType { public readonly int Window = w; }
 }

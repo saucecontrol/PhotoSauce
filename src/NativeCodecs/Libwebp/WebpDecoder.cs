@@ -403,17 +403,15 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 		}
 	}
 
-	private sealed class WebpRgbFrame : WebpFrame
+	private sealed class WebpRgbFrame(WebpContainer cont, WebPBitstreamFeatures feat, int index, bool alpha) : WebpFrame(cont, feat, index)
 	{
-		private readonly WebpPlane plane;
+		private readonly WebpPlane plane = alpha ? WebpPlane.Bgra : WebpPlane.Bgr;
 		private PixelSource? pixsrc;
 
 		public override IPixelSource PixelSource => pixsrc ??= new WebpDecBufferPixelSource(this, plane);
-
-		public WebpRgbFrame(WebpContainer cont, WebPBitstreamFeatures feat, int index, bool alpha) : base(cont, feat, index) => plane = alpha ? WebpPlane.Bgra : WebpPlane.Bgr;
 	}
 
-	private sealed class WebpYuvFrame : WebpFrame, IYccImageFrame
+	private sealed class WebpYuvFrame(WebpContainer cont, WebPBitstreamFeatures feat, int index) : WebpFrame(cont, feat, index), IYccImageFrame
 	{
 		private PixelSource? ysrc, usrc, vsrc;
 
@@ -424,7 +422,5 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 		public override IPixelSource PixelSource => ysrc ??= new WebpDecBufferPixelSource(this, WebpPlane.Y);
 		public IPixelSource PixelSourceCb => usrc ??= new WebpDecBufferPixelSource(this, WebpPlane.U);
 		public IPixelSource PixelSourceCr => vsrc ??= new WebpDecBufferPixelSource(this, WebpPlane.V);
-
-		public WebpYuvFrame(WebpContainer cont, WebPBitstreamFeatures feat, int index) : base(cont, feat, index) { }
 	}
 }

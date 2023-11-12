@@ -65,8 +65,8 @@ public static class CodecCollectionExtensions
 	{
 		ThrowHelper.ThrowIfNull(codecs);
 
-		var gifMime = new[] { ImageMimeTypes.Gif };
-		var gifExtension = new[] { ImageFileExtensions.Gif };
+		string[] gifMime = [ ImageMimeTypes.Gif ];
+		string[] gifExtension = [ ImageFileExtensions.Gif ];
 
 		if (removeExisting)
 		{
@@ -79,8 +79,8 @@ public static class CodecCollectionExtensions
 			gifMime,
 			gifExtension,
 			new ContainerPattern[] {
-				new(0, new byte[] { (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'7', (byte)'a' }, new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }),
-				new(0, new byte[] { (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'9', (byte)'a' }, new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }),
+				new(0, [ (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'7', (byte)'a' ], [ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff ]),
+				new(0, [ (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'9', (byte)'a' ], [ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff ]),
 			},
 			null,
 			GifContainer.TryLoad
@@ -89,7 +89,7 @@ public static class CodecCollectionExtensions
 			GifFactory.DisplayName,
 			gifMime,
 			gifExtension,
-			new[] { PixelFormat.Indexed8.FormatGuid },
+			[ PixelFormat.Indexed8.FormatGuid ],
 			GifEncoderOptions.Default,
 			GifEncoder.Create,
 			true,

@@ -80,23 +80,19 @@ internal abstract class PixelSource : IPixelSource, IProfileSource, IDisposable
 	}
 }
 
-internal sealed class PixelSourceFrame : IImageFrame
+internal sealed class PixelSourceFrame(IPixelSource source) : IImageFrame
 {
-	public IPixelSource PixelSource { get; }
-
-	public PixelSourceFrame(IPixelSource source) => PixelSource = source;
+	public IPixelSource PixelSource { get; } = source;
 
 	public void Dispose() { }
 }
 
-internal sealed class PixelSourceContainer : IImageContainer
+internal sealed class PixelSourceContainer(IPixelSource source) : IImageContainer
 {
-	private readonly IPixelSource pixelSource;
+	private readonly IPixelSource pixelSource = source;
 
 	public string? MimeType => null;
 	public int FrameCount => 1;
-
-	public PixelSourceContainer(IPixelSource source) => pixelSource = source;
 
 	public IImageFrame GetFrame(int index) => index == 0 ? new PixelSourceFrame(pixelSource) : throw new ArgumentOutOfRangeException(nameof(index));
 

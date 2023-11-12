@@ -156,7 +156,7 @@ public static class WindowsCodecExtensions
 					if (mime is ImageMimeTypes.Jpeg)
 					{
 						var subs = new[] { ChromaSubsampleMode.Subsample420, ChromaSubsampleMode.Subsample422, ChromaSubsampleMode.Subsample444 };
-						pix = pix.Concat(new[] { PixelFormat.Y8.FormatGuid, PixelFormat.Cb8.FormatGuid, PixelFormat.Cr8.FormatGuid }).ToArray();
+						pix = pix.Concat([ PixelFormat.Y8.FormatGuid, PixelFormat.Cb8.FormatGuid, PixelFormat.Cr8.FormatGuid ]).ToArray();
 						encinfo = new PlanarEncoderInfo(name, mimes, extensions, pix, options, (stm, opt) => new WicImageEncoder(clsid, mime, stm, opt), mult, anim, prof, subs, ChromaPosition.Center, YccMatrix.Rec601, false);
 					}
 

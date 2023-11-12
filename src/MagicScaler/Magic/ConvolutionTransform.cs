@@ -262,10 +262,8 @@ internal class ConvolutionTransform<TPixel, TWeight, TConv> : ChainedPixelSource
 	public override string? ToString() => $"{XProcessor}: {Format.Name}";
 }
 
-internal sealed class DirectConvolutionTransform<TPixel, TWeight> : ConvolutionTransform<TPixel, TWeight, ConvolutionType.Direct> where TPixel : unmanaged where TWeight : unmanaged
-{
-	public DirectConvolutionTransform(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy) : base(source, mapx, mapy) { }
-}
+internal sealed class DirectConvolutionTransform<TPixel, TWeight>(PixelSource source, KernelMap<TWeight> mapx, KernelMap<TWeight> mapy)
+	: ConvolutionTransform<TPixel, TWeight, ConvolutionType.Direct>(source, mapx, mapy) where TPixel : unmanaged where TWeight : unmanaged { }
 
 internal sealed class UnsharpMaskTransform<TPixel, TWeight> : ConvolutionTransform<TPixel, TWeight, ConvolutionType.Buffered> where TPixel : unmanaged where TWeight : unmanaged
 {
@@ -365,20 +363,15 @@ internal static class ConvolutionTransform
 
 internal interface ConvolutionType
 {
-	public readonly struct Direct : ConvolutionType
+	public readonly struct Direct(RentedBuffer<byte> buff) : ConvolutionType
 	{
-		public readonly RentedBuffer<byte> LineBuff;
-
-		public Direct(RentedBuffer<byte> buff) => LineBuff = buff;
+		public readonly RentedBuffer<byte> LineBuff = buff;
 	}
 
-	public readonly struct Buffered : ConvolutionType
+	public readonly struct Buffered(PixelBuffer<BufferType.Sliding> src, PixelBuffer<BufferType.Sliding>? work, IConversionProcessor? conv) : ConvolutionType
 	{
-		public readonly PixelBuffer<BufferType.Sliding> SrcBuff;
-		public readonly PixelBuffer<BufferType.Sliding>? WorkBuff;
-		public readonly IConversionProcessor? Converter;
-
-		public Buffered(PixelBuffer<BufferType.Sliding> src, PixelBuffer<BufferType.Sliding>? work, IConversionProcessor? conv) =>
-			(SrcBuff, WorkBuff, Converter) = (src, work, conv);
+		public readonly PixelBuffer<BufferType.Sliding> SrcBuff = src;
+		public readonly PixelBuffer<BufferType.Sliding>? WorkBuff = work;
+		public readonly IConversionProcessor? Converter = conv;
 	}
 }

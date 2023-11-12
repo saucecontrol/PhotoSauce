@@ -55,8 +55,8 @@ public static class CodecCollectionExtensions
 	{
 		ThrowHelper.ThrowIfNull(codecs);
 
-		var jpegMime = new[] { ImageMimeTypes.Jpeg };
-		var jpegExtension = new[] { ImageFileExtensions.Jpeg, ".jpg" };
+		string[] jpegMime = [ ImageMimeTypes.Jpeg ];
+		string[] jpegExtension = [ ImageFileExtensions.Jpeg, ".jpg" ];
 
 		if (removeExisting)
 		{
@@ -69,7 +69,7 @@ public static class CodecCollectionExtensions
 			jpegMime,
 			jpegExtension,
 			new ContainerPattern[] {
-				new(0, new byte[] { 0xff, 0xd8 }, new byte[] { 0xff, 0xff }),
+				new(0, [ 0xff, 0xd8 ], [ 0xff, 0xff ]),
 			},
 			null,
 			JpegContainer.TryLoad
@@ -78,13 +78,13 @@ public static class CodecCollectionExtensions
 			JpegFactory.DisplayName,
 			jpegMime,
 			jpegExtension,
-			new[] { PixelFormat.Grey8.FormatGuid, PixelFormat.Bgr24.FormatGuid, PixelFormat.Y8.FormatGuid, PixelFormat.Cb8.FormatGuid, PixelFormat.Cr8.FormatGuid },
+			[ PixelFormat.Grey8.FormatGuid, PixelFormat.Bgr24.FormatGuid, PixelFormat.Y8.FormatGuid, PixelFormat.Cb8.FormatGuid, PixelFormat.Cr8.FormatGuid ],
 			JpegEncoderOptions.Default,
 			JpegEncoder.Create,
 			false,
 			false,
 			true,
-			new[] { ChromaSubsampleMode.Subsample420, ChromaSubsampleMode.Subsample422, ChromaSubsampleMode.Subsample444 },
+			[ ChromaSubsampleMode.Subsample420, ChromaSubsampleMode.Subsample422, ChromaSubsampleMode.Subsample444 ],
 			ChromaPosition.Center,
 			YccMatrix.Rec601,
 			false
