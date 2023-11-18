@@ -3,8 +3,6 @@
 using System;
 using System.IO;
 using System.Drawing;
-using System.Runtime.InteropServices;
-using System.Runtime.CompilerServices;
 
 using PhotoSauce.MagicScaler;
 using PhotoSauce.Interop.Libjpeg;
@@ -14,8 +12,6 @@ namespace PhotoSauce.NativeCodecs.Libjpeg;
 
 internal sealed unsafe class JpegEncoder : IImageEncoder
 {
-	private static readonly bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-
 	private readonly ILossyEncoderOptions options;
 
 	private jpeg_compress_struct* handle;
@@ -27,13 +23,20 @@ internal sealed unsafe class JpegEncoder : IImageEncoder
 	{
 		options = jpegOptions as ILossyEncoderOptions ?? JpegEncoderOptions.Default;
 
-		handle = JpegFactory.CreateEncoder();
-		if (handle is null)
+		var stream = StreamWrapper.Wrap(outStream);
+		if (stream is null)
 			ThrowHelper.ThrowOutOfMemory();
 
+		handle = JpegFactory.CreateEncoder();
+		if (handle is null)
+		{
+			StreamWrapper.Free(stream);
+			ThrowHelper.ThrowOutOfMemory();
+		}
+
 		var pcd = (ps_client_data*)handle->client_data;
-		pcd->stream_handle = GCHandle.ToIntPtr(GCHandle.Alloc(outStream));
-		pcd->write_callback = pfnWriteCallback;
+		pcd->stream_handle = (nint)stream;
+		pcd->write_callback = JpegCallbacks.Write;
 		handle->data_precision = 8;
 	}
 
@@ -256,6 +259,8 @@ internal sealed unsafe class JpegEncoder : IImageEncoder
 
 	private void checkResult(int res)
 	{
+		((ps_client_data*)handle->client_data)->Stream->ThrowIfExceptional();
+
 		if (res == FALSE)
 			throw new InvalidOperationException($"{nameof(Libjpeg)} encoder failed. {new string(JpegGetLastError((jpeg_common_struct*)handle))}");
 	}
@@ -266,7 +271,7 @@ internal sealed unsafe class JpegEncoder : IImageEncoder
 			return;
 
 		var pcd = (ps_client_data*)handle->client_data;
-		GCHandle.FromIntPtr(pcd->stream_handle).Free();
+		StreamWrapper.Free(pcd->Stream);
 
 		JpegDestroy((jpeg_common_struct*)handle);
 		handle = null;
@@ -283,33 +288,4 @@ internal sealed unsafe class JpegEncoder : IImageEncoder
 
 		dispose(false);
 	}
-
-#if !NET5_0_OR_GREATER
-	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nuint WriteCallback(nint pinst, byte* buff, nuint cb);
-	private static readonly WriteCallback delWriteCallback = typeof(JpegEncoder).CreateMethodDelegate<WriteCallback>(nameof(writeCallback));
-#else
-	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvCdecl) ])]
-	static
-#endif
-	private nuint writeCallback(nint pinst, byte* buff, nuint cb)
-	{
-		try
-		{
-			var stm = Unsafe.As<Stream>(GCHandle.FromIntPtr(pinst).Target!);
-			stm.Write(new ReadOnlySpan<byte>(buff, checked((int)cb)));
-
-			return cb;
-		}
-		catch when (!isWindows)
-		{
-			return 0;
-		}
-	}
-
-	private static readonly delegate* unmanaged[Cdecl]<nint, byte*, nuint, nuint> pfnWriteCallback =
-#if NET5_0_OR_GREATER
-		&writeCallback;
-#else
-		(delegate* unmanaged[Cdecl]<nint, byte*, nuint, nuint>)Marshal.GetFunctionPointerForDelegate(delWriteCallback);
-#endif
 }

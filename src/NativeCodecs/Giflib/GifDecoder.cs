@@ -3,8 +3,6 @@
 using System;
 using System.IO;
 using System.Buffers.Binary;
-using System.Runtime.InteropServices;
-using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
 
 using PhotoSauce.MagicScaler;
@@ -17,10 +15,6 @@ namespace PhotoSauce.NativeCodecs.Giflib;
 
 internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, IIccProfileSource
 {
-	private static readonly bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-
-	private readonly Stream stream;
-	private readonly long streamStart;
 	private readonly int frameCount, frameOffset;
 	private readonly AnimationContainer animation;
 	public readonly PixelFormat Format;
@@ -33,10 +27,8 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 
 	public bool EOF;
 
-	private GifContainer(GifFileType* pinst, Stream stm, long pos, IDecoderOptions? options)
+	private GifContainer(GifFileType* pinst, IDecoderOptions? options)
 	{
-		stream = stm;
-		streamStart = pos;
 		handle = pinst;
 
 		int loopCount = 1;
@@ -210,14 +202,17 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 
 	public static GifContainer? TryLoad(Stream imgStream, IDecoderOptions? options)
 	{
-		long pos = imgStream.Position;
-		var gch = GCHandle.Alloc(imgStream);
+		var stream = StreamWrapper.Wrap(imgStream);
+		if (stream is null)
+			ThrowHelper.ThrowOutOfMemory();
 
-		var handle = GifFactory.CreateDecoder(GCHandle.ToIntPtr(gch), pfnReadCallback);
+		var handle = GifFactory.CreateDecoder(stream, GifCallbacks.Read);
 		if (handle is not null)
-			return new GifContainer(handle, imgStream, pos, options);
+			return new GifContainer(handle, options);
 
-		gch.Free();
+		stream->Seek(0, SeekOrigin.Begin);
+		StreamWrapper.Free(stream);
+
 		return null;
 	}
 
@@ -233,7 +228,9 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 		if (res == GIF_OK)
 			return;
 
-		if (handle->ImageCount != 0 && stream.Position == stream.Length)
+		handle->Stream->ThrowIfExceptional();
+
+		if (handle->ImageCount != 0 && handle->Stream->IsEof())
 			EOF = true;
 		else
 			throwGifError(handle);
@@ -241,12 +238,13 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 
 	public GifFileType* ResetDecoder(bool keepFrame = false)
 	{
-		var gch = handle->UserData;
+		var stm = handle->Stream;
 		int err;
 		_ = DGifCloseFile(handle, &err);
+		EOF = false;
 
-		RewindStream();
-		handle = GifFactory.CreateDecoder((nint)gch, pfnReadCallback);
+		stm->Seek(0, SeekOrigin.Begin);
+		handle = GifFactory.CreateDecoder(stm, GifCallbacks.Read);
 		if (!keepFrame)
 		{
 			frame = null;
@@ -278,12 +276,6 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 		while (rec != GifRecordType.TERMINATE_RECORD_TYPE && !EOF);
 
 		return handle;
-	}
-
-	public void RewindStream()
-	{
-		stream.Position = streamStart;
-		EOF = false;
 	}
 
 	void IIccProfileSource.CopyProfile(Span<byte> dest) => iccpData.Span.CopyTo(dest);
@@ -328,7 +320,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 		if (handle is null)
 			return;
 
-		GCHandle.FromIntPtr((IntPtr)handle->UserData).Free();
+		StreamWrapper.Free(handle->Stream);
 
 		int err;
 		_ = DGifCloseFile(handle, &err);
@@ -354,35 +346,6 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 
 		dispose(false);
 	}
-
-#if !NET5_0_OR_GREATER
-	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int ReadCallback(GifFileType* pinst, byte* buff, int cb);
-	private static readonly ReadCallback delReadCallback = typeof(GifContainer).CreateMethodDelegate<ReadCallback>(nameof(readCallback));
-#else
-	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvCdecl) ])]
-	static
-#endif
-	private int readCallback(GifFileType* pinst, byte* buff, int cb)
-	{
-		try
-		{
-			var stm = Unsafe.As<Stream>(GCHandle.FromIntPtr((IntPtr)pinst->UserData).Target!);
-			cb = stm.TryFillBuffer(new Span<byte>(buff, cb));
-
-			return cb;
-		}
-		catch when (!isWindows)
-		{
-			return 0;
-		}
-	}
-
-	private static readonly delegate* unmanaged[Cdecl]<GifFileType*, byte*, int, int> pfnReadCallback =
-#if NET5_0_OR_GREATER
-		&readCallback;
-#else
-		(delegate* unmanaged[Cdecl]<GifFileType*, byte*, int, int>)Marshal.GetFunctionPointerForDelegate(delReadCallback);
-#endif
 }
 
 internal sealed unsafe class GifFrame : IImageFrame, IMetadataSource

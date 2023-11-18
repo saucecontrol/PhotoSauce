@@ -157,7 +157,7 @@ internal sealed unsafe class WebpEncoder : IAnimatedImageEncoder
 				}
 			}
 
-			picture.writer = pfnMemoryWrite;
+			picture.writer = WebpCallbacks.MemoryWrite;
 			picture.custom_ptr = &writer;
 
 			if (WebPEncode(&config, &picture) == 0)
@@ -288,29 +288,6 @@ internal sealed unsafe class WebpEncoder : IAnimatedImageEncoder
 
 		dispose(false);
 	}
-
-#if !NET5_0_OR_GREATER
-	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int MemoryWriter(byte* data, nuint data_size, WebPPicture* picture);
-	private static readonly MemoryWriter delMemoryWrite = typeof(WebpEncoder).CreateMethodDelegate<MemoryWriter>(nameof(memoryWriterCallback));
-#else
-	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvCdecl) ])]
-	static
-#endif
-	private int memoryWriterCallback(byte* data, nuint data_size, WebPPicture* picture) => WebPMemoryWrite(data, data_size, picture);
-
-	private static delegate* unmanaged[Cdecl]<byte*, nuint, WebPPicture*, int> getMemoryWriterCallback()
-	{
-#if NET5_0_OR_GREATER
-		if (NativeLibrary.TryLoad("webp", out var lib) && NativeLibrary.TryGetExport(lib, nameof(WebPMemoryWrite), out var addr))
-			return (delegate* unmanaged[Cdecl]<byte*, nuint, WebPPicture*, int>)addr;
-
-		return &memoryWriterCallback;
-#else
-		return (delegate* unmanaged[Cdecl]<byte*, nuint, WebPPicture*, int>)Marshal.GetFunctionPointerForDelegate(delMemoryWrite);
-#endif
-	}
-
-	private static readonly delegate* unmanaged[Cdecl]<byte*, nuint, WebPPicture*, int> pfnMemoryWrite = getMemoryWriterCallback();
 
 	private class NullChromaPixelSource : IPixelSource
 	{

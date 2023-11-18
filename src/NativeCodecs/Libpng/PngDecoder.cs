@@ -2,7 +2,6 @@
 
 using System;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
 
@@ -15,10 +14,6 @@ namespace PhotoSauce.NativeCodecs.Libpng;
 
 internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, IIccProfileSource, IExifSource
 {
-	private static readonly bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-
-	private readonly Stream stream;
-	private readonly long streamStart;
 	private readonly bool interlace, expand, strip, torgb, skip;
 	private readonly int frameCount, frameOffset;
 	public readonly int Width, Height;
@@ -30,10 +25,8 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 
 	public bool EOF;
 
-	private PngContainer(ps_png_struct* pinst, Stream stm, long pos, IDecoderOptions? opt)
+	private PngContainer(ps_png_struct* pinst, IDecoderOptions? opt)
 	{
-		stream = stm;
-		streamStart = pos;
 		handle = pinst;
 
 		uint w, h;
@@ -143,21 +136,27 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 
 	public static PngContainer? TryLoad(Stream imgStream, IDecoderOptions? options)
 	{
-		long pos = imgStream.Position;
-		var handle = PngFactory.CreateDecoder();
-		if (handle is null)
+		var stream = StreamWrapper.Wrap(imgStream);
+		if (stream is null)
 			ThrowHelper.ThrowOutOfMemory();
 
+		var handle = PngFactory.CreateDecoder();
+		if (handle is null)
+		{
+			StreamWrapper.Free(stream);
+			ThrowHelper.ThrowOutOfMemory();
+		}
+
 		var iod = handle->io_ptr;
-		iod->stream_handle = GCHandle.ToIntPtr(GCHandle.Alloc(imgStream));
-		iod->read_callback = pfnReadCallback;
+		iod->stream_handle = (nint)stream;
+		iod->read_callback = PngCallbacks.Read;
 
 		if (PngReadInfo(handle) == TRUE)
-			return new PngContainer(handle, imgStream, pos, options);
+			return new PngContainer(handle, options);
 
-		imgStream.Position = pos;
-		GCHandle.FromIntPtr(iod->stream_handle).Free();
 		PngDestroyRead(handle);
+		stream->Seek(0, SeekOrigin.Begin);
+		StreamWrapper.Free(stream);
 
 		return null;
 	}
@@ -174,7 +173,9 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 		if (res == TRUE)
 			return;
 
-		if (stream.Position == stream.Length)
+		handle->io_ptr->Stream->ThrowIfExceptional();
+
+		if (handle->io_ptr->Stream->IsEof())
 			EOF = true;
 		else
 			throwPngError(handle);
@@ -184,7 +185,9 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 	{
 		var handle = GetHandle();
 
-		RewindStream();
+		handle->io_ptr->Stream->Seek(0, SeekOrigin.Begin);
+		EOF = false;
+
 		CheckResult(PngResetRead(handle));
 		CheckResult(PngReadInfo(handle));
 		setupDecoder(handle);
@@ -194,12 +197,6 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 				CheckResult(PngReadFrameHead(handle));
 		else
 			frame = null;
-	}
-
-	public void RewindStream()
-	{
-		stream.Position = streamStart;
-		EOF = false;
 	}
 
 	void IIccProfileSource.CopyProfile(Span<byte> dest) => getIccp().CopyTo(dest);
@@ -293,7 +290,7 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 			GC.SuppressFinalize(this);
 		}
 
-		GCHandle.FromIntPtr(handle->io_ptr->stream_handle).Free();
+		StreamWrapper.Free(handle->io_ptr->Stream);
 		PngDestroyRead(handle);
 		handle = null;
 	}
@@ -306,35 +303,6 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 
 		dispose(false);
 	}
-
-#if !NET5_0_OR_GREATER
-	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nuint ReadCallback(nint pinst, byte* buff, nuint cb);
-	private static readonly ReadCallback delReadCallback = typeof(PngContainer).CreateMethodDelegate<ReadCallback>(nameof(readCallback));
-#else
-	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvCdecl) ])]
-	static
-#endif
-	private nuint readCallback(nint pinst, byte* buff, nuint cb)
-	{
-		try
-		{
-			var stm = Unsafe.As<Stream>(GCHandle.FromIntPtr(pinst).Target!);
-			cb = (uint)stm.TryFillBuffer(new Span<byte>(buff, checked((int)cb)));
-
-			return cb;
-		}
-		catch when (!isWindows)
-		{
-			return unchecked((nuint)~0ul);
-		}
-	}
-
-	private static readonly delegate* unmanaged[Cdecl]<nint, byte*, nuint, nuint> pfnReadCallback =
-#if NET5_0_OR_GREATER
-		&readCallback;
-#else
-		(delegate* unmanaged[Cdecl]<nint, byte*, nuint, nuint>)Marshal.GetFunctionPointerForDelegate(delReadCallback);
-#endif
 }
 
 internal sealed unsafe class PngFrame : IImageFrame, IMetadataSource

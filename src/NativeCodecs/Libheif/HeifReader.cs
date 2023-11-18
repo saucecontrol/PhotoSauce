@@ -3,7 +3,10 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Runtime.ExceptionServices;
+#if NET5_0_OR_GREATER
 using System.Runtime.CompilerServices;
+#endif
 
 using PhotoSauce.MagicScaler;
 
@@ -11,47 +14,20 @@ namespace PhotoSauce.Interop.Libheif;
 
 internal readonly unsafe struct HeifReader
 {
-	private static readonly bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-
-	private readonly GCHandle source;
-	private readonly uint offset;
-
-	private HeifReader(Stream managedSource, uint offs = 0)
-	{
-		source = GCHandle.Alloc(managedSource, GCHandleType.Weak);
-		offset = offs;
-	}
-
-	public static HeifReader* Wrap(Stream managedSource, uint offs = 0)
-	{
-		var pinst = UnsafeUtil.NativeAlloc<HeifReader>();
-		*pinst = new(managedSource, offs);
-
-		return pinst;
-	}
-
-	public static void Free(HeifReader* pinst)
-	{
-		pinst->source.Free();
-		*pinst = default;
-		UnsafeUtil.NativeFree(pinst);
-	}
-
 #if NET5_0_OR_GREATER
 	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvCdecl) ])]
 	static
 #endif
 	private long getPosition(void* pinst)
 	{
+		var stm = (StreamWrapper*)pinst;
 		try
 		{
-			var rdr = (HeifReader*)pinst;
-			var stm = Unsafe.As<Stream>(rdr->source.Target!);
-
-			return stm.Position - rdr->offset;
+			return stm->Seek(0, SeekOrigin.Current);
 		}
-		catch when (!isWindows)
+		catch (Exception ex) when (StreamWrapper.CaptureExceptions)
 		{
+			stm->SetException(ExceptionDispatchInfo.Capture(ex));
 			return -1;
 		}
 	}
@@ -62,31 +38,15 @@ internal readonly unsafe struct HeifReader
 #endif
 	private int read(void* pv, nuint cb, void* pinst)
 	{
+		var stm = (StreamWrapper*)pinst;
 		try
 		{
-			var rdr = (HeifReader*)pinst;
-			var stm = Unsafe.As<Stream>(rdr->source.Target!);
-			nuint read = 0;
-
-			if (cb == 1)
-			{
-				int res = stm.ReadByte();
-				if (res >= 0)
-				{
-					*(byte*)pv = (byte)res;
-					read = cb;
-				}
-			}
-			else
-			{
-				var buff = new Span<byte>(pv, checked((int)cb));
-				read = (uint)stm.TryFillBuffer(buff);
-			}
-
+			uint read = stm->Read(pv, checked((uint)cb));
 			return read == cb ? 0 : 1;
 		}
-		catch when (!isWindows)
+		catch (Exception ex) when (StreamWrapper.CaptureExceptions)
 		{
+			stm->SetException(ExceptionDispatchInfo.Capture(ex));
 			return -1;
 		}
 	}
@@ -97,22 +57,15 @@ internal readonly unsafe struct HeifReader
 #endif
 	private int seek(long npos, void* pinst)
 	{
+		var stm = (StreamWrapper*)pinst;
 		try
 		{
-			var rdr = (HeifReader*)pinst;
-			var stm = Unsafe.As<Stream>(rdr->source.Target!);
-			long cpos = stm.Position - rdr->offset;
-
-			if (cpos != npos)
-			{
-				npos += rdr->offset;
-				cpos = stm.Seek(npos, SeekOrigin.Begin);
-			}
-
+			long cpos = stm->Seek(npos, SeekOrigin.Begin);
 			return cpos == npos ? 0 : 1;
 		}
-		catch when (!isWindows)
+		catch (Exception ex) when (StreamWrapper.CaptureExceptions)
 		{
+			stm->SetException(ExceptionDispatchInfo.Capture(ex));
 			return -1;
 		}
 	}
@@ -123,17 +76,16 @@ internal readonly unsafe struct HeifReader
 #endif
 	private heif_reader_grow_status waitForLength(long len, void* pinst)
 	{
+		var stm = (StreamWrapper*)pinst;
 		try
 		{
-			var rdr = (HeifReader*)pinst;
-			var stm = Unsafe.As<Stream>(rdr->source.Target!);
-
-			return len > stm.Length - rdr->offset
+			return stm->IsPastEnd(len)
 				? heif_reader_grow_status.heif_reader_grow_status_size_beyond_eof
 				: heif_reader_grow_status.heif_reader_grow_status_size_reached;
 		}
-		catch when (!isWindows)
+		catch (Exception ex) when (StreamWrapper.CaptureExceptions)
 		{
+			stm->SetException(ExceptionDispatchInfo.Capture(ex));
 			return (heif_reader_grow_status)(-1);
 		}
 	}

@@ -15,15 +15,13 @@ namespace PhotoSauce.NativeCodecs.Libheif;
 internal sealed unsafe class HeifContainer : IImageContainer
 {
 	private readonly string ftype;
-	private readonly Stream stream;
 	private void* handle;
-	private HeifReader* reader;
+	private StreamWrapper* stream;
 
-	private HeifContainer(string mime, Stream stm, HeifReader* rdr, void* frm)
+	private HeifContainer(string mime, StreamWrapper* stm, void* frm)
 	{
 		ftype = mime;
 		stream = stm;
-		reader = rdr;
 		handle = frm;
 	}
 
@@ -41,33 +39,44 @@ internal sealed unsafe class HeifContainer : IImageContainer
 
 	public static HeifContainer? TryLoad(Stream imgStream, IDecoderOptions? _)
 	{
-		long stmpos = imgStream.Position;
-
 		byte* buff = stackalloc byte[12];
 		imgStream.FillBuffer(new Span<byte>(buff, 12));
-		imgStream.Position = stmpos;
+		imgStream.Seek(-12, SeekOrigin.Current);
 
 		string mime = HeifFactory.GetMimeType(buff, 12);
 
-		var rdr = HeifReader.Wrap(imgStream);
+		var stream = StreamWrapper.Wrap(imgStream);
+		if (stream is null)
+			ThrowHelper.ThrowOutOfMemory();
+
 		var ctx = HeifFactory.CreateContext();
 
-		if (HeifResult.Succeeded(heif_context_read_from_reader(ctx, HeifReader.Impl, rdr, null)))
+		if (Succeeded(heif_context_read_from_reader(ctx, HeifReader.Impl, stream, null)))
 		{
 			void* hfrm;
-			if (HeifResult.Succeeded(heif_context_get_primary_image_handle(ctx, &hfrm)))
+			if (Succeeded(heif_context_get_primary_image_handle(ctx, &hfrm)))
 			{
 				heif_context_free(ctx);
-				return new HeifContainer(mime, imgStream, rdr, hfrm);
+				return new HeifContainer(mime, stream, hfrm);
 			}
 		}
 
-		imgStream.Position = stmpos;
 		heif_context_free(ctx);
-		HeifReader.Free(rdr);
+		stream->Seek(0, SeekOrigin.Begin);
+		StreamWrapper.Free(stream);
 
 		return null;
 	}
+
+	public void CheckResult(heif_error err)
+	{
+		stream->ThrowIfExceptional();
+
+		if (err.code != heif_error_code.heif_error_Ok)
+			throw new InvalidOperationException(new string(err.message));
+	}
+
+	public static bool Succeeded(heif_error err) => err.code == heif_error_code.heif_error_Ok;
 
 	private void ensureHandle()
 	{
@@ -83,8 +92,8 @@ internal sealed unsafe class HeifContainer : IImageContainer
 		heif_image_handle_release(handle);
 		handle = null;
 
-		HeifReader.Free(reader);
-		reader = null;
+		StreamWrapper.Free(stream);
+		stream = null;
 
 		if (disposing)
 			GC.SuppressFinalize(this);
@@ -141,7 +150,7 @@ internal sealed unsafe class HeifContainer : IImageContainer
 					int blocklen = (int)heif_image_handle_get_metadata_size(container.handle, blockid);
 					exifbuff = BufferPool.Rent<byte>(blocklen);
 					fixed (byte* pbuff = exifbuff)
-						HeifResult.Check(heif_image_handle_get_metadata(container.handle, blockid, pbuff));
+						container.CheckResult(heif_image_handle_get_metadata(container.handle, blockid, pbuff));
 
 					metadata = (T)(object)this;
 					return true;
@@ -159,7 +168,7 @@ internal sealed unsafe class HeifContainer : IImageContainer
 				throw new ArgumentException("Destination too small.", nameof(dest));
 
 			fixed (byte* pcpd = dest)
-				HeifResult.Check(heif_image_handle_get_raw_color_profile(container.handle, pcpd));
+				container.CheckResult(heif_image_handle_get_raw_color_profile(container.handle, pcpd));
 		}
 
 		void IExifSource.CopyExif(Span<byte> dest)
@@ -216,7 +225,7 @@ internal sealed unsafe class HeifContainer : IImageContainer
 			container.ensureHandle();
 
 			void* img;
-			HeifResult.Check(heif_decode_image(container.handle, &img, heif_colorspace.heif_colorspace_RGB, heif_chroma.heif_chroma_interleaved_RGB, null));
+			container.CheckResult(heif_decode_image(container.handle, &img, heif_colorspace.heif_colorspace_RGB, heif_chroma.heif_chroma_interleaved_RGB, null));
 
 			var chan = heif_channel.heif_channel_interleaved;
 			Debug.Assert(heif_image_has_channel(img, chan) != 0);

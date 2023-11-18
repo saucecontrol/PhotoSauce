@@ -40,13 +40,13 @@ internal static unsafe class GifFactory
 		return true;
 	});
 
-	public static GifFileType* CreateDecoder(IntPtr stmHandle, delegate* unmanaged[Cdecl]<GifFileType*, byte*, int, int> readFunc) =>
-		createCodec(CodecType.Decoder, (void*)stmHandle, readFunc);
+	public static GifFileType* CreateDecoder(StreamWrapper* stmHandle, delegate* unmanaged[Cdecl]<GifFileType*, byte*, int, int> readFunc) =>
+		createCodec(CodecType.Decoder, stmHandle, readFunc);
 
-	public static GifFileType* CreateEncoder(IntPtr stmHandle, delegate* unmanaged[Cdecl]<GifFileType*, byte*, int, int> writeFunc) =>
-		createCodec(CodecType.Encoder, (void*)stmHandle, writeFunc);
+	public static GifFileType* CreateEncoder(StreamWrapper* stmHandle, delegate* unmanaged[Cdecl]<GifFileType*, byte*, int, int> writeFunc) =>
+		createCodec(CodecType.Encoder, stmHandle, writeFunc);
 
-	private static GifFileType* createCodec(CodecType codec, void* stmHandle, delegate* unmanaged[Cdecl]<GifFileType*, byte*, int, int> ioFunc)
+	private static GifFileType* createCodec(CodecType codec, StreamWrapper* stmHandle, delegate* unmanaged[Cdecl]<GifFileType*, byte*, int, int> ioFunc)
 	{
 		if (!dependencyValid.Value)
 			return default;

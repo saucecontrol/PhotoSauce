@@ -3,7 +3,6 @@
 using System;
 using System.IO;
 using System.Drawing;
-using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
 using PhotoSauce.MagicScaler;
@@ -15,8 +14,6 @@ namespace PhotoSauce.NativeCodecs.Libpng;
 
 internal sealed unsafe class PngEncoder : IAnimatedImageEncoder
 {
-	private static readonly bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-
 	private readonly IPngEncoderOptions options;
 
 	private ps_png_struct* handle;
@@ -29,13 +26,20 @@ internal sealed unsafe class PngEncoder : IAnimatedImageEncoder
 	{
 		options = pngOptions as IPngEncoderOptions ?? PngEncoderOptions.Default;
 
-		handle = PngFactory.CreateEncoder();
-		if (handle is null)
+		var stream = StreamWrapper.Wrap(outStream);
+		if (stream is null)
 			ThrowHelper.ThrowOutOfMemory();
 
+		handle = PngFactory.CreateEncoder();
+		if (handle is null)
+		{
+			StreamWrapper.Free(stream);
+			ThrowHelper.ThrowOutOfMemory();
+		}
+
 		var iod = handle->io_ptr;
-		iod->stream_handle = GCHandle.ToIntPtr(GCHandle.Alloc(outStream));
-		iod->write_callback = pfnWriteCallback;
+		iod->stream_handle = (nint)stream;
+		iod->write_callback = PngCallbacks.Write;
 	}
 
 	public void WriteAnimationMetadata(IMetadataSource metadata)
@@ -224,6 +228,8 @@ internal sealed unsafe class PngEncoder : IAnimatedImageEncoder
 
 	private void checkResult(int res)
 	{
+		handle->io_ptr->Stream->ThrowIfExceptional();
+
 		if (res == FALSE)
 			throw new InvalidOperationException($"{nameof(Libpng)} encoder failed. {new string(PngGetLastError(handle))}");
 	}
@@ -233,7 +239,7 @@ internal sealed unsafe class PngEncoder : IAnimatedImageEncoder
 		if (handle is null)
 			return;
 
-		GCHandle.FromIntPtr(handle->io_ptr->stream_handle).Free();
+		StreamWrapper.Free(handle->io_ptr->Stream);
 		PngDestroyWrite(handle);
 		handle = null;
 
@@ -249,33 +255,4 @@ internal sealed unsafe class PngEncoder : IAnimatedImageEncoder
 
 		dispose(false);
 	}
-
-#if !NET5_0_OR_GREATER
-	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nuint WriteCallback(nint pinst, byte* buff, nuint cb);
-	private static readonly WriteCallback delWriteCallback = typeof(PngEncoder).CreateMethodDelegate<WriteCallback>(nameof(writeCallback));
-#else
-	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvCdecl) ])]
-	static
-#endif
-	private nuint writeCallback(nint pinst, byte* buff, nuint cb)
-	{
-		try
-		{
-			var stm = Unsafe.As<Stream>(GCHandle.FromIntPtr(pinst).Target!);
-			stm.Write(new ReadOnlySpan<byte>(buff, checked((int)cb)));
-
-			return cb;
-		}
-		catch when (!isWindows)
-		{
-			return 0;
-		}
-	}
-
-	private static readonly delegate* unmanaged[Cdecl]<nint, byte*, nuint, nuint> pfnWriteCallback =
-#if NET5_0_OR_GREATER
-		&writeCallback;
-#else
-		(delegate* unmanaged[Cdecl]<nint, byte*, nuint, nuint>)Marshal.GetFunctionPointerForDelegate(delWriteCallback);
-#endif
 }

@@ -8,7 +8,6 @@ using System.Runtime.InteropServices;
 #endif
 
 using PhotoSauce.MagicScaler;
-using PhotoSauce.Interop.Libheif;
 using static PhotoSauce.Interop.Libheif.Libheif;
 
 namespace PhotoSauce.NativeCodecs.Libheif;
@@ -74,15 +73,4 @@ public static class CodecCollectionExtensions
 			HeifContainer.TryLoad
 		));
 	}
-}
-
-internal static unsafe class HeifResult
-{
-	public static void Check(heif_error err)
-	{
-		if (err.code != heif_error_code.heif_error_Ok)
-			throw new InvalidOperationException(new string(err.message));
-	}
-
-	public static bool Succeeded(heif_error err) => err.code == heif_error_code.heif_error_Ok;
 }

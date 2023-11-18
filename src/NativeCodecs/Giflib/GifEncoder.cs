@@ -16,8 +16,6 @@ namespace PhotoSauce.NativeCodecs.Giflib;
 
 internal sealed unsafe class GifEncoder : IAnimatedImageEncoder
 {
-	private static readonly bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-
 	private GifFileType* handle;
 	private bool written;
 	private AnimationContainer? animation;
@@ -26,12 +24,14 @@ internal sealed unsafe class GifEncoder : IAnimatedImageEncoder
 
 	private GifEncoder(Stream outStream, IEncoderOptions? _)
 	{
-		var gch = GCHandle.Alloc(outStream);
+		var stream = StreamWrapper.Wrap(outStream);
+		if (stream is null)
+			ThrowHelper.ThrowOutOfMemory();
 
-		handle = GifFactory.CreateEncoder(GCHandle.ToIntPtr(gch), pfnWriteCallback);
+		handle = GifFactory.CreateEncoder(stream, GifCallbacks.Write);
 		if (handle is null)
 		{
-			gch.Free();
+			StreamWrapper.Free(stream);
 			ThrowHelper.ThrowOutOfMemory();
 		}
 	}
@@ -165,6 +165,8 @@ internal sealed unsafe class GifEncoder : IAnimatedImageEncoder
 
 	private void checkResult(int res)
 	{
+		handle->Stream->ThrowIfExceptional();
+
 		if (res == GIF_ERROR)
 			throw new InvalidOperationException($"{nameof(Giflib)} encoder failed. {new string(GifErrorString(handle->Error))}");
 	}
@@ -174,7 +176,7 @@ internal sealed unsafe class GifEncoder : IAnimatedImageEncoder
 		if (handle is null)
 			return;
 
-		var gch = GCHandle.FromIntPtr((IntPtr)handle->UserData);
+		var stm = handle->Stream;
 
 		// EGifCloseFile will attempt to write GIF trailer byte before cleaning up.
 		// We prevent that during finalization by taking the file handle away from it.
@@ -185,7 +187,7 @@ internal sealed unsafe class GifEncoder : IAnimatedImageEncoder
 		_ = EGifCloseFile(handle, &err);
 		handle = null;
 
-		gch.Free();
+		StreamWrapper.Free(stm);
 
 		if (disposing)
 			GC.SuppressFinalize(this);
@@ -199,36 +201,4 @@ internal sealed unsafe class GifEncoder : IAnimatedImageEncoder
 
 		dispose(false);
 	}
-
-#if !NET5_0_OR_GREATER
-	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int WriteCallback(GifFileType* pinst, byte* buff, int cb);
-	private static readonly WriteCallback delWriteCallback = typeof(GifEncoder).CreateMethodDelegate<WriteCallback>(nameof(writeCallback));
-#else
-	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvCdecl) ])]
-	static
-#endif
-	private int writeCallback(GifFileType* pinst, byte* buff, int cb)
-	{
-		try
-		{
-			if (pinst->UserData is null)
-				return 0;
-
-			var stm = Unsafe.As<Stream>(GCHandle.FromIntPtr((IntPtr)pinst->UserData).Target!);
-			stm.Write(new ReadOnlySpan<byte>(buff, cb));
-
-			return cb;
-		}
-		catch when (!isWindows)
-		{
-			return 0;
-		}
-	}
-
-	private static readonly delegate* unmanaged[Cdecl]<GifFileType*, byte*, int, int> pfnWriteCallback =
-#if NET5_0_OR_GREATER
-		&writeCallback;
-#else
-		(delegate* unmanaged[Cdecl]<GifFileType*, byte*, int, int>)Marshal.GetFunctionPointerForDelegate(delWriteCallback);
-#endif
 }

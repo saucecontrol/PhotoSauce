@@ -22,20 +22,20 @@ internal unsafe struct IStreamImpl
 {
 	private readonly void** lpVtbl;
 	private readonly GCHandle source;
-	private readonly uint offset;
+	private readonly long offset;
 	private int refCount;
 
-	private IStreamImpl(Stream managedSource, uint offs = 0)
+	private IStreamImpl(Stream managedSource)
 	{
 		lpVtbl = vtblStatic;
-		source = GCHandle.Alloc(managedSource, GCHandleType.Weak);
-		offset = offs;
+		source = GCHandle.Alloc(managedSource);
+		offset = managedSource.Position;
 	}
 
-	public static IStream* Wrap(Stream managedSource, uint offs = 0)
+	public static IStream* Wrap(Stream managedSource)
 	{
 		var pinst = UnsafeUtil.NativeAlloc<IStreamImpl>();
-		*pinst = new(managedSource, offs);
+		*pinst = new(managedSource);
 
 		return (IStream*)pinst;
 	}
@@ -158,7 +158,7 @@ internal unsafe struct IStreamImpl
 			cpos = stm.Seek(npos, (SeekOrigin)dwOrigin);
 
 		if (plibNewPosition is not null)
-			plibNewPosition->QuadPart = (ulong)cpos - pthis->offset;
+			plibNewPosition->QuadPart = (ulong)(cpos - pthis->offset);
 
 		return S_OK;
 	}

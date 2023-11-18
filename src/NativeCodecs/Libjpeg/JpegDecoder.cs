@@ -2,7 +2,6 @@
 
 using System;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
 
@@ -15,19 +14,13 @@ namespace PhotoSauce.NativeCodecs.Libjpeg;
 
 internal sealed unsafe class JpegContainer : IImageContainer
 {
-	private static readonly bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-
 	public readonly IPlanarDecoderOptions Options;
-	private readonly Stream stream;
-	private readonly long streamStart;
 	private jpeg_decompress_struct* handle;
 	private JpegFrame? frame;
 
-	private JpegContainer(jpeg_decompress_struct* pinst, Stream stm, IDecoderOptions? opt)
+	private JpegContainer(jpeg_decompress_struct* pinst, IDecoderOptions? opt)
 	{
 		Options = opt as IPlanarDecoderOptions ?? JpegDecoderOptions.Default;
-		stream = stm;
-		streamStart = stm.Position;
 		handle = pinst;
 		frame = null;
 	}
@@ -46,27 +39,33 @@ internal sealed unsafe class JpegContainer : IImageContainer
 
 	public static JpegContainer? TryLoad(Stream imgStream, IDecoderOptions? options)
 	{
-		long pos = imgStream.Position;
-		var handle = JpegFactory.CreateDecoder();
-		if (handle is null)
+		var stream = StreamWrapper.Wrap(imgStream);
+		if (stream is null)
 			ThrowHelper.ThrowOutOfMemory();
 
+		var handle = JpegFactory.CreateDecoder();
+		if (handle is null)
+		{
+			StreamWrapper.Free(stream);
+			ThrowHelper.ThrowOutOfMemory();
+		}
+
 		var pcd = (ps_client_data*)handle->client_data;
-		pcd->stream_handle = GCHandle.ToIntPtr(GCHandle.Alloc(imgStream));
-		pcd->read_callback = pfnReadCallback;
-		pcd->seek_callback = pfnSeekCallback;
+		pcd->stream_handle = (nint)stream;
+		pcd->read_callback = JpegCallbacks.Read;
+		pcd->seek_callback = JpegCallbacks.Seek;
 
 		int read = JpegReadHeader(handle);
-		imgStream.Position = pos;
+		stream->Seek(0, SeekOrigin.Begin);
 
 		if (read == TRUE && handle->IsValidImage() && handle->data_precision == 8)
 		{
 			JpegAbortDecompress(handle);
 
-			return new JpegContainer(handle, imgStream, options);
+			return new JpegContainer(handle, options);
 		}
 
-		GCHandle.FromIntPtr(pcd->stream_handle).Free();
+		StreamWrapper.Free(pcd->Stream);
 		JpegDestroy((jpeg_common_struct*)handle);
 
 		return null;
@@ -82,11 +81,13 @@ internal sealed unsafe class JpegContainer : IImageContainer
 
 	public void CheckResult(int res)
 	{
+		((ps_client_data*)handle->client_data)->Stream->ThrowIfExceptional();
+
 		if (res == FALSE)
 			throwJpegError(handle);
 	}
 
-	public void RewindStream() => stream.Position = streamStart;
+	public void RewindStream() => ((ps_client_data*)handle->client_data)->Stream->Seek(0, SeekOrigin.Begin);
 
 	[DoesNotReturn]
 	private static void throwJpegError(jpeg_decompress_struct* handle) =>
@@ -98,7 +99,7 @@ internal sealed unsafe class JpegContainer : IImageContainer
 			return;
 
 		var pcd = (ps_client_data*)handle->client_data;
-		GCHandle.FromIntPtr(pcd->stream_handle).Free();
+		StreamWrapper.Free(pcd->Stream);
 
 		JpegDestroy((jpeg_common_struct*)handle);
 		handle = null;
@@ -115,64 +116,6 @@ internal sealed unsafe class JpegContainer : IImageContainer
 
 		dispose(false);
 	}
-
-#if !NET5_0_OR_GREATER
-	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nuint ReadCallback(nint pinst, byte* buff, nuint cb);
-	private static readonly ReadCallback delReadCallback = typeof(JpegContainer).CreateMethodDelegate<ReadCallback>(nameof(readCallback));
-#else
-	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvCdecl) ])]
-	static
-#endif
-	private nuint readCallback(nint pinst, byte* buff, nuint cb)
-	{
-		try
-		{
-			var stm = Unsafe.As<Stream>(GCHandle.FromIntPtr(pinst).Target!);
-			cb = (uint)stm.Read(new Span<byte>(buff, checked((int)cb)));
-
-			return cb;
-		}
-		catch when (!isWindows)
-		{
-			return unchecked((nuint)~0ul);
-		}
-	}
-
-#if !NET5_0_OR_GREATER
-	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nuint SeekCallback(nint pinst, nuint cb);
-	private static readonly SeekCallback delSeekCallback = typeof(JpegContainer).CreateMethodDelegate<SeekCallback>(nameof(seekCallback));
-#else
-	[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvCdecl) ])]
-	static
-#endif
-	private nuint seekCallback(nint pinst, nuint cb)
-	{
-		try
-		{
-			var stm = Unsafe.As<Stream>(GCHandle.FromIntPtr(pinst).Target!);
-			_ = stm.Seek((uint)cb, SeekOrigin.Current);
-
-			return cb;
-		}
-		catch when (!isWindows)
-		{
-			return unchecked((nuint)~0ul);
-		}
-	}
-
-	private static readonly delegate* unmanaged[Cdecl]<nint, byte*, nuint, nuint> pfnReadCallback =
-#if NET5_0_OR_GREATER
-		&readCallback;
-#else
-		(delegate* unmanaged[Cdecl]<nint, byte*, nuint, nuint>)Marshal.GetFunctionPointerForDelegate(delReadCallback);
-#endif
-
-	private static readonly delegate* unmanaged[Cdecl]<nint, nuint, nuint> pfnSeekCallback =
-#if NET5_0_OR_GREATER
-		&seekCallback;
-#else
-		(delegate* unmanaged[Cdecl]<nint, nuint, nuint>)Marshal.GetFunctionPointerForDelegate(delSeekCallback);
-#endif
 }
 
 internal sealed unsafe class JpegFrame : IImageFrame, IPlanarDecoder, IMetadataSource, ICroppedDecoder, IScaledDecoder, IIccProfileSource, IExifSource

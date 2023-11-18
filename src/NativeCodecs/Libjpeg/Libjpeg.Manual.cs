@@ -2,6 +2,11 @@
 
 using System;
 using System.Security;
+using System.Runtime.InteropServices;
+using System.Runtime.ExceptionServices;
+#if NET5_0_OR_GREATER
+using System.Runtime.CompilerServices;
+#endif
 
 using PhotoSauce.MagicScaler;
 
@@ -94,4 +99,102 @@ internal static unsafe partial class Libjpeg
 
 		return si;
 	}
+}
+
+internal unsafe partial struct ps_client_data
+{
+	public readonly StreamWrapper* Stream => (StreamWrapper*)stream_handle;
+}
+
+#if NET5_0_OR_GREATER
+static
+#endif
+internal unsafe class JpegCallbacks
+{
+	public static readonly delegate* unmanaged[Cdecl]<nint, byte*, nuint, nuint> Read =
+#if NET5_0_OR_GREATER
+		&read;
+#else
+		(delegate* unmanaged[Cdecl]<nint, byte*, nuint, nuint>)Marshal.GetFunctionPointerForDelegate(delRead);
+#endif
+
+	public static readonly delegate* unmanaged[Cdecl]<nint, nuint, nuint> Seek =
+#if NET5_0_OR_GREATER
+		&seek;
+#else
+		(delegate* unmanaged[Cdecl]<nint, nuint, nuint>)Marshal.GetFunctionPointerForDelegate(delSeek);
+#endif
+
+	public static readonly delegate* unmanaged[Cdecl]<nint, byte*, nuint, nuint> Write =
+#if NET5_0_OR_GREATER
+		&write;
+#else
+		(delegate* unmanaged[Cdecl]<nint, byte*, nuint, nuint>)Marshal.GetFunctionPointerForDelegate(delWrite);
+#endif
+
+#if NET5_0_OR_GREATER
+	[UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+	static
+#endif
+	private nuint read(nint pinst, byte* buff, nuint cb)
+	{
+		var stm = (StreamWrapper*)pinst;
+		try
+		{
+			return stm->Read(buff, checked((uint)cb));
+		}
+		catch (Exception ex) when (StreamWrapper.CaptureExceptions)
+		{
+			stm->SetException(ExceptionDispatchInfo.Capture(ex));
+			return unchecked((nuint)~0ul);
+		}
+	}
+
+#if NET5_0_OR_GREATER
+	[UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+	static
+#endif
+	private nuint seek(nint pinst, nuint cb)
+	{
+		var stm = (StreamWrapper*)pinst;
+		try
+		{
+			_ = stm->Seek(checked((uint)cb), System.IO.SeekOrigin.Current);
+			return cb;
+		}
+		catch (Exception ex) when (StreamWrapper.CaptureExceptions)
+		{
+			stm->SetException(ExceptionDispatchInfo.Capture(ex));
+			return unchecked((nuint)~0ul);
+		}
+	}
+
+#if NET5_0_OR_GREATER
+	[UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+	static
+#endif
+	private nuint write(nint pinst, byte* buff, nuint cb)
+	{
+		var stm = (StreamWrapper*)pinst;
+		try
+		{
+			stm->Write(buff, checked((uint)cb));
+			return cb;
+		}
+		catch (Exception ex) when (StreamWrapper.CaptureExceptions)
+		{
+			stm->SetException(ExceptionDispatchInfo.Capture(ex));
+			return 0;
+		}
+	}
+
+#if !NET5_0_OR_GREATER
+	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nuint ReadDelegate(nint pinst, byte* buff, nuint cb);
+	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nuint SeekDelegate(nint pinst, nuint cb);
+	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nuint WriteDelegate(nint pinst, byte* buff, nuint cb);
+
+	private static readonly ReadDelegate delRead = typeof(JpegCallbacks).CreateMethodDelegate<ReadDelegate>(nameof(read));
+	private static readonly SeekDelegate delSeek = typeof(JpegCallbacks).CreateMethodDelegate<SeekDelegate>(nameof(seek));
+	private static readonly WriteDelegate delWrite = typeof(JpegCallbacks).CreateMethodDelegate<WriteDelegate>(nameof(write));
+#endif
 }
