@@ -25,4 +25,6 @@ internal enum heif_brand
     heif_vvis,
     heif_evbi,
     heif_evbs,
+    heif_j2ki,
+    heif_j2is,
 }

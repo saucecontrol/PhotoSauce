@@ -2,8 +2,10 @@ vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO strukturag/libde265
     REF "v${VERSION}"
-    SHA512 aa744c521fb15e68940956f70997ab969094aee1c129d404ee9a52f318248353bb8d53250b575b4040402645e44701086b78143f1e1122b61a925e9b6cd07566
+    SHA512 52803814edd914352ed8f1c4243636c83969c1d9440d6e045316cd1f978494b3ff366f656cc4e5ae70f8715173f4b6d5cb4c4fbed3e1759faaa1d668eeffee23
     HEAD_REF master
+    PATCHES
+        fix-interface-include.patch
 )
 
 if(NOT VCPKG_TARGET_ARCHITECTURE MATCHES "^x(86|64)$")
@@ -21,22 +23,6 @@ vcpkg_cmake_configure(
 vcpkg_cmake_install()
 vcpkg_cmake_config_fixup(CONFIG_PATH lib/cmake/libde265)
 vcpkg_copy_tools(TOOL_NAMES dec265 AUTO_CLEAN)
-
-set(prefix "")
-set(exec_prefix [[${prefix}]])
-set(libdir [[${prefix}/lib]])
-set(includedir [[${prefix}/include]])
-set(LIBS "")
-configure_file("${SOURCE_PATH}/libde265.pc.in" "${CURRENT_PACKAGES_DIR}/lib/pkgconfig/libde265.pc" @ONLY)
-# The produced library name is `liblibde265.a` or `libde265.lib`
-vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/lib/pkgconfig/libde265.pc" "-lde265" "-llibde265")
-# libde265's pc file assumes libstdc++, which isn't always true.
-vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/lib/pkgconfig/libde265.pc" " -lstdc++" "")
-if(NOT VCPKG_BUILD_TYPE)
-    configure_file("${SOURCE_PATH}/libde265.pc.in" "${CURRENT_PACKAGES_DIR}/debug/lib/pkgconfig/libde265.pc" @ONLY)
-    vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/debug/lib/pkgconfig/libde265.pc" "-lde265" "-llibde265")
-    vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/debug/lib/pkgconfig/libde265.pc" " -lstdc++" "")
-endif()
 vcpkg_fixup_pkgconfig()
 
 if(VCPKG_LIBRARY_LINKAGE STREQUAL "static")
@@ -47,4 +33,4 @@ else()
 endif()
 
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
-file(INSTALL "${SOURCE_PATH}/COPYING" DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}" RENAME copyright)
+vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/COPYING")

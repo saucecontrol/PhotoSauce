@@ -2,10 +2,11 @@ vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO  strukturag/libheif 
     REF "v${VERSION}"
-    SHA512 ef32fced3a66d888caf2202b55bc4c81094045abfd2806216bbf0c359a30663c500ed5e33a9cef316bcfd933498e87753e9af6b3c179e84c370efd62900493c0
+    SHA512 790f4ac69ccc04b2015fc4f58f4c3b2deb0c123bb443fd90732f3fd9efce7a35b188cbfef36a2ac17fb8137f3a0c06bc3ae5effbd8ef847989e1e122876abd62
     HEAD_REF master
     PATCHES
         dav1d-settings.patch
+        ps-customize-build.patch
 )
 
 vcpkg_cmake_configure(
@@ -13,13 +14,17 @@ vcpkg_cmake_configure(
     OPTIONS
         -DENABLE_PLUGIN_LOADING=OFF
         -DENABLE_PARALLEL_TILE_DECODING=OFF
+        -DBUILD_TESTING=OFF
         -DWITH_EXAMPLES=OFF
         -DWITH_GDK_PIXBUF=OFF
+        -DWITH_LIBDE265=ON
+        -DWITH_DAV1D=ON
         -DWITH_AOM_DECODER=OFF
         -DWITH_AOM_ENCODER=OFF
         -DWITH_X265=OFF
         -DWITH_RAV1E=OFF
         -DWITH_SvtEnc=OFF
+        -DWITH_LIBSHARPYUV=OFF
 )
 vcpkg_cmake_install()
 vcpkg_copy_pdbs()
@@ -33,13 +38,16 @@ endif()
 vcpkg_fixup_pkgconfig()
 
 if (VCPKG_LIBRARY_LINKAGE STREQUAL "dynamic")
-    vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/include/libheif/heif.h" "!defined(LIBHEIF_STATIC_BUILD)" "1")
+    vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/include/libheif/heif.h" "defined(_MSC_VER) && !defined(LIBHEIF_STATIC_BUILD)" "defined(_WIN32)")
 else()
-    vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/include/libheif/heif.h" "!defined(LIBHEIF_STATIC_BUILD)" "0")
+    vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/include/libheif/heif.h" "defined(_MSC_VER) && !defined(LIBHEIF_STATIC_BUILD)" "0")
 endif()
+vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/include/libheif/heif.h" "#ifdef LIBHEIF_EXPORTS" "#if 0")
 
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
+file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/share")
+file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/lib/libheif" "${CURRENT_PACKAGES_DIR}/debug/lib/libheif")
 
 vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/include/libheif/heif_version.h" "#define LIBHEIF_PLUGIN_DIRECTORY \"${CURRENT_PACKAGES_DIR}/lib/libheif\"" "")
 
-file(INSTALL "${SOURCE_PATH}/COPYING" DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}" RENAME copyright)
+vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/COPYING")

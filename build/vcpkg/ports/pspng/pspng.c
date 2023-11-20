@@ -54,7 +54,7 @@ static int setupRead(png_structp png_ptr, png_infop info_ptr, ps_png_struct* han
 	png_set_error_fn(png_ptr, err, throwError, NULL);
 	png_set_read_fn(png_ptr, io, readData);
 
-	TRY{
+	TRY {
 		png_set_option(png_ptr, PNG_IGNORE_ADLER32, PNG_OPTION_ON);
 		png_set_option(png_ptr, PNG_MAXIMUM_INFLATE_WINDOW, PNG_OPTION_ON);
 		png_set_crc_action(png_ptr, PNG_CRC_QUIET_USE, PNG_CRC_QUIET_USE);

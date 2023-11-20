@@ -28,7 +28,7 @@ internal unsafe partial struct WebPDecBuffer
     private byte* private_memory;
 
     [StructLayout(LayoutKind.Explicit)]
-    public partial struct _u_e__Union
+    internal partial struct _u_e__Union
     {
         [FieldOffset(0)]
         public WebPRGBABuffer RGBA;

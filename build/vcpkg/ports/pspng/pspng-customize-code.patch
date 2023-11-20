@@ -11,6 +11,15 @@ index fa44d5a..4736f92 100644
                  png_crc_finish(png_ptr, length - 4);
              else if(png_ptr->mode & PNG_HAVE_fcTL)
              {
+@@ -622,7 +622,7 @@ png_read_row(png_structrp png_ptr, png_bytep row, png_bytep dsp_row)
+    png_ptr->row_buf[0]=255; /* to force error if no data was found */
+    png_read_IDAT_data(png_ptr, png_ptr->row_buf, row_info.rowbytes + 1);
+ 
+-   if (png_ptr->row_buf[0] > PNG_FILTER_VALUE_NONE)
++   if (png_ptr->row_buf[0] > PNG_FILTER_VALUE_NONE && png_ptr->row_buf[0] < PNG_FILTER_VALUE_LAST)
+    {
+       if (png_ptr->row_buf[0] < PNG_FILTER_VALUE_LAST)
+          png_read_filter_row(png_ptr, &row_info, png_ptr->row_buf + 1,
 diff --git a/pngwrite.c b/pngwrite.c
 index 5e68032..cf99bf9 100644
 --- a/pngwrite.c
