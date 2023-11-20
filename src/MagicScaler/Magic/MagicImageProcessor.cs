@@ -308,7 +308,7 @@ public static class MagicImageProcessor
 		if (ctx.ImageFrame is IYccImageFrame yccFrame)
 		{
 			var matrix = planarEncoder?.DefaultMatrix ?? YccMatrix.Rec601;
-			outputPlanar = outputPlanar && yccFrame.RgbYccMatrix.IsRouglyEqualTo(matrix);
+			outputPlanar = outputPlanar && yccFrame.RgbYccMatrix.IsRoughlyEqualTo(matrix);
 
 			ctx.Source = new PlanarPixelSource(yccFrame);
 		}

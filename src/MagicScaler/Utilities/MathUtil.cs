@@ -269,7 +269,7 @@ internal static class MathUtil
 
 	public static bool IsRoughlyEqualTo(this double x, double y) => Abs(x - y) < 1e-4;
 
-	public static unsafe bool IsRouglyEqualTo(this in Matrix4x4 m1, in Matrix4x4 m2)
+	public static unsafe bool IsRoughlyEqualTo(this in Matrix4x4 m1, in Matrix4x4 m2)
 	{
 		const float epsilon = 1e-3f;
 

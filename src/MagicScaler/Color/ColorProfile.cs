@@ -666,13 +666,13 @@ internal class ColorProfile
 
 		if (prof is MatrixProfile mp)
 		{
-			if (mp.Curve == sRGB.Curve && mp.Matrix.IsRouglyEqualTo(sRGB.Matrix))
+			if (mp.Curve == sRGB.Curve && mp.Matrix.IsRoughlyEqualTo(sRGB.Matrix))
 				return sRGB;
 
-			if (mp.Curve == DisplayP3.Curve && mp.Matrix.IsRouglyEqualTo(DisplayP3.Matrix))
+			if (mp.Curve == DisplayP3.Curve && mp.Matrix.IsRoughlyEqualTo(DisplayP3.Matrix))
 				return DisplayP3;
 
-			if (mp.Curve == AdobeRgb.Curve && mp.Matrix.IsRouglyEqualTo(AdobeRgb.Matrix))
+			if (mp.Curve == AdobeRgb.Curve && mp.Matrix.IsRoughlyEqualTo(AdobeRgb.Matrix))
 				return AdobeRgb;
 		}
 
