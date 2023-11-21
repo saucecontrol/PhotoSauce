@@ -1,8 +1,8 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 958b1d61a..f62c747ae 100644
+index 3ceb9c2a6..47fc9197f 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -106,9 +106,9 @@ endif()
+@@ -119,9 +119,9 @@ endif()
  if(PNG_HARDWARE_OPTIMIZATIONS)
  
  # Set definitions and sources for ARM.
@@ -14,15 +14,20 @@ index 958b1d61a..f62c747ae 100644
       TARGET_ARCH MATCHES "^aarch64")
      set(PNG_ARM_NEON_POSSIBLE_VALUES on off)
      set(PNG_ARM_NEON "on"
-@@ -126,7 +126,6 @@ if(TARGET_ARCH MATCHES "^arm" OR
+@@ -139,9 +139,11 @@ if(TARGET_ARCH MATCHES "^arm" OR
    elseif(NOT ${PNG_ARM_NEON} STREQUAL "off")
      set(libpng_arm_sources
          arm/arm_init.c
 -        arm/filter_neon.S
          arm/filter_neon_intrinsics.c
          arm/palette_neon_intrinsics.c)
++    if(NOT MSVC)
++      list(APPEND libpng_arm_sources arm/filter_neon.S)
++    endif()
      if(${PNG_ARM_NEON} STREQUAL "on")
-@@ -140,8 +139,8 @@ if(TARGET_ARCH MATCHES "^arm" OR
+       add_definitions(-DPNG_ARM_NEON_OPT=2)
+     elseif(${PNG_ARM_NEON} STREQUAL "check")
+@@ -153,8 +155,8 @@ if(TARGET_ARCH MATCHES "^arm" OR
  endif()
  
  # Set definitions and sources for PowerPC.
@@ -33,7 +38,7 @@ index 958b1d61a..f62c747ae 100644
    set(PNG_POWERPC_VSX_POSSIBLE_VALUES on off)
    set(PNG_POWERPC_VSX "on"
        CACHE STRING "Enable POWERPC VSX optimizations: on|off; on is default")
-@@ -163,8 +162,9 @@ if(TARGET_ARCH MATCHES "^powerpc*" OR
+@@ -176,8 +178,9 @@ if(TARGET_ARCH MATCHES "^powerpc*" OR
  endif()
  
  # Set definitions and sources for Intel.
@@ -45,7 +50,7 @@ index 958b1d61a..f62c747ae 100644
    set(PNG_INTEL_SSE_POSSIBLE_VALUES on off)
    set(PNG_INTEL_SSE "on"
        CACHE STRING "Enable INTEL_SSE optimizations: on|off; on is default")
-@@ -186,8 +186,8 @@ if(TARGET_ARCH MATCHES "^i?86" OR
+@@ -199,8 +202,8 @@ if(TARGET_ARCH MATCHES "^i?86" OR
  endif()
  
  # Set definitions and sources for MIPS.
@@ -56,7 +61,7 @@ index 958b1d61a..f62c747ae 100644
    set(PNG_MIPS_MSA_POSSIBLE_VALUES on off)
    set(PNG_MIPS_MSA "on"
        CACHE STRING "Enable MIPS_MSA optimizations: on|off; on is default")
-@@ -213,26 +211,27 @@ endif()
+@@ -224,26 +227,27 @@ endif()
  else(PNG_HARDWARE_OPTIMIZATIONS)
  
  # Set definitions and sources for ARM.

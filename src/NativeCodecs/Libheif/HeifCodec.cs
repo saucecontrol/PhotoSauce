@@ -14,9 +14,9 @@ namespace PhotoSauce.NativeCodecs.Libheif;
 
 internal static unsafe class HeifFactory
 {
-	public const string DisplayName = $"{libheif} 1.17.3";
+	public const string DisplayName = $"{libheif} 1.17.5";
 	public const string libheif = nameof(libheif);
-	public const uint libver = 0x01110300;
+	public const uint libver = LIBHEIF_NUMERIC_VERSION;
 
 	private static readonly Lazy<bool> dependencyValid = new(() => {
 #if NETFRAMEWORK
@@ -66,8 +66,11 @@ public static class CodecCollectionExtensions
 			[ ImageFileExtensions.Heic, ImageFileExtensions.Avif ],
 			new ContainerPattern[] {
 				new(0, [ 0, 0, 0, 0, (byte)'f', (byte)'t', (byte)'y', (byte)'p', (byte)'h', (byte)'e', (byte)'i', (byte)'c' ], [ 0xff, 0xff, 0xff, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff ]),
+				new(0, [ 0, 0, 0, 0, (byte)'f', (byte)'t', (byte)'y', (byte)'p', (byte)'h', (byte)'e', (byte)'v', (byte)'c' ], [ 0xff, 0xff, 0xff, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff ]),
 				new(0, [ 0, 0, 0, 0, (byte)'f', (byte)'t', (byte)'y', (byte)'p', (byte)'a', (byte)'v', (byte)'i', (byte)'f' ], [ 0xff, 0xff, 0xff, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff ]),
-				new(0, [ 0, 0, 0, 0, (byte)'f', (byte)'t', (byte)'y', (byte)'p', (byte)'m', (byte)'i', (byte)'f', (byte)'1' ], [ 0xff, 0xff, 0xff, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff ])
+				new(0, [ 0, 0, 0, 0, (byte)'f', (byte)'t', (byte)'y', (byte)'p', (byte)'m', (byte)'i', (byte)'f', (byte)'1' ], [ 0xff, 0xff, 0xff, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff ]),
+				new(0, [ 0, 0, 0, 0, (byte)'f', (byte)'t', (byte)'y', (byte)'p', (byte)'m', (byte)'i', (byte)'a', (byte)'f' ], [ 0xff, 0xff, 0xff, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff ]),
+				new(0, [ 0, 0, 0, 0, (byte)'f', (byte)'t', (byte)'y', (byte)'p', (byte)'1', (byte)'p', (byte)'i', (byte)'c' ], [ 0xff, 0xff, 0xff, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff ])
 			},
 			null,
 			HeifContainer.TryLoad
