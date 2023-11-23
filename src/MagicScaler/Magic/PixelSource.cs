@@ -71,6 +71,14 @@ internal abstract class PixelSource : IPixelSource, IProfileSource, IDisposable
 			CopyPixels(prc, cbStride, cbBuffer, pbBuffer);
 	}
 
+	public unsafe void ClearPixels(in PixelArea prc, int cbStride, byte* pbBuffer)
+	{
+		int cb = prc.Width * Format.ChannelCount;
+
+		for (int y = 0; y < prc.Height; y++)
+			new Span<byte>(pbBuffer + cbStride * y, cb).Clear();
+	}
+
 	protected virtual void Dispose(bool disposing) { }
 
 	public void Dispose()

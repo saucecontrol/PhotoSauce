@@ -25,7 +25,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 	private RentedBuffer<uint> palette;
 	private RentedBuffer<byte> iccpData;
 
-	public bool EOF;
+	public bool isEof, isDecoding;
 
 	private GifContainer(GifFileType* pinst, IDecoderOptions? options)
 	{
@@ -44,7 +44,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 				int ext;
 				byte* data;
 				CheckResult(DGifGetExtension(handle, &ext, &data));
-				while (data is not null && !EOF)
+				while (data is not null && !isEof)
 				{
 					if (ext == APPLICATION_EXT_FUNC_CODE)
 					{
@@ -64,7 +64,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 								var wtr = new SpanBufferWriter(iccpData.Span);
 								wtr.TryWrite(dspan[11..]);
 
-								while (!EOF)
+								while (!isEof)
 								{
 									CheckResult(DGifGetExtensionNext(handle, &data));
 									if (data is null)
@@ -91,7 +91,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 				advanceFrame();
 			}
 		}
-		while (rec != GifRecordType.TERMINATE_RECORD_TYPE && !EOF);
+		while (rec != GifRecordType.TERMINATE_RECORD_TYPE && !isEof);
 
 		uint bgColor = default;
 		if (handle->SColorMap is not null)
@@ -150,7 +150,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 		var rec = default(GifRecordType);
 		var gcb = default(GraphicsControlBlock);
 		bool hasGcb = false;
-		while (!EOF)
+		while (!isEof)
 		{
 			CheckResult(DGifGetRecordType(handle, &rec));
 			if (rec == GifRecordType.EXTENSION_RECORD_TYPE)
@@ -164,7 +164,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 					hasGcb = true;
 				}
 
-				while (data is not null && !EOF)
+				while (data is not null && !isEof)
 					CheckResult(DGifGetExtensionNext(handle, &data));
 			}
 			else if (rec == GifRecordType.IMAGE_DESC_RECORD_TYPE)
@@ -230,9 +230,10 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 
 		handle->Stream->ThrowIfExceptional();
 
-		if (handle->ImageCount != 0 && handle->Stream->IsEof())
-			EOF = true;
-		else
+		if (!isEof && handle->ImageCount != 0 && handle->Stream->IsEof())
+			isEof = true;
+
+		if (!isDecoding && !isEof)
 			throwGifError(handle);
 	}
 
@@ -241,7 +242,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 		var stm = handle->Stream;
 		int err;
 		_ = DGifCloseFile(handle, &err);
-		EOF = false;
+		isDecoding = isEof = false;
 
 		stm->Seek(0, SeekOrigin.Begin);
 		handle = GifFactory.CreateDecoder(stm, GifCallbacks.Read);
@@ -261,7 +262,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 				int ext;
 				byte* data;
 				CheckResult(DGifGetExtension(handle, &ext, &data));
-				while (data is not null && !EOF)
+				while (data is not null && !isEof)
 					CheckResult(DGifGetExtensionNext(handle, &data));
 			}
 			else if (rec == GifRecordType.IMAGE_DESC_RECORD_TYPE)
@@ -273,7 +274,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 				advanceFrame();
 			}
 		}
-		while (rec != GifRecordType.TERMINATE_RECORD_TYPE && !EOF);
+		while (rec != GifRecordType.TERMINATE_RECORD_TYPE && !isEof);
 
 		return handle;
 	}
@@ -285,7 +286,7 @@ internal sealed unsafe class GifContainer : IImageContainer, IMetadataSource, II
 		byte* data;
 		do
 			CheckResult(DGifGetCodeNext(handle, &data));
-		while (data is not null && !EOF);
+		while (data is not null && !isEof);
 	}
 
 	private bool isGreyscale()
@@ -465,6 +466,8 @@ internal sealed unsafe class GifFrame : IImageFrame, IMetadataSource
 
 		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
+			container.isDecoding = true;
+
 			var handle = container.GetHandle();
 			if (handle->Image.Interlace != 0)
 			{
@@ -472,8 +475,11 @@ internal sealed unsafe class GifFrame : IImageFrame, IMetadataSource
 				return;
 			}
 
-			if (container.EOF)
+			if (container.isEof)
+			{
+				ClearPixels(prc, cbStride, pbBuffer);
 				return;
+			}
 
 			if (prc.Y < frame.lastRow)
 			{
@@ -506,12 +512,12 @@ internal sealed unsafe class GifFrame : IImageFrame, IMetadataSource
 					if (pbuff is null)
 					{
 						byte* pin = pout + cbout - prc.Width;
-						container.CheckResult(DGifGetLine(handle, pin, Width));
+						container.CheckResult(readLine(handle, pin, Width));
 						convertLine(pin, pout, ppal, prc.Width);
 					}
 					else
 					{
-						container.CheckResult(DGifGetLine(handle, pbuff, Width));
+						container.CheckResult(readLine(handle, pbuff, Width));
 						convertLine(pbuff + prc.X, pout, ppal, prc.Width);
 					}
 
@@ -553,7 +559,7 @@ internal sealed unsafe class GifFrame : IImageFrame, IMetadataSource
 					for (int y = offs[i]; y < Height; y += incs[i])
 					{
 						byte* op = pbuf + y * fbuf.Stride;
-						container.CheckResult(DGifGetLine(handle, op, Width));
+						container.CheckResult(readLine(handle, op, Width));
 					}
 				}
 
@@ -562,6 +568,15 @@ internal sealed unsafe class GifFrame : IImageFrame, IMetadataSource
 			}
 
 			return frame.frameBuff;
+		}
+
+		private int readLine(GifFileType* handle, byte* pb, int cb)
+		{
+			int res = DGifGetLine(handle, pb, Width);
+			if (res != GIF_OK)
+				new Span<byte>(pb, cb).Clear();
+
+			return res;
 		}
 
 		private void convertLine(byte* istart, byte* ostart, uint* pstart, nint cb)

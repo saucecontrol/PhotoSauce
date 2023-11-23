@@ -447,7 +447,7 @@ internal class ColorProfile
 			{
 				case 0:
 					curve = g switch {
-						0x10000            => default,
+						0x10000            => null,
 						0x1cd00 or 0x1cccd => curveFromPower(1.8),
 						0x23300 or 0x23333 => AdobeRgb.Curve,
 						_                  => curveFromPower(dg)
@@ -584,7 +584,7 @@ internal class ColorProfile
 		WriteUInt16BigEndian(name[4..], profName[2]);
 		WriteUInt16BigEndian(name[6..], profName[3]);
 
-		if (wxyz != default && rxyz != default && gxyz != default && bxyz != default)
+		if (!isGrey && wxyz != default && rxyz != default && gxyz != default && bxyz != default)
 		{
 			Debug.Assert(span.Length == 480);
 

@@ -38,35 +38,41 @@ internal static partial class BufferPool
 	{
 		var arr = buff.Array!;
 		if (buff.Offset > 0)
-			new Span<byte>(arr, 0, buff.Offset).Fill(marker);
+			arr.AsSpan(0, buff.Offset).Fill(marker);
 
 		int end = buff.Offset + buff.Count;
 		if (arr.Length > end)
-			new Span<byte>(arr, end, arr.Length - end).Fill(marker);
+			arr.AsSpan(end).Fill(marker);
 	}
 
 	[Conditional("GUARDRAILS")]
 	private static void checkBounds(ArraySegment<byte> buff)
 	{
 		var arr = buff.Array!;
+		int end = buff.Offset + buff.Count;
+
+#if NET7_0_OR_GREATER
+		if (arr.AsSpan(0, buff.Offset).IndexOfAnyExcept(marker) == -1 && arr.AsSpan(end).IndexOfAnyExcept(marker) == -1)
+			return;
+#endif
+
 		if (buff.Offset > 0)
 		{
 			int chkCnt = 0;
-			int i = buff.Offset;
-			while (i > 0 && arr[--i] != marker)
-				chkCnt++;
+			for (int i = buff.Offset - 1;  i >= 0; i--)
+				if (arr[i] != marker)
+					chkCnt++;
 
 			if (chkCnt > 0)
 				throw new AccessViolationException($"Buffer offset violation detected! {chkCnt} byte(s) clobbered.");
 		}
 
-		int end = buff.Offset + buff.Count;
 		if (arr.Length > end)
 		{
 			int chkCnt = 0;
-			int i = end;
-			while (i < arr.Length && arr[i++] != marker)
-				chkCnt++;
+			for (int i = end; i < arr.Length; i++)
+				if (arr[i] != marker)
+					chkCnt++;
 
 			if (chkCnt > 0)
 				throw new AccessViolationException($"Buffer overrun detected! {chkCnt} byte(s) clobbered.");

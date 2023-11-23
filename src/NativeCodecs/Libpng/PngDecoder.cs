@@ -23,7 +23,7 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 	private ColorProfile? profile;
 	private PngFrame? frame;
 
-	public bool EOF;
+	public bool isEof, isDecoding;
 
 	private PngContainer(ps_png_struct* pinst, IDecoderOptions? opt)
 	{
@@ -175,9 +175,10 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 
 		handle->io_ptr->Stream->ThrowIfExceptional();
 
-		if (handle->io_ptr->Stream->IsEof())
-			EOF = true;
-		else
+		if (!isEof && handle->io_ptr->Stream->IsEof())
+			isEof = true;
+
+		if (!isDecoding)
 			throwPngError(handle);
 	}
 
@@ -186,7 +187,7 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 		var handle = GetHandle();
 
 		handle->io_ptr->Stream->Seek(0, SeekOrigin.Begin);
-		EOF = false;
+		isDecoding = isEof = false;
 
 		CheckResult(PngResetRead(handle));
 		CheckResult(PngReadInfo(handle));
@@ -380,14 +381,19 @@ internal sealed unsafe class PngFrame : IImageFrame, IMetadataSource
 
 		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
+			container.isDecoding = true;
+
 			if (container.IsInterlaced)
 			{
 				copyPixelsInterlaced(prc, cbStride, cbBufferSize, pbBuffer);
 				return;
 			}
 
-			if (container.EOF)
+			if (container.isEof)
+			{
+				ClearPixels(prc, cbStride, pbBuffer);
 				return;
+			}
 
 			if (prc.Y < lastRow)
 			{
@@ -421,12 +427,12 @@ internal sealed unsafe class PngFrame : IImageFrame, IMetadataSource
 					byte* pout = pbBuffer + cbStride * y;
 					if (pbuff is null)
 					{
-						container.CheckResult(PngReadRow(handle, pout));
+						container.CheckResult(readLine(handle, pout, cb));
 						convertLine(pout, pout, cb);
 					}
 					else
 					{
-						container.CheckResult(PngReadRow(handle, pbuff));
+						container.CheckResult(readLine(handle, pbuff, cb));
 						convertLine(pbuff + prc.X * bpp, pout, cb);
 					}
 
@@ -453,8 +459,9 @@ internal sealed unsafe class PngFrame : IImageFrame, IMetadataSource
 			if (frame.frameBuff is null)
 			{
 				var handle = container.GetHandle();
-
 				var fbuf = new FrameBufferSource(Width, Height, Format);
+				fbuf.Clear(fbuf.Area, default);
+
 				fixed (byte* pbuf = fbuf.Span)
 				{
 					using var lines = BufferPool.RentLocal<nint>(Height);
@@ -471,6 +478,15 @@ internal sealed unsafe class PngFrame : IImageFrame, IMetadataSource
 			}
 
 			return frame.frameBuff;
+		}
+
+		private static int readLine(ps_png_struct* handle, byte* pb, int cb)
+		{
+			int res = PngReadRow(handle, pb);
+			if (res != TRUE)
+				new Span<byte>(pb, cb).Clear();
+
+			return res;
 		}
 
 		private void convertLine(byte* istart, byte* ostart, nint cb)

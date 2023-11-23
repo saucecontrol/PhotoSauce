@@ -14,5 +14,5 @@ internal static partial class Libheif
     public const int LIBHEIF_NUMERIC_VERSION = ((1 << 24) | (17 << 16) | (5 << 8) | 0);
 
     [NativeTypeName("#define LIBHEIF_VERSION \"1.17.5\"")]
-    public static ReadOnlySpan<byte> LIBHEIF_VERSION => "1.17.5"u8;
+    public const string LIBHEIF_VERSION = "1.17.5";
 }

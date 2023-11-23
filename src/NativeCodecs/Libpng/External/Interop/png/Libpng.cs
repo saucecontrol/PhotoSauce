@@ -11,7 +11,7 @@ namespace PhotoSauce.Interop.Libpng;
 internal static unsafe partial class Libpng
 {
     [NativeTypeName("#define PNG_LIBPNG_VER_STRING \"1.6.40\"")]
-    public static ReadOnlySpan<byte> PNG_LIBPNG_VER_STRING => "1.6.40"u8;
+    public const string PNG_LIBPNG_VER_STRING = "1.6.40";
 
     [NativeTypeName("#define PNG_LIBPNG_VER_SONUM 16")]
     public const int PNG_LIBPNG_VER_SONUM = 16;
