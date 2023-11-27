@@ -19,7 +19,7 @@ internal abstract class PixelSource : IPixelSource, IProfileSource, IDisposable
 
 	public IProfiler Profiler { get; }
 
-	public PixelArea Area => new(0, 0, Width, Height);
+	public PixelArea Area => PixelArea.FromSize(Width, Height);
 
 	protected PixelSource() => Profiler = StatsManager.GetProfiler(this);
 

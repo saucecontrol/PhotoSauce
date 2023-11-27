@@ -39,7 +39,7 @@ internal sealed unsafe class WicPlanarCache : IYccImageFrame, IMetadataSource, I
 		// IWICPlanarBitmapSourceTransform only supports subsampling ratios 1:1 or 2:1
 		ratioX = (int)((scaledWidth + 1u & ~1u) / desc[1].Width);
 		ratioY = (int)((scaledHeight + 1u & ~1u) / desc[1].Height);
-		scaledCrop = new PixelArea(0, 0, (int)scaledWidth, (int)scaledHeight);
+		scaledCrop = PixelArea.FromSize((int)scaledWidth, (int)scaledHeight);
 		outCrop = scaledCrop;
 
 		PixelSource = new PlanarCachePixelSource(this, WicPlane.Y);

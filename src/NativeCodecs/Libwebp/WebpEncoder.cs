@@ -48,7 +48,7 @@ internal sealed unsafe class WebpEncoder : IAnimatedImageEncoder
 
 	public void WriteFrame(IPixelSource source, IMetadataSource metadata, Rectangle sourceArea)
 	{
-		var area = sourceArea == default ? new PixelArea(0, 0, source.Width, source.Height) : ((PixelArea)sourceArea).SnapTo(2, 2, source.Width, source.Height);
+		var area = sourceArea == default ? PixelArea.FromSize(source.Width, source.Height) : ((PixelArea)sourceArea).SnapTo(2, 2, source.Width, source.Height);
 		if (area.Width > WEBP_MAX_DIMENSION || area.Height > WEBP_MAX_DIMENSION)
 			throw new NotSupportedException($"Image too large.  WebP supports a max of {WEBP_MAX_DIMENSION} pixels in either dimension.");
 
@@ -76,7 +76,7 @@ internal sealed unsafe class WebpEncoder : IAnimatedImageEncoder
 				quality = lopt.Quality.Clamp(0, 100);
 
 			if (quality == default)
-				quality = SettingsUtil.GetDefaultQuality(Math.Max(area.Width, area.Height));
+				quality = SettingsUtil.GetDefaultQuality(Math.Max(source.Width, source.Height));
 
 			WebpResult.Check(WebPConfigPreset(&config, WebPPreset.WEBP_PRESET_DEFAULT, quality));
 		}

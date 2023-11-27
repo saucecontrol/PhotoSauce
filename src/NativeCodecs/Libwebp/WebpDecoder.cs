@@ -214,7 +214,7 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 			frmnum = index + 1;
 			decodeWidth = feat.width;
 			decodeHeight = feat.height;
-			decodeCrop = new(0, 0, feat.width, feat.height);
+			decodeCrop = PixelArea.FromSize(feat.width, feat.height);
 			outCrop = decodeCrop;
 
 			if (container.features.HasFlag(WebPFeatureFlags.ANIMATION_FLAG))
@@ -259,7 +259,7 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 			ratio = ratio.Clamp(1, 8);
 			decodeWidth = MathUtil.DivCeiling(decodeWidth, ratio);
 			decodeHeight = MathUtil.DivCeiling(decodeHeight, ratio);
-			outCrop = new(0, 0, decodeWidth, decodeHeight);
+			outCrop = PixelArea.FromSize(decodeWidth, decodeHeight);
 
 			return (decodeWidth, decodeHeight);
 		}

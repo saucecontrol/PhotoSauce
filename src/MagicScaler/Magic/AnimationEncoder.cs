@@ -99,18 +99,16 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 		var ppt = context.AddProfiler(nameof(TemporalFilters));
 		var ppq = context.AddProfiler($"{nameof(OctreeQuantizer)}: {nameof(OctreeQuantizer.CreatePalette)}");
 
-		var encopt = context.Settings.EncoderOptions is GifEncoderOptions gifopt ? gifopt : GifEncoderOptions.Default;
-		var frame = Current;
-		writeFrame(frame, encopt, ppq);
+		writeFrame(Current, ppq);
 
 		while (moveNext())
 		{
-			frame = Current;
+			var frame = Current;
 			ppt.ResumeTiming(frame.Source.Area);
 			TemporalFilters.Dedupe(this, frame.Disposal, (uint)anicnt.BackgroundColor, frame.Blend != AlphaBlendMethod.Source);
 			ppt.PauseTiming();
 
-			writeFrame(frame, encopt, ppq);
+			writeFrame(frame, ppq);
 		}
 	}
 
@@ -179,28 +177,32 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 			context.Source.CopyPixels(frame.Area, buff.Stride, buff.Span.Length, pbuff);
 	}
 
-	private void writeFrame(AnimationBufferFrame src, in GifEncoderOptions gifopt, IProfiler ppq)
+	private void writeFrame(AnimationBufferFrame frame, IProfiler ppq)
 	{
+		if (context.Settings.EncoderInfo is PlanarEncoderInfo)
+			frame.Area = frame.Area.SnapTo(ChromaSubsampleMode.Subsample420.SubsampleRatioX(), ChromaSubsampleMode.Subsample420.SubsampleRatioY(), frame.Source.Width, frame.Source.Height);
+
 		if (convertSource is IndexedColorTransform indexedSource)
 		{
-			if (gifopt.PredefinedPalette is not null)
+			var idxopt = context.Settings.EncoderOptions is IIndexedEncoderOptions iopt ? iopt : GifEncoderOptions.Default;
+			if (idxopt.PredefinedPalette is not null)
 			{
-				indexedSource.SetPalette(MemoryMarshal.Cast<int, uint>(gifopt.PredefinedPalette.AsSpan()), gifopt.Dither is DitherMode.None);
+				indexedSource.SetPalette(MemoryMarshal.Cast<int, uint>(idxopt.PredefinedPalette.AsSpan()), idxopt.Dither is DitherMode.None);
 			}
 			else
 			{
 				using var quant = new OctreeQuantizer(ppq);
 				var buffC = EncodeFrame.Source;
-				var buffCSpan = buffC.Span.Slice(src.Area.Y * buffC.Stride + src.Area.X * buffC.Format.BytesPerPixel);
+				var buffCSpan = buffC.Span.Slice(frame.Area.Y * buffC.Stride + frame.Area.X * buffC.Format.BytesPerPixel);
 
-				bool isExact = quant.CreatePalette(gifopt.MaxPaletteSize, buffC.Format.AlphaRepresentation != PixelAlphaRepresentation.None, buffCSpan, src.Area.Width, src.Area.Height, buffC.Stride);
-				indexedSource.SetPalette(quant.Palette, isExact || gifopt.Dither is DitherMode.None);
+				bool isExact = quant.CreatePalette(idxopt.MaxPaletteSize, buffC.Format.AlphaRepresentation != PixelAlphaRepresentation.None, buffCSpan, frame.Area.Width, frame.Area.Height, buffC.Stride);
+				indexedSource.SetPalette(quant.Palette, isExact || idxopt.Dither is DitherMode.None);
 			}
 		}
 
 		convertSource?.ReInit(EncodeFrame.Source);
 		context.Source = convertSource ?? (PixelSource)EncodeFrame.Source;
 
-		encoder.WriteFrame(context.Source, src, src.Area);
+		encoder.WriteFrame(context.Source, frame, frame.Area);
 	}
 }

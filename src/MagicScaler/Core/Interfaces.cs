@@ -138,7 +138,7 @@ public interface IImageEncoderInfo : IImageCodecInfo
 	/// <summary>Default codec options to be used for this encoder in the absence of per-instance overrides.</summary>
 	IEncoderOptions? DefaultOptions { get; }
 
-	/// <summary>A delegate capable of creating an instance of this encoder to write to a given <see cref="Stream" /> data source.</summary>
+	/// <summary>A delegate capable of creating an instance of this encoder to write to a given <see cref="Stream" /> data target.</summary>
 	Func<Stream, IEncoderOptions?, IImageEncoder> Factory { get; }
 
 	/// <summary>True if the codec supports transparency, otherwise false.</summary>

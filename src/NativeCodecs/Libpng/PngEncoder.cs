@@ -52,7 +52,7 @@ internal sealed unsafe class PngEncoder : IAnimatedImageEncoder
 
 	public void WriteFrame(IPixelSource source, IMetadataSource metadata, Rectangle sourceArea)
 	{
-		var area = sourceArea == default ? new PixelArea(0, 0, source.Width, source.Height) : ((PixelArea)sourceArea);
+		var area = sourceArea == default ? PixelArea.FromSize(source.Width, source.Height) : ((PixelArea)sourceArea);
 		if (source.Width > PNG_USER_WIDTH_MAX || area.Height > PNG_USER_HEIGHT_MAX)
 			throw new NotSupportedException($"Image too large.  This encoder supports a max of {PNG_USER_WIDTH_MAX}x{PNG_USER_HEIGHT_MAX} pixels.");
 

@@ -16,21 +16,22 @@ internal static unsafe class TemporalFilters
 
 	public static void Dedupe(AnimationEncoder buffer, FrameDisposalMethod disposal, uint bgcolor, bool blend)
 	{
-		var src = buffer.Current.Source;
+		var curr = buffer.Current;
+		var src = curr.Source;
 		if (src.Format != PixelFormat.Bgra32)
 			return;
 
-		var prev = buffer.Previous ?? buffer.Current;
-		var next = buffer.Next ?? buffer.Current;
+		var prev = buffer.Previous ?? curr;
+		var next = buffer.Next ?? curr;
 
 		fixed (byte* pcurr = src.Span, pprev = prev.Source.Span, pnext = next.Source.Span, penc = buffer.EncodeFrame.Source.Span)
 		{
 			nint cb = src.Width * src.Format.BytesPerPixel;
 			bool tfound = false;
-			uint al = (uint)src.Width, ar = al, at = 0u, ab = (uint)(src.Height - 1);
+			int al = src.Width - 1, ar = al, at = 0, ab = src.Height;
 
-			byte* pp = prev == buffer.Current ? null : pprev;
-			byte* pn = next == buffer.Current || disposal is not FrameDisposalMethod.RestoreBackground ? null : pnext;
+			byte* pp = prev == curr ? null : pprev;
+			byte* pn = next == curr || disposal is not FrameDisposalMethod.RestoreBackground ? null : pnext;
 			for (int y = 0; y < src.Height; y++)
 			{
 				nuint offs = (uint)(y * src.Stride);
@@ -65,17 +66,17 @@ internal static unsafe class TemporalFilters
 				else
 				{
 					tfound = true;
-					ab = (uint)y;
-					al = Math.Min(al, eql);
-					ar = Math.Min(ar, eqr);
+					ab = y + 1;
+					al = Math.Min(al, (int)eql);
+					ar = Math.Min(ar, (int)eqr);
 				}
 			}
 
-			buffer.Current.Area = new PixelArea(
-				MathUtil.Clamp((int)al, 0, Math.Max(0, src.Width - 2)),
-				MathUtil.Clamp((int)at, 0, Math.Max(0, src.Height - 2)),
-				Math.Max(1, src.Width - (int)al - (int)ar),
-				Math.Max(1, (int)ab + 1 - (int)at)
+			curr.Area = new PixelArea(
+				al,
+				Math.Min(at, src.Height - 1),
+				Math.Max(1, src.Width - al - ar),
+				Math.Max(1, ab - at)
 			);
 		}
 	}
@@ -243,8 +244,8 @@ internal static unsafe class TemporalFilters
 				msk = ~msk;
 				if (!lfound)
 				{
-					eql += (uint)BitOperations.TrailingZeroCount(msk) / sizeof(uint);
 					lfound = true;
+					eql += (uint)BitOperations.TrailingZeroCount(msk) / sizeof(uint);
 				}
 
 				eqr = (uint)BitOperations.LeadingZeroCount(msk) / sizeof(uint);
@@ -312,8 +313,8 @@ internal static unsafe class TemporalFilters
 				msk = ~msk;
 				if (!lfound)
 				{
-					eql += (uint)BitOperations.TrailingZeroCount(msk) / sizeof(uint);
 					lfound = true;
+					eql += (uint)BitOperations.TrailingZeroCount(msk) / sizeof(uint);
 				}
 
 				eqr = (uint)BitOperations.LeadingZeroCount(msk) / sizeof(uint);

@@ -46,7 +46,7 @@ internal sealed unsafe class GifEncoder : IAnimatedImageEncoder
 
 	public void WriteFrame(IPixelSource source, IMetadataSource metadata, Rectangle sourceArea)
 	{
-		var area = sourceArea == default ? new PixelArea(0, 0, source.Width, source.Height) : ((PixelArea)sourceArea);
+		var area = sourceArea == default ? PixelArea.FromSize(source.Width, source.Height) : ((PixelArea)sourceArea);
 		if (source.Width > ushort.MaxValue || area.Height > ushort.MaxValue)
 			throw new NotSupportedException($"Image too large.  This encoder supports a max of {ushort.MaxValue}x{ushort.MaxValue} pixels.");
 

@@ -50,7 +50,7 @@ internal sealed unsafe class JxlEncoder : IImageEncoder
 			throw new NotSupportedException("Image format not supported.");
 
 		if (options is JxlLossyEncoderOptions { Distance: 0 })
-			checkResult(JxlEncoderSetFrameDistance(encopt, JxlLossyEncoderOptions.DistanceFromQuality(SettingsUtil.GetDefaultQuality(Math.Max(sourceArea.Width, sourceArea.Height)))));
+			checkResult(JxlEncoderSetFrameDistance(encopt, JxlLossyEncoderOptions.DistanceFromQuality(SettingsUtil.GetDefaultQuality(Math.Max(source.Width, source.Height)))));
 
 		var basinf = default(JxlBasicInfo);
 		JxlEncoderInitBasicInfo(&basinf);

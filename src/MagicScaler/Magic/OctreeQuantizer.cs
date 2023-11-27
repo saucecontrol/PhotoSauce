@@ -47,7 +47,7 @@ internal sealed unsafe class OctreeQuantizer : IProfileSource, IDisposable
 	{
 		if (targetColors < 2 || targetColors > maxPaletteSize) throw new ArgumentOutOfRangeException(nameof(targetColors), $"Target palette size must be between 2 and {maxPaletteSize}");
 
-		Profiler.ResumeTiming(new PixelArea(0, 0, (int)width, (int)height));
+		Profiler.ResumeTiming(PixelArea.FromSize((int)width, (int)height));
 		using var nodeBuffer = BufferPool.RentLocalAligned<HistogramNode>(maxHistogramSize, true);
 
 		float subsampleRatio = 1f;

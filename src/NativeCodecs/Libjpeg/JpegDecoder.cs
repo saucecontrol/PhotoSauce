@@ -143,7 +143,7 @@ internal sealed unsafe class JpegFrame : IImageFrame, IPlanarDecoder, IMetadataS
 		Container = cont;
 		decodeWidth = (int)handle->image_width;
 		decodeHeight = (int)handle->image_height;
-		decodeCrop = new(0, 0, decodeWidth, decodeHeight);
+		decodeCrop = PixelArea.FromSize(decodeWidth, decodeHeight);
 		outCrop = decodeCrop;
 		PixelSource = new JpegPixelSource(this);
 	}

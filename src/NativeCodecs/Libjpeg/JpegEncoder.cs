@@ -42,7 +42,7 @@ internal sealed unsafe class JpegEncoder : IImageEncoder
 
 	public void WriteFrame(IPixelSource source, IMetadataSource metadata, Rectangle sourceArea)
 	{
-		var area = sourceArea == default ? new PixelArea(0, 0, source.Width, source.Height) : ((PixelArea)sourceArea);
+		var area = sourceArea == default ? PixelArea.FromSize(source.Width, source.Height) : ((PixelArea)sourceArea);
 		if (source.Width > JPEG_MAX_DIMENSION || area.Height > JPEG_MAX_DIMENSION)
 			throw new NotSupportedException($"Image too large.  JPEG supports a max of {JPEG_MAX_DIMENSION} pixels in either dimension.");
 
@@ -60,7 +60,7 @@ internal sealed unsafe class JpegEncoder : IImageEncoder
 
 		int quality = options.Quality;
 		if (quality == default)
-			quality = SettingsUtil.GetDefaultQuality(Math.Max(area.Width, area.Height));
+			quality = SettingsUtil.GetDefaultQuality(Math.Max(source.Width, source.Height));
 
 		checkResult(JpegSetQuality(handle, quality));
 
