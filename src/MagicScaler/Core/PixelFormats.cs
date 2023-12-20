@@ -538,7 +538,7 @@ public static class PixelFormats
 	/// <value>6FDDC324-4E03-4BFE-B185-3D77768DC90F</value>
 	public static readonly Guid Bgra32bpp = PixelFormat.Bgra32.FormatGuid;
 
-	/// <summary>Contains standard pixel formats for <see cref="IYccImageFrame"/> implementations.</summary>
+	/// <summary>Contains standard pixel formats for <see cref="IYccImageFrame" /> implementations.</summary>
 	public static class Planar
 	{
 		/// <summary>Planar luma data with 1 byte per pixel.</summary>

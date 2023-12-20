@@ -77,7 +77,7 @@ public interface IMetadata { }
 /// <summary>Provides a mechanism for accessing metadata from an image.</summary>
 public interface IMetadataSource
 {
-	/// <summary>Attempt to retrieve metadata of type <typeparamref name="T"/> from this source.</summary>
+	/// <summary>Attempt to retrieve metadata of type <typeparamref name="T" /> from this source.</summary>
 	/// <typeparam name="T">The type of metadata to retrieve.</typeparam>
 	/// <param name="metadata">The value of the metadata, if available.</param>
 	/// <returns>True if the metadata was available, otherwise false.</returns>

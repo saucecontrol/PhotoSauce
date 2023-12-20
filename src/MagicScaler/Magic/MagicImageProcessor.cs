@@ -38,7 +38,7 @@ public static class MagicImageProcessor
 
 	/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
 	/// <param name="outPath">The path to which the output image will be written.</param>
-	/// <remarks>If <paramref name="outPath"/> already exists, it will be overwritten.</remarks>
+	/// <remarks>If <paramref name="outPath" /> already exists, it will be overwritten.</remarks>
 	public static ProcessImageResult ProcessImage(string imgPath, string outPath, ProcessImageSettings settings)
 	{
 		ThrowHelper.ThrowIfNullOrEmpty(outPath);
@@ -76,7 +76,7 @@ public static class MagicImageProcessor
 	/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
 	/// <param name="imgBuffer">A buffer containing a supported input image container.</param>
 	/// <param name="outPath">The path to which the output image will be written.</param>
-	/// <remarks>If <paramref name="outPath"/> already exists, it will be overwritten.</remarks>
+	/// <remarks>If <paramref name="outPath" /> already exists, it will be overwritten.</remarks>
 	public static unsafe ProcessImageResult ProcessImage(ReadOnlySpan<byte> imgBuffer, string outPath, ProcessImageSettings settings)
 	{
 		ThrowHelper.ThrowIfNullOrEmpty(outPath);
@@ -158,7 +158,7 @@ public static class MagicImageProcessor
 	}
 
 	/// <inheritdoc cref="ProcessImage(string, Stream, ProcessImageSettings)" />
-	/// <param name="imgContainer">A custom <see cref="IImageContainer"/> to use as input.</param>
+	/// <param name="imgContainer">A custom <see cref="IImageContainer" /> to use as input.</param>
 	public static ProcessImageResult ProcessImage(IImageContainer imgContainer, Stream outStream, ProcessImageSettings settings)
 	{
 		ThrowHelper.ThrowIfNotValidForOutput(outStream);
@@ -172,7 +172,7 @@ public static class MagicImageProcessor
 	}
 
 	/// <inheritdoc cref="ProcessImage(string, string, ProcessImageSettings)" />
-	/// <param name="imgContainer">A custom <see cref="IImageContainer"/> to use as input.</param>
+	/// <param name="imgContainer">A custom <see cref="IImageContainer" /> to use as input.</param>
 	public static unsafe ProcessImageResult ProcessImage(IImageContainer imgContainer, string outPath, ProcessImageSettings settings)
 	{
 		ThrowHelper.ThrowIfNullOrEmpty(outPath);
@@ -236,7 +236,7 @@ public static class MagicImageProcessor
 	}
 
 	/// <inheritdoc cref="BuildPipeline(string, ProcessImageSettings)" />
-	/// <param name="imgContainer">A custom <see cref="IImageContainer"/> to use as input.</param>
+	/// <param name="imgContainer">A custom <see cref="IImageContainer" /> to use as input.</param>
 	public static ProcessingPipeline BuildPipeline(IImageContainer imgContainer, ProcessImageSettings settings)
 	{
 		ThrowHelper.ThrowIfNull(imgContainer);

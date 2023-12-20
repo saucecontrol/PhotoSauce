@@ -101,14 +101,14 @@ public class WebpAdvancedEncoderOptions : IWebpEncoderOptions
 		set => Config.image_hint = (WebPImageHint)value;
 	}
 
-	/// <summary>If non-zero, set the desired target size in bytes. Takes precedence over <see cref="Quality"/>.</summary>
+	/// <summary>If non-zero, set the desired target size in bytes. Takes precedence over <see cref="Quality" />.</summary>
 	public int TargetSize
 	{
 		get => Config.target_size;
 		set => Config.target_size = value;
 	}
 
-	/// <summary>If non-zero, specifies the minimal distortion to try to achieve. Takes precedence over <see cref="TargetSize"/>.</summary>
+	/// <summary>If non-zero, specifies the minimal distortion to try to achieve. Takes precedence over <see cref="TargetSize" />.</summary>
 	public float TargetPsnr
 	{
 		get => Config.target_PSNR;
@@ -143,7 +143,7 @@ public class WebpAdvancedEncoderOptions : IWebpEncoderOptions
 		set => Config.filter_sharpness = value;
 	}
 
-	/// <summary>Filtering type: 0 = simple, 1 = strong (only used if <see cref="FilterStrength"/> > 0 or <see cref="AutoFilter"/> is true).</summary>
+	/// <summary>Filtering type: 0 = simple, 1 = strong (only used if <see cref="FilterStrength" /> > 0 or <see cref="AutoFilter" /> is true).</summary>
 	public int FilterType
 	{
 		get => Config.filter_type;

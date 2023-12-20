@@ -52,6 +52,7 @@ internal unsafe struct IWICBitmapSourceImpl
 			return S_OK;
 		}
 
+		*ppvObject = null;
 		return E_NOINTERFACE;
 	}
 

@@ -93,8 +93,8 @@ public enum JxlDecodeSpeed
 	Speed3 = 3,
 	/// <summary>Speed value 4.</summary>
 	Speed4 = 4,
-	/// <summary>The slowest decoding speed.  Equivalent to <see cref="Speed0"/>.</summary>
+	/// <summary>The slowest decoding speed.  Equivalent to <see cref="Speed0" />.</summary>
 	Slowest = 0,
-	/// <summary>The fastest decoding speed.  Equivalent to <see cref="Speed4"/>.</summary>
+	/// <summary>The fastest decoding speed.  Equivalent to <see cref="Speed4" />.</summary>
 	Fastest = 4
 }

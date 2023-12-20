@@ -251,7 +251,7 @@ internal readonly record struct SRational(int Numerator, int Denominator)
 /// <param name="PixelAspectRatio">The pixel aspect ratio of the animation.</param>
 /// <param name="RequiresScreenBuffer">True if this animation requires a persistent screen buffer onto which frames are rendered, otherwise false.</param>
 /// <remarks>Coalescing the animation may require frames that precede the <see cref="IMultiFrameDecoderOptions.FrameRange" />.  The decoder must allow this.</remarks>
-/// <remarks><paramref name="PixelAspectRatio"/> is used only for GIF.  Valid range is 0.25 to 4.21875, where 0 or 1 means square pixels.</remarks>
+/// <remarks><paramref name="PixelAspectRatio" /> is used only for GIF.  Valid range is 0.25 to 4.21875, where 0 or 1 means square pixels.</remarks>
 internal readonly record struct AnimationContainer(int ScreenWidth, int ScreenHeight, int FrameCount, int LoopCount = 0, int BackgroundColor = 0, float PixelAspectRatio = 1f, bool RequiresScreenBuffer = false) : IMetadata;
 
 /// <summary>Defines metadata for a single frame within an animated image sequence.</summary>

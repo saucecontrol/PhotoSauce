@@ -17,11 +17,11 @@ public class WebRSizeSection : ConfigurationSection
 	const string diskCache = nameof(diskCache);
 	const string imageFolders = nameof(imageFolders);
 
-	/// <summary>Represents the <see cref="diskCache"/> element.</summary>
+	/// <summary>Represents the <see cref="diskCache" /> element.</summary>
 	[ConfigurationProperty(diskCache, IsRequired = true)]
 	public DiskCacheElement DiskCache => (DiskCacheElement)base[diskCache];
 
-	/// <summary>Represents the <see cref="imageFolders"/> element.</summary>
+	/// <summary>Represents the <see cref="imageFolders" /> element.</summary>
 	[ConfigurationProperty(imageFolders, IsRequired = true), ConfigurationCollection(typeof(NameKeyedConfigurationElemementCollection<ImageFolder>))]
 	public NameKeyedConfigurationElemementCollection<ImageFolder> ImageFolders => (NameKeyedConfigurationElemementCollection<ImageFolder>)base[imageFolders];
 }
@@ -33,15 +33,15 @@ public class DiskCacheElement : ConfigurationElement
 	const string path = nameof(path);
 	const string namingStrategy = nameof(namingStrategy);
 
-	/// <summary>Represents the <see cref="enabled"/> attribute.</summary>
+	/// <summary>Represents the <see cref="enabled" /> attribute.</summary>
 	[ConfigurationProperty(enabled, IsRequired = false, DefaultValue = true)]
 	public bool Enabled => (bool)base[enabled];
 
-	/// <summary>Represents the <see cref="path"/> attribute.</summary>
+	/// <summary>Represents the <see cref="path" /> attribute.</summary>
 	[ConfigurationProperty(path, IsRequired = true)]
 	public string Path => (string)base[path];
 
-	/// <summary>Represents the <see cref="namingStrategy"/> attribute.</summary>
+	/// <summary>Represents the <see cref="namingStrategy" /> attribute.</summary>
 	[ConfigurationProperty(namingStrategy, IsRequired = false, DefaultValue = typeof(CacheFileNamingStrategyMirror)), TypeConverter(typeof(SimplifiedTypeNameConverter))]
 	public Type NamingStrategy => (Type)base[namingStrategy];
 }
@@ -55,23 +55,23 @@ public class ImageFolder : NameKeyedConfigurationElement
 	const string maxPixels = nameof(maxPixels);
 	const string defaultSettings = nameof(defaultSettings);
 
-	/// <summary>Represents the <see cref="path"/> attribute.</summary>
+	/// <summary>Represents the <see cref="path" /> attribute.</summary>
 	[ConfigurationProperty(path, IsRequired = true)]
 	public string Path => (string)base[path];
 
-	/// <summary>Represents the <see cref="forceProcessing"/> attribute.</summary>
+	/// <summary>Represents the <see cref="forceProcessing" /> attribute.</summary>
 	[ConfigurationProperty(forceProcessing, IsRequired = false, DefaultValue = false)]
 	public bool ForceProcessing => (bool)base[forceProcessing];
 
-	/// <summary>Represents the <see cref="allowEnlarge"/> attribute.</summary>
+	/// <summary>Represents the <see cref="allowEnlarge" /> attribute.</summary>
 	[ConfigurationProperty(allowEnlarge, IsRequired = false, DefaultValue = false)]
 	public bool AllowEnlarge => (bool)base[allowEnlarge];
 
-	/// <summary>Represents the <see cref="maxPixels"/> attribute.</summary>
+	/// <summary>Represents the <see cref="maxPixels" /> attribute.</summary>
 	[ConfigurationProperty(maxPixels, IsRequired = false, DefaultValue = 10000000)]
 	public int MaxPixels => (int)base[maxPixels];
 
-	/// <summary>Represents the <see cref="defaultSettings"/> element.</summary>
+	/// <summary>Represents the <see cref="defaultSettings" /> element.</summary>
 	[ConfigurationProperty(defaultSettings), ConfigurationCollection(typeof(KeyValueConfigurationCollection))]
 	public KeyValueConfigurationCollection DefaultSettings => (KeyValueConfigurationCollection)base[defaultSettings];
 }
@@ -81,7 +81,7 @@ public class NameKeyedConfigurationElement : ConfigurationElement
 {
 	const string name = nameof(name);
 
-	/// <summary>Represents the <see cref="name"/> attribute.</summary>
+	/// <summary>Represents the <see cref="name" /> attribute.</summary>
 	[ConfigurationProperty(name, IsRequired = true, IsKey = true), TypeConverter(typeof(WhiteSpaceTrimStringConverter))]
 	public string Name => (string)base[name];
 }

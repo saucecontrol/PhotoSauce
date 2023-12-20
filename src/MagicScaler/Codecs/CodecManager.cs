@@ -72,7 +72,7 @@ public static class ImageFileExtensions
 /// <summary>A pattern used to match <a href="https://en.wikipedia.org/wiki/List_of_file_signatures">magic bytes</a> in an image file header.</summary>
 /// <param name="Offset">Number of bytes to skip from the start of the file before attempting pattern match.</param>
 /// <param name="Pattern">A byte pattern to match at the given <paramref name="Offset" />.</param>
-/// <param name="Mask">A mask to apply to image bytes (using binary <see langword="&amp;" />) before matching against the <paramref name="Pattern"/>.</param>
+/// <param name="Mask">A mask to apply to image bytes (using binary <see langword="&amp;" />) before matching against the <paramref name="Pattern" />.</param>
 /// <remarks>The total length described by (<paramref name="Offset" /> + <paramref name="Pattern" />.Length) should not be more than 16 bytes.</remarks>
 public readonly record struct ContainerPattern(int Offset, byte[] Pattern, byte[] Mask);
 
@@ -87,9 +87,6 @@ public abstract record class CodecInfo(
 ) : IImageCodecInfo;
 
 /// <inheritdoc />
-/// <param name="Name"><inheritdoc cref="IImageCodecInfo.Name" path="/summary/node()" /></param>
-/// <param name="MimeTypes"><inheritdoc cref="IImageCodecInfo.MimeTypes" path="/summary/node()" /></param>
-/// <param name="FileExtensions"><inheritdoc cref="IImageCodecInfo.FileExtensions" path="/summary/node()" /></param>
 /// <param name="Patterns"><inheritdoc cref="IImageDecoderInfo.Patterns" path="/summary/node()" /></param>
 /// <param name="DefaultOptions"><inheritdoc cref="IImageDecoderInfo.DefaultOptions" path="/summary/node()" /></param>
 /// <param name="Factory"><inheritdoc cref="IImageDecoderInfo.Factory" path="/summary/node()" /></param>
@@ -103,9 +100,6 @@ public sealed record class DecoderInfo(
 ) : CodecInfo(Name, MimeTypes, FileExtensions), IImageDecoderInfo;
 
 /// <inheritdoc />
-/// <param name="Name"><inheritdoc cref="IImageCodecInfo.Name" path="/summary/node()" /></param>
-/// <param name="MimeTypes"><inheritdoc cref="IImageCodecInfo.MimeTypes" path="/summary/node()" /></param>
-/// <param name="FileExtensions"><inheritdoc cref="IImageCodecInfo.FileExtensions" path="/summary/node()" /></param>
 /// <param name="PixelFormats"><inheritdoc cref="IImageEncoderInfo.PixelFormats" path="/summary/node()" /></param>
 /// <param name="DefaultOptions"><inheritdoc cref="IImageEncoderInfo.DefaultOptions" path="/summary/node()" /></param>
 /// <param name="Factory"><inheritdoc cref="IImageEncoderInfo.Factory" path="/summary/node()" /></param>
@@ -141,7 +135,7 @@ internal sealed record class PlanarEncoderInfo(
 ) : CodecInfo(Name, MimeTypes, FileExtensions), IPlanarImageEncoderInfo;
 
 /// <summary>Represents the set of configured codecs for the processing pipeline.</summary>
-/// <remarks>Instances should not be retained or used outside of <see cref="CodecManager.Configure(Action{CodecCollection}?)"/>.</remarks>
+/// <remarks>Instances should not be retained or used outside of <see cref="CodecManager.Configure(Action{CodecCollection}?)" />.</remarks>
 public sealed class CodecCollection : ICollection<IImageCodecInfo>, IReadOnlyCollection<IImageCodecInfo>
 {
 	private readonly List<IImageCodecInfo> codecs = [ ];

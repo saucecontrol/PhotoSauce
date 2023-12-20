@@ -18,7 +18,7 @@
 		<PackageReleaseNotes>See $(RepositoryUrl)/releases for release-specific notes.</PackageReleaseNotes>
 
 		<LangVersion>12</LangVersion>
-		<WarningLevel>7</WarningLevel>
+		<AnalysisLevel>7</AnalysisLevel>
 		<Features>strict</Features>
 		<Nullable>annotations</Nullable>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>

@@ -224,7 +224,7 @@ internal sealed class FrameBufferSource : PixelSource
 
 	public void Clear(PixelArea area, uint color)
 	{
-		Debug.Assert(Format.BytesPerPixel is sizeof(uint));
+		Debug.Assert(color is 0 || Format.BytesPerPixel is sizeof(uint));
 
 		if (area == Area)
 		{

@@ -122,9 +122,9 @@ public sealed class TargaContainer : IImageContainer
 		return fmt is TgaFormat ? new TargaContainer(imgStream, info.PixelType.BitsPerPixel) : null;
 	}
 
-	/// <summary>Loads a TARGA image from an input <see cref="Stream"/>.</summary>
+	/// <summary>Loads a TARGA image from an input <see cref="Stream" />.</summary>
 	/// <param name="imgStream">A <see cref="Stream" /> containing the image file.</param>
-	/// <returns>A <see cref="TargaContainer"/> encapsulating the image.</returns>
+	/// <returns>A <see cref="TargaContainer" /> encapsulating the image.</returns>
 	public static TargaContainer Load(Stream imgStream)
 	{
 		if (imgStream is null)

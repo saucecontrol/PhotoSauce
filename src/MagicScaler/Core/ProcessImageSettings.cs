@@ -27,7 +27,7 @@ public readonly record struct UnsharpMaskSettings
 	/// <value>Typical values are between <c>0.3</c> and <c>3.0</c>. Larger radius values can have significant performance cost.</value>
 	public double Radius { get; }
 	/// <summary>The minimum brightness change required for a pixel to be modified by the filter.</summary>
-	/// <remarks>When using larger <see cref="Radius"/> or <see cref="Amount"/> values, a larger <see cref="Threshold"/> value can ensure lines are sharpened while textures are not.</remarks>
+	/// <remarks>When using larger <see cref="Radius" /> or <see cref="Amount" /> values, a larger <see cref="Threshold" /> value can ensure lines are sharpened while textures are not.</remarks>
 	/// <value>Typical values are between <c>0</c> and <c>10</c>.</value>
 	public byte Threshold { get; }
 
@@ -159,7 +159,7 @@ public sealed class ProcessImageSettings
 	/// <remarks>This affects the image metadata only.  Not all image formats support a DPI setting and most applications will ignore it.</remarks>
 	/// <value>Default value: <c>96</c></value>
 	public double DpiY { get; set; } = 96d;
-	/// <summary>Determines whether automatic sharpening is applied during processing.  The sharpening settings are controlled by the <see cref="UnsharpMask"/> property.</summary>
+	/// <summary>Determines whether automatic sharpening is applied during processing.  The sharpening settings are controlled by the <see cref="UnsharpMask" /> property.</summary>
 	/// <value>Default value: <see langword="true" /></value>
 	public bool Sharpen { get; set; } = true;
 	/// <summary>Determines how automatic scaling and cropping is performed.</summary>
@@ -207,7 +207,7 @@ public sealed class ProcessImageSettings
 	public IDecoderOptions? DecoderOptions { get; set; }
 
 	/// <summary>The width of the output image in pixels.  If auto-cropping is enabled, a value of <c>0</c> will set the width automatically based on the output height.</summary>
-	/// <remarks>If <see cref="Width"/> and <see cref="Height"/> are both set to <c>0</c>, no resizing will be performed but a crop may still be applied.</remarks>
+	/// <remarks>If <see cref="Width" /> and <see cref="Height" /> are both set to <c>0</c>, no resizing will be performed but a crop may still be applied.</remarks>
 	/// <value>Default value: <c>0</c></value>
 	public int Width
 	{
@@ -220,7 +220,7 @@ public sealed class ProcessImageSettings
 	}
 
 	/// <summary>The height of the output image in pixels.  If auto-cropping is enabled, a value of <c>0</c> will set the height automatically based on the output width.</summary>
-	/// <remarks>If <see cref="Width"/> and <see cref="Height"/> are both set to <c>0</c>, no resizing will be performed but a crop may still be applied.</remarks>
+	/// <remarks>If <see cref="Width" /> and <see cref="Height" /> are both set to <c>0</c>, no resizing will be performed but a crop may still be applied.</remarks>
 	/// <value>Default value: <c>0</c></value>
 	public int Height
 	{

@@ -11,9 +11,7 @@ using PhotoSauce.MagicScaler;
 namespace PhotoSauce.Interop.Libwebp;
 
 [SuppressUnmanagedCodeSecurity]
-internal static partial class Libwebp
-{
-}
+internal static partial class Libwebp { }
 
 internal enum WebpPlane
 {

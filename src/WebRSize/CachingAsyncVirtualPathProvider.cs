@@ -12,12 +12,12 @@ using PhotoSauce.MagicScaler;
 
 namespace PhotoSauce.WebRSize;
 
-/// <summary>A base <see cref="VirtualPathProvider"/> that adds memory caching and async operation.</summary>
+/// <summary>A base <see cref="VirtualPathProvider" /> that adds memory caching and async operation.</summary>
 public class CachingAsyncVirtualPathProvider : VirtualPathProvider
 {
-	/// <summary>An already-completed <see cref="Task"/> with the value: true.</summary>
+	/// <summary>An already-completed <see cref="Task" /> with the value: true.</summary>
 	protected static readonly Task<bool> True = Task.FromResult(true);
-	/// <summary>An already-completed <see cref="Task"/> with the value: false.</summary>
+	/// <summary>An already-completed <see cref="Task" /> with the value: false.</summary>
 	protected static readonly Task<bool> False = Task.FromResult(false);
 
 	/// <inheritdoc />
@@ -29,9 +29,9 @@ public class CachingAsyncVirtualPathProvider : VirtualPathProvider
 	/// <inheritdoc />
 	protected override void Initialize() => AsyncPrevious = Previous as CachingAsyncVirtualPathProvider;
 
-	/// <summary>Determines whether the given <paramref name="virtualPath"/> is handled by this <see cref="VirtualPathProvider"/> or another.</summary>
+	/// <summary>Determines whether the given <paramref name="virtualPath" /> is handled by this <see cref="VirtualPathProvider" /> or another.</summary>
 	/// <param name="virtualPath">The Virtual Path to test.</param>
-	/// <returns>True if the path is handled by this <see cref="VirtualPathProvider"/>, otherwise false.</returns>
+	/// <returns>True if the path is handled by this <see cref="VirtualPathProvider" />, otherwise false.</returns>
 	protected virtual bool IsPathCaptured(string virtualPath) => false;
 
 	/// <inheritdoc cref="FileExists(string)" />

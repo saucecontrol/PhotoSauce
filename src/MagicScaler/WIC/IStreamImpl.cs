@@ -56,6 +56,7 @@ internal unsafe struct IStreamImpl
 			return S_OK;
 		}
 
+		*ppvObject = null;
 		return E_NOINTERFACE;
 	}
 

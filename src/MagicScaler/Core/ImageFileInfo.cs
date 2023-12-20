@@ -14,7 +14,6 @@ namespace PhotoSauce.MagicScaler;
 public sealed class ImageFileInfo
 {
 	/// <summary>Represents basic information about an image frame within a container.</summary>
-	/// <remarks>Constructs a new <see cref="FrameInfo" /> instance with the supplied values.</remarks>
 	/// <param name="width">The width of the image frame in pixels.</param>
 	/// <param name="height">The height of the image frame in pixels.</param>
 	/// <param name="hasAlpha">True if the image frame contains transparency data, otherwise false.</param>

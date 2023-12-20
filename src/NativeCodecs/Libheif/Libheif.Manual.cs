@@ -5,6 +5,4 @@ using System.Security;
 namespace PhotoSauce.Interop.Libheif;
 
 [SuppressUnmanagedCodeSecurity]
-internal static partial class Libheif
-{
-}
+internal static partial class Libheif { }

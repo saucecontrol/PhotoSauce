@@ -66,6 +66,6 @@ public abstract class BitmapPixelSource : IPixelSource, IDisposable
 	}
 
 	/// <inheritdoc cref="IDisposable.Dispose" />
-	/// <param name="disposing">True if the method is being invoked from a call to <see cref="IDisposable.Dispose"/>, false if it is invoked from a finalizer.</param>
+	/// <param name="disposing">True if the method is being invoked from a call to <see cref="IDisposable.Dispose" />, false if it is invoked from a finalizer.</param>
 	protected virtual void Dispose(bool disposing) { }
 }
