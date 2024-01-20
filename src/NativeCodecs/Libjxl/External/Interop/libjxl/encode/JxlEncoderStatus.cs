@@ -11,5 +11,4 @@ internal enum JxlEncoderStatus
     JXL_ENC_SUCCESS = 0,
     JXL_ENC_ERROR = 1,
     JXL_ENC_NEED_MORE_OUTPUT = 2,
-    JXL_ENC_NOT_SUPPORTED = 3,
 }

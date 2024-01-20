@@ -8,6 +8,21 @@ namespace PhotoSauce.Interop.Libjxl;
 
 internal unsafe partial struct JxlCmsInterface
 {
+    public void* set_fields_data;
+
+    [NativeTypeName("jpegxl_cms_set_fields_from_icc_func")]
+#if NET5_0_OR_GREATER
+    public delegate* unmanaged[Cdecl]<void*, byte*, nuint, JxlColorEncoding*, int*, int> set_fields_from_icc;
+#else
+    public void* _set_fields_from_icc;
+
+    public delegate* unmanaged[Cdecl]<void*, byte*, nuint, JxlColorEncoding*, int*, int> set_fields_from_icc
+    {
+        get => (delegate* unmanaged[Cdecl]<void*, byte*, nuint, JxlColorEncoding*, int*, int>)_set_fields_from_icc;
+        set => _set_fields_from_icc = value;
+    }
+#endif
+
     public void* init_data;
 
     [NativeTypeName("jpegxl_cms_init_func")]

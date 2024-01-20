@@ -4,7 +4,6 @@
 // Original source Copyright (c) the JPEG XL Project Authors. All rights reserved.
 // See third-party-notices in the repository root for more information.
 
-using System;
 using System.Runtime.InteropServices;
 
 namespace PhotoSauce.Interop.Libjxl;
@@ -56,6 +55,15 @@ internal static unsafe partial class Libjxl
     public static extern JxlEncoderStatus JxlEncoderAddImageFrame([NativeTypeName("const JxlEncoderFrameSettings *")] void* frame_settings, [NativeTypeName("const JxlPixelFormat *")] JxlPixelFormat* pixel_format, [NativeTypeName("const void *")] void* buffer, [NativeTypeName("size_t")] nuint size);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern JxlEncoderStatus JxlEncoderSetOutputProcessor([NativeTypeName("JxlEncoder *")] void* enc, [NativeTypeName("struct JxlEncoderOutputProcessor")] JxlEncoderOutputProcessor output_processor);
+
+    [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern JxlEncoderStatus JxlEncoderFlushInput([NativeTypeName("JxlEncoder *")] void* enc);
+
+    [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern JxlEncoderStatus JxlEncoderAddChunkedFrame([NativeTypeName("const JxlEncoderFrameSettings *")] void* frame_settings, int is_last_frame, [NativeTypeName("struct JxlChunkedFrameInputSource")] JxlChunkedFrameInputSource chunked_frame_input);
+
+    [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern JxlEncoderStatus JxlEncoderSetExtraChannelBuffer([NativeTypeName("const JxlEncoderFrameSettings *")] void* frame_settings, [NativeTypeName("const JxlPixelFormat *")] JxlPixelFormat* pixel_format, [NativeTypeName("const void *")] void* buffer, [NativeTypeName("size_t")] nuint size, [NativeTypeName("uint32_t")] uint index);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -92,6 +100,9 @@ internal static unsafe partial class Libjxl
     public static extern JxlEncoderStatus JxlEncoderSetBasicInfo([NativeTypeName("JxlEncoder *")] void* enc, [NativeTypeName("const JxlBasicInfo *")] JxlBasicInfo* info);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern JxlEncoderStatus JxlEncoderSetUpsamplingMode([NativeTypeName("JxlEncoder *")] void* enc, [NativeTypeName("const int64_t")] long factor, [NativeTypeName("const int64_t")] long mode);
+
+    [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern void JxlEncoderInitExtraChannelInfo(JxlExtraChannelType type, JxlExtraChannelInfo* info);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -122,31 +133,17 @@ internal static unsafe partial class Libjxl
     public static extern JxlEncoderStatus JxlEncoderSetFrameLossless([NativeTypeName("JxlEncoderFrameSettings *")] void* frame_settings, int lossless);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern JxlEncoderStatus JxlEncoderOptionsSetLossless([NativeTypeName("JxlEncoderFrameSettings *")] void* param0, int param1);
-
-    [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    [Obsolete]
-    public static extern JxlEncoderStatus JxlEncoderOptionsSetEffort([NativeTypeName("JxlEncoderFrameSettings *")] void* frame_settings, int effort);
-
-    [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    [Obsolete]
-    public static extern JxlEncoderStatus JxlEncoderOptionsSetDecodingSpeed([NativeTypeName("JxlEncoderFrameSettings *")] void* frame_settings, int tier);
-
-    [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern JxlEncoderStatus JxlEncoderSetFrameDistance([NativeTypeName("JxlEncoderFrameSettings *")] void* frame_settings, float distance);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    [Obsolete]
-    public static extern JxlEncoderStatus JxlEncoderOptionsSetDistance([NativeTypeName("JxlEncoderFrameSettings *")] void* param0, float param1);
+    public static extern JxlEncoderStatus JxlEncoderSetExtraChannelDistance([NativeTypeName("JxlEncoderFrameSettings *")] void* frame_settings, [NativeTypeName("size_t")] nuint index, float distance);
+
+    [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern float JxlEncoderDistanceFromQuality(float quality);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     [return: NativeTypeName("JxlEncoderFrameSettings *")]
     public static extern void* JxlEncoderFrameSettingsCreate([NativeTypeName("JxlEncoder *")] void* enc, [NativeTypeName("const JxlEncoderFrameSettings *")] void* source);
-
-    [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    [return: NativeTypeName("JxlEncoderFrameSettings *")]
-    [Obsolete]
-    public static extern void* JxlEncoderOptionsCreate([NativeTypeName("JxlEncoder *")] void* param0, [NativeTypeName("const JxlEncoderFrameSettings *")] void* param1);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern void JxlColorEncodingSetToSRGB(JxlColorEncoding* color_encoding, int is_gray);
@@ -156,4 +153,10 @@ internal static unsafe partial class Libjxl
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern void JxlEncoderAllowExpertOptions([NativeTypeName("JxlEncoder *")] void* enc);
+
+    [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern void JxlEncoderSetDebugImageCallback([NativeTypeName("JxlEncoderFrameSettings *")] void* frame_settings, [NativeTypeName("JxlDebugImageCallback")] delegate* unmanaged[Cdecl]<void*, sbyte*, nuint, nuint, JxlColorEncoding*, ushort*, void> callback, void* opaque);
+
+    [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern void JxlEncoderCollectStats([NativeTypeName("JxlEncoderFrameSettings *")] void* frame_settings, [NativeTypeName("JxlEncoderStats *")] void* stats);
 }

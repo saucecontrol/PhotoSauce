@@ -98,11 +98,11 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 				else if (status == JxlDecoderStatus.JXL_DEC_COLOR_ENCODING)
 				{
 					nuint icclen;
-					JxlError.Check(JxlDecoderGetICCProfileSize(decoder, null, JxlColorProfileTarget.JXL_COLOR_PROFILE_TARGET_DATA, &icclen));
+					JxlError.Check(JxlDecoderGetICCProfileSize(decoder, JxlColorProfileTarget.JXL_COLOR_PROFILE_TARGET_DATA, &icclen));
 
 					iccpData = BufferPool.Rent<byte>((int)icclen);
 					fixed (byte* picc = iccpData)
-						JxlError.Check(JxlDecoderGetColorAsICCProfile(decoder, null, JxlColorProfileTarget.JXL_COLOR_PROFILE_TARGET_DATA, picc, (nuint)iccpData.Length));
+						JxlError.Check(JxlDecoderGetColorAsICCProfile(decoder, JxlColorProfileTarget.JXL_COLOR_PROFILE_TARGET_DATA, picc, (nuint)iccpData.Length));
 				}
 				else if (status == JxlDecoderStatus.JXL_DEC_BOX)
 				{

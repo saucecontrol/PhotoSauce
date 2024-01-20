@@ -1,6 +1,6 @@
 // Copyright © Clinton Ingram and Contributors. Licensed under the MIT License (MIT).
 
-// Ported from libjxl headers (types.h)
+// Ported from libjxl headers (decode.h)
 // Original source Copyright (c) the JPEG XL Project Authors. All rights reserved.
 // See third-party-notices in the repository root for more information.
 

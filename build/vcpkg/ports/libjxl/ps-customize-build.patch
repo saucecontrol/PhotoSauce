@@ -1,0 +1,37 @@
+diff --git a/lib/CMakeLists.txt b/lib/CMakeLists.txt
+index e435c97..ed71c41 100644
+--- a/lib/CMakeLists.txt
++++ b/lib/CMakeLists.txt
+@@ -158,7 +158,7 @@ include(jxl.cmake)
+ if(JPEGXL_ENABLE_TOOLS OR BUILD_TESTING)
+   include(jxl_extras.cmake)
+ endif()
+-include(jxl_threads.cmake)
++#include(jxl_threads.cmake)
+ if (JPEGXL_ENABLE_JPEGLI)
+   include(jpegli.cmake)
+ endif()
+diff --git a/lib/jxl.cmake b/lib/jxl.cmake
+index 5f46c90..404aff8 100644
+--- a/lib/jxl.cmake
++++ b/lib/jxl.cmake
+@@ -197,6 +197,7 @@ target_link_libraries(jxl PUBLIC ${JPEGXL_COVERAGE_FLAGS} jxl_base)
+ target_link_libraries(jxl PUBLIC jxl_cms)
+ target_link_libraries(jxl PRIVATE ${JPEGXL_INTERNAL_SHARED_LIBS})
+ set_target_properties(jxl PROPERTIES
++  NO_SONAME 1
+   VERSION ${JPEGXL_LIBRARY_VERSION}
+   SOVERSION ${JPEGXL_LIBRARY_SOVERSION})
+ 
+diff --git a/lib/jxl_cms.cmake b/lib/jxl_cms.cmake
+index b61975d..079bd73 100644
+--- a/lib/jxl_cms.cmake
++++ b/lib/jxl_cms.cmake
+@@ -9,6 +9,7 @@ include(jxl_lists.cmake)
+ include(GenerateExportHeader)
+ 
+ add_library(jxl_cms
++  STATIC
+   ${JPEGXL_INTERNAL_CMS_SOURCES}
+ )
+ target_compile_options(jxl_cms PRIVATE "${JPEGXL_INTERNAL_FLAGS}")

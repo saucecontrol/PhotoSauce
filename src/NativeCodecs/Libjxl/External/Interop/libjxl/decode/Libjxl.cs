@@ -4,7 +4,6 @@
 // Original source Copyright (c) the JPEG XL Project Authors. All rights reserved.
 // See third-party-notices in the repository root for more information.
 
-using System;
 using System.Runtime.InteropServices;
 
 namespace PhotoSauce.Interop.Libjxl;
@@ -36,10 +35,6 @@ internal static unsafe partial class Libjxl
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern JxlDecoderStatus JxlDecoderSkipCurrentFrame([NativeTypeName("JxlDecoder *")] void* dec);
-
-    [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    [Obsolete]
-    public static extern JxlDecoderStatus JxlDecoderDefaultPixelFormat([NativeTypeName("const JxlDecoder *")] void* dec, JxlPixelFormat* format);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern JxlDecoderStatus JxlDecoderSetParallelRunner([NativeTypeName("JxlDecoder *")] void* dec, [NativeTypeName("JxlParallelRunner")] delegate* unmanaged[Cdecl]<void*, void*, delegate* unmanaged[Cdecl]<void*, nuint, int>, delegate* unmanaged[Cdecl]<void*, uint, nuint, void>, uint, uint, int> parallel_runner, void* parallel_runner_opaque);
@@ -86,13 +81,13 @@ internal static unsafe partial class Libjxl
     public static extern JxlDecoderStatus JxlDecoderGetExtraChannelName([NativeTypeName("const JxlDecoder *")] void* dec, [NativeTypeName("size_t")] nuint index, [NativeTypeName("char *")] sbyte* name, [NativeTypeName("size_t")] nuint size);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern JxlDecoderStatus JxlDecoderGetColorAsEncodedProfile([NativeTypeName("const JxlDecoder *")] void* dec, [NativeTypeName("const JxlPixelFormat *")] JxlPixelFormat* unused_format, JxlColorProfileTarget target, JxlColorEncoding* color_encoding);
+    public static extern JxlDecoderStatus JxlDecoderGetColorAsEncodedProfile([NativeTypeName("const JxlDecoder *")] void* dec, JxlColorProfileTarget target, JxlColorEncoding* color_encoding);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern JxlDecoderStatus JxlDecoderGetICCProfileSize([NativeTypeName("const JxlDecoder *")] void* dec, [NativeTypeName("const JxlPixelFormat *")] JxlPixelFormat* unused_format, JxlColorProfileTarget target, [NativeTypeName("size_t *")] nuint* size);
+    public static extern JxlDecoderStatus JxlDecoderGetICCProfileSize([NativeTypeName("const JxlDecoder *")] void* dec, JxlColorProfileTarget target, [NativeTypeName("size_t *")] nuint* size);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern JxlDecoderStatus JxlDecoderGetColorAsICCProfile([NativeTypeName("const JxlDecoder *")] void* dec, [NativeTypeName("const JxlPixelFormat *")] JxlPixelFormat* unused_format, JxlColorProfileTarget target, [NativeTypeName("uint8_t *")] byte* icc_profile, [NativeTypeName("size_t")] nuint size);
+    public static extern JxlDecoderStatus JxlDecoderGetColorAsICCProfile([NativeTypeName("const JxlDecoder *")] void* dec, JxlColorProfileTarget target, [NativeTypeName("uint8_t *")] byte* icc_profile, [NativeTypeName("size_t")] nuint size);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern JxlDecoderStatus JxlDecoderSetPreferredColorProfile([NativeTypeName("JxlDecoder *")] void* dec, [NativeTypeName("const JxlColorEncoding *")] JxlColorEncoding* color_encoding);
@@ -104,7 +99,7 @@ internal static unsafe partial class Libjxl
     public static extern JxlDecoderStatus JxlDecoderSetOutputColorProfile([NativeTypeName("JxlDecoder *")] void* dec, [NativeTypeName("const JxlColorEncoding *")] JxlColorEncoding* color_encoding, [NativeTypeName("const uint8_t *")] byte* icc_data, [NativeTypeName("size_t")] nuint icc_size);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern void JxlDecoderSetCms([NativeTypeName("JxlDecoder *")] void* dec, JxlCmsInterface cms);
+    public static extern JxlDecoderStatus JxlDecoderSetCms([NativeTypeName("JxlDecoder *")] void* dec, JxlCmsInterface cms);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern JxlDecoderStatus JxlDecoderPreviewOutBufferSize([NativeTypeName("const JxlDecoder *")] void* dec, [NativeTypeName("const JxlPixelFormat *")] JxlPixelFormat* format, [NativeTypeName("size_t *")] nuint* size);

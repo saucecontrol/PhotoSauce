@@ -1,16 +1,12 @@
 diff --git a/libheif/CMakeLists.txt b/libheif/CMakeLists.txt
-index 93c65be..82a50ee 100644
+index 93c65be..5356016 100644
 --- a/libheif/CMakeLists.txt
 +++ b/libheif/CMakeLists.txt
-@@ -95,11 +95,6 @@ target_include_directories(heif
-         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-         $<INSTALL_INTERFACE:include>)
+@@ -97,6 +97,7 @@ target_include_directories(heif
  
--set_target_properties(heif
--        PROPERTIES
--        VERSION ${PROJECT_VERSION}
--        SOVERSION ${PROJECT_VERSION_MAJOR})
--
- if (APPLE)
-     set_target_properties(heif
-             PROPERTIES
+ set_target_properties(heif
+         PROPERTIES
++        NO_SONAME 1
+         VERSION ${PROJECT_VERSION}
+         SOVERSION ${PROJECT_VERSION_MAJOR})
+ 

@@ -57,7 +57,7 @@ jobs:
     fetchDepth: 1
     fetchTags: false
 
-  - task: NuGetAuthenticate@0
+  - task: NuGetAuthenticate@1
 
   - script: $(setupScript)
     displayName: Setup
@@ -140,7 +140,7 @@ jobs:
     displayName: Publish Managed Binaries
     artifact: managed
 
-  - task: NuGetAuthenticate@0
+  - task: NuGetAuthenticate@1
     condition: ne(variables['Build.Reason'], 'PullRequest')
 
   - script: dotnet nuget push --source $(azureNuGet) --api-key AzureArtifacts out/nuget/*.nupkg
