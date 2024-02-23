@@ -32,6 +32,11 @@ static
 #endif
 internal unsafe class WebpCallbacks
 {
+#if !NET5_0_OR_GREATER
+	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int MemoryWriteDelegate(byte* data, nuint data_size, WebPPicture* picture);
+	private static readonly MemoryWriteDelegate delMemoryWrite = typeof(WebpCallbacks).CreateMethodDelegate<MemoryWriteDelegate>(nameof(memoryWrite));
+#endif
+
 	public static readonly delegate* unmanaged[Cdecl]<byte*, nuint, WebPPicture*, int> MemoryWrite = getMemoryWriterCallback();
 
 #if NET5_0_OR_GREATER
@@ -64,9 +69,4 @@ internal unsafe class WebpCallbacks
 		return (delegate* unmanaged[Cdecl]<byte*, nuint, WebPPicture*, int>)Marshal.GetFunctionPointerForDelegate(delMemoryWrite);
 #endif
 	}
-
-#if !NET5_0_OR_GREATER
-	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int MemoryWriteDelegate(byte* data, nuint data_size, WebPPicture* picture);
-	private static readonly MemoryWriteDelegate delMemoryWrite = typeof(WebpCallbacks).CreateMethodDelegate<MemoryWriteDelegate>(nameof(memoryWrite));
-#endif
 }

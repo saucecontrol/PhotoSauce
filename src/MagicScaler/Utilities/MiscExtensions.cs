@@ -131,7 +131,7 @@ internal static class MiscExtensions
 
 	public static string GetArchDirectory(this Assembly asm)
 	{
-		string dir = RuntimeInformation.ProcessArchitecture.ToString();
+		string dir = RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant();
 		if (asm.CodeBase?.StartsWithOrdinal("file:") ?? false)
 			dir = Path.Combine(Path.GetDirectoryName(new Uri(asm.CodeBase).LocalPath), dir);
 

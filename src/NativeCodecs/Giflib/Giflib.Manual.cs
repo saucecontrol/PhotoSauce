@@ -30,6 +30,14 @@ static
 #endif
 internal unsafe class GifCallbacks
 {
+#if !NET5_0_OR_GREATER
+	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int ReadDelegate(GifFileType* pinst, byte* buff, int cb);
+	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int WriteDelegate(GifFileType* pinst, byte* buff, int cb);
+
+	private static readonly ReadDelegate delRead = typeof(GifCallbacks).CreateMethodDelegate<ReadDelegate>(nameof(read));
+	private static readonly WriteDelegate delWrite = typeof(GifCallbacks).CreateMethodDelegate<WriteDelegate>(nameof(write));
+#endif
+
 	public static readonly delegate* unmanaged[Cdecl]<GifFileType*, byte*, int, int> Read =
 #if NET5_0_OR_GREATER
 		&read;
@@ -82,12 +90,4 @@ internal unsafe class GifCallbacks
 			return 0;
 		}
 	}
-
-#if !NET5_0_OR_GREATER
-	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int ReadDelegate(GifFileType* pinst, byte* buff, int cb);
-	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int WriteDelegate(GifFileType* pinst, byte* buff, int cb);
-
-	private static readonly ReadDelegate delRead = typeof(GifCallbacks).CreateMethodDelegate<ReadDelegate>(nameof(read));
-	private static readonly WriteDelegate delWrite = typeof(GifCallbacks).CreateMethodDelegate<WriteDelegate>(nameof(write));
-#endif
 }

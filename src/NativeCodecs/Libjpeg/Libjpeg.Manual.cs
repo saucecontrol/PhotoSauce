@@ -111,6 +111,16 @@ static
 #endif
 internal unsafe class JpegCallbacks
 {
+#if !NET5_0_OR_GREATER
+	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nuint ReadDelegate(nint pinst, byte* buff, nuint cb);
+	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nuint SeekDelegate(nint pinst, nuint cb);
+	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nuint WriteDelegate(nint pinst, byte* buff, nuint cb);
+
+	private static readonly ReadDelegate delRead = typeof(JpegCallbacks).CreateMethodDelegate<ReadDelegate>(nameof(read));
+	private static readonly SeekDelegate delSeek = typeof(JpegCallbacks).CreateMethodDelegate<SeekDelegate>(nameof(seek));
+	private static readonly WriteDelegate delWrite = typeof(JpegCallbacks).CreateMethodDelegate<WriteDelegate>(nameof(write));
+#endif
+
 	public static readonly delegate* unmanaged[Cdecl]<nint, byte*, nuint, nuint> Read =
 #if NET5_0_OR_GREATER
 		&read;
@@ -187,14 +197,4 @@ internal unsafe class JpegCallbacks
 			return 0;
 		}
 	}
-
-#if !NET5_0_OR_GREATER
-	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nuint ReadDelegate(nint pinst, byte* buff, nuint cb);
-	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nuint SeekDelegate(nint pinst, nuint cb);
-	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nuint WriteDelegate(nint pinst, byte* buff, nuint cb);
-
-	private static readonly ReadDelegate delRead = typeof(JpegCallbacks).CreateMethodDelegate<ReadDelegate>(nameof(read));
-	private static readonly SeekDelegate delSeek = typeof(JpegCallbacks).CreateMethodDelegate<SeekDelegate>(nameof(seek));
-	private static readonly WriteDelegate delWrite = typeof(JpegCallbacks).CreateMethodDelegate<WriteDelegate>(nameof(write));
-#endif
 }

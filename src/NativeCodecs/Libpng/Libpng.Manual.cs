@@ -27,6 +27,14 @@ static
 #endif
 internal unsafe class PngCallbacks
 {
+#if !NET5_0_OR_GREATER
+	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nuint ReadDelegate(nint pinst, byte* buff, nuint cb);
+	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nuint WriteDelegate(nint pinst, byte* buff, nuint cb);
+
+	private static readonly ReadDelegate delRead = typeof(PngCallbacks).CreateMethodDelegate<ReadDelegate>(nameof(read));
+	private static readonly WriteDelegate delWrite = typeof(PngCallbacks).CreateMethodDelegate<WriteDelegate>(nameof(write));
+#endif
+
 	public static readonly delegate* unmanaged[Cdecl]<nint, byte*, nuint, nuint> Read =
 #if NET5_0_OR_GREATER
 		&read;
@@ -77,12 +85,4 @@ internal unsafe class PngCallbacks
 			return 0;
 		}
 	}
-
-#if !NET5_0_OR_GREATER
-	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nuint ReadDelegate(nint pinst, byte* buff, nuint cb);
-	[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nuint WriteDelegate(nint pinst, byte* buff, nuint cb);
-
-	private static readonly ReadDelegate delRead = typeof(PngCallbacks).CreateMethodDelegate<ReadDelegate>(nameof(read));
-	private static readonly WriteDelegate delWrite = typeof(PngCallbacks).CreateMethodDelegate<WriteDelegate>(nameof(write));
-#endif
 }
