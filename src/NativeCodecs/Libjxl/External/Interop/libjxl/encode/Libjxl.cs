@@ -100,7 +100,7 @@ internal static unsafe partial class Libjxl
     public static extern JxlEncoderStatus JxlEncoderSetBasicInfo([NativeTypeName("JxlEncoder *")] void* enc, [NativeTypeName("const JxlBasicInfo *")] JxlBasicInfo* info);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern JxlEncoderStatus JxlEncoderSetUpsamplingMode([NativeTypeName("JxlEncoder *")] void* enc, [NativeTypeName("const int64_t")] long factor, [NativeTypeName("const int64_t")] long mode);
+    public static extern JxlEncoderStatus JxlEncoderSetUpsamplingMode([NativeTypeName("JxlEncoder *")] void* enc, [NativeTypeName("int64_t")] long factor, [NativeTypeName("int64_t")] long mode);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern void JxlEncoderInitExtraChannelInfo(JxlExtraChannelType type, JxlExtraChannelInfo* info);

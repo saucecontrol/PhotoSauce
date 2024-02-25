@@ -12,8 +12,8 @@ internal static partial class Libjpeg
     [NativeTypeName("#define JPEG_LIB_VERSION 62")]
     public const int JPEG_LIB_VERSION = 62;
 
-    [NativeTypeName("#define LIBJPEG_TURBO_VERSION_NUMBER 3000001")]
-    public const int LIBJPEG_TURBO_VERSION_NUMBER = 3000001;
+    [NativeTypeName("#define LIBJPEG_TURBO_VERSION_NUMBER 3000002")]
+    public const int LIBJPEG_TURBO_VERSION_NUMBER = 3000002;
 
     [NativeTypeName("#define BITS_IN_JSAMPLE 8")]
     public const int BITS_IN_JSAMPLE = 8;

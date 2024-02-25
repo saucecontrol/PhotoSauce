@@ -158,6 +158,9 @@ internal static unsafe partial class Libjxl
     public static extern JxlDecoderStatus JxlDecoderGetBoxSizeRaw([NativeTypeName("const JxlDecoder *")] void* dec, [NativeTypeName("uint64_t *")] ulong* size);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern JxlDecoderStatus JxlDecoderGetBoxSizeContents([NativeTypeName("const JxlDecoder *")] void* dec, [NativeTypeName("uint64_t *")] ulong* size);
+
+    [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern JxlDecoderStatus JxlDecoderSetProgressiveDetail([NativeTypeName("JxlDecoder *")] void* dec, JxlProgressiveDetail detail);
 
     [DllImport("jxl", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]

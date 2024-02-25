@@ -3,6 +3,8 @@
 using System;
 
 using PhotoSauce.MagicScaler;
+using static PhotoSauce.MagicScaler.MathUtil;
+using static PhotoSauce.Interop.Libjxl.Libjxl;
 
 namespace PhotoSauce.NativeCodecs.Libjxl;
 
@@ -26,17 +28,14 @@ public readonly record struct JxlLosslessEncoderOptions(JxlEncodeSpeed EncodeSpe
 public readonly record struct JxlLossyEncoderOptions(float Distance, JxlEncodeSpeed EncodeSpeed, JxlDecodeSpeed DecodeSpeed) : IJxlEncoderOptions, ILossyEncoderOptions
 {
 	/// <summary>Calculates Butteraugli distance from a JPEG-normalized (0-100) quality value.</summary>
-	/// <remarks>Heuristic is taken from the <a href="https://github.com/libjxl/libjxl/blob/v0.6.1/tools/cjxl.cc#L594">cjxl encoder</a>.</remarks>
 	/// <param name="quality">The target quality value.</param>
 	/// <returns>The calculated Butteraugli distance.</returns>
 	public static float DistanceFromQuality(int quality)
 	{
-		if (quality < 0 || quality > 100) throw new ArgumentOutOfRangeException(nameof(quality), "Value must be between 0 and 100");
+		if (quality < 0 || quality > 100)
+			throw new ArgumentOutOfRangeException(nameof(quality), "Value must be between 0 and 100");
 
-		if (quality < 30)
-			return (float)(6.4 + Math.Pow(2.5, (30.0 - quality) / 5.0) / 6.25);
-
-		return 0.1f + (100f - quality) * 0.09f;
+		return JxlEncoderDistanceFromQuality(quality);
 	}
 
 	/// <summary>Calculates JPEG-normalized (0-100) quality value from Butteraugli distance.</summary>
@@ -44,10 +43,13 @@ public readonly record struct JxlLossyEncoderOptions(float Distance, JxlEncodeSp
 	/// <returns>The calculated quality value.</returns>
 	public static int QualityFromDistance(float distance)
 	{
-		if (distance > 6.56f)
-			return (int)(-5.456783 * Math.Log(0.0256 * distance - 0.16384));
+		if (float.IsNaN(distance) || float.IsInfinity(distance) || distance < 0f)
+			throw new ArgumentOutOfRangeException(nameof(distance), "Value must be a positive finite number.");
 
-		return (int)(-11.11111f * distance + 101.11111f);
+		if (distance <= 6.4f)
+			return 100 - ((distance - 0.1f) * (1 / 0.09f)).Round().Clamp(0, 70);
+
+		return ((1.15f - (1.3225f - 0.07066666f * (25f - distance)).Sqrt()) * 28.301887f).Round().Clamp(0, 30);
 	}
 
 	/// <summary>Default lossy JPEG XL encoder options.</summary>
@@ -93,8 +95,10 @@ public enum JxlDecodeSpeed
 	Speed3 = 3,
 	/// <summary>Speed value 4.</summary>
 	Speed4 = 4,
+#pragma warning disable CA1069
 	/// <summary>The slowest decoding speed.  Equivalent to <see cref="Speed0" />.</summary>
 	Slowest = 0,
 	/// <summary>The fastest decoding speed.  Equivalent to <see cref="Speed4" />.</summary>
 	Fastest = 4
+#pragma warning restore CA1069
 }

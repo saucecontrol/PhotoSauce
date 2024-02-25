@@ -9,7 +9,6 @@ vcpkg_from_github(
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     OPTIONS
-        "-DZLIB_FULL_VERSION=${ZLIB_FULL_VERSION}"
         -DZLIB_COMPAT=ON
         -DZLIB_ENABLE_TESTS=OFF
         -DZLIBNG_ENABLE_TESTS=OFF
@@ -25,9 +24,9 @@ vcpkg_cmake_configure(
 vcpkg_cmake_install()
 vcpkg_copy_pdbs()
 vcpkg_fixup_pkgconfig()
+vcpkg_cmake_config_fixup(CONFIG_PATH lib/cmake)
 
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/share"
                     "${CURRENT_PACKAGES_DIR}/debug/include"
-                    "${CURRENT_PACKAGES_DIR}/lib/cmake"
 )
 vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/LICENSE.md")

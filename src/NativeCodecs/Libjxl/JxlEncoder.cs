@@ -49,7 +49,7 @@ internal sealed unsafe class JxlEncoder : IImageEncoder
 		if (srcfmt != PixelFormat.Rgba32 && srcfmt != PixelFormat.Rgb24 && srcfmt != PixelFormat.Grey8)
 			throw new NotSupportedException("Image format not supported.");
 
-		if (options is JxlLossyEncoderOptions { Distance: 0 })
+		if (options is JxlLossyEncoderOptions { Distance: 0f })
 			checkResult(JxlEncoderSetFrameDistance(encopt, JxlLossyEncoderOptions.DistanceFromQuality(SettingsUtil.GetDefaultQuality(Math.Max(source.Width, source.Height)))));
 
 		var basinf = default(JxlBasicInfo);
