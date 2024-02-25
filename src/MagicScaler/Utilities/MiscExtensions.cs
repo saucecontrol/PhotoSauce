@@ -102,7 +102,7 @@ internal static class MiscExtensions
 		int start = r.Start.GetOffset(length);
 		int end = r.End.GetOffset(length);
 
-		return (uint)start <= (uint)end && (uint)length <= (uint)end;
+		return (uint)start <= (uint)end && (uint)end <= (uint)length;
 	}
 
 	public static (int Offset, int Length) GetOffsetAndLengthNoThrow(this Range r, int length) =>
