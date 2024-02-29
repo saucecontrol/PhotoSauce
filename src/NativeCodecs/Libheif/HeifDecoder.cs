@@ -3,7 +3,6 @@
 using System;
 using System.IO;
 using System.Buffers.Binary;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 using PhotoSauce.MagicScaler;
@@ -126,8 +125,7 @@ internal sealed unsafe class HeifContainer : IImageContainer
 
 			if (typeof(T) == typeof(OrientationMetadata))
 			{
-				// libheif can skip orientation correction, but it doesn't provide a way to access the
-				// stored orientation, so we allow it to normalize and always report normal orientation.
+				// libheif normalizes orientation by default, so we always report normal orientation.
 				metadata = (T)(object)(new OrientationMetadata(Orientation.Normal));
 				return true;
 			}
@@ -228,10 +226,12 @@ internal sealed unsafe class HeifContainer : IImageContainer
 			container.CheckResult(heif_decode_image(container.handle, &img, heif_colorspace.heif_colorspace_RGB, heif_chroma.heif_chroma_interleaved_RGB, null));
 
 			var chan = heif_channel.heif_channel_interleaved;
-			Debug.Assert(heif_image_has_channel(img, chan) != 0);
-			Debug.Assert(heif_image_get_width(img, chan) == Width);
-			Debug.Assert(heif_image_get_height(img, chan) == Height);
-			Debug.Assert(heif_image_get_bits_per_pixel(img, chan) == Format.BitsPerPixel);
+			if (heif_image_has_channel(img, chan) == 0 || heif_image_get_bits_per_pixel(img, chan) != Format.BitsPerPixel)
+				throw new InvalidDataException("Image did not decode to expected format");
+
+			// https://github.com/strukturag/libheif/issues/1131
+			if (heif_image_get_width(img, chan) != Width || heif_image_get_height(img, chan) == Height)
+				throw new InvalidDataException("Image did not decode to expected size");
 
 			int strideout;
 			pixels = heif_image_get_plane_readonly(img, chan, &strideout);

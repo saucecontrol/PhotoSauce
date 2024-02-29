@@ -1,19 +1,15 @@
-# Download the apng patch
 set(LIBPNG_APNG_PATCH_PATH "")
-set(LIBPNG_APNG_OPTION "")
 if ("apng" IN_LIST FEATURES)
     if(VCPKG_HOST_IS_WINDOWS)
-        # Get (g)awk and gzip installed
-        vcpkg_acquire_msys(MSYS_ROOT PACKAGES gawk gzip)
-        set(AWK_EXE_PATH "${MSYS_ROOT}/usr/bin")
-        vcpkg_add_to_path("${AWK_EXE_PATH}")
+        vcpkg_acquire_msys(MSYS_ROOT PACKAGES gawk gzip NO_DEFAULT_PACKAGES)
+        vcpkg_add_to_path("${MSYS_ROOT}/usr/bin")
     endif()
-    
+
     set(LIBPNG_APNG_PATCH_NAME "libpng-${VERSION}-apng.patch")
     vcpkg_download_distfile(LIBPNG_APNG_PATCH_ARCHIVE
         URLS "https://downloads.sourceforge.net/project/libpng-apng/libpng16/${VERSION}/${LIBPNG_APNG_PATCH_NAME}.gz"
         FILENAME "${LIBPNG_APNG_PATCH_NAME}.gz"
-        SHA512 373cc9f0df15f7c77c0a59ddaac22374cfae37174b63a642e68e3a17a6d0bb1015399d771998c7eb6b356b634f157f0009743f4cc659f3b8e480a9533010ef9c
+        SHA512 a724f7de486920cb119818f7172fb589bc2c3c1cc1f81bb5c4da0609ab108ef9ef7406cf689a20bc4e8da69647847f550ed497b3fa99a10539e9a0abf492c053
     )
     set(LIBPNG_APNG_PATCH_PATH "${CURRENT_BUILDTREES_DIR}/src/${LIBPNG_APNG_PATCH_NAME}")
     if (NOT EXISTS "${LIBPNG_APNG_PATCH_PATH}")
@@ -29,45 +25,18 @@ endif()
 
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
-    REPO glennrp/libpng
+    REPO pnggroup/libpng
     REF v${VERSION}
-    SHA512 5f36a145c7d41f1c417d5f4e03be0155dae3499d72e67170acaad92c1af418c0bb6bc508e9b4b27ef4206bf0074cbf74978bade3bff28bc291867b8f8c2a38cf
-    HEAD_REF master
+    SHA512 3bb2a7b73113be42b09c2116e6c6f5a7ddb4e2ab06e0b13e10b7314acdccc4bb624ff602e16140c0484f6cde80efa190296226be3da195c6926819f07c723c12
+    HEAD_REF libpng16
     PATCHES
         "${LIBPNG_APNG_PATCH_PATH}"
-        cmake.patch
-        fix-export-targets.patch
-        pkgconfig.patch
-        cpu-fix.patch
         pspng-customize-build.patch
         pspng-customize-code.patch
 )
 
-file(COPY ${CURRENT_PORT_DIR}/pngusr.h ${CURRENT_PORT_DIR}/pspng.h
-          ${CURRENT_PORT_DIR}/pspng.c ${CURRENT_PORT_DIR}/pspng.ver DESTINATION ${SOURCE_PATH})
-
-string(COMPARE EQUAL "${VCPKG_LIBRARY_LINKAGE}" "dynamic" PNG_SHARED)
-string(COMPARE EQUAL "${VCPKG_LIBRARY_LINKAGE}" "static" PNG_STATIC)
-
-vcpkg_list(SET LIBPNG_HARDWARE_OPTIMIZATIONS_OPTION)
-if(VCPKG_TARGET_IS_IOS)
-    vcpkg_list(APPEND LIBPNG_HARDWARE_OPTIMIZATIONS_OPTION "-DPNG_HARDWARE_OPTIMIZATIONS=OFF")
-endif()
-
-vcpkg_list(SET LD_VERSION_SCRIPT_OPTION)
-if(VCPKG_TARGET_IS_ANDROID)
-    vcpkg_list(APPEND LD_VERSION_SCRIPT_OPTION "-Dld-version-script=OFF")
-    if(VCPKG_TARGET_ARCHITECTURE STREQUAL "arm")
-        vcpkg_cmake_get_vars(cmake_vars_file)
-        include("${cmake_vars_file}")
-        if(VCPKG_DETECTED_CMAKE_ANDROID_ARM_NEON)
-            vcpkg_list(APPEND LIBPNG_HARDWARE_OPTIMIZATIONS_OPTION "-DPNG_ARM_NEON=on")
-        else()
-            # for armeabi-v7a, check whether NEON is available
-            vcpkg_list(APPEND LIBPNG_HARDWARE_OPTIMIZATIONS_OPTION "-DPNG_ARM_NEON=check")
-        endif()
-    endif()
-endif()
+file(COPY "${CURRENT_PORT_DIR}/pngusr.h" "${CURRENT_PORT_DIR}/pspng.h"
+          "${CURRENT_PORT_DIR}/pspng.c" "${CURRENT_PORT_DIR}/pspng.ver" DESTINATION "${SOURCE_PATH}")
 
 set(VCPKG_C_FLAGS -DPNG_USER_CONFIG)
 set(VCPKG_CXX_FLAGS -DPNG_USER_CONFIG)
@@ -75,23 +44,17 @@ set(VCPKG_CXX_FLAGS -DPNG_USER_CONFIG)
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     OPTIONS
-        ${LIBPNG_APNG_OPTION}
-        ${LIBPNG_HARDWARE_OPTIMIZATIONS_OPTION}
-        ${LD_VERSION_SCRIPT_OPTION}
         -DPNG_STATIC=OFF
         -DPNG_SHARED=OFF
         -DPNG_TESTS=OFF
-        -DSKIP_INSTALL_PROGRAMS=ON
-        -DSKIP_INSTALL_EXECUTABLES=ON
-        -DSKIP_INSTALL_FILES=ON
-        -DSKIP_INSTALL_EXPORT=ON
-    OPTIONS_DEBUG
-        -DSKIP_INSTALL_HEADERS=ON
+        -DSKIP_INSTALL_ALL=ON
     MAYBE_UNUSED_VARIABLES
         PNG_ARM_NEON
 )
 vcpkg_cmake_install()
-
 vcpkg_copy_pdbs()
-file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/share")
+
+file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/share"
+                    "${CURRENT_PACKAGES_DIR}/debug/include"
+)
 vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/LICENSE")

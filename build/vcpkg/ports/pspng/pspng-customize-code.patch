@@ -1,5 +1,5 @@
 diff --git a/pngread.c b/pngread.c
-index fa44d5a..4736f92 100644
+index 10a9664..3400174 100644
 --- a/pngread.c
 +++ b/pngread.c
 @@ -320,7 +320,7 @@ png_read_frame_head(png_structp png_ptr, png_infop info_ptr)
@@ -21,10 +21,10 @@ index fa44d5a..4736f92 100644
        if (png_ptr->row_buf[0] < PNG_FILTER_VALUE_LAST)
           png_read_filter_row(png_ptr, &row_info, png_ptr->row_buf + 1,
 diff --git a/pngwrite.c b/pngwrite.c
-index 5e68032..cf99bf9 100644
+index 2d9a347..3ca8b3c 100644
 --- a/pngwrite.c
 +++ b/pngwrite.c
-@@ -1480,11 +1480,6 @@ png_write_frame_head(png_structp png_ptr, png_infop info_ptr,
+@@ -1503,11 +1503,6 @@ png_write_frame_head(png_structp png_ptr, png_infop info_ptr,
  {
      png_debug(1, "in png_write_frame_head");
  
@@ -37,7 +37,7 @@ index 5e68032..cf99bf9 100644
  
      png_write_reinit(png_ptr, info_ptr, width, height);
 diff --git a/pngwutil.c b/pngwutil.c
-index b4809cd..6c66eb1 100644
+index 9d58b61..23f952a 100644
 --- a/pngwutil.c
 +++ b/pngwutil.c
 @@ -2902,11 +2902,6 @@ png_write_reinit(png_structp png_ptr, png_infop info_ptr,

@@ -1,8 +1,8 @@
 {
   "name": "pspng",
-  "version": "1.6.40",
+  "version": "1.6.43",
   "description": "libpng is a library implementing an interface for reading and writing PNG (Portable Network Graphics) format files",
-  "homepage": "https://github.com/glennrp/libpng",
+  "homepage": "https://github.com/pnggroup/libpng",
   "license": "libpng-2.0",
   "dependencies": [
     {

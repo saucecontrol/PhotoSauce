@@ -15,7 +15,7 @@ namespace PhotoSauce.NativeCodecs.Giflib;
 
 internal static unsafe class GifFactory
 {
-	public const string DisplayName = $"{giflib} 5.2.1";
+	public const string DisplayName = $"{giflib} 5.2.2";
 	public const string giflib = nameof(giflib);
 
 	enum CodecType { Decoder, Encoder }
