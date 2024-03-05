@@ -82,9 +82,9 @@ public static class CodecCollectionExtensions
 			[ PixelFormat.Grey8.FormatGuid, PixelFormat.Rgb24.FormatGuid, PixelFormat.Rgba32.FormatGuid ],
 			JxlLossyEncoderOptions.Default,
 			JxlEncoder.Create,
-			false,
-			false,
-			false
+			true,
+			true,
+			true
 		));
 	}
 }

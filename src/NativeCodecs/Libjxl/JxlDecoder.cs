@@ -2,12 +2,8 @@
 
 using System;
 using System.IO;
-using System.Diagnostics;
+using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
-#if NET5_0_OR_GREATER
-using System.Runtime.CompilerServices;
-#endif
 
 using PhotoSauce.MagicScaler;
 using PhotoSauce.Interop.Libjxl;
@@ -15,212 +11,307 @@ using static PhotoSauce.Interop.Libjxl.Libjxl;
 
 namespace PhotoSauce.NativeCodecs.Libjxl;
 
-internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, IExifSource, IDisposable
+internal sealed unsafe class JxlContainer : IImageContainer, IMetadataSource, IIccProfileSource, IExifSource
 {
 	private readonly Stream stream;
 	private readonly long stmpos;
+	private readonly int frameCount, frameOffset, frameCountRaw;
+	private readonly int width, height;
+	private readonly Orientation orientation;
+	private readonly PixelFormat format;
 	private void* decoder;
 
 	private RentedBuffer<byte> iccpData;
 	private RentedBuffer<byte> exifData;
-	private JxlBasicInfo basinfo;
-	private bool pixready;
-	private int exiflen;
+	private JxlAnimationHeader? animation;
+	private int currentFrame = int.MaxValue;
 
-	private JxlPixelFormat pixelfmt
-	{
-		get
-		{
-			if (basinfo.num_color_channels == 0)
-				throw new InvalidOperationException("Basic info has not been read.");
-
-			return new JxlPixelFormat {
-				num_channels = basinfo.alpha_bits == 0 ? basinfo.num_color_channels : 4u,
-				data_type = JxlDataType.JXL_TYPE_UINT8
-			};
-		}
-	}
-
-	private JxlContainer(Stream stm, long pos, void* dec)
+	private JxlContainer(Stream stm, long pos, void* dec, IDecoderOptions? opt)
 	{
 		(stream, stmpos) = (stm, pos);
 		decoder = dec;
+
+		JxlBasicInfo info;
+		JxlError.Check(JxlDecoderGetBasicInfo(dec, &info));
+
+		frameCountRaw = 1;
+		width = checked((int)info.xsize);
+		height = checked((int)info.ysize);
+		orientation = (Orientation)info.orientation;
+
+		format =
+			info.alpha_bits != 0 ? PixelFormat.Rgba32 :
+			info.num_color_channels == 3 ? PixelFormat.Rgb24 :
+			PixelFormat.Grey8;
+
+		nuint icclen;
+		JxlError.Check(JxlDecoderGetICCProfileSize(decoder, JxlColorProfileTarget.JXL_COLOR_PROFILE_TARGET_DATA, &icclen));
+
+		iccpData = BufferPool.Rent<byte>((int)icclen);
+		fixed (byte* picc = iccpData)
+			JxlError.Check(JxlDecoderGetColorAsICCProfile(decoder, JxlColorProfileTarget.JXL_COLOR_PROFILE_TARGET_DATA, picc, (nuint)iccpData.Length));
+
+		var events = default(JxlDecoderStatus);
+		if (info.have_container == JXL_TRUE)
+			events |= JxlDecoderStatus.JXL_DEC_BOX;
+
+		if (info.have_animation == JXL_TRUE)
+		{
+			events |= JxlDecoderStatus.JXL_DEC_FRAME;
+			animation = info.animation;
+			frameCountRaw = 0;
+		}
+
+		if (events != default || true)
+		{
+			stm.Position = pos;
+			JxlDecoderRewind(dec);
+
+			JxlError.Check(JxlDecoderSubscribeEvents(decoder, (int)events));
+			JxlError.Check(JxlDecoderSetDecompressBoxes(decoder, JXL_TRUE));
+
+			using var inbuff = BufferPool.RentLocal<byte>(1 << 12);
+			fixed (byte* pin = inbuff)
+			{
+				while (true)
+				{
+					var status = JxlDecoderProcessInput(dec);
+					if (status is JxlDecoderStatus.JXL_DEC_NEED_MORE_INPUT)
+						status = readLoop(dec, stm, pin, inbuff.Length);
+
+					if (status is JxlDecoderStatus.JXL_DEC_FRAME)
+					{
+						frameCountRaw++;
+						JxlDecoderSkipCurrentFrame(dec);
+					}
+					else if (status is JxlDecoderStatus.JXL_DEC_BOX)
+					{
+						uint box;
+						JxlError.Check(JxlDecoderGetBoxType(decoder, (sbyte*)&box, JXL_TRUE));
+						if (box == BoxTypeExif)
+							exifData = readExif(dec, stm, pin, inbuff.Length);
+					}
+					else
+						break;
+				}
+
+				JxlDecoderCloseInput(dec);
+			}
+
+			var range = opt is IMultiFrameDecoderOptions mul ? mul.FrameRange : Range.All;
+			(frameOffset, frameCount) = range.GetOffsetAndLengthNoThrow(frameCountRaw);
+		}
+
+		static RentedBuffer<byte> readExif(void* dec, Stream stm, byte* pin, int inlen)
+		{
+			const int outlen = 1 << 16, maxlen = outlen * 64;
+
+			nuint exiflen = 0, chunklen = 0;
+			var stream = default(MemoryStream);
+
+			using var outbuff = BufferPool.RentLocal<byte>(outlen);
+			fixed (byte* pout = outbuff)
+			{
+				while (true)
+				{
+					JxlError.Check(JxlDecoderSetBoxBuffer(dec, pout, outlen));
+
+					var status = JxlDecoderProcessInput(dec);
+					if (status is JxlDecoderStatus.JXL_DEC_NEED_MORE_INPUT)
+						status = readLoop(dec, stm, pin, inlen);
+
+					if (status is JxlDecoderStatus.JXL_DEC_BOX_NEED_MORE_OUTPUT)
+					{
+						chunklen = outlen - JxlDecoderReleaseBoxBuffer(dec);
+						exiflen += chunklen;
+
+						stream ??= new MemoryStream(outlen * 2);
+						if (stream.Length < maxlen)
+							stream.Write(new ReadOnlySpan<byte>(pout, (int)chunklen));
+					}
+					else
+						break;
+				}
+
+				chunklen = outlen - JxlDecoderReleaseBoxBuffer(dec);
+				exiflen += chunklen;
+
+				if (exiflen < sizeof(uint) + ExifConstants.MinExifLength)
+					return default;
+
+				if (stream is not null)
+				{
+					if (stream.Length < maxlen)
+						stream.Write(new ReadOnlySpan<byte>(pout, (int)chunklen));
+
+					stream.Position = 0;
+
+					uint offset;
+					stream.Read(new Span<byte>(&offset, sizeof(uint)));
+					if (BitConverter.IsLittleEndian)
+						offset = BinaryPrimitives.ReverseEndianness(offset);
+
+					stream.Seek(offset, SeekOrigin.Current);
+					if (stream.Length <= stream.Position)
+						return default;
+
+					var exif = BufferPool.Rent<byte>((int)(stream.Length - stream.Position));
+					stream.Read(exif.Span);
+					return exif;
+				}
+				else
+				{
+					uint offset = checked(BinaryPrimitives.ReadUInt32BigEndian(outbuff.Span) + sizeof(uint));
+					if (exiflen <= offset)
+						return default;
+
+					var exif = BufferPool.Rent<byte>((int)(exiflen - offset));
+					outbuff.Span[(int)offset..(int)exiflen].CopyTo(exif.Span);
+					return exif;
+				}
+			}
+		}
 	}
 
 	public string MimeType => ImageMimeTypes.Jxl;
 
-	int IImageContainer.FrameCount => 1;
+	int IImageContainer.FrameCount => frameCount;
 
 	int IIccProfileSource.ProfileLength => iccpData.Length;
 
-	int IExifSource.ExifLength => exiflen - sizeof(uint);
-
-	private void moveToFrameData(bool readMetadata = false)
-	{
-		stream.Position = stmpos;
-		pixready = false;
-
-		var events = JxlDecoderStatus.JXL_DEC_FULL_IMAGE;
-		if (readMetadata)
-			events |= JxlDecoderStatus.JXL_DEC_BASIC_INFO | JxlDecoderStatus.JXL_DEC_COLOR_ENCODING | JxlDecoderStatus.JXL_DEC_BOX;
-
-		JxlDecoderRewind(decoder);
-		JxlError.Check(JxlDecoderSubscribeEvents(decoder, (int)events));
-		JxlError.Check(JxlDecoderSetDecompressBoxes(decoder, JXL_TRUE));
-
-		using var inbuff = BufferPool.RentLocal<byte>(4096);
-		using var outbuff = BufferPool.RentLocal<byte>(1024);
-		fixed (byte* pibuf = inbuff, pobuff = outbuff)
-		{
-			var status = default(JxlDecoderStatus);
-			while (true)
-			{
-				status = JxlDecoderProcessInput(decoder);
-				if (status == JxlDecoderStatus.JXL_DEC_NEED_MORE_INPUT)
-				{
-					int keep = (int)JxlDecoderReleaseInput(decoder);
-					if (keep == inbuff.Length)
-						break;
-					else if (keep != 0)
-						Buffer.MemoryCopy(pibuf + (inbuff.Length - keep), pibuf, inbuff.Length, keep);
-
-					int read = stream.Read(inbuff.Span[keep..]);
-					if (read != 0)
-						JxlError.Check(JxlDecoderSetInput(decoder, pibuf, (uint)(keep + read)));
-					else
-						JxlDecoderCloseInput(decoder);
-				}
-				else if (status == JxlDecoderStatus.JXL_DEC_BASIC_INFO)
-				{
-					fixed (JxlBasicInfo* pbi = &basinfo)
-						JxlError.Check(JxlDecoderGetBasicInfo(decoder, pbi));
-				}
-				else if (status == JxlDecoderStatus.JXL_DEC_COLOR_ENCODING)
-				{
-					nuint icclen;
-					JxlError.Check(JxlDecoderGetICCProfileSize(decoder, JxlColorProfileTarget.JXL_COLOR_PROFILE_TARGET_DATA, &icclen));
-
-					iccpData = BufferPool.Rent<byte>((int)icclen);
-					fixed (byte* picc = iccpData)
-						JxlError.Check(JxlDecoderGetColorAsICCProfile(decoder, JxlColorProfileTarget.JXL_COLOR_PROFILE_TARGET_DATA, picc, (nuint)iccpData.Length));
-				}
-				else if (status == JxlDecoderStatus.JXL_DEC_BOX)
-				{
-					uint box;
-					JxlError.Check(JxlDecoderGetBoxType(decoder, (sbyte*)&box, JXL_TRUE));
-					if (box == BoxTypeExif)
-					{
-						ulong size;
-						JxlError.Check(JxlDecoderGetBoxSizeRaw(decoder, &size));
-
-						if (exifData.IsEmpty && size < 1 << 20)
-						{
-							JxlError.Check(JxlDecoderSetBoxBuffer(decoder, pobuff, (uint)outbuff.Length));
-							exifData = BufferPool.Rent<byte>(outbuff.Length);
-						}
-					}
-					else if (!exifData.IsEmpty)
-					{
-						int rem = (int)JxlDecoderReleaseBoxBuffer(decoder);
-						int writ = outbuff.Length - rem;
-
-						outbuff.Span[..writ].CopyTo(exifData.Span[exiflen..]);
-						exiflen += writ;
-					}
-				}
-				else if (status == JxlDecoderStatus.JXL_DEC_BOX_NEED_MORE_OUTPUT)
-				{
-					int rem = (int)JxlDecoderReleaseBoxBuffer(decoder);
-					int writ = outbuff.Length - rem;
-
-					if (exiflen + writ + outbuff.Length > exifData.Length)
-					{
-						var tmp = BufferPool.Rent<byte>(exifData.Length * 2);
-						exifData.Span.CopyTo(tmp.Span);
-						exifData.Dispose();
-						exifData = tmp;
-					}
-
-					outbuff.Span[..writ].CopyTo(exifData.Span[exiflen..]);
-					exiflen += writ;
-
-					JxlError.Check(JxlDecoderSetBoxBuffer(decoder, pobuff, (uint)outbuff.Length));
-				}
-				else if (status == JxlDecoderStatus.JXL_DEC_NEED_IMAGE_OUT_BUFFER)
-				{
-					pixready = true;
-					break;
-				}
-				else
-					break;
-			}
-
-			nuint rewind = JxlDecoderReleaseInput(decoder);
-			if (rewind != 0)
-				stream.Seek(-(long)rewind, SeekOrigin.Current);
-		}
-	}
+	int IExifSource.ExifLength => exifData.Length;
 
 	IImageFrame IImageContainer.GetFrame(int index)
 	{
-		if (index != 0)
+		ensureHandle();
+
+		index += frameOffset;
+		if ((uint)index >= (uint)(frameOffset + frameCount))
 			throw new ArgumentOutOfRangeException(nameof(index), "Invalid frame index.");
 
-		moveToFrameData(true);
+		if (index < currentFrame)
+		{
+			currentFrame = 0;
+			stream.Position = stmpos;
+			JxlDecoderRewind(decoder);
 
-		if (!pixready)
-			throw new InvalidOperationException($"{nameof(Libjxl)} decode failed.");
+			JxlError.Check(JxlDecoderSubscribeEvents(decoder, (int)JxlDecoderStatus.JXL_DEC_FULL_IMAGE));
+			JxlError.Check(JxlDecoderSetUnpremultiplyAlpha(decoder, JXL_TRUE));
+			JxlError.Check(JxlDecoderSetDesiredIntensityTarget(decoder, 1.0f));
+		}
+
+		if (index > currentFrame && JxlDecoderProcessInput(decoder) is JxlDecoderStatus.JXL_DEC_NEED_IMAGE_OUT_BUFFER)
+			JxlError.Check(JxlDecoderSkipCurrentFrame(decoder));
+
+		if (index > currentFrame + 1)
+			JxlDecoderSkipFrames(decoder, (uint)(index - currentFrame - 1));
+
+		var status = JxlDecoderProcessInput(decoder);
+		if (status is JxlDecoderStatus.JXL_DEC_NEED_MORE_INPUT or JxlDecoderStatus.JXL_DEC_ERROR)
+		{
+			using var inbuff = BufferPool.RentLocal<byte>(1 << 12);
+			fixed (byte* pin = inbuff)
+			{
+				status = readLoop(decoder, stream, pin, inbuff.Length);
+
+				nuint rewind = JxlDecoderReleaseInput(decoder);
+				if (rewind != 0)
+					stream.Seek(-(long)rewind, SeekOrigin.Current);
+			}
+		}
+
+		JxlError.Check(status);
+		currentFrame = index;
 
 		return new JxlFrame(this);
 	}
 
 	void IIccProfileSource.CopyProfile(Span<byte> dest) => iccpData.Span.CopyTo(dest);
 
-	void IExifSource.CopyExif(Span<byte> dest) => exifData.Span[sizeof(uint)..exiflen].CopyTo(dest);
+	void IExifSource.CopyExif(Span<byte> dest) => exifData.Span.CopyTo(dest);
 
-	public static JxlContainer? TryLoad(Stream imgStream, IDecoderOptions? jxlOptions)
+	public bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata
 	{
+		if (typeof(T) == typeof(AnimationContainer) && animation.HasValue)
+		{
+			var anicnt = new AnimationContainer(width, height, frameCountRaw, (int)animation.Value.num_loops, 0, 1f, true);
+
+			metadata = (T)(object)anicnt;
+			return true;
+		}
+
+		if (typeof(T) == typeof(OrientationMetadata))
+		{
+			metadata = (T)(object)(new OrientationMetadata(orientation));
+			return true;
+		}
+
+		if (typeof(T) == typeof(IIccProfileSource))
+		{
+			metadata = (T)(object)this;
+			return true;
+		}
+
+		if (typeof(T) == typeof(IExifSource))
+		{
+			metadata = (T)(object)this;
+			return true;
+		}
+
+		metadata = default;
+		return false;
+	}
+
+	public static JxlContainer? TryLoad(Stream imgStream, IDecoderOptions? options)
+	{
+		// JxlDecoderSizeHintBasicInfo gives an initial pessimistic estimate of 98 bytes
+		const int bufflen = 128;
+
 		var dec = JxlFactory.CreateDecoder();
 		JxlError.Check(JxlDecoderSetKeepOrientation(dec, JXL_TRUE));
-		JxlError.Check(JxlDecoderSetUnpremultiplyAlpha(dec, JXL_TRUE));
-		JxlError.Check(JxlDecoderSubscribeEvents(dec, (int)JxlDecoderStatus.JXL_DEC_BASIC_INFO));
+		JxlError.Check(JxlDecoderSubscribeEvents(dec, (int)(JxlDecoderStatus.JXL_DEC_COLOR_ENCODING)));
 
-		using var buff = BufferPool.RentLocal<byte>((int)JxlDecoderSizeHintBasicInfo(dec));
-		fixed (byte* pbuf = buff)
+		long stmpos = imgStream.Position;
+
+		byte* pbuf = stackalloc byte[bufflen];
+		var status = readLoop(dec, imgStream, pbuf, bufflen);
+		if (status is JxlDecoderStatus.JXL_DEC_COLOR_ENCODING)
 		{
-			long stmpos = imgStream.Position;
-
-			var status = default(JxlDecoderStatus);
-			while (true)
-			{
-				status = JxlDecoderProcessInput(dec);
-				if (status != JxlDecoderStatus.JXL_DEC_NEED_MORE_INPUT)
-					break;
-
-				int keep = (int)JxlDecoderReleaseInput(dec);
-				if (keep == buff.Length)
-					break;
-				else if (keep != 0)
-					Buffer.MemoryCopy(pbuf + (buff.Length - keep), pbuf, buff.Length, keep);
-
-				int read = imgStream.Read(buff.Span[keep..]);
-				if (read != 0)
-					JxlError.Check(JxlDecoderSetInput(dec, pbuf, (uint)(keep + read)));
-				else
-					JxlDecoderCloseInput(dec);
-			}
-
-			if (status == JxlDecoderStatus.JXL_DEC_BASIC_INFO)
-			{
-				JxlDecoderReleaseInput(dec);
-				return new JxlContainer(imgStream, stmpos, dec);
-			}
-
-			imgStream.Position = stmpos;
-			JxlDecoderDestroy(dec);
-
-			return null;
+			JxlDecoderCloseInput(dec);
+			return new JxlContainer(imgStream, stmpos, dec, options);
 		}
+
+		imgStream.Position = stmpos;
+		JxlDecoderDestroy(dec);
+
+		return null;
+	}
+
+	private void ensureHandle()
+	{
+		if (decoder is null)
+			ThrowHelper.ThrowObjectDisposed(nameof(JxlContainer));
+	}
+
+	private static JxlDecoderStatus readLoop(void* dec, Stream stm, byte* pbuf, int cbbuf)
+	{
+		var status = default(JxlDecoderStatus);
+		do
+		{
+			int keep = (int)JxlDecoderReleaseInput(dec);
+			if (keep != 0)
+				stm.Seek(-keep, SeekOrigin.Current);
+
+			int read = stm.Read(new Span<byte>(pbuf, cbbuf));
+			if (read == 0)
+				break;
+
+			JxlError.Check(JxlDecoderSetInput(dec, pbuf, (uint)read));
+			status = JxlDecoderProcessInput(dec);
+		}
+		while (status is JxlDecoderStatus.JXL_DEC_NEED_MORE_INPUT);
+
+		return status;
 	}
 
 	private void dispose(bool disposing)
@@ -252,198 +343,121 @@ internal sealed unsafe class JxlContainer : IImageContainer, IIccProfileSource, 
 		dispose(false);
 	}
 
-	private sealed class JxlFrame(JxlContainer cont) : IImageFrame, IMetadataSource
+	private sealed class JxlFrame : PixelSource, IImageFrame, IMetadataSource
 	{
-		private readonly JxlContainer container = cont;
-		private JxlPixelSource? pixsrc;
+		private readonly JxlContainer container;
+		private readonly JxlFrameHeader header;
+		private byte* pixbuf;
+		private bool disposed;
 
-		public IPixelSource PixelSource
+		public override PixelFormat Format => container.format;
+		public override int Width => (int)header.layer_info.xsize;
+		public override int Height => (int)header.layer_info.ysize;
+
+		public IPixelSource PixelSource => this;
+
+		public JxlFrame(JxlContainer cont)
 		{
-			get
-			{
-				if (container.decoder == default)
-					ThrowHelper.ThrowObjectDisposed(nameof(JxlContainer));
+			JxlFrameHeader fhdr;
+			JxlError.Check(JxlDecoderGetFrameHeader(cont.decoder, &fhdr));
 
-				return pixsrc ??= new JxlPixelSource(container);
-			}
+			container = cont;
+			header = fhdr;
 		}
 
 		public bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata
 		{
-			if (typeof(T) == typeof(OrientationMetadata))
+			if (typeof(T) == typeof(AnimationFrame) && container.animation.HasValue)
 			{
-				metadata = (T)(object)(new OrientationMetadata((Orientation)container.basinfo.orientation));
+				// TODO Blend and Disposal here are broken when skipping frames.
+				// libjxl coalesces animation frames by default, which is good because its animation has features the pipeline doesn't support, but is bad because
+				// on replay the decoder doesn't coalesce frames that are skipped. Presently, the pipeline will skip all frames before the first requested because
+				// the decoder doesn't expose a way to detemine whether the current frame is used as a keyframe when it is configured to coalesce.
+				var acnt = container.animation.Value;
+				var duration = new Rational(acnt.tps_denominator * header.duration, acnt.tps_numerator);
+				var blend = header.layer_info.blend_info.blendmode == JxlBlendMode.JXL_BLEND_REPLACE ? AlphaBlendMethod.Source : AlphaBlendMethod.BlendOver;
+				var disp = header.layer_info.save_as_reference != 0 ? FrameDisposalMethod.Preserve : FrameDisposalMethod.RestoreBackground;
+				var afrm = new AnimationFrame(header.layer_info.crop_x0, header.layer_info.crop_y0, duration, disp, blend, blend == AlphaBlendMethod.BlendOver);
+
+				metadata = (T)(object)afrm;
 				return true;
 			}
 
-			if (typeof(T) == typeof(IIccProfileSource))
-			{
-				metadata = (T)(object)container;
-				return true;
-			}
-
-			if (typeof(T) == typeof(IExifSource) && container.exiflen > sizeof(uint))
-			{
-				metadata = (T)(object)container;
-				return true;
-			}
-
-			metadata = default;
-			return false;
-		}
-
-		public void Dispose() => pixsrc?.Dispose();
-	}
-
-	private sealed class JxlPixelSource : PixelSource
-	{
-		private readonly JxlContainer container;
-		private PixelBuffer<BufferType.Caching> frameBuff;
-		private GCHandle gchandle;
-		private int lastseen = -1;
-		private bool fullbuffer, abortdecode;
-
-		public override PixelFormat Format { get; }
-
-		public override int Width => (int)container.basinfo.xsize;
-		public override int Height => (int)container.basinfo.ysize;
-
-		public JxlPixelSource(JxlContainer cont)
-		{
-			Format =
-				cont.basinfo.alpha_bits != 0 ? PixelFormat.Rgba32 :
-				cont.basinfo.num_color_channels == 3 ? PixelFormat.Rgb24 :
-				PixelFormat.Grey8;
-
-			container = cont;
-			frameBuff = new PixelBuffer<BufferType.Caching>(8, MathUtil.PowerOfTwoCeiling((int)cont.basinfo.xsize * Format.BytesPerPixel, IntPtr.Size));
-
-			gchandle = GCHandle.Alloc(this, GCHandleType.Weak);
-
-			setDecoderCallback();
-		}
-
-#if NET5_0_OR_GREATER
-		[UnmanagedCallersOnly(CallConvs = [ typeof(CallConvCdecl) ])]
-		static
-#endif
-		private void imageOutCallback(void* pinst, nuint x, nuint y, nuint w, void* pb)
-		{
-			if (pinst is null || GCHandle.FromIntPtr((IntPtr)pinst).Target is not JxlPixelSource src || src.abortdecode)
-				return;
-
-			int line = (int)y;
-			if (!src.fullbuffer && (line != src.lastseen + 1 || x != 0 || (int)w != src.Width))
-			{
-				src.abortdecode = true;
-				return;
-			}
-
-			src.lastseen = line;
-
-			int bpp = src.Format.BytesPerPixel;
-			var span = src.frameBuff.PrepareLoad(line, 1).Slice((int)x * bpp);
-			new ReadOnlySpan<byte>(pb, (int)w * bpp).CopyTo(span);
-		}
-
-		private void setDecoderCallback(bool rewind = false)
-		{
-			if (rewind)
-				container.moveToFrameData();
-
-			Debug.Assert(JxlDecoderProcessInput(container.decoder) == JxlDecoderStatus.JXL_DEC_NEED_IMAGE_OUT_BUFFER);
-
-			var pixfmt = container.pixelfmt;
-			JxlError.Check(JxlDecoderSetImageOutCallback(container.decoder, &pixfmt, pfnImageOutCallback, (void*)GCHandle.ToIntPtr(gchandle)));
-		}
-
-		private void loadBuffer(int line)
-		{
-			var stream = container.stream;
-			var dec = container.decoder;
-
-			using var buff = BufferPool.RentLocal<byte>(4096);
-			fixed (byte* pbuf = buff)
-			{
-				var status = default(JxlDecoderStatus);
-				while (true)
-				{
-					status = JxlDecoderProcessInput(dec);
-					if (status == JxlDecoderStatus.JXL_DEC_NEED_MORE_INPUT && !frameBuff.ContainsLine(line))
-					{
-						int keep = (int)JxlDecoderReleaseInput(dec);
-						if (keep == buff.Length)
-							break;
-						else if (keep != 0)
-							Buffer.MemoryCopy(pbuf + (buff.Length - keep), pbuf, buff.Length, keep);
-
-						int read = stream.Read(buff.Span[keep..]);
-						if (read != 0)
-							JxlError.Check(JxlDecoderSetInput(dec, pbuf, (uint)(keep + read)));
-						else
-							JxlDecoderCloseInput(dec);
-					}
-					else
-						break;
-
-					if (abortdecode)
-					{
-						abortdecode = false;
-						setDecoderCallback(true);
-						lastseen = -1;
-
-						frameBuff.Dispose();
-						frameBuff = new PixelBuffer<BufferType.Caching>(Height, MathUtil.PowerOfTwoCeiling(Width * Format.BytesPerPixel, IntPtr.Size));
-						fullbuffer = true;
-					}
-				}
-
-				nuint rewind = JxlDecoderReleaseInput(dec);
-				if (rewind != 0)
-					stream.Seek(-(long)rewind, SeekOrigin.Current);
-			}
+			return container.TryGetMetadata(out metadata);
 		}
 
 		protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 		{
-			if (!gchandle.IsAllocated)
-				ThrowHelper.ThrowObjectDisposed(nameof(JxlPixelSource));
+			ensurePixelBuffer();
 
 			int bpp = Format.BytesPerPixel;
+			int stride = Width * bpp;
 			for (int y = 0; y < prc.Height; y++)
 			{
-				int line = prc.Y + y;
-				if (!frameBuff.ContainsLine(line))
-					loadBuffer(line);
+				uint line = (uint)(prc.Y + y);
 
-				var span = frameBuff.PrepareRead(line, 1).Slice(prc.X * bpp, prc.Width * bpp);
+				var span = new ReadOnlySpan<byte>(pixbuf + line * (nuint)stride, stride).Slice(prc.X * bpp, prc.Width * bpp);
 				span.CopyTo(new Span<byte>(pbBuffer + y * cbStride, cbStride));
 			}
 		}
 
-		protected override void Dispose(bool disposing)
+		private void ensurePixelBuffer()
 		{
-			if (!gchandle.IsAllocated)
+			if (pixbuf is not null)
 				return;
 
-			gchandle.Free();
-			frameBuff.Dispose();
+			if (disposed)
+				ThrowHelper.ThrowObjectDisposed(nameof(JxlFrame));
+
+			container.ensureHandle();
+
+			nuint size;
+			var fmt = new JxlPixelFormat {
+				num_channels = (uint)container.format.ChannelCount,
+				data_type = JxlDataType.JXL_TYPE_UINT8
+			};
+			JxlError.Check(JxlDecoderImageOutBufferSize(container.decoder, &fmt, &size));
+
+			pixbuf = (byte*)UnsafeUtil.NativeAlloc(size);
+			if (pixbuf is null)
+				ThrowHelper.ThrowOutOfMemory();
+
+			JxlError.Check(JxlDecoderSetImageOutBuffer(container.decoder, &fmt, pixbuf, size));
+
+			using var inbuff = BufferPool.RentLocal<byte>(1 << 12);
+			fixed (byte* pin = inbuff)
+			{
+				var status = readLoop(container.decoder, container.stream, pin, inbuff.Length);
+				if (status != JxlDecoderStatus.JXL_DEC_FULL_IMAGE && container.currentFrame < container.frameCountRaw - 1)
+					throw new InvalidOperationException($"{nameof(Libjxl)} decoder failed.");
+			}
+
+			container.currentFrame++;
+		}
+
+		public override string ToString() => nameof(JxlFrame);
+
+		protected override void Dispose(bool disposing)
+		{
+			if (disposed)
+				return;
+
+			disposed = true;
+
+			if (pixbuf is not null)
+			{
+				UnsafeUtil.NativeFree(pixbuf);
+				pixbuf = null;
+			}
 
 			base.Dispose(disposing);
 		}
 
-		public override string ToString() => nameof(JxlPixelSource);
+		~JxlFrame()
+		{
+			ThrowHelper.ThrowIfFinalizerExceptionsEnabled(nameof(JxlFrame));
 
-#if !NET5_0_OR_GREATER
-		[UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate void ImageOutCallback(void* pinst, nuint x, nuint y, nuint w, void* pb);
-		private static readonly ImageOutCallback delImageOutCallback = typeof(JxlPixelSource).CreateMethodDelegate<ImageOutCallback>(nameof(imageOutCallback));
-#endif
-
-		private static readonly delegate* unmanaged[Cdecl]<void*, nuint, nuint, nuint, void*, void> pfnImageOutCallback =
-#if NET5_0_OR_GREATER
-			&imageOutCallback;
-#else
-			(delegate* unmanaged[Cdecl]<void*, nuint, nuint, nuint, void*, void>)Marshal.GetFunctionPointerForDelegate(delImageOutCallback);
-#endif
+			Dispose(false);
+		}
 	}
 }

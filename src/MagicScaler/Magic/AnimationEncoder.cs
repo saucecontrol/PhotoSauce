@@ -101,11 +101,12 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 
 		writeFrame(Current, ppq);
 
+		bool indexed = context.Settings.EncoderOptions is IIndexedEncoderOptions;
 		while (moveNext())
 		{
 			var frame = Current;
 			ppt.ResumeTiming(frame.Source.Area);
-			TemporalFilters.Dedupe(this, frame.Disposal, (uint)anicnt.BackgroundColor, frame.Blend != AlphaBlendMethod.Source);
+			TemporalFilters.Dedupe(this, frame.Disposal, (uint)anicnt.BackgroundColor, indexed && frame.Blend != AlphaBlendMethod.Source);
 			ppt.PauseTiming();
 
 			writeFrame(frame, ppq);

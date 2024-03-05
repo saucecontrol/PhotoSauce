@@ -3,7 +3,6 @@
 using System;
 using System.Drawing;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 
 namespace PhotoSauce.MagicScaler;
 
@@ -131,8 +130,9 @@ internal readonly record struct PixelArea
 
 	public static PixelArea FromSize(int width, int height) => new(0, 0, width, height);
 
-	public static implicit operator PixelArea(in Rectangle r) => new(r.X, r.Y, r.Width, r.Height);
-	public static implicit operator Rectangle(in PixelArea a) => Unsafe.As<PixelArea, Rectangle>(ref Unsafe.AsRef(in a));
-
 	public static implicit operator PixelArea(Size s) => FromSize(s.Width, s.Height);
+
+	public static implicit operator PixelArea(in Rectangle r) => new(r.X, r.Y, r.Width, r.Height);
+
+	public static implicit operator Rectangle(PixelArea a) => UnsafeUtil.BitCast<PixelArea, Rectangle>(a);
 }

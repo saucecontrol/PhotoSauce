@@ -80,7 +80,7 @@ internal sealed unsafe class PngEncoder : IAnimatedImageEncoder
 
 			var duration = anifrm.Duration;
 			if (duration.Numerator > ushort.MaxValue || duration.Denominator > ushort.MaxValue)
-				duration.NormalizeTo(100);
+				duration = duration.NormalizeTo(100);
 
 			byte disposal = (byte)MathUtil.Clamp((int)anifrm.Disposal - 1, (int)PNG_DISPOSE_OP_NONE, (int)PNG_DISPOSE_OP_PREVIOUS);
 			byte blend = anifrm.Blend == AlphaBlendMethod.Source ? (byte)PNG_BLEND_OP_SOURCE : (byte)PNG_BLEND_OP_OVER;
@@ -197,7 +197,7 @@ internal sealed unsafe class PngEncoder : IAnimatedImageEncoder
 		var srcfmt = PixelFormat.FromGuid(src.Format);
 		int stride = MathUtil.PowerOfTwoCeiling(area.Width * srcfmt.BytesPerPixel, sizeof(uint));
 
-		using var buff = BufferPool.RentLocalAligned<byte>(stride * (options.Interlace ? area.Height : 1));
+		using var buff = BufferPool.RentLocalAligned<byte>(checked(stride * (options.Interlace ? area.Height : 1)));
 		var span = buff.Span;
 
 		fixed (byte* pbuf = buff)

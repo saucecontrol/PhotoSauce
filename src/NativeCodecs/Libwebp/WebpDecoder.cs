@@ -142,22 +142,19 @@ internal sealed unsafe class WebpContainer : IImageContainer, IMetadataSource, I
 		if ((imgStream.Length - imgStream.Position) < bufflen)
 			return null;
 
-		var buff = (Span<byte>)stackalloc byte[bufflen];
-		imgStream.FillBuffer(buff);
+		byte* buff = stackalloc byte[bufflen];
+		imgStream.FillBuffer(new Span<byte>(buff, bufflen));
 		imgStream.Seek(-bufflen, SeekOrigin.Current);
 
 		var state = default(WebPDemuxState);
 		var flags = default(WebPFeatureFlags);
-		fixed (byte* ptr = buff)
-		{
-			var data = new WebPData { bytes = ptr, size = bufflen };
-			var demuxer = WebpFactory.CreateDemuxerPartial(&data, &state);
+		var data = new WebPData { bytes = buff, size = bufflen };
+		var demuxer = WebpFactory.CreateDemuxerPartial(&data, &state);
 
-			if (state >= WebPDemuxState.WEBP_DEMUX_PARSED_HEADER)
-				flags = (WebPFeatureFlags)WebPDemuxGetI(demuxer, WebPFormatFeature.WEBP_FF_FORMAT_FLAGS);
+		if (state >= WebPDemuxState.WEBP_DEMUX_PARSED_HEADER)
+			flags = (WebPFeatureFlags)WebPDemuxGetI(demuxer, WebPFormatFeature.WEBP_FF_FORMAT_FLAGS);
 
-			WebPDemuxDelete(demuxer);
-		}
+		WebPDemuxDelete(demuxer);
 
 		if (state >= WebPDemuxState.WEBP_DEMUX_PARSED_HEADER)
 			return new WebpContainer(imgStream, options, flags);

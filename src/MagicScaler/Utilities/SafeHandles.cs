@@ -5,16 +5,18 @@ using System.Runtime.InteropServices;
 
 namespace PhotoSauce.MagicScaler;
 
-internal sealed class SafeHGlobalHandle : SafeHandle
+internal sealed unsafe class SafeNativeMemoryHandle : SafeHandle
 {
-	private readonly int count;
+	private readonly nuint count;
 
 	public override bool IsInvalid => handle == IntPtr.Zero;
 
-	public SafeHGlobalHandle(int cb) : base(IntPtr.Zero, true)
+	public SafeNativeMemoryHandle(nuint cb) : base(IntPtr.Zero, true)
 	{
-		SetHandle(Marshal.AllocHGlobal(cb));
-		GC.AddMemoryPressure(count = cb);
+		SetHandle((nint)UnsafeUtil.NativeAlloc(cb));
+
+		if (!IsInvalid)
+			GC.AddMemoryPressure((long)(count = cb));
 	}
 
 	protected override bool ReleaseHandle()
@@ -22,9 +24,9 @@ internal sealed class SafeHGlobalHandle : SafeHandle
 		if (IsInvalid)
 			return false;
 
-		Marshal.FreeHGlobal(handle);
-		GC.RemoveMemoryPressure(count);
-		handle = IntPtr.Zero;
+		UnsafeUtil.NativeFree((void*)handle);
+		SetHandle(IntPtr.Zero);
+		GC.RemoveMemoryPressure((long)count);
 
 		return true;
 	}

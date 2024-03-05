@@ -8,6 +8,14 @@ using static PhotoSauce.Interop.Libjxl.Libjxl;
 
 namespace PhotoSauce.NativeCodecs.Libjxl;
 
+/// <summary>JPEG XL decoder options.</summary>
+/// <param name="FrameRange"><inheritdoc cref="IMultiFrameDecoderOptions.FrameRange" path="/summary/node()" /></param>
+public readonly record struct JxlDecoderOptions(Range FrameRange) : IMultiFrameDecoderOptions
+{
+	/// <summary>Default JPEG XL decoder options.</summary>
+	public static JxlDecoderOptions Default => new(..);
+}
+
 /// <summary>Base interface for JPEG XL encoder options.</summary>
 public interface IJxlEncoderOptions : IEncoderOptions
 {
@@ -53,7 +61,7 @@ public readonly record struct JxlLossyEncoderOptions(float Distance, JxlEncodeSp
 	}
 
 	/// <summary>Default lossy JPEG XL encoder options.</summary>
-	public static JxlLossyEncoderOptions Default => new(default, JxlEncodeSpeed.Cheetah, JxlDecodeSpeed.Slowest);
+	public static JxlLossyEncoderOptions Default => new(default, JxlEncodeSpeed.Squirrel, JxlDecodeSpeed.Slowest);
 
 	int ILossyEncoderOptions.Quality => QualityFromDistance(Distance);
 }

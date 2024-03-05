@@ -263,10 +263,7 @@ internal sealed unsafe class WebpEncoder : IAnimatedImageEncoder
 		}
 	}
 
-	private void setChunk(uint fourcc, WebPData data)
-	{
-		WebpResult.Check(WebPMuxSetChunk(handle, (sbyte*)&fourcc, &data, 1));
-	}
+	private void setChunk(uint fourcc, WebPData data) => WebpResult.Check(WebPMuxSetChunk(handle, (sbyte*)&fourcc, &data, 1));
 
 	private void dispose(bool disposing)
 	{

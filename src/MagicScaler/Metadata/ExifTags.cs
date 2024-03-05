@@ -2,7 +2,7 @@
 
 namespace PhotoSauce.MagicScaler;
 
-// https://www.cipa.jp/std/documents/e/DC-X008-Translation-2019-E.pdf
+// https://cipa.jp/std/documents/download_e.html?DC-008-Translation-2023-E
 internal static class ExifTags
 {
 	public static class Tiff

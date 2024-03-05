@@ -25,8 +25,8 @@ internal partial struct WICRect
 {
 	public WICRect(int x, int y, int width, int height) => (X, Y, Width, Height) = (x, y, width, height);
 
-	public static implicit operator WICRect(in PixelArea a) => Unsafe.As<PixelArea, WICRect>(ref Unsafe.AsRef(in a));
-	public static implicit operator WICRect(in Rectangle r) => Unsafe.As<Rectangle, WICRect>(ref Unsafe.AsRef(in r));
+	public static implicit operator WICRect(PixelArea a) => UnsafeUtil.BitCast<PixelArea, WICRect>(a);
+	public static implicit operator WICRect(Rectangle r) => UnsafeUtil.BitCast<Rectangle, WICRect>(r);
 }
 
 internal unsafe partial struct IWICMetadataQueryReader

@@ -11,16 +11,16 @@ namespace PhotoSauce.MagicScaler;
 internal unsafe ref struct SpanBufferReader(ReadOnlySpan<byte> buff)
 {
 	private readonly ReadOnlySpan<byte> span = buff;
-	private nint pos;
+	private int pos;
 
-	public readonly int Position => (int)pos;
+	public readonly int Position => pos;
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public T Read<T>() where T : unmanaged
 	{
 		Debug.Assert((uint)span.Length >= (uint)(pos + sizeof(T)));
 
-		T val = Unsafe.ReadUnaligned<T>(ref Unsafe.Add(ref MemoryMarshal.GetReference(span), pos));
+		T val = Unsafe.ReadUnaligned<T>(ref Unsafe.Add(ref MemoryMarshal.GetReference(span), (nint)(uint)pos));
 		pos += sizeof(T);
 
 		return val;
@@ -40,32 +40,34 @@ internal unsafe ref struct SpanBufferReader(ReadOnlySpan<byte> buff)
 internal unsafe ref struct SpanBufferWriter(Span<byte> buff)
 {
 	private readonly Span<byte> span = buff;
-	private nint pos;
+	private int pos;
 
-	public readonly int Position => (int)pos;
+	public readonly int Position => pos;
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public void Write<T>(T val) where T : unmanaged
 	{
-		Unsafe.WriteUnaligned(ref Unsafe.Add(ref MemoryMarshal.GetReference(span), pos), val);
+		Unsafe.WriteUnaligned(ref Unsafe.Add(ref MemoryMarshal.GetReference(span), (nint)(uint)pos), val);
 		pos += sizeof(T);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public void Write<T>(ReadOnlySpan<T> val) where T : unmanaged
 	{
-		MemoryMarshal.AsBytes(val).CopyTo(span[(int)pos..]);
+		MemoryMarshal.AsBytes(val).CopyTo(span[pos..]);
 		pos += val.Length;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public void TryWrite<T>(ReadOnlySpan<T> val) where T : unmanaged
 	{
-		int len = Math.Min(span.Length - (int)pos, MemoryMarshal.AsBytes(val).Length);
+		int len = Math.Min(span.Length - pos, MemoryMarshal.AsBytes(val).Length);
 
-		MemoryMarshal.AsBytes(val)[..len].CopyTo(span[(int)pos..]);
+		MemoryMarshal.AsBytes(val)[..len].CopyTo(span[pos..]);
 		pos += val.Length;
 	}
+
+	public void Advance(int size) => pos += size;
 }
 
 internal static class BufferUtil

@@ -243,7 +243,10 @@ internal sealed unsafe class WicImageEncoder : IAnimatedImageEncoder, IDisposabl
 		HRESULT.Check(frame.Get()->SetSize((uint)encArea.Width, (uint)encArea.Height));
 
 		if (meta.TryGetMetadata<ResolutionMetadata>(out var res) && res.IsValid)
-			HRESULT.Check(frame.Get()->SetResolution((double)res.ResolutionX, (double)res.ResolutionY));
+		{
+			var dpi = res.ToDpi();
+			HRESULT.Check(frame.Get()->SetResolution((double)dpi.ResolutionX, (double)dpi.ResolutionY));
+		}
 
 		if (meta.TryGetMetadata<ColorProfileMetadata>(out var prof))
 		{

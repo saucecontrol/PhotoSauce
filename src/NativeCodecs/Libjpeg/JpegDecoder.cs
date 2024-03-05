@@ -14,13 +14,13 @@ namespace PhotoSauce.NativeCodecs.Libjpeg;
 
 internal sealed unsafe class JpegContainer : IImageContainer
 {
-	public readonly IPlanarDecoderOptions Options;
+	public readonly IPlanarDecoderOptions? Options;
 	private jpeg_decompress_struct* handle;
 	private JpegFrame? frame;
 
 	private JpegContainer(jpeg_decompress_struct* pinst, IDecoderOptions? opt)
 	{
-		Options = opt as IPlanarDecoderOptions ?? JpegDecoderOptions.Default;
+		Options = opt as IPlanarDecoderOptions;
 		handle = pinst;
 		frame = null;
 	}
@@ -151,7 +151,7 @@ internal sealed unsafe class JpegFrame : IImageFrame, IPlanarDecoder, IMetadataS
 	public bool TryGetYccFrame([NotNullWhen(true)] out IYccImageFrame? frame)
 	{
 		var handle = Container.GetHandle();
-		if (Container.Options.AllowPlanar && handle->IsPlanarSupported())
+		if (Container.Options is not { AllowPlanar: false } && handle->IsPlanarSupported())
 		{
 			handle->raw_data_out = TRUE;
 			frame = new JpegPlanarCache(this);

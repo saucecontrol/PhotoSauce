@@ -230,7 +230,7 @@ internal sealed unsafe class HeifContainer : IImageContainer
 				throw new InvalidDataException("Image did not decode to expected format");
 
 			// https://github.com/strukturag/libheif/issues/1131
-			if (heif_image_get_width(img, chan) != Width || heif_image_get_height(img, chan) == Height)
+			if (heif_image_get_width(img, chan) != Width || heif_image_get_height(img, chan) != Height)
 				throw new InvalidDataException("Image did not decode to expected size");
 
 			int strideout;

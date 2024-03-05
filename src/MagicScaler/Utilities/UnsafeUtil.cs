@@ -83,7 +83,14 @@ internal static unsafe class UnsafeUtil
 		(T*)Marshal.AllocHGlobal(sizeof(T));
 #endif
 
-	public static void NativeFree<T>(T* p) where T : unmanaged =>
+	public static void* NativeAlloc(nuint cb) =>
+#if NET6_0_OR_GREATER
+		NativeMemory.Alloc(cb);
+#else
+		(void*)Marshal.AllocHGlobal((nint)cb);
+#endif
+
+	public static void NativeFree(void* p) =>
 #if NET6_0_OR_GREATER
 		NativeMemory.Free(p);
 #else

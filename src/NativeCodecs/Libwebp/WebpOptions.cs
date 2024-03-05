@@ -19,9 +19,7 @@ public readonly record struct WebpDecoderOptions(Range FrameRange, bool AllowPla
 }
 
 /// <summary>Base interface for WebP encoder options.</summary>
-public interface IWebpEncoderOptions : IEncoderOptions
-{
-}
+public interface IWebpEncoderOptions : IEncoderOptions { }
 
 /// <summary>Lossless WebP encoder options.</summary>
 /// <param name="Level">Desired efficiency level between 0 (fastest, lowest compression) and 9 (slower, best compression).</param>

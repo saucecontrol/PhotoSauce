@@ -17,7 +17,7 @@ internal static class ExifConstants
 internal enum ExifType : ushort
 {
 	Invalid = 0,
-	// Exif types
+	// Exif 2.0
 	Byte = 1,
 	Ascii = 2,
 	Short = 3,
@@ -32,16 +32,18 @@ internal enum ExifType : ushort
 	Float = 11,
 	Double = 12,
 	IFD = 13,
-	// BigTIFF types
+	// BigTIFF
 	Long8 = 16,
 	SLong8 = 17,
-	IFD8 = 18
+	IFD8 = 18,
+	// Exif 3.0
+	Utf8 = 129
 }
 
 internal static partial class EnumExtensions
 {
 	public static int GetElementSize(this ExifType t) => t switch {
-		ExifType.Byte or ExifType.SByte or ExifType.Ascii or ExifType.Undefined => sizeof(byte),
+		ExifType.Byte or ExifType.SByte or ExifType.Ascii or ExifType.Utf8 or ExifType.Undefined => sizeof(byte),
 		ExifType.Short or ExifType.SShort => sizeof(ushort),
 		ExifType.Long or ExifType.SLong or ExifType.Float or ExifType.IFD => sizeof(uint),
 		ExifType.Rational or ExifType.SRational or ExifType.Double or ExifType.Long8 or ExifType.SLong8 or ExifType.IFD8 => sizeof(ulong),

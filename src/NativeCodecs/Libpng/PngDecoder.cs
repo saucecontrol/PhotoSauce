@@ -21,7 +21,7 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 
 	private ps_png_struct* handle;
 	private ColorProfile? profile;
-	private PngFrame? frame;
+	private int currentFrame;
 
 	public bool isEof, isDecoding;
 
@@ -78,21 +78,22 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 
 	public IImageFrame GetFrame(int index)
 	{
+		ensureHandle();
+
 		index += frameOffset;
 		if ((uint)index >= (uint)(frameOffset + frameCount))
 			throw new ArgumentOutOfRangeException(nameof(index), "Invalid frame index.");
 
-		int curr = frame?.Index ?? 0;
-		if (index < curr)
+		if (index < currentFrame)
 		{
 			ResetDecoder();
-			curr = 0;
+			currentFrame = 0;
 		}
 
-		for (; curr < index; curr++)
+		for (; currentFrame < index; currentFrame++)
 			CheckResult(PngReadFrameHead(handle));
 
-		return frame = new PngFrame(this, index);
+		return new PngFrame(this);
 	}
 
 	public bool TryGetMetadata<T>([NotNullWhen(true)] out T? metadata) where T : IMetadata
@@ -194,10 +195,10 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 		setupDecoder(handle);
 
 		if (keepFrame)
-			for (int i = 0; i < frame!.Index; i++)
+			for (int i = 0; i < currentFrame; i++)
 				CheckResult(PngReadFrameHead(handle));
 		else
-			frame = null;
+			currentFrame = 0;
 	}
 
 	void IIccProfileSource.CopyProfile(Span<byte> dest) => getIccp().CopyTo(dest);
@@ -268,7 +269,7 @@ internal sealed unsafe class PngContainer : IImageContainer, IMetadataSource, II
 			gamma = fromPngFixed(gama);
 		}
 
-		return ColorProfile.CreateFromMetadata(".PNG"u8, ((PixelSource)frame!.PixelSource).Format, gamma, wxyz, rxyz, gxyz, bxyz);
+		return ColorProfile.CreateFromMetadata(".PNG"u8, Format, gamma, wxyz, rxyz, gxyz, bxyz);
 
 		static double fromPngFixed(int val) => val / 100000d;
 		static Vector3C xyToXYZ(double x, double y) => new(x / y, 1, (1 - x - y) / y);
@@ -310,14 +311,13 @@ internal sealed unsafe class PngFrame : IImageFrame, IMetadataSource
 {
 	private readonly PngContainer container;
 	private readonly int width, height;
-	public readonly int Index;
 
 	private FrameBufferSource? frameBuff;
 	private RentedBuffer<byte> lineBuff;
 
 	public IPixelSource PixelSource { get; }
 
-	public PngFrame(PngContainer cont, int idx)
+	public PngFrame(PngContainer cont)
 	{
 		container = cont;
 		(width, height) = (cont.Width, cont.Height);
@@ -333,7 +333,6 @@ internal sealed unsafe class PngFrame : IImageFrame, IMetadataSource
 			(width, height) = ((int)w, (int)h);
 		}
 
-		Index = idx;
 		PixelSource = new PngPixelSource(this);
 	}
 

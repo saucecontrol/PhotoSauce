@@ -25,6 +25,7 @@ internal unsafe ref struct ExifWriter
 	{
 		int len = ExifConstants.ExifHeadLength + tagCount * ExifConstants.MinTagLength + nextIfdLength + dataLength;
 		buffer = BufferPool.RentLocal<byte>(len);
+		buffer.Span.Clear();
 
 		var writer = buffer.Span.AsWriter(..ExifConstants.ExifHeadLength);
 		writer.Write(BitConverter.IsLittleEndian ? ExifConstants.MarkerII : ExifConstants.MarkerMM);
@@ -49,10 +50,7 @@ internal unsafe ref struct ExifWriter
 		if (sizeof(T) <= sizeof(uint))
 		{
 			tagWriter.Write(val);
-			if (sizeof(T) == sizeof(byte))
-				tagWriter.Write(default(Triple));
-			else if (sizeof(T) == sizeof(ushort))
-				tagWriter.Write(default(ushort));
+			tagWriter.Advance(sizeof(uint) - sizeof(T));
 			return;
 		}
 
@@ -71,6 +69,7 @@ internal unsafe ref struct ExifWriter
 		if (sizeof(T) * val.Length <= sizeof(uint))
 		{
 			tagWriter.Write(val);
+			tagWriter.Advance(sizeof(uint) - sizeof(T) * val.Length);
 			return;
 		}
 

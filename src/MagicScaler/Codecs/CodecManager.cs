@@ -106,7 +106,7 @@ public sealed record class DecoderInfo(
 /// <param name="SupportsMultiFrame"><inheritdoc cref="IImageEncoderInfo.SupportsMultiFrame" path="/summary/node()" /></param>
 /// <param name="SupportsAnimation"><inheritdoc cref="IImageEncoderInfo.SupportsAnimation" path="/summary/node()" /></param>
 /// <param name="SupportsColorProfile"><inheritdoc cref="IImageEncoderInfo.SupportsColorProfile" path="/summary/node()" /></param>
-public sealed record class EncoderInfo(
+public record class EncoderInfo(
 	string Name,
 	IEnumerable<string> MimeTypes,
 	IEnumerable<string> FileExtensions,
@@ -118,7 +118,12 @@ public sealed record class EncoderInfo(
 	bool SupportsColorProfile
 ) : CodecInfo(Name, MimeTypes, FileExtensions), IImageEncoderInfo;
 
-internal sealed record class PlanarEncoderInfo(
+/// <inheritdoc />
+/// <param name="SubsampleModes">A list of <see cref="ChromaSubsampleMode" />s supported by the encoder.</param>
+/// <param name="ChromaPosition">The sampling position used by the encoder for subsampled chroma.</param>
+/// <param name="DefaultMatrix">The default color matrix to use for RGB->YCbCr conversion.</param>
+/// <param name="SupportsCustomMatrix">True if the encoder supports custom RGB->YCbCr matrices, otherwise false.</param>
+public sealed record class PlanarEncoderInfo(
 	string Name,
 	IEnumerable<string> MimeTypes,
 	IEnumerable<string> FileExtensions,
@@ -132,7 +137,7 @@ internal sealed record class PlanarEncoderInfo(
 	ChromaPosition ChromaPosition,
 	Matrix4x4 DefaultMatrix,
 	bool SupportsCustomMatrix
-) : CodecInfo(Name, MimeTypes, FileExtensions), IPlanarImageEncoderInfo;
+) : EncoderInfo(Name, MimeTypes, FileExtensions, PixelFormats, DefaultOptions, Factory, SupportsMultiFrame, SupportsAnimation, SupportsColorProfile), IPlanarImageEncoderInfo;
 
 /// <summary>Represents the set of configured codecs for the processing pipeline.</summary>
 /// <remarks>Instances should not be retained or used outside of <see cref="CodecManager.Configure(Action{CodecCollection}?)" />.</remarks>
@@ -259,9 +264,9 @@ public static class CodecManager
 
 	internal static readonly EncoderInfo FallbackEncoder = new(
 		nameof(FallbackEncoder),
-		Enumerable.Empty<string>(),
-		Enumerable.Empty<string>(),
-		Enumerable.Empty<Guid>(),
+		[ ],
+		[ ],
+		[ ],
 		null,
 		(s, o) => throw new InvalidOperationException("No encoders are registered."),
 		false, false, false

@@ -22,7 +22,7 @@
 		<ItemGroup>
 			<_ProjectReferencesWithExactVersions Include="@(_ProjectReferencesWithVersions)">
 				<ProjectVersion>[$([System.Text.RegularExpressions.Regex]::Match('%(_ProjectReferencesWithVersions.ProjectVersion)', '^\d+\.\d+\.\d+').Value),$([MSBuild]::Add($([System.Text.RegularExpressions.Regex]::Match('%(_ProjectReferencesWithVersions.ProjectVersion)', '^\d+\.\d+').Value), '0.01').ToString('f2')))</ProjectVersion>
-				<ProjectVersion Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(_ProjectReferencesWithVersions.ProjectVersion), '-ci\d+$'))">[%(_ProjectReferencesWithVersions.ProjectVersion)]</ProjectVersion>
+				<ProjectVersion Condition="'$(VersionSuffix)'!=''">[%(_ProjectReferencesWithVersions.ProjectVersion)]</ProjectVersion>
 			</_ProjectReferencesWithExactVersions>
 		</ItemGroup>
 
