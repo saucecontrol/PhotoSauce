@@ -1,6 +1,7 @@
 // Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
 
 using System;
+using System.Runtime.InteropServices;
 using System.Diagnostics.CodeAnalysis;
 
 using static PhotoSauce.Interop.Lcms.Lcms;
@@ -15,6 +16,9 @@ internal sealed unsafe class ColorProfileTransform(PixelSource source, PixelForm
 	public static bool HaveLcms => dependencyValid.Value;
 
 	private static readonly Lazy<bool> dependencyValid = new(() => {
+		if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && !AppConfig.EnableWindowsLcms)
+			return false;
+
 		try
 		{
 			if (cmsGetEncodedCMMversion() is >= 2090 and < 3000)

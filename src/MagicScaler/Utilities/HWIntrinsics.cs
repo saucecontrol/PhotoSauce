@@ -40,6 +40,9 @@ internal static class HWIntrinsics
 
 	private static bool getFastGather()
 	{
+		if (!AppConfig.GdsMitigationsDisabled)
+			return false;
+
 		bool intel = X86Base.CpuId(0, 0) is (_, 0x756e6547, 0x6c65746e, 0x49656e69); // "Genu", "ntel", "ineI"
 		uint fms = (uint)X86Base.CpuId(1, 0).Eax;
 		uint fam = ((fms & 0xfu << 20) >> 16) + ((fms & 0xfu << 8) >> 8);

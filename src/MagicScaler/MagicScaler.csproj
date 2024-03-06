@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<VersionPrefix>0.14.1</VersionPrefix>
@@ -52,6 +52,10 @@
 		<EmbeddedResource Include="$(BaseModulesPath)CompactProfiles\profiles\sRGB-v2-micro.icc" Link="Resources\%(FileName)%(Extension)" />
 		<EmbeddedResource Include="$(BaseModulesPath)CompactProfiles\profiles\sRGB-v4.icc" Link="Resources\%(FileName)%(Extension)" />
 		<EmbeddedResource Include="$(BaseModulesPath)CompactProfiles\profiles\CGATS001Compat-v2-micro.icc" Link="Resources\%(FileName)%(Extension)" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="Package\build\*" Pack="true" PackagePath="build/netcoreapp3.0/;buildTransitive/netcoreapp3.0/" />
 	</ItemGroup>
 
 	<ItemGroup>

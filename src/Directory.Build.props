@@ -31,7 +31,7 @@
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)'=='Dist'">
-		<PackageReference Include="SauceControl.InheritDoc" Version="2.0.0" PrivateAssets="all" />
+		<PackageReference Include="SauceControl.InheritDoc" Version="2.0.1" PrivateAssets="all" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)'!='Dist'">

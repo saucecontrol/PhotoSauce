@@ -9,13 +9,11 @@ internal class AppConfig
 {
 	private const string prefix = $"{nameof(PhotoSauce)}.{nameof(MagicScaler)}";
 
-	public const string MaxPooledBufferSizeName = $"{prefix}.{nameof(MaxPooledBufferSize)}";
-	public const string EnablePixelSourceStatsName = $"{prefix}.{nameof(EnablePixelSourceStats)}";
-	public const string ThrowOnFinalizerName = $"{prefix}.{nameof(ThrowOnFinalizer)}";
-
-	public static readonly int MaxPooledBufferSize = getAppContextInt(MaxPooledBufferSizeName);
-	public static readonly bool EnablePixelSourceStats = AppContext.TryGetSwitch(EnablePixelSourceStatsName, out bool val) && val;
-	public static readonly bool ThrowOnFinalizer = AppContext.TryGetSwitch(ThrowOnFinalizerName, out bool val) && val;
+	public static readonly int MaxPooledBufferSize = getAppContextInt($"{prefix}.{nameof(MaxPooledBufferSize)}");
+	public static readonly bool EnablePixelSourceStats = AppContext.TryGetSwitch($"{prefix}.{nameof(EnablePixelSourceStats)}", out bool val) && val;
+	public static readonly bool GdsMitigationsDisabled = AppContext.TryGetSwitch($"{prefix}.{nameof(GdsMitigationsDisabled)}", out bool val) && val;
+	public static readonly bool EnableWindowsLcms = AppContext.TryGetSwitch($"{prefix}.{nameof(EnableWindowsLcms)}", out bool val) && val;
+	public static readonly bool ThrowOnFinalizer = AppContext.TryGetSwitch($"{prefix}.{nameof(ThrowOnFinalizer)}", out bool val) && val;
 
 	private static int getAppContextInt(string name)
 	{
