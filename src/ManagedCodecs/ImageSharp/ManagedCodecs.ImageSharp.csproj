@@ -8,7 +8,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\MagicScaler\MagicScaler.csproj" />
-		<PackageReference Include="SixLabors.ImageSharp" Version="2.1.6" />
+		<PackageReference Include="SixLabors.ImageSharp" Version="2.1.7" />
 	</ItemGroup>
 
 </Project>
