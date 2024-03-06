@@ -1,7 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<VersionPrefix>0.14.1</VersionPrefix>
+		<VersionPrefix>0.14.2</VersionPrefix>
 		<TargetFrameworks>net6.0;net7.0;net8.0;net472</TargetFrameworks>
 		<TargetFrameworks Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">$(TargetFrameworks);net461;netstandard2.0;netstandard2.1</TargetFrameworks>
 	</PropertyGroup>
@@ -55,7 +55,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Include="Package\build\*" Pack="true" PackagePath="build/netcoreapp3.0/;buildTransitive/netcoreapp3.0/" />
+		<None Include="Package\build\**" Pack="true" PackagePath="build" />
 	</ItemGroup>
 
 	<ItemGroup>
