@@ -15,9 +15,9 @@ namespace PhotoSauce.NativeCodecs.Libjxl;
 
 internal static unsafe class JxlFactory
 {
-	public const string DisplayName = $"{libjxl} 0.10.1";
+	public const string DisplayName = $"{libjxl} 0.10.2";
 	public const string libjxl = nameof(libjxl);
-	public const uint libver = 10001;
+	public const uint libver = 10002;
 
 	private static readonly Lazy<bool> dependencyValid = new(() => {
 #if NETFRAMEWORK
