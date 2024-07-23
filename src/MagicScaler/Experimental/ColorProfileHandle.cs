@@ -9,6 +9,7 @@ namespace PhotoSauce.MagicScaler.Experimental;
 /// </summary>
 public interface IColorProfileHandle
 {
+	internal ColorProfile Get();
 }
 
 /// <summary>
@@ -21,8 +22,25 @@ public static class ColorProfileHandle
 	/// </summary>
 	/// <param name="profile">TODO: Comment goes here</param>
 	/// <returns>TODO: Comment goes here</returns>
-	public static IColorProfileHandle GetOrCreate(ReadOnlySpan<byte> profile)
+	public static IColorProfileHandle Create(ReadOnlySpan<byte> profile)
 	{
-		return ColorProfile.Cache.GetOrAdd(profile);
+		ColorProfile colorProfile = ColorProfile.Cache.GetOrAdd(profile);
+		return new Impl(colorProfile);
+	}
+
+	private sealed class Impl
+		: IColorProfileHandle
+	{
+		private readonly ColorProfile colorProfile;
+
+		public Impl(ColorProfile colorProfile)
+		{
+			this.colorProfile = colorProfile;
+		}
+
+		public ColorProfile Get()
+		{
+			return colorProfile;
+		}
 	}
 }
