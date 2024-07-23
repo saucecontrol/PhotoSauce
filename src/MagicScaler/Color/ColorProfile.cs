@@ -18,6 +18,7 @@ internal enum ColorProfileType { Unknown, Curve, Matrix, Table }
 
 //http://www.color.org/specification/ICC1v43_2010-12.pdf
 internal class ColorProfile
+	: PhotoSauce.MagicScaler.Experimental.IColorProfileHandle
 {
 	// This value accounts for 132 bytes of header, plus a single tag (20 bytes overhead)
 	// with data length 8. Such a profile would not be useful, but it could be parsed.
