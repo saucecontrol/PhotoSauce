@@ -4,43 +4,27 @@ using System;
 
 namespace PhotoSauce.MagicScaler.Experimental;
 
-/// <summary>
-/// TODO: Comment goes here
-/// </summary>
+/// <summary>A handle to a color profile for use with other experimental APIs.</summary>
 public interface IColorProfileHandle
 {
-	internal ColorProfile Get();
+	internal ColorProfile ColorProfile { get; }
 }
 
-/// <summary>
-/// TODO: Comment goes here
-/// </summary>
+/// <summary>Provides factory methods for <see cref="IColorProfileHandle"/>.</summary>
 public static class ColorProfileHandle
 {
-	/// <summary>
-	/// TODO: Comment goes here
-	/// </summary>
-	/// <param name="profile">TODO: Comment goes here</param>
-	/// <returns>TODO: Comment goes here</returns>
+	/// <summary>Given an ICC profile, creates an <see cref="IColorProfileHandle"/>.</summary>
+	/// <param name="profile">The ICC color profile.</param>
+	/// <returns>An <see cref="IColorProfileHandle"/> for use with other experimental APIs such as <see cref="TransformFactory.CreateConversionTransform(IPixelSource, Guid, IColorProfileHandle?, IColorProfileHandle?)"/>.</returns>
 	public static IColorProfileHandle Create(ReadOnlySpan<byte> profile)
 	{
 		ColorProfile colorProfile = ColorProfile.Cache.GetOrAdd(profile);
 		return new Impl(colorProfile);
 	}
 
-	private sealed class Impl
+	private sealed class Impl(ColorProfile colorProfile)
 		: IColorProfileHandle
 	{
-		private readonly ColorProfile colorProfile;
-
-		public Impl(ColorProfile colorProfile)
-		{
-			this.colorProfile = colorProfile;
-		}
-
-		public ColorProfile Get()
-		{
-			return colorProfile;
-		}
+		public ColorProfile ColorProfile { get; init; } = colorProfile;
 	}
 }

@@ -17,7 +17,7 @@ public static class TransformFactory
 	/// <returns>An <see cref="IPixelSource" /> that provides the resulting pixel data.</returns>
 	public static IPixelSource CreateConversionTransform(IPixelSource source, Guid destFormat, IColorProfileHandle? sourceProfile = null, IColorProfileHandle? destProfile = null)
 	{
-		return new ConversionTransform(source.AsPixelSource(), PixelFormat.FromGuid(destFormat), sourceProfile?.Get(), destProfile?.Get());
+		return new ConversionTransform(source.AsPixelSource(), PixelFormat.FromGuid(destFormat), sourceProfile?.ColorProfile, destProfile?.ColorProfile);
 	}
 
 	/// <summary>Creates a transform that resizes an <see cref="IPixelSource" /> to the given size, optionally using a specific interpolator.</summary>
