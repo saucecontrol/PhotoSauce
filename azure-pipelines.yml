@@ -22,14 +22,14 @@ jobs:
   strategy:
     matrix:
       linux-arm64:
-        imageName: ubuntu-20.04
+        imageName: ubuntu-22.04
         setupScript: |
           sudo apt update
-          sudo apt install -y g++-10-aarch64-linux-gnu nasm
+          sudo apt install -y g++-12-aarch64-linux-gnu nasm
           modules/vcpkg/bootstrap-vcpkg.sh
         buildScript: modules/vcpkg/vcpkg install $(VCPKG_PSLIBS) --triplet=linux-arm64 @build/vcpkg/response
       linux-x64:
-        imageName: ubuntu-20.04
+        imageName: ubuntu-22.04
         setupScript: |
           sudo apt update
           sudo apt install -y nasm
