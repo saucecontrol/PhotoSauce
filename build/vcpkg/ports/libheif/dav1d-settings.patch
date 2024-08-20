@@ -1,10 +1,10 @@
 diff --git a/libheif/plugins/decoder_dav1d.cc b/libheif/plugins/decoder_dav1d.cc
-index e966b511e..ff23906dc 100644
+index 5a0afcd..9ffd83e 100644
 --- a/libheif/plugins/decoder_dav1d.cc
 +++ b/libheif/plugins/decoder_dav1d.cc
-@@ -97,6 +97,7 @@ struct heif_error dav1d_new_decoder(void** dec)
+@@ -92,6 +92,7 @@ struct heif_error dav1d_new_decoder(void** dec)
  
-   decoder->settings.frame_size_limit = MAX_IMAGE_WIDTH * MAX_IMAGE_HEIGHT;
+   decoder->settings.frame_size_limit = MAX_IMAGE_SIZE;
    decoder->settings.all_layers = 0;
 +  decoder->settings.n_threads = 1;
  

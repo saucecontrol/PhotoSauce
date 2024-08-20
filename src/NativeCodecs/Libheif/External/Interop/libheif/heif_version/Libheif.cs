@@ -10,9 +10,9 @@ namespace PhotoSauce.Interop.Libheif;
 
 internal static partial class Libheif
 {
-    [NativeTypeName("#define LIBHEIF_NUMERIC_VERSION ((1<<24) | (17<<16) | (6<<8) | 0)")]
-    public const int LIBHEIF_NUMERIC_VERSION = ((1 << 24) | (17 << 16) | (6 << 8) | 0);
+    [NativeTypeName("#define LIBHEIF_NUMERIC_VERSION ((1<<24) | (18<<16) | (2<<8) | 0)")]
+    public const int LIBHEIF_NUMERIC_VERSION = ((1 << 24) | (18 << 16) | (2 << 8) | 0);
 
-    [NativeTypeName("#define LIBHEIF_VERSION \"1.17.6\"")]
-    public const string LIBHEIF_VERSION = "1.17.6";
+    [NativeTypeName("#define LIBHEIF_VERSION \"1.18.2\"")]
+    public const string LIBHEIF_VERSION = "1.18.2";
 }

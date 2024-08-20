@@ -40,4 +40,16 @@ internal static unsafe partial class Libheif
 
     [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern void heif_item_get_property_transform_crop_borders([NativeTypeName("const struct heif_context *")] void* context, [NativeTypeName("heif_item_id")] uint itemId, [NativeTypeName("heif_property_id")] uint propertyId, int image_width, int image_height, int* left, int* top, int* right, int* bottom);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_item_add_raw_property([NativeTypeName("const struct heif_context *")] void* context, [NativeTypeName("heif_item_id")] uint itemId, [NativeTypeName("uint32_t")] uint fourcc_type, [NativeTypeName("const uint8_t *")] byte* uuid_type, [NativeTypeName("const uint8_t *")] byte* data, [NativeTypeName("size_t")] nuint size, int is_essential, [NativeTypeName("heif_property_id *")] uint* out_propertyId);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_item_get_property_raw_size([NativeTypeName("const struct heif_context *")] void* context, [NativeTypeName("heif_item_id")] uint itemId, [NativeTypeName("heif_property_id")] uint propertyId, [NativeTypeName("size_t *")] nuint* out_size);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_item_get_property_raw_data([NativeTypeName("const struct heif_context *")] void* context, [NativeTypeName("heif_item_id")] uint itemId, [NativeTypeName("heif_property_id")] uint propertyId, [NativeTypeName("uint8_t *")] byte* out_data);
 }

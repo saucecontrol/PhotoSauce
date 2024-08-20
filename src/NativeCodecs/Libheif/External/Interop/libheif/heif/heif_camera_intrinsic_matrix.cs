@@ -6,12 +6,15 @@
 
 namespace PhotoSauce.Interop.Libheif;
 
-internal enum heif_metadata_compression
+internal partial struct heif_camera_intrinsic_matrix
 {
-    heif_metadata_compression_off = 0,
-    heif_metadata_compression_auto = 1,
-    heif_metadata_compression_unknown = 2,
-    heif_metadata_compression_deflate = 3,
-    heif_metadata_compression_zlib = 4,
-    heif_metadata_compression_brotli = 5,
+    public double focal_length_x;
+
+    public double focal_length_y;
+
+    public double principal_point_x;
+
+    public double principal_point_y;
+
+    public double skew;
 }

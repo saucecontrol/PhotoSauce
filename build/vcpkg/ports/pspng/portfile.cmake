@@ -46,6 +46,7 @@ vcpkg_cmake_configure(
     OPTIONS
         -DPNG_STATIC=OFF
         -DPNG_SHARED=OFF
+        -DPNG_FRAMEWORK=OFF
         -DPNG_TESTS=OFF
         -DSKIP_INSTALL_ALL=ON
     MAYBE_UNUSED_VARIABLES

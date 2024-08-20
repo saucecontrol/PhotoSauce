@@ -31,4 +31,7 @@ internal unsafe partial struct heif_encoding_options
 
     [NativeTypeName("struct heif_color_conversion_options")]
     public heif_color_conversion_options color_conversion_options;
+
+    [NativeTypeName("uint8_t")]
+    public byte prefer_uncC_short_form;
 }

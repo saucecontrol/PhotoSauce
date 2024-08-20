@@ -18,7 +18,7 @@ internal static unsafe partial class Libwebpmux
 
     public static void* WebPMuxNew()
     {
-        return WebPNewInternal(0x0108);
+        return WebPNewInternal(0x0109);
     }
 
     [DllImport("webpmux", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -29,7 +29,7 @@ internal static unsafe partial class Libwebpmux
 
     public static void* WebPMuxCreate([NativeTypeName("const WebPData *")] WebPData* bitstream, int copy_data)
     {
-        return WebPMuxCreateInternal(bitstream, copy_data, 0x0108);
+        return WebPMuxCreateInternal(bitstream, copy_data, 0x0109);
     }
 
     [DllImport("webpmux", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -79,7 +79,7 @@ internal static unsafe partial class Libwebpmux
 
     public static int WebPAnimEncoderOptionsInit(WebPAnimEncoderOptions* enc_options)
     {
-        return WebPAnimEncoderOptionsInitInternal(enc_options, 0x0108);
+        return WebPAnimEncoderOptionsInitInternal(enc_options, 0x0109);
     }
 
     [DllImport("webpmux", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -87,7 +87,7 @@ internal static unsafe partial class Libwebpmux
 
     public static void* WebPAnimEncoderNew(int width, int height, [NativeTypeName("const WebPAnimEncoderOptions *")] WebPAnimEncoderOptions* enc_options)
     {
-        return WebPAnimEncoderNewInternal(width, height, enc_options, 0x0108);
+        return WebPAnimEncoderNewInternal(width, height, enc_options, 0x0109);
     }
 
     [DllImport("webpmux", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -103,6 +103,15 @@ internal static unsafe partial class Libwebpmux
     [DllImport("webpmux", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern void WebPAnimEncoderDelete(void* enc);
 
-    [NativeTypeName("#define WEBP_MUX_ABI_VERSION 0x0108")]
-    public const int WEBP_MUX_ABI_VERSION = 0x0108;
+    [DllImport("webpmux", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern WebPMuxError WebPAnimEncoderSetChunk(void* enc, [NativeTypeName("const char[4]")] sbyte* fourcc, [NativeTypeName("const WebPData *")] WebPData* chunk_data, int copy_data);
+
+    [DllImport("webpmux", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern WebPMuxError WebPAnimEncoderGetChunk([NativeTypeName("const WebPAnimEncoder *")] void* enc, [NativeTypeName("const char[4]")] sbyte* fourcc, WebPData* chunk_data);
+
+    [DllImport("webpmux", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern WebPMuxError WebPAnimEncoderDeleteChunk(void* enc, [NativeTypeName("const char[4]")] sbyte* fourcc);
+
+    [NativeTypeName("#define WEBP_MUX_ABI_VERSION 0x0109")]
+    public const int WEBP_MUX_ABI_VERSION = 0x0109;
 }

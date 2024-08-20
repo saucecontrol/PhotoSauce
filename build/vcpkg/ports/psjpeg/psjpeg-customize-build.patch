@@ -1,8 +1,8 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 65401c8..2ee8e61 100644
+index 477b91a..bff0e69 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -627,8 +627,10 @@ if(ENABLE_SHARED)
+@@ -658,8 +658,10 @@ if(ENABLE_SHARED)
    add_library(jpeg16 OBJECT ${JPEG16_SOURCES})
    set_property(TARGET jpeg16 PROPERTY COMPILE_FLAGS "-DBITS_IN_JSAMPLE=16")
    set_target_properties(jpeg16 PROPERTIES POSITION_INDEPENDENT_CODE 1)
@@ -13,7 +13,7 @@ index 65401c8..2ee8e61 100644
  
  if(ENABLE_STATIC)
    # Compile a separate version of these source files with 12-bit and 16-bit
-@@ -743,6 +745,16 @@ if(WITH_TURBOJPEG)
+@@ -778,6 +780,16 @@ if(WITH_TURBOJPEG)
    endif()
  endif()
  
@@ -30,7 +30,7 @@ index 65401c8..2ee8e61 100644
  if(WIN32)
    set(USE_SETMODE "-DUSE_SETMODE")
  endif()
-@@ -1733,6 +1745,19 @@ if(WITH_TURBOJPEG)
+@@ -1777,6 +1789,19 @@ if(WITH_TURBOJPEG)
    endif()
  endif()
  
@@ -50,14 +50,14 @@ index 65401c8..2ee8e61 100644
  if(ENABLE_STATIC)
    install(TARGETS jpeg-static EXPORT ${CMAKE_PROJECT_NAME}Targets
      INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-@@ -1777,9 +1802,9 @@ if((UNIX OR MINGW) AND INSTALL_DOCS)
+@@ -1823,9 +1848,9 @@ if((UNIX OR MINGW) AND INSTALL_DOCS)
      ${CMAKE_CURRENT_SOURCE_DIR}/wrjpgcom.1
-     DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
+     DESTINATION ${CMAKE_INSTALL_MANDIR}/man1 COMPONENT man)
  endif()
 +if(WITH_TURBOJPEG)
  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/pkgscripts/libjpeg.pc
-   DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+   DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig COMPONENT lib)
 -if(WITH_TURBOJPEG)
    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/pkgscripts/libturbojpeg.pc
-     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig COMPONENT lib)
  endif()
