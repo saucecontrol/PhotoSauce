@@ -1,5 +1,5 @@
 <Project InitialTargets="_MagicScalerTfmSupportWarning">
 	<Target Name="_MagicScalerTfmSupportWarning" Condition="'$(SuppressTfmSupportBuildWarnings)' == ''">
-		<Warning Condition="'$(OutputType)'=='Exe' Or '$(OutputType)'=='WinExe'" Text="MagicScaler is no longer hardware accelerated on $(TargetFramework). Upgrade your TargetFramework to net6.0 or later (or use an older version of the library) for the best performance. You may also set &lt;SuppressTfmSupportBuildWarnings&gt;true&lt;/SuppressTfmSupportBuildWarnings&gt; in the project file to ignore this warning." />
+		<Warning Condition="'$(OutputType)'=='Exe' Or '$(OutputType)'=='WinExe'" Text="MagicScaler is no longer hardware accelerated on $(TargetFramework). Upgrade your TargetFramework to net8.0 or later (or use an older version of the library) for the best performance. You may also set &lt;SuppressTfmSupportBuildWarnings&gt;true&lt;/SuppressTfmSupportBuildWarnings&gt; in the project file to ignore this warning." />
 	</Target>
 </Project>
