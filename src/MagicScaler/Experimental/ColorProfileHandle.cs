@@ -15,16 +15,11 @@ public static class ColorProfileHandle
 {
 	/// <summary>Given an ICC profile, creates an <see cref="IColorProfileHandle"/>.</summary>
 	/// <param name="profile">The ICC color profile.</param>
-	/// <returns>An <see cref="IColorProfileHandle"/> for use with other experimental APIs such as <see cref="TransformFactory.CreateConversionTransform(IPixelSource, Guid, IColorProfileHandle?, IColorProfileHandle?)"/>.</returns>
-	public static IColorProfileHandle Create(ReadOnlySpan<byte> profile)
-	{
-		ColorProfile colorProfile = ColorProfile.Cache.GetOrAdd(profile);
-		return new Impl(colorProfile);
-	}
+	/// <returns>An <see cref="IColorProfileHandle"/> for use with other experimental APIs.</returns>
+	public static IColorProfileHandle Create(ReadOnlySpan<byte> profile) => new Impl(ColorProfile.Cache.GetOrAdd(profile));
 
-	private sealed class Impl(ColorProfile colorProfile)
-		: IColorProfileHandle
+	private sealed class Impl(ColorProfile profile) : IColorProfileHandle
 	{
-		public ColorProfile ColorProfile { get; init; } = colorProfile;
+		public ColorProfile ColorProfile { get; } = profile;
 	}
 }
