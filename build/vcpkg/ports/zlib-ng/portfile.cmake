@@ -2,7 +2,7 @@ vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO zlib-ng/zlib-ng
     REF "${VERSION}"
-    SHA512 6374a673852935468f23a74ce56db6afb27af3923fab2a0ba182a7a95acea93ff2c979612db6cd355d8bd1a44ebb0779900be78bdd05a89374b339d29339647c
+    SHA512 3cb3e97ee1d20e1f3cdf0efcdf55aee0e3a192f9a2ae781cd209b1d37620c48f2ada345fb1f4357315b1cb5e09b7ea5fcdfa2fd54f7b4ac5dcb6e73860000aad
     HEAD_REF develop
 )
 
