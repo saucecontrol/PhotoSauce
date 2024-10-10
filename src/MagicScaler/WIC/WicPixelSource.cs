@@ -31,6 +31,9 @@ internal sealed unsafe class WicFramePixelSource : PixelSource, IFramePixelSourc
 
 	protected override unsafe void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 	{
+		// Some codecs (e.g. WebP) may error if the stride is larger than the buffer.
+		cbStride = Math.Min(cbStride, cbBufferSize);
+
 		var rect = (WICRect)prc;
 		HRESULT.Check(frame.WicSource->CopyPixels(&rect, (uint)cbStride, (uint)cbBufferSize, pbBuffer));
 	}
