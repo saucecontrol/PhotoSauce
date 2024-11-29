@@ -11,4 +11,5 @@ internal enum heif_reader_grow_status
     heif_reader_grow_status_size_reached,
     heif_reader_grow_status_timeout,
     heif_reader_grow_status_size_beyond_eof,
+    heif_reader_grow_status_error,
 }

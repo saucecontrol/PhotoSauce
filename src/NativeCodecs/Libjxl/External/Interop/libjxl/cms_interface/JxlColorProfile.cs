@@ -8,7 +8,7 @@ namespace PhotoSauce.Interop.Libjxl;
 
 internal partial struct JxlColorProfile
 {
-    [NativeTypeName("struct (anonymous struct at cms_interface.h:47:3)")]
+    [NativeTypeName("__AnonymousRecord_cms_interface_L49_C3")]
     public _icc_e__Struct icc;
 
     public JxlColorEncoding color_encoding;

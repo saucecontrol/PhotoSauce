@@ -16,4 +16,7 @@ internal enum heif_channel
     heif_channel_B = 5,
     heif_channel_Alpha = 6,
     heif_channel_interleaved = 10,
+    heif_channel_filter_array = 11,
+    heif_channel_depth = 12,
+    heif_channel_disparity = 13,
 }

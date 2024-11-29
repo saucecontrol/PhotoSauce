@@ -1,8 +1,8 @@
 diff --git a/libheif/CMakeLists.txt b/libheif/CMakeLists.txt
-index 93c65be..5356016 100644
+index 359cb15..7a62c2a 100644
 --- a/libheif/CMakeLists.txt
 +++ b/libheif/CMakeLists.txt
-@@ -97,6 +97,7 @@ target_include_directories(heif
+@@ -151,6 +151,7 @@ target_include_directories(heif
  
  set_target_properties(heif
          PROPERTIES

@@ -15,4 +15,6 @@ internal enum heif_item_property_type
     heif_item_property_type_transform_crop = (('c' << 24) | ('l' << 16) | ('a' << 8) | 'p'),
     heif_item_property_type_image_size = (('i' << 24) | ('s' << 16) | ('p' << 8) | 'e'),
     heif_item_property_type_uuid = (('u' << 24) | ('u' << 16) | ('i' << 8) | 'd'),
+    heif_item_property_type_tai_clock_info = (('t' << 24) | ('a' << 16) | ('i' << 8) | 'c'),
+    heif_item_property_type_tai_timestamp = (('i' << 24) | ('t' << 16) | ('a' << 8) | 'i'),
 }

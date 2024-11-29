@@ -135,7 +135,7 @@ internal static unsafe partial class Giflib
     public static extern int GifBitSize(int n);
 
     [DllImport("gif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern void GifApplyTranslation(SavedImage* Image, [NativeTypeName("GifPixelType[]")] byte* Translation);
+    public static extern void GifApplyTranslation(SavedImage* Image, [NativeTypeName("const GifPixelType[]")] byte* Translation);
 
     [DllImport("gif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern int GifAddExtensionBlock(int* ExtensionBlock_Count, ExtensionBlock** ExtensionBlocks, int Function, [NativeTypeName("unsigned int")] uint Len, [NativeTypeName("unsigned char[]")] byte* ExtData);
@@ -171,6 +171,9 @@ internal static unsafe partial class Giflib
     [DllImport("gif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern void GifDrawRectangle(SavedImage* Image, [NativeTypeName("const int")] int x, [NativeTypeName("const int")] int y, [NativeTypeName("const int")] int w, [NativeTypeName("const int")] int d, [NativeTypeName("const int")] int color);
 
+    [DllImport("gif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern void GifDrawBoxedText8x8(SavedImage* Image, [NativeTypeName("const int")] int x, [NativeTypeName("const int")] int y, [NativeTypeName("const char *")] sbyte* legend, [NativeTypeName("const int")] int border, [NativeTypeName("const int")] int bg, [NativeTypeName("const int")] int fg);
+
     [NativeTypeName("#define _GIF_LIB_H_ 1")]
     public const int _GIF_LIB_H_ = 1;
 
@@ -180,8 +183,8 @@ internal static unsafe partial class Giflib
     [NativeTypeName("#define GIFLIB_MINOR 2")]
     public const int GIFLIB_MINOR = 2;
 
-    [NativeTypeName("#define GIFLIB_RELEASE 1")]
-    public const int GIFLIB_RELEASE = 1;
+    [NativeTypeName("#define GIFLIB_RELEASE 2")]
+    public const int GIFLIB_RELEASE = 2;
 
     [NativeTypeName("#define GIF_ERROR 0")]
     public const int GIF_ERROR = 0;

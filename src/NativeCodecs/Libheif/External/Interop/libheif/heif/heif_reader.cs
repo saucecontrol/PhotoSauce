@@ -61,4 +61,56 @@ internal unsafe partial struct heif_reader
         set => _wait_for_file_size = value;
     }
 #endif
+
+    [NativeTypeName("struct heif_reader_range_request_result (*)(uint64_t, uint64_t, void *)")]
+#if NET5_0_OR_GREATER
+    public delegate* unmanaged[Cdecl]<ulong, ulong, void*, heif_reader_range_request_result> request_range;
+#else
+    public void* _request_range;
+
+    public delegate* unmanaged[Cdecl]<ulong, ulong, void*, heif_reader_range_request_result> request_range
+    {
+        get => (delegate* unmanaged[Cdecl]<ulong, ulong, void*, heif_reader_range_request_result>)_request_range;
+        set => _request_range = value;
+    }
+#endif
+
+    [NativeTypeName("void (*)(uint64_t, uint64_t, void *)")]
+#if NET5_0_OR_GREATER
+    public delegate* unmanaged[Cdecl]<ulong, ulong, void*, void> preload_range_hint;
+#else
+    public void* _preload_range_hint;
+
+    public delegate* unmanaged[Cdecl]<ulong, ulong, void*, void> preload_range_hint
+    {
+        get => (delegate* unmanaged[Cdecl]<ulong, ulong, void*, void>)_preload_range_hint;
+        set => _preload_range_hint = value;
+    }
+#endif
+
+    [NativeTypeName("void (*)(uint64_t, uint64_t, void *)")]
+#if NET5_0_OR_GREATER
+    public delegate* unmanaged[Cdecl]<ulong, ulong, void*, void> release_file_range;
+#else
+    public void* _release_file_range;
+
+    public delegate* unmanaged[Cdecl]<ulong, ulong, void*, void> release_file_range
+    {
+        get => (delegate* unmanaged[Cdecl]<ulong, ulong, void*, void>)_release_file_range;
+        set => _release_file_range = value;
+    }
+#endif
+
+    [NativeTypeName("void (*)(const char *)")]
+#if NET5_0_OR_GREATER
+    public delegate* unmanaged[Cdecl]<sbyte*, void> release_error_msg;
+#else
+    public void* _release_error_msg;
+
+    public delegate* unmanaged[Cdecl]<sbyte*, void> release_error_msg
+    {
+        get => (delegate* unmanaged[Cdecl]<sbyte*, void>)_release_error_msg;
+        set => _release_error_msg = value;
+    }
+#endif
 }

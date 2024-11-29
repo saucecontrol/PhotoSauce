@@ -10,8 +10,8 @@ namespace PhotoSauce.Interop.Libpng;
 
 internal static unsafe partial class Libpng
 {
-    [NativeTypeName("#define PNG_LIBPNG_VER_STRING \"1.6.43\"")]
-    public const string PNG_LIBPNG_VER_STRING = "1.6.43";
+    [NativeTypeName("#define PNG_LIBPNG_VER_STRING \"1.6.44\"")]
+    public const string PNG_LIBPNG_VER_STRING = "1.6.44";
 
     [NativeTypeName("#define PNG_LIBPNG_VER_SHAREDLIB 16")]
     public const int PNG_LIBPNG_VER_SHAREDLIB = 16;
@@ -28,8 +28,8 @@ internal static unsafe partial class Libpng
     [NativeTypeName("#define PNG_LIBPNG_VER_MINOR 6")]
     public const int PNG_LIBPNG_VER_MINOR = 6;
 
-    [NativeTypeName("#define PNG_LIBPNG_VER_RELEASE 43")]
-    public const int PNG_LIBPNG_VER_RELEASE = 43;
+    [NativeTypeName("#define PNG_LIBPNG_VER_RELEASE 44")]
+    public const int PNG_LIBPNG_VER_RELEASE = 44;
 
     [NativeTypeName("#define PNG_LIBPNG_VER_BUILD 0")]
     public const int PNG_LIBPNG_VER_BUILD = 0;
@@ -61,8 +61,8 @@ internal static unsafe partial class Libpng
     [NativeTypeName("#define PNG_LIBPNG_BUILD_BASE_TYPE PNG_LIBPNG_BUILD_STABLE")]
     public const int PNG_LIBPNG_BUILD_BASE_TYPE = 4;
 
-    [NativeTypeName("#define PNG_LIBPNG_VER 10643")]
-    public const int PNG_LIBPNG_VER = 10643;
+    [NativeTypeName("#define PNG_LIBPNG_VER 10644")]
+    public const int PNG_LIBPNG_VER = 10644;
 
     [NativeTypeName("#define PNG_LIBPNG_BUILD_TYPE (PNG_LIBPNG_BUILD_BASE_TYPE | PNG_LIBPNG_BUILD_PRIVATE)")]
     public const int PNG_LIBPNG_BUILD_TYPE = (4 | 16);

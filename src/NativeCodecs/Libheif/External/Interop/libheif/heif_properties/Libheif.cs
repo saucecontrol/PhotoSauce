@@ -52,4 +52,8 @@ internal static unsafe partial class Libheif
     [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     [return: NativeTypeName("struct heif_error")]
     public static extern heif_error heif_item_get_property_raw_data([NativeTypeName("const struct heif_context *")] void* context, [NativeTypeName("heif_item_id")] uint itemId, [NativeTypeName("heif_property_id")] uint propertyId, [NativeTypeName("uint8_t *")] byte* out_data);
+
+    [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("struct heif_error")]
+    public static extern heif_error heif_item_get_property_uuid_type([NativeTypeName("const struct heif_context *")] void* context, [NativeTypeName("heif_item_id")] uint itemId, [NativeTypeName("heif_property_id")] uint propertyId, [NativeTypeName("uint8_t[16]")] byte* out_extended_type);
 }

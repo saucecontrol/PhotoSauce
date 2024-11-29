@@ -2,7 +2,7 @@ diff --git a/CMakeLists.txt b/CMakeLists.txt
 index ad3f242..adf46dd 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -762,6 +762,19 @@ if(PNG_FRAMEWORK)
+@@ -762,6 +762,20 @@ if(PNG_FRAMEWORK)
    target_link_libraries(png_framework PUBLIC ZLIB::ZLIB ${M_LIBRARY})
  endif()
  
@@ -12,6 +12,7 @@ index ad3f242..adf46dd 100644
 +add_library(pspng SHARED ${pspng_sources})
 +set_target_properties(pspng PROPERTIES DEFINE_SYMBOL DLLDEFINE)
 +add_dependencies(pspng png_genfiles)
++target_include_directories(pspng PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
 +target_link_libraries(pspng PUBLIC ZLIB::ZLIB ${M_LIBRARY})
 +
 +if(UNIX AND HAVE_LD_VERSION_SCRIPT)

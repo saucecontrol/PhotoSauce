@@ -29,11 +29,11 @@ internal unsafe partial struct GifFileType
 
     public GifImageDesc Image;
 
-    private SavedImage* SavedImages;
+    public SavedImage* SavedImages;
 
-    private int ExtensionBlockCount;
+    public int ExtensionBlockCount;
 
-    private ExtensionBlock* ExtensionBlocks;
+    public ExtensionBlock* ExtensionBlocks;
 
     public int Error;
 

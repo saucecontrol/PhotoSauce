@@ -12,4 +12,5 @@ internal enum heif_colorspace
     heif_colorspace_YCbCr = 0,
     heif_colorspace_RGB = 1,
     heif_colorspace_monochrome = 2,
+    heif_colorspace_nonvisual = 3,
 }

@@ -66,4 +66,17 @@ internal unsafe partial struct heif_decoding_options
 
     [NativeTypeName("struct heif_color_conversion_options")]
     public heif_color_conversion_options color_conversion_options;
+
+    [NativeTypeName("int (*)(void *)")]
+#if NET5_0_OR_GREATER
+    public delegate* unmanaged[Cdecl]<void*, int> cancel_decoding;
+#else
+    public void* _cancel_decoding;
+
+    public delegate* unmanaged[Cdecl]<void*, int> cancel_decoding
+    {
+        get => (delegate* unmanaged[Cdecl]<void*, int>)_cancel_decoding;
+        set => _cancel_decoding = value;
+    }
+#endif
 }
