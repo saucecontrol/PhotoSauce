@@ -16,6 +16,17 @@ namespace PhotoSauce.MagicScaler;
 [SupportedOSPlatform(nameof(OSPlatform.Windows))]
 internal static unsafe class WicTransforms
 {
+	private static readonly Lazy<bool> haveConverters = new(() => {
+		using var conv = default(ComPtr<IWICFormatConverter>);
+		if (FAILED(Wic.Factory->CreateFormatConverter(conv.GetAddressOf())))
+			return false;
+
+		using var trans = default(ComPtr<IWICColorTransform>);
+		return SUCCEEDED(Wic.Factory->CreateColorTransformer(trans.GetAddressOf()));
+	});
+
+	public static bool HaveConverters => haveConverters.Value;
+
 	public static void AddColorProfileReader(PipelineContext ctx)
 	{
 		var mode = ctx.Settings.ColorProfileMode;

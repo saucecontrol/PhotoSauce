@@ -166,8 +166,8 @@ internal static class MagicTransforms
 		var curFormat = ctx.Source.Format;
 		if (curFormat.ColorRepresentation == PixelColorRepresentation.Cmyk)
 		{
-			if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && !ColorProfileTransform.HaveLcms)
-				throw new PlatformNotSupportedException("CMYK conversion requires LittleCMS (liblcms2) v2.09 or later on non-Windows platforms.");
+			if ((!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || !WicTransforms.HaveConverters) && !ColorProfileTransform.HaveLcms)
+				throw new PlatformNotSupportedException("CMYK conversion requires LittleCMS (liblcms2) v2.09 or later on this platform.");
 
 			var convFormat = curFormat.AlphaRepresentation == PixelAlphaRepresentation.None ? PixelFormat.Bgr24 : PixelFormat.Bgra32;
 			ctx.DestColorProfile = ctx.Settings.ColorProfileMode == ColorProfileMode.ConvertToSrgb ? ColorProfile.sRGB : ColorProfile.AdobeRgb;
@@ -216,7 +216,7 @@ internal static class MagicTransforms
 			return;
 		}
 
-		if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+		if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || !WicTransforms.HaveConverters)
 			throw new PlatformNotSupportedException($"[{curFormat.Name}]->[{newFormat.Name}] conversion is not yet implemented on this platform.");
 
 		WicTransforms.AddPixelFormatConverter(ctx, !lastChance);
@@ -549,7 +549,7 @@ internal static class MagicTransforms
 				if (ColorProfileTransform.TryCreate(ctx.Source, ctx.Source.Format, ctx.SourceColorProfile, ctx.DestColorProfile, out var conv))
 					ctx.Source = ctx.AddProfiler(conv);
 			}
-			else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+			else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && WicTransforms.HaveConverters)
 			{
 				if (ctx.WicContext.SourceColorContext is null)
 					ctx.WicContext.SourceColorContext = WicColorProfile.CreateContextFromProfile(ctx.SourceColorProfile.ProfileBytes);

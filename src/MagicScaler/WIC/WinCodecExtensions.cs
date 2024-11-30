@@ -271,4 +271,3 @@ internal static unsafe class WinCodecExtensions
 		}
 	}
 }
-
