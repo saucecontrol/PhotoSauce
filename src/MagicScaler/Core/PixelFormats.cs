@@ -77,13 +77,16 @@ internal sealed class PixelFormat : IEquatable<PixelFormat>
 
 	public int BytesPerPixel => MathUtil.DivCeiling(BitsPerPixel, 8);
 
-	public bool IsBinaryCompatibleWith(PixelFormat other) =>
+	public bool IsColorCompatibleWith(PixelFormat other) =>
 		BitsPerPixel == other.BitsPerPixel &&
 		ChannelCount == other.ChannelCount &&
 		NumericRepresentation == other.NumericRepresentation &&
 		ColorRepresentation == other.ColorRepresentation &&
-		AlphaRepresentation == other.AlphaRepresentation &&
 		Encoding == other.Encoding;
+
+	public bool IsBinaryCompatibleWith(PixelFormat other) =>
+		IsColorCompatibleWith(other) &&
+		AlphaRepresentation == other.AlphaRepresentation;
 
 	private PixelFormat(Guid guid, string name, int bpp, int channels, PixelNumericRepresentation numericRepresentation,
 		PixelColorRepresentation colorRepresentation = PixelColorRepresentation.Unspecified, PixelAlphaRepresentation alphaRepresentation = PixelAlphaRepresentation.None,

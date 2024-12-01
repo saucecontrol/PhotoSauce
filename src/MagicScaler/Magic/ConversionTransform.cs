@@ -140,10 +140,14 @@ internal sealed class ConversionTransform : ChainedPixelSource
 				else
 					processor = Swizzlers<byte>.GetConverter(srcFormat.ChannelCount, Format.ChannelCount);
 			}
+			else if (srcFormat.IsColorCompatibleWith(Format))
+			{
+				processor = NoopConverter.Instance.Processor;
+			}
 		}
 
 		if (processor is null)
-			throw new NotSupportedException("Unsupported pixel format");
+			throw new NotSupportedException($"Unsupported conversion: {PrevSource.Format.Name}->{Format.Name}");
 	}
 
 	public override bool IsCompatible(PixelSource newSource) => PrevSource.Format == newSource.Format;
