@@ -36,8 +36,8 @@ static class GdiUtil
 		gfx.CompositingQuality = CompositingQuality.GammaCorrected;
 
 		float l = 0.5f, t = 0.5f, r = s.Width - 0.5f, b = s.Height - 0.5f;
-		gfx.DrawLines(pen, new[] { new PointF(l, t), new PointF(r, b), new PointF(l, b), new PointF(r, t) });
-		gfx.DrawLines(pen, new[] { new PointF(l, b), new PointF(l, t), new PointF(r, t), new PointF(r, b) });
+		gfx.DrawLines(pen, [ new PointF(l, t), new PointF(r, b), new PointF(l, b), new PointF(r, t) ]);
+		gfx.DrawLines(pen, [ new PointF(l, b), new PointF(l, t), new PointF(r, t), new PointF(r, b) ]);
 		bmp.Save(ostm, ImageFormat.Png);
 	}
 }

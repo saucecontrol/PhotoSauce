@@ -46,7 +46,7 @@ public sealed class ImageFileInfo
 	/// <summary>Constructs a new <see cref="ImageFileInfo" /> instance with a single frame of the specified <paramref name="width" /> and <paramref name="height" />.</summary>
 	/// <param name="width">The width of the image frame in pixels.</param>
 	/// <param name="height">The height of the image frame in pixels.</param>
-	public ImageFileInfo(int width, int height) => Frames = new[] { new FrameInfo(width, height, false, Orientation.Normal) };
+	public ImageFileInfo(int width, int height) => Frames = [ new FrameInfo(width, height, false, Orientation.Normal) ];
 
 	/// <summary>Constructs a new <see cref="ImageFileInfo" /> instance the specified values.</summary>
 	/// <param name="mimeType">The MIME type of the image container.</param>

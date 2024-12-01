@@ -32,7 +32,7 @@ public sealed class PointInterpolator : IInterpolator, IUniquelyIdentifiable
 {
 	private const string fullName = $"{nameof(PhotoSauce)}.{nameof(MagicScaler)}.{nameof(Interpolators)}.{nameof(PointInterpolator)}";
 
-	private static readonly Guid guid = new(Blake2b.ComputeHash(Unsafe.SizeOf<Guid>(), MemoryMarshal.AsBytes(fullName.AsSpan())));
+	private static readonly Guid guid = new(Blake2b.HashData(Unsafe.SizeOf<Guid>(), MemoryMarshal.AsBytes(fullName.AsSpan())));
 	Guid IUniquelyIdentifiable.UniqueID => guid;
 
 	/// <inheritdoc />
@@ -50,7 +50,7 @@ public sealed class BoxInterpolator : IInterpolator, IUniquelyIdentifiable
 {
 	private const string fullName = $"{nameof(PhotoSauce)}.{nameof(MagicScaler)}.{nameof(Interpolators)}.{nameof(BoxInterpolator)}";
 
-	private static readonly Guid guid = new(Blake2b.ComputeHash(Unsafe.SizeOf<Guid>(), MemoryMarshal.AsBytes(fullName.AsSpan())));
+	private static readonly Guid guid = new(Blake2b.HashData(Unsafe.SizeOf<Guid>(), MemoryMarshal.AsBytes(fullName.AsSpan())));
 	Guid IUniquelyIdentifiable.UniqueID => guid;
 
 	/// <inheritdoc />
@@ -68,7 +68,7 @@ public sealed class LinearInterpolator : IInterpolator, IUniquelyIdentifiable
 {
 	private const string fullName = $"{nameof(PhotoSauce)}.{nameof(MagicScaler)}.{nameof(Interpolators)}.{nameof(LinearInterpolator)}";
 
-	private static readonly Guid guid = new(Blake2b.ComputeHash(Unsafe.SizeOf<Guid>(), MemoryMarshal.AsBytes(fullName.AsSpan())));
+	private static readonly Guid guid = new(Blake2b.HashData(Unsafe.SizeOf<Guid>(), MemoryMarshal.AsBytes(fullName.AsSpan())));
 	Guid IUniquelyIdentifiable.UniqueID => guid;
 
 	/// <inheritdoc />
@@ -282,7 +282,7 @@ public sealed class Spline36Interpolator : IInterpolator, IUniquelyIdentifiable
 {
 	private const string fullName = $"{nameof(PhotoSauce)}.{nameof(MagicScaler)}.{nameof(Interpolators)}.{nameof(Spline36Interpolator)}";
 
-	private static readonly Guid guid = new(Blake2b.ComputeHash(Unsafe.SizeOf<Guid>(), MemoryMarshal.AsBytes(fullName.AsSpan())));
+	private static readonly Guid guid = new(Blake2b.HashData(Unsafe.SizeOf<Guid>(), MemoryMarshal.AsBytes(fullName.AsSpan())));
 	Guid IUniquelyIdentifiable.UniqueID => guid;
 
 	/// <inheritdoc />

@@ -38,7 +38,7 @@ internal class ColorProfile
 		public static unsafe ColorProfile GetOrAdd(ReadOnlySpan<byte> bytes)
 		{
 			var hash = (Span<byte>)stackalloc byte[sizeof(Guid)];
-			Blake2b.ComputeAndWriteHash(sizeof(Guid), bytes, hash);
+			Blake2b.HashData(sizeof(Guid), bytes, hash);
 
 			var guid = MemoryMarshal.Read<Guid>(hash);
 
@@ -639,7 +639,7 @@ internal class ColorProfile
 			WriteInt32BigEndian(para[4..], toS15Fixed16(1 / gamma));
 		}
 
-		return Parse(span);
+		return Cache.GetOrAdd(span);
 
 		static int toS15Fixed16(double val) => (int)Math.Round(val * 65536);
 	}
@@ -823,7 +823,7 @@ internal static class IccProfiles
 		using var stm = typeof(IccProfiles).Assembly.GetManifestResourceStream(resName)!;
 
 		var buff = new byte[(int)stm.Length];
-		stm.Read(buff, 0, buff.Length);
+		stm.FillBuffer(buff);
 
 		return buff;
 	}

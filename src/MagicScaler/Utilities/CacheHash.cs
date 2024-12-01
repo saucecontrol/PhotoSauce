@@ -48,7 +48,7 @@ internal static class CacheHash
 	public static string Create(string data)
 	{
 		var hash = (Span<byte>)stackalloc byte[DigestLength];
-		Blake2b.ComputeAndWriteHash(DigestLength, MemoryMarshal.AsBytes(data.AsSpan()), hash);
+		Blake2b.HashData(DigestLength, MemoryMarshal.AsBytes(data.AsSpan()), hash);
 
 		return Encode(hash);
 	}

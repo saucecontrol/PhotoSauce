@@ -41,7 +41,7 @@
 
 	<ItemGroup>
 		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\Blake2b\*.cs" Link="External\Blake2Fast\Blake2b\%(FileName)%(Extension)" />
-		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\IBlake2Incremental.cs" Link="External\Blake2Fast\%(FileName)%(Extension)" />
+		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\IBlakeIncremental.cs" Link="External\Blake2Fast\%(FileName)%(Extension)" />
 		<Compile Include="$(BaseModulesPath)Blake2Fast\src\Blake2Fast\ThrowHelper.cs" Link="External\Blake2Fast\%(FileName)%(Extension)" />
 		<EmbeddedResource Include="$(BaseModulesPath)CompactProfiles\profiles\AdobeCompat-v2.icc" Link="Resources\%(FileName)%(Extension)" />
 		<EmbeddedResource Include="$(BaseModulesPath)CompactProfiles\profiles\AdobeCompat-v4.icc" Link="Resources\%(FileName)%(Extension)" />
@@ -55,7 +55,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Include="Package\build\**" Pack="true" PackagePath="build" />
+		<None Include="Package\build\**" Pack="true" PackagePath="build;buildTransitive" />
 	</ItemGroup>
 
 	<ItemGroup>

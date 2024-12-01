@@ -26,6 +26,8 @@ dotnet_diagnostic.CA2255.severity = silent
 dotnet_diagnostic.CS3016.severity = silent ; https://github.com/dotnet/runtime/issues/40461
 dotnet_diagnostic.CS1573.severity = silent ; https://github.com/dotnet/roslyn/issues/40325
 
+dotnet_style_namespace_match_folder = false
+
 dotnet_naming_rule.private_non_field_members_should_be_camel_case.severity = suggestion
 dotnet_naming_rule.private_non_field_members_should_be_camel_case.symbols = private_non_field_members
 dotnet_naming_rule.private_non_field_members_should_be_camel_case.style = camel_case

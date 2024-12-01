@@ -108,7 +108,7 @@ internal static class MiscExtensions
 	public static (int Offset, int Length) GetOffsetAndLengthNoThrow(this Range r, int length) =>
 		r.IsValidForLength(length) ? r.GetOffsetAndLength(length) : (0, length);
 
-	public static Guid FinalizeToGuid<T>(this T hasher) where T : IBlake2Incremental
+	public static Guid FinalizeToGuid<T>(this T hasher) where T : IBlakeIncremental
 	{
 		var hash = (Span<byte>)stackalloc byte[hasher.DigestLength];
 		hasher.Finish(hash);

@@ -120,9 +120,9 @@ jobs:
       targetFolder: out/vcpkg/install
 
   - task: UseDotNet@2
-    displayName: Ensure 8.0 SDK
+    displayName: Ensure 9.0 SDK
     inputs:
-      version: 8.0.x
+      version: 9.0.x
       includePreviewVersions: true
 
   - script: |
