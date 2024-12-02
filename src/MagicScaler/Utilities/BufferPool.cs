@@ -1,4 +1,5 @@
-// Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
+// Copyright © Clinton Ingram and Contributors
+// SPDX-License-Identifier: MIT
 
 using System;
 using System.Buffers;
@@ -59,7 +60,7 @@ internal static partial class BufferPool
 		if (buff.Offset > 0)
 		{
 			int chkCnt = 0;
-			for (int i = buff.Offset - 1;  i >= 0; i--)
+			for (int i = buff.Offset - 1; i >= 0; i--)
 				if (arr[i] != marker)
 					chkCnt++;
 

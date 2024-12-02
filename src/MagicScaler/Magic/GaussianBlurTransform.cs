@@ -1,4 +1,5 @@
-// Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
+// Copyright © Clinton Ingram and Contributors
+// SPDX-License-Identifier: MIT
 
 namespace PhotoSauce.MagicScaler.Transforms;
 

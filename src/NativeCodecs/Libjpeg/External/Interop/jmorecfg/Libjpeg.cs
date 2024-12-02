@@ -1,4 +1,5 @@
-// Copyright © Clinton Ingram and Contributors. Licensed under the MIT License (MIT).
+// Copyright © Clinton Ingram and Contributors
+// SPDX-License-Identifier: MIT
 
 // Ported from libjpeg headers (jmorecfg.h)
 // This software is based in part on the work of the Independent JPEG Group.

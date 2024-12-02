@@ -1,10 +1,10 @@
-// Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
+// Copyright © Clinton Ingram and Contributors
+// SPDX-License-Identifier: MIT
 
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
-
 #if HWINTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;

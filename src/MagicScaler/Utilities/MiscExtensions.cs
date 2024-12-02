@@ -1,4 +1,5 @@
-// Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
+// Copyright © Clinton Ingram and Contributors
+// SPDX-License-Identifier: MIT
 
 using System;
 using System.IO;
@@ -7,7 +8,6 @@ using System.Buffers;
 using System.Drawing;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-
 #if NETFRAMEWORK
 using System.Reflection;
 using System.Configuration;

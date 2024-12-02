@@ -1,7 +1,7 @@
-// Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
+// Copyright © Clinton Ingram and Contributors
+// SPDX-License-Identifier: MIT
 
 using System;
-
 #if HWINTRINSICS
 using System.Numerics;
 using System.Runtime.Intrinsics;

@@ -1,4 +1,5 @@
-// Copyright © Clinton Ingram and Contributors. Licensed under the MIT License (MIT).
+// Copyright © Clinton Ingram and Contributors
+// SPDX-License-Identifier: MIT
 
 // Ported from libpng headers (png.h)
 // Original source Copyright (c) 1995-2022 The PNG Reference Library Authors.

@@ -1,4 +1,5 @@
-// Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
+// Copyright © Clinton Ingram and Contributors
+// SPDX-License-Identifier: MIT
 
 #pragma warning disable IDE0060, IDE0251
 
@@ -282,7 +283,7 @@ internal unsafe struct IStreamImpl
 		vtbl->Revert = &revert;
 		vtbl->LockRegion = &lockRegion;
 		vtbl->UnlockRegion = &unlockRegion;
-		vtbl->Stat	= &stat;
+		vtbl->Stat = &stat;
 		vtbl->Clone = &clone;
 #else
 		vtbl->QueryInterface = (delegate* unmanaged[Stdcall]<IStream*, Guid*, void**, int>)Marshal.GetFunctionPointerForDelegate(delQueryInterface);

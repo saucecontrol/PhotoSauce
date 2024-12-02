@@ -1,4 +1,5 @@
-// Copyright © Clinton Ingram and Contributors. Licensed under the MIT License (MIT).
+// Copyright © Clinton Ingram and Contributors
+// SPDX-License-Identifier: MIT
 
 // Ported from libheif headers (heif_version.h)
 // Original source Copyright (c) struktur AG, Dirk Farin

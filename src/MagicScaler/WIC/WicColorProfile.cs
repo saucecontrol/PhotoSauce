@@ -1,4 +1,5 @@
-// Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
+// Copyright © Clinton Ingram and Contributors
+// SPDX-License-Identifier: MIT
 
 using System;
 
@@ -21,7 +22,7 @@ internal sealed unsafe class WicColorProfile(IWICColorContext* cc, ColorProfile?
 	public static readonly Lazy<WicColorProfile> DisplayP3Compact = new(() => new WicColorProfile(CreateContextFromProfile(IccProfiles.DisplayP3Compact.Value), ColorProfile.DisplayP3));
 
 	private readonly bool ownContext = ownctx;
-	
+
 	public IWICColorContext* WicColorContext { get; private set; } = cc;
 	public ColorProfile ParsedProfile { get; } = prof ?? GetProfileFromContext(cc, 0);
 

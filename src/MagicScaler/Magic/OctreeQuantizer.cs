@@ -1,10 +1,10 @@
-// Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
+// Copyright © Clinton Ingram and Contributors
+// SPDX-License-Identifier: MIT
 
 using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
-
 #if HWINTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
@@ -282,7 +282,7 @@ internal sealed unsafe class OctreeQuantizer : IProfileSource, IDisposable
 						sums[3] += csums[3];
 					}
 
-					*cnode =default;
+					*cnode = default;
 				}
 
 				*node = tnode;

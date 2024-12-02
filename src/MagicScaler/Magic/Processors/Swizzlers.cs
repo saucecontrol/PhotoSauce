@@ -1,7 +1,7 @@
-// Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
+// Copyright © Clinton Ingram and Contributors
+// SPDX-License-Identifier: MIT
 
 using System;
-
 #if HWINTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
@@ -306,7 +306,7 @@ internal static class Swizzlers<T> where T : unmanaged
 			if (typeof(T) == typeof(byte) && Ssse3.IsSupported && cb >= Vector128<byte>.Count * 3)
 			{
 				const byte _ = 0x80;
-				var vmask = Vector128.Create(2, 1, 0, _, 5, 4, 3, _, 8, 7, 6, _, 11, 10, 9, _ );
+				var vmask = Vector128.Create(2, 1, 0, _, 5, 4, 3, _, 8, 7, 6, _, 11, 10, 9, _);
 				Swizzlers<T>.widen3to4Ssse3(ref ip, ipe, ref op, vmask);
 			}
 #endif

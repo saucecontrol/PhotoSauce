@@ -1,4 +1,5 @@
-// Copyright © Clinton Ingram and Contributors. Licensed under the MIT License (MIT).
+// Copyright © Clinton Ingram and Contributors
+// SPDX-License-Identifier: MIT
 
 // Ported from GIFLIB headers (gif_lib.h)
 // Original source Copyright (c) 1997  Eric S. Raymond.

@@ -1,4 +1,5 @@
-// Copyright © Clinton Ingram and Contributors. Licensed under the MIT License (MIT).
+// Copyright © Clinton Ingram and Contributors
+// SPDX-License-Identifier: MIT
 
 // Ported from libjxl headers (stats.h)
 // Original source Copyright (c) the JPEG XL Project Authors. All rights reserved.

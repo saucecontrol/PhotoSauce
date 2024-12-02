@@ -1,4 +1,5 @@
-// Copyright © Clinton Ingram and Contributors.  Licensed under the MIT License.
+// Copyright © Clinton Ingram and Contributors
+// SPDX-License-Identifier: MIT
 
 using System;
 using System.Threading;
@@ -62,7 +63,7 @@ internal sealed class KernelMap<T> : IMultiDisposable where T : unmanaged
 			return 0;
 
 		int inc = channels == 3 ? 4 : (!HWIntrinsics.IsSupported && ksize >= 8 ? HWIntrinsics.VectorCount<T>() : 4) / channels;
-		int	pad = MathUtil.DivCeiling(ksize, inc) * inc - ksize;
+		int pad = MathUtil.DivCeiling(ksize, inc) * inc - ksize;
 		int thresh = channels == 4 ? 1 : HWIntrinsics.IsSupported || channels == 1 ? 2 : 3;
 
 		return ksize < thresh || ksize + pad > isize ? 0 : pad;
