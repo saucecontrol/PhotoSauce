@@ -23,7 +23,7 @@ internal sealed class OrientationTransformInternal : ChainedPixelSource
 	public OrientationTransformInternal(PixelSource source, Orientation orientation) : base(source)
 	{
 		bytesPerPixel = source.Format.BytesPerPixel;
-		if (!(bytesPerPixel == 1 || bytesPerPixel == 3 || bytesPerPixel == 4))
+		if (bytesPerPixel is not (1 or 3 or 4))
 			throw new NotSupportedException("Pixel format not supported.");
 
 		Width = source.Width;
@@ -66,7 +66,7 @@ internal sealed class OrientationTransformInternal : ChainedPixelSource
 		}
 	}
 
-	private unsafe void copyPixelsBuffered(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
+	private unsafe void copyPixelsBuffered(in PixelArea prc, int cbStride, int _, byte* pbBuffer)
 	{
 		if (outBuff is null) ThrowHelper.ThrowObjectDisposed(nameof(OrientationTransformInternal));
 
@@ -122,13 +122,13 @@ internal sealed class OrientationTransformInternal : ChainedPixelSource
 			nint rowStride = bytesPerPixel;
 			nint bufStride = lineBuffStride;
 
-			if (orient == Orientation.Transverse || orient == Orientation.Rotate270)
+			if (orient is Orientation.Transverse or Orientation.Rotate270)
 			{
 				bp += (PrevSource.Width - 1) * colStride;
 				colStride = -colStride;
 			}
 
-			if (orient == Orientation.Transverse || orient == Orientation.Rotate90)
+			if (orient is Orientation.Transverse or Orientation.Rotate90)
 			{
 				bp += (PrevSource.Height - 1) * rowStride;
 				lp += (lineBuffHeight - 1) * bufStride;

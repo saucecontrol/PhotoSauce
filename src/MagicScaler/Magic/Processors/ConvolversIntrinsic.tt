@@ -416,7 +416,7 @@ if (t.channels == 1) {
 
 internal sealed partial class Convolver<#= t.name #>Vector : IVectorConvolver
 {
-	IConvolver IVectorConvolver.IntrinsicImpl => Sse.IsSupported ? Convolver<#= t.name #>Intrinsic.Instance : (IConvolver)this;
+	IConvolver IVectorConvolver.IntrinsicImpl => Sse.IsSupported ? Convolver<#= t.name #>Intrinsic.Instance : this;
 }
 <#
 }

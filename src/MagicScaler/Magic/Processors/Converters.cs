@@ -262,7 +262,7 @@ internal static unsafe class InvertConverter
 			convertIntrinsic(ip, ipe);
 		else
 #endif
-		convertScalar(ip, ipe);
+			convertScalar(ip, ipe);
 	}
 
 #if HWINTRINSICS

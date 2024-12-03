@@ -136,7 +136,7 @@ public sealed class QuadraticInterpolator : IInterpolator, IUniquelyIdentifiable
 	/// <param name="r">A value between 0.5 and 1.5, where lower values produce a smoother filter and higher values produce a sharper filter.</param>
 	public QuadraticInterpolator(double r = 1.0)
 	{
-		if (r < 0.5 || r > 1.5) throw new ArgumentOutOfRangeException(nameof(r), "Value must be between 0.5 and 1.5");
+		if (r is < 0.5 or > 1.5) throw new ArgumentOutOfRangeException(nameof(r), "Value must be between 0.5 and 1.5");
 
 		this.r = r;
 		r0 = -2.0  *  r;

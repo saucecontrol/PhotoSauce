@@ -197,7 +197,7 @@ internal sealed partial class Convolver4ChanIntrinsic : IConvolver
 
 internal sealed partial class Convolver4ChanVector : IVectorConvolver
 {
-	IConvolver IVectorConvolver.IntrinsicImpl => Sse.IsSupported ? Convolver4ChanIntrinsic.Instance : (IConvolver)this;
+	IConvolver IVectorConvolver.IntrinsicImpl => Sse.IsSupported ? Convolver4ChanIntrinsic.Instance : this;
 }
 
 internal sealed partial class Convolver3ChanIntrinsic : IConvolver
@@ -295,7 +295,7 @@ internal sealed partial class Convolver3ChanIntrinsic : IConvolver
 
 internal sealed partial class Convolver3ChanVector : IVectorConvolver
 {
-	IConvolver IVectorConvolver.IntrinsicImpl => Sse.IsSupported ? Convolver3ChanIntrinsic.Instance : (IConvolver)this;
+	IConvolver IVectorConvolver.IntrinsicImpl => Sse.IsSupported ? Convolver3ChanIntrinsic.Instance : this;
 }
 
 internal sealed partial class Convolver1ChanIntrinsic : IConvolver
@@ -476,6 +476,6 @@ internal sealed partial class Convolver1ChanIntrinsic : IConvolver
 
 internal sealed partial class Convolver1ChanVector : IVectorConvolver
 {
-	IConvolver IVectorConvolver.IntrinsicImpl => Sse.IsSupported ? Convolver1ChanIntrinsic.Instance : (IConvolver)this;
+	IConvolver IVectorConvolver.IntrinsicImpl => Sse.IsSupported ? Convolver1ChanIntrinsic.Instance : this;
 }
 #endif

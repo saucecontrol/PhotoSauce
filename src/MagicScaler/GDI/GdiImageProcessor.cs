@@ -46,7 +46,7 @@ public static class GdiImageProcessor
 
 	internal static Image HybridScale(this Image img, ProcessImageSettings s, InterpolationMode mode)
 	{
-		if (s.HybridScaleRatio == 1 || (mode != InterpolationMode.HighQualityBicubic && mode != InterpolationMode.HighQualityBilinear))
+		if (s.HybridScaleRatio == 1 || mode is not (InterpolationMode.HighQualityBicubic or InterpolationMode.HighQualityBilinear))
 			return img;
 
 		int intw = (int)Math.Ceiling((double)img.Width / s.HybridScaleRatio);
@@ -154,7 +154,7 @@ public static class GdiImageProcessor
 			bmp.Save(ostm, ImageFormat.Png);
 		}
 
-		return new ProcessImageResult(usedSettings, Enumerable.Empty<PixelSourceStats>());
+		return new ProcessImageResult(usedSettings, [ ]);
 	}
 }
 #endif

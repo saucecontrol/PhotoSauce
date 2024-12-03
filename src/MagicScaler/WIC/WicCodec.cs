@@ -160,7 +160,7 @@ internal sealed unsafe class WicImageEncoder : IAnimatedImageEncoder, IDisposabl
 
 			using var pal = default(ComPtr<IWICPalette>);
 			HRESULT.Check(Wic.Factory->CreatePalette(pal.GetAddressOf()));
-			pal.Get()->InitializeCustom(&bg, 1);
+			HRESULT.Check(pal.Get()->InitializeCustom(&bg, 1));
 
 			var pvbg = new PROPVARIANT { vt = (ushort)VARENUM.VT_UI1 };
 			pvbg.Anonymous.bVal = 0;
@@ -169,7 +169,7 @@ internal sealed unsafe class WicImageEncoder : IAnimatedImageEncoder, IDisposabl
 			HRESULT.Check(encmeta.Get()->SetMetadataByName(Wic.Metadata.Gif.BackgroundColorIndex, &pvbg));
 		}
 
-		if (anicnt.PixelAspectRatio != default && anicnt.PixelAspectRatio != 1f)
+		if (anicnt.PixelAspectRatio is not (0f or 1f))
 		{
 			var pvar = new PROPVARIANT { vt = (ushort)VARENUM.VT_UI1 };
 			pvar.Anonymous.bVal = (byte)((int)(anicnt.PixelAspectRatio * 64f - 15f)).Clamp(byte.MinValue, byte.MaxValue);

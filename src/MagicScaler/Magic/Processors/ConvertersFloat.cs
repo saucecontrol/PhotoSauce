@@ -63,7 +63,7 @@ internal static class FloatConverter
 
 		private static float[] makeTable(int offset, int scale)
 		{
-			var tbl = new float[256];
+			float[] tbl = new float[256];
 			for (int i = 0; i < tbl.Length; i++)
 				tbl[i] = (float)((double)(i - offset) / scale);
 

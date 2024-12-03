@@ -91,7 +91,7 @@ public readonly record struct InterpolationSettings
 	{
 		ThrowHelper.ThrowIfNull(weighting);
 
-		if (blur < 0.5 || blur > 1.5) throw new ArgumentOutOfRangeException(nameof(blur), "Value must be between 0.5 and 1.5");
+		if (blur is < 0.5 or > 1.5) throw new ArgumentOutOfRangeException(nameof(blur), "Value must be between 0.5 and 1.5");
 
 		WeightingFunction = weighting;
 		this.blur = blur;
@@ -199,7 +199,7 @@ public sealed class ProcessImageSettings
 	/// <summary>A list of metadata policy names or explicit metadata paths to be copied from the input image to the output image.</summary>
 	/// <include file='Docs/Remarks.xml' path='doc/member[@name="MetadataNames"]/*'/>
 	/// <value>Default value: <see cref="Enumerable.Empty" /></value>
-	public IEnumerable<string> MetadataNames { get; set; } = Enumerable.Empty<string>();
+	public IEnumerable<string> MetadataNames { get; set; } = [ ];
 	/// <summary>Codec options to be passed to the image encoder.</summary>
 	/// <value>Default value: calculated based on input image properties and ouput size, or taken from the codec's configuration.</value>
 	public IEncoderOptions? EncoderOptions { get; set; }
@@ -316,13 +316,13 @@ public sealed class ProcessImageSettings
 
 		if (cropExpression.Value.IsMatch(dic.GetValueOrDefault("crop") ?? string.Empty))
 		{
-			var ps = dic["crop"]!.Split(',');
+			string[] ps = dic["crop"]!.Split(',');
 			s.Crop = new Rectangle(int.Parse(ps[0], ni), int.Parse(ps[1], ni), int.Parse(ps[2], ni), int.Parse(ps[3], ni));
 		}
 
 		if (cropBasisExpression.Value.IsMatch(dic.GetValueOrDefault("cropbasis") ?? string.Empty))
 		{
-			var ps = dic["cropbasis"]!.Split(',');
+			string[] ps = dic["cropbasis"]!.Split(',');
 			s.CropBasis = new Size(int.Parse(ps[0], ni), int.Parse(ps[1], ni));
 		}
 
@@ -495,7 +495,7 @@ public sealed class ProcessImageSettings
 		wrat = width > 0 ? (double)Crop.Width / width : (double)Crop.Height / height;
 		hrat = height > 0 ? (double)Crop.Height / height : wrat;
 
-		if (ResizeMode == CropScaleMode.Contain || ResizeMode == CropScaleMode.Max || ResizeMode == CropScaleMode.Pad)
+		if (ResizeMode is CropScaleMode.Contain or CropScaleMode.Max or CropScaleMode.Pad)
 		{
 			int dim = Math.Max(width, height);
 
@@ -510,7 +510,7 @@ public sealed class ProcessImageSettings
 		InnerSize.Width = width > 0 ? width : Math.Max((int)Math.Round(Crop.Width / wrat), 1);
 		InnerSize.Height = height > 0 ? height : Math.Max((int)Math.Round(Crop.Height / hrat), 1);
 
-		if (ResizeMode == CropScaleMode.Crop || ResizeMode == CropScaleMode.Contain || ResizeMode == CropScaleMode.Max)
+		if (ResizeMode is CropScaleMode.Crop or CropScaleMode.Contain or CropScaleMode.Max)
 			OuterSize = InnerSize;
 	}
 
@@ -578,7 +578,7 @@ public sealed class ProcessImageSettings
 			hash.Update(LossyQuality);
 		}
 
-		foreach (string m in MetadataNames ?? Enumerable.Empty<string>())
+		foreach (string m in MetadataNames ?? [ ])
 			hash.Update(m.AsSpan());
 
 		var hbuff = (Span<byte>)stackalloc byte[hash.DigestLength];

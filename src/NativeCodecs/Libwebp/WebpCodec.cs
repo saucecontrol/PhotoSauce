@@ -88,9 +88,9 @@ public static class WebpCodec
 			WebpFactory.DisplayName,
 			webpMime,
 			webpExtension,
-			new ContainerPattern[] {
+			[
 				new(0, [ (byte)'R', (byte)'I', (byte)'F', (byte)'F', 0, 0, 0, 0, (byte)'W', (byte)'E', (byte)'B', (byte)'P' ], [ 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff ])
-			},
+			],
 			WebpDecoderOptions.Default,
 			WebpContainer.TryLoad
 		));

@@ -16,7 +16,7 @@ namespace PhotoSauce.MagicScaler.Transforms;
 
 internal sealed class OverlayTransform : ChainedPixelSource
 {
-	const int bytesPerPixel = 4;
+	private const int bytesPerPixel = 4;
 
 	private PixelSource overSource;
 	private PixelArea overArea;

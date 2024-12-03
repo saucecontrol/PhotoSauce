@@ -43,7 +43,7 @@ internal sealed unsafe class ColorProfileTransform(PixelSource source, PixelForm
 			void* hndsrc = cmsOpenProfileFromMem(srcBytes, (uint)srcProfile.ProfileBytes.Length);
 			if (hndsrc is null && src.Format.ColorRepresentation is PixelColorRepresentation.Cmyk)
 			{
-				var cmyk = ColorProfile.CmykDefault.ProfileBytes;
+				byte[] cmyk = ColorProfile.CmykDefault.ProfileBytes;
 				fixed (byte* pcmyk = cmyk)
 					hndsrc = cmsOpenProfileFromMem(pcmyk, (uint)cmyk.Length);
 			}

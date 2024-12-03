@@ -138,7 +138,7 @@ internal class ColorProfile
 		// https://www.adobe.com/digitalimag/pdfs/AdobeRGB1998.pdf
 		const double limit = 32;
 
-		var igt = new float[LookupTables.InverseGammaLength];
+		float[] igt = new float[LookupTables.InverseGammaLength];
 		for (int i = 0; i < igt.Length; i++)
 		{
 			double val = (double)i / LookupTables.InverseGammaScale;
@@ -147,7 +147,7 @@ internal class ColorProfile
 
 		gamma = 1d / gamma;
 
-		var gt = new float[LookupTables.GammaLengthFloat];
+		float[] gt = new float[LookupTables.GammaLengthFloat];
 		for (int i = 0; i < gt.Length; i++)
 		{
 			double val = (double)i / LookupTables.GammaScaleFloat;
@@ -169,7 +169,7 @@ internal class ColorProfile
 			curve[i] = (double)points[i] / ushort.MaxValue;
 
 		double cscal = curve.Length - 1;
-		var igt = new float[LookupTables.InverseGammaLength];
+		float[] igt = new float[LookupTables.InverseGammaLength];
 		for (int i = 0; i <= LookupTables.InverseGammaScale; i++)
 		{
 			double val = (double)i / LookupTables.InverseGammaScale;
@@ -185,7 +185,7 @@ internal class ColorProfile
 		if (inverse)
 			curve.Reverse();
 
-		var gt = new float[LookupTables.GammaLengthFloat];
+		float[] gt = new float[LookupTables.GammaLengthFloat];
 		for (int i = 0; i <= LookupTables.GammaScaleFloat; i++)
 		{
 			double val = (double)i / LookupTables.GammaScaleFloat;
@@ -234,7 +234,7 @@ internal class ColorProfile
 			c.IsRoughlyEqualTo(1.000/12.92)
 		) return sRGB.Curve;
 
-		var igt = new float[LookupTables.InverseGammaLength];
+		float[] igt = new float[LookupTables.InverseGammaLength];
 		for (int i = 0; i < igt.Length; i++)
 		{
 			double val = (double)i / LookupTables.InverseGammaScale;
@@ -248,7 +248,7 @@ internal class ColorProfile
 
 		g = 1d / g;
 
-		var gt = new float[LookupTables.GammaLengthFloat];
+		float[] gt = new float[LookupTables.GammaLengthFloat];
 		for (int i = 0; i < gt.Length; i++)
 		{
 			double val = (double)i / LookupTables.GammaScaleFloat;
@@ -507,7 +507,7 @@ internal class ColorProfile
 			_              => ProfileColorSpace.Other
 		};
 
-		if (pcsColorSpace is not ProfileColorSpace.Xyz || (dataColorSpace is not (ProfileColorSpace.Rgb or ProfileColorSpace.Grey)))
+		if (pcsColorSpace is not ProfileColorSpace.Xyz || dataColorSpace is not (ProfileColorSpace.Rgb or ProfileColorSpace.Grey))
 			return new ColorProfile(prof.ToArray(), dataColorSpace, pcsColorSpace, ColorProfileType.Unknown);
 
 		uint tagCount = ReadUInt32BigEndian(prof[headerLength..]);
@@ -730,20 +730,13 @@ internal class ColorProfile
 	public record struct ProfileCurve(float[] Gamma, float[] InverseGamma);
 }
 
-internal class CurveProfile : ColorProfile
+internal class CurveProfile(byte[] bytes, byte[]? compact, ColorProfile.ProfileCurve? curve, ColorProfile.ProfileColorSpace dataSpace, ColorProfile.ProfileColorSpace pcsSpace) : ColorProfile(bytes, dataSpace, pcsSpace, ColorProfileType.Curve)
 {
 	private readonly ConcurrentDictionary<(Type tfrom, Type tto, Type tenc, Type trng, CurveProfile profile), IConverter> converterCache = new();
 
-	public bool IsLinear { get; }
-	public ProfileCurve Curve { get; }
-	public byte[]? CompactProfile { get; }
-
-	public CurveProfile(byte[] bytes, byte[]? compact, ProfileCurve? curve, ProfileColorSpace dataSpace, ProfileColorSpace pcsSpace) : base(bytes, dataSpace, pcsSpace, ColorProfileType.Curve)
-	{
-		IsLinear = curve is null;
-		Curve = curve ?? new ProfileCurve(null!, LookupTables.Alpha);
-		CompactProfile = compact;
-	}
+	public bool IsLinear { get; } = curve is null;
+	public ProfileCurve Curve { get; } = curve ?? new ProfileCurve(null!, LookupTables.Alpha);
+	public byte[]? CompactProfile { get; } = compact;
 
 	private IConverter addConverter(in (Type, Type, Type, Type, CurveProfile) cacheKey) => converterCache.GetOrAdd(cacheKey, static key => {
 		if (key.profile.IsLinear)
@@ -760,12 +753,12 @@ internal class CurveProfile : ColorProfile
 
 		if (key.tenc == typeof(EncodingType.Linear))
 		{
-			var gt = key.profile.Curve.Gamma;
+			float[] gt = key.profile.Curve.Gamma;
 			if (key.tfrom == typeof(float) && key.tto == typeof(float))
 				return new ConverterFromLinear<float, float>(gt);
 
 			gt = key.trng == typeof(EncodingRange.Video) ? LookupTables.MakeVideoGamma(gt) : gt;
-			var bgt = gt == LookupTables.SrgbGamma ? LookupTables.SrgbGammaUQ15 : LookupTables.MakeUQ15Gamma(gt);
+			byte[] bgt = gt == LookupTables.SrgbGamma ? LookupTables.SrgbGammaUQ15 : LookupTables.MakeUQ15Gamma(gt);
 			if (key.tfrom == typeof(ushort) && key.tto == typeof(byte))
 				return new ConverterFromLinear<ushort, byte>(bgt);
 			if (key.tfrom == typeof(float) && key.tto == typeof(byte))
@@ -774,7 +767,7 @@ internal class CurveProfile : ColorProfile
 
 		if (key.tenc == typeof(EncodingType.Companded))
 		{
-			var igt = key.profile.Curve.InverseGamma;
+			float[] igt = key.profile.Curve.InverseGamma;
 			if (key.tfrom == typeof(float) && key.tto == typeof(float))
 				return new ConverterToLinear<float, float>(igt);
 
@@ -823,7 +816,7 @@ internal static class IccProfiles
 		string resName = $"{nameof(PhotoSauce)}.{nameof(MagicScaler)}.Resources.{name}";
 		using var stm = typeof(IccProfiles).Assembly.GetManifestResourceStream(resName)!;
 
-		var buff = new byte[(int)stm.Length];
+		byte[] buff = new byte[(int)stm.Length];
 		stm.FillBuffer(buff);
 
 		return buff;

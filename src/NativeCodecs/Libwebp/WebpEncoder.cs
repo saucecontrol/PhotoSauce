@@ -223,7 +223,7 @@ internal sealed unsafe class WebpEncoder : IAnimatedImageEncoder
 		if (written || !metadata.TryGetMetadata<ColorProfileMetadata>(out var prof))
 			return;
 
-		var embed = prof.Embed;
+		byte[] embed = prof.Embed;
 		fixed (byte* bp = &embed.GetDataRef())
 		{
 			var data = new WebPData { size = (uint)embed.Length, bytes = bp };

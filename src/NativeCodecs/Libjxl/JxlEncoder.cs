@@ -172,7 +172,7 @@ internal sealed unsafe class JxlEncoder : IAnimatedImageEncoder
 		if (metadata.TryGetMetadata<ColorProfileMetadata>(out var prof))
 		{
 			//TODO use encoded color space for well-known profiles
-			var embed = prof.Embed;
+			byte[] embed = prof.Embed;
 			fixed (byte* pp = &embed.GetDataRef())
 				checkResult(JxlEncoderSetICCProfile(encoder, pp, (uint)embed.Length));
 		}

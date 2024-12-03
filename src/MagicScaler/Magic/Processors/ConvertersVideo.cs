@@ -21,8 +21,7 @@ internal static class VideoLumaConverter
 			const int offs = -16;
 			const int rnd = 109;
 
-			var tbl = new byte[256];
-
+			byte[] tbl = new byte[256];
 			for (int i = 0; i < tbl.Length; i++)
 			{
 				int v = i + offs;
@@ -155,8 +154,7 @@ internal static class VideoLumaConverter
 			const int offs = -16;
 			const int rnd = 127;
 
-			var tbl = new byte[256];
-
+			byte[] tbl = new byte[256];
 			for (int i = 0; i < tbl.Length; i++)
 			{
 				uint v = (uint)i;
@@ -279,8 +277,7 @@ internal static class VideoChromaConverter
 			const int offs = -128;
 			const int rnd = 56;
 
-			var tbl = new byte[256];
-
+			byte[] tbl = new byte[256];
 			for (int i = 0; i < tbl.Length; i++)
 			{
 				int v = i + offs;
@@ -429,8 +426,7 @@ internal static class VideoChromaConverter
 			const int offs = -128;
 			const int rnd = 63;
 
-			var tbl = new byte[256];
-
+			byte[] tbl = new byte[256];
 			for (int i = 0; i < tbl.Length; i++)
 			{
 				int v = i + offs;

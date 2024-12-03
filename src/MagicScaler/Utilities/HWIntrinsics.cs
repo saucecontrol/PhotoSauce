@@ -30,7 +30,8 @@ internal static class HWIntrinsics
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static int VectorCount<T>() where T : struct =>
 #if HWINTRINSICS
-		Avx.IsSupported ? Vector256<T>.Count :
+		Avx2.IsSupported ? Vector256<T>.Count :
+		Avx.IsSupported && typeof(T) == typeof(float) ? Vector256<float>.Count :
 		Sse.IsSupported ? Vector128<T>.Count :
 #endif
 		Vector<T>.Count;
@@ -40,16 +41,23 @@ internal static class HWIntrinsics
 
 	private static bool getFastGather()
 	{
-		if (!AppConfig.GdsMitigationsDisabled)
+		// AMD is still slow as of Zen 5
+		if (X86Base.CpuId(0, 0) is not (_, 0x756e6547, 0x6c65746e, 0x49656e69)) // "Genu", "ntel", "ineI"
 			return false;
 
-		bool intel = X86Base.CpuId(0, 0) is (_, 0x756e6547, 0x6c65746e, 0x49656e69); // "Genu", "ntel", "ineI"
+		// Intel has a fast implementation on Skylake and newer, but microcode mitigations for CVE-2022-40982 make it *very* slow.
+		// We will use gather only on newer non-vulnerable processors or when a flag is set to indicate the mitigations are disabled.
+		// https://www.intel.com/content/www/us/en/developer/articles/technical/software-security-guidance/technical-documentation/gather-data-sampling.html
 		uint fms = (uint)X86Base.CpuId(1, 0).Eax;
-		uint fam = ((fms & 0xfu << 20) >> 16) + ((fms & 0xfu << 8) >> 8);
+		uint fam = (fms & 0xfu << 8) >> 8;
 		uint mod = ((fms & 0xfu << 16) >> 12) + ((fms & 0xfu << 4) >> 4);
 
-		// Intel Skylake and newer -- AMD is still slow as of Zen 4
-		return intel && fam == 6 && mod >= 0x4e;
+		return (fam, mod) switch {
+			(6, >= 0xaa) => true,                                     // Raptor Cove+
+			(6, >= 0x8f and <= 0x9a) => true,                         // Golden Cove
+			(6, 0x4e or >= 0x55) => AppConfig.GdsMitigationsDisabled, // Skylake+
+			_ => false
+		};
 	}
 
 	private const byte _ = 0x80;
@@ -74,19 +82,6 @@ internal static class HWIntrinsics
 	public static ReadOnlySpan<byte> ShuffleMaskWidenOdd => [ 1, _, 5, _, 9, _, 13, _, 3, _, 7, _, 11, _, 15, _ ];
 
 	public static ReadOnlySpan<byte> GatherMask3x => [ 0, 0, 0, 0x80, 0, 0, 0, 0x80, 0, 0, 0, 0x80, 0, 0, 0, 0 ];
-
-	// https://github.com/dotnet/runtime/issues/64784
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static unsafe Vector128<ulong> CreateVector128(ulong val) =>
-		sizeof(nuint) == sizeof(uint)
-			? Sse2.UnpackLow(Vector128.Create((uint)val), Vector128.Create((uint)(val >> 32))).AsUInt64()
-			: Vector128.Create(val);
-
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static unsafe Vector256<ulong> CreateVector256(ulong val) =>
-		sizeof(nuint) == sizeof(uint)
-			? Avx2.UnpackLow(Vector256.Create((uint)val), Vector256.Create((uint)(val >> 32))).AsUInt64()
-			: Vector256.Create(val);
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static float HorizontalAdd(this Vector128<float> v)

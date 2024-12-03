@@ -19,7 +19,7 @@ internal static unsafe class GifFactory
 	public const string DisplayName = $"{giflib} 5.2.2";
 	public const string giflib = nameof(giflib);
 
-	enum CodecType { Decoder, Encoder }
+	private enum CodecType { Decoder, Encoder }
 
 	private static readonly Lazy<bool> dependencyValid = new(() => {
 #if NETFRAMEWORK
@@ -79,10 +79,10 @@ public static class CodecCollectionExtensions
 			GifFactory.DisplayName,
 			gifMime,
 			gifExtension,
-			new ContainerPattern[] {
+			[
 				new(0, [ (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'7', (byte)'a' ], [ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff ]),
 				new(0, [ (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'9', (byte)'a' ], [ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff ]),
-			},
+			],
 			null,
 			GifContainer.TryLoad
 		));

@@ -283,7 +283,7 @@ internal static class MagicTransforms
 
 	public static void AddHybridScaler(PipelineContext ctx)
 	{
-		var ratio = ctx.Settings.HybridScaleRatio;
+		int ratio = ctx.Settings.HybridScaleRatio;
 		if (ratio == 1 || ctx.Settings.Interpolation.IsPointSampler || ctx.Source.Format.BitsPerPixel / ctx.Source.Format.ChannelCount != 8)
 			return;
 
@@ -381,7 +381,7 @@ internal static class MagicTransforms
 		if ((ctx.Source is PlanarPixelSource pps ? pps.SourceY : ctx.Source) is not IFramePixelSource fps || fps.Frame is not IScaledDecoder sdec)
 			return;
 
-		var ratio = ctx.Settings.HybridScaleRatio;
+		int ratio = ctx.Settings.HybridScaleRatio;
 		if (ratio == 1)
 			return;
 

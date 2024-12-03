@@ -32,7 +32,7 @@ internal static class ColorParser
 		if (value[0] == '#')
 			value = value[1..];
 
-		if (value.Length != 6 && value.Length != 8)
+		if (value.Length is not (6 or 8))
 			return false;
 
 		if (!uint.TryParse(value, NumberStyles.HexNumber, NumberFormatInfo.InvariantInfo, out uint ival))

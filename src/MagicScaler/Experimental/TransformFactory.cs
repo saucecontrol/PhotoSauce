@@ -16,10 +16,8 @@ public static class TransformFactory
 	/// <param name="sourceProfile">The ICC color profile to use for the <paramref name="source" />. If null, sRGB will be used.</param>
 	/// <param name="destProfile">The ICC color profile to use for the resulting pixel data. If null, sRGB will be used.</param>
 	/// <returns>An <see cref="IPixelSource" /> that provides the resulting pixel data.</returns>
-	public static IPixelSource CreateConversionTransform(IPixelSource source, Guid destFormat, IColorProfileHandle? sourceProfile = null, IColorProfileHandle? destProfile = null)
-	{
-		return new ConversionTransform(source.AsPixelSource(), PixelFormat.FromGuid(destFormat), sourceProfile?.ColorProfile, destProfile?.ColorProfile);
-	}
+	public static IPixelSource CreateConversionTransform(IPixelSource source, Guid destFormat, IColorProfileHandle? sourceProfile = null, IColorProfileHandle? destProfile = null) =>
+		new ConversionTransform(source.AsPixelSource(), PixelFormat.FromGuid(destFormat), sourceProfile?.ColorProfile, destProfile?.ColorProfile);
 
 	/// <summary>Creates a transform that resizes an <see cref="IPixelSource" /> to the given size, optionally using a specific interpolator.</summary>
 	/// <param name="source">The <see cref="IPixelSource" /> to retrieve pixels from.</param>
@@ -32,7 +30,7 @@ public static class TransformFactory
 		if (settings.WeightingFunction is null)
 		{
 			double scaleRatio = Math.Min(
-				source.Width > 0 ? (double)newWidth / source.Width : 0, 
+				source.Width > 0 ? (double)newWidth / source.Width : 0,
 				source.Height > 0 ? (double)newHeight / source.Height : 0);
 			settings = SettingsUtil.GetDefaultInterpolation(scaleRatio);
 		}

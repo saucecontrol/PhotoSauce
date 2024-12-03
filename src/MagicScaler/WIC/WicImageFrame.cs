@@ -214,7 +214,7 @@ internal unsafe class WicImageFrame : IScaledDecoder, IMetadataSource
 	private WicColorProfile matchProfile(ReadOnlySpan<nuint> profiles, PixelFormat fmt)
 	{
 		var buff = (Span<byte>)stackalloc byte[8];
-		foreach (var pcc in profiles)
+		foreach (nuint pcc in profiles)
 		{
 			using var cc = new ComPtr<IWICColorContext>((IWICColorContext*)pcc);
 			var cct = default(WICColorContextType);

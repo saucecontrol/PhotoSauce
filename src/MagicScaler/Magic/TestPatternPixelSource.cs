@@ -37,9 +37,9 @@ public sealed class TestPatternPixelSource : IPixelSource, IDisposable
 	public TestPatternPixelSource(int width, int height, Guid pixelFormat)
 	{
 		channels = Array.IndexOf(formats, pixelFormat);
-		if (channels < 1 || channels == 2) throw new ArgumentException("Unsupported pixel format", nameof(pixelFormat));
-		if (width < 1 || width > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(width), $"Value must be between 1 and {ushort.MaxValue}");
-		if (height < 1 || height > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(height), $"Value must be between 1 and {ushort.MaxValue}");
+		if (channels is < 1 or 2) throw new ArgumentException("Unsupported pixel format", nameof(pixelFormat));
+		if (width is < 1 or > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(width), $"Value must be between 1 and {ushort.MaxValue}");
+		if (height is < 1 or > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(height), $"Value must be between 1 and {ushort.MaxValue}");
 
 		Width = width;
 		Height = height;
@@ -54,7 +54,7 @@ public sealed class TestPatternPixelSource : IPixelSource, IDisposable
 	{
 		const uint mask = 0xf0f0f0f0u; // limits the max intensity of color values
 
-		var buff = ArrayPool<byte>.Shared.Rent(stride * rows);
+		byte[] buff = ArrayPool<byte>.Shared.Rent(stride * rows);
 		fixed (byte* buffStart = &buff[0])
 		{
 			uint barVal = mask;

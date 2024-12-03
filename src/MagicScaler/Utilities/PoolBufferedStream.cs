@@ -16,7 +16,7 @@ namespace PhotoSauce.MagicScaler;
 
 internal sealed class PoolBufferedStream : Stream
 {
-	const int bufflen = 1 << 14;
+	private const int bufflen = 1 << 14;
 
 	private readonly Stream backingStream;
 	private readonly bool ownStream;
@@ -250,7 +250,7 @@ internal sealed class PoolBufferedStream : Stream
 
 	public override void WriteByte(byte value)
 	{
-		if (writepos != 0 && writepos < bufflen - 1)
+		if (writepos is not 0 and < (bufflen - 1))
 		{
 			Unsafe.Add(ref buffer!.GetDataRef(), writepos++) = value;
 			return;

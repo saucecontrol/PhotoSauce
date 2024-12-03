@@ -128,7 +128,7 @@ internal sealed unsafe class WicGifContainer : WicImageContainer, IMetadataSourc
 		float pixelAspect = par == default ? 1f : ((par + 15) / 64f);
 
 		uint fcount;
-		WicDecoder->GetFrameCount(&fcount);
+		HRESULT.Check(WicDecoder->GetFrameCount(&fcount));
 
 		using var frame = default(ComPtr<IWICBitmapFrameDecode>);
 		HRESULT.Check(WicDecoder->GetFrame(0, frame.GetAddressOf()));

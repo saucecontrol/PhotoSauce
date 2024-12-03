@@ -45,7 +45,7 @@ internal sealed unsafe class OctreeQuantizer : IProfileSource, IDisposable
 
 	public bool CreatePalette(int targetColors, bool hasAlpha, Span<byte> image, nint width, nint height, nint stride)
 	{
-		if (targetColors < 2 || targetColors > maxPaletteSize) throw new ArgumentOutOfRangeException(nameof(targetColors), $"Target palette size must be between 2 and {maxPaletteSize}");
+		if (targetColors is < 2 or > maxPaletteSize) throw new ArgumentOutOfRangeException(nameof(targetColors), $"Target palette size must be between 2 and {maxPaletteSize}");
 
 		Profiler.ResumeTiming(PixelArea.FromSize((int)width, (int)height));
 		using var nodeBuffer = BufferPool.RentLocalAligned<HistogramNode>(maxHistogramSize, true);
@@ -628,28 +628,20 @@ internal sealed unsafe class OctreeQuantizer : IProfileSource, IDisposable
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static uint GetLevel(HistogramNode* node)
-		{
-			return *((uint*)node + 3) >> 29;
-		}
+		public static uint GetLevel(HistogramNode* node) =>
+			*((uint*)node + 3) >> 29;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SetLevel(HistogramNode* node, uint level)
-		{
+		public static void SetLevel(HistogramNode* node, uint level) =>
 			*((uint*)node + 3) = level << 29;
-		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static nuint GetChild(HistogramNode* node, nuint idx)
-		{
-			return (uint)*((ushort*)node + idx) & ChildMask;
-		}
+		public static nuint GetChild(HistogramNode* node, nuint idx) =>
+			(uint)*((ushort*)node + idx) & ChildMask;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SetChild(HistogramNode* node, nuint idx, nuint child)
-		{
+		public static void SetChild(HistogramNode* node, nuint idx, nuint child) =>
 			*((ushort*)node + idx) |= (ushort)child;
-		}
 	}
 
 	private readonly record struct WeightedNode(float Weight, uint Node) : IComparable<WeightedNode>

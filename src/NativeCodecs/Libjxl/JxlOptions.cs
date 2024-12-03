@@ -41,7 +41,7 @@ public readonly record struct JxlLossyEncoderOptions(float Distance, JxlEncodeSp
 	/// <returns>The calculated Butteraugli distance.</returns>
 	public static float DistanceFromQuality(int quality)
 	{
-		if (quality < 0 || quality > 100)
+		if (quality is < 0 or > 100)
 			throw new ArgumentOutOfRangeException(nameof(quality), "Value must be between 0 and 100");
 
 		return JxlEncoderDistanceFromQuality(quality);
@@ -104,10 +104,8 @@ public enum JxlDecodeSpeed
 	Speed3 = 3,
 	/// <summary>Speed value 4.</summary>
 	Speed4 = 4,
-#pragma warning disable CA1069
 	/// <summary>The slowest decoding speed.  Equivalent to <see cref="Speed0" />.</summary>
-	Slowest = 0,
+	Slowest = Speed0,
 	/// <summary>The fastest decoding speed.  Equivalent to <see cref="Speed4" />.</summary>
-	Fastest = 4
-#pragma warning restore CA1069
+	Fastest = Speed4
 }

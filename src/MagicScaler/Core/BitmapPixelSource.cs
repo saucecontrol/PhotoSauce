@@ -9,34 +9,25 @@ using System.Runtime.CompilerServices;
 namespace PhotoSauce.MagicScaler;
 
 /// <summary>A base <see cref="IPixelSource" /> implementation for wrapping a fully-decoded image bitmap in memory.</summary>
-public abstract class BitmapPixelSource : IPixelSource, IDisposable
+/// <param name="format">The format of the bitmap pixels.</param>
+/// <param name="width">The bitmap width, in pixels.</param>
+/// <param name="height">The bitmap height, in pixels.</param>
+/// <param name="stride">The number of bytes between pixels in adjacent bitmap rows.</param>
+public abstract class BitmapPixelSource(Guid format, int width, int height, int stride) : IPixelSource, IDisposable
 {
 	/// <inheritdoc />
-	public virtual Guid Format { get; }
+	public virtual Guid Format { get; } = format;
 	/// <inheritdoc />
-	public virtual int Width { get; }
+	public virtual int Width { get; } = width;
 	/// <inheritdoc />
-	public virtual int Height { get; }
+	public virtual int Height { get; } = height;
 
 	/// <summary>The number of bytes between pixels in adjacent bitmap rows.</summary>
-	protected virtual int Stride { get; }
+	protected virtual int Stride { get; } = stride;
 
 	/// <summary>Exposes the pixel data in the backing bitmap.</summary>
 	/// <value>A <see cref="ReadOnlySpan{T}" /> instance that exposes the pixel data in memory.</value>
 	protected abstract ReadOnlySpan<byte> Span { get; }
-
-	/// <summary>Sets base properties of the <see cref="BitmapPixelSource" /> implementation.</summary>
-	/// <param name="format">The format of the bitmap pixels.</param>
-	/// <param name="width">The bitmap width, in pixels.</param>
-	/// <param name="height">The bitmap height, in pixels.</param>
-	/// <param name="stride">The number of bytes between pixels in adjacent bitmap rows.</param>
-	protected BitmapPixelSource(Guid format, int width, int height, int stride)
-	{
-		Format = format;
-		Width = width;
-		Height = height;
-		Stride = stride;
-	}
 
 	/// <inheritdoc />
 	public virtual void CopyPixels(Rectangle sourceArea, int cbStride, Span<byte> buffer)

@@ -40,7 +40,7 @@ internal sealed class MatteTransform : ChainedPixelSource
 				Format = PixelFormat.Bgrx32;
 		}
 
-		var igtq = LookupTables.SrgbInverseGammaUQ15;
+		ushort[] igtq = LookupTables.SrgbInverseGammaUQ15;
 
 		matteB = igtq[color.B];
 		matteG = igtq[color.G];
@@ -50,8 +50,8 @@ internal sealed class MatteTransform : ChainedPixelSource
 		matteValue32 = (uint)color.ToArgb();
 		matteValue64 = ((ulong)matteA << 48) | ((ulong)UnFix15(matteR * (uint)matteA) << 32) | ((ulong)UnFix15(matteG * (uint)matteA) << 16) | UnFix15(matteB * (uint)matteA);
 
-		var igtf = LookupTables.SrgbInverseGamma;
-		var atf = LookupTables.Alpha;
+		float[] igtf = LookupTables.SrgbInverseGamma;
+		float[] atf = LookupTables.Alpha;
 
 		float mr = igtf[color.R], mg = igtf[color.G], mb = igtf[color.B], maa = atf[color.A];
 		vmatte = new Vector4(mb, mg, mr, 1f) * new Vector4(maa);

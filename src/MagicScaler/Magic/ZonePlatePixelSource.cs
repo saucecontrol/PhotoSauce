@@ -34,9 +34,9 @@ public sealed class ZonePlatePixelSource : IPixelSource, IProfileSource
 	public ZonePlatePixelSource(int width, int height, Guid pixelFormat, double scale = 1.0)
 	{
 		channels = Array.IndexOf(formats, pixelFormat);
-		if (channels < 1 || channels == 2) throw new ArgumentException("Unsupported pixel format", nameof(pixelFormat));
-		if (width < 1 || width > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(width), $"Value must be between 1 and {ushort.MaxValue}");
-		if (height < 1 || height > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(height), $"Value must be between 1 and {ushort.MaxValue}");
+		if (channels is < 1 or 2) throw new ArgumentException("Unsupported pixel format", nameof(pixelFormat));
+		if (width is < 1 or > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(width), $"Value must be between 1 and {ushort.MaxValue}");
+		if (height is < 1 or > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(height), $"Value must be between 1 and {ushort.MaxValue}");
 
 		Width = width;
 		Height = height;

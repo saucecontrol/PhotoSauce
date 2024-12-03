@@ -131,7 +131,7 @@ internal unsafe struct IWICBitmapSourceImpl
 
 		var pspan = idxs.Palette;
 		fixed (uint* pp = pspan)
-			pIPalette->InitializeCustom(pp, (uint)pspan.Length);
+			HRESULT.Check(pIPalette->InitializeCustom(pp, (uint)pspan.Length));
 
 		return S_OK;
 	}

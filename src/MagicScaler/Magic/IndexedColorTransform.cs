@@ -68,16 +68,16 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexe
 
 	public void SetPalette(ReadOnlySpan<uint> pal, bool isExact)
 	{
-		if (pal.Length < 1 || pal.Length > maxPaletteSize) throw new ArgumentException($"Palette must have between 1 and {maxPaletteSize} entries.", nameof(pal));
+		if (pal.Length is < 2 or > maxPaletteSize) throw new ArgumentException($"Palette must have between 2 and {maxPaletteSize} entries.", nameof(pal));
 
 		pal.CopyTo(palBuff.Span);
 		pal.CopyTo(palBuff.Span[maxPaletteSize..]);
 
 		dither = !isExact;
-		hasAlpha = pal[^1] < 0x00ffffffu;
+		hasAlpha = pal[^1] <= 0x00ffffffu;
 		paletteLength = pal.Length;
 
-		palBuff.Span[paletteLength..maxPaletteSize].Fill(MemoryMarshal.GetReference(pal));
+		palBuff.Span[paletteColors..maxPaletteSize].Fill(MemoryMarshal.GetReference(pal));
 
 		mapNextFree = seedPaletteMap(mapBuff.Span);
 	}
@@ -85,6 +85,7 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexe
 	protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 	{
 		if (palBuff.IsEmpty) ThrowHelper.ThrowObjectDisposed(nameof(IndexedColorTransform));
+		if (paletteColors is 0) throw new InvalidOperationException("No palette has been set.");
 
 		if (isFixedGrey)
 			copyPixelsDirect(prc, cbStride, cbBufferSize, pbBuffer);
@@ -103,8 +104,6 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexe
 
 	private unsafe void copyPixelsBuffered<TAlpha>(in PixelArea prc, nint cbStride, byte* pbBuffer) where TAlpha : struct, AlphaType
 	{
-		if (paletteLength == 0) throw new InvalidOperationException("No palette has been set.");
-
 		nint lstride = 0;
 		var lspan = lineBuff.Span;
 		if (PrevSource is FrameBufferSource fbuff)
@@ -285,9 +284,9 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexe
 	private void remapDitherSse41<TAlpha>(byte* pimage, short* perror, byte* pout, uint* pilut, PaletteMapNode* pmap, uint* ppal, nint cp) where TAlpha : struct, AlphaType
 	{
 		nuint nextFree = mapNextFree;
-		nuint maxcol = (uint)paletteColors - 1;
 		nuint level = leafLevel;
-		nuint pidx = maxcol;
+		nuint cpal = (uint)paletteColors;
+		nuint pidx = 0;
 
 		var vpmax = Vector128.Create((short)byte.MaxValue);
 		var vprnd = Vector128.Create((short)7);
@@ -306,7 +305,7 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexe
 			if (typeof(TAlpha) == typeof(AlphaType.Present) && ip[3] < alphaThreshold)
 			{
 				vppix = vzero;
-				pidx = maxcol + 1;
+				pidx = cpal;
 				goto FoundExact;
 			}
 
@@ -351,7 +350,7 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexe
 					break;
 			}
 
-			pidx = getPaletteIndexSse41(ppal, node, idx & 7, vppix, maxcol);
+			pidx = getPaletteIndexSse41(ppal, cpal, node, idx & 7, vppix);
 			var vdiff = Sse2.Subtract(vppix, Sse41.ConvertToVector128Int16((byte*)(ppal + pidx)));
 
 			Sse2.StoreScalar((long*)(ep - channels), Sse2.Add(vperr, Sse2.Add(vdiff, vdiff)).AsInt64());
@@ -380,9 +379,9 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexe
 	private void remapDitherScalar<TAlpha>(byte* pimage, short* perror, byte* pout, uint* pilut, PaletteMapNode* pmap, uint* ppal, nint cp) where TAlpha : struct, AlphaType
 	{
 		nuint nextFree = mapNextFree;
-		nuint maxcol = (uint)paletteColors - 1;
 		nuint level = leafLevel;
-		nuint pidx = maxcol;
+		nuint cpal = (uint)paletteColors;
+		nuint pidx = 0;
 
 		byte* ip = pimage, ipe = ip + cp * sizeof(uint);
 		byte* op = pout;
@@ -397,7 +396,7 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexe
 			if (typeof(TAlpha) == typeof(AlphaType.Present) && ip[3] < alphaThreshold)
 			{
 				ppix = 0;
-				pidx = maxcol + 1;
+				pidx = cpal;
 				goto FoundExact;
 			}
 
@@ -439,7 +438,7 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexe
 					break;
 			}
 
-			pidx = getPaletteIndex(ppal, node, idx & 7, ppix, maxcol);
+			pidx = getPaletteIndex(ppal, cpal, node, idx & 7, ppix);
 
 			byte* pcol = (byte*)(ppal + pidx);
 			int db = (byte)(ppix      ) - pcol[0];
@@ -487,9 +486,9 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexe
 	private void remap<TAlpha>(byte* pimage, byte* pout, uint* pilut, PaletteMapNode* pmap, uint* ppal, nint cp) where TAlpha : struct, AlphaType
 	{
 		nuint nextFree = mapNextFree;
-		nuint maxcol = (uint)paletteColors - 1;
 		nuint level = leafLevel;
-		nuint pidx = maxcol;
+		nuint cpal = (uint)paletteColors;
+		nuint pidx = 0;
 
 		byte* ip = pimage, ipe = ip + cp * sizeof(uint);
 		byte* op = pout;
@@ -500,7 +499,7 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexe
 			if (typeof(TAlpha) == typeof(AlphaType.Present) && ip[3] < alphaThreshold)
 			{
 				ppix = 0;
-				pidx = maxcol + 1;
+				pidx = cpal;
 				goto Found;
 			}
 
@@ -538,7 +537,7 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexe
 					break;
 			}
 
-			pidx = getPaletteIndex(ppal, node, idx & 7, ppix, maxcol);
+			pidx = getPaletteIndex(ppal, cpal, node, idx & 7, ppix);
 
 		Found:
 			ip += channels;
@@ -551,12 +550,12 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexe
 
 #if HWINTRINSICS
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private static nuint getPaletteIndexSse41(uint* ppal, PaletteMapNode* node, nuint idx, Vector128<short> vpix, nuint maxidx)
+	private static nuint getPaletteIndexSse41(uint* ppal, nuint cpal, PaletteMapNode* node, nuint idx, Vector128<short> vpix)
 	{
 		if (PaletteMapNode.HasPaletteEntry(node, idx))
 			return PaletteMapNode.GetPaletteIndex(node, idx);
 
-		nuint pidx = findNearestColorSse41(ppal, maxidx, vpix);
+		nuint pidx = findNearestColorSse41(ppal, cpal, vpix);
 		PaletteMapNode.SetPaletteIndex(node, idx, pidx);
 
 		return pidx;
@@ -564,7 +563,7 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexe
 #endif
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private static nuint getPaletteIndex(uint* ppal, PaletteMapNode* node, nuint idx, nuint pix, nuint maxidx)
+	private static nuint getPaletteIndex(uint* ppal, nuint cpal, PaletteMapNode* node, nuint idx, nuint pix)
 	{
 		if (PaletteMapNode.HasPaletteEntry(node, idx))
 			return PaletteMapNode.GetPaletteIndex(node, idx);
@@ -572,10 +571,10 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexe
 		nuint pidx;
 #if HWINTRINSICS
 		if (Sse41.IsSupported)
-			pidx = findNearestColorSse41(ppal, maxidx, Sse41.ConvertToVector128Int16(Vector128.CreateScalarUnsafe((uint)pix).AsByte()));
+			pidx = findNearestColorSse41(ppal, cpal, Sse41.ConvertToVector128Int16(Vector128.CreateScalarUnsafe((uint)pix).AsByte()));
 		else
 #endif
-			pidx = findNearestColor(ppal, maxidx, (uint)pix);
+			pidx = findNearestColor(ppal, cpal, (uint)pix);
 
 		PaletteMapNode.SetPaletteIndex(node, idx, pidx);
 
@@ -584,25 +583,22 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexe
 
 #if HWINTRINSICS
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private static nuint findNearestColorSse41(uint* ppal, nuint maxidx, Vector128<short> vpix)
+	private static nuint findNearestColorSse41(uint* ppal, nuint cpal, Vector128<short> vpix)
 	{
-		Vector128<int> vdst;
-		Vector128<uint> vidx;
+		Vector128<int> vdst, vidx;
 
 		if (Avx2.IsSupported)
 		{
-			var wmul = Vector256.Create(-1, 0, 1, 0, -1, 0, 1, 0, -1, 0, 1, 0, -1, 0, 1, 0);
-			var wadd = Vector256.Create(0x60, 0x80, 0x40, 0, 0x60, 0x80, 0x40, 0, 0x60, 0x80, 0x40, 0, 0x60, 0x80, 0x40, 0);
+			var wmul = Vector256.Create(0x0001_0000_ffff).AsInt16();
+			var wadd = Vector256.Create(0x0040_0080_0060).AsInt16();
 
-			var widm = HWIntrinsics.CreateVector256(maxidx).AsUInt32();
-			var wdsm = HWIntrinsics.CreateVector256(int.MaxValue).AsInt32();
-			var winc = Vector256.Create(4u, 0, 4u, 0, 4u, 0, 4u, 0);
-			var wcnt = Vector256.Create(0u, 0, 1u, 0, 2u, 0, 3u, 0);
-			var widx = widm;
-			var wdst = wdsm;
+			var winc = Vector256.Create((ulong)Vector256<ulong>.Count).AsInt32();
+			var wcnt = Vector256.Create(0ul, 1ul, 2ul, 3ul).AsInt32();
+			var widx = Vector256.Create(0ul).AsInt32();
+			var wdst = Vector256.Create((ulong)int.MaxValue).AsInt32();
 
 			var wppix = Avx2.BroadcastScalarToVector256(vpix.AsUInt64()).AsInt16();
-			byte* pp = (byte*)ppal, ppe = (byte*)(ppal + maxidx);
+			byte* pp = (byte*)ppal, ppe = (byte*)(ppal + cpal);
 
 			do
 			{
@@ -617,31 +613,29 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexe
 				wdip = Avx2.Add(wdip, Avx2.Shuffle(wdip, HWIntrinsics.ShuffleMaskOddToEven));
 
 				var wmsk = Avx2.CompareGreaterThan(wdst, wdip);
-				widx = Avx2.BlendVariable(widx, wcnt, wmsk.AsUInt32());
+				widx = Avx2.BlendVariable(widx, wcnt, wmsk);
 				wdst = Avx2.BlendVariable(wdst, wdip, wmsk);
 
 				wcnt = Avx2.Add(wcnt, winc);
 			}
-			while (pp <= ppe);
-
-			wdst = Avx2.BlendVariable(wdst, wdsm, Avx2.CompareGreaterThan(widx.AsInt32(), widm.AsInt32()));
+			while (pp < ppe);
 
 			var vmsk = Sse2.CompareGreaterThan(wdst.GetLower(), wdst.GetUpper());
-			vidx = Sse41.BlendVariable(widx.GetLower(), widx.GetUpper(), vmsk.AsUInt32());
+			vidx = Sse41.BlendVariable(widx.GetLower(), widx.GetUpper(), vmsk);
 			vdst = Sse41.BlendVariable(wdst.GetLower(), wdst.GetUpper(), vmsk);
 		}
 		else
 		{
-			var vmul = Vector128.Create(-1, 0, 1, 0, -1, 0, 1, 0);
-			var vadd = Vector128.Create(0x60, 0x80, 0x40, 0, 0x60, 0x80, 0x40, 0);
+			var vmul = Vector128.Create(0x0001_0000_fffful).AsInt16();
+			var vadd = Vector128.Create(0x0040_0080_0060ul).AsInt16();
 
-			vidx = HWIntrinsics.CreateVector128(maxidx).AsUInt32();
-			vdst = HWIntrinsics.CreateVector128(int.MaxValue).AsInt32();
-			var vinc = Vector128.Create(2u, 0, 2u, 0);
-			var vcnt = Vector128.Create(0u, 0, 1u, 0);
+			var vinc = Vector128.Create((ulong)Vector128<ulong>.Count).AsInt32();
+			var vcnt = Vector128.Create(0ul, 1ul).AsInt32();
+			vidx = Vector128.Create(0ul).AsInt32();
+			vdst = Vector128.Create((ulong)int.MaxValue).AsInt32();
 
 			var vppix = Sse2.UnpackLow(vpix.AsUInt64(), vpix.AsUInt64()).AsInt16();
-			byte* pp = (byte*)ppal, ppe = (byte*)(ppal + maxidx);
+			byte* pp = (byte*)ppal, ppe = (byte*)(ppal + cpal);
 
 			do
 			{
@@ -656,30 +650,30 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexe
 				vdip = Sse2.Add(vdip, Sse2.Shuffle(vdip, HWIntrinsics.ShuffleMaskOddToEven));
 
 				var vmsk = Sse2.CompareGreaterThan(vdst, vdip);
-				vidx = Sse41.BlendVariable(vidx, vcnt, vmsk.AsUInt32());
+				vidx = Sse41.BlendVariable(vidx, vcnt, vmsk);
 				vdst = Sse41.BlendVariable(vdst, vdip, vmsk);
 
 				vcnt = Sse2.Add(vcnt, vinc);
 			}
-			while (pp <= ppe);
+			while (pp < ppe);
 		}
 
-		var vmsr = Sse2.CompareGreaterThan(vdst, Sse2.UnpackHigh(vdst.AsUInt64(), vdst.AsUInt64()).AsInt32()).AsUInt32();
-		return Sse2.ConvertToUInt32(Sse41.BlendVariable(vidx, Sse2.UnpackHigh(vidx.AsUInt64(), vidx.AsUInt64()).AsUInt32(), vmsr));
+		var vmsr = Sse2.CompareGreaterThan(vdst, Sse2.UnpackHigh(vdst.AsUInt64(), vdst.AsUInt64()).AsInt32());
+		return (uint)Sse2.ConvertToInt32(Sse41.BlendVariable(vidx, Sse2.UnpackHigh(vidx.AsUInt64(), vidx.AsUInt64()).AsInt32(), vmsr));
 	}
 #endif
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private static nuint findNearestColor(uint* ppal, nuint maxidx, uint color)
+	private static nuint findNearestColor(uint* ppal, nuint cpal, uint color)
 	{
 		int dist = int.MaxValue;
-		nuint pidx = maxidx;
+		nuint pidx = 0;
 
 		int cb = (byte)(color      );
 		int cg = (byte)(color >>  8);
 		int cr = (byte)(color >> 16);
 
-		for (nuint i = 0; i <= maxidx; i++)
+		for (nuint i = 0; i < cpal; i++)
 		{
 			byte* pc = (byte*)(ppal + i);
 			int db = pc[0] - cb;
@@ -736,42 +730,31 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexe
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static nuint GetChild(PaletteMapNode* node, nuint idx)
-		{
-			return *((ushort*)node + idx);
-		}
+		public static nuint GetChild(PaletteMapNode* node, nuint idx) =>
+			*((ushort*)node + idx);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SetChild(PaletteMapNode* node, nuint idx, nuint child)
-		{
+		public static void SetChild(PaletteMapNode* node, nuint idx, nuint child) =>
 			*((ushort*)node + idx) = (ushort)child;
-		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool IsLeaf(PaletteMapNode* node)
-		{
-			return *((uint*)node + 3) == LeafMarker;
-		}
+		public static bool IsLeaf(PaletteMapNode* node) =>
+			*((uint*)node + 3) == LeafMarker;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SetLeaf(PaletteMapNode* node)
-		{
+		public static void SetLeaf(PaletteMapNode* node) =>
 			*((uint*)node + 3) = LeafMarker;
-		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool HasPaletteEntry(PaletteMapNode* node, nuint idx)
-		{
+		public static bool HasPaletteEntry(PaletteMapNode* node, nuint idx) =>
 #pragma warning disable IDE0075 // https://github.com/dotnet/runtime/issues/4207
-			return ((1u << (int)idx) & *((byte*)node + 8)) != 0 ? true : false;
+			((1u << (int)idx) & *((byte*)node + 8)) != 0 ? true : false;
 #pragma warning restore IDE0075
-		}
+
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static nuint GetPaletteIndex(PaletteMapNode* node, nuint idx)
-		{
-			return *((byte*)node + idx);
-		}
+		public static nuint GetPaletteIndex(PaletteMapNode* node, nuint idx) =>
+			*((byte*)node + idx);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetPaletteIndex(PaletteMapNode* node, nuint idx, nuint pidx)

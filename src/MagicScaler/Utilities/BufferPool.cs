@@ -37,7 +37,7 @@ internal static partial class BufferPool
 	[Conditional("GUARDRAILS")]
 	private static void addBoundsMarkers(ArraySegment<byte> buff)
 	{
-		var arr = buff.Array!;
+		byte[] arr = buff.Array!;
 		if (buff.Offset > 0)
 			arr.AsSpan(0, buff.Offset).Fill(marker);
 
@@ -49,7 +49,7 @@ internal static partial class BufferPool
 	[Conditional("GUARDRAILS")]
 	private static void checkBounds(ArraySegment<byte> buff)
 	{
-		var arr = buff.Array!;
+		byte[] arr = buff.Array!;
 		int end = buff.Offset + buff.Count;
 
 #if NET7_0_OR_GREATER
@@ -82,7 +82,7 @@ internal static partial class BufferPool
 
 	public static unsafe ArraySegment<byte> RentRaw(int length, bool clear = false)
 	{
-		var arr = rentBytes(length);
+		byte[] arr = rentBytes(length);
 
 		var buff = new ArraySegment<byte>(arr, 0, length);
 		addBoundsMarkers(buff);
@@ -96,7 +96,7 @@ internal static partial class BufferPool
 	public static unsafe ArraySegment<byte> RentRawAligned(int length, bool clear = false)
 	{
 		int pad = HWIntrinsics.VectorCount<byte>() - sizeof(nuint);
-		var arr = rentBytes(length + pad);
+		byte[] arr = rentBytes(length + pad);
 
 		nint mask = (nint)HWIntrinsics.VectorCount<byte>() - 1;
 		nint offs = (mask + 1 - ((nint)Unsafe.AsPointer(ref arr.GetDataRef()) & mask)) & mask;

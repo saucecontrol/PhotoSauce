@@ -120,7 +120,7 @@ internal sealed unsafe class PngEncoder : IAnimatedImageEncoder
 			return;
 		}
 
-		var embed = prof.Embed;
+		byte[] embed = prof.Embed;
 		fixed (byte* bp = &embed.GetDataRef())
 			checkResult(PngWriteIccp(handle, bp));
 	}

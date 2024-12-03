@@ -40,7 +40,7 @@ public static class WindowsCodecExtensions
 		var enumOptions = policy == WicCodecPolicy.BuiltIn ? WICComponentEnumerateOptions.WICComponentEnumerateBuiltInOnly : WICComponentEnumerateOptions.WICComponentEnumerateDefault;
 		HRESULT.Check(Wic.Factory->CreateComponentEnumerator((uint)type, (uint)enumOptions, cenum.GetAddressOf()));
 
-		var pbuff = stackalloc char[bch];
+		char* pbuff = stackalloc char[bch];
 		var formats = stackalloc IUnknown*[bcc];
 		var codecs = new List<(Guid, IImageCodecInfo)>();
 
@@ -89,8 +89,8 @@ public static class WindowsCodecExtensions
 					name = string.Concat(author, " ", name);
 
 				BOOL anim, mult;
-				pCod.Get()->DoesSupportAnimation(&anim);
-				pCod.Get()->DoesSupportMultiframe(&mult);
+				HRESULT.Check(pCod.Get()->DoesSupportAnimation(&anim));
+				HRESULT.Check(pCod.Get()->DoesSupportMultiframe(&mult));
 
 				var cuid = default(Guid);
 				HRESULT.Check(pCod.Get()->GetCLSID(&cuid));
@@ -104,7 +104,7 @@ public static class WindowsCodecExtensions
 					HRESULT.Check(pCod.Get()->GetPixelFormats(cch, pg, &cch));
 
 				if (extensions.Length != 0 && !ImageFileExtensions.All.ContainsInsensitive(extensions[0]))
-					extensions = extensions.OrderBy(static e => ImageFileExtensions.All.ContainsInsensitive(e) ? 0 : 1).ToArray();
+					extensions = [.. extensions.OrderBy(static e => ImageFileExtensions.All.ContainsInsensitive(e) ? 0 : 1)];
 
 				if (type is WICComponentType.WICDecoder)
 				{
@@ -157,7 +157,7 @@ public static class WindowsCodecExtensions
 					if (mime is ImageMimeTypes.Jpeg)
 					{
 						var subs = new[] { ChromaSubsampleMode.Subsample420, ChromaSubsampleMode.Subsample422, ChromaSubsampleMode.Subsample444 };
-						pix = pix.Concat([ PixelFormat.Y8.FormatGuid, PixelFormat.Cb8.FormatGuid, PixelFormat.Cr8.FormatGuid ]).ToArray();
+						pix = [.. pix, PixelFormat.Y8.FormatGuid, PixelFormat.Cb8.FormatGuid, PixelFormat.Cr8.FormatGuid];
 						encinfo = new PlanarEncoderInfo(name, mimes, extensions, pix, options, (stm, opt) => new WicImageEncoder(clsid, mime, stm, opt), mult, anim, prof, subs, ChromaPosition.Center, YccMatrix.Rec601, false);
 					}
 

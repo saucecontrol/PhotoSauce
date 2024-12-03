@@ -29,7 +29,7 @@ internal sealed class PipelineContext(ProcessImageSettings settings, IImageConta
 	public ColorProfile? SourceColorProfile { get; set; }
 	public ColorProfile? DestColorProfile { get; set; }
 
-	public IEnumerable<PixelSourceStats> Stats => profilers?.OfType<ProcessingProfiler>().Select(static p => p.Stats) ?? Enumerable.Empty<PixelSourceStats>();
+	public IEnumerable<PixelSourceStats> Stats => profilers?.OfType<ProcessingProfiler>().Select(static p => p.Stats) ?? [ ];
 
 	public WicPipelineContext WicContext => wicContext ??= new();
 

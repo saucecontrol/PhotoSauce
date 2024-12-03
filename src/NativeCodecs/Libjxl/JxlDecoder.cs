@@ -83,7 +83,7 @@ internal sealed unsafe class JxlContainer : IImageContainer, IMetadataSource, II
 					if (status is JxlDecoderStatus.JXL_DEC_FRAME)
 					{
 						frameCountRaw++;
-						JxlDecoderSkipCurrentFrame(dec);
+						JxlError.Check(JxlDecoderSkipCurrentFrame(dec));
 					}
 					else if (status is JxlDecoderStatus.JXL_DEC_BOX)
 					{
@@ -268,9 +268,9 @@ internal sealed unsafe class JxlContainer : IImageContainer, IMetadataSource, II
 		// JxlDecoderSizeHintBasicInfo gives an initial pessimistic estimate of 98 bytes
 		const int bufflen = 128;
 
-		var dec = JxlFactory.CreateDecoder();
+		void* dec = JxlFactory.CreateDecoder();
 		JxlError.Check(JxlDecoderSetKeepOrientation(dec, JXL_TRUE));
-		JxlError.Check(JxlDecoderSubscribeEvents(dec, (int)(JxlDecoderStatus.JXL_DEC_COLOR_ENCODING)));
+		JxlError.Check(JxlDecoderSubscribeEvents(dec, (int)JxlDecoderStatus.JXL_DEC_COLOR_ENCODING));
 
 		long stmpos = imgStream.Position;
 

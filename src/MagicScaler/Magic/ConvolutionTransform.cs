@@ -73,7 +73,7 @@ internal class ConvolutionTransform<TPixel, TWeight, TConv> : ChainedPixelSource
 		var workfmt = infmt;
 		if (typeof(TConv) == typeof(ConvolutionType.Buffered))
 		{
-			if (infmt.ColorRepresentation != PixelColorRepresentation.Grey && infmt.ColorRepresentation != PixelColorRepresentation.Bgr)
+			if (infmt.ColorRepresentation is not (PixelColorRepresentation.Grey or PixelColorRepresentation.Bgr))
 				throw new NotSupportedException("Unsupported pixel format: " + infmt.Name);
 
 			workfmt = infmt.NumericRepresentation == PixelNumericRepresentation.Float ? PixelFormat.Grey32Float :

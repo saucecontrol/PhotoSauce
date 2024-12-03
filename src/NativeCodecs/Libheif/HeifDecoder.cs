@@ -14,18 +14,17 @@ namespace PhotoSauce.NativeCodecs.Libheif;
 
 internal sealed unsafe class HeifContainer : IImageContainer
 {
-	private readonly string ftype;
 	private void* handle;
 	private StreamWrapper* stream;
 
 	private HeifContainer(string mime, StreamWrapper* stm, void* frm)
 	{
-		ftype = mime;
+		MimeType = mime;
 		stream = stm;
 		handle = frm;
 	}
 
-	public string MimeType => ftype;
+	public string MimeType { get; }
 
 	int IImageContainer.FrameCount => 1;
 

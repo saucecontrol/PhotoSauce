@@ -163,7 +163,7 @@ internal static unsafe class WinCodecExtensions
 			}
 			else if (pv.vt is (ushort)VARENUM.VT_LPSTR)
 			{
-				var str = new string(pv.Anonymous.pszVal);
+				string str = new(pv.Anonymous.pszVal);
 				len = Math.Min(span.Length, str.Length);
 				MemoryMarshal.Cast<char, T>(str.AsSpan())[..len].CopyTo(span);
 			}

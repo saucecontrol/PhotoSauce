@@ -501,8 +501,8 @@ internal sealed class PixelFormat : IEquatable<PixelFormat>
 						name.ContainsOrdinal("CMYK") ? PixelColorRepresentation.Cmyk :
 						name.ContainsOrdinal("Gray") || name.EndsWithOrdinal(" Y") ? PixelColorRepresentation.Grey :
 						PixelColorRepresentation.Unspecified;
-					var valEncoding = colorRep == PixelColorRepresentation.Grey || colorRep == PixelColorRepresentation.Bgr || colorRep == PixelColorRepresentation.Rgb ?
-						numericRep == PixelNumericRepresentation.Fixed || numericRep == PixelNumericRepresentation.Float ? PixelValueEncoding.scRgb :
+					var valEncoding = colorRep is PixelColorRepresentation.Grey or PixelColorRepresentation.Bgr or PixelColorRepresentation.Rgb ?
+						numericRep is PixelNumericRepresentation.Fixed or PixelNumericRepresentation.Float ? PixelValueEncoding.scRgb :
 						PixelValueEncoding.Companded :
 						PixelValueEncoding.Unspecified;
 

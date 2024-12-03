@@ -133,10 +133,6 @@ public enum OrientationMode : byte
 [Flags]
 public enum ChromaPosition
 {
-	/// <summary>Chroma components are offset between luma rows and columns, as in JPEG images.</summary>
-	Jpeg = Center,
-	/// <summary>Chroma components are aligned with luma columns and offset between luma rows, as in most modern video formats.</summary>
-	Video = Left,
 	/// <summary>Chroma components are offset between luma rows/columns.</summary>
 	Center = 0,
 	/// <summary>Chroma components are aligned with even luma columns.</summary>
@@ -144,7 +140,11 @@ public enum ChromaPosition
 	/// <summary>Chroma components are aligned with even luma rows.</summary>
 	Top = 2,
 	/// <summary>Chroma components are aligned with odd luma rows.</summary>
-	Bottom = 4
+	Bottom = 4,
+	/// <summary>Chroma components are offset between luma rows and columns, as in JPEG images.</summary>
+	Jpeg = Center,
+	/// <summary>Chroma components are aligned with luma columns and offset between luma rows, as in most modern video formats.</summary>
+	Video = Left
 }
 
 /// <summary>Defines the modes that control <a href="https://en.wikipedia.org/wiki/Chroma_subsampling">chroma subsampling</a> for output image formats that support it.</summary>

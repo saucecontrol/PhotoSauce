@@ -80,7 +80,7 @@ internal sealed unsafe class JpegEncoder : IImageEncoder
 				handle->raw_data_in = TRUE;
 		}
 
-		if (options is JpegEncoderOptions { SuppressApp0: true } || options is JpegOptimizedEncoderOptions { SuppressApp0: true })
+		if (options is JpegEncoderOptions { SuppressApp0: true } or JpegOptimizedEncoderOptions { SuppressApp0: true })
 		{
 			handle->write_JFIF_header = FALSE;
 		}
@@ -155,7 +155,7 @@ internal sealed unsafe class JpegEncoder : IImageEncoder
 		if (!metadata.TryGetMetadata<ColorProfileMetadata>(out var prof))
 			return;
 
-		var embed = prof.Embed;
+		byte[] embed = prof.Embed;
 		fixed (byte* bp = &embed.GetDataRef())
 			checkResult(JpegWriteIccProfile(handle, bp, (uint)embed.Length));
 	}
@@ -188,12 +188,12 @@ internal sealed unsafe class JpegEncoder : IImageEncoder
 			byte*** planes = stackalloc[] { pyr, pbr, prr };
 
 			for (int i = 0; i < mcuYH; i++)
-				pyr[i] = py + (strideY * i);
+				pyr[i] = py + strideY * i;
 
 			for (int i = 0; i < mcu; i++)
 			{
-				pbr[i] = pb + (strideC * i);
-				prr[i] = pr + (strideC * i);
+				pbr[i] = pb + strideC * i;
+				prr[i] = pr + strideC * i;
 			}
 
 			for (int row = 0; row < area.Height; row += mcuYH)

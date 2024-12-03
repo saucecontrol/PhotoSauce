@@ -432,7 +432,8 @@ internal sealed unsafe class GifFrame : IImageFrame, IMetadataSource
 
 		public ReadOnlySpan<uint> Palette
 		{
-			get {
+			get
+			{
 				if (!frame.palette.IsEmpty)
 					return frame.palette.Span[..colorCount];
 

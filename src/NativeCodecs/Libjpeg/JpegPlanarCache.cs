@@ -130,9 +130,9 @@ internal sealed unsafe class JpegPlanarCache : IYccImageFrame, IMetadataSource, 
 
 			for (int i = 0; i < slice; i++)
 			{
-				pyr[i] = i < heightY ? py + (buffY.Stride * i) : pyr[i - 1];
-				pbr[i] = i < heightC ? pb + (buffCb.Stride * i) : pbr[i - 1];
-				prr[i] = i < heightC ? pr + (buffCr.Stride * i) : prr[i - 1];
+				pyr[i] = i < heightY ? py + buffY.Stride  * i : pyr[i - 1];
+				pbr[i] = i < heightC ? pb + buffCb.Stride * i : pbr[i - 1];
+				prr[i] = i < heightC ? pr + buffCr.Stride * i : prr[i - 1];
 			}
 
 			for (int i = 0; i < slice / minslice; i++)

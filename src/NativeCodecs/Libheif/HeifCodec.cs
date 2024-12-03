@@ -65,14 +65,14 @@ public static class CodecCollectionExtensions
 			HeifFactory.DisplayName,
 			[ ImageMimeTypes.Heic, ImageMimeTypes.Avif ],
 			[ ImageFileExtensions.Heic, ImageFileExtensions.Avif ],
-			new ContainerPattern[] {
+			[
 				new(0, [ 0, 0, 0, 0, (byte)'f', (byte)'t', (byte)'y', (byte)'p', (byte)'h', (byte)'e', (byte)'i', (byte)'c' ], [ 0xff, 0xff, 0xff, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff ]),
 				new(0, [ 0, 0, 0, 0, (byte)'f', (byte)'t', (byte)'y', (byte)'p', (byte)'h', (byte)'e', (byte)'v', (byte)'c' ], [ 0xff, 0xff, 0xff, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff ]),
 				new(0, [ 0, 0, 0, 0, (byte)'f', (byte)'t', (byte)'y', (byte)'p', (byte)'a', (byte)'v', (byte)'i', (byte)'f' ], [ 0xff, 0xff, 0xff, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff ]),
 				new(0, [ 0, 0, 0, 0, (byte)'f', (byte)'t', (byte)'y', (byte)'p', (byte)'m', (byte)'i', (byte)'f', (byte)'1' ], [ 0xff, 0xff, 0xff, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff ]),
 				new(0, [ 0, 0, 0, 0, (byte)'f', (byte)'t', (byte)'y', (byte)'p', (byte)'m', (byte)'i', (byte)'a', (byte)'f' ], [ 0xff, 0xff, 0xff, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff ]),
 				new(0, [ 0, 0, 0, 0, (byte)'f', (byte)'t', (byte)'y', (byte)'p', (byte)'1', (byte)'p', (byte)'i', (byte)'c' ], [ 0xff, 0xff, 0xff, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff ])
-			},
+			],
 			null,
 			HeifContainer.TryLoad
 		));

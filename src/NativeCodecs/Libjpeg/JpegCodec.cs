@@ -69,9 +69,9 @@ public static class CodecCollectionExtensions
 			JpegFactory.DisplayName,
 			jpegMime,
 			jpegExtension,
-			new ContainerPattern[] {
+			[
 				new(0, [ 0xff, 0xd8 ], [ 0xff, 0xff ]),
-			},
+			],
 			null,
 			JpegContainer.TryLoad
 		));

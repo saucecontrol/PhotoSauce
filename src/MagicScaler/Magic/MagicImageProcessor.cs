@@ -16,7 +16,7 @@ public static class MagicImageProcessor
 	/// <summary>Overrides the default <a href="https://en.wikipedia.org/wiki/SIMD">SIMD</a> support detection to force floating point processing on or off.</summary>
 	/// <value>Default value: <see langword="true" /> if the runtime/JIT and hardware support hardware-accelerated <see cref="Vector{T}" />, otherwise <see langword="false" /></value>
 	[Obsolete($"This feature will be removed in a future version."), EditorBrowsable(EditorBrowsableState.Never)]
-	public static bool EnableSimd { get; set; } = Vector.IsHardwareAccelerated && (Vector<float>.Count is 4 or 8);
+	public static bool EnableSimd { get; set; } = Vector.IsHardwareAccelerated && Vector<float>.Count is 4 or 8;
 
 	/// <summary>All-in-one processing of an image according to the specified <paramref name="settings" />.</summary>
 	/// <param name="imgPath">The path to a file containing the input image.</param>

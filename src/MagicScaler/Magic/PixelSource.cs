@@ -108,13 +108,11 @@ internal sealed class PixelSourceContainer(IPixelSource source) : IImageContaine
 	void IDisposable.Dispose() { }
 }
 
-internal abstract class ChainedPixelSource : PixelSource
+internal abstract class ChainedPixelSource(PixelSource source) : PixelSource()
 {
-	protected PixelSource PrevSource { get; private set; }
+	protected PixelSource PrevSource { get; private set; } = source;
 
 	protected int BufferStride => MathUtil.PowerOfTwoCeiling(PrevSource.Width * PrevSource.Format.BytesPerPixel, IntPtr.Size);
-
-	protected ChainedPixelSource(PixelSource source) : base() => PrevSource = source;
 
 	public override PixelFormat Format => PrevSource.Format;
 	public override int Width => PrevSource.Width;

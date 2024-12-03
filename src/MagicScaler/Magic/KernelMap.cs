@@ -169,7 +169,7 @@ internal sealed class KernelMap<T> : IMultiDisposable where T : unmanaged
 
 		var kcache = kbuff.Span.Slice(buffLen - cacheLen, cacheLen);
 		var kernel = kbuff.Span.Slice(buffLen - klen - cacheLen, klen);
-		var mbuff = MemoryMarshal.Cast<float, T>(kbuff.Span.Slice(0, Math.Min(klen, isize) * channels));
+		var mbuff = MemoryMarshal.Cast<float, T>(kbuff.Span[..(Math.Min(klen, isize) * channels)]);
 		var mbytes = MemoryMarshal.AsBytes(mbuff);
 
 		if (cacheLen > 0)

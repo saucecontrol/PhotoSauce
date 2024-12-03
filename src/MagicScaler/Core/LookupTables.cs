@@ -20,7 +20,7 @@ internal static class LookupTables
 	public const int InverseGammaLength = InverseGammaScale + 2;
 
 	private static readonly Lazy<float[]> alphaTable = new(() => {
-		var tbl = new float[InverseGammaLength];
+		float[] tbl = new float[InverseGammaLength];
 
 		for (int i = 0; i < tbl.Length; i++)
 			tbl[i] = (float)((double)i / byte.MaxValue);
@@ -32,12 +32,12 @@ internal static class LookupTables
 
 	//http://www.w3.org/Graphics/Color/srgb
 	private static readonly Lazy<Tuple<float[], byte[]>> gammaTable = new(() => {
-		var tbl = new float[GammaLengthFloat];
+		float[] tbl = new float[GammaLengthFloat];
 
 		for (int i = 0; i < tbl.Length; i++)
 		{
 			double d = (double)i / GammaScaleFloat;
-			if (d <= (0.04045 / 12.92))
+			if (d <= 0.04045 / 12.92)
 				d *= 12.92;
 			else
 				d = 1.055 * Pow(d, 1.0 / 2.4) - 0.055;
@@ -51,8 +51,8 @@ internal static class LookupTables
 	});
 
 	private static readonly Lazy<Tuple<float[], ushort[]>> inverseGammaTable = new(() => {
-		var igtf = new float[InverseGammaLength];
-		var igtq = new ushort[InverseGammaLength];
+		float[] igtf = new float[InverseGammaLength];
+		ushort[] igtq = new ushort[InverseGammaLength];
 
 		for (int i = 0; i < igtf.Length; i++)
 		{
@@ -73,7 +73,7 @@ internal static class LookupTables
 	});
 
 	private static readonly Lazy<uint[]> octreeIndexTable = new(() => {
-		var tbl = new uint[256 * 3];
+		uint[] tbl = new uint[256 * 3];
 
 		for (uint i = 0; i < 256; i++)
 		{
@@ -122,7 +122,7 @@ internal static class LookupTables
 
 	public static byte[] MakeUQ15Gamma(float[] gt)
 	{
-		var gtq = new byte[GammaLengthUQ15];
+		byte[] gtq = new byte[GammaLengthUQ15];
 		for (int i = 0; i < gtq.Length; i++)
 		{
 			double val = (double)i / GammaScaleUQ15;
@@ -144,7 +144,7 @@ internal static class LookupTables
 		if (igt == SrgbInverseGamma)
 			return SrgbInverseGammaUQ15;
 
-		var igtq = new ushort[InverseGammaLength];
+		ushort[] igtq = new ushort[InverseGammaLength];
 		for (int i = 0; i < igtq.Length; i++)
 			igtq[i] = FixToUQ15One(igt[i]);
 
@@ -158,7 +158,7 @@ internal static class LookupTables
 		const int minVal = VideoLumaMin << 2;
 		const int maxVal = VideoLumaMax << 2;
 
-		var gtv = new float[gt.Length];
+		float[] gtv = new float[gt.Length];
 		for (int i = 0; i < gtv.Length; i++)
 			gtv[i] = (float)(((double)gt[i] * (maxVal - minVal) + minVal) / GammaScaleFloat);
 
@@ -172,7 +172,7 @@ internal static class LookupTables
 		const int minVal = VideoLumaMin;
 		const int maxVal = VideoLumaMax;
 
-		var igtv = new float[igt.Length];
+		float[] igtv = new float[igt.Length];
 		for (int i = 0; i < igtv.Length; i++)
 		{
 			double val = (double)(i.Clamp(minVal, maxVal) - minVal) / (maxVal - minVal);

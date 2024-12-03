@@ -151,7 +151,7 @@ internal sealed unsafe class AnimationEncoder : IDisposable
 		else
 			context.Source = context.ImageFrame.PixelSource.AsPixelSource();
 
-		if (context.ImageFrame is not IMetadataSource fmsrc || !fmsrc.TryGetMetadata<AnimationFrame>(out anifrm))
+		if (context.ImageFrame is not IMetadataSource fmsrc || !fmsrc.TryGetMetadata(out anifrm))
 			anifrm = AnimationFrame.Default;
 
 		MagicTransforms.AddAnimationTransforms(context, anicnt, anifrm);
