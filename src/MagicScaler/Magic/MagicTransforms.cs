@@ -421,6 +421,27 @@ internal static class MagicTransforms
 			return;
 		}
 
+		// Workaround for WIC JPEG decoder bug https://github.com/saucecontrol/wic-jpeg-bug
+		var src = ctx.Source;
+		if (src is WicFramePixelSource && src.Format == PixelFormat.Cmyk32 && src.Width != crop.Width)
+		{
+			using var buff = BufferPool.RentLocal<byte>(src.Width * src.Format.BytesPerPixel);
+			unsafe
+			{
+				fixed (byte* pBuff = buff)
+				{
+					src.CopyPixels(src.Area.Slice(crop.Y, 1), buff.Length, buff.Length, pBuff);
+					uint rpix = *((uint*)pBuff + crop.X);
+
+					src.CopyPixels(crop.Slice(0, 1), buff.Length, buff.Length, pBuff);
+					uint cpix = *(uint*)pBuff;
+
+					if (cpix == ~rpix)
+						ctx.Source = ctx.AddProfiler(new InvertTransform(src));
+				}
+			}
+		}
+
 		ctx.Source = ctx.AddProfiler(new CropTransform(ctx.Source, crop));
 	}
 
