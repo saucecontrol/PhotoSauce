@@ -93,8 +93,7 @@ internal static class VideoLumaConverter
 
 				if (ip < ipe + Vector256<byte>.Count)
 				{
-					nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
-					ip = UnsafeUtil.SubtractOffset(ip, offs);
+					ip = ipe;
 					Avx.Store(ip, vlast);
 					goto LoopTop;
 				}
@@ -135,8 +134,7 @@ internal static class VideoLumaConverter
 
 				if (ip < ipe + Vector128<byte>.Count)
 				{
-					nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
-					ip = UnsafeUtil.SubtractOffset(ip, offs);
+					ip = ipe;
 					Sse2.Store(ip, vlast);
 					goto LoopTop;
 				}
@@ -218,8 +216,7 @@ internal static class VideoLumaConverter
 
 				if (ip < ipe + Vector256<byte>.Count)
 				{
-					nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
-					ip = UnsafeUtil.SubtractOffset(ip, offs);
+					ip = ipe;
 					Avx.Store(ip, vlast);
 					goto LoopTop;
 				}
@@ -255,8 +252,7 @@ internal static class VideoLumaConverter
 
 				if (ip < ipe + Vector128<byte>.Count)
 				{
-					nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
-					ip = UnsafeUtil.SubtractOffset(ip, offs);
+					ip = ipe;
 					Sse2.Store(ip, vlast);
 					goto LoopTop;
 				}
@@ -357,8 +353,7 @@ internal static class VideoChromaConverter
 
 				if (ip < ipe + Vector256<byte>.Count)
 				{
-					nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
-					ip = UnsafeUtil.SubtractOffset(ip, offs);
+					ip = ipe;
 					Avx.Store(ip, vlast);
 					goto LoopTop;
 				}
@@ -407,8 +402,7 @@ internal static class VideoChromaConverter
 
 				if (ip < ipe + Vector128<byte>.Count)
 				{
-					nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
-					ip = UnsafeUtil.SubtractOffset(ip, offs);
+					ip = ipe;
 					Sse2.Store(ip, vlast);
 					goto LoopTop;
 				}
@@ -507,8 +501,7 @@ internal static class VideoChromaConverter
 
 				if (ip < ipe + Vector256<byte>.Count)
 				{
-					nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
-					ip = UnsafeUtil.SubtractOffset(ip, offs);
+					ip = ipe;
 					Avx.Store(ip, vlast);
 					goto LoopTop;
 				}
@@ -559,8 +552,7 @@ internal static class VideoChromaConverter
 
 				if (ip < ipe + Vector128<byte>.Count)
 				{
-					nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
-					ip = UnsafeUtil.SubtractOffset(ip, offs);
+					ip = ipe;
 					Sse2.Store(ip, vlast);
 					goto LoopTop;
 				}

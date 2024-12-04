@@ -75,11 +75,12 @@ public static class WicImageProcessor
 		MagicTransforms.AddMatte(ctx);
 		MagicTransforms.AddPad(ctx);
 		WicTransforms.AddIndexedColorConverter(ctx);
-		MagicTransforms.AddExternalFormatConverter(ctx, true);
 
 		var codec = ctx.Settings.EncoderInfo!;
 		if (wicCodecs.TryGetEncoderForMimeType(codec.MimeTypes.First(), out var wicenc))
 			codec = wicenc;
+		else
+			MagicTransforms.AddExternalFormatConverter(ctx, true);
 
 		using var enc = codec.Factory(ostm, ctx.Settings.EncoderOptions);
 		enc.WriteFrame(ctx.Source, ctx.Metadata, PixelArea.Default);

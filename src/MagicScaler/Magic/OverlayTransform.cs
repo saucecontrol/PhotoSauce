@@ -155,8 +155,7 @@ internal sealed class OverlayTransform : ChainedPixelSource
 
 			if (ip < ipe + Vector256<uint>.Count)
 			{
-				nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
-				ip = UnsafeUtil.SubtractOffset(ip, offs);
+				ip = ipe;
 				goto LoopTop;
 			}
 
@@ -181,8 +180,7 @@ internal sealed class OverlayTransform : ChainedPixelSource
 
 			if (ip < ipe + Vector128<uint>.Count)
 			{
-				nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
-				ip = UnsafeUtil.SubtractOffset(ip, offs);
+				ip = ipe;
 				goto LoopTop;
 			}
 

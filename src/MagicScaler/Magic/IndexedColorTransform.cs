@@ -68,7 +68,7 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexe
 
 	public void SetPalette(ReadOnlySpan<uint> pal, bool isExact)
 	{
-		if (pal.Length is < 2 or > maxPaletteSize) throw new ArgumentException($"Palette must have between 2 and {maxPaletteSize} entries.", nameof(pal));
+		if (pal.Length is < 1 or > maxPaletteSize) throw new ArgumentException($"Palette must have between 1 and {maxPaletteSize} entries.", nameof(pal));
 
 		pal.CopyTo(palBuff.Span);
 		pal.CopyTo(palBuff.Span[maxPaletteSize..]);
@@ -85,7 +85,7 @@ internal sealed unsafe class IndexedColorTransform : ChainedPixelSource, IIndexe
 	protected override void CopyPixelsInternal(in PixelArea prc, int cbStride, int cbBufferSize, byte* pbBuffer)
 	{
 		if (palBuff.IsEmpty) ThrowHelper.ThrowObjectDisposed(nameof(IndexedColorTransform));
-		if (paletteColors is 0) throw new InvalidOperationException("No palette has been set.");
+		if (paletteLength is 0) throw new InvalidOperationException("No palette has been set.");
 
 		if (isFixedGrey)
 			copyPixelsDirect(prc, cbStride, cbBufferSize, pbBuffer);

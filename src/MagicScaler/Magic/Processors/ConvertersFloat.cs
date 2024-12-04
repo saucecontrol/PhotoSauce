@@ -1112,8 +1112,7 @@ internal static class FloatConverter
 
 			if (ip < ipe + Vector256<float>.Count)
 			{
-				nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
-				ip = UnsafeUtil.SubtractOffset(ip, offs);
+				ip = ipe;
 				Avx.Store(ip, vlast);
 				goto LoopTop;
 			}
@@ -1210,8 +1209,7 @@ internal static class FloatConverter
 
 			if (ip < ipe + Vector256<float>.Count)
 			{
-				nuint offs = UnsafeUtil.ByteOffset(ipe, ip);
-				ip = UnsafeUtil.SubtractOffset(ip, offs);
+				ip = ipe;
 				Avx.Store(ip, vlast);
 				goto LoopTop;
 			}
