@@ -79,11 +79,7 @@ internal readonly record struct Matrix3x3C
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Matrix3x3C FromRows(in Vector3C r0, in Vector3C r1, in Vector3C r2)
 	{
-#if NET5_0_OR_GREATER
 		Unsafe.SkipInit(out Matrix3x3C r);
-#else
-		var r = default(Matrix3x3C);
-#endif
 
 		ref var rr = ref Unsafe.As<Matrix3x3C, Vector3C>(ref r);
 		Unsafe.Add(ref rr, 0) = r0;

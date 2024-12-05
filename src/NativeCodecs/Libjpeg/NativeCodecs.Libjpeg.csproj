@@ -1,9 +1,9 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<VersionPrefix>3.0.4</VersionPrefix>
 		<TargetFrameworks>net8.0;net472</TargetFrameworks>
-		<TargetFrameworks Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">$(TargetFrameworks);net461;netstandard2.0;netstandard2.1</TargetFrameworks>
+		<TargetFrameworks Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">$(TargetFrameworks);net462;netstandard2.0;netstandard2.1</TargetFrameworks>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -11,7 +11,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Include="Package\build\*" Pack="true" PackagePath="build/net461/;buildTransitive/net461/" />
+		<None Include="Package\build\*" Pack="true" PackagePath="build/net462/;buildTransitive/net462/" />
 		<None Include="$(RepositoryRoot)out\vcpkg\install\win-x64\bin\psjpeg.dll" Link="Package\native\win-x64\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/win-x64/native/" />
 		<None Include="$(RepositoryRoot)out\vcpkg\install\win-x86\bin\psjpeg.dll" Link="Package\native\win-x86\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/win-x86/native/" />
 		<None Include="$(RepositoryRoot)out\vcpkg\install\win-arm64\bin\psjpeg.dll" Link="Package\native\win-arm64\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/win-arm64/native/" />

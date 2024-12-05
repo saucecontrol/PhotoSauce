@@ -423,7 +423,7 @@ internal static class MagicTransforms
 
 		// Workaround for WIC JPEG decoder bug https://github.com/saucecontrol/wic-jpeg-bug
 		var src = ctx.Source;
-		if (src is WicFramePixelSource && src.Format == PixelFormat.Cmyk32 && src.Width != crop.Width)
+		if (ctx.ImageFrame is WicPlanarFrame && src.Format == PixelFormat.Cmyk32 && src.Width != crop.Width)
 		{
 			using var buff = BufferPool.RentLocal<byte>(src.Width * src.Format.BytesPerPixel);
 			unsafe
