@@ -83,7 +83,7 @@ internal sealed unsafe class JxlContainer : IImageContainer, IMetadataSource, II
 					if (status is JxlDecoderStatus.JXL_DEC_FRAME)
 					{
 						frameCountRaw++;
-						JxlError.Check(JxlDecoderSkipCurrentFrame(dec));
+						JxlDecoderSkipCurrentFrame(dec);
 					}
 					else if (status is JxlDecoderStatus.JXL_DEC_BOX)
 					{

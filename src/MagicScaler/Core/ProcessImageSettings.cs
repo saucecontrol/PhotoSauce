@@ -201,7 +201,7 @@ public sealed class ProcessImageSettings
 	/// <value>Default value: <see cref="Enumerable.Empty" /></value>
 	public IEnumerable<string> MetadataNames { get; set; } = [ ];
 	/// <summary>Codec options to be passed to the image encoder.</summary>
-	/// <value>Default value: calculated based on input image properties and ouput size, or taken from the codec's configuration.</value>
+	/// <value>Default value: calculated based on input image properties and output size, or taken from the codec's configuration.</value>
 	public IEncoderOptions? EncoderOptions { get; set; }
 	/// <summary>Codec options to be passed to the image decoder.</summary>
 	/// <value>Default value: taken from the codec's default configuration.</value>
