@@ -18,7 +18,8 @@
 		<PackageReference Include="System.Memory" Version="4.6.0" />
 		<PackageReference Include="System.Numerics.Vectors" Version="4.6.0" />
 		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
-		<PackageReference Include="IndexRange" Version="1.0.3" />
+		<PackageReference Include="System.valueTuple" Version="4.5.0" />
+		<PackageReference Include="Microsoft.Bcl.Memory" Version="9.0.2" />
 	</ItemGroup>
 
 	<ItemGroup Condition="$(DefineConstants.Contains('GDIPROCESSOR')) And !$(DefineConstants.Contains('NETFRAMEWORK'))">
