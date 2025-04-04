@@ -135,6 +135,9 @@ internal static class MathUtil
 	public static int DivCeiling(int x, int y) => (int)(((uint)x + ((uint)y - 1)) / (uint)y);
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static nint DivCeiling(nint x, nint y) => (nint)(((nuint)x + ((nuint)y - 1)) / (nuint)y);
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static int PowerOfTwoFloor(int x, int powerOfTwo) => x & ~(powerOfTwo - 1);
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]

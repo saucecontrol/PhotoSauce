@@ -8,34 +8,39 @@ using System;
 namespace PhotoSauce.MagicScaler.Experimental;
 
 /// <summary>Provides a mechanism for processing raw pixel data using caller-provided buffers.</summary>
+[CLSCompliant(false)]
 public interface IPixelProcessor
 {
-	/// <summary>Processes the pixels in <paramref name="source"/> and stores the results in <paramref name="dest"/>.</summary>
-	/// <param name="dest">A target memory buffer that will receive the pixel data.</param>
-	/// <param name="source">A source memory buffer that pixel data will be read from.</param>
-	void Process(Span<byte> dest, ReadOnlySpan<byte> source);
+	/// <summary>Processes the pixel data in the input buffer and stores the results in the output buffer.</summary>
+	/// <param name="istart">A pointer to the input buffer.</param>
+	/// <param name="cbi">The size, in bytes, of the input buffer.</param>
+	/// <param name="ostart">A pointer to the output buffer.</param>
+	/// <param name="cbo">The size, in bytes, of the input buffer.</param>
+	/// <exception cref="ArgumentException">Thrown when the output buffer is too small.</exception>
+	unsafe void Process(byte* istart, nint cbi, byte* ostart, nint cbo);
 }
 
 internal static class PixelProcessor
 {
-	public static IPixelProcessor FromConversionProcessor(IConversionProcessor processor)
+	public static IPixelProcessor FromConversionProcessor(IConversionProcessor processor, PixelFormat sourceFormat, PixelFormat destFormat)
 	{
-		return new ConversionProcessorWrapper(processor);
+		return new ConversionProcessorWrapper(processor, sourceFormat, destFormat);
 	}
 
-	private sealed class ConversionProcessorWrapper(IConversionProcessor processor) : IPixelProcessor
+	private sealed class ConversionProcessorWrapper(IConversionProcessor processor, PixelFormat sourceFormat, PixelFormat destFormat) : IPixelProcessor
 	{
 		private readonly IConversionProcessor processor = processor;
+		private readonly PixelFormat sourceFormat = sourceFormat;
+		private readonly PixelFormat destFormat = destFormat;
 
-		public unsafe void Process(Span<byte> dest, ReadOnlySpan<byte> source)
+		public unsafe void Process(byte* istart, nint cbi, byte* ostart, nint cbo)
 		{
-			// TODO: argument validation? how to validate that dest has enough bytes for source?
+			nint icount = MathUtil.DivCeiling(cbi * 8, sourceFormat.BitsPerPixel);
+			nint ocount = MathUtil.DivCeiling(cbo * 8, destFormat.BitsPerPixel);
+			if (ocount < icount)
+				throw new ArgumentException($"Output buffer is too small");
 
-			fixed (byte* op = dest)
-			fixed (byte* ip = source)
-			{
-				processor.ConvertLine(ip, op, source.Length);
-			}
+			processor.ConvertLine(istart, ostart, cbi);
 		}
 	}
 }

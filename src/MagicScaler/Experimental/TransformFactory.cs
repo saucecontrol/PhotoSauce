@@ -16,8 +16,13 @@ public static class TransformFactory
 	/// <param name="sourceProfile">The ICC color profile to use for the source pixel data. If null, sRGB will be used.</param>
 	/// <param name="destProfile">The ICC color profile to use for the resulting pixel data. If null, sRGB will be used.</param>
 	/// <returns>An <see cref="IPixelProcessor"/> that can be used to process pixel data.</returns>
-	public static IPixelProcessor CreateConversionProcessor(Guid sourceFormat, Guid destFormat, IColorProfileHandle? sourceProfile = null, IColorProfileHandle? destProfile = null) =>
-		PixelProcessor.FromConversionProcessor(ConversionTransform.CreateProcessor(PixelFormat.FromGuid(sourceFormat), PixelFormat.FromGuid(destFormat), sourceProfile?.ColorProfile, destProfile?.ColorProfile));
+	[CLSCompliant(false)]
+	public static IPixelProcessor CreateConversionProcessor(Guid sourceFormat, Guid destFormat, IColorProfileHandle? sourceProfile = null, IColorProfileHandle? destProfile = null)
+	{
+		PixelFormat sourcePixelFormat = PixelFormat.FromGuid(sourceFormat);
+		PixelFormat destPixelFormat = PixelFormat.FromGuid(destFormat);
+		return PixelProcessor.FromConversionProcessor(ConversionTransform.CreateProcessor(sourcePixelFormat, destPixelFormat, sourceProfile?.ColorProfile, destProfile?.ColorProfile), sourcePixelFormat, destPixelFormat);
+	}
 
 	/// <summary>Creates a transform that converts an <see cref="IPixelSource" /> to the given pixel format, optionally using the given ICC color profiles for gamma correction.</summary>
 	/// <param name="source">The <see cref="IPixelSource" /> to retrieve pixels from.</param>
