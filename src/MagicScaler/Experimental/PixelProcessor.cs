@@ -42,8 +42,8 @@ internal static class PixelProcessor
 
 			if (sourceFormat.BitsPerPixel == destFormat.BitsPerPixel)
 			{
-				// Converters that operate on same-sized elements assume that istart==ostart, e.g. the conversion is only done in-place.
-				// In order to avoid leaking that implementation detail, copy the input to output and then process output in-place.
+				// Converters that operate on same-sized elements assume that istart==ostart, e.g. the conversion is done in-place.
+				// In order to avoid leaking that implementation detail, copy input to output and then process output in-place.
 				if (istart != ostart)
 					Buffer.MemoryCopy(istart, ostart, cbo, cbi);
 				processor.ConvertLine(ostart, ostart, cbi);
