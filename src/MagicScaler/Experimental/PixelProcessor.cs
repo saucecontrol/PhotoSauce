@@ -40,7 +40,16 @@ internal static class PixelProcessor
 			if (ocount < icount)
 				throw new ArgumentException($"Output buffer is too small");
 
-			processor.ConvertLine(istart, ostart, cbi);
+			if (sourceFormat.BitsPerPixel == destFormat.BitsPerPixel)
+			{
+				// Converters that operate on same-sized elements assume that istart==ostart, e.g. the conversion is only done in-place.
+				// In order to avoid leaking that implementation detail, copy the input to output and then process output in-place.
+				if (istart != ostart)
+					Buffer.MemoryCopy(istart, ostart, cbo, cbi);
+				processor.ConvertLine(ostart, ostart, cbi);
+			}
+			else
+				processor.ConvertLine(istart, ostart, cbi);
 		}
 	}
 }
