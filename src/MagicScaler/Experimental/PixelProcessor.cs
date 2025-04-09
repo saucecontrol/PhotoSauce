@@ -15,7 +15,7 @@ public interface IPixelProcessor
 	/// <param name="istart">A pointer to the input buffer.</param>
 	/// <param name="cbi">The size, in bytes, of the input buffer.</param>
 	/// <param name="ostart">A pointer to the output buffer.</param>
-	/// <param name="cbo">The size, in bytes, of the input buffer.</param>
+	/// <param name="cbo">The size, in bytes, of the output buffer.</param>
 	/// <exception cref="ArgumentException">Thrown when the output buffer is too small.</exception>
 	unsafe void Process(byte* istart, nint cbi, byte* ostart, nint cbo);
 }
