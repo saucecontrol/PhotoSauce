@@ -10,6 +10,20 @@ namespace PhotoSauce.MagicScaler.Experimental;
 /// <summary>Contains methods for creating <see cref="IPixelSource" /> transforms. These may be changed or removed in future releases.</summary>
 public static class TransformFactory
 {
+	/// <summary>Create a processor that converts raw pixel data to the given pixel format, optionally using the given ICC color profiles for gamma correction.</summary>
+	/// <param name="sourceFormat">The binary representation of the source pixel data.  Must be one of the values from <see cref="PixelFormats"/>.</param>
+	/// <param name="destFormat">The binary representation of the destination pixel data.  Must be one of the values from <see cref="PixelFormats"/>.</param>
+	/// <param name="sourceProfile">The ICC color profile to use for the source pixel data. If null, sRGB will be used.</param>
+	/// <param name="destProfile">The ICC color profile to use for the resulting pixel data. If null, sRGB will be used.</param>
+	/// <returns>An <see cref="IPixelProcessor"/> that can be used to process pixel data.</returns>
+	[CLSCompliant(false)]
+	public static IPixelProcessor CreateConversionProcessor(Guid sourceFormat, Guid destFormat, IColorProfileHandle? sourceProfile = null, IColorProfileHandle? destProfile = null)
+	{
+		PixelFormat sourcePixelFormat = PixelFormat.FromGuid(sourceFormat);
+		PixelFormat destPixelFormat = PixelFormat.FromGuid(destFormat);
+		return PixelProcessor.FromConversionProcessor(ConversionTransform.CreateProcessor(sourcePixelFormat, destPixelFormat, sourceProfile?.ColorProfile, destProfile?.ColorProfile), sourcePixelFormat, destPixelFormat);
+	}
+
 	/// <summary>Creates a transform that converts an <see cref="IPixelSource" /> to the given pixel format, optionally using the given ICC color profiles for gamma correction.</summary>
 	/// <param name="source">The <see cref="IPixelSource" /> to retrieve pixels from.</param>
 	/// <param name="destFormat">The binary representation of the resulting pixel data.  Must be one of the values from <see cref="PixelFormats" />.</param>

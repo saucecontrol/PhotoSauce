@@ -15,24 +15,29 @@ internal sealed class ConversionTransform : ChainedPixelSource
 
 	public ConversionTransform(PixelSource source, PixelFormat destFormat, ColorProfile? sourceProfile = null, ColorProfile? destProfile = null) : base(source)
 	{
-		var srcFormat = source.Format;
 		Format = destFormat;
+		processor = CreateProcessor(source.Format, destFormat, sourceProfile, destProfile);
+	}
 
-		if (srcFormat.ColorRepresentation == PixelColorRepresentation.Cmyk && srcFormat.BitsPerPixel == 64 && Format.BitsPerPixel == 32)
+	public static IConversionProcessor CreateProcessor(PixelFormat srcFormat, PixelFormat destFormat, ColorProfile? sourceProfile = null, ColorProfile? destProfile = null)
+	{
+		IConversionProcessor? processor = null;
+
+		if (srcFormat.ColorRepresentation == PixelColorRepresentation.Cmyk && srcFormat.BitsPerPixel == 64 && destFormat.BitsPerPixel == 32)
 		{
 			processor = NarrowingConverter.Instance;
 		}
-		else if (srcFormat.Range != Format.Range && srcFormat.BitsPerPixel == 8 && Format.BitsPerPixel == 8)
+		else if (srcFormat.Range != destFormat.Range && srcFormat.BitsPerPixel == 8 && destFormat.BitsPerPixel == 8)
 		{
 			if (srcFormat.Range == PixelValueRange.Video)
 				processor = srcFormat.Encoding == PixelValueEncoding.Chroma ? VideoChromaConverter.VideoToFullRangeProcessor.Instance : VideoLumaConverter.VideoToFullRangeProcessor.Instance;
 			else
 				processor = srcFormat.Encoding == PixelValueEncoding.Chroma ? VideoChromaConverter.FullRangeToVideoProcessor.Instance : VideoLumaConverter.FullRangeToVideoProcessor.Instance;
 		}
-		else if (srcFormat.Encoding == PixelValueEncoding.Companded && Format.Encoding == PixelValueEncoding.Linear)
+		else if (srcFormat.Encoding == PixelValueEncoding.Companded && destFormat.Encoding == PixelValueEncoding.Linear)
 		{
 			var srcProfile = sourceProfile as CurveProfile ?? ColorProfile.sRGB;
-			if (Format.NumericRepresentation == PixelNumericRepresentation.Fixed)
+			if (destFormat.NumericRepresentation == PixelNumericRepresentation.Fixed)
 			{
 				var conv = srcFormat.Range == PixelValueRange.Video
 					? srcProfile.GetConverter<byte, ushort, EncodingType.Companded, EncodingRange.Video>()
@@ -42,19 +47,19 @@ internal sealed class ConversionTransform : ChainedPixelSource
 				else
 					processor = conv.Processor;
 			}
-			else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger && Format.NumericRepresentation == PixelNumericRepresentation.Float)
+			else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger && destFormat.NumericRepresentation == PixelNumericRepresentation.Float)
 			{
 				var conv = srcFormat.Range == PixelValueRange.Video
 					? srcProfile.GetConverter<byte, float, EncodingType.Companded, EncodingRange.Video>()
 					: srcProfile.GetConverter<byte, float, EncodingType.Companded>();
 				if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
 					processor = conv.Processor3A;
-				else if (srcFormat.ChannelCount == 3 && Format.ChannelCount == 4)
+				else if (srcFormat.ChannelCount == 3 && destFormat.ChannelCount == 4)
 					processor = conv.Processor3X;
 				else
 					processor = conv.Processor;
 			}
-			else if (Format.NumericRepresentation == PixelNumericRepresentation.Float)
+			else if (destFormat.NumericRepresentation == PixelNumericRepresentation.Float)
 			{
 				var conv = srcProfile.GetConverter<float, float, EncodingType.Companded>();
 				if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
@@ -63,12 +68,12 @@ internal sealed class ConversionTransform : ChainedPixelSource
 					processor = conv.Processor;
 			}
 		}
-		else if (srcFormat.Encoding == PixelValueEncoding.Linear && Format.Encoding == PixelValueEncoding.Companded)
+		else if (srcFormat.Encoding == PixelValueEncoding.Linear && destFormat.Encoding == PixelValueEncoding.Companded)
 		{
 			var dstProfile = destProfile as CurveProfile ?? ColorProfile.sRGB;
 			if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Fixed)
 			{
-				var conv = Format.Range == PixelValueRange.Video
+				var conv = destFormat.Range == PixelValueRange.Video
 					? dstProfile.GetConverter<ushort, byte, EncodingType.Linear, EncodingRange.Video>()
 					: dstProfile.GetConverter<ushort, byte, EncodingType.Linear>();
 				if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
@@ -76,14 +81,14 @@ internal sealed class ConversionTransform : ChainedPixelSource
 				else
 					processor = conv.Processor;
 			}
-			else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Float && Format.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger)
+			else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Float && destFormat.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger)
 			{
-				var conv = Format.Range == PixelValueRange.Video
+				var conv = destFormat.Range == PixelValueRange.Video
 					? dstProfile.GetConverter<float, byte, EncodingType.Linear, EncodingRange.Video>()
 					: dstProfile.GetConverter<float, byte, EncodingType.Linear>();
 				if (srcFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
 					processor = conv.Processor3A;
-				else if (srcFormat.ChannelCount == 4 && Format.ChannelCount == 3)
+				else if (srcFormat.ChannelCount == 4 && destFormat.ChannelCount == 3)
 					processor = conv.Processor3X;
 				else
 					processor = conv.Processor;
@@ -97,58 +102,60 @@ internal sealed class ConversionTransform : ChainedPixelSource
 					processor = conv.Processor;
 			}
 		}
-		else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger && Format.NumericRepresentation == PixelNumericRepresentation.Float)
+		else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger && destFormat.NumericRepresentation == PixelNumericRepresentation.Float)
 		{
 			if (srcFormat.AlphaRepresentation == PixelAlphaRepresentation.Unassociated)
 				processor = FloatConverter.Widening.InstanceFullRange.Processor3A;
-			else if (srcFormat.AlphaRepresentation == PixelAlphaRepresentation.None && srcFormat.ChannelCount == 3 && Format.ChannelCount == 4)
+			else if (srcFormat.AlphaRepresentation == PixelAlphaRepresentation.None && srcFormat.ChannelCount == 3 && destFormat.ChannelCount == 4)
 				processor = FloatConverter.Widening.InstanceFullRange.Processor3X;
 			else if (srcFormat.Encoding == PixelValueEncoding.Chroma)
 				processor = srcFormat.Range == PixelValueRange.Full ? FloatConverter.Widening.InstanceFullChroma.Processor : FloatConverter.Widening.InstanceVideoChroma.Processor;
 			else
 				processor = srcFormat.Range == PixelValueRange.Full ? FloatConverter.Widening.InstanceFullRange.Processor : FloatConverter.Widening.InstanceVideoRange.Processor;
 		}
-		else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Float && Format.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger)
+		else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Float && destFormat.NumericRepresentation == PixelNumericRepresentation.UnsignedInteger)
 		{
-			if (Format.AlphaRepresentation != PixelAlphaRepresentation.None)
+			if (destFormat.AlphaRepresentation != PixelAlphaRepresentation.None)
 				processor = FloatConverter.Narrowing.InstanceFullRange.Processor3A;
-			else if (srcFormat.AlphaRepresentation == PixelAlphaRepresentation.None && srcFormat.ChannelCount == 4 && Format.ChannelCount == 3)
+			else if (srcFormat.AlphaRepresentation == PixelAlphaRepresentation.None && srcFormat.ChannelCount == 4 && destFormat.ChannelCount == 3)
 				processor = FloatConverter.Narrowing.InstanceFullRange.Processor3X;
-			else if (Format.Encoding == PixelValueEncoding.Chroma)
-				processor = Format.Range == PixelValueRange.Full ? FloatConverter.Narrowing.InstanceFullChroma.Processor : FloatConverter.Narrowing.InstanceVideoChroma.Processor;
+			else if (destFormat.Encoding == PixelValueEncoding.Chroma)
+				processor = destFormat.Range == PixelValueRange.Full ? FloatConverter.Narrowing.InstanceFullChroma.Processor : FloatConverter.Narrowing.InstanceVideoChroma.Processor;
 			else
-				processor = Format.Range == PixelValueRange.Full ? FloatConverter.Narrowing.InstanceFullRange.Processor : FloatConverter.Narrowing.InstanceVideoRange.Processor;
+				processor = destFormat.Range == PixelValueRange.Full ? FloatConverter.Narrowing.InstanceFullRange.Processor : FloatConverter.Narrowing.InstanceVideoRange.Processor;
 		}
-		else if (srcFormat.NumericRepresentation == Format.NumericRepresentation)
+		else if (srcFormat.NumericRepresentation == destFormat.NumericRepresentation)
 		{
-			if ((srcFormat.ColorRepresentation is PixelColorRepresentation.Bgr && Format.ColorRepresentation is PixelColorRepresentation.Rgb) ||
-					(srcFormat.ColorRepresentation is PixelColorRepresentation.Rgb && Format.ColorRepresentation is PixelColorRepresentation.Bgr)
+			if ((srcFormat.ColorRepresentation is PixelColorRepresentation.Bgr && destFormat.ColorRepresentation is PixelColorRepresentation.Rgb) ||
+					(srcFormat.ColorRepresentation is PixelColorRepresentation.Rgb && destFormat.ColorRepresentation is PixelColorRepresentation.Bgr)
 				)
 			{
 				if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Float)
-					processor = Swizzlers<float>.GetSwapConverter(srcFormat.ChannelCount, Format.ChannelCount);
+					processor = Swizzlers<float>.GetSwapConverter(srcFormat.ChannelCount, destFormat.ChannelCount);
 				else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Fixed)
-					processor = Swizzlers<ushort>.GetSwapConverter(srcFormat.ChannelCount, Format.ChannelCount);
+					processor = Swizzlers<ushort>.GetSwapConverter(srcFormat.ChannelCount, destFormat.ChannelCount);
 				else
-					processor = Swizzlers<byte>.GetSwapConverter(srcFormat.ChannelCount, Format.ChannelCount);
+					processor = Swizzlers<byte>.GetSwapConverter(srcFormat.ChannelCount, destFormat.ChannelCount);
 			}
-			else if (srcFormat.ChannelCount != Format.ChannelCount)
+			else if (srcFormat.ChannelCount != destFormat.ChannelCount)
 			{
 				if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Float)
-					processor = Swizzlers<float>.GetConverter(srcFormat.ChannelCount, Format.ChannelCount);
+					processor = Swizzlers<float>.GetConverter(srcFormat.ChannelCount, destFormat.ChannelCount);
 				else if (srcFormat.NumericRepresentation == PixelNumericRepresentation.Fixed)
-					processor = Swizzlers<ushort>.GetConverter(srcFormat.ChannelCount, Format.ChannelCount);
+					processor = Swizzlers<ushort>.GetConverter(srcFormat.ChannelCount, destFormat.ChannelCount);
 				else
-					processor = Swizzlers<byte>.GetConverter(srcFormat.ChannelCount, Format.ChannelCount);
+					processor = Swizzlers<byte>.GetConverter(srcFormat.ChannelCount, destFormat.ChannelCount);
 			}
-			else if (srcFormat.IsColorCompatibleWith(Format))
+			else if (srcFormat.IsColorCompatibleWith(destFormat))
 			{
 				processor = NoopConverter.Instance.Processor;
 			}
 		}
 
 		if (processor is null)
-			throw new NotSupportedException($"Unsupported conversion: {PrevSource.Format.Name}->{Format.Name}");
+			throw new NotSupportedException($"Unsupported conversion: {srcFormat.Name}->{destFormat.Name}");
+
+		return processor;
 	}
 
 	public override bool IsCompatible(PixelSource newSource) => PrevSource.Format == newSource.Format;
