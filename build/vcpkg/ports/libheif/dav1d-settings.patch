@@ -1,12 +1,11 @@
 diff --git a/libheif/plugins/decoder_dav1d.cc b/libheif/plugins/decoder_dav1d.cc
-index 19c01d6..94b9434 100644
 --- a/libheif/plugins/decoder_dav1d.cc
 +++ b/libheif/plugins/decoder_dav1d.cc
-@@ -100,6 +100,7 @@ struct heif_error dav1d_new_decoder(void** dec)
-   }
- 
+@@ -106,5 +106,7 @@ heif_error dav1d_new_decoder2(void** dec, const heif_decoder_plugin_options* options)
    decoder->settings.all_layers = 0;
-+  decoder->settings.n_threads = 1;
  
-   if (dav1d_open(&decoder->context, &decoder->settings) != 0) {
-     delete decoder;
++  decoder->settings.n_threads = 1;
++
+   if (options->num_threads) {
+     decoder->settings.n_threads = options->num_threads;
+   }
