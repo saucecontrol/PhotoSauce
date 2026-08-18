@@ -1,0 +1,4 @@
+libraw provides CMake targets:
+
+    find_package(libraw CONFIG REQUIRED)
+    target_link_libraries(main PRIVATE libraw::raw_r)

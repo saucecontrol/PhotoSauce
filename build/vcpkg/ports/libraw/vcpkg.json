@@ -1,0 +1,25 @@
+{
+  "name": "libraw",
+  "version": "0.22.1",
+  "description": "raw image decoder library",
+  "homepage": "https://www.libraw.org",
+  "license": "LGPL-2.1-only OR CDDL-1.0",
+  "supports": "!uwp & !xbox",
+  "dependencies": [
+    "lcms",
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    },
+    "zlib-ng"
+  ],
+  "features": {
+    "openmp": {
+      "description": "Build library with OpenMP support"
+    }
+  }
+}

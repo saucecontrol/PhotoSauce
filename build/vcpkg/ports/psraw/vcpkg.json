@@ -1,0 +1,15 @@
+{
+  "name": "psraw",
+  "version": "0.22.1",
+  "description": "PhotoSauce native wrapper for LibRaw",
+  "homepage": "https://github.com/saucecontrol/PhotoSauce",
+  "license": "MIT",
+  "supports": "!uwp & !xbox",
+  "dependencies": [
+    "libraw",
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    }
+  ]
+}

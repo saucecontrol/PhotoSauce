@@ -1,0 +1,4 @@
+PSRAW_1.0 {
+    global: PsRaw*;
+    local: *;
+};

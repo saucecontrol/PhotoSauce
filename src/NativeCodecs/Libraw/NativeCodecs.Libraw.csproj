@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<VersionPrefix>0.22.1</VersionPrefix>
+		<TargetFrameworks>net8.0;net472</TargetFrameworks>
+		<TargetFrameworks Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">$(TargetFrameworks);net462;netstandard2.0;netstandard2.1</TargetFrameworks>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\MagicScaler\MagicScaler.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="Package\build\*" Pack="true" PackagePath="build/net462/;buildTransitive/net462/" />
+		<None Include="$(RepositoryRoot)out\vcpkg\install\win-x64\bin\psraw.dll;$(RepositoryRoot)out\vcpkg\install\win-x64\bin\raw_r.dll" Link="Package\native\win-x64\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/win-x64/native/" />
+		<None Include="$(RepositoryRoot)out\vcpkg\install\win-x86\bin\psraw.dll;$(RepositoryRoot)out\vcpkg\install\win-x86\bin\raw_r.dll" Link="Package\native\win-x86\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/win-x86/native/" />
+		<None Include="$(RepositoryRoot)out\vcpkg\install\win-arm64\bin\psraw.dll;$(RepositoryRoot)out\vcpkg\install\win-arm64\bin\raw_r.dll" Link="Package\native\win-arm64\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/win-arm64/native/" />
+		<None Include="$(RepositoryRoot)out\vcpkg\install\linux-x64\lib\libpsraw.so;$(RepositoryRoot)out\vcpkg\install\linux-x64\lib\libraw_r.so" Link="Package\native\linux-x64\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/linux-x64/native/" />
+		<None Include="$(RepositoryRoot)out\vcpkg\install\linux-arm64\lib\libpsraw.so;$(RepositoryRoot)out\vcpkg\install\linux-arm64\lib\libraw_r.so" Link="Package\native\linux-arm64\%(Filename)%(Extension)" Pack="true" PackagePath="runtimes/linux-arm64/native/" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)'!='Dist'">
+		<Content Condition="$(NETCoreSdkRuntimeIdentifier.StartsWith('win'))" Include="$(RepositoryRoot)out\vcpkg\install\$(NETCoreSdkRuntimeIdentifier)\bin\psraw.dll;$(RepositoryRoot)out\vcpkg\install\$(NETCoreSdkRuntimeIdentifier)\bin\raw_r.dll" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+		<Content Condition="$(NETCoreSdkRuntimeIdentifier.StartsWith('lin'))" Include="$(RepositoryRoot)out\vcpkg\install\$(NETCoreSdkRuntimeIdentifier)\lib\libpsraw.so;$(RepositoryRoot)out\vcpkg\install\$(NETCoreSdkRuntimeIdentifier)\lib\libraw_r.so" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+	</ItemGroup>
+
+</Project>

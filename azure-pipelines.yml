@@ -17,7 +17,7 @@ jobs:
   timeoutInMinutes: 0
   variables:
     VCPKG_BINARY_SOURCES: clear;nuget,$(vcpkgNuGet),readwrite
-    VCPKG_PSLIBS: giflib libheif libjxl libwebp psjpeg pspng
+    VCPKG_PSLIBS: giflib libheif libjxl libraw libwebp psjpeg pspng psraw
 
   strategy:
     matrix:
@@ -134,6 +134,7 @@ jobs:
       dotnet build -c Dist --version-suffix ci$(Build.BuildNumber) --no-dependencies src/NativeCodecs/Libheif
       dotnet build -c Dist --version-suffix ci$(Build.BuildNumber) --no-dependencies src/NativeCodecs/Libjpeg
       dotnet build -c Dist --version-suffix ci$(Build.BuildNumber) --no-dependencies src/NativeCodecs/Libwebp
+      dotnet build -c Dist --version-suffix ci$(Build.BuildNumber) --no-dependencies src/NativeCodecs/Libraw
     displayName: Build Managed
 
   - publish: out/bin

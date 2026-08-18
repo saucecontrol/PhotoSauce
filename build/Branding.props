@@ -47,6 +47,12 @@
 				<PackageTags>Image Decode Encode PNG APNG</PackageTags>
 			</PropertyGroup>
 		</When>
+		<When Condition="'$(MSBuildProjectName)'=='NativeCodecs.Libraw'">
+			<PropertyGroup>
+				<Description>Camera RAW decoder plugin for the PhotoSauce.MagicScaler pipeline.</Description>
+				<PackageTags>Image Decode Camera RAW DNG CR2 CR3 NEF ARW</PackageTags>
+			</PropertyGroup>
+		</When>
 		<When Condition="'$(MSBuildProjectName)'=='NativeCodecs.Libwebp'">
 			<PropertyGroup>
 				<Description>WebP codec plugin for the PhotoSauce.MagicScaler pipeline.</Description>
