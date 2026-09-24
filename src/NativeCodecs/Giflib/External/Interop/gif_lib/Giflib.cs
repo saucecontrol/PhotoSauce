@@ -22,7 +22,7 @@ internal static unsafe partial class Giflib
     public static extern GifFileType* EGifOpen(void* userPtr, [NativeTypeName("OutputFunc")] delegate* unmanaged[Cdecl]<GifFileType*, byte*, int, int> writeFunc, int* Error);
 
     [DllImport("gif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern int EGifSpew(GifFileType* GifFile);
+    public static extern int EGifSpew(GifFileType* GifFile, int* ErrorCode);
 
     [DllImport("gif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     [return: NativeTypeName("const char *")]
@@ -178,14 +178,14 @@ internal static unsafe partial class Giflib
     [NativeTypeName("#define _GIF_LIB_H_ 1")]
     public const int _GIF_LIB_H_ = 1;
 
-    [NativeTypeName("#define GIFLIB_MAJOR 5")]
-    public const int GIFLIB_MAJOR = 5;
+    [NativeTypeName("#define GIFLIB_MAJOR 6")]
+    public const int GIFLIB_MAJOR = 6;
 
-    [NativeTypeName("#define GIFLIB_MINOR 2")]
-    public const int GIFLIB_MINOR = 2;
+    [NativeTypeName("#define GIFLIB_MINOR 1")]
+    public const int GIFLIB_MINOR = 1;
 
-    [NativeTypeName("#define GIFLIB_RELEASE 2")]
-    public const int GIFLIB_RELEASE = 2;
+    [NativeTypeName("#define GIFLIB_RELEASE 3")]
+    public const int GIFLIB_RELEASE = 3;
 
     [NativeTypeName("#define GIF_ERROR 0")]
     public const int GIF_ERROR = 0;
@@ -241,35 +241,35 @@ internal static unsafe partial class Giflib
     [NativeTypeName("#define E_GIF_SUCCEEDED 0")]
     public const int E_GIF_SUCCEEDED = 0;
 
-    [NativeTypeName("#define E_GIF_ERR_OPEN_FAILED 1")]
-    public const int E_GIF_ERR_OPEN_FAILED = 1;
+    [NativeTypeName("#define E_GIF_ERR_OPEN_FAILED 201")]
+    public const int E_GIF_ERR_OPEN_FAILED = 201;
 
-    [NativeTypeName("#define E_GIF_ERR_WRITE_FAILED 2")]
-    public const int E_GIF_ERR_WRITE_FAILED = 2;
+    [NativeTypeName("#define E_GIF_ERR_WRITE_FAILED 202")]
+    public const int E_GIF_ERR_WRITE_FAILED = 202;
 
-    [NativeTypeName("#define E_GIF_ERR_HAS_SCRN_DSCR 3")]
-    public const int E_GIF_ERR_HAS_SCRN_DSCR = 3;
+    [NativeTypeName("#define E_GIF_ERR_HAS_SCRN_DSCR 203")]
+    public const int E_GIF_ERR_HAS_SCRN_DSCR = 203;
 
-    [NativeTypeName("#define E_GIF_ERR_HAS_IMAG_DSCR 4")]
-    public const int E_GIF_ERR_HAS_IMAG_DSCR = 4;
+    [NativeTypeName("#define E_GIF_ERR_HAS_IMAG_DSCR 204")]
+    public const int E_GIF_ERR_HAS_IMAG_DSCR = 204;
 
-    [NativeTypeName("#define E_GIF_ERR_NO_COLOR_MAP 5")]
-    public const int E_GIF_ERR_NO_COLOR_MAP = 5;
+    [NativeTypeName("#define E_GIF_ERR_NO_COLOR_MAP 205")]
+    public const int E_GIF_ERR_NO_COLOR_MAP = 205;
 
-    [NativeTypeName("#define E_GIF_ERR_DATA_TOO_BIG 6")]
-    public const int E_GIF_ERR_DATA_TOO_BIG = 6;
+    [NativeTypeName("#define E_GIF_ERR_DATA_TOO_BIG 206")]
+    public const int E_GIF_ERR_DATA_TOO_BIG = 206;
 
-    [NativeTypeName("#define E_GIF_ERR_NOT_ENOUGH_MEM 7")]
-    public const int E_GIF_ERR_NOT_ENOUGH_MEM = 7;
+    [NativeTypeName("#define E_GIF_ERR_NOT_ENOUGH_MEM 207")]
+    public const int E_GIF_ERR_NOT_ENOUGH_MEM = 207;
 
-    [NativeTypeName("#define E_GIF_ERR_DISK_IS_FULL 8")]
-    public const int E_GIF_ERR_DISK_IS_FULL = 8;
+    [NativeTypeName("#define E_GIF_ERR_DISK_IS_FULL 208")]
+    public const int E_GIF_ERR_DISK_IS_FULL = 208;
 
-    [NativeTypeName("#define E_GIF_ERR_CLOSE_FAILED 9")]
-    public const int E_GIF_ERR_CLOSE_FAILED = 9;
+    [NativeTypeName("#define E_GIF_ERR_CLOSE_FAILED 209")]
+    public const int E_GIF_ERR_CLOSE_FAILED = 209;
 
-    [NativeTypeName("#define E_GIF_ERR_NOT_WRITEABLE 10")]
-    public const int E_GIF_ERR_NOT_WRITEABLE = 10;
+    [NativeTypeName("#define E_GIF_ERR_NOT_WRITEABLE 210")]
+    public const int E_GIF_ERR_NOT_WRITEABLE = 210;
 
     [NativeTypeName("#define D_GIF_SUCCEEDED 0")]
     public const int D_GIF_SUCCEEDED = 0;
