@@ -148,7 +148,7 @@ internal static partial class BufferPool
 
 		public static LocalBuffer<T> Wrap(Span<T> span) => new(default, span);
 
-		public static LocalBuffer<T> Wrap(ArraySegment<byte> buff) => new(buff, MemoryMarshal.Cast<byte, T>(buff));
+		public static LocalBuffer<T> Wrap(ArraySegment<byte> buff) => new(buff, MemoryMarshal.Cast<byte, T>(buff.AsSpan()));
 
 		public int Length => span.Length;
 		public Span<T> Span => span;
@@ -169,7 +169,7 @@ internal readonly struct RentedBuffer<T> where T : unmanaged
 
 	public bool IsEmpty => buffer.Count == 0;
 	public unsafe int Length => (int)((uint)buffer.Count / (uint)sizeof(T));
-	public Span<T> Span => MemoryMarshal.Cast<byte, T>(buffer);
+	public Span<T> Span => MemoryMarshal.Cast<byte, T>(buffer.AsSpan());
 
 	public ref T GetPinnableReference() => ref Unsafe.As<byte, T>(ref buffer.Array![buffer.Offset]);
 
