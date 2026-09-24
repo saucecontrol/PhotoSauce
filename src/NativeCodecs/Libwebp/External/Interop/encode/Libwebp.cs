@@ -52,12 +52,12 @@ internal static unsafe partial class Libwebp
 
     public static int WebPConfigInit(WebPConfig* config)
     {
-        return WebPConfigInitInternal(config, WEBP_PRESET_DEFAULT, 75.0f, 0x020f);
+        return WebPConfigInitInternal(config, WEBP_PRESET_DEFAULT, 75.0f, 0x0210);
     }
 
     public static int WebPConfigPreset(WebPConfig* config, WebPPreset preset, float quality)
     {
-        return WebPConfigInitInternal(config, preset, quality, 0x020f);
+        return WebPConfigInitInternal(config, preset, quality, 0x0210);
     }
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -80,7 +80,7 @@ internal static unsafe partial class Libwebp
 
     public static int WebPPictureInit(WebPPicture* picture)
     {
-        return WebPPictureInitInternal(picture, 0x020f);
+        return WebPPictureInitInternal(picture, 0x0210);
     }
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -155,8 +155,8 @@ internal static unsafe partial class Libwebp
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern int WebPEncode([NativeTypeName("const WebPConfig *")] WebPConfig* config, WebPPicture* picture);
 
-    [NativeTypeName("#define WEBP_ENCODER_ABI_VERSION 0x020f")]
-    public const int WEBP_ENCODER_ABI_VERSION = 0x020f;
+    [NativeTypeName("#define WEBP_ENCODER_ABI_VERSION 0x0210")]
+    public const int WEBP_ENCODER_ABI_VERSION = 0x0210;
 
     [NativeTypeName("#define WEBP_MAX_DIMENSION 16383")]
     public const int WEBP_MAX_DIMENSION = 16383;

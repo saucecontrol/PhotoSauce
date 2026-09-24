@@ -86,32 +86,36 @@ internal static unsafe partial class Libwebp
 
     public static int WebPInitDecBuffer(WebPDecBuffer* buffer)
     {
-        return WebPInitDecBufferInternal(buffer, 0x0209);
+        return WebPInitDecBufferInternal(buffer, 0x0210);
     }
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern void WebPFreeDecBuffer(WebPDecBuffer* buffer);
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("WebPIDecoder*")]
     public static extern void* WebPINewDecoder(WebPDecBuffer* output_buffer);
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("WebPIDecoder*")]
     public static extern void* WebPINewRGB(WEBP_CSP_MODE csp, [NativeTypeName("uint8_t *")] byte* output_buffer, [NativeTypeName("size_t")] nuint output_buffer_size, int output_stride);
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("WebPIDecoder*")]
     public static extern void* WebPINewYUVA([NativeTypeName("uint8_t *")] byte* luma, [NativeTypeName("size_t")] nuint luma_size, int luma_stride, [NativeTypeName("uint8_t *")] byte* u, [NativeTypeName("size_t")] nuint u_size, int u_stride, [NativeTypeName("uint8_t *")] byte* v, [NativeTypeName("size_t")] nuint v_size, int v_stride, [NativeTypeName("uint8_t *")] byte* a, [NativeTypeName("size_t")] nuint a_size, int a_stride);
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("WebPIDecoder*")]
     public static extern void* WebPINewYUV([NativeTypeName("uint8_t *")] byte* luma, [NativeTypeName("size_t")] nuint luma_size, int luma_stride, [NativeTypeName("uint8_t *")] byte* u, [NativeTypeName("size_t")] nuint u_size, int u_stride, [NativeTypeName("uint8_t *")] byte* v, [NativeTypeName("size_t")] nuint v_size, int v_stride);
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern void WebPIDelete(void* idec);
+    public static extern void WebPIDelete([NativeTypeName("WebPIDecoder*")] void* idec);
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern VP8StatusCode WebPIAppend(void* idec, [NativeTypeName("const uint8_t *")] byte* data, [NativeTypeName("size_t")] nuint data_size);
+    public static extern VP8StatusCode WebPIAppend([NativeTypeName("WebPIDecoder*")] void* idec, [NativeTypeName("const uint8_t *")] byte* data, [NativeTypeName("size_t")] nuint data_size);
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern VP8StatusCode WebPIUpdate(void* idec, [NativeTypeName("const uint8_t *")] byte* data, [NativeTypeName("size_t")] nuint data_size);
+    public static extern VP8StatusCode WebPIUpdate([NativeTypeName("WebPIDecoder*")] void* idec, [NativeTypeName("const uint8_t *")] byte* data, [NativeTypeName("size_t")] nuint data_size);
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     [return: NativeTypeName("uint8_t *")]
@@ -136,7 +140,7 @@ internal static unsafe partial class Libwebp
 
     public static VP8StatusCode WebPGetFeatures([NativeTypeName("const uint8_t *")] byte* data, [NativeTypeName("size_t")] nuint data_size, WebPBitstreamFeatures* features)
     {
-        return WebPGetFeaturesInternal(data, data_size, features, 0x0209);
+        return WebPGetFeaturesInternal(data, data_size, features, 0x0210);
     }
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -144,15 +148,19 @@ internal static unsafe partial class Libwebp
 
     public static int WebPInitDecoderConfig(WebPDecoderConfig* config)
     {
-        return WebPInitDecoderConfigInternal(config, 0x0209);
+        return WebPInitDecoderConfigInternal(config, 0x0210);
     }
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int WebPValidateDecoderConfig([NativeTypeName("const WebPDecoderConfig *")] WebPDecoderConfig* config);
+
+    [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("WebPIDecoder*")]
     public static extern void* WebPIDecode([NativeTypeName("const uint8_t *")] byte* data, [NativeTypeName("size_t")] nuint data_size, WebPDecoderConfig* config);
 
     [DllImport("webp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern VP8StatusCode WebPDecode([NativeTypeName("const uint8_t *")] byte* data, [NativeTypeName("size_t")] nuint data_size, WebPDecoderConfig* config);
 
-    [NativeTypeName("#define WEBP_DECODER_ABI_VERSION 0x0209")]
-    public const int WEBP_DECODER_ABI_VERSION = 0x0209;
+    [NativeTypeName("#define WEBP_DECODER_ABI_VERSION 0x0210")]
+    public const int WEBP_DECODER_ABI_VERSION = 0x0210;
 }

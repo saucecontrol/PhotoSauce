@@ -15,20 +15,23 @@ internal static unsafe partial class Libwebpdemux
     public static extern int WebPGetDemuxVersion();
 
     [DllImport("webpdemux", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("WebPDemuxer*")]
     private static extern void* WebPDemuxInternal([NativeTypeName("const WebPData *")] WebPData* param0, int param1, WebPDemuxState* param2, int param3);
 
+    [return: NativeTypeName("WebPDemuxer*")]
     public static void* WebPDemux([NativeTypeName("const WebPData *")] WebPData* data)
     {
         return WebPDemuxInternal(data, 0, null, 0x0107);
     }
 
+    [return: NativeTypeName("WebPDemuxer*")]
     public static void* WebPDemuxPartial([NativeTypeName("const WebPData *")] WebPData* data, WebPDemuxState* state)
     {
         return WebPDemuxInternal(data, 1, state, 0x0107);
     }
 
     [DllImport("webpdemux", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern void WebPDemuxDelete(void* dmux);
+    public static extern void WebPDemuxDelete([NativeTypeName("WebPDemuxer*")] void* dmux);
 
     [DllImport("webpdemux", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     [return: NativeTypeName("uint32_t")]
@@ -67,8 +70,10 @@ internal static unsafe partial class Libwebpdemux
     }
 
     [DllImport("webpdemux", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("WebPAnimDecoder*")]
     private static extern void* WebPAnimDecoderNewInternal([NativeTypeName("const WebPData *")] WebPData* param0, [NativeTypeName("const WebPAnimDecoderOptions *")] WebPAnimDecoderOptions* param1, int param2);
 
+    [return: NativeTypeName("WebPAnimDecoder*")]
     public static void* WebPAnimDecoderNew([NativeTypeName("const WebPData *")] WebPData* webp_data, [NativeTypeName("const WebPAnimDecoderOptions *")] WebPAnimDecoderOptions* dec_options)
     {
         return WebPAnimDecoderNewInternal(webp_data, dec_options, 0x0107);
@@ -78,20 +83,20 @@ internal static unsafe partial class Libwebpdemux
     public static extern int WebPAnimDecoderGetInfo([NativeTypeName("const WebPAnimDecoder *")] void* dec, WebPAnimInfo* info);
 
     [DllImport("webpdemux", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern int WebPAnimDecoderGetNext(void* dec, [NativeTypeName("uint8_t **")] byte** buf, int* timestamp);
+    public static extern int WebPAnimDecoderGetNext([NativeTypeName("WebPAnimDecoder*")] void* dec, [NativeTypeName("uint8_t **")] byte** buf, int* timestamp);
 
     [DllImport("webpdemux", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern int WebPAnimDecoderHasMoreFrames([NativeTypeName("const WebPAnimDecoder *")] void* dec);
 
     [DllImport("webpdemux", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern void WebPAnimDecoderReset(void* dec);
+    public static extern void WebPAnimDecoderReset([NativeTypeName("WebPAnimDecoder*")] void* dec);
 
     [DllImport("webpdemux", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     [return: NativeTypeName("const WebPDemuxer *")]
     public static extern void* WebPAnimDecoderGetDemuxer([NativeTypeName("const WebPAnimDecoder *")] void* dec);
 
     [DllImport("webpdemux", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern void WebPAnimDecoderDelete(void* dec);
+    public static extern void WebPAnimDecoderDelete([NativeTypeName("WebPAnimDecoder*")] void* dec);
 
     [NativeTypeName("#define WEBP_DEMUX_ABI_VERSION 0x0107")]
     public const int WEBP_DEMUX_ABI_VERSION = 0x0107;
