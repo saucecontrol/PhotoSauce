@@ -59,8 +59,8 @@
 	<ItemGroup Condition="'$(Configuration)'=='Dist' Or '$(Configuration)'=='Coverage'">
 		<None Include="$(MSBuildThisFileDirectory)$(PackageIcon)" Pack="true" PackagePath="/" />
 		<None Include="$(ProjectRoot)$(PackageReadmeFile)" Pack="true" PackagePath="/" />
-		<None Include="$(RepositoryRoot)license" Pack="true" PackagePath="/" />
-		<None Include="$(RepositoryRoot)third-party-notices" Pack="true" PackagePath="/" />
+		<None Include="$(RepositoryRoot)license" Pack="true" PackagePath="" />
+		<None Include="$(RepositoryRoot)third-party-notices" Pack="true" PackagePath="" />
 		<SourceRoot Include="$(RepositoryRoot)" />
 	</ItemGroup>
 
