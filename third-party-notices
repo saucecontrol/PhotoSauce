@@ -39,14 +39,15 @@ Licensed under the Apache License, Version 2.0
 Available at
 https://github.com/SixLabors/ImageSharp/blob/master/LICENSE
 
-License notice for libjxl
--------------------------
+License notice for libjxl and jxl-rs
+------------------------------------
 
 Copyright (c) the JPEG XL Project Authors. All rights reserved.
 Licensed under a 3-clause BSD License.
 
 Available at
 https://github.com/libjxl/libjxl/blob/main/LICENSE
+https://github.com/libjxl/jxl-rs/blob/main/LICENSE
 
 License notice for libheif
 --------------------------

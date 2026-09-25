@@ -41,6 +41,12 @@
 				<PackageTags>Image Decode Encode JPEG-XL JXL</PackageTags>
 			</PropertyGroup>
 		</When>
+		<When Condition="'$(MSBuildProjectName)'=='NativeCodecs.JxlRs'">
+			<PropertyGroup>
+				<Description>Pure-Rust JPEG XL decoder plugin for the PhotoSauce.MagicScaler pipeline.</Description>
+				<PackageTags>Image Decode JPEG-XL JXL Rust</PackageTags>
+			</PropertyGroup>
+		</When>
 		<When Condition="'$(MSBuildProjectName)'=='NativeCodecs.Libpng'">
 			<PropertyGroup>
 				<Description>PNG codec plugin for the PhotoSauce.MagicScaler pipeline.</Description>

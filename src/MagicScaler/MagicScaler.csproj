@@ -74,6 +74,7 @@
 		<InternalsVisibleTo Include="$(Company).NativeCodecs.Libheif" />
 		<InternalsVisibleTo Include="$(Company).NativeCodecs.Libjpeg" />
 		<InternalsVisibleTo Include="$(Company).NativeCodecs.Libjxl" />
+		<InternalsVisibleTo Include="$(Company).NativeCodecs.JxlRs" />
 		<InternalsVisibleTo Include="$(Company).NativeCodecs.Libpng" />
 		<InternalsVisibleTo Include="$(Company).NativeCodecs.Libtiff" />
 		<InternalsVisibleTo Include="$(Company).NativeCodecs.Libwebp" />
