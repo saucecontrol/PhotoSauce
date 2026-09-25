@@ -16,7 +16,7 @@ namespace PhotoSauce.NativeCodecs.Libjpeg;
 
 internal static unsafe class JpegFactory
 {
-	public const string DisplayName = $"{psjpeg} (libjpeg-turbo) 3.0.4";
+	public const string DisplayName = $"{psjpeg} (libjpeg-turbo) 3.2.0";
 	public const string psjpeg = nameof(psjpeg);
 	public const uint libver = LIBJPEG_TURBO_VERSION_NUMBER;
 
