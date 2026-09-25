@@ -14,7 +14,7 @@ index 2230a06..53429a2 100644
  
 +if(UNIX AND HAVE_VERSION_SCRIPT)
 +  set_target_properties(psjpeg PROPERTIES LINK_FLAGS
-+    "-Wl,--version-script='${CMAKE_CURRENT_SOURCE_DIR}/psjpeg.ver'")
++    "-Wl,--version-script='${CMAKE_CURRENT_SOURCE_DIR}/src/psjpeg.ver'")
 +endif()
  ###############################################################################
  # TESTS
