@@ -122,7 +122,7 @@ internal sealed unsafe class PngEncoder : IAnimatedImageEncoder
 
 		byte[] embed = prof.Embed;
 		fixed (byte* bp = &embed.GetDataRef())
-			checkResult(PngWriteIccp(handle, bp));
+			checkResult(PngWriteIccp(handle, bp, (uint)embed.Length));
 	}
 
 	private void writeExif(IMetadataSource metadata)

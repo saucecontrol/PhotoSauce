@@ -1,17 +1,17 @@
 diff --git a/pngread.c b/pngread.c
-index 10a9664..3400174 100644
+index d82ffbd..f0de0f8 100644
 --- a/pngread.c
 +++ b/pngread.c
-@@ -320,7 +320,7 @@ png_read_frame_head(png_structp png_ptr, png_infop info_ptr)
-             png_ensure_sequence_number(png_ptr, length);
+@@ -222,7 +222,7 @@ png_read_frame_head(png_structp png_ptr, png_infop info_ptr)
+          png_ensure_sequence_number(png_ptr, length);
  
-             /* discard trailing fdATs for frames other than the first */
--            if (!have_chunk_after_DAT && png_ptr->num_frames_read > 1)
-+            if (!have_chunk_after_DAT && png_ptr->num_frames_read >= 1)
-                 png_crc_finish(png_ptr, length - 4);
-             else if(png_ptr->mode & PNG_HAVE_fcTL)
-             {
-@@ -622,7 +622,7 @@ png_read_row(png_structrp png_ptr, png_bytep row, png_bytep dsp_row)
+          /* Discard trailing fdATs for all frames except the first. */
+-         if (!have_chunk_after_DAT && png_ptr->num_frames_read > 1)
++         if (!have_chunk_after_DAT && png_ptr->num_frames_read >= 1)
+          {
+             png_crc_finish(png_ptr, length - 4);
+          }
+@@ -526,7 +526,7 @@ png_read_row(png_structrp png_ptr, png_bytep row, png_bytep dsp_row)
     png_ptr->row_buf[0]=255; /* to force error if no data was found */
     png_read_IDAT_data(png_ptr, png_ptr->row_buf, row_info.rowbytes + 1);
  
@@ -21,34 +21,35 @@ index 10a9664..3400174 100644
        if (png_ptr->row_buf[0] < PNG_FILTER_VALUE_LAST)
           png_read_filter_row(png_ptr, &row_info, png_ptr->row_buf + 1,
 diff --git a/pngwrite.c b/pngwrite.c
-index 2d9a347..3ca8b3c 100644
+index ee88e26..8faee9e 100644
 --- a/pngwrite.c
 +++ b/pngwrite.c
-@@ -1503,11 +1503,6 @@ png_write_frame_head(png_structp png_ptr, png_infop info_ptr,
+@@ -1548,12 +1548,6 @@ png_write_frame_head(png_structp png_ptr, png_infop info_ptr,
  {
-     png_debug(1, "in png_write_frame_head");
+    png_debug(1, "in png_write_frame_head");
  
--    /* there is a chance this has been set after png_write_info was called,
--    * so it would be set but not written. is there a way to be sure? */
--    if (!(info_ptr->valid & PNG_INFO_acTL))
--        png_error(png_ptr, "png_write_frame_head(): acTL not set");
+-   /* There is a chance this has been set after png_write_info was called,
+-    * so it would be set but not written. Is there a way to be sure?
+-    */
+-   if (!(info_ptr->valid & PNG_INFO_acTL))
+-      png_error(png_ptr, "Cannot write APNG frame: missing acTL");
 -
-     png_write_reset(png_ptr);
+    png_write_reset(png_ptr);
  
-     png_write_reinit(png_ptr, info_ptr, width, height);
+    png_write_reinit(png_ptr, info_ptr, width, height);
 diff --git a/pngwutil.c b/pngwutil.c
-index 9d58b61..23f952a 100644
+index ad1baca..a1fe448 100644
 --- a/pngwutil.c
 +++ b/pngwutil.c
-@@ -2902,11 +2902,6 @@ png_write_reinit(png_structp png_ptr, png_infop info_ptr,
-         png_error(png_ptr, "width and/or height for a frame greater than"
-                            "the ones in IHDR");
+@@ -2900,11 +2900,6 @@ png_write_reinit(png_structp png_ptr, png_infop info_ptr,
+        height > png_ptr->first_frame_height)
+       png_error(png_ptr, "Oversized frame in fcTL");
  
--    png_set_IHDR(png_ptr, info_ptr, width, height,
--                 info_ptr->bit_depth, info_ptr->color_type,
--                 info_ptr->interlace_type, info_ptr->compression_type,
--                 info_ptr->filter_type);
+-   png_set_IHDR(png_ptr, info_ptr, width, height,
+-                info_ptr->bit_depth, info_ptr->color_type,
+-                info_ptr->interlace_type, info_ptr->compression_type,
+-                info_ptr->filter_type);
 -
-     png_ptr->width = width;
-     png_ptr->height = height;
-     png_ptr->rowbytes = PNG_ROWBYTES(png_ptr->pixel_depth, width);
+    png_ptr->width = width;
+    png_ptr->height = height;
+    png_ptr->rowbytes = PNG_ROWBYTES(png_ptr->pixel_depth, width);

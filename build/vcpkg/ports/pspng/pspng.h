@@ -50,7 +50,7 @@ DLLEXPORT int PngSetCompressionLevel(ps_png_struct* handle, int level);
 
 DLLEXPORT int PngWriteSig(ps_png_struct* handle);
 DLLEXPORT int PngWriteIhdr(ps_png_struct* handle, png_uint_32 width, png_uint_32 height, int bit_depth, int color_type, int interlace_method);
-DLLEXPORT int PngWriteIccp(ps_png_struct* handle, png_const_bytep profile);
+DLLEXPORT int PngWriteIccp(ps_png_struct* handle, png_const_bytep profile, png_uint_32 profile_len);
 DLLEXPORT int PngWriteSrgb(ps_png_struct* handle);
 DLLEXPORT int PngWritePlte(ps_png_struct* handle, png_const_colorp palette, int num_pal);
 DLLEXPORT int PngWriteTrns(ps_png_struct* handle, png_const_bytep trans, int num_trans);

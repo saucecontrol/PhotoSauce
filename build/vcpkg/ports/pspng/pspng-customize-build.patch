@@ -1,9 +1,9 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index ad3f242..adf46dd 100644
+index 6904296..f154b1c 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -762,6 +762,20 @@ if(PNG_FRAMEWORK)
-   target_link_libraries(png_framework PUBLIC ZLIB::ZLIB ${M_LIBRARY})
+@@ -752,6 +752,20 @@ if(PNG_FRAMEWORK)
+                         PUBLIC ${PNG_LINK_LIBRARIES})
  endif()
  
 +set(CMAKE_C_VISIBILITY_PRESET hidden)
@@ -13,7 +13,7 @@ index ad3f242..adf46dd 100644
 +set_target_properties(pspng PROPERTIES DEFINE_SYMBOL DLLDEFINE)
 +add_dependencies(pspng png_genfiles)
 +target_include_directories(pspng PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
-+target_link_libraries(pspng PUBLIC ZLIB::ZLIB ${M_LIBRARY})
++target_link_libraries(pspng PUBLIC ${PNG_LINK_LIBRARIES})
 +
 +if(UNIX AND HAVE_LD_VERSION_SCRIPT)
 +  set_target_properties(pspng PROPERTIES LINK_FLAGS
@@ -23,7 +23,7 @@ index ad3f242..adf46dd 100644
  if(NOT PNG_LIBRARY_TARGETS)
    message(SEND_ERROR "No library variant selected to build. "
                       "Please enable at least one of the following options: "
-@@ -1121,6 +1134,14 @@ if(NOT SKIP_INSTALL_FILES AND NOT SKIP_INSTALL_ALL)
+@@ -1170,6 +1184,15 @@ if(NOT SKIP_INSTALL_FILES AND NOT SKIP_INSTALL_ALL)
    endif()
  endif()
  
@@ -33,7 +33,8 @@ index ad3f242..adf46dd 100644
 +        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 +
-+install(FILES ${libpng_public_hdrs} pspng.h DESTINATION include/pspng)
++install(FILES ${libpng_public_hdrs} pspng.h
++        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/pspng COMPONENT include)
 +
  # Create an export file that CMake users can include() to import our targets.
  if(NOT SKIP_INSTALL_EXPORT AND NOT SKIP_INSTALL_ALL)

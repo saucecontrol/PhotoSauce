@@ -47,7 +47,7 @@ internal static unsafe partial class Libpng
     public static extern int PngWriteIhdr(ps_png_struct* handle, [NativeTypeName("png_uint_32")] uint width, [NativeTypeName("png_uint_32")] uint height, int bit_depth, int color_type, int interlace_method);
 
     [DllImport("pspng", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern int PngWriteIccp(ps_png_struct* handle, [NativeTypeName("png_const_bytep")] byte* profile);
+    public static extern int PngWriteIccp(ps_png_struct* handle, [NativeTypeName("png_const_bytep")] byte* profile, [NativeTypeName("png_uint_32")] uint profile_len);
 
     [DllImport("pspng", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern int PngWriteSrgb(ps_png_struct* handle);

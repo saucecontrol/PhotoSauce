@@ -11,8 +11,8 @@ namespace PhotoSauce.Interop.Libpng;
 
 internal static unsafe partial class Libpng
 {
-    [NativeTypeName("#define PNG_LIBPNG_VER_STRING \"1.6.44\"")]
-    public const string PNG_LIBPNG_VER_STRING = "1.6.44";
+    [NativeTypeName("#define PNG_LIBPNG_VER_STRING \"1.6.58\"")]
+    public const string PNG_LIBPNG_VER_STRING = "1.6.58";
 
     [NativeTypeName("#define PNG_LIBPNG_VER_SHAREDLIB 16")]
     public const int PNG_LIBPNG_VER_SHAREDLIB = 16;
@@ -29,8 +29,8 @@ internal static unsafe partial class Libpng
     [NativeTypeName("#define PNG_LIBPNG_VER_MINOR 6")]
     public const int PNG_LIBPNG_VER_MINOR = 6;
 
-    [NativeTypeName("#define PNG_LIBPNG_VER_RELEASE 44")]
-    public const int PNG_LIBPNG_VER_RELEASE = 44;
+    [NativeTypeName("#define PNG_LIBPNG_VER_RELEASE 58")]
+    public const int PNG_LIBPNG_VER_RELEASE = 58;
 
     [NativeTypeName("#define PNG_LIBPNG_VER_BUILD 0")]
     public const int PNG_LIBPNG_VER_BUILD = 0;
@@ -62,8 +62,8 @@ internal static unsafe partial class Libpng
     [NativeTypeName("#define PNG_LIBPNG_BUILD_BASE_TYPE PNG_LIBPNG_BUILD_STABLE")]
     public const int PNG_LIBPNG_BUILD_BASE_TYPE = 4;
 
-    [NativeTypeName("#define PNG_LIBPNG_VER 10644")]
-    public const int PNG_LIBPNG_VER = 10644;
+    [NativeTypeName("#define PNG_LIBPNG_VER 10658")]
+    public const int PNG_LIBPNG_VER = 10658;
 
     [NativeTypeName("#define PNG_LIBPNG_BUILD_TYPE (PNG_LIBPNG_BUILD_BASE_TYPE | PNG_LIBPNG_BUILD_PRIVATE)")]
     public const int PNG_LIBPNG_BUILD_TYPE = (4 | 16);
@@ -221,11 +221,23 @@ internal static unsafe partial class Libpng
     [NativeTypeName("#define PNG_INFO_eXIf 0x10000U")]
     public const uint PNG_INFO_eXIf = 0x10000U;
 
-    [NativeTypeName("#define PNG_INFO_acTL 0x20000U")]
-    public const uint PNG_INFO_acTL = 0x20000U;
+    [NativeTypeName("#define PNG_INFO_cICP 0x20000U")]
+    public const uint PNG_INFO_cICP = 0x20000U;
 
-    [NativeTypeName("#define PNG_INFO_fcTL 0x40000U")]
-    public const uint PNG_INFO_fcTL = 0x40000U;
+    [NativeTypeName("#define PNG_INFO_cLLI 0x40000U")]
+    public const uint PNG_INFO_cLLI = 0x40000U;
+
+    [NativeTypeName("#define PNG_INFO_mDCV 0x80000U")]
+    public const uint PNG_INFO_mDCV = 0x80000U;
+
+    [NativeTypeName("#define PNG_INFO_acTL 0x100000U")]
+    public const uint PNG_INFO_acTL = 0x100000U;
+
+    [NativeTypeName("#define PNG_INFO_fcTL 0x200000U")]
+    public const uint PNG_INFO_fcTL = 0x200000U;
+
+    [NativeTypeName("#define PNG_INFO_fdAT 0x400000U")]
+    public const uint PNG_INFO_fdAT = 0x400000U;
 
     [NativeTypeName("#define PNG_NO_FILTERS 0x00")]
     public const int PNG_NO_FILTERS = 0x00;
