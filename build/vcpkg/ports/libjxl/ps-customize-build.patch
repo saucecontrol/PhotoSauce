@@ -1,21 +1,21 @@
 diff --git a/lib/CMakeLists.txt b/lib/CMakeLists.txt
-index e435c97..ed71c41 100644
+index b814b33..21dc6ca 100644
 --- a/lib/CMakeLists.txt
 +++ b/lib/CMakeLists.txt
-@@ -158,7 +158,7 @@ include(jxl.cmake)
+@@ -187,7 +187,7 @@ include(jxl.cmake)
  if(JPEGXL_ENABLE_TOOLS OR BUILD_TESTING)
    include(jxl_extras.cmake)
  endif()
 -include(jxl_threads.cmake)
 +#include(jxl_threads.cmake)
- if (JPEGXL_ENABLE_JPEGLI)
-   include(jpegli.cmake)
- endif()
+ 
+ # For simplicity all the library headers, both source and generated ones, are
+ # gathered in the binary folder. There is no distinction on which libraries use
 diff --git a/lib/jxl.cmake b/lib/jxl.cmake
-index 5f46c90..404aff8 100644
+index 8d962e6..876509a 100644
 --- a/lib/jxl.cmake
 +++ b/lib/jxl.cmake
-@@ -197,6 +197,7 @@ target_link_libraries(jxl PUBLIC ${JPEGXL_COVERAGE_FLAGS} jxl_base)
+@@ -219,6 +219,7 @@ target_link_libraries(jxl PUBLIC ${JPEGXL_COVERAGE_FLAGS} jxl_base)
  target_link_libraries(jxl PUBLIC jxl_cms)
  target_link_libraries(jxl PRIVATE ${JPEGXL_INTERNAL_SHARED_LIBS})
  set_target_properties(jxl PROPERTIES
@@ -24,7 +24,7 @@ index 5f46c90..404aff8 100644
    SOVERSION ${JPEGXL_LIBRARY_SOVERSION})
  
 diff --git a/lib/jxl_cms.cmake b/lib/jxl_cms.cmake
-index b61975d..079bd73 100644
+index 582b842..b80d36d 100644
 --- a/lib/jxl_cms.cmake
 +++ b/lib/jxl_cms.cmake
 @@ -9,6 +9,7 @@ include(jxl_lists.cmake)
