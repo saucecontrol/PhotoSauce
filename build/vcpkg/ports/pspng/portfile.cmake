@@ -1,13 +1,14 @@
 set(LIBPNG_APNG_PATCH_PATH "")
+set(LIBPNG_APNG_PATCH_VERSION "1.6.58")
 if ("apng" IN_LIST FEATURES)
     if(VCPKG_HOST_IS_WINDOWS)
         vcpkg_acquire_msys(MSYS_ROOT PACKAGES gawk gzip NO_DEFAULT_PACKAGES)
         vcpkg_add_to_path("${MSYS_ROOT}/usr/bin")
     endif()
 
-    set(LIBPNG_APNG_PATCH_NAME "libpng-${VERSION}-apng.patch")
+    set(LIBPNG_APNG_PATCH_NAME "libpng-${LIBPNG_APNG_PATCH_VERSION}-apng.patch")
     vcpkg_download_distfile(LIBPNG_APNG_PATCH_ARCHIVE
-        URLS "https://downloads.sourceforge.net/project/libpng-apng/libpng16/${VERSION}/${LIBPNG_APNG_PATCH_NAME}.gz"
+        URLS "https://downloads.sourceforge.net/project/libpng-apng/libpng16/${LIBPNG_APNG_PATCH_VERSION}/${LIBPNG_APNG_PATCH_NAME}.gz"
         FILENAME "${LIBPNG_APNG_PATCH_NAME}.gz"
         SHA512 95a6f5bb7148b5c48dccd73811d7bcf9752a631a7bb4f4856670a7da12a7159581ac1bce1749318343794e0f5cb86972711ba2ec0f523c168f0991fa940687d5
     )
@@ -27,7 +28,7 @@ vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO pnggroup/libpng
     REF v${VERSION}
-    SHA512 65f54d805e1f7c46a5fc335b984e4cbd4f934e0f02fbf6673c13800b49a4c11fbeb4098eebfb33079527a56c3d933e97631f91ab68dbb31442982784f9241ace
+    SHA512 2d753e764846a0a75a10f2a00c6f4ae23d2ae37237c69d59d5e619da3f143d59f4ea9ce29c1fb39435df1cef77877c83b042a2275934c353a6603061da2d2dd9
     HEAD_REF libpng16
     PATCHES
         "${LIBPNG_APNG_PATCH_PATH}"
