@@ -190,6 +190,7 @@ internal sealed unsafe class HeifContainer : IImageContainer
 		private void* handle;
 		private byte* pixels;
 		private int stride;
+		private bool hasAlpha;
 
 		public override PixelFormat Format { get; }
 
@@ -200,9 +201,10 @@ internal sealed unsafe class HeifContainer : IImageContainer
 		{
 			cont.ensureHandle();
 
-			Format = PixelFormat.Rgb24;
 			Width = heif_image_handle_get_width(cont.handle);
 			Height = heif_image_handle_get_height(cont.handle);
+			hasAlpha = heif_image_handle_has_alpha_channel(cont.handle) != 0;
+			Format = hasAlpha ? PixelFormat.Rgba32 : PixelFormat.Rgb24;
 
 			container = cont;
 		}
@@ -227,7 +229,8 @@ internal sealed unsafe class HeifContainer : IImageContainer
 			options->num_codec_threads = 1;
 
 			void* img;
-			var res = heif_decode_image(container.handle, &img, heif_colorspace.heif_colorspace_RGB, heif_chroma.heif_chroma_interleaved_RGB, options);
+			var decodeChroma = hasAlpha ? heif_chroma.heif_chroma_interleaved_RGBA : heif_chroma.heif_chroma_interleaved_RGB;
+			var res = heif_decode_image(container.handle, &img, heif_colorspace.heif_colorspace_RGB, decodeChroma, options);
 
 			heif_decoding_options_free(options);
 			container.CheckResult(res);
