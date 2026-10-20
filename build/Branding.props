@@ -17,6 +17,12 @@
 				<PackageTags>ASP.NET Web Handler Module VirtualPathProvider Image Resize Resample Process</PackageTags>
 			</PropertyGroup>
 		</When>
+		<When Condition="'$(MSBuildProjectName)'=='ManagedCodecs.Ico'">
+			<PropertyGroup>
+				<Description>ICO and CUR decoder plugin for the PhotoSauce.MagicScaler pipeline.</Description>
+				<PackageTags>Image Decode ICO CUR Icon Cursor</PackageTags>
+			</PropertyGroup>
+		</When>
 		<When Condition="'$(MSBuildProjectName)'=='NativeCodecs.Giflib'">
 			<PropertyGroup>
 				<Description>GIF codec plugin for the PhotoSauce.MagicScaler pipeline.</Description>

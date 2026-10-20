@@ -70,6 +70,7 @@
 
 	<ItemGroup>
 		<InternalsVisibleTo Include="$(Company).WebRSize" />
+		<InternalsVisibleTo Include="$(Company).ManagedCodecs.Ico" />
 		<InternalsVisibleTo Include="$(Company).NativeCodecs.Giflib" />
 		<InternalsVisibleTo Include="$(Company).NativeCodecs.Libheif" />
 		<InternalsVisibleTo Include="$(Company).NativeCodecs.Libjpeg" />

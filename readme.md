@@ -16,6 +16,8 @@ MagicScaler runs on Windows and Linux.
 
 Linux hosting requires one or more of the cross-platform codec plugins available on [nuget.org](https://www.nuget.org/packages?q=photosauce.nativecodecs).  Most common image formats are supported.  Notable exceptions are support for BMP and TIFF images.
 
+ICO and CUR files can be decoded on any platform with the fully-managed [ManagedCodecs.Ico](src/ManagedCodecs/Ico) plugin.
+
 Usage
 -----
 
