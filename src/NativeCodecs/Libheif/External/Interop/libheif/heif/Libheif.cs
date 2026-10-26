@@ -870,11 +870,11 @@ internal static unsafe partial class Libheif
     [DllImport("heif", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern void heif_image_set_omaf_image_projection([NativeTypeName("heif_image*")] void* image, heif_omaf_image_projection image_projection);
 
-    [NativeTypeName("#define LIBHEIF_NUMERIC_VERSION ((1<<24) | (23<<16) | (5<<8) | 0)")]
-    public const int LIBHEIF_NUMERIC_VERSION = ((1 << 24) | (23 << 16) | (5 << 8) | 0);
+    [NativeTypeName("#define LIBHEIF_NUMERIC_VERSION ((1<<24) | (23<<16) | (7<<8) | 0)")]
+    public const int LIBHEIF_NUMERIC_VERSION = ((1 << 24) | (23 << 16) | (7 << 8) | 0);
 
-    [NativeTypeName("#define LIBHEIF_VERSION \"1.23.5\"")]
-    public const string LIBHEIF_VERSION = "1.23.5";
+    [NativeTypeName("#define LIBHEIF_VERSION \"1.23.7\"")]
+    public const string LIBHEIF_VERSION = "1.23.7";
 
     [NativeTypeName("#define heif_chroma_monochrome heif_chroma_planar")]
     public const heif_chroma heif_chroma_monochrome = heif_chroma_planar;
