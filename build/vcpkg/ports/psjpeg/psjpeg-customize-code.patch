@@ -1,9 +1,13 @@
 diff --git a/src/jdapistd.c b/src/jdapistd.c
-index 8f5f85a..6b66964 100644
+index 8f5f85a..43ff393 100644
 --- a/src/jdapistd.c
 +++ b/src/jdapistd.c
-@@ -203,8 +203,8 @@ _jpeg_crop_scanline(j_decompress_ptr cinfo, JDIMENSION *xoffset,
-   if (cinfo->master->lossless || cinfo->raw_data_out)
+@@ -200,11 +200,11 @@ _jpeg_crop_scanline(j_decompress_ptr cinfo, JDIMENSION *xoffset,
+   if (cinfo->data_precision != BITS_IN_JSAMPLE)
+     ERREXIT1(cinfo, JERR_BAD_PRECISION, cinfo->data_precision);
+ 
+-  if (cinfo->master->lossless || cinfo->raw_data_out)
++  if (cinfo->master->lossless)
      ERREXIT(cinfo, JERR_NOTIMPL);
  
 -  if ((cinfo->global_state != DSTATE_SCANNING &&

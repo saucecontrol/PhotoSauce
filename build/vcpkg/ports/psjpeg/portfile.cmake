@@ -2,12 +2,10 @@ vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO libjpeg-turbo/libjpeg-turbo
     REF "${VERSION}"
-    SHA512 1ce063e9e126d55019385da3a6ff4521a9a3958edeab15e2465ae3435026dac6e598277eea066173ada47da37159d0f7812b2227869c10dd141dcfe2ddeab720
+    SHA512 680b97652a51846e1965e70b5498f74ebf9e6eaa31c122546ba7b8eff9fa6b6eb85972802970e94cce4f539518ad421395eaffe121bce7ad7b8f23a9ab9731ef
     HEAD_REF master
     PATCHES
         add-options-for-docs-headers.patch
-        # workaround for vcpkg bug see #5697 on github for more information
-        workaround_cmake_system_processor.patch
         psjpeg-customize-build.patch
         psjpeg-customize-code.patch
 )
@@ -16,6 +14,8 @@ file(COPY ${CURRENT_PORT_DIR}/psjpeg.h ${CURRENT_PORT_DIR}/psjpeg.c ${CURRENT_PO
 
 if(VCPKG_TARGET_ARCHITECTURE STREQUAL "wasm32")
     set(LIBJPEGTURBO_SIMD -DWITH_SIMD=OFF)
+elseif(VCPKG_TARGET_ARCHITECTURE STREQUAL "arm64")
+    set(LIBJPEGTURBO_SIMD -DWITH_SIMD=ON -DNEON_INTRINSICS=ON)
 else()
     set(LIBJPEGTURBO_SIMD -DWITH_SIMD=ON)
     vcpkg_find_acquire_program(NASM)
@@ -34,6 +34,8 @@ vcpkg_cmake_configure(
         -DWITH_TURBOJPEG=OFF
         -DWITH_TOOLS=OFF
         ${LIBJPEGTURBO_SIMD}
+    MAYBE_UNUSED_VARIABLES
+        NEON_INTRINSICS
 )
 
 vcpkg_cmake_install()
