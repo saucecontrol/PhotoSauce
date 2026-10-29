@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>net8.0;net472</TargetFrameworks>
+		<OutputType>Exe</OutputType>
+		<LangVersion>preview</LangVersion>
+		<Nullable>enable</Nullable>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<IsPackable>false</IsPackable>
+		<RootNamespace>PhotoSauce.ManagedCodecs.Ico.Test</RootNamespace>
+
+		<!-- Must match the InternalsVisibleTo name and key the plugin grants in non-Dist builds. -->
+		<AssemblyName>ManagedCodecs.Ico.Test</AssemblyName>
+		<SignAssembly>true</SignAssembly>
+		<AssemblyOriginatorKeyFile>..\..\build\PhotoSauce.snk</AssemblyOriginatorKeyFile>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\ManagedCodecs\Ico\ManagedCodecs.Ico.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Decodes embedded PNG frames on every platform, as the Windows PNG codec would on Windows only.
+		     This package pins an exact PhotoSauce.MagicScaler version and uses its internals, while MagicScaler
+		     itself is built from source here.  Move it to the matching release whenever MagicScaler's version changes. -->
+		<PackageReference Include="PhotoSauce.NativeCodecs.Libpng" Version="1.6.59-preview1" />
+		<PackageReference Include="PolySharp" Version="1.15.0" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+		<PackageReference Include="xunit.v3" Version="3.1.0" />
+		<PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" PrivateAssets="all" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="Images\**" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+
+</Project>
