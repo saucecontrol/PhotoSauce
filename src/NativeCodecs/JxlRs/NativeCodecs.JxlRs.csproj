@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<VersionPrefix>0.6.0</VersionPrefix>
+		<TargetFrameworks>net8.0;net472</TargetFrameworks>
+		<JxlRsNativeManifest>$(MSBuildProjectDirectory)\Native\Cargo.toml</JxlRsNativeManifest>
+		<JxlRsNativeProfile Condition="'$(Configuration)'=='Debug'">debug</JxlRsNativeProfile>
+		<JxlRsNativeProfile Condition="'$(JxlRsNativeProfile)'==''">release</JxlRsNativeProfile>
+		<JxlRsNativeConfigurationArg Condition="'$(JxlRsNativeProfile)'=='release'">--release</JxlRsNativeConfigurationArg>
+		<JxlRsNativeFileName Condition="$([MSBuild]::IsOSPlatform('Windows'))">jxlrs.dll</JxlRsNativeFileName>
+		<JxlRsNativeFileName Condition="$([MSBuild]::IsOSPlatform('Linux'))">libjxlrs.so</JxlRsNativeFileName>
+		<JxlRsNativeFileName Condition="$([MSBuild]::IsOSPlatform('OSX'))">libjxlrs.dylib</JxlRsNativeFileName>
+		<JxlRsNativeOutput>$(MSBuildProjectDirectory)\Native\target\$(JxlRsNativeProfile)\$(JxlRsNativeFileName)</JxlRsNativeOutput>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\MagicScaler\MagicScaler.csproj" />
+		<Content Include="$(JxlRsNativeOutput)" Link="$(JxlRsNativeFileName)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+	</ItemGroup>
+
+	<Target Name="BuildJxlRsNative" BeforeTargets="PrepareForBuild" Condition="'$(DesignTimeBuild)'!='true' And '$(SkipJxlRsNativeBuild)'!='true'">
+		<Exec Command="cargo build --manifest-path &quot;$(JxlRsNativeManifest)&quot; $(JxlRsNativeConfigurationArg)" />
+	</Target>
+
+</Project>
