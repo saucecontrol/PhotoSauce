@@ -429,6 +429,10 @@ internal sealed unsafe class JxlContainer : IImageContainer, IMetadataSource, II
 			fixed (byte* pin = inbuff)
 			{
 				var status = readLoop(container.decoder, container.stream, pin, inbuff.Length);
+				nuint rewind = JxlDecoderReleaseInput(container.decoder);
+				if (rewind != 0)
+					container.stream.Seek(-(long)rewind, SeekOrigin.Current);
+
 				if (status != JxlDecoderStatus.JXL_DEC_FULL_IMAGE && container.currentFrame < container.frameCountRaw - 1)
 					throw new InvalidOperationException($"{nameof(Libjxl)} decoder failed.");
 			}
